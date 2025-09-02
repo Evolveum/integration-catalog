@@ -1,0 +1,28 @@
+package com.evolveum.midpoint.integration.catalog.object;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.UUID;
+
+/**
+ * Created by Dominik.
+ */
+@Entity
+@Table(name = "application_application_tag")
+@Getter @Setter
+public class ApplicationApplicationTag {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "application_id", nullable = false)
+    private Application application;
+
+    @ManyToOne
+    @JoinColumn(name = "tag_id", nullable = false)
+    private ApplicationTag applicationTag;
+}

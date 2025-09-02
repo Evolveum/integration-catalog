@@ -1,0 +1,42 @@
+# ending with / = directory, starting with / = absolute (from .gitignore location)
+# e.g. target/ is target directory ignored anywhere in the tree, /.idea/ is only in the root
+# to override generic rule, use !, e.g. !/some/module/build/ would not be ignored
+
+# build tool files
+target/
+build/
+test-output/
+dependency-reduced-pom.xml
+
+node_modules/
+
+# IDEA files
+/.idea/
+/.run/
+*.iml
+
+# Eclipse files
+.project
+.classpath
+.settings
+
+# JRebel files
+rebel.xml
+
+# jenv related, I guess
+.java-version
+
+# NetBeans files
+/nb-configuration.xml
+/nbactions.xml
+
+# backup, log and other files
+*~
+*.log
+*.versionsBackup
+.DS_Store
+_mess
+.checkstyle
+
+# midPoint Studio temporary files
+/scratches/
