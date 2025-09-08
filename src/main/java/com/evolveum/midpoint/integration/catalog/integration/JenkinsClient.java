@@ -7,7 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.integration;
 
-import com.evolveum.midpoint.integration.catalog.configure.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -17,6 +17,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
@@ -30,7 +31,7 @@ public class JenkinsClient {
         this.client = HttpClient.newHttpClient();
     }
 
-    public String triggerJob(String jobName, Map<String, String> parameters) throws IOException, InterruptedException {
+    public HttpResponse<String> triggerJob(String jobName, Map<String, String> parameters) throws IOException, InterruptedException {
         String jobUrl = String.format("/job/%s/buildWithParameters", jobName);
 
         URI uri = UriComponentsBuilder.fromUriString(properties.url()).path(jobUrl)
@@ -43,13 +44,11 @@ public class JenkinsClient {
 
         HttpRequest request = requestBuilder.POST(HttpRequest.BodyPublishers.noBody()).build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        return "RESPONSE_CODE: " + response.statusCode() + ", RESPONSE_BODY: " + response.body();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private String basicAuthHeader() {
         String auth = properties.username() + ":" + properties.apiToken();
-        return "Basic " + Base64.getEncoder().encodeToString(auth.getBytes());
+        return "Basic " + Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
     }
 }

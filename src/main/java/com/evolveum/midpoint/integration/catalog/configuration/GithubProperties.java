@@ -1,4 +1,4 @@
-package com.evolveum.midpoint.integration.catalog.configure;
+package com.evolveum.midpoint.integration.catalog.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

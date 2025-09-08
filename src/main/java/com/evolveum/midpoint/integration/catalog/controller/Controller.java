@@ -16,8 +16,6 @@ import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
@@ -43,12 +41,7 @@ public class Controller {
         this.applicationService = applicationService;
     }
 
-    @Operation(summary = "Get application by ID",
-            description = "Fetches a single application by its UUID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Application found"),
-            @ApiResponse(responseCode = "404", description = "Application not found")
-    })
+    @Operation(summary = "Get application by ID", description = "Fetches a single application by its UUID")
     @GetMapping("application/{id}")
     public ResponseEntity<Application> getApplication(@PathVariable UUID id) {
         try {
@@ -58,12 +51,7 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Get connector version by ID",
-            description = "Fetches a connector version by its UUID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Connector version found"),
-            @ApiResponse(responseCode = "404", description = "Connector version not found")
-    })
+    @Operation(summary = "Get connector version by ID", description = "Fetches a connector version by its UUID")
     @GetMapping("connector-version/{id}")
     public ResponseEntity<ConnidVersion> getConnectorVersion(@PathVariable UUID id) {
         try {
@@ -73,12 +61,7 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Get all application tags",
-            description = "Fetches a application tags")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Application tags found"),
-            @ApiResponse(responseCode = "404", description = "Application tags not found")
-    })
+    @Operation(summary = "Get all application tags", description = "Fetches a application tags")
     @GetMapping("application-tags")
     public ResponseEntity<List<ApplicationTag>> getApplicationTags() {
         try {
@@ -88,12 +71,7 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Get all countries of origin",
-            description = "Fetches a countries of origin")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Countries of origin found"),
-            @ApiResponse(responseCode = "404", description = "Countries of origin not found")
-    })
+    @Operation(summary = "Get all countries of origin", description = "Fetches a countries of origin")
     @GetMapping("countries-of-origin")
     public ResponseEntity<List<CountryOfOrigin>> getCountriesOfOrigin() {
         try {
@@ -103,40 +81,37 @@ public class Controller {
         }
     }
 
-    @PostMapping(path = "/csv")
-    public String createApplication() throws IOException, InterruptedException {
-//        return applicationService.createConnector(
-//                "csv",
-//                Implementation.FrameworkType.CONNID,
-//                "https://github.com/Evolveum/connector-csv/releases/tag/v2.8",
-//                "https://github.com/Evolveum/connector-csv.git");
-
-        return null;
+    @Operation(summary = "", description = "")
+    @PostMapping("/upload/connector")
+    public ResponseEntity<String> uploadConnector(@RequestBody UploadForm uploadForm) {
+        // FIXME remove try {
+        try {
+            return ResponseEntity.ok()
+                    .body(applicationService.uploadConnector(
+                            uploadForm.getApplication(),
+                            uploadForm.getImplementation(),
+                            uploadForm.getImplementationVersion(),
+                            uploadForm.getFiles()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
-    @PostMapping(path = "/csv/error")
-    public String createApplicationError() throws IOException, InterruptedException {
-//        return applicationService.createConnector(
-//                "csv",
-//                Implementation.FrameworkType.CONNID,
-//                "https://github.com/Evolveum/connector-csv/tree/testing/error",
-//                "https://github.com/Evolveum/connector-csv.git");
-
-        return null;
-    }
-
+    @Operation(summary = "", description = "")
     @PostMapping("/upload/continue/{oid}")
     public ResponseEntity successBuild(@RequestBody ContinueForm continueForm, @PathVariable UUID oid) {
         applicationService.successBuild(oid, continueForm);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
+    @Operation(summary = "", description = "")
     @PostMapping("/upload/continue/fail/{oid}")
     public ResponseEntity failBuild(@RequestBody FailForm failForm, @PathVariable UUID oid) {
         applicationService.failBuild(oid, failForm);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
+    @Operation(summary = "", description = "")
     @GetMapping("/download/{oid}")
     public ResponseEntity<byte[]> redirectToDownload(@PathVariable UUID oid) {
         ImplementationVersion version = applicationService.getImplementationVersion(oid);
@@ -154,26 +129,7 @@ public class Controller {
         }
     }
 
-    @PostMapping("upload/scimrest")
-    public ResponseEntity<String> uploadScimRestConnector(@RequestBody UploadForm uploadForm) {
-        try {
-            return ResponseEntity.ok()
-                    .body(applicationService.createConnector(
-                            uploadForm.getApplication(),
-                            uploadForm.getImplementation(),
-                            uploadForm.getImplementationVersion(),
-                            uploadForm.getFiles()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @Operation(summary = "Search applications by parameters",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Applications found"),
-            @ApiResponse(responseCode = "404", description = "Applications not found")
-    })
+    @Operation(summary = "Search applications by parameters", description = "")
     @PostMapping("application/search/{size}/{page}")
     public ResponseEntity<Page<Application>> searchApplication(
             @RequestBody SearchForm searchForm,
@@ -187,12 +143,7 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Search versions of connector by parameters",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Versions of connector found"),
-            @ApiResponse(responseCode = "404", description = "Versions of connector not found")
-    })
+    @Operation(summary = "Search versions of connector by parameters", description = "")
     @GetMapping("version-of-connector/search/{size}/{page}")
     public ResponseEntity<Page<ImplementationVersion>> searchVersionsOfConnector(
             @RequestBody SearchForm searchForm,

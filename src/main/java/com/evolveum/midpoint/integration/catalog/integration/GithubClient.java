@@ -2,7 +2,7 @@ package com.evolveum.midpoint.integration.catalog.integration;
 
 import com.evolveum.midpoint.integration.catalog.form.ItemFile;
 
-import com.evolveum.midpoint.integration.catalog.configure.GithubProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 
 import org.kohsuke.github.*;
@@ -22,7 +22,7 @@ public class GithubClient {
         this.properties = properties;
     }
 
-    public void createProject(String nameOfProject, ImplementationVersion newVersion, List<ItemFile> files) throws Exception {
+    public GHRepository createProject(String nameOfProject, ImplementationVersion newVersion, List<ItemFile> files) throws Exception {
         GitHub github = new GitHubBuilder()
                 .withOAuthToken(properties.apiToken())
                 .build();
@@ -50,5 +50,7 @@ public class GithubClient {
                 .create();
 
         masterRef.updateTo(commit.getSHA1());
+
+        return repo;
     }
 }

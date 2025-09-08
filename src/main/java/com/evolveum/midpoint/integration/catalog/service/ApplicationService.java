@@ -1,16 +1,18 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
-import com.evolveum.midpoint.integration.catalog.configure.GithubProperties;
-import com.evolveum.midpoint.integration.catalog.configure.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.ItemFile;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
-import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
+import lombok.extern.slf4j.Slf4j;
+import org.kohsuke.github.GHRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -29,6 +32,7 @@ import java.util.UUID;
 /**
  * Created by Dominik.
  */
+@Slf4j
 @Service
 public class ApplicationService {
 
@@ -96,40 +100,56 @@ public class ApplicationService {
         return countryOfOriginRepository.findAll();
     }
 
-    public String createConnector(
+    /**
+     * Method upload connector to integration catalog and return link to git repository at the successful processing and failure message at a processing failure.
+     * The connector is stored on GitHub in case there is no GitHub repositor of the connector and then upload to nexus with a use jenkins job.
+     * @param application
+     * @param implementation
+     * @param implementationVersion
+     * @param files
+     * @return
+     */
+    public String uploadConnector(
             Application application,
             Implementation implementation,
             ImplementationVersion implementationVersion,
             List<ItemFile> files
-    ) throws Exception {
-        applicationRepository.save(application);
+    ) {
         implementation.setApplication(application);
-        implementationRepository.save(implementation);
         implementationVersion.setImplementation(implementation);
-        implementationVersionRepository.save(implementationVersion);
 
-        GithubClient githubClient = new GithubClient(githubProperties);
-        githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
+        try {
+            if (Implementation.FrameworkType.SCIM_REST.equals(implementation.getFramework())) {
+                GithubClient githubClient = new GithubClient(githubProperties);
+                GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
+                implementationVersion.setCheckoutLink(repository.getHtmlUrl().toString());
+            }
 
-        JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
-        return jenkinsClient.triggerJob(
-                "integration-catalog-upload-connid-connector",
-                Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
-                        "BRANCH_URL", implementationVersion.getBrowseLink(),
-                        "CONNECTOR_OID", implementationVersion.getId().toString(),
-                        "IMPL_FRAMEWORK", implementation.getFramework().name()));
+            JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
+            HttpResponse<String> response = jenkinsClient.triggerJob(
+                    "integration-catalog-upload-connid-connector",
+                    Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
+                            "BRANCH_URL", implementationVersion.getBrowseLink(),
+                            "CONNECTOR_OID", implementationVersion.getId().toString(),
+                            "IMPL_FRAMEWORK", implementation.getFramework().name()));
+
+            log.info(response.body());
+        } catch (Exception e) {
+            implementationVersion.setErrorMessage(e.getMessage());
+            log.error(e.getMessage());
+            return e.getMessage();
+        } finally {
+            applicationRepository.save(application);
+            implementationRepository.save(implementation);
+            implementationVersionRepository.save(implementationVersion);
+        }
+
+        return implementationVersion.getCheckoutLink();
     }
 
     public String downloadConnector(String connectorVersion) {
-        Specification<ImplementationVersion> spec = (root, query, cb) ->
-                connectorVersion == null
-                        ? cb.conjunction()
-                        : cb.equal(root.get("connector_version"), connectorVersion);
-
-        // FIXME connector_version is unique or can be many records with same connector_version
-        List<ImplementationVersion> implementationVersions = implementationVersionRepository.findAll(spec);
-
-        return implementationVersions.getFirst().getDownloadLink();
+        // TODO move impl from controller
+        return null;
     }
 
     public void successBuild(UUID oid, ContinueForm continueForm) {
