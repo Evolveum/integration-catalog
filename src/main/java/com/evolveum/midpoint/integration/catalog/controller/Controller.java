@@ -205,4 +205,34 @@ public class Controller {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @Operation(summary = "Get all votes",
+            description = "Fetches votes")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Votes found"),
+            @ApiResponse(responseCode = "404", description = "Votes found")
+    })
+    @GetMapping("votes")
+    public ResponseEntity<List<Votes>> getVotes() {
+        try {
+            return ResponseEntity.ok(applicationService.getVotes());
+        } catch (RuntimeException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Get all requests",
+            description = "Fetches requests")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Requests found"),
+            @ApiResponse(responseCode = "404", description = "Requests found")
+    })
+    @GetMapping("votes")
+    public ResponseEntity<List<Request>> getRequest() {
+        try {
+            return ResponseEntity.ok(applicationService.getRequest());
+        } catch (RuntimeException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

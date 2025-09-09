@@ -19,6 +19,7 @@ public class FakeDataSeeder implements CommandLineRunner {
     private final ImplementationRepository implementationRepository;
     private final ImplementationTagRepository implementationTagRepository;
     private final ImplementationVersionRepository implementationVersionRepository;
+    private final DownloadsRepository downloadsRepository;
 
     private final Faker faker = new Faker();
 
@@ -28,7 +29,8 @@ public class FakeDataSeeder implements CommandLineRunner {
             CountryOfOriginRepository countryOfOriginRepository,
             ImplementationRepository implementationRepository,
             ImplementationTagRepository implementationTagRepository,
-            ImplementationVersionRepository implementationVersionRepository
+            ImplementationVersionRepository implementationVersionRepository,
+            DownloadsRepository downloadsRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -37,6 +39,7 @@ public class FakeDataSeeder implements CommandLineRunner {
         this.implementationRepository = implementationRepository;
         this.implementationTagRepository = implementationTagRepository;
         this.implementationVersionRepository = implementationVersionRepository;
+        this.downloadsRepository = downloadsRepository;
     }
 
     @Override

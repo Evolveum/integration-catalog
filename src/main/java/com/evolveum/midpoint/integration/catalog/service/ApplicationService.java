@@ -56,14 +56,23 @@ public class ApplicationService {
     @Autowired
     private final JenkinsProperties jenkinsProperties;
 
+    @Autowired
+    private final DownloadsRepository downloadsRepository;
+
+    @Autowired
+    private final RequestRepository requestRepository;
+
+    @Autowired
+    private final VotesRepository votesRepository;
+
     public ApplicationService(ApplicationRepository applicationRepository,
-            ApplicationTagRepository applicationTagRepository,
-            CountryOfOriginRepository countryOfOriginRepository,
-            ImplementationRepository implementationRepository,
-            ImplementationVersionRepository implementationVersionRepository,
-            ConnidVersionRepository connidVersionRepository,
-            GithubProperties githubProperties,
-            JenkinsProperties jenkinsProperties
+                              ApplicationTagRepository applicationTagRepository,
+                              CountryOfOriginRepository countryOfOriginRepository,
+                              ImplementationRepository implementationRepository,
+                              ImplementationVersionRepository implementationVersionRepository,
+                              ConnidVersionRepository connidVersionRepository,
+                              GithubProperties githubProperties,
+                              JenkinsProperties jenkinsProperties, DownloadsRepository downloadsRepository, RequestRepository requestRepository, VotesRepository votesRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -73,6 +82,9 @@ public class ApplicationService {
         this.connidVersionRepository = connidVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
+        this.downloadsRepository = downloadsRepository;
+        this.requestRepository = requestRepository;
+        this.votesRepository = votesRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -221,5 +233,13 @@ public class ApplicationService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
         return implementationVersionRepository.findAll(spec, pageable);
+    }
+
+    public List<Votes> getVotes() {
+        return votesRepository.findAll();
+    }
+
+    public List<Request> getRequest() {
+        return requestRepository.findAll();
     }
 }
