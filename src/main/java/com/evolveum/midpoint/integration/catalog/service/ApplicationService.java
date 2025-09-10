@@ -72,7 +72,10 @@ public class ApplicationService {
                               ImplementationVersionRepository implementationVersionRepository,
                               ConnidVersionRepository connidVersionRepository,
                               GithubProperties githubProperties,
-                              JenkinsProperties jenkinsProperties, DownloadsRepository downloadsRepository, RequestRepository requestRepository, VotesRepository votesRepository
+                              JenkinsProperties jenkinsProperties,
+                              DownloadsRepository downloadsRepository,
+                              RequestRepository requestRepository,
+                              VotesRepository votesRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;

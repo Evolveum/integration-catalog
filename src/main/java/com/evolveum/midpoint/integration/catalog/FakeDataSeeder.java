@@ -19,18 +19,20 @@ public class FakeDataSeeder implements CommandLineRunner {
     private final ImplementationRepository implementationRepository;
     private final ImplementationTagRepository implementationTagRepository;
     private final ImplementationVersionRepository implementationVersionRepository;
+    private final VotesRepository votesRepository;
+    private final RequestRepository requestRepository;
     private final DownloadsRepository downloadsRepository;
 
     private final Faker faker = new Faker();
 
     public FakeDataSeeder(ApplicationRepository applicationRepository,
-            ApplicationTagRepository applicationTagRepository,
-            ConnidVersionRepository connidVersionRepository,
-            CountryOfOriginRepository countryOfOriginRepository,
-            ImplementationRepository implementationRepository,
-            ImplementationTagRepository implementationTagRepository,
-            ImplementationVersionRepository implementationVersionRepository,
-            DownloadsRepository downloadsRepository
+                          ApplicationTagRepository applicationTagRepository,
+                          ConnidVersionRepository connidVersionRepository,
+                          CountryOfOriginRepository countryOfOriginRepository,
+                          ImplementationRepository implementationRepository,
+                          ImplementationTagRepository implementationTagRepository,
+                          ImplementationVersionRepository implementationVersionRepository, VotesRepository votesRepository, RequestRepository requestRepository,
+                          DownloadsRepository downloadsRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -39,6 +41,8 @@ public class FakeDataSeeder implements CommandLineRunner {
         this.implementationRepository = implementationRepository;
         this.implementationTagRepository = implementationTagRepository;
         this.implementationVersionRepository = implementationVersionRepository;
+        this.votesRepository = votesRepository;
+        this.requestRepository = requestRepository;
         this.downloadsRepository = downloadsRepository;
     }
 
