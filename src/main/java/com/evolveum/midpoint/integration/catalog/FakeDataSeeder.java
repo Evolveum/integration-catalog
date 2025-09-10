@@ -31,7 +31,9 @@ public class FakeDataSeeder implements CommandLineRunner {
                           CountryOfOriginRepository countryOfOriginRepository,
                           ImplementationRepository implementationRepository,
                           ImplementationTagRepository implementationTagRepository,
-                          ImplementationVersionRepository implementationVersionRepository, VotesRepository votesRepository, RequestRepository requestRepository,
+                          ImplementationVersionRepository implementationVersionRepository,
+                          VotesRepository votesRepository,
+                          RequestRepository requestRepository,
                           DownloadsRepository downloadsRepository
     ) {
         this.applicationRepository = applicationRepository;
