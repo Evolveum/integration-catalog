@@ -17,4 +17,6 @@ import java.util.UUID;
 
 public interface VotesRepository extends JpaRepository<Votes, UUID>,
         JpaSpecificationExecutor<Votes> {
+
+    long countByRequest_Id(Integer requestId);
 }

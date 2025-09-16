@@ -7,29 +7,38 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
+import com.evolveum.midpoint.integration.catalog.dto.RequestDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.form.UploadForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 
+import com.evolveum.midpoint.integration.catalog.repository.DownloadsRepository;
+import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
+import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 
+import com.evolveum.midpoint.integration.catalog.utils.Inet;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -39,8 +48,15 @@ public class Controller {
 
     private final ApplicationService applicationService;
 
-    public Controller(ApplicationService applicationService) {
+    private final DownloadsRepository downloadsRepository;
+    private final ImplementationVersionRepository implementationVersionRepository;
+    private final RequestRepository requestRepository;
+
+    public Controller(ApplicationService applicationService, DownloadsRepository downloadsRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository) {
         this.applicationService = applicationService;
+        this.downloadsRepository = downloadsRepository;
+        this.implementationVersionRepository = implementationVersionRepository;
+        this.requestRepository = requestRepository;
     }
 
     @Operation(summary = "Get application by ID",
@@ -138,12 +154,31 @@ public class Controller {
     }
 
     @GetMapping("/download/{oid}")
-    public ResponseEntity<byte[]> redirectToDownload(@PathVariable UUID oid) {
-        ImplementationVersion version = applicationService.getImplementationVersion(oid);
+    public ResponseEntity<byte[]> redirectToDownload(@PathVariable Integer oid, HttpServletRequest request) {
+        ImplementationVersion version = implementationVersionRepository
+                .findById(oid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
         try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
             byte[] fileBytes = in.readAllBytes();
             String filename = version.getDownloadLink().substring(version.getDownloadLink().lastIndexOf('/') + 1);
+
+            Inet ip = new Inet(request.getRemoteAddr());
+            String ua = request.getHeader("User-Agent");
+            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(10);
+
+            //get last record
+            boolean duplicityCheck = downloadsRepository.existsRecentDuplicate(version, ip, ua, cutoff);
+
+            //check for duplicity
+            if (!duplicityCheck) {
+                Downloads dl = new Downloads();
+                dl.setImplementationVersion(version);
+                dl.setIpAddress(ip);
+                dl.setUserAgent(ua);
+                dl.setDownloadedAt(OffsetDateTime.now());
+                downloadsRepository.save(dl);
+            }
 
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -210,7 +245,7 @@ public class Controller {
             description = "Fetches votes")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Votes found"),
-            @ApiResponse(responseCode = "404", description = "Votes found")
+            @ApiResponse(responseCode = "404", description = "Votes not found")
     })
     @GetMapping("votes")
     public ResponseEntity<List<Votes>> getVotes() {
@@ -221,18 +256,40 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Get all requests",
+    /*@Operation(summary = "Get all requests",
             description = "Fetches requests")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests found"),
-            @ApiResponse(responseCode = "404", description = "Requests found")
+            @ApiResponse(responseCode = "404", description = "Requests not found")
     })
-    @GetMapping("votes")
+    @GetMapping("requests")
     public ResponseEntity<List<Request>> getRequest() {
         try {
             return ResponseEntity.ok(applicationService.getRequest());
         } catch (RuntimeException ex) {
             return ResponseEntity.notFound().build();
         }
+    }*/
+
+    @GetMapping("/requests/{id}")
+    public ResponseEntity<RequestDto> getRequest(@PathVariable Long id) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        return ResponseEntity.ok(RequestDto.fromEntity(request));
+    }
+
+    @GetMapping("/requests")
+    public List<RequestDto> getAllRequests() {
+        return requestRepository.findAll()
+                .stream()
+                .map(RequestDto::fromEntity)
+                .toList();
+    }
+
+    @GetMapping("/applications/{appId}/requests")
+    public List<RequestDto> getRequestsForApplication(@PathVariable UUID appId) {
+        return requestRepository.findByApplication_Id(appId).stream()
+                .map(RequestDto::fromEntity)
+                .toList();
     }
 }

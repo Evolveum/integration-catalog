@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 /**
  * Created by TomasS.
@@ -16,8 +17,13 @@ import java.time.OffsetDateTime;
 @Getter @Setter
 public class Downloads {
 
-    @Column(name = "implementation_version_id")
-    private String implementationVersionId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "implementation_version_id", nullable = false)
+    private ImplementationVersion implementationVersion;
 
     @Column(name = "ip_address", columnDefinition = "inet", nullable = false)
     private Inet ipAddress;

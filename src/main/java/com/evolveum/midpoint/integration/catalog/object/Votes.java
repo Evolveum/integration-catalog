@@ -14,8 +14,13 @@ import java.time.OffsetDateTime;
 @Getter @Setter
 public class Votes {
 
-    @Column(name = "request_id", nullable = false)
-    private String requestId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id", nullable = false)
+    private Request request;
 
     @Column(name = "voter", nullable = false)
     private String voter;
