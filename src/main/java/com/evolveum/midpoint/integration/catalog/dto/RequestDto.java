@@ -13,7 +13,7 @@ public record RequestDto(
         return new RequestDto(
                 request.getId(),
                 request.getRequester(),
-                request.getApplication() != null ? request.getApplication().getName() : null,
+                request.getApplicationId() != null ? request.getApplicationId().toString() : null,
                 request.getCapabilitiesType() != null ? request.getCapabilitiesType().name() : null,
                 request.getVotesCount()
         );

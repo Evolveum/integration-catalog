@@ -154,7 +154,7 @@ public class Controller {
     }
 
     @GetMapping("/download/{oid}")
-    public ResponseEntity<byte[]> redirectToDownload(@PathVariable Integer oid, HttpServletRequest request) {
+    public ResponseEntity<byte[]> redirectToDownload(@PathVariable UUID oid, HttpServletRequest request) {
         ImplementationVersion version = implementationVersionRepository
                 .findById(oid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
@@ -173,7 +173,7 @@ public class Controller {
             //check for duplicity
             if (!duplicityCheck) {
                 Downloads dl = new Downloads();
-                dl.setImplementationVersion(version);
+                dl.setImplementationVersion(version.getId());
                 dl.setIpAddress(ip);
                 dl.setUserAgent(ua);
                 dl.setDownloadedAt(OffsetDateTime.now());
@@ -256,7 +256,9 @@ public class Controller {
         }
     }
 
-    /*@Operation(summary = "Get all requests",
+    /*
+    @Operation(summary = "Get all requests",
+
             description = "Fetches requests")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests found"),
@@ -269,21 +271,24 @@ public class Controller {
         } catch (RuntimeException ex) {
             return ResponseEntity.notFound().build();
         }
-    }*/
-
-    @GetMapping("/requests/{id}")
-    public ResponseEntity<RequestDto> getRequest(@PathVariable Long id) {
-        Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
-        return ResponseEntity.ok(RequestDto.fromEntity(request));
     }
+    */
 
+    /*
     @GetMapping("/requests")
     public List<RequestDto> getAllRequests() {
         return requestRepository.findAll()
                 .stream()
                 .map(RequestDto::fromEntity)
                 .toList();
+    }
+    */
+
+    @GetMapping("/requests/{id}")
+    public ResponseEntity<RequestDto> getRequest(@PathVariable Long id) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        return ResponseEntity.ok(RequestDto.fromEntity(request));
     }
 
     @GetMapping("/applications/{appId}/requests")

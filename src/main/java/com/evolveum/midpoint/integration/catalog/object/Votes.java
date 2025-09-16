@@ -20,7 +20,7 @@ public class Votes {
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "request_id", nullable = false)
-    private Request request;
+    private Integer requestId;
 
     @Column(name = "voter", nullable = false)
     private String voter;

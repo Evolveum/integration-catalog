@@ -8,6 +8,7 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by TomasS.
@@ -31,7 +32,7 @@ public class Request {
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)
-    private Application application;
+    private UUID applicationId;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)

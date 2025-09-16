@@ -18,12 +18,12 @@ import java.util.UUID;
 public class Downloads {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "implementation_version_id", nullable = false)
-    private ImplementationVersion implementationVersion;
+    private UUID implementationVersion;
 
     @Column(name = "ip_address", columnDefinition = "inet", nullable = false)
     private Inet ipAddress;
