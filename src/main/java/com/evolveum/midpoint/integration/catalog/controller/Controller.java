@@ -7,7 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
-import com.evolveum.midpoint.integration.catalog.dto.RequestDto;
+import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,7 +39,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -48,13 +48,11 @@ public class Controller {
 
     private final ApplicationService applicationService;
 
-    private final DownloadsRepository downloadsRepository;
     private final ImplementationVersionRepository implementationVersionRepository;
     private final RequestRepository requestRepository;
 
     public Controller(ApplicationService applicationService, DownloadsRepository downloadsRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository) {
         this.applicationService = applicationService;
-        this.downloadsRepository = downloadsRepository;
         this.implementationVersionRepository = implementationVersionRepository;
         this.requestRepository = requestRepository;
     }
@@ -119,6 +117,12 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Get CSV",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "CSV found"),
+            @ApiResponse(responseCode = "404", description = "CSV not found")
+    })
     @PostMapping(path = "/csv")
     public String createApplication() throws IOException, InterruptedException {
 //        return applicationService.createConnector(
@@ -130,6 +134,12 @@ public class Controller {
         return null;
     }
 
+    @Operation(summary = "Get CSV error",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "CSV error found"),
+            @ApiResponse(responseCode = "404", description = "CSV error not found")
+    })
     @PostMapping(path = "/csv/error")
     public String createApplicationError() throws IOException, InterruptedException {
 //        return applicationService.createConnector(
@@ -141,20 +151,40 @@ public class Controller {
         return null;
     }
 
+    @Operation(summary = "Upload status - success",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Upload status - success worked"),
+            @ApiResponse(responseCode = "404", description = "Upload status - success did not work")
+    })
     @PostMapping("/upload/continue/{oid}")
     public ResponseEntity successBuild(@RequestBody ContinueForm continueForm, @PathVariable UUID oid) {
         applicationService.successBuild(oid, continueForm);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
+    @Operation(summary = "Upload status - fail",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Upload status - failed"),
+            @ApiResponse(responseCode = "404", description = "Upload status - did not fail")
+    })
     @PostMapping("/upload/continue/fail/{oid}")
     public ResponseEntity failBuild(@RequestBody FailForm failForm, @PathVariable UUID oid) {
         applicationService.failBuild(oid, failForm);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
+    @Operation(summary = "Download based on ID",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Download based on ID worked"),
+            @ApiResponse(responseCode = "404", description = "Download based on ID failed")
+    })
     @GetMapping("/download/{oid}")
     public ResponseEntity<byte[]> redirectToDownload(@PathVariable UUID oid, HttpServletRequest request) {
+        long offset = 10;
+
         ImplementationVersion version = implementationVersionRepository
                 .findById(oid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
@@ -165,20 +195,9 @@ public class Controller {
 
             Inet ip = new Inet(request.getRemoteAddr());
             String ua = request.getHeader("User-Agent");
-            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(10);
+            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(offset);
 
-            //get last record
-            boolean duplicityCheck = downloadsRepository.existsRecentDuplicate(version, ip, ua, cutoff);
-
-            //check for duplicity
-            if (!duplicityCheck) {
-                Downloads dl = new Downloads();
-                dl.setImplementationVersion(version.getId());
-                dl.setIpAddress(ip);
-                dl.setUserAgent(ua);
-                dl.setDownloadedAt(OffsetDateTime.now());
-                downloadsRepository.save(dl);
-            }
+            applicationService.recordDownloadIfNew(version, ip, ua, cutoff);
 
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -189,6 +208,12 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Upload Scimrest Connector",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "ScimRest Connector upload successful"),
+            @ApiResponse(responseCode = "404", description = "ScimRest Connector upload failed")
+    })
     @PostMapping("upload/scimrest")
     public ResponseEntity<String> uploadScimRestConnector(@RequestBody UploadForm uploadForm) {
         try {
@@ -241,60 +266,45 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Get all votes",
-            description = "Fetches votes")
+    @Operation(summary = "Get Request ID",
+            description = "")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Votes found"),
-            @ApiResponse(responseCode = "404", description = "Votes not found")
+            @ApiResponse(responseCode = "200", description = "Request ID found"),
+            @ApiResponse(responseCode = "404", description = "Request ID not found")
     })
-    @GetMapping("votes")
-    public ResponseEntity<List<Votes>> getVotes() {
-        try {
-            return ResponseEntity.ok(applicationService.getVotes());
-        } catch (RuntimeException ex) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /*
-    @Operation(summary = "Get all requests",
-
-            description = "Fetches requests")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Requests found"),
-            @ApiResponse(responseCode = "404", description = "Requests not found")
-    })
-    @GetMapping("requests")
-    public ResponseEntity<List<Request>> getRequest() {
-        try {
-            return ResponseEntity.ok(applicationService.getRequest());
-        } catch (RuntimeException ex) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-    */
-
-    /*
-    @GetMapping("/requests")
-    public List<RequestDto> getAllRequests() {
-        return requestRepository.findAll()
-                .stream()
-                .map(RequestDto::fromEntity)
-                .toList();
-    }
-    */
-
     @GetMapping("/requests/{id}")
-    public ResponseEntity<RequestDto> getRequest(@PathVariable Long id) {
+    public ResponseEntity<Request> getRequest(@PathVariable Long id) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
-        return ResponseEntity.ok(RequestDto.fromEntity(request));
+        return ResponseEntity.ok(request);
     }
 
+    @Operation(summary = "Get Requests for Application ID",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Requests for Application ID found"),
+            @ApiResponse(responseCode = "404", description = "Requests for Application ID not found")
+    })
     @GetMapping("/applications/{appId}/requests")
-    public List<RequestDto> getRequestsForApplication(@PathVariable UUID appId) {
+    public List<Request> getRequestsForApplication(@PathVariable UUID appId) {
         return requestRepository.findByApplication_Id(appId).stream()
-                .map(RequestDto::fromEntity)
                 .toList();
+    }
+
+    @Operation(summary = "Create Request",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Create Request successfully"),
+            @ApiResponse(responseCode = "404", description = "Create Request failed")
+    })
+    @PostMapping("/requests")
+    public ResponseEntity<Request> createRequest(@Valid @RequestBody CreateRequestDto dto) {
+        try {
+            Request created = applicationService.createRequest(
+                    dto.applicationId(), dto.capabilitiesType(), dto.requester());
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
     }
 }

@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) 2010-2025 Evolveum and contributors
+ *
+ * This work is dual-licensed under the Apache License 2.0
+ * and European Union Public License. See LICENSE file for details.
+ */
+
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
@@ -11,6 +18,7 @@ import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
+import com.evolveum.midpoint.integration.catalog.utils.Inet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -242,7 +250,40 @@ public class ApplicationService {
         return votesRepository.findAll();
     }
 
-    public List<Request> getRequest() {
+    public List<Request> getRequests() {
         return requestRepository.findAll();
+    }
+
+    public void recordDownloadIfNew(ImplementationVersion version, Inet ip, String userAgent, OffsetDateTime cutoff) {
+        boolean duplicate = downloadsRepository
+                .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
+
+        if (!duplicate) {
+            Downloads dl = new Downloads();
+            dl.setImplementationVersion(version.getId());
+            dl.setIpAddress(ip);
+            dl.setUserAgent(userAgent);
+            dl.setDownloadedAt(OffsetDateTime.now());
+            downloadsRepository.save(dl);
+        }
+    }
+
+    public Request createRequest(UUID applicationId, String capabilitiesType, String requester) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found: " + applicationId));
+
+        Request.CapabilitiesType ct;
+        try {
+            ct = Request.CapabilitiesType.valueOf(capabilitiesType.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid capabilitiesType: " + capabilitiesType +
+                    " (allowed: READ, CREATE, MODIFY, DELETE)");
+        }
+
+        Request r = new Request();
+        r.setApplicationId(application.getId());
+        r.setCapabilitiesType(ct);
+        r.setRequester(requester);
+        return requestRepository.save(r);
     }
 }

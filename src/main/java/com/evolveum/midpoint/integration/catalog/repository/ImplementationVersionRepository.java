@@ -15,6 +15,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.UUID;
 
+/**
+ * Created by Tomas.
+ */
 public interface ImplementationVersionRepository extends JpaRepository<ImplementationVersion, UUID>,
         JpaSpecificationExecutor<ImplementationVersion> {
 }

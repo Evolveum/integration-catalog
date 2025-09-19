@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Created by Dominik, Tomas.
+ */
 @Entity
 @Table(name = "application")
 @Getter @Setter

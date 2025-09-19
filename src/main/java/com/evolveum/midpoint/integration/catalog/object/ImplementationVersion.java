@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Created by Dominik, Tomas.
+ */
 @Entity
 @Table(name = "implementation_version")
 @Getter @Setter
