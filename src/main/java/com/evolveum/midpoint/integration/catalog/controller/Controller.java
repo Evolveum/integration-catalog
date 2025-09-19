@@ -117,38 +117,20 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Get CSV",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "CSV found"),
-            @ApiResponse(responseCode = "404", description = "CSV not found")
-    })
-    @PostMapping(path = "/csv")
-    public String createApplication() throws IOException, InterruptedException {
-//        return applicationService.createConnector(
-//                "csv",
-//                Implementation.FrameworkType.CONNID,
-//                "https://github.com/Evolveum/connector-csv/releases/tag/v2.8",
-//                "https://github.com/Evolveum/connector-csv.git");
-
-        return null;
-    }
-
-    @Operation(summary = "Get CSV error",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "CSV error found"),
-            @ApiResponse(responseCode = "404", description = "CSV error not found")
-    })
-    @PostMapping(path = "/csv/error")
-    public String createApplicationError() throws IOException, InterruptedException {
-//        return applicationService.createConnector(
-//                "csv",
-//                Implementation.FrameworkType.CONNID,
-//                "https://github.com/Evolveum/connector-csv/tree/testing/error",
-//                "https://github.com/Evolveum/connector-csv.git");
-
-        return null;
+    @Operation(summary = "", description = "")
+    @PostMapping("/upload/connector")
+    public ResponseEntity<String> uploadConnector(@RequestBody UploadForm uploadForm) {
+        // FIXME remove try {
+        try {
+            return ResponseEntity.ok()
+                    .body(applicationService.uploadConnector(
+                            uploadForm.getApplication(),
+                            uploadForm.getImplementation(),
+                            uploadForm.getImplementationVersion(),
+                            uploadForm.getFiles()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
     @Operation(summary = "Upload status - success",

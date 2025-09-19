@@ -7,13 +7,14 @@
 
 package com.evolveum.midpoint.integration.catalog;
 
-import com.evolveum.midpoint.integration.catalog.configure.GithubProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(GithubProperties.class)
+@EnableConfigurationProperties({GithubProperties.class, JenkinsProperties.class})
 public class IntegrationCatalogApplication {
 
 	public static void main(String[] args) {

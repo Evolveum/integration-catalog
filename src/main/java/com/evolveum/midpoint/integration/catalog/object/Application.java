@@ -11,7 +11,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
@@ -55,9 +57,11 @@ public class Application {
     @Column(columnDefinition = "ApplicationLifecycleType")
     private ApplicationLifecycleType lifecycleState;
 
+    @CreationTimestamp
     @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
     private OffsetDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "last_modified", columnDefinition = "TIMESTAMPTZ")
     private OffsetDateTime lastModified;
 

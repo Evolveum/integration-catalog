@@ -58,11 +58,6 @@ public class ImplementationVersion {
     @Column(name = "connector_version")
     private String connectorVersion;
 
-//    @Enumerated(EnumType.STRING)
-//    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-//    @Column(name="capabilities", columnDefinition = "CapabilitiesType[]")
-//    private List<CapabilitiesType> capabilities;
-
     @Column(name = "browse_link")
     private String browseLink;
 

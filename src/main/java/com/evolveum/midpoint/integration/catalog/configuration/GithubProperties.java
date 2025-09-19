@@ -5,14 +5,17 @@
  * and European Union Public License. See LICENSE file for details.
  */
 
-package com.evolveum.midpoint.integration.catalog.configure;
+package com.evolveum.midpoint.integration.catalog.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "jenkins")
-public record JenkinsProperties(
-        String url,
+/**
+ * Created by Dominik.
+ */
+@ConfigurationProperties(prefix = "github")
+public record GithubProperties (
         String apiToken,
-        String username
+        String groupPath,
+        String templatePath
 ) {
 }
