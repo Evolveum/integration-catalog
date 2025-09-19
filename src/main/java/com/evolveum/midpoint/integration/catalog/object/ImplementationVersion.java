@@ -16,8 +16,13 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
+/**
+ * Created by Dominik, Tomas.
+ */
 @Entity
 @Table(name = "implementation_version")
 @Getter @Setter
@@ -92,4 +97,14 @@ public class ImplementationVersion {
 
     @Column(name = "error_message")
     private String errorMessage;
+
+    //connection to Downloads
+    @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)
+    @OrderBy("downloadedAt DESC")
+    private List<Downloads> downloads = new ArrayList<>();
+
+    @Transient
+    public long getDownloadCount() {
+        return downloads == null ? 0 : downloads.size();
+    }
 }

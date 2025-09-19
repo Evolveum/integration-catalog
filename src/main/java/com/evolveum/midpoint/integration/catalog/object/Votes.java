@@ -11,25 +11,25 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
+import java.time.OffsetDateTime;
 
 /**
- * Created by Dominik.
+ * Created by TomasS.
  */
 @Entity
-@Table(name = "application_application_tag")
+@Table(name = "votes")
 @Getter @Setter
-public class ApplicationApplicationTag {
+public class Votes {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "application_id", nullable = false)
-    private Application application;
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id", nullable = false)
+    private Integer requestId;
 
-    @ManyToOne
-    @JoinColumn(name = "tag_id", nullable = false)
-    private ApplicationTag applicationTag;
+    @Column(name = "voter", nullable = false)
+    private String voter;
 }
+
