@@ -338,21 +338,23 @@ public class ApplicationService {
     }
 
     public List<Request> getRequestsForApplication(UUID appId) {
-        return requestRepository.findByApplicationId(appId);
+        return requestRepository.findByApplication_Id(appId);
     }
 
-    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
+    public byte[] downloadConnector(UUID versionId, String ip, String userAgent, long offsetSeconds) {
         ImplementationVersion version = implementationVersionRepository.findById(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
 
         try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
             byte[] fileBytes = in.readAllBytes();
 
-            InetAddress inet = new InetAddress(ip);
-            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
+            Inet inet = new Inet(ip);
+            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(offsetSeconds);
             recordDownloadIfNew(version, inet, userAgent, cutoff);
 
             return fileBytes;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to download connector: " + e.getMessage(), e);
         }
     }
 }
