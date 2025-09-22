@@ -29,12 +29,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -305,5 +309,34 @@ public class ApplicationService {
         r.setCapabilitiesType(ct);
         r.setRequester(requester);
         return requestRepository.save(r);
+    }
+
+    public Optional<ImplementationVersion> findImplementationVersion(UUID id) {
+        return implementationVersionRepository.findById(id);
+    }
+
+    public Optional<Request> getRequest(Long id) {
+        return requestRepository.findById(id);
+    }
+
+    public List<Request> getRequestsForApplication(UUID appId) {
+        return requestRepository.findByApplication_Id(appId);
+    }
+
+    public byte[] downloadConnector(UUID versionId, String ip, String userAgent, long offsetSeconds) {
+        ImplementationVersion version = implementationVersionRepository.findById(versionId)
+                .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
+
+        try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
+            byte[] fileBytes = in.readAllBytes();
+
+            Inet inet = new Inet(ip);
+            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(offsetSeconds);
+            recordDownloadIfNew(version, inet, userAgent, cutoff);
+
+            return fileBytes;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to download connector: " + e.getMessage(), e);
+        }
     }
 }
