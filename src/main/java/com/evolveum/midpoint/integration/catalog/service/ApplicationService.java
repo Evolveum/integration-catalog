@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
@@ -18,6 +19,7 @@ import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
+import com.evolveum.midpoint.integration.catalog.utils.ApplicationReadPort;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
 import com.evolveum.midpoint.integration.catalog.utils.Inet;
@@ -81,6 +83,9 @@ public class ApplicationService {
     @Autowired
     private final VotesRepository votesRepository;
 
+    @Autowired
+    private final ApplicationReadPort applicationReadPort;
+
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
@@ -91,7 +96,7 @@ public class ApplicationService {
                               JenkinsProperties jenkinsProperties,
                               DownloadsRepository downloadsRepository,
                               RequestRepository requestRepository,
-                              VotesRepository votesRepository
+                              VotesRepository votesRepository, ApplicationReadPort applicationReadPort
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -104,6 +109,7 @@ public class ApplicationService {
         this.downloadsRepository = downloadsRepository;
         this.requestRepository = requestRepository;
         this.votesRepository = votesRepository;
+        this.applicationReadPort = applicationReadPort;
     }
 
     public Application getApplication(UUID uuid) {
@@ -338,5 +344,20 @@ public class ApplicationService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to download connector: " + e.getMessage(), e);
         }
+    }
+
+    public Page<ApplicationCardDto> list(Pageable pageable, String q, Boolean featured) {
+        var page = featured != null && featured
+                ? applicationReadPort.findFeatured(pageable)
+                : (q != null && !q.isBlank()
+                ? applicationReadPort.searchByName(q.trim(), pageable)
+                : applicationReadPort.findAll(pageable));
+
+        return page.map(this::toCard);
+    }
+
+    private ApplicationCardDto toCard(Application a) {
+        return new ApplicationCardDto(
+        );
     }
 }

@@ -49,8 +49,12 @@ public class Application {
 
     private String description;
 
-//    @Lob
-//    private byte[] logo;
+    //TODO - how to load logo - this way or with url somehow
+    @Lob
+    private byte[] logo;
+
+    //TODO - how to properly implement popular in GUI
+    private Boolean popular;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)

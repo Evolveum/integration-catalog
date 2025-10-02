@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
 import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
@@ -24,6 +25,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -275,5 +278,19 @@ public class Controller {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
+    }
+
+    @Operation(summary = "Show all available applications",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Showed all available applications successfully"),
+            @ApiResponse(responseCode = "404", description = "Show all available applications failed")
+    })
+    @GetMapping("/applications")
+    public Page<ApplicationCardDto> list(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Boolean featured,
+            @PageableDefault(size = 12, sort = "name") Pageable pageable) {
+        return applicationService.list(pageable, q, featured);
     }
 }
