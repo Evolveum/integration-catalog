@@ -1,0 +1,9 @@
+.card {
+  border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem;
+  display: flex; gap: .75rem; align-items: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.card img { width: 56px; height: 56px; object-fit: contain; }
+.card .content { display: grid; gap: .25rem; }
+.card .content h2 { margin: 0; font-size: 1.1rem; }
+.card .content p { margin: 0; color: #4b5563; }

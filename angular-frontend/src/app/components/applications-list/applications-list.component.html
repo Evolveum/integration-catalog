@@ -1,0 +1,10 @@
+<div class="wrap">
+  <h1>Applications</h1>
+
+  <div *ngIf="loading">Loading…</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div class="grid" *ngIf="!loading && !error">
+    <app-application-card *ngFor="let app of apps" [app]="app"></app-application-card>
+  </div>
+</div>
