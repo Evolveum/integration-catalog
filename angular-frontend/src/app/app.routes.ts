@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
-import { ApplicationsListComponent } from './components/applications-list/applications-list.component';
+import { ApplicationsList } from './components/applications-list/applications-list';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'applications' },
-  { path: 'applications', component: ApplicationsListComponent },
+  { path: '', redirectTo: '/applications', pathMatch: 'full' },
+  { path: 'applications', component: ApplicationsList }
 ];

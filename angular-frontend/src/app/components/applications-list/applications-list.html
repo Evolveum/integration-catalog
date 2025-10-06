@@ -1,0 +1,143 @@
+<div class="applications-container">
+  <div class="page-header">
+    <div class="page-header-content">
+      <p class="page-title">Integration Catalog</p>
+      <p class="page-description">Easily connect any application or system to midpoint</p>
+    </div>
+  </div>
+
+  <div class="intro-text">
+    <p>Explore available integrations to jump-start your</p>
+    <p>workflow, build your own AI-guided assistance,</p>
+    <p>or upload an existing configuration to get started in just</p>
+    <p>minutes. The process is fast, flexible, and user-friendly.</p>
+  </div>
+
+  <div class="search-bar">
+    <div class="search-input-wrapper">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Search for integrations..."
+        [value]="searchQuery()"
+        (input)="onSearchChange($event)"
+        class="search-input"
+      />
+    </div>
+    <button class="filter-btn" title="Filter">
+      ⚙
+    </button>
+  </div>
+
+  <h1>Featured integration apps</h1>
+
+  @if (loading()) {
+    <div class="loading">Loading applications...</div>
+  }
+
+  @if (error()) {
+    <div class="error">{{ error() }}</div>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="scroll-wrapper">
+      <button class="scroll-btn scroll-btn-left" (click)="scrollLeft()" [disabled]="!canScrollLeft()">
+        ←
+      </button>
+
+      <div class="applications-grid" #scrollContainer (scroll)="onScroll()">
+        @for (app of featuredApplications(); track app.id) {
+          <div class="application-tile">
+            <img [src]="app.logo" [alt]="app.display_name" class="app-logo" />
+            <h3>{{ app.display_name }}</h3>
+            <p>{{ app.description }}</p>
+          </div>
+        }
+      </div>
+
+      <button class="scroll-btn scroll-btn-right" (click)="scrollRight()" [disabled]="!canScrollRight()">
+        →
+      </button>
+    </div>
+
+    <div class="section-header">
+      <h1 class="section-title">More apps</h1>
+      <div class="section-header-row">
+        <div class="integration-count">Showing {{ filteredCount() }} integrations</div>
+        <div class="sort-controls">
+          <label>Sorted by:</label>
+          <select class="sort-select" [value]="sortBy()" (change)="onSortChange($event)">
+            <option value="alphabetical">Alphabetical</option>
+          </select>
+
+          <div class="view-toggle">
+            <button
+              class="view-btn"
+              [class.active]="viewMode() === 'grid'"
+              (click)="setViewMode('grid')"
+              title="Grid view"
+            >
+              ⊞
+            </button>
+            <button
+              class="view-btn"
+              [class.active]="viewMode() === 'list'"
+              (click)="setViewMode('list')"
+              title="List view"
+            >
+              ☰
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if (viewMode() === 'grid') {
+      <div class="applications-grid-paginated">
+        @for (app of moreApplications(); track app.id) {
+          <div class="application-tile">
+            <img [src]="app.logo" [alt]="app.display_name" class="app-logo" />
+            <h3>{{ app.display_name }}</h3>
+            <p>{{ app.description }}</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (viewMode() === 'list') {
+      <div class="applications-list-view">
+        @for (app of moreApplications(); track app.id) {
+          <div class="application-list-item">
+            <img [src]="app.logo" [alt]="app.display_name" class="app-logo-list" />
+            <div class="app-info">
+              <h3>{{ app.display_name }}</h3>
+              <p>{{ app.description }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="pagination">
+      <button class="pagination-btn" (click)="previousPage()" [disabled]="currentPage() === 0">
+        ← Previous
+      </button>
+
+      <div class="pagination-pages">
+        @for (page of [].constructor(totalPages()); track $index) {
+          <button
+            class="pagination-page"
+            [class.active]="currentPage() === $index"
+            (click)="goToPage($index)"
+          >
+            {{ $index + 1 }}
+          </button>
+        }
+      </div>
+
+      <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+        Next →
+      </button>
+    </div>
+  }
+</div>
