@@ -1,4 +1,4 @@
-export interface Application {
+export interface ApplicationDetail {
   id: string;
   display_name: string;
   description: string;

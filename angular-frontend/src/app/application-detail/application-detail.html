@@ -1,0 +1,28 @@
+<div class="detail-container">
+  @if (loading()) {
+    <div class="loading">Loading application details...</div>
+  }
+
+  @if (error()) {
+    <div class="error-container">
+      <div class="error">{{ error() }}</div>
+      <button class="back-btn" (click)="goBack()">← Back to Integration Catalog</button>
+    </div>
+  }
+
+  @if (!loading() && !error() && application()) {
+    <div class="detail-header">
+      <button class="back-btn" (click)="goBack()">← Back to Integration Catalog</button>
+    </div>
+
+    <div class="detail-content">
+      <div class="app-header">
+        <img [src]="application()!.logo" [alt]="application()!.display_name" class="app-logo" />
+        <div class="app-title">
+          <h1>{{ application()!.display_name }}</h1>
+          <p class="app-description">Short description</p>
+        </div>
+      </div>
+    </div>
+  }
+</div>

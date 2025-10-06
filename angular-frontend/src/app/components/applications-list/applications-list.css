@@ -384,20 +384,20 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
 }
 
 .applications-grid .application-tile {
   width: 200px;
-  height: 250px;
+  height: 285px;
 }
 
 .applications-grid-paginated .application-tile {
   width: 200px;
-  height: 250px;
+  height: 285px;
 }
 
 .application-tile:hover {
@@ -407,11 +407,12 @@
 }
 
 .app-logo {
-  width: 80px;
-  height: 80px;
+  width: 45px;
+  height: 45px;
   object-fit: contain;
   margin-bottom: 1rem;
   border-radius: 8px;
+  align-self: flex-start;
 }
 
 .application-tile h3 {
@@ -424,17 +425,31 @@
   width: 100%;
 }
 
+.lifecycle-badge {
+  display: inline-block;
+  background: #ff9800;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  text-transform: uppercase;
+}
+
 .application-tile p {
   font-size: 0.95rem;
   color: #666;
-  margin: 0.5rem 0 0 0;
-  line-height: 1.5;
+  margin: 0.5rem 0;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   width: 100%;
+  flex: 1;
+  max-height: 4.2rem;
 }
 
 .pagination {
@@ -497,4 +512,42 @@
   background: #1976d2;
   border-color: #1976d2;
   color: white;
+}
+
+.tile-btn {
+  margin-top: auto;
+  padding: 0.5rem 1rem;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.tile-btn:hover {
+  background: #1565c0;
+  transform: translateY(-2px);
+}
+
+.list-btn {
+  padding: 0.75rem 1.5rem;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.list-btn:hover {
+  background: #1565c0;
+  transform: translateY(-2px);
 }

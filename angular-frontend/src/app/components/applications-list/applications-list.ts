@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
 import { Application } from '../../models/application.model';
 
@@ -77,7 +78,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return Math.ceil(this.filteredCount() / this.itemsPerPage);
   });
 
-  constructor(private applicationService: ApplicationService) {}
+  constructor(
+    private applicationService: ApplicationService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadApplications();
@@ -143,9 +147,15 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     );
   }
 
+  protected navigateToDetail(id: string): void {
+    this.router.navigate(['/applications', id]);
+  }
+
   private loadApplications(): void {
     this.applicationService.getAll().subscribe({
       next: (data) => {
+        // console.log('Received applications:', data);
+        // console.log('First app lifecycle_state:', data[0]?.lifecycle_state);
         this.applications.set(data);
         this.loading.set(false);
         setTimeout(() => {

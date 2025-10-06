@@ -50,7 +50,11 @@
           <div class="application-tile">
             <img [src]="app.logo" [alt]="app.display_name" class="app-logo" />
             <h3>{{ app.display_name }}</h3>
+            @if (app.lifecycle_state) {
+              <span class="lifecycle-badge">{{ app.lifecycle_state }}</span>
+            }
             <p>{{ app.description }}</p>
+            <button class="tile-btn" (click)="navigateToDetail(app.id)">View Details</button>
           </div>
         }
       </div>
@@ -98,7 +102,11 @@
           <div class="application-tile">
             <img [src]="app.logo" [alt]="app.display_name" class="app-logo" />
             <h3>{{ app.display_name }}</h3>
+            @if (app.lifecycle_state) {
+              <span class="lifecycle-badge">{{ app.lifecycle_state }}</span>
+            }
             <p>{{ app.description }}</p>
+            <button class="tile-btn" (click)="navigateToDetail(app.id)">View Details</button>
           </div>
         }
       </div>
@@ -111,8 +119,12 @@
             <img [src]="app.logo" [alt]="app.display_name" class="app-logo-list" />
             <div class="app-info">
               <h3>{{ app.display_name }}</h3>
+              @if (app.lifecycle_state) {
+                <span class="lifecycle-badge">{{ app.lifecycle_state }}</span>
+              }
               <p>{{ app.description }}</p>
             </div>
+            <button class="list-btn" (click)="navigateToDetail(app.id)">View Details</button>
           </div>
         }
       </div>
