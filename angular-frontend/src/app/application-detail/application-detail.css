@@ -89,30 +89,25 @@
   opacity: 0.9;
 }
 
-.app-details {
+.app-body {
   padding: 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  background: #f9f9f9;
 }
 
-.detail-section {
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e0e0e0;
+.description-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.detail-section:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.detail-section h2 {
+.description-section h2 {
   margin: 0 0 1rem 0;
   font-size: 1.5rem;
   color: #1976d2;
 }
 
-.detail-section p {
+.description-section p {
   margin: 0;
   font-size: 1.1rem;
   color: #666;
@@ -130,7 +125,7 @@
     font-size: 2rem;
   }
 
-  .app-details {
+  .app-body {
     padding: 2rem;
   }
 }
