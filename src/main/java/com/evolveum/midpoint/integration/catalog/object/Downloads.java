@@ -30,7 +30,7 @@ public class Downloads {
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "implementation_version_id", nullable = false)
-    private UUID implementationVersion;
+    private ImplementationVersion implementationVersion;
 
     @Column(name = "ip_address", columnDefinition = "inet", nullable = false)
     private Inet ipAddress;

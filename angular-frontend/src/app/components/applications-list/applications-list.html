@@ -48,10 +48,10 @@
       <div class="applications-grid" #scrollContainer (scroll)="onScroll()">
         @for (app of featuredApplications(); track app.id) {
           <div class="application-tile">
-            <img [src]="app.logo" [alt]="app.display_name" class="app-logo" />
-            <h3>{{ app.display_name }}</h3>
-            @if (app.lifecycle_state) {
-              <span class="lifecycle-badge">{{ app.lifecycle_state }}</span>
+            <img [src]="app.logo" [alt]="app.displayName" class="app-logo" />
+            <h3>{{ app.displayName }}</h3>
+            @if (app.lifecycleState) {
+              <span class="lifecycle-badge">{{ app.lifecycleState }}</span>
             }
             <p>{{ app.description }}</p>
             <button class="tile-btn" (click)="navigateToDetail(app.id)">View Details</button>
@@ -100,10 +100,10 @@
       <div class="applications-grid-paginated">
         @for (app of moreApplications(); track app.id) {
           <div class="application-tile">
-            <img [src]="app.logo" [alt]="app.display_name" class="app-logo" />
-            <h3>{{ app.display_name }}</h3>
-            @if (app.lifecycle_state) {
-              <span class="lifecycle-badge">{{ app.lifecycle_state }}</span>
+            <img [src]="app.logo" [alt]="app.displayName" class="app-logo" />
+            <h3>{{ app.displayName }}</h3>
+            @if (app.lifecycleState) {
+              <span class="lifecycle-badge">{{ app.lifecycleState }}</span>
             }
             <p>{{ app.description }}</p>
             <button class="tile-btn" (click)="navigateToDetail(app.id)">View Details</button>
@@ -116,11 +116,11 @@
       <div class="applications-list-view">
         @for (app of moreApplications(); track app.id) {
           <div class="application-list-item">
-            <img [src]="app.logo" [alt]="app.display_name" class="app-logo-list" />
+            <img [src]="app.logo" [alt]="app.displayName" class="app-logo-list" />
             <div class="app-info">
-              <h3>{{ app.display_name }}</h3>
-              @if (app.lifecycle_state) {
-                <span class="lifecycle-badge">{{ app.lifecycle_state }}</span>
+              <h3>{{ app.displayName }}</h3>
+              @if (app.lifecycleState) {
+                <span class="lifecycle-badge">{{ app.lifecycleState }}</span>
               }
               <p>{{ app.description }}</p>
             </div>

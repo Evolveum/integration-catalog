@@ -34,7 +34,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       return apps;
     }
     return apps.filter(app =>
-      app.display_name.toLowerCase().includes(query) ||
+      app.displayName.toLowerCase().includes(query) ||
       app.description.toLowerCase().includes(query)
     );
   });
@@ -45,14 +45,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
     if (query) {
       apps = apps.filter(app =>
-        app.display_name.toLowerCase().includes(query) ||
+        app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query)
       );
     }
 
     // Sort alphabetically
     if (this.sortBy() === 'alphabetical') {
-      apps.sort((a, b) => a.display_name.localeCompare(b.display_name));
+      apps.sort((a, b) => a.displayName.localeCompare(b.displayName));
     }
 
     const start = this.currentPage() * this.itemsPerPage;
@@ -66,7 +66,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
     if (query) {
       apps = apps.filter(app =>
-        app.display_name.toLowerCase().includes(query) ||
+        app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query)
       );
     }

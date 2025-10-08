@@ -28,7 +28,7 @@ public class Request {
     public enum CapabilitiesType {
         READ,
         CREATE,
-        MODIFY,
+        UPDATE,
         DELETE
     }
 
@@ -39,7 +39,7 @@ public class Request {
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)
-    private UUID applicationId;
+    private Application application;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)

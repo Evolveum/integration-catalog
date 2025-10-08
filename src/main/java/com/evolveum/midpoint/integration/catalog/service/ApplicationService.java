@@ -280,17 +280,17 @@ public class ApplicationService {
     }
 
     public void recordDownloadIfNew(ImplementationVersion version, Inet ip, String userAgent, OffsetDateTime cutoff) {
-        boolean duplicate = downloadsRepository
-                .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
+        // boolean duplicate = downloadsRepository
+        //         .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
 
-        if (!duplicate) {
+        // if (!duplicate) {
             Downloads dl = new Downloads();
-            dl.setImplementationVersion(version.getId());
+            dl.setImplementationVersion(version);
             dl.setIpAddress(ip);
             dl.setUserAgent(userAgent);
             dl.setDownloadedAt(OffsetDateTime.now());
             downloadsRepository.save(dl);
-        }
+        // }
     }
 
     public Request createRequest(UUID applicationId, String capabilitiesType, String requester) {
@@ -306,7 +306,7 @@ public class ApplicationService {
         }
 
         Request r = new Request();
-        r.setApplicationId(application.getId());
+        r.setApplication(application);
         r.setCapabilitiesType(ct);
         r.setRequester(requester);
         return requestRepository.save(r);
@@ -343,10 +343,22 @@ public class ApplicationService {
 
     public List<ApplicationDto> getAllApplications() {
         return applicationRepository.findAll().stream()
-                .map(app -> new ApplicationDto(
-                        app.getDisplayName(),
-                        app.getDescription(),
-                        app.getLogo()))
+                .map(app -> {
+                    String lifecycleState = null;
+                    try {
+                        lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+                    } catch (Exception e) {
+                        // Handle empty string or invalid enum values - PostgreSQL problem
+                        lifecycleState = null;
+                    }
+                    return new ApplicationDto(
+                            app.getId(),
+                            app.getDisplayName(),
+                            app.getDescription(),
+                            app.getLogo(),
+                            null, // riskLevel - not yet implemented
+                            lifecycleState);
+                })
                 .toList();
     }
 }

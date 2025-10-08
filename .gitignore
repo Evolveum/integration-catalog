@@ -7,6 +7,9 @@ target/
 build/
 test-output/
 dependency-reduced-pom.xml
+apache-maven-3.9.9/
+apache-maven-3.9.9-bin.zip
+.claude
 
 node_modules/
 

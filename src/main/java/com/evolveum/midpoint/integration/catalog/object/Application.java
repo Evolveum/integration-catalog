@@ -53,12 +53,9 @@ public class Application {
     @Lob
     private byte[] logo;
 
-    //TODO - how to properly implement popular in GUI
-    private Boolean popular;
-
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "ApplicationLifecycleType")
+    @Column(columnDefinition = "ApplicationLifecycleType", nullable = true)
     private ApplicationLifecycleType lifecycleState;
 
     @CreationTimestamp

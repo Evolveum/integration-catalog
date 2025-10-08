@@ -1,8 +1,8 @@
 export interface Application {
   id: string;
-  display_name: string;
+  displayName: string;
   description: string;
   logo: string;
-  risk_level: string;
-  lifecycle_state: string;
+  riskLevel: string | null;
+  lifecycleState: string | null;
 }
