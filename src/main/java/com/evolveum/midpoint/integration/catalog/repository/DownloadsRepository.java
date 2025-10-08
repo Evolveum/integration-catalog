@@ -25,10 +25,10 @@ import java.util.UUID;
 public interface DownloadsRepository extends JpaRepository<Downloads, UUID>,
         JpaSpecificationExecutor<Downloads> {
 
-        boolean existsRecentDuplicate(UUID implementationVersion,
-                                      Inet ipAddress,
-                                      String userAgent,
-                                      OffsetDateTime downloadedAt);
+    // boolean existsRecentDuplicate(UUID implementationVersion,
+    //                               Inet ipAddress,
+    //                               String userAgent,
+    //                               OffsetDateTime downloadedAt);
 
-    long countByImplementationVersion_Id(Integer implementationVersionId);
+    long countByImplementationVersion_Id(UUID implementationVersionId);
 }

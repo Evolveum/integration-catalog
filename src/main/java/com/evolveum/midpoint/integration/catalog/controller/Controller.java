@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
@@ -14,12 +15,8 @@ import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.form.UploadForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 
-import com.evolveum.midpoint.integration.catalog.repository.DownloadsRepository;
-import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
-import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 
-import com.evolveum.midpoint.integration.catalog.utils.Inet;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -34,10 +31,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,14 +40,10 @@ import java.util.UUID;
 public class Controller {
 
     private final ApplicationService applicationService;
+    static final long offset = 10;
 
-    private final ImplementationVersionRepository implementationVersionRepository;
-    private final RequestRepository requestRepository;
-
-    public Controller(ApplicationService applicationService, DownloadsRepository downloadsRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository) {
+    public Controller(ApplicationService applicationService) {
         this.applicationService = applicationService;
-        this.implementationVersionRepository = implementationVersionRepository;
-        this.requestRepository = requestRepository;
     }
 
     @Operation(summary = "Get application by ID",
@@ -165,28 +154,23 @@ public class Controller {
     })
     @GetMapping("/download/{oid}")
     public ResponseEntity<byte[]> redirectToDownload(@PathVariable UUID oid, HttpServletRequest request) {
-        long offset = 10;
 
-        ImplementationVersion version = implementationVersionRepository
-                .findById(oid)
+        ImplementationVersion version = applicationService.findImplementationVersion(oid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
-        try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
-            byte[] fileBytes = in.readAllBytes();
-            String filename = version.getDownloadLink().substring(version.getDownloadLink().lastIndexOf('/') + 1);
+        String filename = version.getDownloadLink().substring(version.getDownloadLink().lastIndexOf('/') + 1);
+        String ip = request.getRemoteAddr();
+        String ua = request.getHeader("User-Agent");
 
-            Inet ip = new Inet(request.getRemoteAddr());
-            String ua = request.getHeader("User-Agent");
-            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(offset);
-
-            applicationService.recordDownloadIfNew(version, ip, ua, cutoff);
-
+        try {
+            byte[] fileBytes = applicationService.downloadConnector(oid, ip, ua, offset);
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .body(fileBytes);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (RuntimeException e) {
+            // exception already done in ApplicationService
+            return ResponseEntity.internalServerError().body(null);
         }
     }
 
@@ -200,13 +184,13 @@ public class Controller {
     public ResponseEntity<String> uploadScimRestConnector(@RequestBody UploadForm uploadForm) {
         try {
             return ResponseEntity.ok()
-                    .body(applicationService.createConnector(
+                    .body(applicationService.uploadConnector(
                             uploadForm.getApplication(),
                             uploadForm.getImplementation(),
                             uploadForm.getImplementationVersion(),
                             uploadForm.getFiles()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError().body("Upload failed: " + e.getMessage());
         }
     }
 
@@ -256,9 +240,9 @@ public class Controller {
     })
     @GetMapping("/requests/{id}")
     public ResponseEntity<Request> getRequest(@PathVariable Long id) {
-        Request request = requestRepository.findById(id)
+        return applicationService.getRequest(id)
+                .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
-        return ResponseEntity.ok(request);
     }
 
     @Operation(summary = "Get Requests for Application ID",
@@ -269,8 +253,7 @@ public class Controller {
     })
     @GetMapping("/applications/{appId}/requests")
     public List<Request> getRequestsForApplication(@PathVariable UUID appId) {
-        return requestRepository.findByApplication_Id(appId).stream()
-                .toList();
+        return applicationService.getRequestsForApplication(appId);
     }
 
     @Operation(summary = "Create Request",
@@ -288,5 +271,16 @@ public class Controller {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
+    }
+
+    @Operation(summary = "Show all available applications",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Showed all available applications successfully"),
+            @ApiResponse(responseCode = "404", description = "Show all available applications failed")
+    })
+    @GetMapping("/applications")
+    public ResponseEntity<List<ApplicationDto>> getAllApplications() {
+        return ResponseEntity.ok(applicationService.getAllApplications());
     }
 }

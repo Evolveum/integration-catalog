@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
@@ -29,12 +30,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -275,17 +280,17 @@ public class ApplicationService {
     }
 
     public void recordDownloadIfNew(ImplementationVersion version, Inet ip, String userAgent, OffsetDateTime cutoff) {
-        boolean duplicate = downloadsRepository
-                .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
+        // boolean duplicate = downloadsRepository
+        //         .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
 
-        if (!duplicate) {
+        // if (!duplicate) {
             Downloads dl = new Downloads();
-            dl.setImplementationVersion(version.getId());
+            dl.setImplementationVersion(version);
             dl.setIpAddress(ip);
             dl.setUserAgent(userAgent);
             dl.setDownloadedAt(OffsetDateTime.now());
             downloadsRepository.save(dl);
-        }
+        // }
     }
 
     public Request createRequest(UUID applicationId, String capabilitiesType, String requester) {
@@ -301,9 +306,59 @@ public class ApplicationService {
         }
 
         Request r = new Request();
-        r.setApplicationId(application.getId());
+        r.setApplication(application);
         r.setCapabilitiesType(ct);
         r.setRequester(requester);
         return requestRepository.save(r);
+    }
+
+    public Optional<ImplementationVersion> findImplementationVersion(UUID id) {
+        return implementationVersionRepository.findById(id);
+    }
+
+    public Optional<Request> getRequest(Long id) {
+        return requestRepository.findById(id);
+    }
+
+    public List<Request> getRequestsForApplication(UUID appId) {
+        return requestRepository.findByApplication_Id(appId);
+    }
+
+    public byte[] downloadConnector(UUID versionId, String ip, String userAgent, long offsetSeconds) {
+        ImplementationVersion version = implementationVersionRepository.findById(versionId)
+                .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
+
+        try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
+            byte[] fileBytes = in.readAllBytes();
+
+            Inet inet = new Inet(ip);
+            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(offsetSeconds);
+            recordDownloadIfNew(version, inet, userAgent, cutoff);
+
+            return fileBytes;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to download connector: " + e.getMessage(), e);
+        }
+    }
+
+    public List<ApplicationDto> getAllApplications() {
+        return applicationRepository.findAll().stream()
+                .map(app -> {
+                    String lifecycleState = null;
+                    try {
+                        lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+                    } catch (Exception e) {
+                        // Handle empty string or invalid enum values - PostgreSQL problem
+                        lifecycleState = null;
+                    }
+                    return new ApplicationDto(
+                            app.getId(),
+                            app.getDisplayName(),
+                            app.getDescription(),
+                            app.getLogo(),
+                            null, // riskLevel - not yet implemented
+                            lifecycleState);
+                })
+                .toList();
     }
 }
