@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public class ApplicationDto {
@@ -16,14 +17,16 @@ public class ApplicationDto {
     private byte[] logo;
     private String riskLevel;
     private String lifecycleState;
+    private OffsetDateTime lastModified;
 
-    public ApplicationDto(UUID id, String displayName, String description, byte[] logo, String riskLevel, String lifecycleState) {
+    public ApplicationDto(UUID id, String displayName, String description, byte[] logo, String riskLevel, String lifecycleState, OffsetDateTime lastModified) {
         this.id = id;
         this.displayName = displayName;
         this.description = description;
         this.logo = logo;
         this.riskLevel = riskLevel;
         this.lifecycleState = lifecycleState;
+        this.lastModified = lastModified;
     }
 
     public UUID getId() {
@@ -48,5 +51,9 @@ public class ApplicationDto {
 
     public String getLifecycleState() {
         return lifecycleState;
+    }
+
+    public OffsetDateTime getLastModified() {
+        return lastModified;
     }
 }

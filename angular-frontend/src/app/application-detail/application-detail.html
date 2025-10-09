@@ -1,33 +1,82 @@
-<div class="detail-container">
+<div class="container my-5">
   @if (loading()) {
-    <div class="loading">Loading application details...</div>
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
   }
 
   @if (error()) {
-    <div class="error-container">
-      <div class="error">{{ error() }}</div>
-      <button class="back-btn" (click)="goBack()">← Back to Integration Catalog</button>
+    <div class="alert alert-danger" role="alert">
+      <h4 class="alert-heading">Error</h4>
+      <p>{{ error() }}</p>
+      <hr>
+      <button class="btn btn-primary" (click)="goBack()">
+        <i class="bi bi-arrow-left"></i> Back to Integration Catalog
+      </button>
     </div>
   }
 
   @if (!loading() && !error() && application()) {
-    <div class="detail-header">
-      <button class="back-btn" (click)="goBack()">← Back to Integration Catalog</button>
+    <div class="mb-4">
+      <button class="btn btn-outline-secondary" (click)="goBack()">
+        ← Back to Integration Catalog
+      </button>
     </div>
 
-    <div class="detail-content">
-      <div class="app-header">
-        <img [src]="application()!.logo" [alt]="application()!.display_name" class="app-logo" />
-        <div class="app-title">
-          <h1>{{ application()!.display_name }}</h1>
-          <p class="app-description">Short description</p>
+    <div class="row">
+      <!-- Left Panel - Main Content -->
+      <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <div class="row align-items-center mb-4">
+              <div class="col-auto">
+                <img [src]="application()!.logo" [alt]="application()!.display_name"
+                     class="img-fluid rounded" style="max-width: 100px; max-height: 100px;" />
+              </div>
+              <div class="col">
+                <h1 class="card-title mb-2">{{ application()!.display_name }}</h1>
+                @if (application()!.lifecycle_state) {
+                  <span class="badge bg-primary">{{ application()!.lifecycle_state }}</span>
+                }
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <h2 class="h4 mb-3">Description</h2>
+                <p class="text-muted">{{ application()!.description }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="app-body">
-        <div class="description-section">
-          <h2>Description</h2>
-          <p>{{ application()!.description }}</p>
+      <!-- Right Panel - Quick Info -->
+      <div class="col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h3 class="h5 mb-4">Quick Info</h3>
+
+            <div class="mb-3">
+              <h6 class="text-muted small mb-1">Risk Level</h6>
+              @if (application()!.risk_level) {
+                <p class="mb-0">{{ application()!.risk_level }}</p>
+              } @else {
+                <p class="mb-0 text-muted fst-italic">Not specified</p>
+              }
+            </div>
+
+            <div class="mb-3">
+              <h6 class="text-muted small mb-1">Last Modified</h6>
+              @if (application()!.last_modified) {
+                <p class="mb-0">{{ application()!.last_modified | date: 'medium' }}</p>
+              } @else {
+                <p class="mb-0 text-muted fst-italic">Not available</p>
+              }
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -53,9 +53,26 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @GetMapping("application/{id}")
-    public ResponseEntity<Application> getApplication(@PathVariable UUID id) {
+    public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id) {
         try {
-            return ResponseEntity.ok(applicationService.getApplication(id));
+            Application app = applicationService.getApplication(id);
+            String lifecycleState = null;
+            try {
+                lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+            } catch (Exception e) {
+                // Handle empty string or invalid enum values - PostgreSQL problem
+                lifecycleState = null;
+            }
+            ApplicationDto dto = new ApplicationDto(
+                    app.getId(),
+                    app.getDisplayName(),
+                    app.getDescription(),
+                    app.getLogo(),
+                    null, // riskLevel - not yet implemented
+                    lifecycleState,
+                    app.getLastModified()
+            );
+            return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
             return ResponseEntity.notFound().build();
         }

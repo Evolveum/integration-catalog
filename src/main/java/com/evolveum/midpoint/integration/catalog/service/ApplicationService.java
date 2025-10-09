@@ -108,7 +108,8 @@ public class ApplicationService {
     }
 
     public Application getApplication(UUID uuid) {
-        return applicationRepository.getReferenceById(uuid);
+        return applicationRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found: " + uuid));
     }
 
     public ImplementationVersion getImplementationVersion(UUID uuid) {
@@ -357,7 +358,8 @@ public class ApplicationService {
                             app.getDescription(),
                             app.getLogo(),
                             null, // riskLevel - not yet implemented
-                            lifecycleState);
+                            lifecycleState,
+                            app.getLastModified());
                 })
                 .toList();
     }

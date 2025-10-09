@@ -17,6 +17,6 @@ export class ApplicationService {
   }
 
   getById(id: string): Observable<ApplicationDetail> {
-    return this.http.get<ApplicationDetail>(`http://localhost:8080/api/applications/${id}`);
+    return this.http.get<ApplicationDetail>(`http://localhost:8080/api/application/${id}`);
   }
 }

@@ -1,155 +1,187 @@
-<div class="applications-container">
-  <div class="page-header">
-    <div class="page-header-content">
-      <p class="page-title">Integration Catalog</p>
-      <p class="page-description">Easily connect any application or system to midpoint</p>
+<div class="container-fluid py-4">
+  <div class="text-center mb-5">
+    <h1 class="display-4 fw-bold mb-3">Integration Catalog</h1>
+    <p class="lead text-muted">Easily connect any application or system to midpoint</p>
+  </div>
+
+  <div class="text-center mb-4">
+    <p class="text-muted">Explore available integrations to jump-start your workflow, build your own AI-guided assistance,</p>
+    <p class="text-muted">or upload an existing configuration to get started in just minutes. The process is fast, flexible, and user-friendly.</p>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-8 mx-auto">
+      <div class="input-group input-group-lg">
+        <span class="input-group-text bg-white">🔍</span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Search for integrations..."
+          [value]="searchQuery()"
+          (input)="onSearchChange($event)"
+        />
+        <button class="btn btn-outline-secondary" type="button" title="Filter">
+          ⚙
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="intro-text">
-    <p>Explore available integrations to jump-start your</p>
-    <p>workflow, build your own AI-guided assistance,</p>
-    <p>or upload an existing configuration to get started in just</p>
-    <p>minutes. The process is fast, flexible, and user-friendly.</p>
-  </div>
-
-  <div class="search-bar">
-    <div class="search-input-wrapper">
-      <span class="search-icon">🔍</span>
-      <input
-        type="text"
-        placeholder="Search for integrations..."
-        [value]="searchQuery()"
-        (input)="onSearchChange($event)"
-        class="search-input"
-      />
-    </div>
-    <button class="filter-btn" title="Filter">
-      ⚙
-    </button>
-  </div>
-
-  <h1>Featured integration apps</h1>
+  <h2 class="h3 mb-4">Featured integration apps</h2>
 
   @if (loading()) {
-    <div class="loading">Loading applications...</div>
+    <div class="d-flex justify-content-center my-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
   }
 
   @if (error()) {
-    <div class="error">{{ error() }}</div>
+    <div class="alert alert-danger" role="alert">{{ error() }}</div>
   }
 
   @if (!loading() && !error()) {
-    <div class="scroll-wrapper">
-      <button class="scroll-btn scroll-btn-left" (click)="scrollLeft()" [disabled]="!canScrollLeft()">
+    <div class="position-relative mb-5">
+      <button class="btn btn-light position-absolute top-50 start-0 translate-middle-y"
+              style="z-index: 10;"
+              (click)="scrollLeft()"
+              [disabled]="!canScrollLeft()">
         ←
       </button>
 
-      <div class="applications-grid" #scrollContainer (scroll)="onScroll()">
-        @for (app of featuredApplications(); track app.id) {
-          <div class="application-tile">
-            <img [src]="app.logo" [alt]="app.displayName" class="app-logo" />
-            <h3>{{ app.displayName }}</h3>
-            @if (app.lifecycleState) {
-              <span class="lifecycle-badge">{{ app.lifecycleState }}</span>
-            }
-            <p>{{ app.description }}</p>
-            <button class="tile-btn" (click)="navigateToDetail(app.id)">View Details</button>
-          </div>
-        }
+      <div class="overflow-auto" #scrollContainer (scroll)="onScroll()" style="scroll-behavior: smooth;">
+        <div class="d-flex gap-3 px-5">
+          @for (app of featuredApplications(); track app.id) {
+            <div class="card" style="min-width: 250px; max-width: 250px;">
+              <img [src]="app.logo" [alt]="app.displayName" class="card-img-top p-3" style="height: 150px; object-fit: contain;" />
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ app.displayName }}</h5>
+                @if (app.lifecycleState) {
+                  <span class="badge bg-success mb-2 align-self-start">{{ app.lifecycleState }}</span>
+                }
+                <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
+                <button class="btn btn-primary btn-sm mt-2" (click)="navigateToDetail(app.id)">View Details</button>
+              </div>
+            </div>
+          }
+        </div>
       </div>
 
-      <button class="scroll-btn scroll-btn-right" (click)="scrollRight()" [disabled]="!canScrollRight()">
+      <button class="btn btn-light position-absolute top-50 end-0 translate-middle-y"
+              style="z-index: 10;"
+              (click)="scrollRight()"
+              [disabled]="!canScrollRight()">
         →
       </button>
     </div>
 
-    <div class="section-header">
-      <h1 class="section-title">More apps</h1>
-      <div class="section-header-row">
-        <div class="integration-count">Showing {{ filteredCount() }} integrations</div>
-        <div class="sort-controls">
-          <label>Sorted by:</label>
-          <select class="sort-select" [value]="sortBy()" (change)="onSortChange($event)">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="h3 mb-1">More apps</h2>
+        <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations</p>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <label class="mb-0 text-muted">Sorted by:</label>
+          <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)">
             <option value="alphabetical">Alphabetical</option>
           </select>
+        </div>
 
-          <div class="view-toggle">
-            <button
-              class="view-btn"
-              [class.active]="viewMode() === 'grid'"
-              (click)="setViewMode('grid')"
-              title="Grid view"
-            >
-              ⊞
-            </button>
-            <button
-              class="view-btn"
-              [class.active]="viewMode() === 'list'"
-              (click)="setViewMode('list')"
-              title="List view"
-            >
-              ☰
-            </button>
-          </div>
+        <div class="btn-group" role="group">
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="viewMode() === 'grid'"
+            [class.btn-outline-secondary]="viewMode() !== 'grid'"
+            (click)="setViewMode('grid')"
+            title="Grid view"
+          >
+            ⊞
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="viewMode() === 'list'"
+            [class.btn-outline-secondary]="viewMode() !== 'list'"
+            (click)="setViewMode('list')"
+            title="List view"
+          >
+            ☰
+          </button>
         </div>
       </div>
     </div>
 
     @if (viewMode() === 'grid') {
-      <div class="applications-grid-paginated">
+      <div class="row g-4 mb-4">
         @for (app of moreApplications(); track app.id) {
-          <div class="application-tile">
-            <img [src]="app.logo" [alt]="app.displayName" class="app-logo" />
-            <h3>{{ app.displayName }}</h3>
-            @if (app.lifecycleState) {
-              <span class="lifecycle-badge">{{ app.lifecycleState }}</span>
-            }
-            <p>{{ app.description }}</p>
-            <button class="tile-btn" (click)="navigateToDetail(app.id)">View Details</button>
+          <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 shadow-sm">
+              <img [src]="app.logo" [alt]="app.displayName" class="card-img-top p-3" style="height: 150px; object-fit: contain;" />
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ app.displayName }}</h5>
+                @if (app.lifecycleState) {
+                  <span class="badge bg-success mb-2 align-self-start">{{ app.lifecycleState }}</span>
+                }
+                <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
+                <button class="btn btn-primary btn-sm mt-2" (click)="navigateToDetail(app.id)">View Details</button>
+              </div>
+            </div>
           </div>
         }
       </div>
     }
 
     @if (viewMode() === 'list') {
-      <div class="applications-list-view">
+      <div class="mb-4">
         @for (app of moreApplications(); track app.id) {
-          <div class="application-list-item">
-            <img [src]="app.logo" [alt]="app.displayName" class="app-logo-list" />
-            <div class="app-info">
-              <h3>{{ app.displayName }}</h3>
-              @if (app.lifecycleState) {
-                <span class="lifecycle-badge">{{ app.lifecycleState }}</span>
-              }
-              <p>{{ app.description }}</p>
+          <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <img [src]="app.logo" [alt]="app.displayName" class="img-fluid" style="width: 80px; height: 80px; object-fit: contain;" />
+                </div>
+                <div class="col">
+                  <h5 class="card-title mb-1">{{ app.displayName }}</h5>
+                  @if (app.lifecycleState) {
+                    <span class="badge bg-success mb-2">{{ app.lifecycleState }}</span>
+                  }
+                  <p class="card-text text-muted mb-0">{{ app.description }}</p>
+                </div>
+                <div class="col-auto">
+                  <button class="btn btn-primary" (click)="navigateToDetail(app.id)">View Details</button>
+                </div>
+              </div>
             </div>
-            <button class="list-btn" (click)="navigateToDetail(app.id)">View Details</button>
           </div>
         }
       </div>
     }
 
-    <div class="pagination">
-      <button class="pagination-btn" (click)="previousPage()" [disabled]="currentPage() === 0">
-        ← Previous
-      </button>
-
-      <div class="pagination-pages">
-        @for (page of [].constructor(totalPages()); track $index) {
-          <button
-            class="pagination-page"
-            [class.active]="currentPage() === $index"
-            (click)="goToPage($index)"
-          >
-            {{ $index + 1 }}
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-center">
+        <li class="page-item" [class.disabled]="currentPage() === 0">
+          <button class="page-link" (click)="previousPage()" [disabled]="currentPage() === 0">
+            ← Previous
           </button>
-        }
-      </div>
+        </li>
 
-      <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
-        Next →
-      </button>
-    </div>
+        @for (page of [].constructor(totalPages()); track $index) {
+          <li class="page-item" [class.active]="currentPage() === $index">
+            <button class="page-link" (click)="goToPage($index)">
+              {{ $index + 1 }}
+            </button>
+          </li>
+        }
+
+        <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+          <button class="page-link" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+            Next →
+          </button>
+        </li>
+      </ul>
+    </nav>
   }
 </div>
