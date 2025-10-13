@@ -24,7 +24,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected canScrollRight = signal<boolean>(false);
   protected currentPage = signal<number>(0);
   protected itemsPerPage = 12;
-  protected sortBy = signal<'alphabetical'>('alphabetical');
+  protected sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
   protected viewMode = signal<'grid' | 'list'>('grid');
 
   protected featuredApplications = computed(() => {
@@ -50,9 +50,22 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       );
     }
 
-    // Sort alphabetically
-    if (this.sortBy() === 'alphabetical') {
+    // Sort based on selected option
+    const sortOption = this.sortBy();
+    if (sortOption === 'alphabetical') {
       apps.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    } else if (sortOption === 'popularity') {
+      apps.sort((a, b) => {
+        const aIsPopular = a.tags?.some(tag => tag.name === 'popular') ? 1 : 0;
+        const bIsPopular = b.tags?.some(tag => tag.name === 'popular') ? 1 : 0;
+        return bIsPopular - aIsPopular;
+      });
+    } else if (sortOption === 'activity') {
+      apps.sort((a, b) => {
+        const aIsActive = a.lifecycleState === 'ACTIVE' ? 1 : 0;
+        const bIsActive = b.lifecycleState === 'ACTIVE' ? 1 : 0;
+        return bIsActive - aIsActive;
+      });
     }
 
     const start = this.currentPage() * this.itemsPerPage;
@@ -98,7 +111,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   }
 
   protected onSortChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value as 'alphabetical';
+    const value = (event.target as HTMLSelectElement).value as 'alphabetical' | 'popularity' | 'activity';
     this.sortBy.set(value);
     this.currentPage.set(0);
   }

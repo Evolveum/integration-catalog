@@ -8,6 +8,9 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
+import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
+import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
@@ -41,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Created by Dominik.
@@ -352,6 +356,28 @@ public class ApplicationService {
                         // Handle empty string or invalid enum values - PostgreSQL problem
                         lifecycleState = null;
                     }
+
+                    List<CountryOfOriginDto> origins = null;
+                    if (app.getApplicationOrigins() != null) {
+                        origins = app.getApplicationOrigins().stream()
+                                .map(appOrigin -> new CountryOfOriginDto(
+                                        appOrigin.getCountryOfOrigin().getId(),
+                                        appOrigin.getCountryOfOrigin().getName(),
+                                        appOrigin.getCountryOfOrigin().getDisplayName()
+                                ))
+                                .toList();
+                    }
+
+                    List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
+                    List<ApplicationTagDto> tags = mapAllTags(app);
+                    List<ImplementationVersionDto> implementationVersions = null;
+                    try {
+                        implementationVersions = mapImplementationVersions(app);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        // If implementation versions fail to load, continue without them
+                    }
+
                     return new ApplicationDto(
                             app.getId(),
                             app.getDisplayName(),
@@ -359,8 +385,76 @@ public class ApplicationService {
                             app.getLogo(),
                             null, // riskLevel - not yet implemented
                             lifecycleState,
-                            app.getLastModified());
+                            app.getLastModified(),
+                            origins,
+                            categories,
+                            tags,
+                            implementationVersions);
                 })
                 .toList();
+    }
+
+    private List<ApplicationTagDto> filterTagsByType(Application app, ApplicationTag.ApplicationTagType tagType) {
+        if (app.getApplicationApplicationTags() == null) {
+            return null;
+        }
+        return app.getApplicationApplicationTags().stream()
+                .filter(appTag -> appTag.getApplicationTag().getTagType() == tagType)
+                .map(this::mapToApplicationTagDto)
+                .toList();
+    }
+
+    private List<ApplicationTagDto> mapAllTags(Application app) {
+        if (app.getApplicationApplicationTags() == null) {
+            return null;
+        }
+        return app.getApplicationApplicationTags().stream()
+                .map(this::mapToApplicationTagDto)
+                .toList();
+    }
+
+    private ApplicationTagDto mapToApplicationTagDto(ApplicationApplicationTag appTag) {
+        return new ApplicationTagDto(
+                appTag.getApplicationTag().getId(),
+                appTag.getApplicationTag().getName(),
+                appTag.getApplicationTag().getDisplayName(),
+                appTag.getApplicationTag().getTagType() != null ? appTag.getApplicationTag().getTagType().name() : null
+        );
+    }
+
+    private List<ImplementationVersionDto> mapImplementationVersions(Application app) {
+        if (app.getImplementations() == null) {
+            return null;
+        }
+        return app.getImplementations().stream()
+                .flatMap(impl -> impl.getImplementationVersions() != null ?
+                        impl.getImplementationVersions().stream().map(version -> {
+                            List<String> implementationTags = null;
+                            if (impl.getImplementationImplementationTags() != null) {
+                                implementationTags = impl.getImplementationImplementationTags().stream()
+                                        .map(tag -> tag.getImplementationTag().getDisplayName())
+                                        .toList();
+                            }
+                            List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
+                            String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
+                            return new ImplementationVersionDto(version.getDescription(), implementationTags, capabilities, version.getConnectorVersion(), version.getSystemVersion(), version.getReleasedDate(), version.getAuthor(), lifecycleState);
+                        }) : Stream.empty())
+                .toList();
+    }
+
+    private List<String> parseCapabilitiesJson(String capabilitiesJson) {
+        if (capabilitiesJson == null || capabilitiesJson.isEmpty()) {
+            return null;
+        }
+        try {
+            // Remove brackets and quotes, split by comma
+            String cleaned = capabilitiesJson.replace("[", "").replace("]", "").replace("\"", "");
+            if (cleaned.isEmpty()) {
+                return null;
+            }
+            return List.of(cleaned.split(",\\s*"));
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

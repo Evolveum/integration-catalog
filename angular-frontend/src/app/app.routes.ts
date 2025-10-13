@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { ApplicationsList } from './components/applications-list/applications-list';
-import { ApplicationDetail } from './application-detail/application-detail';
+import { ApplicationDetail } from './components/application-detail/application-detail';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },

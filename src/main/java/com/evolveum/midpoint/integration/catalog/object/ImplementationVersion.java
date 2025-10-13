@@ -88,6 +88,9 @@ public class ImplementationVersion {
     @Column(name = "build_framework", columnDefinition = "buildFrameworkType")
     private BuildFrameworkType buildFramework;
 
+    @Column(name = "capabilities", columnDefinition = "json")
+    private String capabilitiesJson;
+
     @Column(name = "connid_version")
     private String connidVersion;
 

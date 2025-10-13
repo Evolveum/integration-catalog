@@ -8,6 +8,7 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class ApplicationDto {
@@ -18,8 +19,12 @@ public class ApplicationDto {
     private String riskLevel;
     private String lifecycleState;
     private OffsetDateTime lastModified;
+    private List<CountryOfOriginDto> origins;
+    private List<ApplicationTagDto> categories;
+    private List<ApplicationTagDto> tags;
+    private List<ImplementationVersionDto> implementationVersions;
 
-    public ApplicationDto(UUID id, String displayName, String description, byte[] logo, String riskLevel, String lifecycleState, OffsetDateTime lastModified) {
+    public ApplicationDto(UUID id, String displayName, String description, byte[] logo, String riskLevel, String lifecycleState, OffsetDateTime lastModified, List<CountryOfOriginDto> origins, List<ApplicationTagDto> categories, List<ApplicationTagDto> tags, List<ImplementationVersionDto> implementationVersions) {
         this.id = id;
         this.displayName = displayName;
         this.description = description;
@@ -27,6 +32,10 @@ public class ApplicationDto {
         this.riskLevel = riskLevel;
         this.lifecycleState = lifecycleState;
         this.lastModified = lastModified;
+        this.origins = origins;
+        this.categories = categories;
+        this.tags = tags;
+        this.implementationVersions = implementationVersions;
     }
 
     public UUID getId() {
@@ -55,5 +64,21 @@ public class ApplicationDto {
 
     public OffsetDateTime getLastModified() {
         return lastModified;
+    }
+
+    public List<CountryOfOriginDto> getOrigins() {
+        return origins;
+    }
+
+    public List<ApplicationTagDto> getCategories() {
+        return categories;
+    }
+
+    public List<ApplicationTagDto> getTags() {
+        return tags;
+    }
+
+    public List<ImplementationVersionDto> getImplementationVersions() {
+        return implementationVersions;
     }
 }

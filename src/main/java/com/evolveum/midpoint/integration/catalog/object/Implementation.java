@@ -38,8 +38,8 @@ public class Implementation {
     }
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "display_name")
     private String displayName;
@@ -54,7 +54,7 @@ public class Implementation {
     @Column(columnDefinition = "FrameworkType")
     private FrameworkType framework;
 
-    @Column(name = "ticketing_system_link")
+    @Column(name = "link_on_ticketing_system")
     private String ticketingSystemLink;
 
     @Enumerated(EnumType.STRING)
@@ -63,7 +63,7 @@ public class Implementation {
     private LicenseType license;
 
     @ManyToOne
-    @JoinColumn(name = "application_id", nullable = false)
+    @JoinColumn(name = "application", nullable = false)
     private Application application;
 
     @OneToMany(mappedBy = "implementation")

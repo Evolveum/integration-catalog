@@ -1,33 +1,56 @@
-<div class="container-fluid py-4">
-  <div class="text-center mb-5">
-    <h1 class="display-4 fw-bold mb-3">Integration Catalog</h1>
-    <p class="lead text-muted">Easily connect any application or system to midpoint</p>
+<div class="container-fluid p-0" style="background-color: #e9ecef;">
+  <!-- Hero Banner -->
+  <div class="bg-primary text-white py-5 mb-5" style="background: linear-gradient(135deg, #2c5282 0%, #4a7ba7 100%);">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <h1 class="display-4 fw-bold mb-3">Integration Catalog</h1>
+          <p class="lead mb-4">Easily connect any application or system to midpoint</p>
+          <p class="mb-2">Explore available integrations to jump-start your workflow, build your own AI-guided assistance,</p>
+          <p class="mb-0">or upload an existing configuration to get started in just minutes. The process is fast, flexible, and user-friendly.</p>
+        </div>
+        <div class="col-lg-6 text-center">
+          <!-- Placeholder for illustration/graphic -->
+          <div class="d-flex justify-content-center align-items-center" style="min-height: 250px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" fill="currentColor" class="opacity-50" viewBox="0 0 16 16">
+              <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="text-center mb-4">
-    <p class="text-muted">Explore available integrations to jump-start your workflow, build your own AI-guided assistance,</p>
-    <p class="text-muted">or upload an existing configuration to get started in just minutes. The process is fast, flexible, and user-friendly.</p>
-  </div>
+  <div class="container py-4" style="background-color: #e9ecef;">
 
-  <div class="row mb-4">
-    <div class="col-lg-8 mx-auto">
-      <div class="input-group input-group-lg">
-        <span class="input-group-text bg-white">🔍</span>
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Search for integrations..."
-          [value]="searchQuery()"
-          (input)="onSearchChange($event)"
-        />
-        <button class="btn btn-outline-secondary" type="button" title="Filter">
-          ⚙
+  <div class="row mb-5">
+    <div class="col-lg-6 mx-auto">
+      <div class="d-flex gap-2 align-items-center">
+        <div class="input-group flex-grow-1">
+          <span class="input-group-text bg-white border-end-0" style="border-radius: 50px 0 0 50px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Search for integrations..."
+            [value]="searchQuery()"
+            (input)="onSearchChange($event)"
+            style="border-radius: 0 50px 50px 0;"
+          />
+        </div>
+        <button class="btn rounded-circle d-flex align-items-center justify-content-center" type="button" title="Filter" style="background-color: white; border: 1px solid #ced4da; width: 38px; height: 38px; padding: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sliders" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
+          </svg>
         </button>
       </div>
     </div>
   </div>
 
-  <h2 class="h3 mb-4">Featured integration apps</h2>
+  <h2 class="h3 mb-4 text-center">Featured integration apps</h2>
 
   @if (loading()) {
     <div class="d-flex justify-content-center my-5">
@@ -43,17 +66,26 @@
 
   @if (!loading() && !error()) {
     <div class="position-relative mb-5">
-      <button class="btn btn-light position-absolute top-50 start-0 translate-middle-y"
-              style="z-index: 10;"
+      <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center"
+              style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 2px solid #dee2e6;"
               (click)="scrollLeft()"
               [disabled]="!canScrollLeft()">
-        ←
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+        </svg>
       </button>
 
-      <div class="overflow-auto" #scrollContainer (scroll)="onScroll()" style="scroll-behavior: smooth;">
+      <div class="scroll-container" #scrollContainer (scroll)="onScroll()" style="overflow-x: auto; scroll-behavior: smooth;">
         <div class="d-flex gap-3 px-5">
           @for (app of featuredApplications(); track app.id) {
-            <div class="card" style="min-width: 250px; max-width: 250px;">
+            <div class="card position-relative" style="min-width: 250px; max-width: 250px;">
+              @if (app.tags && app.tags.length > 0) {
+                @for (tag of app.tags; track tag.id) {
+                  @if (tag.name === 'popular') {
+                    <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2" style="font-size: 0.7rem;">{{ tag.displayName }}</span>
+                  }
+                }
+              }
               <img [src]="app.logo" [alt]="app.displayName" class="card-img-top p-3" style="height: 150px; object-fit: contain;" />
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">{{ app.displayName }}</h5>
@@ -68,24 +100,28 @@
         </div>
       </div>
 
-      <button class="btn btn-light position-absolute top-50 end-0 translate-middle-y"
-              style="z-index: 10;"
+      <button class="btn rounded-circle position-absolute top-50 end-0 translate-middle-y d-flex align-items-center justify-content-center"
+              style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 2px solid #dee2e6;"
               (click)="scrollRight()"
               [disabled]="!canScrollRight()">
-        →
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+        </svg>
       </button>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <div>
+      <div class="text-center flex-grow-1">
         <h2 class="h3 mb-1">More apps</h2>
         <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations</p>
       </div>
       <div class="d-flex align-items-center gap-3">
         <div class="d-flex align-items-center gap-2">
-          <label class="mb-0 text-muted">Sorted by:</label>
+          <label class="mb-0 text-muted text-nowrap">Sort by</label>
           <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)">
             <option value="alphabetical">Alphabetical</option>
+            <option value="popularity">Popularity</option>
+            <option value="activity">Activity</option>
           </select>
         </div>
 
@@ -118,7 +154,14 @@
       <div class="row g-4 mb-4">
         @for (app of moreApplications(); track app.id) {
           <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 shadow-sm">
+            <div class="card h-100 shadow-sm position-relative">
+              @if (app.tags && app.tags.length > 0) {
+                @for (tag of app.tags; track tag.id) {
+                  @if (tag.name === 'popular') {
+                    <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2" style="font-size: 0.7rem;">{{ tag.displayName }}</span>
+                  }
+                }
+              }
               <img [src]="app.logo" [alt]="app.displayName" class="card-img-top p-3" style="height: 150px; object-fit: contain;" />
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">{{ app.displayName }}</h5>
@@ -137,7 +180,14 @@
     @if (viewMode() === 'list') {
       <div class="mb-4">
         @for (app of moreApplications(); track app.id) {
-          <div class="card mb-3 shadow-sm">
+          <div class="card mb-3 shadow-sm position-relative">
+            @if (app.tags && app.tags.length > 0) {
+              @for (tag of app.tags; track tag.id) {
+                @if (tag.name === 'popular') {
+                  <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2" style="font-size: 0.7rem;">{{ tag.displayName }}</span>
+                }
+              }
+            }
             <div class="card-body">
               <div class="row align-items-center">
                 <div class="col-auto">
@@ -184,4 +234,5 @@
       </ul>
     </nav>
   }
+  </div>
 </div>

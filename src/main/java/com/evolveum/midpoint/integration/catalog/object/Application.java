@@ -72,6 +72,9 @@ public class Application {
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationApplicationTag> applicationApplicationTags;
 
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ApplicationOrigin> applicationOrigins;
+
     public Application addImplementation(Implementation implementation) {
         if (implementations == null) {
             implementations = new ArrayList<>();
