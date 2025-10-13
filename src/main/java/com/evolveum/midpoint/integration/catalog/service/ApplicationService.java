@@ -437,7 +437,7 @@ public class ApplicationService {
                             }
                             List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
                             String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
-                            return new ImplementationVersionDto(version.getDescription(), implementationTags, capabilities, version.getConnectorVersion(), version.getSystemVersion(), version.getReleasedDate(), version.getAuthor(), lifecycleState);
+                            return new ImplementationVersionDto(version.getDescription(), implementationTags, capabilities, version.getConnectorVersion(), version.getSystemVersion(), version.getReleasedDate(), version.getAuthor(), lifecycleState, version.getDownloadLink());
                         }) : Stream.empty())
                 .toList();
     }

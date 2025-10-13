@@ -164,6 +164,23 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.router.navigate(['/applications', id]);
   }
 
+  protected formatLifecycleState(state: string | null): string {
+    if (!state) return '';
+
+    switch (state) {
+      case 'REQUESTED':
+        return 'Requested';
+      case 'ACTIVE':
+        return 'Active';
+      case 'WITH_ERROR':
+        return 'With error';
+      case 'IN_PUBLISH_PROCESS':
+        return 'Publishing...';
+      default:
+        return state;
+    }
+  }
+
   private loadApplications(): void {
     this.applicationService.getAll().subscribe({
       next: (data) => {

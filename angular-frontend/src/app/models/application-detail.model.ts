@@ -20,6 +20,7 @@ export interface ImplementationVersion {
   releasedDate: string | null;
   author: string | null;
   lifecycleState: string | null;
+  downloadLink: string | null;
 }
 
 export interface ApplicationDetail {

@@ -20,8 +20,9 @@ public class ImplementationVersionDto {
     private LocalDate releasedDate;
     private String author;
     private String lifecycleState;
+    private String downloadLink;
 
-    public ImplementationVersionDto(String description, List<String> implementationTags, List<String> capabilities, String connectorVersion, String systemVersion, LocalDate releasedDate, String author, String lifecycleState) {
+    public ImplementationVersionDto(String description, List<String> implementationTags, List<String> capabilities, String connectorVersion, String systemVersion, LocalDate releasedDate, String author, String lifecycleState, String downloadLink) {
         this.description = description;
         this.implementationTags = implementationTags;
         this.capabilities = capabilities;
@@ -30,6 +31,7 @@ public class ImplementationVersionDto {
         this.releasedDate = releasedDate;
         this.author = author;
         this.lifecycleState = lifecycleState;
+        this.downloadLink = downloadLink;
     }
 
     public String getDescription() {
@@ -62,5 +64,9 @@ public class ImplementationVersionDto {
 
     public String getLifecycleState() {
         return lifecycleState;
+    }
+
+    public String getDownloadLink() {
+        return downloadLink;
     }
 }
