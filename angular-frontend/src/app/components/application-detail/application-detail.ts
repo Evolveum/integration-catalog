@@ -61,6 +61,16 @@ export class ApplicationDetail implements OnInit {
     });
   }
 
+  protected filterInstalledCapability(capabilities: string[] | null): string[] {
+    if (!capabilities) return [];
+    return capabilities.filter(cap => cap !== 'Installed');
+  }
+
+  protected hasNonInstalledCapabilities(capabilities: string[] | null): boolean {
+    if (!capabilities) return false;
+    return capabilities.some(cap => cap !== 'Installed');
+  }
+
   protected setActiveTab(tab: 'main' | 'other'): void {
     this.activeTab.set(tab);
   }

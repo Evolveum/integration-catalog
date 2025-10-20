@@ -99,6 +99,9 @@
                           @if (version.systemVersion) {
                             <span class="badge bg-primary">{{ version.systemVersion }}</span>
                           }
+                          @if (version.capabilities && version.capabilities.includes('Installed')) {
+                            <span class="badge bg-success">Installed</span>
+                          }
                         </div>
                         @if (version.releasedDate || version.author) {
                           <p class="text-muted small mb-2">
@@ -131,21 +134,18 @@
                         } @else {
                           <p class="text-muted fst-italic mb-2">No description available</p>
                         }
-                        @if ((version.implementationTags && version.implementationTags!.length > 0) ||
-                             (version.capabilities && version.capabilities!.length > 0)) {
+                        @if (hasNonInstalledCapabilities(version.capabilities)) {
                           <div class="mt-2">
                             <h6 class="text-muted small mb-2">Capabilities</h6>
                             <div class="d-flex justify-content-between align-items-start gap-3">
                               <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let filteredTags = filterAiGeneratedTag(version.implementationTags);
-                                @let allCapabilities = filteredTags.concat(version.capabilities || []);
+                                @let allCapabilities = filterInstalledCapability(version.capabilities);
                                 @let isVersionExpanded = isExpanded($index);
                                 @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
                                 @let remainingCount = allCapabilities.length - 10;
 
                                 @for (item of visibleCapabilities; track $index) {
-                                  @let isTag = filteredTags.includes(item);
-                                  <span class="badge" [class.bg-success]="isTag" [class.bg-info]="!isTag">{{ item }}</span>
+                                  <span class="badge bg-info">{{ item }}</span>
                                 }
 
                                 @if (remainingCount > 0) {
@@ -193,6 +193,9 @@
                           @if (version.systemVersion) {
                             <span class="badge bg-primary">{{ version.systemVersion }}</span>
                           }
+                          @if (version.capabilities && version.capabilities.includes('Installed')) {
+                            <span class="badge bg-success">Installed</span>
+                          }
                         </div>
                         @if (version.releasedDate || version.author) {
                           <p class="text-muted small mb-2">
@@ -225,21 +228,18 @@
                         } @else {
                           <p class="text-muted fst-italic mb-2">No description available</p>
                         }
-                        @if ((version.implementationTags && version.implementationTags!.length > 0) ||
-                             (version.capabilities && version.capabilities!.length > 0)) {
+                        @if (hasNonInstalledCapabilities(version.capabilities)) {
                           <div class="mt-2">
                             <h6 class="text-muted small mb-2">Capabilities</h6>
                             <div class="d-flex justify-content-between align-items-start gap-3">
                               <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let filteredTags = filterAiGeneratedTag(version.implementationTags);
-                                @let allCapabilities = filteredTags.concat(version.capabilities || []);
+                                @let allCapabilities = filterInstalledCapability(version.capabilities);
                                 @let isVersionExpanded = isExpanded($index);
                                 @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
                                 @let remainingCount = allCapabilities.length - 10;
 
                                 @for (item of visibleCapabilities; track $index) {
-                                  @let isTag = filteredTags.includes(item);
-                                  <span class="badge" [class.bg-success]="isTag" [class.bg-info]="!isTag">{{ item }}</span>
+                                  <span class="badge bg-info">{{ item }}</span>
                                 }
 
                                 @if (remainingCount > 0) {
@@ -293,6 +293,9 @@
                           @if (version.systemVersion) {
                             <span class="badge bg-primary">{{ version.systemVersion }}</span>
                           }
+                          @if (version.capabilities && version.capabilities.includes('Installed')) {
+                            <span class="badge bg-success">Installed</span>
+                          }
                           @if (version.lifecycleState) {
                             <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
                           }
@@ -328,21 +331,18 @@
                         } @else {
                           <p class="text-muted fst-italic mb-2">No description available</p>
                         }
-                        @if ((version.implementationTags && version.implementationTags!.length > 0) ||
-                             (version.capabilities && version.capabilities!.length > 0)) {
+                        @if (hasNonInstalledCapabilities(version.capabilities)) {
                           <div class="mt-2">
                             <h6 class="text-muted small mb-2">Capabilities</h6>
                             <div class="d-flex justify-content-between align-items-start gap-3">
                               <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let filteredTags = filterAiGeneratedTag(version.implementationTags);
-                                @let allCapabilities = filteredTags.concat(version.capabilities || []);
+                                @let allCapabilities = filterInstalledCapability(version.capabilities);
                                 @let isVersionExpanded = isExpanded($index);
                                 @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
                                 @let remainingCount = allCapabilities.length - 10;
 
                                 @for (item of visibleCapabilities; track $index) {
-                                  @let isTag = filteredTags.includes(item);
-                                  <span class="badge" [class.bg-success]="isTag" [class.bg-info]="!isTag">{{ item }}</span>
+                                  <span class="badge bg-info">{{ item }}</span>
                                 }
 
                                 @if (remainingCount > 0) {
@@ -390,6 +390,9 @@
                           @if (version.systemVersion) {
                             <span class="badge bg-primary">{{ version.systemVersion }}</span>
                           }
+                          @if (version.capabilities && version.capabilities.includes('Installed')) {
+                            <span class="badge bg-success">Installed</span>
+                          }
                           @if (version.lifecycleState) {
                             <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
                           }
@@ -425,21 +428,18 @@
                         } @else {
                           <p class="text-muted fst-italic mb-2">No description available</p>
                         }
-                        @if ((version.implementationTags && version.implementationTags!.length > 0) ||
-                             (version.capabilities && version.capabilities!.length > 0)) {
+                        @if (hasNonInstalledCapabilities(version.capabilities)) {
                           <div class="mt-2">
                             <h6 class="text-muted small mb-2">Capabilities</h6>
                             <div class="d-flex justify-content-between align-items-start gap-3">
                               <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let filteredTags = filterAiGeneratedTag(version.implementationTags);
-                                @let allCapabilities = filteredTags.concat(version.capabilities || []);
+                                @let allCapabilities = filterInstalledCapability(version.capabilities);
                                 @let isVersionExpanded = isExpanded($index);
                                 @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
                                 @let remainingCount = allCapabilities.length - 10;
 
                                 @for (item of visibleCapabilities; track $index) {
-                                  @let isTag = filteredTags.includes(item);
-                                  <span class="badge" [class.bg-success]="isTag" [class.bg-info]="!isTag">{{ item }}</span>
+                                  <span class="badge bg-info">{{ item }}</span>
                                 }
 
                                 @if (remainingCount > 0) {

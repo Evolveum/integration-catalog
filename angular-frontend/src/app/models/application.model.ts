@@ -12,5 +12,6 @@ export interface Application {
   logo: string;
   riskLevel: string | null;
   lifecycleState: string | null;
+  categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
 }

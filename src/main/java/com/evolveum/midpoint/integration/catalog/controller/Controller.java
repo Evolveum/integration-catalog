@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
+import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
 import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
@@ -335,6 +336,26 @@ public class Controller {
     @GetMapping("/applications")
     public ResponseEntity<List<ApplicationDto>> getAllApplications() {
         return ResponseEntity.ok(applicationService.getAllApplications());
+    }
+
+    @GetMapping("/categories/counts")
+    public ResponseEntity<List<CategoryCountDto>> getCategoryCounts() {
+        return ResponseEntity.ok(applicationService.getCategoryCounts());
+    }
+
+    @GetMapping("/common-tags/counts")
+    public ResponseEntity<List<CategoryCountDto>> getCommonTagCounts() {
+        return ResponseEntity.ok(applicationService.getCommonTagCounts());
+    }
+
+    @GetMapping("/app-status/counts")
+    public ResponseEntity<List<CategoryCountDto>> getAppStatusCounts() {
+        return ResponseEntity.ok(applicationService.getAppStatusCounts());
+    }
+
+    @GetMapping("/supported-operations/counts")
+    public ResponseEntity<List<CategoryCountDto>> getSupportedOperationsCounts() {
+        return ResponseEntity.ok(applicationService.getSupportedOperationsCounts());
     }
 
     private List<ApplicationTagDto> filterTagsByType(Application app, ApplicationTag.ApplicationTagType tagType) {

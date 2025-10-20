@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
+import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
@@ -129,6 +130,74 @@ public class ApplicationService {
 
     public List<ApplicationTag> getApplicationTags() {
         return applicationTagRepository.findAll();
+    }
+
+    public List<CategoryCountDto> getCategoryCounts() {
+        List<ApplicationTag> categoryTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.CATEGORY);
+
+        List<CategoryCountDto> categoryCounts = categoryTags.stream()
+                .map(tag -> new CategoryCountDto(
+                    tag.getDisplayName(),
+                    (long) tag.getApplicationApplicationTags().size()
+                ))
+                .toList();
+
+        return categoryCounts;
+    }
+
+    public List<CategoryCountDto> getCommonTagCounts() {
+        List<ApplicationTag> commonTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.COMMON);
+
+        // Filter for certification levels only
+        List<String> certificationLevelNames = List.of("verified_by_evolveum", "community_contributed", "experimental");
+
+        List<CategoryCountDto> commonTagCounts = commonTags.stream()
+                .filter(tag -> certificationLevelNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_")))
+                .map(tag -> new CategoryCountDto(
+                    tag.getDisplayName(),
+                    (long) tag.getApplicationApplicationTags().size()
+                ))
+                .toList();
+
+        return commonTagCounts;
+    }
+
+    public List<CategoryCountDto> getAppStatusCounts() {
+        List<ApplicationTag> commonTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.COMMON);
+
+        // Filter for app status only
+        List<String> appStatusNames = List.of("available", "requested_by_community", "pending");
+
+        List<CategoryCountDto> appStatusCounts = commonTags.stream()
+                .filter(tag -> appStatusNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_")))
+                .map(tag -> new CategoryCountDto(
+                    tag.getDisplayName(),
+                    (long) tag.getApplicationApplicationTags().size()
+                ))
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+
+        // Add "All" with total application count at the beginning
+        long totalCount = applicationRepository.count();
+        appStatusCounts.add(0, new CategoryCountDto("All", totalCount));
+
+        return appStatusCounts;
+    }
+
+    public List<CategoryCountDto> getSupportedOperationsCounts() {
+        List<ApplicationTag> commonTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.COMMON);
+
+        // Filter for supported operations only
+        List<String> supportedOpsNames = List.of("search", "modify_delete", "bulk_action");
+
+        List<CategoryCountDto> supportedOpsCounts = commonTags.stream()
+                .filter(tag -> supportedOpsNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_").replace("/", "_").replace(" ", "")))
+                .map(tag -> new CategoryCountDto(
+                    tag.getDisplayName(),
+                    (long) tag.getApplicationApplicationTags().size()
+                ))
+                .toList();
+
+        return supportedOpsCounts;
     }
 
     public List<CountryOfOrigin> getCountriesOfOrigin() {

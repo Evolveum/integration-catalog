@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Application } from '../models/application.model';
 import { ApplicationDetail } from '../models/application-detail.model';
+import { CategoryCount } from '../models/category-count.model';
 
 @Injectable({
   providedIn: 'root'
@@ -18,5 +19,21 @@ export class ApplicationService {
 
   getById(id: string): Observable<ApplicationDetail> {
     return this.http.get<ApplicationDetail>(`http://localhost:8080/api/application/${id}`);
+  }
+
+  getCategoryCounts(): Observable<CategoryCount[]> {
+    return this.http.get<CategoryCount[]>('http://localhost:8080/api/categories/counts');
+  }
+
+  getCommonTagCounts(): Observable<CategoryCount[]> {
+    return this.http.get<CategoryCount[]>('http://localhost:8080/api/common-tags/counts');
+  }
+
+  getAppStatusCounts(): Observable<CategoryCount[]> {
+    return this.http.get<CategoryCount[]>('http://localhost:8080/api/app-status/counts');
+  }
+
+  getSupportedOperationsCounts(): Observable<CategoryCount[]> {
+    return this.http.get<CategoryCount[]>('http://localhost:8080/api/supported-operations/counts');
   }
 }

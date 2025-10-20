@@ -1,19 +1,159 @@
 <div class="container-fluid p-0" style="background-color: #e9ecef; min-height: 100vh;">
-  <div class="container py-5">
+  <div class="container-fluid px-5 py-5">
     <div class="mb-4">
       <button class="btn text-primary" (click)="goBack()" style="border: none;">
         ← Back to Integration Catalog
       </button>
     </div>
 
-    <div class="request-form-container">
-      <div class="request-form-header">
-        <h1>Create Request</h1>
+    <div class="request-form-container" style="width: 100%;">
+      <div class="request-form-header" style="padding-left: 0; width: 100%;">
+        <h1 style="margin-left: 0;">Integration</h1>
       </div>
 
-      <div class="request-form-content">
-        <!-- Form content will go here -->
-        <p>Request form component - functionality to be implemented</p>
+      <div class="request-form-content" style="padding-left: 0;">
+        <!-- Two Column Layout with Gap -->
+        <div class="row g-3" style="margin-left: 0; margin-right: 0;">
+          <!-- Left Column -->
+          <div class="col-12 col-lg-3" style="padding-left: 0; min-width: 360px;">
+            <div class="form-section" style="width: 100%;">
+              <!-- Filter Header -->
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="filter-title mb-0">Filter By</h4>
+                <button type="button" class="btn btn-clear-filters" (click)="clearFilters()">Clear Filters</button>
+              </div>
+
+              <!-- Separator Line -->
+              <hr class="filter-separator">
+
+              <!-- Filter Items -->
+              <div class="filter-items">
+                <div class="filter-item">
+                  <span class="filter-label">App Status</span>
+                  <button type="button" class="btn btn-clear-item" (click)="clearAppStatus()">Clear</button>
+                </div>
+
+                <!-- App Status Radio Buttons -->
+                <div class="filter-options">
+                  @for (status of appStatuses(); track status.displayName) {
+                    <div class="form-check">
+                      <input class="form-check-input app-status-radio" type="radio" name="appStatus" [id]="'status-' + status.displayName" [value]="status.displayName">
+                      <label class="form-check-label" [for]="'status-' + status.displayName">
+                        {{ status.displayName }} ({{ status.count }})
+                      </label>
+                    </div>
+                  }
+                </div>
+
+                <div class="filter-item" style="cursor: pointer;" (click)="toggleSupportedOperations()">
+                  <span class="filter-label">Supported Operations</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-clear-item" (click)="clearSupportedOperations(); $event.stopPropagation()">Clear</button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" [style.transform]="isSupportedOperationsExpanded() ? 'rotate(90deg)' : 'rotate(0deg)'" style="transition: transform 0.2s;">
+                      <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Supported Operations Checkboxes -->
+                @if (isSupportedOperationsExpanded()) {
+                  <div class="filter-options">
+                    @for (operation of supportedOperations(); track operation.displayName) {
+                      <div class="form-check-checkbox">
+                        <input class="form-check-input-checkbox supported-operations-checkbox" type="checkbox" [id]="'op-' + operation.displayName" [value]="operation.displayName">
+                        <label class="form-check-label-checkbox" [for]="'op-' + operation.displayName">
+                          {{ operation.displayName }} ({{ operation.count }})
+                        </label>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <div class="filter-item" style="cursor: pointer;" (click)="toggleCategory()">
+                  <span class="filter-label">Category</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-clear-item" (click)="clearCategory(); $event.stopPropagation()">Clear</button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" [style.transform]="isCategoryExpanded() ? 'rotate(90deg)' : 'rotate(0deg)'" style="transition: transform 0.2s;">
+                      <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Category Checkboxes -->
+                @if (isCategoryExpanded()) {
+                  <div class="filter-options">
+                    @for (category of categories(); track category.displayName) {
+                      <div class="form-check-checkbox">
+                        <input class="form-check-input-checkbox category-checkbox" type="checkbox" [id]="'cat-' + category.displayName" [value]="category.displayName">
+                        <label class="form-check-label-checkbox" [for]="'cat-' + category.displayName">
+                          {{ category.displayName }} ({{ category.count }})
+                        </label>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <div class="filter-item" style="cursor: pointer;" (click)="toggleCertificationLevel()">
+                  <span class="filter-label">Certification Level</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-clear-item" (click)="clearCertificationLevel(); $event.stopPropagation()">Clear</button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" [style.transform]="isCertificationLevelExpanded() ? 'rotate(90deg)' : 'rotate(0deg)'" style="transition: transform 0.2s;">
+                      <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Certification Level Checkboxes -->
+                @if (isCertificationLevelExpanded()) {
+                  <div class="filter-options">
+                    @for (certLevel of certificationLevels(); track certLevel.displayName) {
+                      <div class="form-check-checkbox">
+                        <input class="form-check-input-checkbox certification-checkbox" type="checkbox" [id]="'cert-' + certLevel.displayName" [value]="certLevel.displayName">
+                        <label class="form-check-label-checkbox" [for]="'cert-' + certLevel.displayName">
+                          {{ certLevel.displayName }} ({{ certLevel.count }})
+                        </label>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="col-12 col-lg-9" style="flex: 1 1 auto;">
+            <div class="form-section" style="width: 90%; padding: 0;">
+              <!-- Tabs -->
+              <div class="d-flex border-bottom">
+                <button
+                  type="button"
+                  class="main-tab-button"
+                  [class.active]="activeMainTab() === 'public'"
+                  (click)="setActiveMainTab('public')"
+                >
+                  Public Catalog
+                </button>
+                <button
+                  type="button"
+                  class="main-tab-button"
+                  [class.active]="activeMainTab() === 'local'"
+                  (click)="setActiveMainTab('local')"
+                >
+                  Local
+                </button>
+              </div>
+
+              <!-- Tab Content -->
+              <div style="padding: 1.5rem;">
+                @if (activeMainTab() === 'public') {
+                  <p>Public Catalog content goes here</p>
+                } @else {
+                  <p>Local content goes here</p>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

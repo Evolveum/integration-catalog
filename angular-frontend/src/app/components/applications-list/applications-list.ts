@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, computed, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, signal, computed, ViewChild, ViewChildren, ElementRef, AfterViewInit, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
 import { Application } from '../../models/application.model';
+import { CategoryCount } from '../../models/category-count.model';
 
 @Component({
   selector: 'app-applications-list',
@@ -15,8 +16,10 @@ import { Application } from '../../models/application.model';
 export class ApplicationsList implements OnInit, AfterViewInit {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('scrollContainerMore') scrollContainerMore!: ElementRef<HTMLDivElement>;
+  @ViewChildren('featuredCard') featuredCards!: QueryList<ElementRef<HTMLDivElement>>;
 
   protected applications = signal<Application[]>([]);
+  protected categories = signal<CategoryCount[]>([]);
   protected loading = signal<boolean>(true);
   protected error = signal<string | null>(null);
   protected searchQuery = signal('');
@@ -26,12 +29,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected itemsPerPage = 12;
   protected sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
   protected viewMode = signal<'grid' | 'list'>('grid');
+  protected activeTab = signal<string>('all');
 
   protected featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
+    const activeTab = this.activeTab();
     const apps = this.applications();
-    // Don't show featured apps when searching
-    if (query) {
+    // Don't show featured apps when searching or filtering by category
+    if (query || activeTab !== 'all') {
       return [];
     }
     return apps;
@@ -39,7 +44,15 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected moreApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
+    const activeTab = this.activeTab();
     let apps = [...this.applications()];
+
+    // Filter by category tab (if not 'all')
+    if (activeTab !== 'all') {
+      apps = apps.filter(app =>
+        app.categories?.some((category: any) => category.displayName === activeTab)
+      );
+    }
 
     // When searching, show all matching apps. When not searching, show all apps
     if (query) {
@@ -80,7 +93,15 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected filteredCount = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
+    const activeTab = this.activeTab();
     let apps = this.applications();
+
+    // Filter by category tab (if not 'all')
+    if (activeTab !== 'all') {
+      apps = apps.filter(app =>
+        app.categories?.some((category: any) => category.displayName === activeTab)
+      );
+    }
 
     if (query) {
       apps = apps.filter(app =>
@@ -109,10 +130,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadApplications();
+    this.loadCategories();
   }
 
   ngAfterViewInit(): void {
     this.updateScrollButtons();
+    setTimeout(() => {
+      this.updateCardOpacities();
+    }, 0);
   }
 
   protected onSearchChange(event: Event): void {
@@ -129,6 +154,11 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected setViewMode(mode: 'grid' | 'list'): void {
     this.viewMode.set(mode);
+  }
+
+  protected setActiveTab(tab: string): void {
+    this.activeTab.set(tab);
+    this.currentPage.set(0);
   }
 
   protected scrollLeft(): void {
@@ -159,6 +189,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected onScroll(): void {
     this.updateScrollButtons();
+    this.updateCardOpacities();
   }
 
   private updateScrollButtons(): void {
@@ -169,6 +200,36 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.canScrollRight.set(
       container.scrollLeft < container.scrollWidth - container.clientWidth - 1
     );
+  }
+
+  private updateCardOpacities(): void {
+    const container = this.scrollContainer?.nativeElement;
+    if (!container || !this.featuredCards) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const containerLeft = containerRect.left;
+    const containerRight = containerRect.right;
+
+    this.featuredCards.forEach(cardRef => {
+      const card = cardRef.nativeElement;
+      const cardRect = card.getBoundingClientRect();
+      const cardLeft = cardRect.left;
+      const cardRight = cardRect.right;
+
+      // Calculate how much of the card is visible
+      const visibleLeft = Math.max(cardLeft, containerLeft);
+      const visibleRight = Math.min(cardRight, containerRight);
+      const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+      const cardWidth = cardRect.width;
+      const visibilityRatio = visibleWidth / cardWidth;
+
+      // If card is fully visible (or almost fully), opacity is 1, otherwise 0.5
+      if (visibilityRatio >= 0.95) {
+        card.style.opacity = '1';
+      } else {
+        card.style.opacity = '0.5';
+      }
+    });
   }
 
   protected navigateToDetail(id: string): void {
@@ -205,12 +266,24 @@ export class ApplicationsList implements OnInit, AfterViewInit {
         this.loading.set(false);
         setTimeout(() => {
           this.updateScrollButtons();
+          this.updateCardOpacities();
         }, 0);
       },
       error: (err) => {
         this.error.set('Failed to load applications');
         this.loading.set(false);
         console.error('Error loading applications:', err);
+      }
+    });
+  }
+
+  private loadCategories(): void {
+    this.applicationService.getCategoryCounts().subscribe({
+      next: (data) => {
+        this.categories.set(data);
+      },
+      error: (err) => {
+        console.error('Error loading categories:', err);
       }
     });
   }
