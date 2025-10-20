@@ -48,7 +48,7 @@
                   }
                 </h1>
                 @if (application()!.lifecycleState) {
-                  <span class="badge bg-primary">{{ application()!.lifecycleState }}</span>
+                  <span class="badge bg-primary">{{ formatLifecycleState(application()!.lifecycleState) }}</span>
                 }
               </div>
             </div>
@@ -294,7 +294,7 @@
                             <span class="badge bg-primary">{{ version.systemVersion }}</span>
                           }
                           @if (version.lifecycleState) {
-                            <span class="badge bg-warning text-dark">{{ version.lifecycleState }}</span>
+                            <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
                           }
                         </div>
                         @if (version.releasedDate || version.author) {
@@ -391,7 +391,7 @@
                             <span class="badge bg-primary">{{ version.systemVersion }}</span>
                           }
                           @if (version.lifecycleState) {
-                            <span class="badge bg-warning text-dark">{{ version.lifecycleState }}</span>
+                            <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
                           }
                         </div>
                         @if (version.releasedDate || version.author) {

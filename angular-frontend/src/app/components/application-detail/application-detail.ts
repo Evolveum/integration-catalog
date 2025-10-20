@@ -69,6 +69,23 @@ export class ApplicationDetail implements OnInit {
     return this.otherEvolvumVersions().length + this.otherCommunityVersions().length;
   }
 
+  protected formatLifecycleState(state: string | null): string {
+    if (!state) return '';
+
+    switch (state) {
+      case 'REQUESTED':
+        return 'Requested';
+      case 'ACTIVE':
+        return 'Active';
+      case 'WITH_ERROR':
+        return 'With error';
+      case 'IN_PUBLISH_PROCESS':
+        return 'Publishing...';
+      default:
+        return state;
+    }
+  }
+
   private loadApplication(id: string): void {
     this.applicationService.getById(id).subscribe({
       next: (data) => {

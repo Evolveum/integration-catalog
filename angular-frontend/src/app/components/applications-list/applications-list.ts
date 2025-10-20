@@ -30,23 +30,28 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const apps = this.applications();
-    if (!query) {
-      return apps;
+    // Don't show featured apps when searching
+    if (query) {
+      return [];
     }
-    return apps.filter(app =>
-      app.displayName.toLowerCase().includes(query) ||
-      app.description.toLowerCase().includes(query)
-    );
+    return apps;
   });
 
   protected moreApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     let apps = [...this.applications()];
 
+    // When searching, show all matching apps. When not searching, show all apps
     if (query) {
       apps = apps.filter(app =>
         app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query)
+        app.description.toLowerCase().includes(query) ||
+        app.lifecycleState?.toLowerCase().includes(query) ||
+        app.riskLevel?.toLowerCase().includes(query) ||
+        app.tags?.some(tag =>
+          tag.name.toLowerCase().includes(query) ||
+          tag.displayName.toLowerCase().includes(query)
+        )
       );
     }
 
@@ -80,7 +85,13 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     if (query) {
       apps = apps.filter(app =>
         app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query)
+        app.description.toLowerCase().includes(query) ||
+        app.lifecycleState?.toLowerCase().includes(query) ||
+        app.riskLevel?.toLowerCase().includes(query) ||
+        app.tags?.some(tag =>
+          tag.name.toLowerCase().includes(query) ||
+          tag.displayName.toLowerCase().includes(query)
+        )
       );
     }
 
@@ -162,6 +173,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected navigateToDetail(id: string): void {
     this.router.navigate(['/applications', id]);
+  }
+
+  protected navigateToRequest(): void {
+    this.router.navigate(['/request']);
   }
 
   protected formatLifecycleState(state: string | null): string {

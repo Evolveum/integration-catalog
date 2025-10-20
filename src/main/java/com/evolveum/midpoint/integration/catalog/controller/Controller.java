@@ -44,7 +44,6 @@ import java.util.stream.Stream;
 public class Controller {
 
     private final ApplicationService applicationService;
-    static final long offset = 10;
 
     public Controller(ApplicationService applicationService) {
         this.applicationService = applicationService;
@@ -217,7 +216,7 @@ public class Controller {
         String ua = request.getHeader("User-Agent");
 
         try {
-            byte[] fileBytes = applicationService.downloadConnector(oid, ip, ua, offset);
+            byte[] fileBytes = applicationService.downloadConnector(oid, ip, ua);
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -316,7 +315,7 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Create Request successfully"),
             @ApiResponse(responseCode = "404", description = "Create Request failed")
     })
-    @PostMapping("/requests")
+    @PostMapping("/request")
     public ResponseEntity<Request> createRequest(@Valid @RequestBody CreateRequestDto dto) {
         try {
             Request created = applicationService.createRequest(
