@@ -48,6 +48,8 @@ import java.util.UUID;
 @Service
 public class ApplicationService {
 
+    private static final long DOWNLOAD_OFFSET_SECONDS = 10;
+
     @Autowired
     private final ApplicationRepository applicationRepository;
 
@@ -280,7 +282,8 @@ public class ApplicationService {
 
     public void recordDownloadIfNew(ImplementationVersion version, Inet ip, String userAgent, OffsetDateTime cutoff) {
         boolean duplicate = downloadsRepository
-                .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
+                .existsRecentDuplicate(
+                        version.getId(), ip, userAgent, cutoff);
 
         if (!duplicate) {
             Downloads dl = new Downloads();
@@ -320,10 +323,10 @@ public class ApplicationService {
     }
 
     public List<Request> getRequestsForApplication(UUID appId) {
-        return requestRepository.findByApplication_Id(appId);
+        return requestRepository.findByApplicationId(appId);
     }
 
-    public byte[] downloadConnector(UUID versionId, String ip, String userAgent, long offsetSeconds) {
+    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
         ImplementationVersion version = implementationVersionRepository.findById(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
 
@@ -331,12 +334,10 @@ public class ApplicationService {
             byte[] fileBytes = in.readAllBytes();
 
             Inet inet = new Inet(ip);
-            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(offsetSeconds);
+            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
             recordDownloadIfNew(version, inet, userAgent, cutoff);
 
             return fileBytes;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to download connector: " + e.getMessage(), e);
         }
     }
 }

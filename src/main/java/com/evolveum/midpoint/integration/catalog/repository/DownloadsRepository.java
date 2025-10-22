@@ -8,15 +8,11 @@
 package com.evolveum.midpoint.integration.catalog.repository;
 
 import com.evolveum.midpoint.integration.catalog.object.Downloads;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 import com.evolveum.midpoint.integration.catalog.utils.Inet;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,10 +21,11 @@ import java.util.UUID;
 public interface DownloadsRepository extends JpaRepository<Downloads, UUID>,
         JpaSpecificationExecutor<Downloads> {
 
-        boolean existsRecentDuplicate(UUID implementationVersion,
-                                      Inet ipAddress,
-                                      String userAgent,
-                                      OffsetDateTime downloadedAt);
+    boolean existsRecentDuplicate(
+            UUID implementationVersion,
+            Inet ipAddress,
+            String userAgent,
+            OffsetDateTime downloadedAt);
 
-    long countByImplementationVersion_Id(Integer implementationVersionId);
+    long countByImplementationVersionId(Integer implementationVersionId);
 }

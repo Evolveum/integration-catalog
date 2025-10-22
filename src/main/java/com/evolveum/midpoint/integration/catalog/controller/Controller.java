@@ -44,7 +44,6 @@ import java.util.UUID;
 public class Controller {
 
     private final ApplicationService applicationService;
-    static final long offset = 10;
 
     public Controller(ApplicationService applicationService) {
         this.applicationService = applicationService;
@@ -167,13 +166,12 @@ public class Controller {
         String ua = request.getHeader("User-Agent");
 
         try {
-            byte[] fileBytes = applicationService.downloadConnector(oid, ip, ua, offset);
+            byte[] fileBytes = applicationService.downloadConnector(oid, ip, ua);
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .body(fileBytes);
-        } catch (RuntimeException e) {
-            // exception already done in ApplicationService
+        } catch (IOException e) {
             return ResponseEntity.internalServerError().body(null);
         }
     }

@@ -7,16 +7,14 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
-import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.Votes;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public interface VotesRepository extends JpaRepository<Votes, UUID>,
         JpaSpecificationExecutor<Votes> {
 
-    long countByRequest_Id(Integer requestId);
+    long countByRequestId(Integer requestId);
 }
