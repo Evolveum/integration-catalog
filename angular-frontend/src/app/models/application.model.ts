@@ -14,4 +14,5 @@ export interface Application {
   lifecycleState: string | null;
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
+  pendingRequest?: boolean;
 }

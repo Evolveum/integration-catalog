@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Application } from '../models/application.model';
 import { ApplicationDetail } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
+import { PendingRequest } from '../models/pending-request.model';
 
 @Injectable({
   providedIn: 'root'
@@ -35,5 +36,13 @@ export class ApplicationService {
 
   getSupportedOperationsCounts(): Observable<CategoryCount[]> {
     return this.http.get<CategoryCount[]>('http://localhost:8080/api/supported-operations/counts');
+  }
+
+  submitPendingRequest(request: PendingRequest): Observable<any> {
+    return this.http.post<any>('http://localhost:8080/api/pending-request', request);
+  }
+
+  getPendingRequests(): Observable<Application[]> {
+    return this.http.get<Application[]>('http://localhost:8080/api/pending-requests');
   }
 }

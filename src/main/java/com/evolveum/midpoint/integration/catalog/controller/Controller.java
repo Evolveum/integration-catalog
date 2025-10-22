@@ -13,6 +13,8 @@ import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
 import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
+import com.evolveum.midpoint.integration.catalog.dto.PendingRequestDisplayDto;
+import com.evolveum.midpoint.integration.catalog.dto.PendingRequestDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -20,6 +22,7 @@ import com.evolveum.midpoint.integration.catalog.form.UploadForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
+import com.evolveum.midpoint.integration.catalog.service.PendingRequestService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,9 +48,11 @@ import java.util.stream.Stream;
 public class Controller {
 
     private final ApplicationService applicationService;
+    private final PendingRequestService pendingRequestService;
 
-    public Controller(ApplicationService applicationService) {
+    public Controller(ApplicationService applicationService, PendingRequestService pendingRequestService) {
         this.applicationService = applicationService;
+        this.pendingRequestService = pendingRequestService;
     }
 
     @Operation(summary = "Get application by ID",
@@ -327,6 +332,37 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Submit Pending Request",
+            description = "Submits a new pending integration request from the request form")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Pending request submitted successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data")
+    })
+    @PostMapping("/pending-request")
+    public ResponseEntity<PendingRequest> submitPendingRequest(@Valid @RequestBody PendingRequestDto dto) {
+        try {
+            PendingRequest created = pendingRequestService.submitRequest(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to submit request: " + ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get all pending requests",
+            description = "Fetches all pending integration requests for display")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pending requests retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Failed to retrieve pending requests")
+    })
+    @GetMapping("/pending-requests")
+    public ResponseEntity<List<PendingRequestDisplayDto>> getAllPendingRequests() {
+        try {
+            return ResponseEntity.ok(pendingRequestService.getAllPendingRequests());
+        } catch (Exception ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @Operation(summary = "Show all available applications",
             description = "")
     @ApiResponses(value = {
@@ -338,21 +374,45 @@ public class Controller {
         return ResponseEntity.ok(applicationService.getAllApplications());
     }
 
+    @Operation(summary = "Show counts of categories",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Showed counts of categories successfully"),
+            @ApiResponse(responseCode = "404", description = "Show counts of categories failed")
+    })
     @GetMapping("/categories/counts")
     public ResponseEntity<List<CategoryCountDto>> getCategoryCounts() {
         return ResponseEntity.ok(applicationService.getCategoryCounts());
     }
 
+    @Operation(summary = "Show counts of common tags",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Showed counts of common tags successfully"),
+            @ApiResponse(responseCode = "404", description = "Show counts of common tags failed")
+    })
     @GetMapping("/common-tags/counts")
     public ResponseEntity<List<CategoryCountDto>> getCommonTagCounts() {
         return ResponseEntity.ok(applicationService.getCommonTagCounts());
     }
 
+    @Operation(summary = "Show counts of app status",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Showed counts of app status successfully"),
+            @ApiResponse(responseCode = "404", description = "Show counts of app status failed")
+    })
     @GetMapping("/app-status/counts")
     public ResponseEntity<List<CategoryCountDto>> getAppStatusCounts() {
         return ResponseEntity.ok(applicationService.getAppStatusCounts());
     }
 
+    @Operation(summary = "Show counts of supported operations",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Showed counts of supported operations successfully"),
+            @ApiResponse(responseCode = "404", description = "Show counts of supported operations failed")
+    })
     @GetMapping("/supported-operations/counts")
     public ResponseEntity<List<CategoryCountDto>> getSupportedOperationsCounts() {
         return ResponseEntity.ok(applicationService.getSupportedOperationsCounts());
