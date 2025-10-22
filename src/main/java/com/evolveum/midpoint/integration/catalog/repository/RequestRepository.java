@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
+import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.Request;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
