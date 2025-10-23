@@ -8,15 +8,18 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
+import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
-import com.evolveum.midpoint.integration.catalog.form.UploadForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 
+import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
+import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
+import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 
-import com.evolveum.midpoint.integration.catalog.utils.Inet;
+import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -45,8 +48,13 @@ public class Controller {
 
     private final ApplicationService applicationService;
 
-    public Controller(ApplicationService applicationService) {
+    private final ImplementationVersionRepository implementationVersionRepository;
+    private final RequestRepository requestRepository;
+
+    public Controller(ApplicationService applicationService, DownloadRepository downloadRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository) {
         this.applicationService = applicationService;
+        this.implementationVersionRepository = implementationVersionRepository;
+        this.requestRepository = requestRepository;
     }
 
     @Operation(summary = "Get application by ID",
@@ -111,17 +119,15 @@ public class Controller {
 
     @Operation(summary = "", description = "")
     @PostMapping("/upload/connector")
-    public ResponseEntity<String> uploadConnector(@RequestBody UploadForm uploadForm) {
-        // FIXME remove try {
+    public ResponseEntity<String> uploadConnector(@RequestBody UploadImplementationDto dto) {
         try {
-            return ResponseEntity.ok()
-                    .body(applicationService.uploadConnector(
-                            uploadForm.getApplication(),
-                            uploadForm.getImplementation(),
-                            uploadForm.getImplementationVersion(),
-                            uploadForm.getFiles()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(
+                    dto.application(),
+                    dto.implementation(),
+                    dto.implementationVersion(),
+                    dto.files()));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
@@ -173,26 +179,6 @@ public class Controller {
                     .body(fileBytes);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body(null);
-        }
-    }
-
-    @Operation(summary = "Upload Scimrest Connector",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "ScimRest Connector upload successful"),
-            @ApiResponse(responseCode = "404", description = "ScimRest Connector upload failed")
-    })
-    @PostMapping("upload/scimrest")
-    public ResponseEntity<String> uploadScimRestConnector(@RequestBody UploadForm uploadForm) {
-        try {
-            return ResponseEntity.ok()
-                    .body(applicationService.uploadConnector(
-                            uploadForm.getApplication(),
-                            uploadForm.getImplementation(),
-                            uploadForm.getImplementationVersion(),
-                            uploadForm.getFiles()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Upload failed: " + e.getMessage());
         }
     }
 

@@ -7,7 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.integration;
 
-import com.evolveum.midpoint.integration.catalog.form.ItemFile;
+import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
@@ -15,6 +15,7 @@ import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 import org.kohsuke.github.*;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -35,13 +36,23 @@ public class GithubClient {
                 .build();
 
         GHRepository repo = github.createRepository(nameOfProject)
-                .description("Repository created via API Integration catalog")
+                .description(newVersion.getDescription())
                 .private_(false)
                 .autoInit(true)
                 .create();
 
-        GHRef masterRef = repo.getRef("heads/main");
-        GHCommit latestCommit = repo.getCommit(masterRef.getObject().getSha());
+//        // create a new branch (named connidVersion of an implementation version) if the branch does not exist
+//        // if exist the branch new implementation version push to the existing branch
+//        try {
+//            repo.getBranch(newVersion.getConnidVersion());
+//            branchRef = repo.getRef("heads/" + newVersion.getConnidVersion());
+//        } catch (IOException e) {
+//            GHBranch baseBranch = repo.getBranch("main"); // or "master"
+//            branchRef = repo.createRef("refs/heads/" + newVersion.getConnidVersion(), baseBranch.getSHA1());
+//        }
+
+        GHRef branchRef = repo.getRef("heads/main");
+        GHCommit latestCommit = repo.getCommit(branchRef.getObject().getSha());
         GHTreeBuilder treeBuilder = repo.createTree().baseTree(latestCommit.getSHA1());
 
         for (ItemFile file : files) {
@@ -56,7 +67,7 @@ public class GithubClient {
                 .parent(latestCommit.getSHA1())
                 .create();
 
-        masterRef.updateTo(commit.getSHA1());
+        branchRef.updateTo(commit.getSHA1());
 
         return repo;
     }

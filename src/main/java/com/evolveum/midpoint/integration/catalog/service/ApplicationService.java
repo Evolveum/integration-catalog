@@ -7,20 +7,20 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
-import com.evolveum.midpoint.integration.catalog.form.ItemFile;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
-import com.evolveum.midpoint.integration.catalog.utils.Inet;
+import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -75,13 +75,13 @@ public class ApplicationService {
     private final JenkinsProperties jenkinsProperties;
 
     @Autowired
-    private final DownloadsRepository downloadsRepository;
+    private final DownloadRepository downloadRepository;
 
     @Autowired
     private final RequestRepository requestRepository;
 
     @Autowired
-    private final VotesRepository votesRepository;
+    private final VoteRepository voteRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -91,9 +91,9 @@ public class ApplicationService {
                               ConnidVersionRepository connidVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
-                              DownloadsRepository downloadsRepository,
+                              DownloadRepository downloadRepository,
                               RequestRepository requestRepository,
-                              VotesRepository votesRepository
+                              VoteRepository voteRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -103,9 +103,9 @@ public class ApplicationService {
         this.connidVersionRepository = connidVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
-        this.downloadsRepository = downloadsRepository;
+        this.downloadRepository = downloadRepository;
         this.requestRepository = requestRepository;
-        this.votesRepository = votesRepository;
+        this.voteRepository = voteRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -144,36 +144,52 @@ public class ApplicationService {
             ImplementationVersion implementationVersion,
             List<ItemFile> files
     ) {
+        if (application.getId() != null) {
+            Optional<Application> existApplication = applicationRepository.findById(application.getId());
+            application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
+        }
+
         implementation.setApplication(application);
         implementationVersion.setImplementation(implementation);
 
-        try {
-            if (Implementation.FrameworkType.SCIM_REST.equals(implementation.getFramework())) {
+        if (Implementation.FrameworkType.SCIM_REST.equals(implementation.getFramework())) {
+            try {
                 GithubClient githubClient = new GithubClient(githubProperties);
                 GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
-                implementationVersion.setCheckoutLink(repository.getHtmlUrl().toString());
+                implementationVersion.setCheckoutLink(repository.getHttpTransportUrl());
+                implementationVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+            } catch (Exception e) {
+                implementationVersion.setErrorMessage(e.getMessage());
+                log.error(e.getMessage());
             }
-
-            JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
-            HttpResponse<String> response = jenkinsClient.triggerJob(
-                    "integration-catalog-upload-connid-connector",
-                    Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
-                            "BRANCH_URL", implementationVersion.getBrowseLink(),
-                            "CONNECTOR_OID", implementationVersion.getId().toString(),
-                            "IMPL_FRAMEWORK", implementation.getFramework().name()));
-
-            log.info(response.body());
-        } catch (Exception e) {
-            implementationVersion.setErrorMessage(e.getMessage());
-            log.error(e.getMessage());
-            return e.getMessage();
-        } finally {
-            applicationRepository.save(application);
-            implementationRepository.save(implementation);
-            implementationVersionRepository.save(implementationVersion);
         }
 
-        return implementationVersion.getCheckoutLink();
+        applicationRepository.save(application);
+        implementationRepository.save(implementation);
+        implementationVersionRepository.save(implementationVersion);
+
+        if (implementationVersion.getErrorMessage() == null) {
+            try {
+                JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
+                HttpResponse<String> response = jenkinsClient.triggerJob(
+                        "integration-catalog-upload-connid-connector",
+                        Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
+                                "BRANCH_URL", implementationVersion.getBrowseLink(),
+                                "CONNECTOR_OID", implementationVersion.getId().toString(),
+                                "IMPL_VERSION", implementationVersion.getConnectorVersion(),
+                                "IMPL_TITLE", implementation.getDisplayName(),
+                                "IMPL_FRAMEWORK", implementation.getFramework().name(),
+                                "SKIP_DEPLOY", "false"));
+                log.info(response.body());
+                return response.body();
+            } catch (Exception e) {
+                implementationVersion.setErrorMessage(e.getMessage());
+                implementationVersionRepository.save(implementationVersion);
+                log.error(e.getMessage());
+            }
+        }
+
+        return implementationVersion.getErrorMessage();
     }
 
     public String downloadConnector(String connectorVersion) {
@@ -272,26 +288,25 @@ public class ApplicationService {
         return implementationVersionRepository.findAll(spec, pageable);
     }
 
-    public List<Votes> getVotes() {
-        return votesRepository.findAll();
+    public List<Vote> getVotes() {
+        return voteRepository.findAll();
     }
 
     public List<Request> getRequests() {
         return requestRepository.findAll();
     }
 
-    public void recordDownloadIfNew(ImplementationVersion version, Inet ip, String userAgent, OffsetDateTime cutoff) {
-        boolean duplicate = downloadsRepository
-                .existsRecentDuplicate(
-                        version.getId(), ip, userAgent, cutoff);
+    public void recordDownloadIfNew(ImplementationVersion version, InetAddress ip, String userAgent, OffsetDateTime cutoff) {
+        boolean duplicate = downloadRepository
+                .existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(version, ip, userAgent, cutoff);
 
         if (!duplicate) {
-            Downloads dl = new Downloads();
-            dl.setImplementationVersion(version.getId());
+            Download dl = new Download();
+            dl.setImplementationVersion(version);
             dl.setIpAddress(ip);
             dl.setUserAgent(userAgent);
             dl.setDownloadedAt(OffsetDateTime.now());
-            downloadsRepository.save(dl);
+            downloadRepository.save(dl);
         }
     }
 
@@ -308,7 +323,7 @@ public class ApplicationService {
         }
 
         Request r = new Request();
-        r.setApplicationId(application.getId());
+        r.setApplication(application);
         r.setCapabilitiesType(ct);
         r.setRequester(requester);
         return requestRepository.save(r);
@@ -333,7 +348,7 @@ public class ApplicationService {
         try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
             byte[] fileBytes = in.readAllBytes();
 
-            Inet inet = new Inet(ip);
+            InetAddress inet = new InetAddress(ip);
             OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
             recordDownloadIfNew(version, inet, userAgent, cutoff);
 

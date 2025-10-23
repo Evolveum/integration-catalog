@@ -7,7 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
-import com.evolveum.midpoint.integration.catalog.utils.Inet;
+import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -22,7 +22,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "downloads")
 @Getter @Setter
-public class Downloads {
+public class Download {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -30,10 +30,10 @@ public class Downloads {
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "implementation_version_id", nullable = false)
-    private UUID implementationVersion;
+    private ImplementationVersion implementationVersion;
 
-    @Column(name = "ip_address", columnDefinition = "inet", nullable = false)
-    private Inet ipAddress;
+    @Column(name = "ip_address", columnDefinition = "Inet", nullable = false)
+    private InetAddress ipAddress;
 
     @Column(name = "user_agent", nullable = false)
     private String userAgent;

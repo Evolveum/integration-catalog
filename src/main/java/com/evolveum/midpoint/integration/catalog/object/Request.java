@@ -15,7 +15,6 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Created by TomasS.
@@ -39,7 +38,7 @@ public class Request {
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)
-    private UUID applicationId;
+    private Application application;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
@@ -49,7 +48,7 @@ public class Request {
     private String requester;
 
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = false)
-    private List<Votes> votes = new ArrayList<>();
+    private List<Vote> votes = new ArrayList<>();
 
     @Transient
     public long getVotesCount() {

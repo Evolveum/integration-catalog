@@ -7,21 +7,19 @@
 
 package com.evolveum.midpoint.integration.catalog.utils;
 
+import lombok.Getter;
+
 import java.io.Serializable;
 import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class Inet implements Serializable {
+@Getter
+public class InetAddress implements Serializable {
 
     private final String address;
 
-    public Inet(String address) {
+    public InetAddress(String address) {
         this.address = address;
-    }
-
-    public String getAddress() {
-        return address;
     }
 
     @Override
@@ -32,9 +30,9 @@ public class Inet implements Serializable {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        Inet inet = (Inet) o;
+        InetAddress inetAddress = (InetAddress) o;
 
-        return address != null ? address.equals(inet.address) : inet.address == null;
+        return address != null ? address.equals(inetAddress.address) : inetAddress.address == null;
     }
 
     @Override
@@ -44,7 +42,7 @@ public class Inet implements Serializable {
                 0;
     }
 
-    public InetAddress toInetAddress() {
+    public java.net.InetAddress toInetAddress() {
         try {
             String host = address.replaceAll(
                     "\\/.*$", ""

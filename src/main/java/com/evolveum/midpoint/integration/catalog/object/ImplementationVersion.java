@@ -95,13 +95,13 @@ public class ImplementationVersion {
     @JoinColumn(name = "implementation_id", nullable = false)
     private Implementation implementation;
 
-    @Column(name = "error_message")
+    @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
     //connection to Downloads
     @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)
     @OrderBy("downloadedAt DESC")
-    private List<Downloads> downloads = new ArrayList<>();
+    private List<Download> downloads = new ArrayList<>();
 
     @Transient
     public long getDownloadCount() {
