@@ -75,7 +75,7 @@ export class RequestForm {
           this.submitSuccess.set(false);
         }, 5000);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.isSubmitting.set(false);
         this.submitError.set('Failed to submit request. Please try again.');
         console.error('Error submitting request:', err);

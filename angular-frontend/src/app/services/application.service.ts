@@ -48,4 +48,8 @@ export class ApplicationService {
   hasUserVoted(requestId: number, voter: string): Observable<boolean> {
     return this.http.get<boolean>(`http://localhost:8080/api/requests/${requestId}/votes/check?voter=${voter}`);
   }
+
+  submitRequest(request: any): Observable<any> {
+    return this.http.post<any>('http://localhost:8080/api/requests', request);
+  }
 }
