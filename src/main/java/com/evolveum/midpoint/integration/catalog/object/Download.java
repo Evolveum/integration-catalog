@@ -22,7 +22,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "downloads")
 @Getter @Setter
-public class Downloads {
+public class Download {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

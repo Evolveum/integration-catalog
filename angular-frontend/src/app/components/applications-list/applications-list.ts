@@ -5,11 +5,14 @@ import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
 import { Application } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
+import { RequestForm } from '../request-form/request-form';
+import { LoginModal } from '../login-modal/login-modal';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RequestForm, LoginModal],
   templateUrl: './applications-list.html',
   styleUrl: './applications-list.css'
 })
@@ -30,6 +33,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
   protected viewMode = signal<'grid' | 'list'>('grid');
   protected activeTab = signal<string>('all');
+  protected isRequestModalOpen = signal<boolean>(false);
+  protected isLoginModalOpen = signal<boolean>(false);
 
   protected featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -125,7 +130,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   constructor(
     private applicationService: ApplicationService,
-    private router: Router
+    private router: Router,
+    protected authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -236,8 +242,53 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.router.navigate(['/applications', id]);
   }
 
-  protected navigateToRequest(): void {
-    this.router.navigate(['/request']);
+  protected openRequestModal(): void {
+    this.isRequestModalOpen.set(true);
+  }
+
+  protected closeRequestModal(): void {
+    this.isRequestModalOpen.set(false);
+  }
+
+  protected openLoginModal(): void {
+    this.isLoginModalOpen.set(true);
+  }
+
+  protected closeLoginModal(): void {
+    this.isLoginModalOpen.set(false);
+  }
+
+  protected logout(): void {
+    this.authService.logout();
+  }
+
+  protected voteForRequest(app: Application): void {
+    const currentUser = this.authService.getCurrentUser()();
+
+    if (!currentUser) {
+      alert('Please log in to vote');
+      return;
+    }
+
+    if (!app.requestId) {
+      alert('Request ID not found');
+      return;
+    }
+
+    this.applicationService.submitVote(app.requestId, currentUser).subscribe({
+      next: () => {
+        // Increment vote count locally
+        app.voteCount = (app.voteCount || 0) + 1;
+      },
+      error: (err) => {
+        if (err.status === 400) {
+          alert('You have already voted for this request');
+        } else {
+          alert('Failed to submit vote. Please try again.');
+        }
+        console.error('Error submitting vote:', err);
+      }
+    });
   }
 
   protected formatLifecycleState(state: string | null): string {

@@ -7,6 +7,7 @@ import { ApplicationDetail as ApplicationDetailModel } from '../../models/applic
 @Component({
   selector: 'app-application-detail',
   imports: [CommonModule],
+  standalone: true,
   templateUrl: './application-detail.html',
   styleUrl: './application-detail.css'
 })

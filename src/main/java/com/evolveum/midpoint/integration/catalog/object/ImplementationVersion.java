@@ -101,10 +101,10 @@ public class ImplementationVersion {
     @Column(name = "error_message")
     private String errorMessage;
 
-    //connection to Downloads
+    //connection to Download
     @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)
     @OrderBy("downloadedAt DESC")
-    private List<Downloads> downloads = new ArrayList<>();
+    private List<Download> downloads = new ArrayList<>();
 
     @Transient
     public long getDownloadCount() {

@@ -10,12 +10,9 @@ package com.evolveum.midpoint.integration.catalog.object;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Created by TomasS.
@@ -24,13 +21,6 @@ import java.util.UUID;
 @Table(name = "request")
 @Getter @Setter
 public class Request {
-
-    public enum CapabilitiesType {
-        READ,
-        CREATE,
-        UPDATE,
-        DELETE
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,15 +31,13 @@ public class Request {
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "CapabilitiesType")
-    private Request.CapabilitiesType capabilitiesType;
+    @Column(name = "capabilities", columnDefinition = "LONGTEXT")
+    private String capabilities;
 
     private String requester;
 
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = false)
-    private List<Votes> votes = new ArrayList<>();
+    private List<Vote> votes = new ArrayList<>();
 
     @Transient
     public long getVotesCount() {

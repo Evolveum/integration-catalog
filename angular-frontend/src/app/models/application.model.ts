@@ -15,4 +15,6 @@ export interface Application {
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
   pendingRequest?: boolean;
+  requestId?: number | null;
+  voteCount?: number;
 }

@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { Application } from '../models/application.model';
 import { ApplicationDetail } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
-import { PendingRequest } from '../models/pending-request.model';
 
 @Injectable({
   providedIn: 'root'
@@ -38,11 +37,15 @@ export class ApplicationService {
     return this.http.get<CategoryCount[]>('http://localhost:8080/api/supported-operations/counts');
   }
 
-  submitPendingRequest(request: PendingRequest): Observable<any> {
-    return this.http.post<any>('http://localhost:8080/api/pending-request', request);
+  submitVote(requestId: number, voter: string): Observable<any> {
+    return this.http.post<any>(`http://localhost:8080/api/requests/${requestId}/vote?voter=${voter}`, {});
   }
 
-  getPendingRequests(): Observable<Application[]> {
-    return this.http.get<Application[]>('http://localhost:8080/api/pending-requests');
+  getVoteCount(requestId: number): Observable<number> {
+    return this.http.get<number>(`http://localhost:8080/api/requests/${requestId}/votes/count`);
+  }
+
+  hasUserVoted(requestId: number, voter: string): Observable<boolean> {
+    return this.http.get<boolean>(`http://localhost:8080/api/requests/${requestId}/votes/check?voter=${voter}`);
   }
 }

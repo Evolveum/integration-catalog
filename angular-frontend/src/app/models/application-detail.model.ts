@@ -31,6 +31,9 @@ export interface ApplicationDetail {
   riskLevel: string | null;
   lifecycleState: string;
   lastModified: string;
+  createdAt: string | null;
+  capabilities: string[] | null;
+  requester: string | null;
   origins: CountryOfOrigin[] | null;
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;

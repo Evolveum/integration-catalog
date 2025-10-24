@@ -1,6 +1,18 @@
 <div class="container-fluid p-0" style="background-color: #e9ecef;">
   <!-- Hero Banner -->
-  <div class="bg-primary text-white py-5 mb-5" style="background: linear-gradient(135deg, #2c5282 0%, #4a7ba7 100%);">
+  <div class="bg-primary text-white py-5 mb-5" style="background: linear-gradient(135deg, #2c5282 0%, #4a7ba7 100%); position: relative;">
+    <!-- Login/Logout Button (Top Right) -->
+    <div class="position-absolute top-0 end-0 p-3">
+      @if (authService.getCurrentUser()()) {
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-white">{{ authService.getCurrentUser()() }}</span>
+          <button class="btn btn-sm btn-light" (click)="logout()">Logout</button>
+        </div>
+      } @else {
+        <button class="btn btn-sm btn-light" (click)="openLoginModal()">Login</button>
+      }
+    </div>
+
     <div class="container">
       <div class="row align-items-center">
         <div class="col-lg-6">
@@ -136,7 +148,19 @@
                   <span class="badge mb-2 align-self-start" style="background-color: #d4edda; color: #155724;">{{ formatLifecycleState(app.lifecycleState) }}</span>
                 }
                 <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
-                <button class="btn btn-sm mt-2" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="navigateToDetail(app.id)">View Details</button>
+                <a class="text-decoration-none mb-2" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">More Details</a>
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <button class="btn btn-sm mt-2"
+                          style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
+                          [disabled]="!authService.getCurrentUser()()"
+                          [style.opacity]="authService.getCurrentUser()() ? '1' : '0.6'"
+                          [style.cursor]="authService.getCurrentUser()() ? 'pointer' : 'not-allowed'"
+                          (click)="voteForRequest(app)">
+                    Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                  </button>
+                } @else {
+                  <button class="btn btn-sm mt-2" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">Download</button>
+                }
               </div>
             </div>
           }
@@ -228,7 +252,19 @@
                   <span class="badge mb-2 align-self-start" style="background-color: #d4edda; color: #155724;">{{ formatLifecycleState(app.lifecycleState) }}</span>
                 }
                 <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
-                <button class="btn btn-sm mt-2" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="navigateToDetail(app.id)">View Details</button>
+                <a class="text-decoration-none mb-2" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">More Details</a>
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <button class="btn btn-sm mt-2"
+                          style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
+                          [disabled]="!authService.getCurrentUser()()"
+                          [style.opacity]="authService.getCurrentUser()() ? '1' : '0.6'"
+                          [style.cursor]="authService.getCurrentUser()() ? 'pointer' : 'not-allowed'"
+                          (click)="voteForRequest(app)">
+                    Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                  </button>
+                } @else {
+                  <button class="btn btn-sm mt-2" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">Download</button>
+                }
               </div>
             </div>
           </div>
@@ -258,9 +294,21 @@
                     <span class="badge mb-2" style="background-color: #d4edda; color: #155724;">{{ formatLifecycleState(app.lifecycleState) }}</span>
                   }
                   <p class="card-text text-muted mb-0">{{ app.description }}</p>
+                  <a class="text-decoration-none mt-2 d-inline-block" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">More Details</a>
                 </div>
                 <div class="col-auto">
-                  <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="navigateToDetail(app.id)">View Details</button>
+                  @if (app.lifecycleState === 'REQUESTED') {
+                    <button class="btn"
+                            style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
+                            [disabled]="!authService.getCurrentUser()()"
+                            [style.opacity]="authService.getCurrentUser()() ? '1' : '0.6'"
+                            [style.cursor]="authService.getCurrentUser()() ? 'pointer' : 'not-allowed'"
+                            (click)="voteForRequest(app)">
+                      Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                    </button>
+                  } @else {
+                    <button class="btn" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">Download</button>
+                  }
                 </div>
               </div>
             </div>
@@ -346,7 +394,7 @@
             <p class="text-muted mb-0">Need a specific integration or customization? Reach out to the Evolveum team or partners to build a solution that fits your exact use case and infrastructute.</p>
           </div>
           <div class="flex-shrink-0 ms-4">
-            <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="navigateToRequest()">
+            <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="openRequestModal()">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bezier2 me-2" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01q.269.27.484.605C8.246 5.097 8.5 6.459 8.5 8c0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a3 3 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>
               </svg>
@@ -358,4 +406,10 @@
     </div>
   }
   </div>
+
+  <!-- Request Form Modal Component -->
+  <app-request-form [isRequestModalOpen]="isRequestModalOpen" (modalClosed)="closeRequestModal()"></app-request-form>
+
+  <!-- Login Modal Component -->
+  <app-login-modal [isOpen]="isLoginModalOpen" (modalClosed)="closeLoginModal()"></app-login-modal>
 </div>

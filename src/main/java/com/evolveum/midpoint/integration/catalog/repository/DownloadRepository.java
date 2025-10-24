@@ -7,7 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
-import com.evolveum.midpoint.integration.catalog.object.Downloads;
+import com.evolveum.midpoint.integration.catalog.object.Download;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.UUID;
@@ -15,8 +15,8 @@ import java.util.UUID;
 /**
  * Created by Tomas.
  */
-public interface DownloadsRepository extends JpaRepository<Downloads, UUID>,
-        JpaSpecificationExecutor<Downloads> {
+public interface DownloadRepository extends JpaRepository<Download, UUID>,
+        JpaSpecificationExecutor<Download> {
 
     // boolean existsRecentDuplicate(UUID implementationVersion,
     //                               Inet ipAddress,

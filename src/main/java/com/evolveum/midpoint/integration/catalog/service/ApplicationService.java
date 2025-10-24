@@ -81,13 +81,13 @@ public class ApplicationService {
     private final JenkinsProperties jenkinsProperties;
 
     @Autowired
-    private final DownloadsRepository downloadsRepository;
+    private final DownloadRepository downloadRepository;
 
     @Autowired
     private final RequestRepository requestRepository;
 
     @Autowired
-    private final VotesRepository votesRepository;
+    private final VoteRepository voteRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -97,9 +97,9 @@ public class ApplicationService {
                               ConnidVersionRepository connidVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
-                              DownloadsRepository downloadsRepository,
+                              DownloadRepository downloadRepository,
                               RequestRepository requestRepository,
-                              VotesRepository votesRepository
+                              VoteRepository voteRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -109,9 +109,9 @@ public class ApplicationService {
         this.connidVersionRepository = connidVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
-        this.downloadsRepository = downloadsRepository;
+        this.downloadRepository = downloadRepository;
         this.requestRepository = requestRepository;
-        this.votesRepository = votesRepository;
+        this.voteRepository = voteRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -347,8 +347,8 @@ public class ApplicationService {
         return implementationVersionRepository.findAll(spec, pageable);
     }
 
-    public List<Votes> getVotes() {
-        return votesRepository.findAll();
+    public List<Vote> getVotes() {
+        return voteRepository.findAll();
     }
 
     public List<Request> getRequests() {
@@ -356,36 +356,89 @@ public class ApplicationService {
     }
 
     public void recordDownloadIfNew(ImplementationVersion version, Inet ip, String userAgent, OffsetDateTime cutoff) {
-        // boolean duplicate = downloadsRepository
+        // boolean duplicate = downloadRepository
         //         .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
 
         // if (!duplicate) {
-            Downloads dl = new Downloads();
+            Download dl = new Download();
             dl.setImplementationVersion(version);
             dl.setIpAddress(ip);
             dl.setUserAgent(userAgent);
             dl.setDownloadedAt(OffsetDateTime.now());
-            downloadsRepository.save(dl);
+            downloadRepository.save(dl);
         // }
     }
 
+    /**
+     * @deprecated This method is deprecated as capabilitiesType enum has been replaced with capabilities JSON field.
+     * Use createRequestFromForm() instead for new request form submissions.
+     */
+    @Deprecated
     public Request createRequest(UUID applicationId, String capabilitiesType, String requester) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found: " + applicationId));
 
-        Request.CapabilitiesType ct;
-        try {
-            ct = Request.CapabilitiesType.valueOf(capabilitiesType.toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid capabilitiesType: " + capabilitiesType +
-                    " (allowed: READ, CREATE, MODIFY, DELETE)");
-        }
-
         Request r = new Request();
         r.setApplication(application);
-        r.setCapabilitiesType(ct);
+        // Use capabilities JSON field instead
         r.setRequester(requester);
         return requestRepository.save(r);
+    }
+
+    /**
+     * Creates a new Application and Request from the request form submission.
+     * The Application will be created with lifecycle state REQUESTED.
+     *
+     * @param integrationApplicationName The display name of the application
+     * @param description The application description
+     * @param capabilities List of capabilities to be stored as JSON
+     * @param email Optional email address to be stored as requester
+     * @return The created Request entity
+     */
+    public Request createRequestFromForm(String integrationApplicationName, String description, List<String> capabilities, String email) {
+        // Generate abbreviated name: lowercase, spaces replaced with underscores
+        String abbreviatedName = integrationApplicationName.toLowerCase().replace(" ", "_");
+
+        // Check for UUID duplication (retry up to 10 times)
+        Application application = null;
+        int retries = 0;
+        while (application == null && retries < 10) {
+            try {
+                application = new Application();
+                application.setName(abbreviatedName);
+                application.setDisplayName(integrationApplicationName);
+                application.setDescription(description);
+                application.setRiskLevel("UNKNOWN"); // Default risk level for requested applications
+                application.setLifecycleState(Application.ApplicationLifecycleType.REQUESTED);
+
+                // Save the application (UUID is auto-generated, timestamps are auto-set)
+                application = applicationRepository.save(application);
+            } catch (Exception e) {
+                // If UUID collision occurs (very rare), retry
+                retries++;
+                if (retries >= 10) {
+                    throw new RuntimeException("Failed to create application after multiple retries", e);
+                }
+                application = null;
+            }
+        }
+
+        // Convert capabilities list to JSON string
+        String capabilitiesJson = null;
+        if (capabilities != null && !capabilities.isEmpty()) {
+            capabilitiesJson = "[" + capabilities.stream()
+                    .map(cap -> "\"" + cap + "\"")
+                    .reduce((a, b) -> a + "," + b)
+                    .orElse("") + "]";
+        }
+
+        // Create the Request entity
+        Request request = new Request();
+        request.setApplication(application);
+        request.setCapabilities(capabilitiesJson);
+        request.setRequester(email); // Email is optional, can be null
+
+        return requestRepository.save(request);
     }
 
     public Optional<ImplementationVersion> findImplementationVersion(UUID id) {
@@ -398,6 +451,53 @@ public class ApplicationService {
 
     public List<Request> getRequestsForApplication(UUID appId) {
         return requestRepository.findByApplicationId(appId);
+    }
+
+    /**
+     * Submit a vote for a request.
+     * Each user can only vote once per request (enforced by unique constraint).
+     *
+     * @param requestId The ID of the request to vote for
+     * @param voter The username of the voter
+     * @return The created Vote entity
+     * @throws IllegalArgumentException if request not found or user already voted
+     */
+    public Vote submitVote(Long requestId, String voter) {
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
+
+        // Check if user already voted
+        if (voteRepository.existsByRequestIdAndVoter(requestId, voter)) {
+            throw new IllegalArgumentException("User has already voted for this request");
+        }
+
+        Vote vote = new Vote();
+        vote.setRequestId(requestId);
+        vote.setVoter(voter);
+        vote.setRequest(request);
+
+        return voteRepository.save(vote);
+    }
+
+    /**
+     * Get the vote count for a specific request.
+     *
+     * @param requestId The ID of the request
+     * @return The number of votes
+     */
+    public long getVoteCount(Long requestId) {
+        return voteRepository.countByRequestId(requestId);
+    }
+
+    /**
+     * Check if a user has voted for a specific request.
+     *
+     * @param requestId The ID of the request
+     * @param voter The username of the voter
+     * @return true if user has voted, false otherwise
+     */
+    public boolean hasUserVoted(Long requestId, String voter) {
+        return voteRepository.existsByRequestIdAndVoter(requestId, voter);
     }
 
     public byte[] downloadConnector(UUID versionId, String ip, String userAgent) {
@@ -449,18 +549,34 @@ public class ApplicationService {
                         // If implementation versions fail to load, continue without them
                     }
 
+                    // For REQUESTED apps, get requestId and vote count
+                    Long requestId = null;
+                    Long voteCount = null;
+                    if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
+                        List<Request> requests = getRequestsForApplication(app.getId());
+                        if (!requests.isEmpty()) {
+                            requestId = requests.get(0).getId();
+                            voteCount = getVoteCount(requestId);
+                        }
+                    }
+
                     return new ApplicationDto(
                             app.getId(),
                             app.getDisplayName(),
                             app.getDescription(),
                             app.getLogo(),
-                            null, // riskLevel - not yet implemented
+                            app.getRiskLevel(),
                             lifecycleState,
                             app.getLastModified(),
+                            app.getCreatedAt(),
+                            null, // capabilities - not needed for list view
+                            null, // requester - not needed for list view
                             origins,
                             categories,
                             tags,
-                            implementationVersions);
+                            implementationVersions,
+                            requestId,
+                            voteCount);
                 })
                 .toList();
     }

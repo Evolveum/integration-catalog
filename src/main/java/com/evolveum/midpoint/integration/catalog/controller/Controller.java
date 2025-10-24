@@ -11,10 +11,8 @@ import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
-import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
-import com.evolveum.midpoint.integration.catalog.dto.PendingRequestDisplayDto;
-import com.evolveum.midpoint.integration.catalog.dto.PendingRequestDto;
+import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -22,7 +20,6 @@ import com.evolveum.midpoint.integration.catalog.form.UploadForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
-import com.evolveum.midpoint.integration.catalog.service.PendingRequestService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -48,11 +45,9 @@ import java.util.stream.Stream;
 public class Controller {
 
     private final ApplicationService applicationService;
-    private final PendingRequestService pendingRequestService;
 
-    public Controller(ApplicationService applicationService, PendingRequestService pendingRequestService) {
+    public Controller(ApplicationService applicationService) {
         this.applicationService = applicationService;
-        this.pendingRequestService = pendingRequestService;
     }
 
     @Operation(summary = "Get application by ID",
@@ -100,18 +95,39 @@ public class Controller {
                 // If implementation versions fail to load, continue without them
             }
 
+            // Fetch Request data if application is REQUESTED
+            List<String> capabilities = null;
+            String requester = null;
+            Long requestId = null;
+            Long voteCount = null;
+            if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
+                List<Request> requests = applicationService.getRequestsForApplication(app.getId());
+                if (!requests.isEmpty()) {
+                    Request request = requests.get(0); // Get first request
+                    capabilities = parseCapabilitiesJson(request.getCapabilities());
+                    requester = request.getRequester();
+                    requestId = request.getId();
+                    voteCount = applicationService.getVoteCount(requestId);
+                }
+            }
+
             ApplicationDto dto = new ApplicationDto(
                     app.getId(),
                     app.getDisplayName(),
                     app.getDescription(),
                     app.getLogo(),
-                    null, // riskLevel - not yet implemented
+                    app.getRiskLevel(),
                     lifecycleState,
                     app.getLastModified(),
+                    app.getCreatedAt(),
+                    capabilities,
+                    requester,
                     origins,
                     categories,
                     tags,
-                    implementationVersions
+                    implementationVersions,
+                    requestId,
+                    voteCount
             );
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
@@ -315,52 +331,64 @@ public class Controller {
         return applicationService.getRequestsForApplication(appId);
     }
 
-    @Operation(summary = "Create Request",
-            description = "")
+    @Operation(summary = "Create Request from Form",
+            description = "Creates a new Application with lifecycle state REQUESTED and associated Request from the request form submission")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Create Request successfully"),
-            @ApiResponse(responseCode = "404", description = "Create Request failed")
+            @ApiResponse(responseCode = "201", description = "Request created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
     @PostMapping("/request")
-    public ResponseEntity<Request> createRequest(@Valid @RequestBody CreateRequestDto dto) {
+    public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
         try {
-            Request created = applicationService.createRequest(
-                    dto.applicationId(), dto.capabilitiesType(), dto.requester());
+            Request created = applicationService.createRequestFromForm(
+                    dto.integrationApplicationName(),
+                    dto.description(),
+                    dto.capabilities(),
+                    dto.email());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create request: " + ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Submit vote for request",
+            description = "Allows a logged-in user to vote for a request. Each user can only vote once per request.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Vote submitted successfully"),
+            @ApiResponse(responseCode = "400", description = "User already voted or request not found")
+    })
+    @PostMapping("/requests/{requestId}/vote")
+    public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, @RequestParam String voter) {
+        try {
+            Vote vote = applicationService.submitVote(requestId, voter);
+            return ResponseEntity.status(HttpStatus.CREATED).body(vote);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
     }
 
-    @Operation(summary = "Submit Pending Request",
-            description = "Submits a new pending integration request from the request form")
+    @Operation(summary = "Get vote count for request",
+            description = "Returns the total number of votes for a specific request")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Pending request submitted successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid request data")
+            @ApiResponse(responseCode = "200", description = "Vote count retrieved successfully")
     })
-    @PostMapping("/pending-request")
-    public ResponseEntity<PendingRequest> submitPendingRequest(@Valid @RequestBody PendingRequestDto dto) {
-        try {
-            PendingRequest created = pendingRequestService.submitRequest(dto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(created);
-        } catch (Exception ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to submit request: " + ex.getMessage());
-        }
+    @GetMapping("/requests/{requestId}/votes/count")
+    public ResponseEntity<Long> getVoteCount(@PathVariable Long requestId) {
+        long count = applicationService.getVoteCount(requestId);
+        return ResponseEntity.ok(count);
     }
 
-    @Operation(summary = "Get all pending requests",
-            description = "Fetches all pending integration requests for display")
+    @Operation(summary = "Check if user has voted",
+            description = "Checks if a specific user has already voted for a request")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pending requests retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Failed to retrieve pending requests")
+            @ApiResponse(responseCode = "200", description = "Check completed successfully")
     })
-    @GetMapping("/pending-requests")
-    public ResponseEntity<List<PendingRequestDisplayDto>> getAllPendingRequests() {
-        try {
-            return ResponseEntity.ok(pendingRequestService.getAllPendingRequests());
-        } catch (Exception ex) {
-            return ResponseEntity.notFound().build();
-        }
+    @GetMapping("/requests/{requestId}/votes/check")
+    public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, @RequestParam String voter) {
+        boolean hasVoted = applicationService.hasUserVoted(requestId, voter);
+        return ResponseEntity.ok(hasVoted);
     }
 
     @Operation(summary = "Show all available applications",
