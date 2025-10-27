@@ -48,7 +48,7 @@ public class Application {
     private String description;
 
     //TODO - how to load logo - this way or with url somehow
-    @Lob
+    @Column(columnDefinition = "bytea")
     private byte[] logo;
 
     @Column(name = "risk_level")

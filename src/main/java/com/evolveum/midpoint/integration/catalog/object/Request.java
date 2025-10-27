@@ -31,7 +31,7 @@ public class Request {
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @Column(name = "capabilities", columnDefinition = "LONGTEXT")
+    @Column(name = "capabilities", columnDefinition = "jsonb")
     private String capabilities;
 
     private String requester;

@@ -25,7 +25,6 @@ import com.evolveum.midpoint.integration.catalog.repository.*;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
-import com.evolveum.midpoint.integration.catalog.utils.Inet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -355,7 +354,7 @@ public class ApplicationService {
         return requestRepository.findAll();
     }
 
-    public void recordDownloadIfNew(ImplementationVersion version, Inet ip, String userAgent, OffsetDateTime cutoff) {
+    public void recordDownloadIfNew(ImplementationVersion version, String ip, String userAgent, OffsetDateTime cutoff) {
         // boolean duplicate = downloadRepository
         //         .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
 
@@ -507,9 +506,8 @@ public class ApplicationService {
         try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
             byte[] fileBytes = in.readAllBytes();
 
-            Inet inet = new Inet(ip);
             OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(OFFSET);
-            recordDownloadIfNew(version, inet, userAgent, cutoff);
+            recordDownloadIfNew(version, ip, userAgent, cutoff);
 
             return fileBytes;
         } catch (IOException e) {
@@ -520,13 +518,7 @@ public class ApplicationService {
     public List<ApplicationDto> getAllApplications() {
         return applicationRepository.findAll().stream()
                 .map(app -> {
-                    String lifecycleState = null;
-                    try {
-                        lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
-                    } catch (Exception e) {
-                        // Handle empty string or invalid enum values - PostgreSQL problem
-                        lifecycleState = null;
-                    }
+                    String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
 
                     List<CountryOfOriginDto> origins = null;
                     if (app.getApplicationOrigins() != null) {

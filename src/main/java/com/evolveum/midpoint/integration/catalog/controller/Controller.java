@@ -60,13 +60,7 @@ public class Controller {
     public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id) {
         try {
             Application app = applicationService.getApplication(id);
-            String lifecycleState = null;
-            try {
-                lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
-            } catch (Exception e) {
-                // Handle empty string or invalid enum values - PostgreSQL problem
-                lifecycleState = null;
-            }
+            String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
 
             List<CountryOfOriginDto> origins = null;
             if (app.getApplicationOrigins() != null) {
