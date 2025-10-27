@@ -59,7 +59,9 @@ public class GithubClient {
 //            GHBlob blob = repo.createBlob().textContent(file.content()).create();
             treeBuilder.add(file.path(), file.content(), false);
         }
-
+        
+        createTag(repo, latestCommit.getSHA1(), newVersion);
+        
         GHTree tree = treeBuilder.create();
         GHCommit commit = repo.createCommit()
                 .message(newVersion.getDescription())
@@ -70,5 +72,19 @@ public class GithubClient {
         branchRef.updateTo(commit.getSHA1());
 
         return repo;
+    }
+
+    private void createTag(GHRepository repo, String sha, ImplementationVersion newVersion) {
+
+        String tagVersion = "v" + newVersion.getConnectorVersion();
+
+        try {
+            GHTagObject tagObject = repo.createTag(tagVersion,
+                    newVersion.getDescription(), sha, "commit");
+            repo.createRef("refs/tags/" + tagVersion, tagObject.getSha());
+
+        } catch (IOException e) {
+            throw new RuntimeException("Exception occurred during tag creation: "+ e);
+        }
     }
 }
