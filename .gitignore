@@ -7,7 +7,7 @@ target/
 build/
 test-output/
 dependency-reduced-pom.xml
-
+.angular
 node_modules/
 
 # IDEA files
