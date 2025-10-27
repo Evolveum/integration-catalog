@@ -27,5 +27,5 @@ public interface DownloadRepository extends JpaRepository<Download, UUID>,
                                       String userAgent,
                                       OffsetDateTime downloadedAt);
 
-    long countByImplementationVersionId(Integer implementationVersionId);
+    long countByImplementationVersionId(UUID implementationVersionId);
 }

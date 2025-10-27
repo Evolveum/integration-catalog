@@ -20,5 +20,5 @@ public interface RequestRepository extends JpaRepository<Request, Long>,
 
     List<Request> findByApplicationId(UUID applicationId);
 
-    long countByRequestId(Long requestId);
+    long countById(Long id);
 }
