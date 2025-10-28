@@ -8,9 +8,7 @@
 package com.evolveum.midpoint.integration.catalog.repository;
 
 import com.evolveum.midpoint.integration.catalog.object.Implementation;
-
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.UUID;

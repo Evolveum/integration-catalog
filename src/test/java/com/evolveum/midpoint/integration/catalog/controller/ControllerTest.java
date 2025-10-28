@@ -53,9 +53,6 @@ class ControllerTest {
     private com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository applicationRepository;
 
     @MockitoBean
-    private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
-
-    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository implementationVersionRepository;
 
     @MockitoBean
