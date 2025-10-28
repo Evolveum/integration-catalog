@@ -12,9 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -49,20 +47,23 @@ public class Application {
 
     private String description;
 
-//    @Lob
-//    private byte[] logo;
+    //TODO - how to load logo - this way or with url somehow
+    @Column(columnDefinition = "bytea")
+    private byte[] logo;
+
+    @Column(name = "risk_level")
+    private String riskLevel;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "ApplicationLifecycleType")
+    @Column(name = "lifecycle_state", nullable = true)
     private ApplicationLifecycleType lifecycleState;
 
     @CreationTimestamp
-    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ")
+    @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "last_modified", columnDefinition = "TIMESTAMPTZ")
+    @Column(name = "last_modified")
     private OffsetDateTime lastModified;
 
     @OneToMany(mappedBy = "application")
@@ -70,6 +71,9 @@ public class Application {
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationApplicationTag> applicationApplicationTags;
+
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ApplicationOrigin> applicationOrigins;
 
     public Application addImplementation(Implementation implementation) {
         if (implementations == null) {

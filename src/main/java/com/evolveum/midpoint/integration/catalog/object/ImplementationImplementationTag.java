@@ -17,7 +17,7 @@ import java.util.UUID;
  * Created by Dominik.
  */
 @Entity
-@Table(name = "application_application_tag")
+@Table(name = "implementation_implementation_tag")
 @Getter @Setter
 public class ImplementationImplementationTag {
 

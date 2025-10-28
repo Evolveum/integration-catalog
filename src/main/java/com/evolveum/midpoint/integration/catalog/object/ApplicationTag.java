@@ -10,8 +10,6 @@ package com.evolveum.midpoint.integration.catalog.object;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.Set;
 
@@ -42,8 +40,7 @@ public class ApplicationTag {
     private String displayName;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "tag_type", nullable = false)
+    @Column(name = "tag_type", nullable = false, columnDefinition = "varchar(64)")
     private ApplicationTagType tagType;
 
     @OneToMany(mappedBy = "applicationTag", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -21,13 +21,17 @@ import java.util.UUID;
 @Getter @Setter
 public class ApplicationOrigin {
 
-    @Id
-    @Column(name = "application_id")
-    private UUID applicationId;
+//    @Id
+//    @Column(name = "application_id")
+//    private UUID applicationId;
+//
+//    @Id
+//    @Column(name = "country_id")
+//    private int countryId;
 
     @Id
-    @Column(name = "country_id")
-    private int countryId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)
