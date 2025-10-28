@@ -26,6 +26,6 @@ public class ConnidVersion {
     @Column(name = "version")
     private String version;
 
-    @Column(name = "midpoint_version", nullable = false, columnDefinition = "bytea")
-    private byte[] midpointVersion;
+    @Column(name = "midpoint_version", nullable = false)
+    private String[] midpointVersion;
 }

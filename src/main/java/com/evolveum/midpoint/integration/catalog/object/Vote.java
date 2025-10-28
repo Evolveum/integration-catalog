@@ -7,7 +7,6 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,21 +16,18 @@ import lombok.Setter;
  */
 @Entity
 @Table(name = "votes")
-@IdClass(VoteId.class)
 @Getter @Setter
 public class Vote {
 
     @Id
-    @Column(name = "request_id")
-    private Long requestId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-    @Id
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id", nullable = false)
+    private Request request;
+
     @Column(name = "voter", nullable = false)
     private String voter;
-
-    @JsonIgnore
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "request_id", nullable = false, insertable = false, updatable = false)
-    private Request request;
 }
 
