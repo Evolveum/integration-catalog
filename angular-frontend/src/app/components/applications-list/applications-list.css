@@ -1,0 +1,12 @@
+/* All styling is handled by Bootstrap utility classes in the HTML template */
+/* Keep this file for future custom styles if needed */
+
+/* Hide scrollbar for featured apps section */
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

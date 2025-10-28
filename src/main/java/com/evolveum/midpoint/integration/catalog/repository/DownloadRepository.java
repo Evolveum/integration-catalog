@@ -26,6 +26,10 @@ public interface DownloadRepository extends JpaRepository<Download, UUID>,
                                       InetAddress ipAddress,
                                       String userAgent,
                                       OffsetDateTime downloadedAt);
+    // boolean existsRecentDuplicate(UUID implementationVersion,
+    //                               Inet ipAddress,
+    //                               String userAgent,
+    //                               OffsetDateTime downloadedAt);
 
     long countByImplementationVersionId(UUID implementationVersionId);
 }
