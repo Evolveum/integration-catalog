@@ -11,7 +11,7 @@ import { ApplicationService } from '../../services/application.service';
   styleUrls: ['./request-form.css']
 })
 export class RequestForm {
-  @Input() readonly isRequestModalOpen = signal<boolean>(false);
+  @Input() isRequestModalOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
 
   protected formData = {
