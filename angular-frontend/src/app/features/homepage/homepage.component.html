@@ -1,0 +1,38 @@
+<section class="hero">
+  <div class="hero-content">
+    <h2>Discover Applications</h2>
+    <p>Browse and connect integrations for your platform.</p>
+    <div class="search-row">
+      <input
+        type="search"
+        [value]="q()"
+        (input)="onSearchInput($event)"
+        placeholder="Search applications…"
+        aria-label="Search" />
+      <button (click)="search()">Search</button>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <p *ngIf="loading()" class="muted">Loading…</p>
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+
+  <div *ngIf="apps().length" class="card-grid">
+    <article class="card" *ngFor="let a of apps()" (click)="open(a)" tabindex="0">
+      <div class="logo-wrap" *ngIf="a.logoUrl"><img [src]="a.logoUrl" [alt]="a.name" /></div>
+      <h3 class="card-title">{{ a.name }}</h3>
+      <p class="vendor" *ngIf="a.vendor">{{ a.vendor }}</p>
+      <p class="desc" *ngIf="a.shortDescription">{{ a.shortDescription }}</p>
+      <div class="tags" *ngIf="a.tags?.length">
+        <span class="tag" *ngFor="let t of a.tags">{{ t }}</span>
+      </div>
+    </article>
+  </div>
+
+  <div class="pager" *ngIf="totalPages() > 1">
+    <button (click)="prev()" [disabled]="page() === 0">Prev</button>
+    <span>Page {{ page() + 1 }} / {{ totalPages() }}</span>
+    <button (click)="next()" [disabled]="page() + 1 >= totalPages()">Next</button>
+  </div>
+</section>

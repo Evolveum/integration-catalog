@@ -9,18 +9,18 @@ import { ApplicationDetail as ApplicationDetailModel } from '../../models/applic
   imports: [CommonModule],
   standalone: true,
   templateUrl: './application-detail.html',
-  styleUrl: './application-detail.css'
+  styleUrls: ['./application-detail.css']
 })
 export class ApplicationDetail implements OnInit {
-  protected application = signal<ApplicationDetailModel | null>(null);
-  protected loading = signal<boolean>(true);
-  protected error = signal<string | null>(null);
-  protected expandedVersions = new Set<number>();
-  protected activeEvolvumVersions = signal<any[]>([]);
-  protected activeCommunityVersions = signal<any[]>([]);
-  protected otherEvolvumVersions = signal<any[]>([]);
-  protected otherCommunityVersions = signal<any[]>([]);
-  protected activeTab = signal<'main' | 'other'>('main');
+  protected readonly application = signal<ApplicationDetailModel | null>(null);
+  protected readonly loading = signal<boolean>(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly expandedVersions = new Set<number>();
+  protected readonly activeEvolvumVersions = signal<any[]>([]);
+  protected readonly activeCommunityVersions = signal<any[]>([]);
+  protected readonly otherEvolvumVersions = signal<any[]>([]);
+  protected readonly otherCommunityVersions = signal<any[]>([]);
+  protected readonly activeTab = signal<'main' | 'other'>('main');
 
   constructor(
     private route: ActivatedRoute,

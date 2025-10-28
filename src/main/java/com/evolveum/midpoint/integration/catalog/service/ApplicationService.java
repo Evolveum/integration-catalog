@@ -8,6 +8,7 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
@@ -22,6 +23,7 @@ import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
+import com.evolveum.midpoint.integration.catalog.utils.ApplicationReadPort;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
@@ -89,6 +91,9 @@ public class ApplicationService {
     @Autowired
     private final VoteRepository voteRepository;
 
+    @Autowired
+    private final ApplicationReadPort applicationReadPort;
+
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
@@ -99,7 +104,8 @@ public class ApplicationService {
                               JenkinsProperties jenkinsProperties,
                               DownloadRepository downloadRepository,
                               RequestRepository requestRepository,
-                              VoteRepository voteRepository
+                              VoteRepository voteRepository,
+                              ApplicationReadPort applicationReadPort
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -112,6 +118,7 @@ public class ApplicationService {
         this.downloadRepository = downloadRepository;
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
+        this.applicationReadPort = applicationReadPort;
     }
 
     public Application getApplication(UUID uuid) {
@@ -136,8 +143,8 @@ public class ApplicationService {
 
         List<CategoryCountDto> categoryCounts = categoryTags.stream()
                 .map(tag -> new CategoryCountDto(
-                    tag.getDisplayName(),
-                    (long) tag.getApplicationApplicationTags().size()
+                        tag.getDisplayName(),
+                        (long) tag.getApplicationApplicationTags().size()
                 ))
                 .toList();
 
@@ -153,8 +160,8 @@ public class ApplicationService {
         List<CategoryCountDto> commonTagCounts = commonTags.stream()
                 .filter(tag -> certificationLevelNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_")))
                 .map(tag -> new CategoryCountDto(
-                    tag.getDisplayName(),
-                    (long) tag.getApplicationApplicationTags().size()
+                        tag.getDisplayName(),
+                        (long) tag.getApplicationApplicationTags().size()
                 ))
                 .toList();
 
@@ -170,8 +177,8 @@ public class ApplicationService {
         List<CategoryCountDto> appStatusCounts = commonTags.stream()
                 .filter(tag -> appStatusNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_")))
                 .map(tag -> new CategoryCountDto(
-                    tag.getDisplayName(),
-                    (long) tag.getApplicationApplicationTags().size()
+                        tag.getDisplayName(),
+                        (long) tag.getApplicationApplicationTags().size()
                 ))
                 .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
 
@@ -191,8 +198,8 @@ public class ApplicationService {
         List<CategoryCountDto> supportedOpsCounts = commonTags.stream()
                 .filter(tag -> supportedOpsNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_").replace("/", "_").replace(" ", "")))
                 .map(tag -> new CategoryCountDto(
-                    tag.getDisplayName(),
-                    (long) tag.getApplicationApplicationTags().size()
+                        tag.getDisplayName(),
+                        (long) tag.getApplicationApplicationTags().size()
                 ))
                 .toList();
 
@@ -373,18 +380,15 @@ public class ApplicationService {
     public void recordDownloadIfNew(ImplementationVersion version, InetAddress ip, String userAgent, OffsetDateTime cutoff) {
         boolean duplicate = downloadRepository
                 .existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(version, ip, userAgent, cutoff);
-    public void recordDownloadIfNew(ImplementationVersion version, String ip, String userAgent, OffsetDateTime cutoff) {
-        // boolean duplicate = downloadRepository
-        //         .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
 
-        // if (!duplicate) {
+        if (!duplicate) {
             Download dl = new Download();
             dl.setImplementationVersion(version);
             dl.setIpAddress(ip);
             dl.setUserAgent(userAgent);
             dl.setDownloadedAt(OffsetDateTime.now());
             downloadRepository.save(dl);
-        // }
+        }
     }
 
     /**
@@ -414,49 +418,51 @@ public class ApplicationService {
      * @return The created Request entity
      */
     public Request createRequestFromForm(String integrationApplicationName, String description, List<String> capabilities, String email) {
-        // Generate abbreviated name: lowercase, spaces replaced with underscores
-        String abbreviatedName = integrationApplicationName.toLowerCase().replace(" ", "_");
+        // Generate abbreviated name: lowercase, spaces replaced with underscores, remove special characters
+        String abbreviatedName = integrationApplicationName.toLowerCase()
+                .replaceAll("[^a-z0-9_]", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "");
 
-        // Check for UUID duplication (retry up to 10 times)
-        Application application = null;
-        int retries = 0;
-        while (application == null && retries < 10) {
-            try {
-                application = new Application();
-                application.setName(abbreviatedName);
-                application.setDisplayName(integrationApplicationName);
-                application.setDescription(description);
-                application.setRiskLevel("UNKNOWN"); // Default risk level for requested applications
-                application.setLifecycleState(Application.ApplicationLifecycleType.REQUESTED);
+        // Check if application with this name already exists
+        Optional<Application> existingApp = applicationRepository.findByName(abbreviatedName);
+        if (existingApp.isPresent()) {
+            // Append timestamp to make it unique
+            abbreviatedName = abbreviatedName + "_" + System.currentTimeMillis();
+        }
 
-                // Save the application (UUID is auto-generated, timestamps are auto-set)
-                application = applicationRepository.save(application);
-            } catch (Exception e) {
-                // If UUID collision occurs (very rare), retry
-                retries++;
-                if (retries >= 10) {
-                    throw new RuntimeException("Failed to create application after multiple retries", e);
-                }
-                application = null;
+        try {
+            // Create the application
+            Application application = new Application();
+            application.setName(abbreviatedName);
+            application.setDisplayName(integrationApplicationName);
+            application.setDescription(description != null ? description : "");
+            application.setRiskLevel("UNKNOWN"); // Default risk level for requested applications
+            application.setLifecycleState(Application.ApplicationLifecycleType.REQUESTED);
+
+            // Save the application (UUID is auto-generated, timestamps are auto-set)
+            application = applicationRepository.save(application);
+
+            // Convert capabilities list to JSON string
+            String capabilitiesJson = null;
+            if (capabilities != null && !capabilities.isEmpty()) {
+                capabilitiesJson = "[" + capabilities.stream()
+                        .map(cap -> "\"" + cap.replace("\"", "\\\"") + "\"") // Escape quotes
+                        .reduce((a, b) -> a + "," + b)
+                        .orElse("") + "]";
             }
+
+            // Create the Request entity
+            Request request = new Request();
+            request.setApplication(application);
+            request.setCapabilities(capabilitiesJson);
+            request.setRequester(email); // Email is optional, can be null
+
+            return requestRepository.save(request);
+        } catch (Exception e) {
+            log.error("Failed to create request for application: {}", integrationApplicationName, e);
+            throw new RuntimeException("Failed to create request: " + e.getMessage(), e);
         }
-
-        // Convert capabilities list to JSON string
-        String capabilitiesJson = null;
-        if (capabilities != null && !capabilities.isEmpty()) {
-            capabilitiesJson = "[" + capabilities.stream()
-                    .map(cap -> "\"" + cap + "\"")
-                    .reduce((a, b) -> a + "," + b)
-                    .orElse("") + "]";
-        }
-
-        // Create the Request entity
-        Request request = new Request();
-        request.setApplication(application);
-        request.setCapabilities(capabilitiesJson);
-        request.setRequester(email); // Email is optional, can be null
-
-        return requestRepository.save(request);
     }
 
     public Optional<ImplementationVersion> findImplementationVersion(UUID id) {
@@ -468,7 +474,6 @@ public class ApplicationService {
     }
 
     public List<Request> getRequestsForApplication(UUID appId) {
-        return requestRepository.findByApplicationId(appId);
         return requestRepository.findByApplicationId(appId);
     }
 
@@ -498,7 +503,6 @@ public class ApplicationService {
         return voteRepository.save(vote);
     }
 
-    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
     /**
      * Get the vote count for a specific request.
      *
@@ -520,7 +524,7 @@ public class ApplicationService {
         return voteRepository.existsByRequestIdAndVoter(requestId, voter);
     }
 
-    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) {
+    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
         ImplementationVersion version = implementationVersionRepository.findById(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
 
@@ -530,8 +534,6 @@ public class ApplicationService {
             InetAddress inet = new InetAddress(ip);
             OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
             recordDownloadIfNew(version, inet, userAgent, cutoff);
-            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(OFFSET);
-            recordDownloadIfNew(version, ip, userAgent, cutoff);
 
             return fileBytes;
         }
@@ -657,5 +659,43 @@ public class ApplicationService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * List applications with pagination and optional filtering
+     * @param pageable Pagination parameters
+     * @param q Optional search query by name
+     * @param featured Optional filter for featured applications
+     * @return Page of ApplicationCardDto
+     */
+    public Page<ApplicationCardDto> list(Pageable pageable, String q, Boolean featured) {
+        Page<Application> page;
+
+        if (featured != null && featured) {
+            page = applicationReadPort.findFeatured(pageable);
+        } else if (q != null && !q.isBlank()) {
+            page = applicationReadPort.searchByName(q.trim(), pageable);
+        } else {
+            page = applicationReadPort.findAll(pageable);
+        }
+
+        return page.map(this::toCard);
+    }
+
+    /**
+     * Convert Application entity to ApplicationCardDto for list display
+     * @param app Application entity
+     * @return ApplicationCardDto
+     */
+    private ApplicationCardDto toCard(Application app) {
+        String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+        return new ApplicationCardDto(
+                app.getId(),
+                app.getDisplayName(),
+                app.getDescription(),
+                app.getLogo(),
+                app.getRiskLevel(),
+                lifecycleState
+        );
     }
 }

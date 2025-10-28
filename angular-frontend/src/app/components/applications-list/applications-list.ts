@@ -14,29 +14,29 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RequestForm, LoginModal],
   templateUrl: './applications-list.html',
-  styleUrl: './applications-list.css'
+  styleUrls: ['./applications-list.css']
 })
 export class ApplicationsList implements OnInit, AfterViewInit {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('scrollContainerMore') scrollContainerMore!: ElementRef<HTMLDivElement>;
   @ViewChildren('featuredCard') featuredCards!: QueryList<ElementRef<HTMLDivElement>>;
 
-  protected applications = signal<Application[]>([]);
-  protected categories = signal<CategoryCount[]>([]);
-  protected loading = signal<boolean>(true);
-  protected error = signal<string | null>(null);
-  protected searchQuery = signal('');
-  protected canScrollLeft = signal<boolean>(false);
-  protected canScrollRight = signal<boolean>(false);
-  protected currentPage = signal<number>(0);
-  protected itemsPerPage = 12;
-  protected sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
-  protected viewMode = signal<'grid' | 'list'>('grid');
-  protected activeTab = signal<string>('all');
-  protected isRequestModalOpen = signal<boolean>(false);
-  protected isLoginModalOpen = signal<boolean>(false);
+  protected readonly applications = signal<Application[]>([]);
+  protected readonly categories = signal<CategoryCount[]>([]);
+  protected readonly loading = signal<boolean>(true);
+  protected readonly error = signal<string | null>(null);
+  protected readonly searchQuery = signal('');
+  protected readonly canScrollLeft = signal<boolean>(false);
+  protected readonly canScrollRight = signal<boolean>(false);
+  protected readonly currentPage = signal<number>(0);
+  protected readonly itemsPerPage = 12;
+  protected readonly sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
+  protected readonly viewMode = signal<'grid' | 'list'>('grid');
+  protected readonly activeTab = signal<string>('all');
+  protected readonly isRequestModalOpen = signal<boolean>(false);
+  protected readonly isLoginModalOpen = signal<boolean>(false);
 
-  protected featuredApplications = computed(() => {
+  protected readonly featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
     const apps = this.applications();
@@ -47,7 +47,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return apps;
   });
 
-  protected moreApplications = computed(() => {
+  protected readonly moreApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
     let apps = [...this.applications()];
@@ -96,7 +96,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return apps.slice(start, end);
   });
 
-  protected filteredCount = computed(() => {
+  protected readonly filteredCount = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
     let apps = this.applications();
@@ -124,7 +124,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return apps.length;
   });
 
-  protected totalPages = computed(() => {
+  protected readonly totalPages = computed(() => {
     return Math.ceil(this.filteredCount() / this.itemsPerPage);
   });
 

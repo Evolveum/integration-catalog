@@ -4,7 +4,7 @@ import { Injectable, signal } from '@angular/core';
   providedIn: 'root'
 })
 export class AuthService {
-  private currentUser = signal<string | null>(null);
+  private readonly currentUser = signal<string | null>(null);
 
   // Simple hardcoded users
   private readonly validUsers = ['u1', 'u2', 'u3', 'u4', 'u5'];

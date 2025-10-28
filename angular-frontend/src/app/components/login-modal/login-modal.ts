@@ -8,15 +8,15 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './login-modal.html',
-  styleUrl: './login-modal.css'
+  styleUrls: ['./login-modal.css']
 })
 export class LoginModal {
-  @Input() isOpen = signal<boolean>(false);
+  @Input() readonly isOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
 
   protected username = '';
   protected password = '';
-  protected errorMessage = signal<string | null>(null);
+  protected readonly errorMessage = signal<string | null>(null);
 
   constructor(private authService: AuthService) {}
 

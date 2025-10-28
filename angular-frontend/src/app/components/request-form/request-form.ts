@@ -8,10 +8,10 @@ import { ApplicationService } from '../../services/application.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './request-form.html',
-  styleUrl: './request-form.css'
+  styleUrls: ['./request-form.css']
 })
 export class RequestForm {
-  @Input() isRequestModalOpen = signal<boolean>(false);
+  @Input() readonly isRequestModalOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
 
   protected formData = {
@@ -22,11 +22,11 @@ export class RequestForm {
     email: '',
     collab: false
   };
-  protected selectedCapabilities = signal<string[]>([]);
-  protected isCapabilitiesDropdownOpen = signal<boolean>(false);
-  protected isSubmitting = signal<boolean>(false);
-  protected submitSuccess = signal<boolean>(false);
-  protected submitError = signal<string | null>(null);
+  protected readonly selectedCapabilities = signal<string[]>([]);
+  protected readonly isCapabilitiesDropdownOpen = signal<boolean>(false);
+  protected readonly isSubmitting = signal<boolean>(false);
+  protected readonly submitSuccess = signal<boolean>(false);
+  protected readonly submitError = signal<string | null>(null);
 
   constructor(private applicationService: ApplicationService) {}
 

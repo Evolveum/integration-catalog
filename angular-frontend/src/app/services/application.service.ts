@@ -4,12 +4,13 @@ import { Observable } from 'rxjs';
 import { Application } from '../models/application.model';
 import { ApplicationDetail } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApplicationService {
-  private apiUrl = 'http://localhost:8080/api/applications';
+  private readonly apiUrl = `${environment.apiUrl}/applications`;
 
   constructor(private http: HttpClient) {}
 
@@ -18,38 +19,38 @@ export class ApplicationService {
   }
 
   getById(id: string): Observable<ApplicationDetail> {
-    return this.http.get<ApplicationDetail>(`http://localhost:8080/api/application/${id}`);
+    return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`);
   }
 
   getCategoryCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>('http://localhost:8080/api/categories/counts');
+    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/categories/counts`);
   }
 
   getCommonTagCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>('http://localhost:8080/api/common-tags/counts');
+    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/common-tags/counts`);
   }
 
   getAppStatusCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>('http://localhost:8080/api/app-status/counts');
+    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/app-status/counts`);
   }
 
   getSupportedOperationsCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>('http://localhost:8080/api/supported-operations/counts');
+    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/supported-operations/counts`);
   }
 
   submitVote(requestId: number, voter: string): Observable<any> {
-    return this.http.post<any>(`http://localhost:8080/api/requests/${requestId}/vote?voter=${voter}`, {});
+    return this.http.post<any>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
   }
 
   getVoteCount(requestId: number): Observable<number> {
-    return this.http.get<number>(`http://localhost:8080/api/requests/${requestId}/votes/count`);
+    return this.http.get<number>(`${environment.apiUrl}/requests/${requestId}/votes/count`);
   }
 
   hasUserVoted(requestId: number, voter: string): Observable<boolean> {
-    return this.http.get<boolean>(`http://localhost:8080/api/requests/${requestId}/votes/check?voter=${voter}`);
+    return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check?voter=${voter}`);
   }
 
   submitRequest(request: any): Observable<any> {
-    return this.http.post<any>('http://localhost:8080/api/requests', request);
+    return this.http.post<any>(`${environment.apiUrl}/requests`, request);
   }
 }

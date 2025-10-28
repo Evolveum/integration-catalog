@@ -34,8 +34,8 @@ public class Download {
 
     @Column(name = "ip_address", columnDefinition = "Inet", nullable = false)
     private InetAddress ipAddress;
-    @Column(name = "ip_address", columnDefinition = "varchar(45)", nullable = false)
-    private String ipAddress;
+//    @Column(name = "ip_address", columnDefinition = "varchar(45)", nullable = false)
+//    private String ipAddress;
 
     @Column(name = "user_agent", nullable = false)
     private String userAgent;
