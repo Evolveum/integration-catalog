@@ -94,7 +94,7 @@ public class ImplementationVersion {
     @JoinColumn(name = "implementation_id", nullable = false)
     private Implementation implementation;
 
-    @Column(name = "error_message")
+    @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
     //connection to Download

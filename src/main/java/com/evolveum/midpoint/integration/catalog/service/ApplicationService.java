@@ -12,19 +12,20 @@ import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
+import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
-import com.evolveum.midpoint.integration.catalog.form.ItemFile;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
+import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -53,7 +54,7 @@ import java.util.stream.Stream;
 @Service
 public class ApplicationService {
 
-    private static final long OFFSET = 10;
+    private static final long DOWNLOAD_OFFSET_SECONDS = 10;
 
     @Autowired
     private final ApplicationRepository applicationRepository;
@@ -114,8 +115,7 @@ public class ApplicationService {
     }
 
     public Application getApplication(UUID uuid) {
-        return applicationRepository.findById(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("Application not found: " + uuid));
+        return applicationRepository.getReferenceById(uuid);
     }
 
     public ImplementationVersion getImplementationVersion(UUID uuid) {
@@ -218,36 +218,52 @@ public class ApplicationService {
             ImplementationVersion implementationVersion,
             List<ItemFile> files
     ) {
+        if (application.getId() != null) {
+            Optional<Application> existApplication = applicationRepository.findById(application.getId());
+            application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
+        }
+
         implementation.setApplication(application);
         implementationVersion.setImplementation(implementation);
 
-        try {
-            if (Implementation.FrameworkType.SCIM_REST.equals(implementation.getFramework())) {
+        if (Implementation.FrameworkType.SCIM_REST.equals(implementation.getFramework())) {
+            try {
                 GithubClient githubClient = new GithubClient(githubProperties);
                 GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
-                implementationVersion.setCheckoutLink(repository.getHtmlUrl().toString());
+                implementationVersion.setCheckoutLink(repository.getHttpTransportUrl());
+                implementationVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+            } catch (Exception e) {
+                implementationVersion.setErrorMessage(e.getMessage());
+                log.error(e.getMessage());
             }
-
-            JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
-            HttpResponse<String> response = jenkinsClient.triggerJob(
-                    "integration-catalog-upload-connid-connector",
-                    Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
-                            "BRANCH_URL", implementationVersion.getBrowseLink(),
-                            "CONNECTOR_OID", implementationVersion.getId().toString(),
-                            "IMPL_FRAMEWORK", implementation.getFramework().name()));
-
-            log.info(response.body());
-        } catch (Exception e) {
-            implementationVersion.setErrorMessage(e.getMessage());
-            log.error(e.getMessage());
-            return e.getMessage();
-        } finally {
-            applicationRepository.save(application);
-            implementationRepository.save(implementation);
-            implementationVersionRepository.save(implementationVersion);
         }
 
-        return implementationVersion.getCheckoutLink();
+        applicationRepository.save(application);
+        implementationRepository.save(implementation);
+        implementationVersionRepository.save(implementationVersion);
+
+        if (implementationVersion.getErrorMessage() == null) {
+            try {
+                JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
+                HttpResponse<String> response = jenkinsClient.triggerJob(
+                        "integration-catalog-upload-connid-connector",
+                        Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
+                                "BRANCH_URL", implementationVersion.getBrowseLink(),
+                                "CONNECTOR_OID", implementationVersion.getId().toString(),
+                                "IMPL_VERSION", implementationVersion.getConnectorVersion(),
+                                "IMPL_TITLE", implementation.getDisplayName(),
+                                "IMPL_FRAMEWORK", implementation.getFramework().name(),
+                                "SKIP_DEPLOY", "false"));
+                log.info(response.body());
+                return response.body();
+            } catch (Exception e) {
+                implementationVersion.setErrorMessage(e.getMessage());
+                implementationVersionRepository.save(implementationVersion);
+                log.error(e.getMessage());
+            }
+        }
+
+        return implementationVersion.getErrorMessage();
     }
 
     public String downloadConnector(String connectorVersion) {
@@ -354,6 +370,9 @@ public class ApplicationService {
         return requestRepository.findAll();
     }
 
+    public void recordDownloadIfNew(ImplementationVersion version, InetAddress ip, String userAgent, OffsetDateTime cutoff) {
+        boolean duplicate = downloadRepository
+                .existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(version, ip, userAgent, cutoff);
     public void recordDownloadIfNew(ImplementationVersion version, String ip, String userAgent, OffsetDateTime cutoff) {
         // boolean duplicate = downloadRepository
         //         .existsRecentDuplicate(version.getId(), ip, userAgent, cutoff);
@@ -450,6 +469,7 @@ public class ApplicationService {
 
     public List<Request> getRequestsForApplication(UUID appId) {
         return requestRepository.findByApplicationId(appId);
+        return requestRepository.findByApplicationId(appId);
     }
 
     /**
@@ -478,6 +498,7 @@ public class ApplicationService {
         return voteRepository.save(vote);
     }
 
+    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
     /**
      * Get the vote count for a specific request.
      *
@@ -506,12 +527,13 @@ public class ApplicationService {
         try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
             byte[] fileBytes = in.readAllBytes();
 
+            InetAddress inet = new InetAddress(ip);
+            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
+            recordDownloadIfNew(version, inet, userAgent, cutoff);
             OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(OFFSET);
             recordDownloadIfNew(version, ip, userAgent, cutoff);
 
             return fileBytes;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to download connector: " + e.getMessage(), e);
         }
     }
 

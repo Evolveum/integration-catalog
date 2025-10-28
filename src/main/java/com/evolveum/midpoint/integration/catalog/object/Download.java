@@ -7,6 +7,8 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,6 +32,8 @@ public class Download {
     @JoinColumn(name = "implementation_version_id", nullable = false)
     private ImplementationVersion implementationVersion;
 
+    @Column(name = "ip_address", columnDefinition = "Inet", nullable = false)
+    private InetAddress ipAddress;
     @Column(name = "ip_address", columnDefinition = "varchar(45)", nullable = false)
     private String ipAddress;
 
