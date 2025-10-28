@@ -11,8 +11,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,8 +36,8 @@ public class Implementation {
     }
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "display_name")
     private String displayName;
@@ -50,20 +48,18 @@ public class Implementation {
     private String maintainer;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "FrameworkType")
+    @Column(name = "framework", columnDefinition = "varchar(64)", nullable = false)
     private FrameworkType framework;
 
-    @Column(name = "ticketing_system_link")
+    @Column(name = "link_on_ticketing_system")
     private String ticketingSystemLink;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "LicenseType")
+    @Column(name = "license", columnDefinition = "varchar(64)", nullable = false)
     private LicenseType license;
 
     @ManyToOne
-    @JoinColumn(name = "application_id", nullable = false)
+    @JoinColumn(name = "application", nullable = false)
     private Application application;
 
     @OneToMany(mappedBy = "implementation")
