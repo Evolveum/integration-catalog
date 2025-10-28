@@ -11,8 +11,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -75,20 +75,18 @@ public class ImplementationVersion {
     @Column(name = "released_date")
     private LocalDate releasedDate;
 
-    @Column(name = "publish_date")
+    @Column(name = "publish_date", columnDefinition = "TIMESTAMPTZ")
     private OffsetDateTime publishDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "lifecycle_state", columnDefinition = "varchar(64)")
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "lifecycle_state", columnDefinition = "implementationVersionLifecycleType")
     private ImplementationVersionLifecycleType lifecycleState;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "build_framework", columnDefinition = "varchar(64)", nullable = false)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "build_framework", columnDefinition = "buildFrameworkType")
     private BuildFrameworkType buildFramework;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "capabilities")
-    private String capabilitiesJson;
 
     @Column(name = "connid_version")
     private String connidVersion;
@@ -100,7 +98,7 @@ public class ImplementationVersion {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
-    //connection to Download
+    //connection to Downloads
     @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)
     @OrderBy("downloadedAt DESC")
     private List<Download> downloads = new ArrayList<>();
