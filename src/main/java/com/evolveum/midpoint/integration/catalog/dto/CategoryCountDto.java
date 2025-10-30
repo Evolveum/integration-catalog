@@ -1,12 +1,14 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import lombok.Getter;
+
+@Getter
 public class CategoryCountDto {
     private String displayName;
     private Long count;
@@ -16,11 +18,4 @@ public class CategoryCountDto {
         this.count = count;
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public Long getCount() {
-        return count;
-    }
 }

@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';

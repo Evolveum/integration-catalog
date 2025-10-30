@@ -1,16 +1,18 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.dto;
+
+import lombok.Getter;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Getter
 public class ApplicationDto {
     private UUID id;
     private String displayName;
@@ -48,67 +50,4 @@ public class ApplicationDto {
         this.voteCount = voteCount;
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public byte[] getLogo() {
-        return logo;
-    }
-
-    public String getRiskLevel() {
-        return riskLevel;
-    }
-
-    public String getLifecycleState() {
-        return lifecycleState;
-    }
-
-    public OffsetDateTime getLastModified() {
-        return lastModified;
-    }
-
-    public List<CountryOfOriginDto> getOrigins() {
-        return origins;
-    }
-
-    public List<ApplicationTagDto> getCategories() {
-        return categories;
-    }
-
-    public List<ApplicationTagDto> getTags() {
-        return tags;
-    }
-
-    public List<ImplementationVersionDto> getImplementationVersions() {
-        return implementationVersions;
-    }
-
-    public OffsetDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public List<String> getCapabilities() {
-        return capabilities;
-    }
-
-    public String getRequester() {
-        return requester;
-    }
-
-    public Long getRequestId() {
-        return requestId;
-    }
-
-    public Long getVoteCount() {
-        return voteCount;
-    }
 }

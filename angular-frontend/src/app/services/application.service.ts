@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';

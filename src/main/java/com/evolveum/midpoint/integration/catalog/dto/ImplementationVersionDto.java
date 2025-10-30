@@ -1,16 +1,18 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.dto;
+
+import lombok.Getter;
 
 import java.util.List;
 
 import java.time.LocalDate;
 
+@Getter
 public class ImplementationVersionDto {
     private String description;
     private List<String> implementationTags;
@@ -34,39 +36,4 @@ public class ImplementationVersionDto {
         this.downloadLink = downloadLink;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public List<String> getImplementationTags() {
-        return implementationTags;
-    }
-
-    public List<String> getCapabilities() {
-        return capabilities;
-    }
-
-    public String getConnectorVersion() {
-        return connectorVersion;
-    }
-
-    public String getSystemVersion() {
-        return systemVersion;
-    }
-
-    public LocalDate getReleasedDate() {
-        return releasedDate;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public String getLifecycleState() {
-        return lifecycleState;
-    }
-
-    public String getDownloadLink() {
-        return downloadLink;
-    }
 }
