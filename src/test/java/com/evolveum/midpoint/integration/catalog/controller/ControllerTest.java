@@ -61,6 +61,9 @@ class ControllerTest {
     private UUID testAppId;
     private UUID testVersionId;
     private Application testApplication;
+    private Implementation testImplementation;
+    private ConnectorBundle testConnectorBundle;
+    private BundleVersion testBundleVersion;
     private ImplementationVersion testImplementationVersion;
     private ConnidVersion testConnidVersion;
     private Request testRequest;
@@ -82,20 +85,36 @@ class ControllerTest {
         testApplication.setCreatedAt(OffsetDateTime.now());
         testApplication.setLastModified(OffsetDateTime.now());
 
+        // Setup test ConnectorBundle
+        testConnectorBundle = new ConnectorBundle();
+        testConnectorBundle.setId(1);
+        testConnectorBundle.setBundleName("test-connector-bundle");
+        testConnectorBundle.setMaintainer("Test Maintainer");
+        testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.CONNID);
+        testConnectorBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
+
+        // Setup test Implementation
+        testImplementation = new Implementation();
+        testImplementation.setId(1L);
+        testImplementation.setDisplayName("Test Implementation");
+        testImplementation.setApplication(testApplication);
+        testImplementation.setConnectorBundle(testConnectorBundle);
+
+        // Setup test BundleVersion
+        testBundleVersion = new BundleVersion();
+        testBundleVersion.setId(UUID.randomUUID());
+        testBundleVersion.setConnectorVersion("1.0.0");
+        testBundleVersion.setDownloadLink("http://example.com/connector.jar");
+        testBundleVersion.setBrowseLink("http://example.com/browse");
+        testBundleVersion.setCheckoutLink("http://example.com/checkout");
+        testBundleVersion.setBuildFramework(BundleVersion.BuildFrameworkType.MAVEN);
+
         // Setup test ImplementationVersion
-        // TODO: Update test setup to work with new schema structure
-        // Need to create ConnectorBundle and BundleVersion entities and wire them properly
         testImplementationVersion = new ImplementationVersion();
         testImplementationVersion.setId(testVersionId);
         testImplementationVersion.setDescription("Test Version");
         testImplementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
-
-        // Create BundleVersion for the test
-        BundleVersion testBundleVersion = new BundleVersion();
-        testBundleVersion.setConnectorVersion("1.0.0");
-        testBundleVersion.setDownloadLink("http://example.com/connector.jar");
-        testBundleVersion.setBuildFramework(BundleVersion.BuildFrameworkType.MAVEN);
-
+        testImplementationVersion.setImplementation(testImplementation);
         testImplementationVersion.setBundleVersion(testBundleVersion);
 
         // Setup test ConnidVersion
@@ -273,6 +292,79 @@ class ControllerTest {
                 .andExpect(status().isOk());
 
         verify(applicationService).failBuild(eq(testVersionId), any(FailForm.class));
+    }
+
+    // ===== POST /api/upload/connector =====
+
+    @Test
+    void uploadConnectorShouldReturnOkWhenSuccessful() throws Exception {
+        UploadImplementationDto dto = new UploadImplementationDto(
+                testApplication,
+                testImplementation,
+                testConnectorBundle,
+                testBundleVersion,
+                testImplementationVersion,
+                Collections.emptyList()
+        );
+
+        when(applicationService.uploadConnector(
+                any(Application.class),
+                any(Implementation.class),
+                any(ConnectorBundle.class),
+                any(BundleVersion.class),
+                any(ImplementationVersion.class),
+                anyList()
+        )).thenReturn("http://github.com/test/repo");
+
+        mockMvc.perform(post("/api/upload/connector")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("http://github.com/test/repo"));
+
+        verify(applicationService).uploadConnector(
+                any(Application.class),
+                any(Implementation.class),
+                any(ConnectorBundle.class),
+                any(BundleVersion.class),
+                any(ImplementationVersion.class),
+                anyList()
+        );
+    }
+
+    @Test
+    void uploadConnectorShouldReturnBadRequestWhenServiceThrowsException() throws Exception {
+        UploadImplementationDto dto = new UploadImplementationDto(
+                testApplication,
+                testImplementation,
+                testConnectorBundle,
+                testBundleVersion,
+                testImplementationVersion,
+                Collections.emptyList()
+        );
+
+        when(applicationService.uploadConnector(
+                any(Application.class),
+                any(Implementation.class),
+                any(ConnectorBundle.class),
+                any(BundleVersion.class),
+                any(ImplementationVersion.class),
+                anyList()
+        )).thenThrow(new IllegalArgumentException("Invalid connector configuration"));
+
+        mockMvc.perform(post("/api/upload/connector")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
+
+        verify(applicationService).uploadConnector(
+                any(Application.class),
+                any(Implementation.class),
+                any(ConnectorBundle.class),
+                any(BundleVersion.class),
+                any(ImplementationVersion.class),
+                anyList()
+        );
     }
 
     // ===== GET /api/download/{oid} =====
