@@ -83,12 +83,20 @@ class ControllerTest {
         testApplication.setLastModified(OffsetDateTime.now());
 
         // Setup test ImplementationVersion
+        // TODO: Update test setup to work with new schema structure
+        // Need to create ConnectorBundle and BundleVersion entities and wire them properly
         testImplementationVersion = new ImplementationVersion();
         testImplementationVersion.setId(testVersionId);
-        testImplementationVersion.setConnectorVersion("1.0.0");
         testImplementationVersion.setDescription("Test Version");
-        testImplementationVersion.setDownloadLink("http://example.com/connector.jar");
         testImplementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
+
+        // Create BundleVersion for the test
+        BundleVersion testBundleVersion = new BundleVersion();
+        testBundleVersion.setConnectorVersion("1.0.0");
+        testBundleVersion.setDownloadLink("http://example.com/connector.jar");
+        testBundleVersion.setBuildFramework(BundleVersion.BuildFrameworkType.MAVEN);
+
+        testImplementationVersion.setBundleVersion(testBundleVersion);
 
         // Setup test ConnidVersion
         testConnidVersion = new ConnidVersion();

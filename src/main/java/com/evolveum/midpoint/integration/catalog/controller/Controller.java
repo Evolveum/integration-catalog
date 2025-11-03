@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -189,6 +190,8 @@ public class Controller {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(
                     dto.application(),
                     dto.implementation(),
+                    dto.connectorBundle(),
+                    dto.bundleVersion(),
                     dto.implementationVersion(),
                     dto.files()));
         } catch (IllegalArgumentException e) {
@@ -232,7 +235,13 @@ public class Controller {
         ImplementationVersion version = applicationService.findImplementationVersion(oid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
-        String filename = version.getDownloadLink().substring(version.getDownloadLink().lastIndexOf('/') + 1);
+        // downloadLink is now in BundleVersion
+        BundleVersion bundleVersion = version.getBundleVersion();
+        if (bundleVersion == null || bundleVersion.getDownloadLink() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Download link not available");
+        }
+
+        String filename = bundleVersion.getDownloadLink().substring(bundleVersion.getDownloadLink().lastIndexOf('/') + 1);
         String ip = request.getRemoteAddr();
         String ua = request.getHeader("User-Agent");
 
@@ -448,22 +457,47 @@ public class Controller {
     }
 
     private List<ImplementationVersionDto> mapImplementationVersions(Application app) {
+        // Updated for new schema: Application -> Implementation -> ImplementationVersion -> BundleVersion
+        // ConnectorBundle is separate (for bundle metadata only)
         if (app.getImplementations() == null) {
             return null;
         }
+
         return app.getImplementations().stream()
-                .flatMap(impl -> impl.getImplementationVersions() != null ?
-                        impl.getImplementationVersions().stream().map(version -> {
-                            List<String> implementationTags = null;
-                            if (impl.getImplementationImplementationTags() != null) {
-                                implementationTags = impl.getImplementationImplementationTags().stream()
-                                        .map(tag -> tag.getImplementationTag().getDisplayName())
-                                        .toList();
-                            }
-                            List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
-                            String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
-                            return new ImplementationVersionDto(version.getDescription(), implementationTags, capabilities, version.getConnectorVersion(), version.getSystemVersion(), version.getReleasedDate(), version.getAuthor(), lifecycleState, version.getDownloadLink());
-                        }) : Stream.empty())
+                .flatMap(impl -> {
+                    if (impl.getImplementationVersions() == null) {
+                        return Stream.empty();
+                    }
+
+                    return impl.getImplementationVersions().stream().map(version -> {
+                        List<String> implementationTags = null;
+                        if (impl.getImplementationImplementationTags() != null) {
+                            implementationTags = impl.getImplementationImplementationTags().stream()
+                                    .map(tag -> tag.getImplementationTag().getDisplayName())
+                                    .toList();
+                        }
+                        List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
+                        String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
+
+                        // Get version-specific data from BundleVersion
+                        BundleVersion bundleVersion = version.getBundleVersion();
+                        String connectorVersion = bundleVersion != null ? bundleVersion.getConnectorVersion() : null;
+                        LocalDate releasedDate = bundleVersion != null ? bundleVersion.getReleasedDate() : null;
+                        String downloadLink = bundleVersion != null ? bundleVersion.getDownloadLink() : null;
+
+                        return new ImplementationVersionDto(
+                                version.getDescription(),
+                                implementationTags,
+                                capabilities,
+                                connectorVersion,      // from BundleVersion
+                                version.getSystemVersion(),
+                                releasedDate,          // from BundleVersion
+                                version.getAuthor(),
+                                lifecycleState,
+                                downloadLink           // from BundleVersion
+                        );
+                    });
+                })
                 .toList();
     }
 

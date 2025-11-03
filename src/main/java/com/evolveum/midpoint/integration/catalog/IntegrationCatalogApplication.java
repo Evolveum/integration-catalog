@@ -24,7 +24,7 @@ public class IntegrationCatalogApplication {
 		SpringApplication.run(IntegrationCatalogApplication.class, args);
 	}
 
-	//check if DB is connected - 0=fine
+	//check if DB is connected
 	@Bean
 	CommandLineRunner pingDb(ApplicationRepository repo) {
 		return args -> System.out.println("✅ Applications in DB: " + repo.count());

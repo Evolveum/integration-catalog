@@ -44,36 +44,16 @@ public class ImplementationVersion {
         WITH_ERROR
     }
 
-    public enum BuildFrameworkType {
-        MAVEN,
-        GRADLE
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     private String description;
 
-    @Column(name = "connector_version")
-    private String connectorVersion;
-
-    @Column(name = "browse_link")
-    private String browseLink;
-
-    @Column(name = "checkout_link")
-    private String checkoutLink;
-
-    @Column(name = "download_link")
-    private String downloadLink;
-
     @Column(name = "system_version")
     private String systemVersion;
 
     private String author;
-
-    @Column(name = "released_date")
-    private LocalDate releasedDate;
 
     @Column(name = "publish_date")
     private OffsetDateTime publishDate;
@@ -82,23 +62,20 @@ public class ImplementationVersion {
     @Column(name = "lifecycle_state", columnDefinition = "varchar(64)")
     private ImplementationVersionLifecycleType lifecycleState;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "build_framework", columnDefinition = "varchar(64)", nullable = false)
-    private BuildFrameworkType buildFramework;
-
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "capabilities")
     private String capabilitiesJson;
 
-    @Column(name = "connid_version")
-    private String connidVersion;
+    @Column(name = "class_name")
+    private String className;
 
     @ManyToOne
     @JoinColumn(name = "implementation_id", nullable = false)
     private Implementation implementation;
 
-    @Column(name = "error_message", columnDefinition = "TEXT")
-    private String errorMessage;
+    @ManyToOne
+    @JoinColumn(name = "bundle_version_id", nullable = false)
+    private BundleVersion bundleVersion;
 
     //connection to Download
     @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)

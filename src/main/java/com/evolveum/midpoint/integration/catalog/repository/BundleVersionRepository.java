@@ -7,10 +7,12 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
-import com.evolveum.midpoint.integration.catalog.object.Implementation;
+import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface ImplementationRepository extends JpaRepository<Implementation, Long>,
-        JpaSpecificationExecutor<Implementation> {
+import java.util.UUID;
+
+public interface BundleVersionRepository extends JpaRepository<BundleVersion, UUID>,
+        JpaSpecificationExecutor<BundleVersion> {
 }

@@ -41,6 +41,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.http.HttpResponse;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -74,6 +75,12 @@ public class ApplicationService {
     private final ImplementationVersionRepository implementationVersionRepository;
 
     @Autowired
+    private final ConnectorBundleRepository connectorBundleRepository;
+
+    @Autowired
+    private final BundleVersionRepository bundleVersionRepository;
+
+    @Autowired
     private final ConnidVersionRepository connidVersionRepository;
 
     @Autowired
@@ -99,6 +106,8 @@ public class ApplicationService {
                               CountryOfOriginRepository countryOfOriginRepository,
                               ImplementationRepository implementationRepository,
                               ImplementationVersionRepository implementationVersionRepository,
+                              ConnectorBundleRepository connectorBundleRepository,
+                              BundleVersionRepository bundleVersionRepository,
                               ConnidVersionRepository connidVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
@@ -112,6 +121,8 @@ public class ApplicationService {
         this.countryOfOriginRepository = countryOfOriginRepository;
         this.implementationRepository = implementationRepository;
         this.implementationVersionRepository = implementationVersionRepository;
+        this.connectorBundleRepository = connectorBundleRepository;
+        this.bundleVersionRepository = bundleVersionRepository;
         this.connidVersionRepository = connidVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
@@ -130,8 +141,9 @@ public class ApplicationService {
     }
 
     public ConnidVersion getConnectorVersion(UUID id) {
-        return connidVersionRepository.getReferenceById(
-                this.implementationVersionRepository.getReferenceById(id).getConnectorVersion());
+        ImplementationVersion implVersion = implementationVersionRepository.getReferenceById(id);
+        BundleVersion bundleVersion = implVersion.getBundleVersion();
+        return connidVersionRepository.getReferenceById(bundleVersion.getConnidVersion());
     }
 
     public List<ApplicationTag> getApplicationTags() {
@@ -215,6 +227,8 @@ public class ApplicationService {
      * The connector is stored on GitHub in case there is no GitHub repositor of the connector and then upload to nexus with a use jenkins job.
      * @param application
      * @param implementation
+     * @param connectorBundle
+     * @param bundleVersion
      * @param implementationVersion
      * @param files
      * @return
@@ -222,6 +236,8 @@ public class ApplicationService {
     public String uploadConnector(
             Application application,
             Implementation implementation,
+            ConnectorBundle connectorBundle,
+            BundleVersion bundleVersion,
             ImplementationVersion implementationVersion,
             List<ItemFile> files
     ) {
@@ -230,73 +246,130 @@ public class ApplicationService {
             application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
         }
 
+        // Set up relationships
         implementation.setApplication(application);
+        implementation.setConnectorBundle(connectorBundle);
         implementationVersion.setImplementation(implementation);
+        implementationVersion.setBundleVersion(bundleVersion);
 
-        if (Implementation.FrameworkType.SCIM_REST.equals(implementation.getFramework())) {
+        // If SCIM_REST framework, create GitHub repository
+        if (ConnectorBundle.FrameworkType.SCIM_REST.equals(connectorBundle.getFramework())) {
             try {
                 GithubClient githubClient = new GithubClient(githubProperties);
                 GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
-                implementationVersion.setCheckoutLink(repository.getHttpTransportUrl());
-                implementationVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                bundleVersion.setCheckoutLink(repository.getHttpTransportUrl());
+                bundleVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
             } catch (Exception e) {
-                implementationVersion.setErrorMessage(e.getMessage());
+                bundleVersion.setErrorMessage(e.getMessage());
                 log.error(e.getMessage());
             }
         }
 
+        // Save entities in correct order
         applicationRepository.save(application);
+        connectorBundleRepository.save(connectorBundle);
+        bundleVersionRepository.save(bundleVersion);
         implementationRepository.save(implementation);
         implementationVersionRepository.save(implementationVersion);
 
-        if (implementationVersion.getErrorMessage() == null) {
+        // If no error from GitHub, trigger Jenkins job
+        if (bundleVersion.getErrorMessage() == null) {
             try {
                 JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
                 HttpResponse<String> response = jenkinsClient.triggerJob(
                         "integration-catalog-upload-connid-connector",
-                        Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
-                                "BRANCH_URL", implementationVersion.getBrowseLink(),
+                        Map.of("REPOSITORY_URL", bundleVersion.getCheckoutLink() != null ? bundleVersion.getCheckoutLink() : "",
+                                "BRANCH_URL", bundleVersion.getBrowseLink() != null ? bundleVersion.getBrowseLink() : "",
                                 "CONNECTOR_OID", implementationVersion.getId().toString(),
-                                "IMPL_VERSION", implementationVersion.getConnectorVersion(),
-                                "IMPL_TITLE", implementation.getDisplayName(),
-                                "IMPL_FRAMEWORK", implementation.getFramework().name(),
+                                "IMPL_VERSION", bundleVersion.getConnectorVersion() != null ? bundleVersion.getConnectorVersion() : "",
+                                "IMPL_TITLE", implementation.getDisplayName() != null ? implementation.getDisplayName() : "",
+                                "IMPL_FRAMEWORK", connectorBundle.getFramework().name(),
                                 "SKIP_DEPLOY", "false"));
                 log.info(response.body());
                 return response.body();
             } catch (Exception e) {
-                implementationVersion.setErrorMessage(e.getMessage());
-                implementationVersionRepository.save(implementationVersion);
+                bundleVersion.setErrorMessage(e.getMessage());
+                bundleVersionRepository.save(bundleVersion);
                 log.error(e.getMessage());
             }
         }
 
-        return implementationVersion.getErrorMessage();
+        return bundleVersion.getErrorMessage();
     }
 
+    /**
+     * Get download link by connector version string.
+     * Note: This method is not currently used by any endpoint.
+     * @param connectorVersion The connector version to search for
+     * @return The download link URL, or null if not found
+     */
     public String downloadConnector(String connectorVersion) {
-        // TODO move impl from controller
-        return null;
+        if (connectorVersion == null) {
+            return null;
+        }
+
+        // Search BundleVersion by connectorVersion (this field is now in BundleVersion, not ImplementationVersion)
+        List<BundleVersion> bundleVersions = bundleVersionRepository.findAll((root, query, cb) ->
+                cb.equal(root.get("connectorVersion"), connectorVersion));
+
+        if (bundleVersions.isEmpty()) {
+            return null;
+        }
+
+        // Return the download link from the first matching BundleVersion
+        // Note: If connector_version is not unique, this will only return the first match
+        return bundleVersions.getFirst().getDownloadLink();
     }
 
     public void successBuild(UUID oid, ContinueForm continueForm) {
+        // Get ImplementationVersion by oid
         ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
-        Implementation implementation = version.getImplementation();
-        implementation.setConnectorBundle(continueForm.getConnectorBundle());
 
+        // Get BundleVersion and update its fields
+        BundleVersion bundleVersion = version.getBundleVersion();
+        if (bundleVersion == null) {
+            throw new IllegalStateException("BundleVersion not found for ImplementationVersion: " + oid);
+        }
+
+        bundleVersion.setConnectorVersion(continueForm.getConnectorVersion())
+                .setDownloadLink(continueForm.getDownloadLink());
+
+        // Update ImplementationVersion
         OffsetDateTime odt = OffsetDateTime.ofInstant(Instant.ofEpochMilli(continueForm.getPublishTime()), ZoneOffset.UTC);
-        version.setConnectorVersion(continueForm.getConnectorVersion())
-                .setDownloadLink(continueForm.getDownloadLink())
-                .setPublishDate(odt)
+        version.setPublishDate(odt)
                 .setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
 
+        // Get Implementation and update ConnectorBundle if needed
+        Implementation implementation = version.getImplementation();
+        if (continueForm.getConnectorBundle() != null && !continueForm.getConnectorBundle().isEmpty()) {
+            // Look up or create ConnectorBundle by bundleName
+            ConnectorBundle connectorBundle = implementation.getConnectorBundle();
+            if (connectorBundle != null && !continueForm.getConnectorBundle().equals(connectorBundle.getBundleName())) {
+                // Bundle name changed - look up by new name
+                List<ConnectorBundle> bundles = connectorBundleRepository.findAll((root, query, cb) ->
+                        cb.equal(root.get("bundleName"), continueForm.getConnectorBundle()));
+                if (!bundles.isEmpty()) {
+                    implementation.setConnectorBundle(bundles.getFirst());
+                }
+            }
+        }
+
+        // Save entities
+        bundleVersionRepository.save(bundleVersion);
         implementationRepository.save(implementation);
         implementationVersionRepository.save(version);
     }
 
     public void failBuild(UUID oid, FailForm failForm) {
         ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
-        version.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.WITH_ERROR)
-                .setErrorMessage(failForm.getErrorMessage());
+        version.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.WITH_ERROR);
+
+        // Get BundleVersion and update errorMessage
+        BundleVersion bundleVersion = version.getBundleVersion();
+        if (bundleVersion != null) {
+            bundleVersion.setErrorMessage(failForm.getErrorMessage());
+            bundleVersionRepository.save(bundleVersion);
+        }
 
         Implementation implementation = version.getImplementation();
         Application application = implementation.getApplication();
@@ -304,6 +377,7 @@ public class ApplicationService {
         if (implementation.getImplementationVersions().size() == 1
                 && application.getImplementations().size() == 1) {
             application.setLifecycleState(Application.ApplicationLifecycleType.WITH_ERROR);
+            applicationRepository.save(application);
         }
 
         implementationVersionRepository.save(version);
@@ -341,28 +415,38 @@ public class ApplicationService {
         return applicationRepository.findAll(spec, pageable);
     }
 
-    public Page<ImplementationVersion> searchVersionsOfConnector(SearchForm searchForm, int page, int size
-    ) {
+    public Page<ImplementationVersion> searchVersionsOfConnector(SearchForm searchForm, int page, int size) {
         Specification<ImplementationVersion> spec = (root, query, cb) -> cb.conjunction();
 
+        // Search by maintainer (now in ConnectorBundle via Implementation)
         if (searchForm.getMaintainer() != null && !searchForm.getMaintainer().isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer() + "%"));
+            spec = spec.and((root, query, cb) -> {
+                // Join path: ImplementationVersion -> Implementation -> ConnectorBundle
+                var implementationJoin = root.join("implementation");
+                var connectorBundleJoin = implementationJoin.join("connectorBundle");
+                return cb.like(cb.lower(connectorBundleJoin.get("maintainer")), "%" + searchForm.getMaintainer().toLowerCase() + "%");
+            });
         }
 
+        // Search by lifecycle state
         if (searchForm.getLifecycleState() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("applicationLifecycleType"), searchForm.getLifecycleState()));
+                    cb.equal(root.get("lifecycleState"), searchForm.getLifecycleState()));
         }
 
+        // Search by application ID
         if (searchForm.getApplicationId() != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("application_id"), searchForm.getApplicationId()));
+            spec = spec.and((root, query, cb) -> {
+                var implementationJoin = root.join("implementation");
+                var applicationJoin = implementationJoin.join("application");
+                return cb.equal(applicationJoin.get("id"), searchForm.getApplicationId());
+            });
         }
 
+        // Search by system version
         if (searchForm.getSystemVersion() != null && !searchForm.getSystemVersion().isBlank()) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("system_version")), "%" + searchForm.getSystemVersion() + "%"));
+                    cb.like(cb.lower(root.get("systemVersion")), "%" + searchForm.getSystemVersion().toLowerCase() + "%"));
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
@@ -528,7 +612,13 @@ public class ApplicationService {
         ImplementationVersion version = implementationVersionRepository.findById(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
 
-        try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
+        // downloadLink is now in BundleVersion
+        BundleVersion bundleVersion = version.getBundleVersion();
+        if (bundleVersion == null || bundleVersion.getDownloadLink() == null) {
+            throw new IllegalArgumentException("Download link not available for version: " + versionId);
+        }
+
+        try (InputStream in = new URL(bundleVersion.getDownloadLink()).openStream()) {
             byte[] fileBytes = in.readAllBytes();
 
             InetAddress inet = new InetAddress(ip);
@@ -626,22 +716,47 @@ public class ApplicationService {
     }
 
     private List<ImplementationVersionDto> mapImplementationVersions(Application app) {
+        // Updated for new schema: Application -> Implementation -> ImplementationVersion -> BundleVersion
+        // ConnectorBundle is separate (for bundle metadata only)
         if (app.getImplementations() == null) {
             return null;
         }
+
         return app.getImplementations().stream()
-                .flatMap(impl -> impl.getImplementationVersions() != null ?
-                        impl.getImplementationVersions().stream().map(version -> {
-                            List<String> implementationTags = null;
-                            if (impl.getImplementationImplementationTags() != null) {
-                                implementationTags = impl.getImplementationImplementationTags().stream()
-                                        .map(tag -> tag.getImplementationTag().getDisplayName())
-                                        .toList();
-                            }
-                            List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
-                            String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
-                            return new ImplementationVersionDto(version.getDescription(), implementationTags, capabilities, version.getConnectorVersion(), version.getSystemVersion(), version.getReleasedDate(), version.getAuthor(), lifecycleState, version.getDownloadLink());
-                        }) : Stream.empty())
+                .flatMap(impl -> {
+                    if (impl.getImplementationVersions() == null) {
+                        return Stream.empty();
+                    }
+
+                    return impl.getImplementationVersions().stream().map(version -> {
+                        List<String> implementationTags = null;
+                        if (impl.getImplementationImplementationTags() != null) {
+                            implementationTags = impl.getImplementationImplementationTags().stream()
+                                    .map(tag -> tag.getImplementationTag().getDisplayName())
+                                    .toList();
+                        }
+                        List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
+                        String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
+
+                        // Get version-specific data from BundleVersion
+                        BundleVersion bundleVersion = version.getBundleVersion();
+                        String connectorVersion = bundleVersion != null ? bundleVersion.getConnectorVersion() : null;
+                        LocalDate releasedDate = bundleVersion != null ? bundleVersion.getReleasedDate() : null;
+                        String downloadLink = bundleVersion != null ? bundleVersion.getDownloadLink() : null;
+
+                        return new ImplementationVersionDto(
+                                version.getDescription(),
+                                implementationTags,
+                                capabilities,
+                                connectorVersion,      // from BundleVersion
+                                version.getSystemVersion(),
+                                releasedDate,          // from BundleVersion
+                                version.getAuthor(),
+                                lifecycleState,
+                                downloadLink           // from BundleVersion
+                        );
+                    });
+                })
                 .toList();
     }
 
