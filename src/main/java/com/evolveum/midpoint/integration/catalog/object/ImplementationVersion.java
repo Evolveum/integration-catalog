@@ -30,10 +30,18 @@ import java.util.UUID;
 public class ImplementationVersion {
 
     public enum CapabilitiesType {
-        READ,
-        CREATE,
-        MODIFY,
-        DELETE
+        CreateApiOp,
+        GetApiOp,
+        UpdateApiOp,
+        DeleteApiOp,
+        TestApiOp,
+        ScriptOnConnectorApiOp,
+        ScriptOnResourceApiOp,
+        AuthenticationApiOp,
+        SearchApiOp,
+        ValidateApiOp,
+        SyncApiOp,
+        SchemaApiOp
     }
 
     public enum ImplementationVersionLifecycleType {

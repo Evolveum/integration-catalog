@@ -251,6 +251,14 @@ class ControllerTest {
         continueForm.setConnectorVersion("1.0.0");
         continueForm.setDownloadLink("http://example.com/download");
         continueForm.setPublishTime(System.currentTimeMillis());
+        continueForm.setConnectorClass("com.evolveum.polygon.connector.test.TestConnector");
+        continueForm.setCapabilities(
+                List.of(ImplementationVersion.CapabilitiesType.SchemaApiOp,
+                        ImplementationVersion.CapabilitiesType.TestApiOp,
+                        ImplementationVersion.CapabilitiesType.ValidateApiOp,
+                        ImplementationVersion.CapabilitiesType.GetApiOp,
+                        ImplementationVersion.CapabilitiesType.SearchApiOp
+                ));
 
         doNothing().when(applicationService).successBuild(eq(testVersionId), any(ContinueForm.class));
 
