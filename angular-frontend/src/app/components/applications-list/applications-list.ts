@@ -7,12 +7,13 @@ import { Application } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
 import { LoginModal } from '../login-modal/login-modal';
+import { UploadFormMain } from '../upload-form-main/upload-form-main';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, LoginModal],
+  imports: [CommonModule, FormsModule, RequestForm, LoginModal, UploadFormMain],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.css']
 })
@@ -35,6 +36,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly activeTab = signal<string>('all');
   protected readonly isRequestModalOpen = signal<boolean>(false);
   protected readonly isLoginModalOpen = signal<boolean>(false);
+  protected readonly isUploadModalOpen = signal<boolean>(false);
 
   protected readonly featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -256,6 +258,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected closeLoginModal(): void {
     this.isLoginModalOpen.set(false);
+  }
+
+  protected openUploadModal(): void {
+    this.isUploadModalOpen.set(true);
+  }
+
+  protected closeUploadModal(): void {
+    this.isUploadModalOpen.set(false);
   }
 
   protected logout(): void {

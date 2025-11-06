@@ -5,6 +5,12 @@ export interface ApplicationTag {
   tagType: string | null;
 }
 
+export interface CountryOfOrigin {
+  id: number;
+  name: string;
+  displayName: string;
+}
+
 export interface Application {
   id: string;
   displayName: string;
@@ -12,6 +18,7 @@ export interface Application {
   logo: string;
   riskLevel: string | null;
   lifecycleState: string | null;
+  origins: CountryOfOrigin[] | null;
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
   pendingRequest?: boolean;
