@@ -13,7 +13,10 @@ import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
+import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
+import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
+import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
@@ -23,11 +26,11 @@ import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
-import com.evolveum.midpoint.integration.catalog.utils.ApplicationReadPort;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
-import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -47,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
  * Created by Dominik.
@@ -94,6 +96,9 @@ public class ApplicationService {
     @Autowired
     private final ApplicationReadPort applicationReadPort;
 
+    @Autowired
+    private final ApplicationMapper applicationMapper;
+
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
@@ -105,7 +110,8 @@ public class ApplicationService {
                               DownloadRepository downloadRepository,
                               RequestRepository requestRepository,
                               VoteRepository voteRepository,
-                              ApplicationReadPort applicationReadPort
+                              ApplicationReadPort applicationReadPort,
+                              ApplicationMapper applicationMapper
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -119,6 +125,7 @@ public class ApplicationService {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.applicationReadPort = applicationReadPort;
+        this.applicationMapper = applicationMapper;
     }
 
     public Application getApplication(UUID uuid) {
@@ -151,61 +158,6 @@ public class ApplicationService {
         return categoryCounts;
     }
 
-    public List<CategoryCountDto> getCommonTagCounts() {
-        List<ApplicationTag> commonTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.COMMON);
-
-        // Filter for certification levels only
-        List<String> certificationLevelNames = List.of("verified_by_evolveum", "community_contributed", "experimental");
-
-        List<CategoryCountDto> commonTagCounts = commonTags.stream()
-                .filter(tag -> certificationLevelNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_")))
-                .map(tag -> new CategoryCountDto(
-                        tag.getDisplayName(),
-                        (long) tag.getApplicationApplicationTags().size()
-                ))
-                .toList();
-
-        return commonTagCounts;
-    }
-
-    public List<CategoryCountDto> getAppStatusCounts() {
-        List<ApplicationTag> commonTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.COMMON);
-
-        // Filter for app status only
-        List<String> appStatusNames = List.of("available", "requested_by_community", "pending");
-
-        List<CategoryCountDto> appStatusCounts = commonTags.stream()
-                .filter(tag -> appStatusNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_")))
-                .map(tag -> new CategoryCountDto(
-                        tag.getDisplayName(),
-                        (long) tag.getApplicationApplicationTags().size()
-                ))
-                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
-
-        // Add "All" with total application count at the beginning
-        long totalCount = applicationRepository.count();
-        appStatusCounts.add(0, new CategoryCountDto("All", totalCount));
-
-        return appStatusCounts;
-    }
-
-    public List<CategoryCountDto> getSupportedOperationsCounts() {
-        List<ApplicationTag> commonTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.COMMON);
-
-        // Filter for supported operations only
-        List<String> supportedOpsNames = List.of("search", "modify_delete", "bulk_action");
-
-        List<CategoryCountDto> supportedOpsCounts = commonTags.stream()
-                .filter(tag -> supportedOpsNames.contains(tag.getName().toLowerCase().replace(" ", "_").replace("-", "_").replace("/", "_").replace(" ", "")))
-                .map(tag -> new CategoryCountDto(
-                        tag.getDisplayName(),
-                        (long) tag.getApplicationApplicationTags().size()
-                ))
-                .toList();
-
-        return supportedOpsCounts;
-    }
-
     public List<CountryOfOrigin> getCountriesOfOrigin() {
         return countryOfOriginRepository.findAll();
     }
@@ -213,18 +165,15 @@ public class ApplicationService {
     /**
      * Method upload connector to integration catalog and return link to git repository at the successful processing and failure message at a processing failure.
      * The connector is stored on GitHub in case there is no GitHub repositor of the connector and then upload to nexus with a use jenkins job.
-     * @param application
-     * @param implementation
-     * @param implementationVersion
-     * @param files
+     * @param dto UploadImplementationDto containing application, implementation, implementationVersion, and files
      * @return
      */
-    public String uploadConnector(
-            Application application,
-            Implementation implementation,
-            ImplementationVersion implementationVersion,
-            List<ItemFile> files
-    ) {
+    public String uploadConnector(UploadImplementationDto dto) {
+        Application application = dto.application();
+        Implementation implementation = dto.implementation();
+        ImplementationVersion implementationVersion = dto.implementationVersion();
+        List<ItemFile> files = dto.files();
+
         if (application.getId() != null) {
             Optional<Application> existApplication = applicationRepository.findById(application.getId());
             application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
@@ -411,13 +360,15 @@ public class ApplicationService {
      * Creates a new Application and Request from the request form submission.
      * The Application will be created with lifecycle state REQUESTED.
      *
-     * @param integrationApplicationName The display name of the application
-     * @param description The application description
-     * @param capabilities List of capabilities to be stored as JSON
-     * @param email Optional email address to be stored as requester
+     * @param dto RequestFormDto containing integrationApplicationName, description, capabilities, and email
      * @return The created Request entity
      */
-    public Request createRequestFromForm(String integrationApplicationName, String description, List<String> capabilities, String email) {
+    public Request createRequestFromForm(RequestFormDto dto) {
+        String integrationApplicationName = dto.integrationApplicationName();
+        String description = dto.description();
+        List<String> capabilities = dto.capabilities();
+        String email = dto.email();
+
         // Generate abbreviated name: lowercase, spaces replaced with underscores, remove special characters
         String abbreviatedName = integrationApplicationName.toLowerCase()
                 .replaceAll("[^a-z0-9_]", "_")
@@ -437,11 +388,15 @@ public class ApplicationService {
             application.setName(abbreviatedName);
             application.setDisplayName(integrationApplicationName);
             application.setDescription(description != null ? description : "");
-            application.setRiskLevel("UNKNOWN"); // Default risk level for requested applications
             application.setLifecycleState(Application.ApplicationLifecycleType.REQUESTED);
 
             // Save the application (UUID is auto-generated, timestamps are auto-set)
             application = applicationRepository.save(application);
+
+            // Check if a request already exists for this application
+            if (requestRepository.existsByApplicationId(application.getId())) {
+                throw new IllegalStateException("A request already exists for application: " + application.getDisplayName());
+            }
 
             // Convert capabilities list to JSON string
             String capabilitiesJson = null;
@@ -459,6 +414,9 @@ public class ApplicationService {
             request.setRequester(email); // Email is optional, can be null
 
             return requestRepository.save(request);
+        } catch (IllegalStateException e) {
+            log.warn("Duplicate request attempt: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("Failed to create request for application: {}", integrationApplicationName, e);
             throw new RuntimeException("Failed to create request: " + e.getMessage(), e);
@@ -542,29 +500,6 @@ public class ApplicationService {
     public List<ApplicationDto> getAllApplications() {
         return applicationRepository.findAll().stream()
                 .map(app -> {
-                    String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
-
-                    List<CountryOfOriginDto> origins = null;
-                    if (app.getApplicationOrigins() != null) {
-                        origins = app.getApplicationOrigins().stream()
-                                .map(appOrigin -> new CountryOfOriginDto(
-                                        appOrigin.getCountryOfOrigin().getId(),
-                                        appOrigin.getCountryOfOrigin().getName(),
-                                        appOrigin.getCountryOfOrigin().getDisplayName()
-                                ))
-                                .toList();
-                    }
-
-                    List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
-                    List<ApplicationTagDto> tags = mapAllTags(app);
-                    List<ImplementationVersionDto> implementationVersions = null;
-                    try {
-                        implementationVersions = mapImplementationVersions(app);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        // If implementation versions fail to load, continue without them
-                    }
-
                     // For REQUESTED apps, get requestId and vote count
                     Long requestId = null;
                     Long voteCount = null;
@@ -576,89 +511,10 @@ public class ApplicationService {
                         }
                     }
 
-                    return new ApplicationDto(
-                            app.getId(),
-                            app.getDisplayName(),
-                            app.getDescription(),
-                            app.getLogo(),
-                            app.getRiskLevel(),
-                            lifecycleState,
-                            app.getLastModified(),
-                            app.getCreatedAt(),
-                            null, // capabilities - not needed for list view
-                            null, // requester - not needed for list view
-                            origins,
-                            categories,
-                            tags,
-                            implementationVersions,
-                            requestId,
-                            voteCount);
+                    // Use mapper to build DTO (capabilities and requester are null for list view)
+                    return applicationMapper.mapToApplicationDto(app, null, null, requestId, voteCount);
                 })
                 .toList();
-    }
-
-    private List<ApplicationTagDto> filterTagsByType(Application app, ApplicationTag.ApplicationTagType tagType) {
-        if (app.getApplicationApplicationTags() == null) {
-            return null;
-        }
-        return app.getApplicationApplicationTags().stream()
-                .filter(appTag -> appTag.getApplicationTag().getTagType() == tagType)
-                .map(this::mapToApplicationTagDto)
-                .toList();
-    }
-
-    private List<ApplicationTagDto> mapAllTags(Application app) {
-        if (app.getApplicationApplicationTags() == null) {
-            return null;
-        }
-        return app.getApplicationApplicationTags().stream()
-                .map(this::mapToApplicationTagDto)
-                .toList();
-    }
-
-    private ApplicationTagDto mapToApplicationTagDto(ApplicationApplicationTag appTag) {
-        return new ApplicationTagDto(
-                appTag.getApplicationTag().getId(),
-                appTag.getApplicationTag().getName(),
-                appTag.getApplicationTag().getDisplayName(),
-                appTag.getApplicationTag().getTagType() != null ? appTag.getApplicationTag().getTagType().name() : null
-        );
-    }
-
-    private List<ImplementationVersionDto> mapImplementationVersions(Application app) {
-        if (app.getImplementations() == null) {
-            return null;
-        }
-        return app.getImplementations().stream()
-                .flatMap(impl -> impl.getImplementationVersions() != null ?
-                        impl.getImplementationVersions().stream().map(version -> {
-                            List<String> implementationTags = null;
-                            if (impl.getImplementationImplementationTags() != null) {
-                                implementationTags = impl.getImplementationImplementationTags().stream()
-                                        .map(tag -> tag.getImplementationTag().getDisplayName())
-                                        .toList();
-                            }
-                            List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
-                            String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
-                            return new ImplementationVersionDto(version.getDescription(), implementationTags, capabilities, version.getConnectorVersion(), version.getSystemVersion(), version.getReleasedDate(), version.getAuthor(), lifecycleState, version.getDownloadLink());
-                        }) : Stream.empty())
-                .toList();
-    }
-
-    private List<String> parseCapabilitiesJson(String capabilitiesJson) {
-        if (capabilitiesJson == null || capabilitiesJson.isEmpty()) {
-            return null;
-        }
-        try {
-            // Remove brackets and quotes, split by comma
-            String cleaned = capabilitiesJson.replace("[", "").replace("]", "").replace("\"", "");
-            if (cleaned.isEmpty()) {
-                return null;
-            }
-            return List.of(cleaned.split(",\\s*"));
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     /**
@@ -694,7 +550,6 @@ public class ApplicationService {
                 app.getDisplayName(),
                 app.getDescription(),
                 app.getLogo(),
-                app.getRiskLevel(),
                 lifecycleState
         );
     }

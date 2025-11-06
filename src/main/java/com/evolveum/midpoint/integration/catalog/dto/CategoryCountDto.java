@@ -7,20 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-public class CategoryCountDto {
-    private String displayName;
-    private Long count;
-
-    public CategoryCountDto(String displayName, Long count) {
-        this.displayName = displayName;
-        this.count = count;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public Long getCount() {
-        return count;
-    }
-}
+public record CategoryCountDto(
+        String displayName,
+        Long count
+) {}

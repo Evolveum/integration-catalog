@@ -19,6 +19,5 @@ import java.util.UUID;
 public interface ApplicationRepository extends JpaRepository<Application, UUID>,
         JpaSpecificationExecutor<Application> {
     Optional<Application> findByName(String name);
-    //Page<Application> findByFeatured(boolean featured, Pageable pageable);
     Page<Application> findByNameContainingIgnoreCase(String q, Pageable pageable);
 }

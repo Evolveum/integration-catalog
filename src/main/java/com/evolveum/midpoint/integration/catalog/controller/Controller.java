@@ -7,8 +7,6 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
-import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
@@ -25,8 +23,8 @@ import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
+import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 
-import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -34,8 +32,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -46,7 +42,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api")
@@ -58,10 +53,13 @@ public class Controller {
     private final ImplementationVersionRepository implementationVersionRepository;
     private final RequestRepository requestRepository;
 
-    public Controller(ApplicationService applicationService, DownloadRepository downloadRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository) {
+    private final ApplicationMapper applicationMapper;
+
+    public Controller(ApplicationService applicationService, DownloadRepository downloadRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository, ApplicationMapper applicationMapper) {
         this.applicationService = applicationService;
         this.implementationVersionRepository = implementationVersionRepository;
         this.requestRepository = requestRepository;
+        this.applicationMapper = applicationMapper;
     }
 
     @Operation(summary = "Get application by ID",
@@ -74,35 +72,6 @@ public class Controller {
     public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id) {
         try {
             Application app = applicationService.getApplication(id);
-            String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
-
-            List<CountryOfOriginDto> origins = null;
-            if (app.getApplicationOrigins() != null) {
-                origins = app.getApplicationOrigins().stream()
-                        .map(appOrigin -> new CountryOfOriginDto(
-                                appOrigin.getCountryOfOrigin().getId(),
-                                appOrigin.getCountryOfOrigin().getName(),
-                                appOrigin.getCountryOfOrigin().getDisplayName()
-                        ))
-                        .toList();
-            }
-
-            List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
-            List<ApplicationTagDto> tags = mapAllTags(app);
-            List<ImplementationVersionDto> implementationVersions = null;
-            try {
-                System.out.println("DEBUG: app.getImplementations() = " + app.getImplementations());
-                if (app.getImplementations() != null) {
-                    System.out.println("DEBUG: implementations count = " + app.getImplementations().size());
-                }
-                implementationVersions = mapImplementationVersions(app);
-                System.out.println("DEBUG: implementationVersions result = " + implementationVersions);
-            } catch (Exception e) {
-                System.err.println("ERROR: Exception in mapImplementationVersions");
-                e.printStackTrace();
-                // If implementation versions fail to load, continue without them
-            }
-
             // Fetch Request data if application is REQUESTED
             List<String> capabilities = null;
             String requester = null;
@@ -112,31 +81,14 @@ public class Controller {
                 List<Request> requests = applicationService.getRequestsForApplication(app.getId());
                 if (!requests.isEmpty()) {
                     Request request = requests.get(0); // Get first request
-                    capabilities = parseCapabilitiesJson(request.getCapabilities());
+                    capabilities = applicationMapper.parseCapabilitiesJson(request.getCapabilities());
                     requester = request.getRequester();
                     requestId = request.getId();
                     voteCount = applicationService.getVoteCount(requestId);
                 }
             }
 
-            ApplicationDto dto = new ApplicationDto(
-                    app.getId(),
-                    app.getDisplayName(),
-                    app.getDescription(),
-                    app.getLogo(),
-                    app.getRiskLevel(),
-                    lifecycleState,
-                    app.getLastModified(),
-                    app.getCreatedAt(),
-                    capabilities,
-                    requester,
-                    origins,
-                    categories,
-                    tags,
-                    implementationVersions,
-                    requestId,
-                    voteCount
-            );
+            ApplicationDto dto = applicationMapper.mapToApplicationDto(app, capabilities, requester, requestId, voteCount);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
             return ResponseEntity.notFound().build();
@@ -192,11 +144,7 @@ public class Controller {
     @PostMapping("/upload/connector")
     public ResponseEntity<String> uploadConnector(@RequestBody UploadImplementationDto dto) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(
-                    dto.application(),
-                    dto.implementation(),
-                    dto.implementationVersion(),
-                    dto.files()));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -330,11 +278,7 @@ public class Controller {
     @PostMapping("/requests")
     public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
         try {
-            Request created = applicationService.createRequestFromForm(
-                    dto.integrationApplicationName(),
-                    dto.description(),
-                    dto.capabilities(),
-                    dto.email());
+            Request created = applicationService.createRequestFromForm(dto);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -390,103 +334,6 @@ public class Controller {
     @GetMapping("/categories/counts")
     public ResponseEntity<List<CategoryCountDto>> getCategoryCounts() {
         return ResponseEntity.ok(applicationService.getCategoryCounts());
-    }
-
-    @Operation(summary = "Show counts of common tags",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Showed counts of common tags successfully"),
-            @ApiResponse(responseCode = "404", description = "Show counts of common tags failed")
-    })
-    @GetMapping("/common-tags/counts")
-    public ResponseEntity<List<CategoryCountDto>> getCommonTagCounts() {
-        return ResponseEntity.ok(applicationService.getCommonTagCounts());
-    }
-
-    @Operation(summary = "Show counts of app status",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Showed counts of app status successfully"),
-            @ApiResponse(responseCode = "404", description = "Show counts of app status failed")
-    })
-    @GetMapping("/app-status/counts")
-    public ResponseEntity<List<CategoryCountDto>> getAppStatusCounts() {
-        return ResponseEntity.ok(applicationService.getAppStatusCounts());
-    }
-
-    @Operation(summary = "Show counts of supported operations",
-            description = "")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Showed counts of supported operations successfully"),
-            @ApiResponse(responseCode = "404", description = "Show counts of supported operations failed")
-    })
-    @GetMapping("/supported-operations/counts")
-    public ResponseEntity<List<CategoryCountDto>> getSupportedOperationsCounts() {
-        return ResponseEntity.ok(applicationService.getSupportedOperationsCounts());
-    }
-
-    private List<ApplicationTagDto> filterTagsByType(Application app, ApplicationTag.ApplicationTagType tagType) {
-        if (app.getApplicationApplicationTags() == null) {
-            return null;
-        }
-        return app.getApplicationApplicationTags().stream()
-                .filter(appTag -> appTag.getApplicationTag().getTagType() == tagType)
-                .map(this::mapToApplicationTagDto)
-                .toList();
-    }
-
-    private List<ApplicationTagDto> mapAllTags(Application app) {
-        if (app.getApplicationApplicationTags() == null) {
-            return null;
-        }
-        return app.getApplicationApplicationTags().stream()
-                .map(this::mapToApplicationTagDto)
-                .toList();
-    }
-
-    private ApplicationTagDto mapToApplicationTagDto(ApplicationApplicationTag appTag) {
-        return new ApplicationTagDto(
-                appTag.getApplicationTag().getId(),
-                appTag.getApplicationTag().getName(),
-                appTag.getApplicationTag().getDisplayName(),
-                appTag.getApplicationTag().getTagType() != null ? appTag.getApplicationTag().getTagType().name() : null
-        );
-    }
-
-    private List<ImplementationVersionDto> mapImplementationVersions(Application app) {
-        if (app.getImplementations() == null) {
-            return null;
-        }
-        return app.getImplementations().stream()
-                .flatMap(impl -> impl.getImplementationVersions() != null ?
-                        impl.getImplementationVersions().stream().map(version -> {
-                            List<String> implementationTags = null;
-                            if (impl.getImplementationImplementationTags() != null) {
-                                implementationTags = impl.getImplementationImplementationTags().stream()
-                                        .map(tag -> tag.getImplementationTag().getDisplayName())
-                                        .toList();
-                            }
-                            List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
-                            String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
-                            return new ImplementationVersionDto(version.getDescription(), implementationTags, capabilities, version.getConnectorVersion(), version.getSystemVersion(), version.getReleasedDate(), version.getAuthor(), lifecycleState, version.getDownloadLink());
-                        }) : Stream.empty())
-                .toList();
-    }
-
-    private List<String> parseCapabilitiesJson(String capabilitiesJson) {
-        if (capabilitiesJson == null || capabilitiesJson.isEmpty()) {
-            return null;
-        }
-        try {
-            // Remove brackets and quotes, split by comma
-            String cleaned = capabilitiesJson.replace("[", "").replace("]", "").replace("\"", "");
-            if (cleaned.isEmpty()) {
-                return null;
-            }
-            return List.of(cleaned.split(",\\s*"));
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     @Operation(summary = "Show all available applications",

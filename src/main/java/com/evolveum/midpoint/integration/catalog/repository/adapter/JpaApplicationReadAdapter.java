@@ -5,11 +5,10 @@
  * and European Union Public License. See LICENSE file for details.
  */
 
-package com.evolveum.midpoint.integration.catalog.utils;
+package com.evolveum.midpoint.integration.catalog.repository.adapter;
 
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
-import com.evolveum.midpoint.integration.catalog.utils.ApplicationReadPort;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

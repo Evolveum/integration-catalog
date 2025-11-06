@@ -10,7 +10,6 @@ export interface Application {
   displayName: string;
   description: string;
   logo: string;
-  riskLevel: string | null;
   lifecycleState: string | null;
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;

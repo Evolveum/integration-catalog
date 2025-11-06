@@ -11,7 +11,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
@@ -79,11 +81,13 @@ public class ImplementationVersion {
     private OffsetDateTime publishDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "lifecycle_state", columnDefinition = "varchar(64)")
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "lifecycle_state", columnDefinition = "implementationVersionLifecycleType")
     private ImplementationVersionLifecycleType lifecycleState;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "build_framework", columnDefinition = "varchar(64)", nullable = false)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "build_framework", columnDefinition = "buildFrameworkType", nullable = false)
     private BuildFrameworkType buildFramework;
 
     @JdbcTypeCode(SqlTypes.JSON)

@@ -580,15 +580,6 @@
             </div>
 
             <div class="mb-3">
-              <h6 class="text-muted small mb-1">Risk Level</h6>
-              @if (application()!.riskLevel) {
-                <p class="mb-0">{{ application()!.riskLevel }}</p>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not specified</p>
-              }
-            </div>
-
-            <div class="mb-3">
               <h6 class="text-muted small mb-1">Origin(s)</h6>
               @if (application()!.origins && application()!.origins!.length > 0) {
                 <div>

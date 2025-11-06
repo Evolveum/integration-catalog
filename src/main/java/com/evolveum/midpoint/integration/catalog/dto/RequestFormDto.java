@@ -22,6 +22,5 @@ public record RequestFormDto(
         @NotBlank String description,
         String systemVersion,
         String email,
-        Boolean collab,
         String requester
 ) {}

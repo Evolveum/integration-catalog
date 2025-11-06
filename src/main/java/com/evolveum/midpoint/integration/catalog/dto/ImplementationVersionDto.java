@@ -7,66 +7,17 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
-import java.time.LocalDate;
-
-public class ImplementationVersionDto {
-    private String description;
-    private List<String> implementationTags;
-    private List<String> capabilities;
-    private String connectorVersion;
-    private String systemVersion;
-    private LocalDate releasedDate;
-    private String author;
-    private String lifecycleState;
-    private String downloadLink;
-
-    public ImplementationVersionDto(String description, List<String> implementationTags, List<String> capabilities, String connectorVersion, String systemVersion, LocalDate releasedDate, String author, String lifecycleState, String downloadLink) {
-        this.description = description;
-        this.implementationTags = implementationTags;
-        this.capabilities = capabilities;
-        this.connectorVersion = connectorVersion;
-        this.systemVersion = systemVersion;
-        this.releasedDate = releasedDate;
-        this.author = author;
-        this.lifecycleState = lifecycleState;
-        this.downloadLink = downloadLink;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public List<String> getImplementationTags() {
-        return implementationTags;
-    }
-
-    public List<String> getCapabilities() {
-        return capabilities;
-    }
-
-    public String getConnectorVersion() {
-        return connectorVersion;
-    }
-
-    public String getSystemVersion() {
-        return systemVersion;
-    }
-
-    public LocalDate getReleasedDate() {
-        return releasedDate;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public String getLifecycleState() {
-        return lifecycleState;
-    }
-
-    public String getDownloadLink() {
-        return downloadLink;
-    }
-}
+public record ImplementationVersionDto(
+        String description,
+        List<String> implementationTags,
+        List<String> capabilities,
+        String connectorVersion,
+        String systemVersion,
+        LocalDate releasedDate,
+        String author,
+        String lifecycleState,
+        String downloadLink
+) {}

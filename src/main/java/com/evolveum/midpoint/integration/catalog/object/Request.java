@@ -20,7 +20,9 @@ import java.util.List;
  * Created by TomasS.
  */
 @Entity
-@Table(name = "request")
+@Table(name = "request", uniqueConstraints = {
+    @UniqueConstraint(name = "unique_request_per_application", columnNames = "application_id")
+})
 @Getter @Setter
 public class Request {
 
