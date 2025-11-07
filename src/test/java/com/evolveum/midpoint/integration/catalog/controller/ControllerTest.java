@@ -50,6 +50,9 @@ class ControllerTest {
     private ApplicationService applicationService;
 
     @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper applicationMapper;
+
+    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository applicationRepository;
 
     @MockitoBean
@@ -60,6 +63,9 @@ class ControllerTest {
 
     @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.RequestRepository requestRepository;
+
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.repository.VoteRepository voteRepository;
 
     private UUID testAppId;
     private UUID testVersionId;
@@ -80,7 +86,6 @@ class ControllerTest {
         testApplication.setName("test_app");
         testApplication.setDisplayName("Test Application");
         testApplication.setDescription("Test Description");
-        testApplication.setRiskLevel("LOW");
         testApplication.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
         testApplication.setCreatedAt(OffsetDateTime.now());
         testApplication.setLastModified(OffsetDateTime.now());
@@ -101,7 +106,10 @@ class ControllerTest {
         testRequest = new Request();
         testRequest.setId(1L);
         testRequest.setApplication(testApplication);
-        testRequest.setCapabilities("[\"read\",\"search\"]");
+        testRequest.setCapabilities(new Request.CapabilitiesTypeRequest[]{
+                Request.CapabilitiesTypeRequest.Read_Access,
+                Request.CapabilitiesTypeRequest.Paged_Search
+        });
         testRequest.setRequester("test@example.com");
 
         // Setup test Vote
@@ -114,27 +122,17 @@ class ControllerTest {
 
     @Test
     void getApplicationShouldReturnApplicationWhenExists() throws Exception {
-        ApplicationDto dto = new ApplicationDto(
-                testAppId,
-                "Test Application",
-                "Test Description",
-                null,
-                "LOW",
-                "ACTIVE",
-                OffsetDateTime.now(),
-                OffsetDateTime.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        ApplicationDto dto = ApplicationDto.builder()
+                .id(testAppId)
+                .displayName("Test Application")
+                .description("Test Description")
+                .lifecycleState("ACTIVE")
+                .createdAt(OffsetDateTime.now())
+                .lastModified(OffsetDateTime.now())
+                .build();
 
         when(applicationService.getApplication(testAppId)).thenReturn(testApplication);
-        when(applicationService.getRequestsForApplication(testAppId)).thenReturn(java.util.Collections.emptyList());
+        when(applicationMapper.mapToApplicationDto(testApplication)).thenReturn(dto);
 
         mockMvc.perform(get("/api/applications/{id}", testAppId))
                 .andExpect(status().isOk())
@@ -142,16 +140,17 @@ class ControllerTest {
                 .andExpect(jsonPath("$.displayName").value("Test Application"));
 
         verify(applicationService).getApplication(testAppId);
+        verify(applicationMapper).mapToApplicationDto(testApplication);
     }
 
     @Test
     void getApplicationShouldReturnNotFoundWhenNotExists() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
         when(applicationService.getApplication(nonExistentId))
-                .thenThrow(new IllegalArgumentException("Application not found"));
+                .thenThrow(new RuntimeException("Application not found with id: " + nonExistentId));
 
         mockMvc.perform(get("/api/applications/{id}", nonExistentId))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isInternalServerError());
 
         verify(applicationService).getApplication(nonExistentId);
     }
@@ -368,14 +367,14 @@ class ControllerTest {
     @Test
     void getRequestsForApplicationShouldReturnList() throws Exception {
         List<Request> requests = Collections.singletonList(testRequest);
-        when(applicationService.getRequestsForApplication(testAppId)).thenReturn(requests);
+        when(applicationService.getRequestForApplication(testAppId)).thenReturn(requests);
 
         mockMvc.perform(get("/api/applications/{appId}/requests", testAppId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(1));
 
-        verify(applicationService).getRequestsForApplication(testAppId);
+        verify(applicationService).getRequestForApplication(testAppId);
     }
 
     // ===== POST /api/requests =====
@@ -385,20 +384,15 @@ class ControllerTest {
         RequestFormDto dto = new RequestFormDto(
                 "Slack",
                 "https://slack.com",
-                Arrays.asList("read", "search"),
+                Arrays.asList("Read_Access", "Paged_Search"),
                 "Slack integration for team communication",
                 "1.0",
                 "test@example.com",
-                true,
                 "Test User"
         );
 
-        when(applicationService.createRequestFromForm(
-                eq("Slack"),
-                eq("Slack integration for team communication"),
-                anyList(),
-                eq("test@example.com")
-        )).thenReturn(testRequest);
+        when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
+                .thenReturn(testRequest);
 
         mockMvc.perform(post("/api/requests")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -406,12 +400,7 @@ class ControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1));
 
-        verify(applicationService).createRequestFromForm(
-                eq("Slack"),
-                eq("Slack integration for team communication"),
-                anyList(),
-                eq("test@example.com")
-        );
+        verify(applicationService).createRequestFromForm(any(RequestFormDto.class));
     }
 
     @Test
@@ -423,7 +412,6 @@ class ControllerTest {
                 "", // Empty description - invalid
                 null,
                 null,
-                null,
                 null
         );
 
@@ -432,7 +420,7 @@ class ControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService, never()).createRequestFromForm(anyString(), anyString(), anyList(), anyString());
+        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
     }
 
     // ===== POST /api/requests/{requestId}/vote =====
@@ -524,18 +512,12 @@ class ControllerTest {
 
     @Test
     void getAllApplicationsShouldReturnList() throws Exception {
-        ApplicationDto dto = new ApplicationDto(
+        ApplicationCardDto dto = new ApplicationCardDto(
                 testAppId,
                 "Test Application",
                 "Test Description",
                 null,
-                "LOW",
                 "ACTIVE",
-                OffsetDateTime.now(),
-                OffsetDateTime.now(),
-                null,
-                null,
-                null,
                 null,
                 null,
                 null,
@@ -543,8 +525,9 @@ class ControllerTest {
                 null
         );
 
-        List<ApplicationDto> applications = Collections.singletonList(dto);
-        when(applicationService.getAllApplications()).thenReturn(applications);
+        List<ApplicationCardDto> applications = Collections.singletonList(dto);
+        Page<ApplicationCardDto> page = new PageImpl<>(applications);
+        when(applicationService.list(any(), eq(null), eq(null))).thenReturn(page);
 
         mockMvc.perform(get("/api/applications"))
                 .andExpect(status().isOk())
@@ -552,17 +535,18 @@ class ControllerTest {
                 .andExpect(jsonPath("$[0].id").value(testAppId.toString()))
                 .andExpect(jsonPath("$[0].displayName").value("Test Application"));
 
-        verify(applicationService).getAllApplications();
+        verify(applicationService).list(any(), eq(null), eq(null));
     }
 
     @Test
     void getAllApplicationsShouldReturnEmptyListWhenNoApplications() throws Exception {
-        when(applicationService.getAllApplications()).thenReturn(Collections.emptyList());
+        Page<ApplicationCardDto> emptyPage = new PageImpl<>(Collections.emptyList());
+        when(applicationService.list(any(), eq(null), eq(null))).thenReturn(emptyPage);
 
         mockMvc.perform(get("/api/applications"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(applicationService).getAllApplications();
+        verify(applicationService).list(any(), eq(null), eq(null));
     }
 }

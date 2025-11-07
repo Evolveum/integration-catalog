@@ -63,7 +63,7 @@ public class Implementation {
     private LicenseType license;
 
     @ManyToOne
-    @JoinColumn(name = "application", nullable = false)
+    @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
     @OneToMany(mappedBy = "implementation")

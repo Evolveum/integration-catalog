@@ -14,6 +14,10 @@ import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationApplicationTag;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
+import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
+import com.evolveum.midpoint.integration.catalog.object.Request;
+import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
+import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -24,6 +28,14 @@ import java.util.stream.Stream;
  */
 @Component
 public class ApplicationMapper {
+
+    private final RequestRepository requestRepository;
+    private final VoteRepository voteRepository;
+
+    public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository) {
+        this.requestRepository = requestRepository;
+        this.voteRepository = voteRepository;
+    }
 
     /**
      * Filters application tags by type and maps to DTOs
@@ -87,7 +99,7 @@ public class ApplicationMapper {
                                         .map(tag -> tag.getImplementationTag().getDisplayName())
                                         .toList();
                             }
-                            List<String> capabilities = parseCapabilitiesJson(version.getCapabilitiesJson());
+                            List<String> capabilities = convertCapabilitiesToList(version.getCapabilities());
                             String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
                             return new ImplementationVersionDto(
                                     version.getDescription(),
@@ -105,24 +117,57 @@ public class ApplicationMapper {
     }
 
     /**
-     * Parses JSON capabilities string to list of strings
-     * @param capabilitiesJson JSON string containing capabilities array
-     * @return List of capability strings or null if empty/invalid
+     * Converts capabilities enum array to list of strings
+     * @param capabilities CapabilitiesType array
+     * @return List of capability strings or null if empty
      */
-    public List<String> parseCapabilitiesJson(String capabilitiesJson) {
-        if (capabilitiesJson == null || capabilitiesJson.isEmpty()) {
+    private List<String> convertCapabilitiesToList(ImplementationVersion.CapabilitiesType[] capabilities) {
+        if (capabilities == null || capabilities.length == 0) {
             return null;
         }
-        try {
-            // Remove brackets and quotes, split by comma
-            String cleaned = capabilitiesJson.replace("[", "").replace("]", "").replace("\"", "");
-            if (cleaned.isEmpty()) {
-                return null;
+        return Stream.of(capabilities)
+                .map(Enum::name)
+                .toList();
+    }
+
+    /**
+     * Converts request capabilities enum array to list of strings
+     * @param capabilities CapabilitiesTypeRequest array
+     * @return List of capability strings or null if empty
+     */
+    private List<String> convertCapabilitiesToList(Request.CapabilitiesTypeRequest[] capabilities) {
+        if (capabilities == null || capabilities.length == 0) {
+            return null;
+        }
+        return Stream.of(capabilities)
+                .map(Enum::name)
+                .toList();
+    }
+
+    /**
+     * Maps Application entity to ApplicationDto with request data fetched automatically
+     * @param app Application entity
+     * @return ApplicationDto
+     */
+    public ApplicationDto mapToApplicationDto(Application app) {
+        // Fetch Request data if application is REQUESTED
+        List<String> capabilities = null;
+        String requester = null;
+        Long requestId = null;
+        Long voteCount = null;
+
+        if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
+            List<Request> requests = requestRepository.findByApplicationId(app.getId());
+            if (!requests.isEmpty()) {
+                Request request = requests.get(0); // Get first request
+                capabilities = convertCapabilitiesToList(request.getCapabilities());
+                requester = request.getRequester();
+                requestId = request.getId();
+                voteCount = voteRepository.countByRequestId(requestId);
             }
-            return List.of(cleaned.split(",\\s*"));
-        } catch (Exception e) {
-            return null;
         }
+
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount);
     }
 
     /**

@@ -35,7 +35,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly activeTab = signal<string>('all');
   protected readonly isRequestModalOpen = signal<boolean>(false);
   protected readonly isLoginModalOpen = signal<boolean>(false);
-  protected readonly currentUser = this.authService.getCurrentUser();
+
+  protected readonly currentUser = computed(() => this.authService.currentUser());
 
   protected readonly featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();

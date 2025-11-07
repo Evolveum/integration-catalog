@@ -12,9 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.JdbcType;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -34,7 +32,7 @@ public class ImplementationVersion {
     public enum CapabilitiesType {
         READ,
         CREATE,
-        MODIFY,
+        UPDATE,
         DELETE
     }
 
@@ -90,9 +88,8 @@ public class ImplementationVersion {
     @Column(name = "build_framework", columnDefinition = "buildFrameworkType", nullable = false)
     private BuildFrameworkType buildFramework;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "capabilities")
-    private String capabilitiesJson;
+    @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
+    private CapabilitiesType[] capabilities;
 
     @Column(name = "connid_version")
     private String connidVersion;

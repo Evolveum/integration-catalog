@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -17,5 +18,10 @@ public record ApplicationCardDto(
         String displayName,
         String description,
         byte[] logo,
-        String lifecycleState
+        String lifecycleState,
+        List<CountryOfOriginDto> origins,
+        List<ApplicationTagDto> categories,
+        List<ApplicationTagDto> tags,
+        Long requestId,
+        Long voteCount
 ) {}

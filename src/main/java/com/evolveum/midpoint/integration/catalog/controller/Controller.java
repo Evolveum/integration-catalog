@@ -8,11 +8,9 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
-import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
-import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
 import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
@@ -32,6 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -72,26 +71,12 @@ public class Controller {
     public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id) {
         try {
             Application app = applicationService.getApplication(id);
-            // Fetch Request data if application is REQUESTED
-            List<String> capabilities = null;
-            String requester = null;
-            Long requestId = null;
-            Long voteCount = null;
-            if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
-                List<Request> requests = applicationService.getRequestsForApplication(app.getId());
-                if (!requests.isEmpty()) {
-                    Request request = requests.get(0); // Get first request
-                    capabilities = applicationMapper.parseCapabilitiesJson(request.getCapabilities());
-                    requester = request.getRequester();
-                    requestId = request.getId();
-                    voteCount = applicationService.getVoteCount(requestId);
-                }
-            }
-
-            ApplicationDto dto = applicationMapper.mapToApplicationDto(app, capabilities, requester, requestId, voteCount);
+            ApplicationDto dto = applicationMapper.mapToApplicationDto(app);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
-            return ResponseEntity.notFound().build();
+            ex.printStackTrace();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Failed to load application: " + ex.getMessage(), ex);
         }
     }
 
@@ -266,7 +251,7 @@ public class Controller {
     })
     @GetMapping("/applications/{appId}/requests")
     public List<Request> getRequestsForApplication(@PathVariable UUID appId) {
-        return applicationService.getRequestsForApplication(appId);
+        return applicationService.getRequestForApplication(appId);
     }
 
     @Operation(summary = "Create Request from Form",
@@ -337,13 +322,15 @@ public class Controller {
     }
 
     @Operation(summary = "Show all available applications",
-            description = "")
+            description = "Returns a list of application cards for display")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Showed all available applications successfully"),
             @ApiResponse(responseCode = "404", description = "Show all available applications failed")
     })
     @GetMapping("/applications")
-    public ResponseEntity<List<ApplicationDto>> getAllApplications() {
-        return ResponseEntity.ok(applicationService.getAllApplications());
+    public ResponseEntity<List<ApplicationCardDto>> getAllApplications() {
+        // Use list method without pagination to get all applications as cards
+        Page<ApplicationCardDto> page = applicationService.list(Pageable.unpaged(), null, null);
+        return ResponseEntity.ok(page.getContent());
     }
 }

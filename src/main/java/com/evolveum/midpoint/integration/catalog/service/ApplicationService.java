@@ -12,7 +12,6 @@ import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
-import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
 import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
@@ -129,7 +128,8 @@ public class ApplicationService {
     }
 
     public Application getApplication(UUID uuid) {
-        return applicationRepository.getReferenceById(uuid);
+        return applicationRepository.findById(uuid)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + uuid));
     }
 
     public ImplementationVersion getImplementationVersion(UUID uuid) {
@@ -351,7 +351,6 @@ public class ApplicationService {
 
         Request r = new Request();
         r.setApplication(application);
-        // Use capabilities JSON field instead
         r.setRequester(requester);
         return requestRepository.save(r);
     }
@@ -398,19 +397,18 @@ public class ApplicationService {
                 throw new IllegalStateException("A request already exists for application: " + application.getDisplayName());
             }
 
-            // Convert capabilities list to JSON string
-            String capabilitiesJson = null;
+            // Convert capabilities list to enum array
+            Request.CapabilitiesTypeRequest[] capabilitiesArray = null;
             if (capabilities != null && !capabilities.isEmpty()) {
-                capabilitiesJson = "[" + capabilities.stream()
-                        .map(cap -> "\"" + cap.replace("\"", "\\\"") + "\"") // Escape quotes
-                        .reduce((a, b) -> a + "," + b)
-                        .orElse("") + "]";
+                capabilitiesArray = capabilities.stream()
+                        .map(cap -> Request.CapabilitiesTypeRequest.valueOf(cap))
+                        .toArray(Request.CapabilitiesTypeRequest[]::new);
             }
 
             // Create the Request entity
             Request request = new Request();
             request.setApplication(application);
-            request.setCapabilities(capabilitiesJson);
+            request.setCapabilities(capabilitiesArray);
             request.setRequester(email); // Email is optional, can be null
 
             return requestRepository.save(request);
@@ -431,7 +429,7 @@ public class ApplicationService {
         return requestRepository.findById(id);
     }
 
-    public List<Request> getRequestsForApplication(UUID appId) {
+    public List<Request> getRequestForApplication(UUID appId) {
         return requestRepository.findByApplicationId(appId);
     }
 
@@ -504,7 +502,7 @@ public class ApplicationService {
                     Long requestId = null;
                     Long voteCount = null;
                     if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
-                        List<Request> requests = getRequestsForApplication(app.getId());
+                        List<Request> requests = getRequestForApplication(app.getId());
                         if (!requests.isEmpty()) {
                             requestId = requests.get(0).getId();
                             voteCount = getVoteCount(requestId);
@@ -545,12 +543,67 @@ public class ApplicationService {
      */
     private ApplicationCardDto toCard(Application app) {
         String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+
+        // Convert origins from ApplicationOrigin join table
+        List<CountryOfOriginDto> origins = null;
+        if (app.getApplicationOrigins() != null) {
+            origins = app.getApplicationOrigins().stream()
+                    .map(appOrigin -> new CountryOfOriginDto(
+                            appOrigin.getCountryOfOrigin().getId(),
+                            appOrigin.getCountryOfOrigin().getName(),
+                            appOrigin.getCountryOfOrigin().getDisplayName()
+                    ))
+                    .toList();
+        }
+
+        // Convert categories and tags from ApplicationApplicationTag join table
+        List<ApplicationTagDto> categories = null;
+        List<ApplicationTagDto> tags = null;
+        if (app.getApplicationApplicationTags() != null) {
+            categories = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+
+            tags = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+        }
+
+        // Get request info if lifecycle state is REQUESTED
+        Long requestId = null;
+        Long voteCount = null;
+        if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
+            List<Request> requests = requestRepository.findByApplicationId(app.getId());
+            if (!requests.isEmpty()) {
+                Request request = requests.get(0);
+                requestId = request.getId();
+                voteCount = voteRepository.countByRequestId(request.getId());
+            }
+        }
+
         return new ApplicationCardDto(
                 app.getId(),
                 app.getDisplayName(),
                 app.getDescription(),
                 app.getLogo(),
-                lifecycleState
+                lifecycleState,
+                origins,
+                categories,
+                tags,
+                requestId,
+                voteCount
         );
     }
 }
