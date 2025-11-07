@@ -30,18 +30,25 @@ import java.util.UUID;
 public class ImplementationVersion {
 
     public enum CapabilitiesType {
-        CreateApiOp,
-        GetApiOp,
-        UpdateApiOp,
-        DeleteApiOp,
-        TestApiOp,
-        ScriptOnConnectorApiOp,
-        ScriptOnResourceApiOp,
-        AuthenticationApiOp,
-        SearchApiOp,
-        ValidateApiOp,
-        SyncApiOp,
-        SchemaApiOp
+        CREATE("Create"),
+        GET("Get"),
+        UPDATE("Update"),
+        DELETE("Delete"),
+        TEST("Test"),
+        SCRIPT_ON_CONNECTOR("ScriptOnConnector"),
+        SCRIPT_ON_RESOURCE("ScriptOnResource"),
+        AUTHENTICATION("Authentication"),
+        SEARCH("Search"),
+        VALIDATE("Validate"),
+        SYNC("Sync"),
+        SCHEMA("Schema");
+
+
+        public final String value;
+
+        CapabilitiesType(String value){
+            this.value = value;
+        }
     }
 
     public enum ImplementationVersionLifecycleType {
