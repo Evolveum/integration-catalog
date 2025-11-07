@@ -41,7 +41,13 @@ public class ImplementationVersion {
         SEARCH("Search"),
         VALIDATE("Validate"),
         SYNC("Sync"),
-        SCHEMA("Schema");
+        LIVE_SYNC("LiveSync"),
+        SCHEMA("Schema"),
+        DISCOVER_CONFIGURATION("DiscoverConfiguration"),
+        RESOLVE_USERNAME("ResolveUsername"),
+        PARTIAL_SCHEMA("PartialSchema"),
+        COMPLEX_UPDATE_DELTA("ComplexUpdateDelta"),
+        UPDATE_DELTA("UpdateDelta");
 
 
         public final String value;
