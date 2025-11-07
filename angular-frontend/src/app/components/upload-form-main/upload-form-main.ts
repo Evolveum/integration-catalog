@@ -11,8 +11,8 @@ import { Application } from '../../models/application.model';
   styleUrls: ['./upload-form-main.css']
 })
 export class UploadFormMain {
-  @Input() readonly isOpen = signal<boolean>(false);
-  @Input() readonly applications = signal<Application[]>([]);
+  @Input() isOpen = signal<boolean>(false);
+  @Input() applications = signal<Application[]>([]);
   @Output() modalClosed = new EventEmitter<void>();
 
   protected readonly currentStep = signal<number>(1);
