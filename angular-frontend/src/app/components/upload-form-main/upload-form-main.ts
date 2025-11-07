@@ -11,23 +11,23 @@ import { Application } from '../../models/application.model';
   styleUrls: ['./upload-form-main.css']
 })
 export class UploadFormMain {
-  @Input() isOpen = signal<boolean>(false);
-  @Input() applications = signal<Application[]>([]);
+  @Input() readonly isOpen = signal<boolean>(false);
+  @Input() readonly applications = signal<Application[]>([]);
   @Output() modalClosed = new EventEmitter<void>();
 
-  protected currentStep = signal<number>(1);
-  protected selectedConnectorType = signal<string>('evolveum-hosted');
-  protected searchQuery = signal<string>('');
-  protected selectedApplication = signal<Application | null>(null);
+  protected readonly currentStep = signal<number>(1);
+  protected readonly selectedConnectorType = signal<string>('evolveum-hosted');
+  protected readonly searchQuery = signal<string>('');
+  protected readonly selectedApplication = signal<Application | null>(null);
 
   // Step 3 - Application Details
-  protected displayName = signal<string>('');
-  protected description = signal<string>('');
-  protected logoFile = signal<File | null>(null);
-  protected origins = signal<string[]>([]);
-  protected loadedOrigins = signal<string[]>([]); // Track origins loaded from selected app
-  protected category = signal<string>('');
-  protected deploymentType = signal<string>('on-premise');
+  protected readonly displayName = signal<string>('');
+  protected readonly description = signal<string>('');
+  protected readonly logoFile = signal<File | null>(null);
+  protected readonly origins = signal<string[]>([]);
+  protected readonly loadedOrigins = signal<string[]>([]); // Track origins loaded from selected app
+  protected readonly category = signal<string>('');
+  protected readonly deploymentType = signal<string>('on-premise');
 
   protected activeApplications = computed(() => {
     return this.applications().filter(app => app.lifecycleState === 'ACTIVE');
@@ -80,7 +80,7 @@ export class UploadFormMain {
       .sort();
   });
 
-  protected showOriginDropdown = signal<boolean>(false);
+  protected readonly showOriginDropdown = signal<boolean>(false);
 
   constructor() {}
 

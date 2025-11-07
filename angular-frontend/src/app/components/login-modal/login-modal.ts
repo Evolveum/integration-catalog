@@ -11,7 +11,7 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./login-modal.css']
 })
 export class LoginModal {
-  @Input() isOpen = signal<boolean>(false);
+  @Input() readonly isOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
 
   protected username = '';
