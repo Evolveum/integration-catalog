@@ -46,22 +46,23 @@ CREATE TYPE BuildFrameworkType AS ENUM (
 
 CREATE TYPE "CapabilityType" AS ENUM (
     'CREATE',
-    'READ',
-    'UPDATE',
-    'DELETE'
-);
-
-CREATE TYPE "RequestCapabilityType" AS ENUM (
-    'Paged_Search',
-    'Live_Sync',
-    'Read_Access',
-    'Update_Date',
-    'Create_Entry',
-    'Test_Connection',
-    'Auxiliary_Object_Classes',
-    'Script_Execution',
-    'Password_Security',
-    'User_Credentials'
+	'GET',
+	'UPDATE',
+	'DELETE',
+	'TEST',
+	'SCRIPT_ON_CONNECTOR',
+	'SCRIPT_ON_RESOURCE',
+	'AUTHENTICATION',
+	'SEARCH',
+	'VALIDATE',
+	'SYNC',
+	'LIVE_SYNC',
+	'SCHEMA',
+	'DISCOVER_CONFIGURATION',
+	'RESOLVE_USERNAME',
+	'PARTIAL_SCHEMA',
+	'COMPLEX_UPDATE_DELTA',
+	'UPDATE_DELTA'
 );
 -- end of region
 
@@ -223,7 +224,7 @@ CREATE TABLE public.implementation_version (
 CREATE TABLE public.request (
     id integer NOT NULL,
     application_id uuid NOT NULL,
-    capabilities "RequestCapabilityType"[] DEFAULT '{}'::"RequestCapabilityType"[] NOT NULL,
+    capabilities "CapabilityType"[] DEFAULT '{}'::"CapabilityType"[] NOT NULL,
     requester character varying(255),
     CONSTRAINT unique_request_per_application UNIQUE (application_id)
 );

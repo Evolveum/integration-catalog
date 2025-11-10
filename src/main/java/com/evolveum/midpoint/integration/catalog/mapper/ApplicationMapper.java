@@ -21,6 +21,7 @@ import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -131,20 +132,6 @@ public class ApplicationMapper {
     }
 
     /**
-     * Converts request capabilities enum array to list of strings
-     * @param capabilities CapabilitiesTypeRequest array
-     * @return List of capability strings or null if empty
-     */
-    private List<String> convertCapabilitiesToList(Request.CapabilitiesTypeRequest[] capabilities) {
-        if (capabilities == null || capabilities.length == 0) {
-            return null;
-        }
-        return Stream.of(capabilities)
-                .map(Enum::name)
-                .toList();
-    }
-
-    /**
      * Maps Application entity to ApplicationDto with request data fetched automatically
      * @param app Application entity
      * @return ApplicationDto
@@ -157,9 +144,9 @@ public class ApplicationMapper {
         Long voteCount = null;
 
         if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
-            List<Request> requests = requestRepository.findByApplicationId(app.getId());
-            if (!requests.isEmpty()) {
-                Request request = requests.get(0); // Get first request
+            Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
+            if (requestOpt.isPresent()) {
+                Request request = requestOpt.get();
                 capabilities = convertCapabilitiesToList(request.getCapabilities());
                 requester = request.getRequester();
                 requestId = request.getId();

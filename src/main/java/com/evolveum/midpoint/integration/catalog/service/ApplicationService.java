@@ -398,11 +398,11 @@ public class ApplicationService {
             }
 
             // Convert capabilities list to enum array
-            Request.CapabilitiesTypeRequest[] capabilitiesArray = null;
+            ImplementationVersion.CapabilitiesType[] capabilitiesArray = null;
             if (capabilities != null && !capabilities.isEmpty()) {
                 capabilitiesArray = capabilities.stream()
-                        .map(cap -> Request.CapabilitiesTypeRequest.valueOf(cap))
-                        .toArray(Request.CapabilitiesTypeRequest[]::new);
+                        .map(cap -> ImplementationVersion.CapabilitiesType.valueOf(cap))
+                        .toArray(ImplementationVersion.CapabilitiesType[]::new);
             }
 
             // Create the Request entity
@@ -429,7 +429,7 @@ public class ApplicationService {
         return requestRepository.findById(id);
     }
 
-    public List<Request> getRequestForApplication(UUID appId) {
+    public Optional<Request> getRequestForApplication(UUID appId) {
         return requestRepository.findByApplicationId(appId);
     }
 
@@ -502,9 +502,9 @@ public class ApplicationService {
                     Long requestId = null;
                     Long voteCount = null;
                     if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
-                        List<Request> requests = getRequestForApplication(app.getId());
-                        if (!requests.isEmpty()) {
-                            requestId = requests.get(0).getId();
+                        Optional<Request> request = getRequestForApplication(app.getId());
+                        if (request.isPresent()) {
+                            requestId = request.get().getId();
                             voteCount = getVoteCount(requestId);
                         }
                     }
@@ -585,9 +585,9 @@ public class ApplicationService {
         Long requestId = null;
         Long voteCount = null;
         if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
-            List<Request> requests = requestRepository.findByApplicationId(app.getId());
-            if (!requests.isEmpty()) {
-                Request request = requests.get(0);
+            Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
+            if (requestOpt.isPresent()) {
+                Request request = requestOpt.get();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(request.getId());
             }

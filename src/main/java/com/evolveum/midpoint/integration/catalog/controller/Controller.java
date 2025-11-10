@@ -236,22 +236,24 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Request ID found"),
             @ApiResponse(responseCode = "404", description = "Request ID not found")
     })
-    @GetMapping("/requests/{id}")
+    @GetMapping("/request/{id}")
     public ResponseEntity<Request> getRequest(@PathVariable Long id) {
         return applicationService.getRequest(id)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
     }
 
-    @Operation(summary = "Get Requests for Application ID",
+    @Operation(summary = "Get Request for Application ID",
             description = "")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Requests for Application ID found"),
-            @ApiResponse(responseCode = "404", description = "Requests for Application ID not found")
+            @ApiResponse(responseCode = "200", description = "Request for Application ID found"),
+            @ApiResponse(responseCode = "404", description = "Request for Application ID not found")
     })
-    @GetMapping("/applications/{appId}/requests")
-    public List<Request> getRequestsForApplication(@PathVariable UUID appId) {
-        return applicationService.getRequestForApplication(appId);
+    @GetMapping("/applications/{appId}/request")
+    public ResponseEntity<Request> getRequestForApplication(@PathVariable UUID appId) {
+        return applicationService.getRequestForApplication(appId)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found for application"));
     }
 
     @Operation(summary = "Create Request from Form",
@@ -260,7 +262,7 @@ public class Controller {
             @ApiResponse(responseCode = "201", description = "Request created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
-    @PostMapping("/requests")
+    @PostMapping("/request")
     public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
         try {
             Request created = applicationService.createRequestFromForm(dto);
@@ -278,7 +280,7 @@ public class Controller {
             @ApiResponse(responseCode = "201", description = "Vote submitted successfully"),
             @ApiResponse(responseCode = "400", description = "User already voted or request not found")
     })
-    @PostMapping("/requests/{requestId}/vote")
+    @PostMapping("/request/{requestId}/vote")
     public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, @RequestParam String voter) {
         try {
             Vote vote = applicationService.submitVote(requestId, voter);
@@ -293,7 +295,7 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Vote count retrieved successfully")
     })
-    @GetMapping("/requests/{requestId}/votes/count")
+    @GetMapping("/request/{requestId}/votes/count")
     public ResponseEntity<Long> getVoteCount(@PathVariable Long requestId) {
         long count = applicationService.getVoteCount(requestId);
         return ResponseEntity.ok(count);
@@ -304,7 +306,7 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Check completed successfully")
     })
-    @GetMapping("/requests/{requestId}/votes/check")
+    @GetMapping("/request/{requestId}/votes/check")
     public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, @RequestParam String voter) {
         boolean hasVoted = applicationService.hasUserVoted(requestId, voter);
         return ResponseEntity.ok(hasVoted);

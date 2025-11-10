@@ -30,10 +30,24 @@ import java.util.UUID;
 public class ImplementationVersion {
 
     public enum CapabilitiesType {
-        READ,
         CREATE,
+        GET,
         UPDATE,
-        DELETE
+        DELETE,
+        TEST,
+        SCRIPT_ON_CONNECTOR,
+        SCRIPT_ON_RESOURCE,
+        AUTHENTICATION,
+        SEARCH,
+        VALIDATE,
+        SYNC,
+        LIVE_SYNC,
+        SCHEMA,
+        DISCOVER_CONFIGURATION,
+        RESOLVE_USERNAME,
+        PARTIAL_SCHEMA,
+        COMPLEX_UPDATE_DELTA,
+        UPDATE_DELTA
     }
 
     public enum ImplementationVersionLifecycleType {

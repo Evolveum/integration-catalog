@@ -106,9 +106,9 @@ class ControllerTest {
         testRequest = new Request();
         testRequest.setId(1L);
         testRequest.setApplication(testApplication);
-        testRequest.setCapabilities(new Request.CapabilitiesTypeRequest[]{
-                Request.CapabilitiesTypeRequest.Read_Access,
-                Request.CapabilitiesTypeRequest.Paged_Search
+        testRequest.setCapabilities(new ImplementationVersion.CapabilitiesType[]{
+                ImplementationVersion.CapabilitiesType.GET,
+                ImplementationVersion.CapabilitiesType.SEARCH
         });
         testRequest.setRequester("test@example.com");
 
@@ -338,13 +338,13 @@ class ControllerTest {
         verify(applicationService).searchApplication(any(SearchForm.class), eq(0), eq(10));
     }
 
-    // ===== GET /api/requests/{id} =====
+    // ===== GET /api/request/{id} =====
 
     @Test
     void getRequestShouldReturnRequestWhenExists() throws Exception {
         when(applicationService.getRequest(1L)).thenReturn(Optional.of(testRequest));
 
-        mockMvc.perform(get("/api/requests/{id}", 1L))
+        mockMvc.perform(get("/api/request/{id}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.requester").value("test@example.com"));
@@ -356,28 +356,37 @@ class ControllerTest {
     void getRequestShouldReturnNotFoundWhenNotExists() throws Exception {
         when(applicationService.getRequest(999L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/requests/{id}", 999L))
+        mockMvc.perform(get("/api/request/{id}", 999L))
                 .andExpect(status().isNotFound());
 
         verify(applicationService).getRequest(999L);
     }
 
-    // ===== GET /api/applications/{appId}/requests =====
+    // ===== GET /api/applications/{appId}/request =====
 
     @Test
-    void getRequestsForApplicationShouldReturnList() throws Exception {
-        List<Request> requests = Collections.singletonList(testRequest);
-        when(applicationService.getRequestForApplication(testAppId)).thenReturn(requests);
+    void getRequestForApplicationShouldReturnRequest() throws Exception {
+        when(applicationService.getRequestForApplication(testAppId)).thenReturn(Optional.of(testRequest));
 
-        mockMvc.perform(get("/api/applications/{appId}/requests", testAppId))
+        mockMvc.perform(get("/api/applications/{appId}/request", testAppId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(1));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.requester").value("test@example.com"));
 
         verify(applicationService).getRequestForApplication(testAppId);
     }
 
-    // ===== POST /api/requests =====
+    @Test
+    void getRequestForApplicationShouldReturnNotFoundWhenNotExists() throws Exception {
+        when(applicationService.getRequestForApplication(testAppId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/applications/{appId}/request", testAppId))
+                .andExpect(status().isNotFound());
+
+        verify(applicationService).getRequestForApplication(testAppId);
+    }
+
+    // ===== POST /api/request =====
 
     @Test
     void createRequestShouldReturnCreatedWhenValid() throws Exception {
@@ -394,7 +403,7 @@ class ControllerTest {
         when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
                 .thenReturn(testRequest);
 
-        mockMvc.perform(post("/api/requests")
+        mockMvc.perform(post("/api/request")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -415,7 +424,7 @@ class ControllerTest {
                 null
         );
 
-        mockMvc.perform(post("/api/requests")
+        mockMvc.perform(post("/api/request")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
@@ -423,13 +432,13 @@ class ControllerTest {
         verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
     }
 
-    // ===== POST /api/requests/{requestId}/vote =====
+    // ===== POST /api/request/{requestId}/vote =====
 
     @Test
     void submitVoteShouldReturnCreatedWhenSuccessful() throws Exception {
         when(applicationService.submitVote(1L, "voter@example.com")).thenReturn(testVote);
 
-        mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
+        mockMvc.perform(post("/api/request/{requestId}/vote", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requestId").value(1))
@@ -443,33 +452,33 @@ class ControllerTest {
         when(applicationService.submitVote(1L, "voter@example.com"))
                 .thenThrow(new IllegalArgumentException("User has already voted"));
 
-        mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
+        mockMvc.perform(post("/api/request/{requestId}/vote", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isBadRequest());
 
         verify(applicationService).submitVote(1L, "voter@example.com");
     }
 
-    // ===== GET /api/requests/{requestId}/votes/count =====
+    // ===== GET /api/request/{requestId}/votes/count =====
 
     @Test
     void getVoteCountShouldReturnCount() throws Exception {
         when(applicationService.getVoteCount(1L)).thenReturn(5L);
 
-        mockMvc.perform(get("/api/requests/{requestId}/votes/count", 1L))
+        mockMvc.perform(get("/api/request/{requestId}/votes/count", 1L))
                 .andExpect(status().isOk())
                 .andExpect(content().string("5"));
 
         verify(applicationService).getVoteCount(1L);
     }
 
-    // ===== GET /api/requests/{requestId}/votes/check =====
+    // ===== GET /api/request/{requestId}/votes/check =====
 
     @Test
     void hasUserVotedShouldReturnTrueWhenVoted() throws Exception {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(true);
 
-        mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
+        mockMvc.perform(get("/api/request/{requestId}/votes/check", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
@@ -481,7 +490,7 @@ class ControllerTest {
     void hasUserVotedShouldReturnFalseWhenNotVoted() throws Exception {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(false);
 
-        mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
+        mockMvc.perform(get("/api/request/{requestId}/votes/check", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));

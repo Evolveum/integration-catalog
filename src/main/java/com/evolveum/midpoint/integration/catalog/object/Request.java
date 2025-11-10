@@ -7,6 +7,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,19 +25,6 @@ import java.util.List;
 @Getter @Setter
 public class Request {
 
-    public enum CapabilitiesTypeRequest {
-        Paged_Search,
-        Live_Sync,
-        Read_Access,
-        Update_Date,
-        Create_Entry,
-        Test_Connection,
-        Auxiliary_Object_Classes,
-        Script_Execution,
-        Password_Security,
-        User_Credentials
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -47,7 +35,7 @@ public class Request {
     private Application application;
 
     @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
-    private CapabilitiesTypeRequest[] capabilities;
+    private CapabilitiesType[] capabilities;
 
     private String requester;
 
