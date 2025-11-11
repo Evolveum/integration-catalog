@@ -161,7 +161,7 @@ class ControllerTest {
     void getConnectorVersionShouldReturnVersionWhenExists() throws Exception {
         when(applicationService.getConnectorVersion(testVersionId)).thenReturn(testConnidVersion);
 
-        mockMvc.perform(get("/api/connector-version/{id}", testVersionId))
+        mockMvc.perform(get("/api/connid-versions/{id}", testVersionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").value("1.5.0.0"));
 
@@ -174,7 +174,7 @@ class ControllerTest {
         when(applicationService.getConnectorVersion(nonExistentId))
                 .thenThrow(new RuntimeException("Version not found"));
 
-        mockMvc.perform(get("/api/connector-version/{id}", nonExistentId))
+        mockMvc.perform(get("/api/connid-versions/{id}", nonExistentId))
                 .andExpect(status().isNotFound());
 
         verify(applicationService).getConnectorVersion(nonExistentId);
@@ -269,7 +269,7 @@ class ControllerTest {
         verify(applicationService).failBuild(eq(testVersionId), any(FailForm.class));
     }
 
-    // ===== GET /api/download/{oid} =====
+    // ===== GET /api/downloads/{oid} =====
 
     @Test
     void downloadConnectorShouldReturnFileWhenSuccessful() throws Exception {
@@ -280,7 +280,7 @@ class ControllerTest {
         when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
                 .thenReturn(fileBytes);
 
-        mockMvc.perform(get("/api/download/{oid}", testVersionId))
+        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
                 .andExpect(status().isOk())
                 .andExpect(header().exists("Content-Disposition"))
                 .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
@@ -296,7 +296,7 @@ class ControllerTest {
         when(applicationService.findImplementationVersion(nonExistentId))
                 .thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/download/{oid}", nonExistentId))
+        mockMvc.perform(get("/api/downloads/{oid}", nonExistentId))
                 .andExpect(status().isNotFound());
 
         verify(applicationService).findImplementationVersion(nonExistentId);
@@ -310,7 +310,7 @@ class ControllerTest {
         when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
                 .thenThrow(new IOException("Download failed"));
 
-        mockMvc.perform(get("/api/download/{oid}", testVersionId))
+        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
                 .andExpect(status().isInternalServerError());
 
         verify(applicationService).findImplementationVersion(any(UUID.class));
@@ -403,7 +403,7 @@ class ControllerTest {
         when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
                 .thenReturn(testRequest);
 
-        mockMvc.perform(post("/api/request")
+        mockMvc.perform(post("/api/requests")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -424,7 +424,7 @@ class ControllerTest {
                 null
         );
 
-        mockMvc.perform(post("/api/request")
+        mockMvc.perform(post("/api/requests")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());

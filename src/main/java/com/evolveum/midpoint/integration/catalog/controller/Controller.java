@@ -86,7 +86,7 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Connector version found"),
             @ApiResponse(responseCode = "404", description = "Connector version not found")
     })
-    @GetMapping("/connector-versions/{id}")
+    @GetMapping("/connid-versions/{id}")
     public ResponseEntity<ConnidVersion> getConnectorVersion(@PathVariable UUID id) {
         try {
             return ResponseEntity.ok(applicationService.getConnectorVersion(id));
