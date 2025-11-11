@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.controller;
@@ -56,9 +55,6 @@ class ControllerTest {
     private com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository applicationRepository;
 
     @MockitoBean
-    private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
-
-    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository implementationVersionRepository;
 
     @MockitoBean
@@ -66,6 +62,9 @@ class ControllerTest {
 
     @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.VoteRepository voteRepository;
+
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
 
     private UUID testAppId;
     private UUID testVersionId;

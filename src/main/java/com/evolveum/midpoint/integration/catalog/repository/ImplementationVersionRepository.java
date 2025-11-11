@@ -1,16 +1,13 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
-
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.UUID;
