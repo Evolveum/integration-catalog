@@ -86,7 +86,7 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Connector version found"),
             @ApiResponse(responseCode = "404", description = "Connector version not found")
     })
-    @GetMapping("/connector-version/{id}")
+    @GetMapping("/connector-versions/{id}")
     public ResponseEntity<ConnidVersion> getConnectorVersion(@PathVariable UUID id) {
         try {
             return ResponseEntity.ok(applicationService.getConnectorVersion(id));
@@ -165,7 +165,7 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Download based on ID worked"),
             @ApiResponse(responseCode = "404", description = "Download based on ID failed")
     })
-    @GetMapping("/download/{oid}")
+    @GetMapping("/downloads/{oid}")
     public ResponseEntity<byte[]> downloadConnector(@PathVariable UUID oid, HttpServletRequest request) {
 
         ImplementationVersion version = applicationService.findImplementationVersion(oid)
@@ -217,7 +217,7 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Versions of connector found"),
             @ApiResponse(responseCode = "404", description = "Versions of connector not found")
     })
-    @GetMapping("/version-of-connector/search/{size}/{page}")
+    @GetMapping("/versions-of-connector/search/{size}/{page}")
     public ResponseEntity<Page<ImplementationVersion>> searchVersionsOfConnector(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
@@ -262,7 +262,7 @@ public class Controller {
             @ApiResponse(responseCode = "201", description = "Request created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
-    @PostMapping("/request")
+    @PostMapping("/requests")
     public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
         try {
             Request created = applicationService.createRequestFromForm(dto);

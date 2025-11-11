@@ -338,13 +338,13 @@ class ControllerTest {
         verify(applicationService).searchApplication(any(SearchForm.class), eq(0), eq(10));
     }
 
-    // ===== GET /api/request/{id} =====
+    // ===== GET /api/requests/{id} =====
 
     @Test
     void getRequestShouldReturnRequestWhenExists() throws Exception {
         when(applicationService.getRequest(1L)).thenReturn(Optional.of(testRequest));
 
-        mockMvc.perform(get("/api/request/{id}", 1L))
+        mockMvc.perform(get("/api/requests/{id}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.requester").value("test@example.com"));
@@ -356,7 +356,7 @@ class ControllerTest {
     void getRequestShouldReturnNotFoundWhenNotExists() throws Exception {
         when(applicationService.getRequest(999L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/request/{id}", 999L))
+        mockMvc.perform(get("/api/requests/{id}", 999L))
                 .andExpect(status().isNotFound());
 
         verify(applicationService).getRequest(999L);
@@ -432,13 +432,13 @@ class ControllerTest {
         verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
     }
 
-    // ===== POST /api/request/{requestId}/vote =====
+    // ===== POST /api/requests/{requestId}/vote =====
 
     @Test
     void submitVoteShouldReturnCreatedWhenSuccessful() throws Exception {
         when(applicationService.submitVote(1L, "voter@example.com")).thenReturn(testVote);
 
-        mockMvc.perform(post("/api/request/{requestId}/vote", 1L)
+        mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requestId").value(1))
@@ -452,33 +452,33 @@ class ControllerTest {
         when(applicationService.submitVote(1L, "voter@example.com"))
                 .thenThrow(new IllegalArgumentException("User has already voted"));
 
-        mockMvc.perform(post("/api/request/{requestId}/vote", 1L)
+        mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isBadRequest());
 
         verify(applicationService).submitVote(1L, "voter@example.com");
     }
 
-    // ===== GET /api/request/{requestId}/votes/count =====
+    // ===== GET /api/requests/{requestId}/votes/count =====
 
     @Test
     void getVoteCountShouldReturnCount() throws Exception {
         when(applicationService.getVoteCount(1L)).thenReturn(5L);
 
-        mockMvc.perform(get("/api/request/{requestId}/votes/count", 1L))
+        mockMvc.perform(get("/api/requests/{requestId}/votes/count", 1L))
                 .andExpect(status().isOk())
                 .andExpect(content().string("5"));
 
         verify(applicationService).getVoteCount(1L);
     }
 
-    // ===== GET /api/request/{requestId}/votes/check =====
+    // ===== GET /api/requests/{requestId}/votes/check =====
 
     @Test
     void hasUserVotedShouldReturnTrueWhenVoted() throws Exception {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(true);
 
-        mockMvc.perform(get("/api/request/{requestId}/votes/check", 1L)
+        mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
@@ -490,7 +490,7 @@ class ControllerTest {
     void hasUserVotedShouldReturnFalseWhenNotVoted() throws Exception {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(false);
 
-        mockMvc.perform(get("/api/request/{requestId}/votes/check", 1L)
+        mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
                         .param("voter", "voter@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));
