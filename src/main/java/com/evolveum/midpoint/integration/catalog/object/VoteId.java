@@ -7,7 +7,6 @@
 package com.evolveum.midpoint.integration.catalog.object;
 
 import lombok.Getter;
-import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -16,7 +15,6 @@ import java.util.Objects;
  * Composite primary key for Vote entity.
  * Created by TomasS.
  */
-@Setter
 @Getter
 public class VoteId implements Serializable {
     private Long requestId;
@@ -26,6 +24,14 @@ public class VoteId implements Serializable {
 
     public VoteId(Long requestId, String voter) {
         this.requestId = requestId;
+        this.voter = voter;
+    }
+
+    public void setRequestId(Long requestId) {
+        this.requestId = requestId;
+    }
+
+    public void setVoter(String voter) {
         this.voter = voter;
     }
 

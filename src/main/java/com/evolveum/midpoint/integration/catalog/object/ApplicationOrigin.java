@@ -20,14 +20,6 @@ import java.util.UUID;
 @Getter @Setter
 public class ApplicationOrigin {
 
-//    @Id
-//    @Column(name = "application_id")
-//    private UUID applicationId;
-//
-//    @Id
-//    @Column(name = "country_id")
-//    private int countryId;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -11,7 +11,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -50,11 +52,9 @@ public class Application {
     @Column(columnDefinition = "bytea")
     private byte[] logo;
 
-    @Column(name = "risk_level")
-    private String riskLevel;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "lifecycle_state", nullable = true)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "lifecycle_state", columnDefinition = "applicationLifecycleType")
     private ApplicationLifecycleType lifecycleState;
 
     @CreationTimestamp

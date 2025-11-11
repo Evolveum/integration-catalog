@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-package com.evolveum.midpoint.integration.catalog.utils;
+package com.evolveum.midpoint.integration.catalog.repository.adapter;
 
 import lombok.Getter;
 

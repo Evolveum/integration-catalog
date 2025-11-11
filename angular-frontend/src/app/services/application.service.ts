@@ -32,18 +32,6 @@ export class ApplicationService {
     return this.http.get<CategoryCount[]>(`${environment.apiUrl}/categories/counts`);
   }
 
-  getCommonTagCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/common-tags/counts`);
-  }
-
-  getAppStatusCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/app-status/counts`);
-  }
-
-  getSupportedOperationsCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/supported-operations/counts`);
-  }
-
   submitVote(requestId: number, voter: string): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
   }

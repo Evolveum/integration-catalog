@@ -10,8 +10,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -29,10 +29,31 @@ import java.util.UUID;
 public class ImplementationVersion {
 
     public enum CapabilitiesType {
-        READ,
-        CREATE,
-        MODIFY,
-        DELETE
+        CREATE("Create"),
+        GET("Get"),
+        UPDATE("Update"),
+        DELETE("Delete"),
+        TEST("Test"),
+        SCRIPT_ON_CONNECTOR("ScriptOnConnector"),
+        SCRIPT_ON_RESOURCE("ScriptOnResource"),
+        AUTHENTICATION("Authentication"),
+        SEARCH("Search"),
+        VALIDATE("Validate"),
+        SYNC("Sync"),
+        LIVE_SYNC("LiveSync"),
+        SCHEMA("Schema"),
+        DISCOVER_CONFIGURATION("DiscoverConfiguration"),
+        RESOLVE_USERNAME("ResolveUsername"),
+        PARTIAL_SCHEMA("PartialSchema"),
+        COMPLEX_UPDATE_DELTA("ComplexUpdateDelta"),
+        UPDATE_DELTA("UpdateDelta");
+
+
+        public final String value;
+
+        CapabilitiesType(String value){
+            this.value = value;
+        }
     }
 
     public enum ImplementationVersionLifecycleType {
@@ -78,16 +99,17 @@ public class ImplementationVersion {
     private OffsetDateTime publishDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "lifecycle_state", columnDefinition = "varchar(64)")
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "lifecycle_state", columnDefinition = "implementationVersionLifecycleType")
     private ImplementationVersionLifecycleType lifecycleState;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "build_framework", columnDefinition = "varchar(64)", nullable = false)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "build_framework", columnDefinition = "buildFrameworkType", nullable = false)
     private BuildFrameworkType buildFramework;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "capabilities")
-    private String capabilitiesJson;
+    @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
+    private CapabilitiesType[] capabilities;
 
     @Column(name = "connid_version")
     private String connidVersion;

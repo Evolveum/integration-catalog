@@ -6,11 +6,10 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +18,9 @@ import java.util.List;
  * Created by TomasS.
  */
 @Entity
-@Table(name = "request")
+@Table(name = "request", uniqueConstraints = {
+    @UniqueConstraint(name = "unique_request_per_application", columnNames = "application_id")
+})
 @Getter @Setter
 public class Request {
 
@@ -32,9 +33,8 @@ public class Request {
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "capabilities")
-    private String capabilities;
+    @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
+    private CapabilitiesType[] capabilities;
 
     private String requester;
 

@@ -34,7 +34,6 @@ export interface ApplicationDetail {
   displayName: string;
   description: string;
   logo: string;
-  riskLevel: string | null;
   lifecycleState: string;
   lastModified: string;
   createdAt: string | null;

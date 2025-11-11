@@ -25,8 +25,7 @@ export class RequestForm {
     baseUrl: '',
     description: '',
     systemVersion: '',
-    email: '',
-    collab: false
+    email: ''
   };
   protected readonly selectedCapabilities = signal<string[]>([]);
   protected readonly isCapabilitiesDropdownOpen = signal<boolean>(false);
@@ -48,8 +47,7 @@ export class RequestForm {
       baseUrl: '',
       description: '',
       systemVersion: '',
-      email: '',
-      collab: false
+      email: ''
     };
     this.selectedCapabilities.set([]);
     this.submitSuccess.set(false);
@@ -67,7 +65,6 @@ export class RequestForm {
       description: this.formData.description,
       systemVersion: this.formData.systemVersion,
       email: this.formData.email,
-      collab: this.formData.collab,
       requester: this.formData.email || 'anonymous'
     };
 

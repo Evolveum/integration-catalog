@@ -6,16 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-import lombok.Getter;
-
-@Getter
-public class CategoryCountDto {
-    private String displayName;
-    private Long count;
-
-    public CategoryCountDto(String displayName, Long count) {
-        this.displayName = displayName;
-        this.count = count;
-    }
-
-}
+public record CategoryCountDto(
+        String displayName,
+        Long count
+) {}

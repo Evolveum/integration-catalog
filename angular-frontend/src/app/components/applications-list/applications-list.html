@@ -9,9 +9,9 @@
   <div class="bg-primary text-white py-5 mb-5" style="background: linear-gradient(135deg, #2c5282 0%, #4a7ba7 100%); position: relative;">
     <!-- Login/Logout Button (Top Right) -->
     <div class="position-absolute top-0 end-0 p-3">
-      @if (authService.getCurrentUser()()) {
+      @if (currentUser()) {
         <div class="d-flex align-items-center gap-2">
-          <span class="text-white">{{ authService.getCurrentUser()() }}</span>
+          <span class="text-white">{{ currentUser() }}</span>
           <button class="btn btn-sm btn-light" (click)="logout()">Logout</button>
         </div>
       } @else {
@@ -158,9 +158,9 @@
                 @if (app.lifecycleState === 'REQUESTED') {
                   <button class="btn btn-sm mt-2"
                           style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
-                          [disabled]="!authService.getCurrentUser()()"
-                          [style.opacity]="authService.getCurrentUser()() ? '1' : '0.6'"
-                          [style.cursor]="authService.getCurrentUser()() ? 'pointer' : 'not-allowed'"
+                          [disabled]="!currentUser()"
+                          [style.opacity]="currentUser() ? '1' : '0.6'"
+                          [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
                           (click)="voteForRequest(app)">
                     Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                   </button>
@@ -262,9 +262,9 @@
                 @if (app.lifecycleState === 'REQUESTED') {
                   <button class="btn btn-sm mt-2"
                           style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
-                          [disabled]="!authService.getCurrentUser()()"
-                          [style.opacity]="authService.getCurrentUser()() ? '1' : '0.6'"
-                          [style.cursor]="authService.getCurrentUser()() ? 'pointer' : 'not-allowed'"
+                          [disabled]="!currentUser()"
+                          [style.opacity]="currentUser() ? '1' : '0.6'"
+                          [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
                           (click)="voteForRequest(app)">
                     Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                   </button>
@@ -306,9 +306,9 @@
                   @if (app.lifecycleState === 'REQUESTED') {
                     <button class="btn"
                             style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
-                            [disabled]="!authService.getCurrentUser()()"
-                            [style.opacity]="authService.getCurrentUser()() ? '1' : '0.6'"
-                            [style.cursor]="authService.getCurrentUser()() ? 'pointer' : 'not-allowed'"
+                            [disabled]="!currentUser()"
+                            [style.opacity]="currentUser() ? '1' : '0.6'"
+                            [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
                             (click)="voteForRequest(app)">
                       Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                     </button>

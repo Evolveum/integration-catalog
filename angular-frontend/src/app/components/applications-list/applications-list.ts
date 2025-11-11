@@ -42,6 +42,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly isRequestModalOpen = signal<boolean>(false);
   protected readonly isLoginModalOpen = signal<boolean>(false);
 
+  protected readonly currentUser = computed(() => this.authService.currentUser());
+
   protected readonly featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
@@ -71,7 +73,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
         app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query) ||
         app.lifecycleState?.toLowerCase().includes(query) ||
-        app.riskLevel?.toLowerCase().includes(query) ||
         app.tags?.some(tag =>
           tag.name.toLowerCase().includes(query) ||
           tag.displayName.toLowerCase().includes(query)
@@ -119,7 +120,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
         app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query) ||
         app.lifecycleState?.toLowerCase().includes(query) ||
-        app.riskLevel?.toLowerCase().includes(query) ||
         app.tags?.some(tag =>
           tag.name.toLowerCase().includes(query) ||
           tag.displayName.toLowerCase().includes(query)
@@ -269,7 +269,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   }
 
   protected voteForRequest(app: Application): void {
-    const currentUser = this.authService.getCurrentUser()();
+    const currentUser = this.currentUser();
 
     if (!currentUser) {
       alert('Please log in to vote');
