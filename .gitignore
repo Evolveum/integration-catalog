@@ -2,12 +2,16 @@
 # e.g. target/ is target directory ignored anywhere in the tree, /.idea/ is only in the root
 # to override generic rule, use !, e.g. !/some/module/build/ would not be ignored
 
-# build tool files
+# Java/Maven build tool files
 target/
 build/
 test-output/
 dependency-reduced-pom.xml
-.angular
+apache-maven-3.9.9/
+apache-maven-3.9.9-bin.zip
+.claude
+
+# Node modules
 node_modules/
 
 # IDEA files
@@ -19,24 +23,63 @@ node_modules/
 .project
 .classpath
 .settings
+.settings/
+
+# Other IDE files
+.c9/
+*.launch
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
 
 # JRebel files
 rebel.xml
 
-# jenv related, I guess
+# jenv related
 .java-version
 
 # NetBeans files
 /nb-configuration.xml
 /nbactions.xml
 
-# backup, log and other files
+# Backup, log and other files
 *~
 *.log
 *.versionsBackup
 .DS_Store
+Thumbs.db
 _mess
 .checkstyle
 
 # midPoint Studio temporary files
 /scratches/
+
+# Angular / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/package-lock.json
+angular-frontend/node_modules/
+angular-frontend/dist/
+angular-frontend/tmp/
+angular-frontend/out-tsc/
+angular-frontend/bazel-out/
+angular-frontend/.angular/
+angular-frontend/.sass-cache/
+angular-frontend/connect.lock
+angular-frontend/coverage/
+angular-frontend/libpeerconnection.log
+angular-frontend/testem.log
+angular-frontend/typings/
+angular-frontend/__screenshots__/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

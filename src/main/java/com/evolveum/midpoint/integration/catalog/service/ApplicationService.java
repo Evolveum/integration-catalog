@@ -7,7 +7,15 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
+import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
+import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
+import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
+import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
+import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
@@ -17,10 +25,11 @@ import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
-import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -83,6 +92,12 @@ public class ApplicationService {
     @Autowired
     private final VoteRepository voteRepository;
 
+    @Autowired
+    private final ApplicationReadPort applicationReadPort;
+
+    @Autowired
+    private final ApplicationMapper applicationMapper;
+
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
@@ -93,7 +108,9 @@ public class ApplicationService {
                               JenkinsProperties jenkinsProperties,
                               DownloadRepository downloadRepository,
                               RequestRepository requestRepository,
-                              VoteRepository voteRepository
+                              VoteRepository voteRepository,
+                              ApplicationReadPort applicationReadPort,
+                              ApplicationMapper applicationMapper
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -106,10 +123,13 @@ public class ApplicationService {
         this.downloadRepository = downloadRepository;
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
+        this.applicationReadPort = applicationReadPort;
+        this.applicationMapper = applicationMapper;
     }
 
     public Application getApplication(UUID uuid) {
-        return applicationRepository.getReferenceById(uuid);
+        return applicationRepository.findById(uuid)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + uuid));
     }
 
     public ImplementationVersion getImplementationVersion(UUID uuid) {
@@ -125,6 +145,19 @@ public class ApplicationService {
         return applicationTagRepository.findAll();
     }
 
+    public List<CategoryCountDto> getCategoryCounts() {
+        List<ApplicationTag> categoryTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.CATEGORY);
+
+        List<CategoryCountDto> categoryCounts = categoryTags.stream()
+                .map(tag -> new CategoryCountDto(
+                        tag.getDisplayName(),
+                        (long) tag.getApplicationApplicationTags().size()
+                ))
+                .toList();
+
+        return categoryCounts;
+    }
+
     public List<CountryOfOrigin> getCountriesOfOrigin() {
         return countryOfOriginRepository.findAll();
     }
@@ -132,18 +165,15 @@ public class ApplicationService {
     /**
      * Method upload connector to integration catalog and return link to git repository at the successful processing and failure message at a processing failure.
      * The connector is stored on GitHub in case there is no GitHub repositor of the connector and then upload to nexus with a use jenkins job.
-     * @param application
-     * @param implementation
-     * @param implementationVersion
-     * @param files
+     * @param dto UploadImplementationDto containing application, implementation, implementationVersion, and files
      * @return
      */
-    public String uploadConnector(
-            Application application,
-            Implementation implementation,
-            ImplementationVersion implementationVersion,
-            List<ItemFile> files
-    ) {
+    public String uploadConnector(UploadImplementationDto dto) {
+        Application application = dto.application();
+        Implementation implementation = dto.implementation();
+        ImplementationVersion implementationVersion = dto.implementationVersion();
+        List<ItemFile> files = dto.files();
+
         if (application.getId() != null) {
             Optional<Application> existApplication = applicationRepository.findById(application.getId());
             application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
@@ -310,23 +340,85 @@ public class ApplicationService {
         }
     }
 
+    /**
+     * @deprecated This method is deprecated as capabilitiesType enum has been replaced with capabilities JSON field.
+     * Use createRequestFromForm() instead for new request form submissions.
+     */
+    @Deprecated
     public Request createRequest(UUID applicationId, String capabilitiesType, String requester) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found: " + applicationId));
 
-        Request.CapabilitiesType ct;
-        try {
-            ct = Request.CapabilitiesType.valueOf(capabilitiesType.toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid capabilitiesType: " + capabilitiesType +
-                    " (allowed: READ, CREATE, MODIFY, DELETE)");
-        }
-
         Request r = new Request();
         r.setApplication(application);
-        r.setCapabilitiesType(ct);
         r.setRequester(requester);
         return requestRepository.save(r);
+    }
+
+    /**
+     * Creates a new Application and Request from the request form submission.
+     * The Application will be created with lifecycle state REQUESTED.
+     *
+     * @param dto RequestFormDto containing integrationApplicationName, description, capabilities, and email
+     * @return The created Request entity
+     */
+    public Request createRequestFromForm(RequestFormDto dto) {
+        String integrationApplicationName = dto.integrationApplicationName();
+        String description = dto.description();
+        List<String> capabilities = dto.capabilities();
+        String email = dto.email();
+
+        // Generate abbreviated name: lowercase, spaces replaced with underscores, remove special characters
+        String abbreviatedName = integrationApplicationName.toLowerCase()
+                .replaceAll("[^a-z0-9_]", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "");
+
+        // Check if application with this name already exists
+        Optional<Application> existingApp = applicationRepository.findByName(abbreviatedName);
+        if (existingApp.isPresent()) {
+            // Append timestamp to make it unique
+            abbreviatedName = abbreviatedName + "_" + System.currentTimeMillis();
+        }
+
+        try {
+            // Create the application
+            Application application = new Application();
+            application.setName(abbreviatedName);
+            application.setDisplayName(integrationApplicationName);
+            application.setDescription(description != null ? description : "");
+            application.setLifecycleState(Application.ApplicationLifecycleType.REQUESTED);
+
+            // Save the application (UUID is auto-generated, timestamps are auto-set)
+            application = applicationRepository.save(application);
+
+            // Check if a request already exists for this application
+            if (requestRepository.existsByApplicationId(application.getId())) {
+                throw new IllegalStateException("A request already exists for application: " + application.getDisplayName());
+            }
+
+            // Convert capabilities list to enum array
+            ImplementationVersion.CapabilitiesType[] capabilitiesArray = null;
+            if (capabilities != null && !capabilities.isEmpty()) {
+                capabilitiesArray = capabilities.stream()
+                        .map(cap -> ImplementationVersion.CapabilitiesType.valueOf(cap))
+                        .toArray(ImplementationVersion.CapabilitiesType[]::new);
+            }
+
+            // Create the Request entity
+            Request request = new Request();
+            request.setApplication(application);
+            request.setCapabilities(capabilitiesArray);
+            request.setRequester(email); // Email is optional, can be null
+
+            return requestRepository.save(request);
+        } catch (IllegalStateException e) {
+            log.warn("Duplicate request attempt: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to create request for application: {}", integrationApplicationName, e);
+            throw new RuntimeException("Failed to create request: " + e.getMessage(), e);
+        }
     }
 
     public Optional<ImplementationVersion> findImplementationVersion(UUID id) {
@@ -337,8 +429,55 @@ public class ApplicationService {
         return requestRepository.findById(id);
     }
 
-    public List<Request> getRequestsForApplication(UUID appId) {
+    public Optional<Request> getRequestForApplication(UUID appId) {
         return requestRepository.findByApplicationId(appId);
+    }
+
+    /**
+     * Submit a vote for a request.
+     * Each user can only vote once per request (enforced by unique constraint).
+     *
+     * @param requestId The ID of the request to vote for
+     * @param voter The username of the voter
+     * @return The created Vote entity
+     * @throws IllegalArgumentException if request not found or user already voted
+     */
+    public Vote submitVote(Long requestId, String voter) {
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
+
+        // Check if user already voted
+        if (voteRepository.existsByRequestIdAndVoter(requestId, voter)) {
+            throw new IllegalArgumentException("User has already voted for this request");
+        }
+
+        Vote vote = new Vote();
+        vote.setRequestId(requestId);
+        vote.setVoter(voter);
+        vote.setRequest(request);
+
+        return voteRepository.save(vote);
+    }
+
+    /**
+     * Get the vote count for a specific request.
+     *
+     * @param requestId The ID of the request
+     * @return The number of votes
+     */
+    public long getVoteCount(Long requestId) {
+        return voteRepository.countByRequestId(requestId);
+    }
+
+    /**
+     * Check if a user has voted for a specific request.
+     *
+     * @param requestId The ID of the request
+     * @param voter The username of the voter
+     * @return true if user has voted, false otherwise
+     */
+    public boolean hasUserVoted(Long requestId, String voter) {
+        return voteRepository.existsByRequestIdAndVoter(requestId, voter);
     }
 
     public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
@@ -354,5 +493,117 @@ public class ApplicationService {
 
             return fileBytes;
         }
+    }
+
+    public List<ApplicationDto> getAllApplications() {
+        return applicationRepository.findAll().stream()
+                .map(app -> {
+                    // For REQUESTED apps, get requestId and vote count
+                    Long requestId = null;
+                    Long voteCount = null;
+                    if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
+                        Optional<Request> request = getRequestForApplication(app.getId());
+                        if (request.isPresent()) {
+                            requestId = request.get().getId();
+                            voteCount = getVoteCount(requestId);
+                        }
+                    }
+
+                    // Use mapper to build DTO (capabilities and requester are null for list view)
+                    return applicationMapper.mapToApplicationDto(app, null, null, requestId, voteCount);
+                })
+                .toList();
+    }
+
+    /**
+     * List applications with pagination and optional filtering
+     * @param pageable Pagination parameters
+     * @param q Optional search query by name
+     * @param featured Optional filter for featured applications
+     * @return Page of ApplicationCardDto
+     */
+    public Page<ApplicationCardDto> list(Pageable pageable, String q, Boolean featured) {
+        Page<Application> page;
+
+        if (featured != null && featured) {
+            page = applicationReadPort.findFeatured(pageable);
+        } else if (q != null && !q.isBlank()) {
+            page = applicationReadPort.searchByName(q.trim(), pageable);
+        } else {
+            page = applicationReadPort.findAll(pageable);
+        }
+
+        return page.map(this::toCard);
+    }
+
+    /**
+     * Convert Application entity to ApplicationCardDto for list display
+     * @param app Application entity
+     * @return ApplicationCardDto
+     */
+    private ApplicationCardDto toCard(Application app) {
+        String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+
+        // Convert origins from ApplicationOrigin join table
+        List<CountryOfOriginDto> origins = null;
+        if (app.getApplicationOrigins() != null) {
+            origins = app.getApplicationOrigins().stream()
+                    .map(appOrigin -> new CountryOfOriginDto(
+                            appOrigin.getCountryOfOrigin().getId(),
+                            appOrigin.getCountryOfOrigin().getName(),
+                            appOrigin.getCountryOfOrigin().getDisplayName()
+                    ))
+                    .toList();
+        }
+
+        // Convert categories and tags from ApplicationApplicationTag join table
+        List<ApplicationTagDto> categories = null;
+        List<ApplicationTagDto> tags = null;
+        if (app.getApplicationApplicationTags() != null) {
+            categories = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+
+            tags = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+        }
+
+        // Get request info if lifecycle state is REQUESTED
+        Long requestId = null;
+        Long voteCount = null;
+        if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
+            Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
+            if (requestOpt.isPresent()) {
+                Request request = requestOpt.get();
+                requestId = request.getId();
+                voteCount = voteRepository.countByRequestId(request.getId());
+            }
+        }
+
+        return new ApplicationCardDto(
+                app.getId(),
+                app.getDisplayName(),
+                app.getDescription(),
+                app.getLogo(),
+                lifecycleState,
+                origins,
+                categories,
+                tags,
+                requestId,
+                voteCount
+        );
     }
 }

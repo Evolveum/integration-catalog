@@ -1,0 +1,27 @@
+/*
+ * Copyright (C) 2010-2025 Evolveum and contributors
+ *
+ * This work is dual-licensed under the Apache License 2.0
+ * and European Union Public License. See LICENSE file for details.
+ */
+
+package com.evolveum.midpoint.integration.catalog.dto;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * DTO for application card display in list view
+ */
+public record ApplicationCardDto(
+        UUID id,
+        String displayName,
+        String description,
+        byte[] logo,
+        String lifecycleState,
+        List<CountryOfOriginDto> origins,
+        List<ApplicationTagDto> categories,
+        List<ApplicationTagDto> tags,
+        Long requestId,
+        Long voteCount
+) {}

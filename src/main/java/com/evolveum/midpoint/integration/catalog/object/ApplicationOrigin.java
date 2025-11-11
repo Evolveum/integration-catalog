@@ -22,12 +22,8 @@ import java.util.UUID;
 public class ApplicationOrigin {
 
     @Id
-    @Column(name = "application_id")
-    private UUID applicationId;
-
-    @Id
-    @Column(name = "country_id")
-    private int countryId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)

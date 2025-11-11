@@ -51,7 +51,7 @@ public class Implementation {
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "FrameworkType")
+    @Column(name = "framework", columnDefinition = "frameworkType", nullable = false)
     private FrameworkType framework;
 
     @Column(name = "ticketing_system_link")
@@ -59,7 +59,7 @@ public class Implementation {
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "LicenseType")
+    @Column(name = "license", columnDefinition = "licenseType", nullable = false)
     private LicenseType license;
 
     @ManyToOne

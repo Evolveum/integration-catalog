@@ -8,6 +8,8 @@
 package com.evolveum.midpoint.integration.catalog.repository;
 
 import com.evolveum.midpoint.integration.catalog.object.Application;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -17,4 +19,5 @@ import java.util.UUID;
 public interface ApplicationRepository extends JpaRepository<Application, UUID>,
         JpaSpecificationExecutor<Application> {
     Optional<Application> findByName(String name);
+    Page<Application> findByNameContainingIgnoreCase(String q, Pageable pageable);
 }

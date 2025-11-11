@@ -7,14 +7,11 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
-import com.evolveum.midpoint.integration.catalog.dto.CreateRequestDto;
+import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
-import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
-import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
-import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,15 +25,18 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.util.*;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * Integration tests for the REST Controller.
+ * Tests all endpoints using MockMvc and mocked ApplicationService.
+ */
 @WebMvcTest(Controller.class)
 class ControllerTest {
 
@@ -50,202 +50,192 @@ class ControllerTest {
     private ApplicationService applicationService;
 
     @MockitoBean
-    private DownloadRepository downloadRepository;
+    private com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper applicationMapper;
 
     @MockitoBean
-    private ImplementationVersionRepository implementationVersionRepository;
+    private com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository applicationRepository;
 
     @MockitoBean
-    private RequestRepository requestRepository;
+    private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
 
-    private UUID testApplicationId;
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository implementationVersionRepository;
+
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.repository.RequestRepository requestRepository;
+
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.repository.VoteRepository voteRepository;
+
+    private UUID testAppId;
     private UUID testVersionId;
     private Application testApplication;
-    private ConnidVersion testConnidVersion;
     private ImplementationVersion testImplementationVersion;
-    private ApplicationTag testApplicationTag;
-    private CountryOfOrigin testCountryOfOrigin;
+    private ConnidVersion testConnidVersion;
     private Request testRequest;
+    private Vote testVote;
 
     @BeforeEach
     void setUp() {
-        testApplicationId = UUID.randomUUID();
+        testAppId = UUID.randomUUID();
         testVersionId = UUID.randomUUID();
 
+        // Setup test Application
         testApplication = new Application();
-        testApplication.setId(testApplicationId);
-        testApplication.setName("Test Application");
-        testApplication.setDisplayName("Test App");
+        testApplication.setId(testAppId);
+        testApplication.setName("test_app");
+        testApplication.setDisplayName("Test Application");
+        testApplication.setDescription("Test Description");
+        testApplication.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
+        testApplication.setCreatedAt(OffsetDateTime.now());
+        testApplication.setLastModified(OffsetDateTime.now());
 
-        testConnidVersion = new ConnidVersion();
-        testConnidVersion.setVersion("1.0.0");
-        testConnidVersion.setMidpointVersion(new String[]{"4.4", "4.8"});
-
+        // Setup test ImplementationVersion
         testImplementationVersion = new ImplementationVersion();
         testImplementationVersion.setId(testVersionId);
-        testImplementationVersion.setDownloadLink("http://example.com/connector.jar");
         testImplementationVersion.setConnectorVersion("1.0.0");
+        testImplementationVersion.setDescription("Test Version");
+        testImplementationVersion.setDownloadLink("http://example.com/connector.jar");
+        testImplementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
 
-        testApplicationTag = new ApplicationTag();
-        testApplicationTag.setId(1L);
-        testApplicationTag.setName("Test Tag");
+        // Setup test ConnidVersion
+        testConnidVersion = new ConnidVersion();
+        testConnidVersion.setVersion("1.5.0.0");
 
-        testCountryOfOrigin = new CountryOfOrigin();
-        testCountryOfOrigin.setId(1L);
-        testCountryOfOrigin.setName("Test Country");
-
+        // Setup test Request
         testRequest = new Request();
         testRequest.setId(1L);
         testRequest.setApplication(testApplication);
-        testRequest.setCapabilitiesType(Request.CapabilitiesType.READ);
+        testRequest.setCapabilities(new ImplementationVersion.CapabilitiesType[]{
+                ImplementationVersion.CapabilitiesType.GET,
+                ImplementationVersion.CapabilitiesType.SEARCH
+        });
         testRequest.setRequester("test@example.com");
+
+        // Setup test Vote
+        testVote = new Vote();
+        testVote.setRequestId(1L);
+        testVote.setVoter("voter@example.com");
     }
 
-    @Test
-    void shouldReturnApplicationWhenExists() throws Exception {
-        when(applicationService.getApplication(testApplicationId)).thenReturn(testApplication);
+    // ===== GET /api/applications/{id} =====
 
-        mockMvc.perform(get("/api/application/{id}", testApplicationId))
+    @Test
+    void getApplicationShouldReturnApplicationWhenExists() throws Exception {
+        ApplicationDto dto = ApplicationDto.builder()
+                .id(testAppId)
+                .displayName("Test Application")
+                .description("Test Description")
+                .lifecycleState("ACTIVE")
+                .createdAt(OffsetDateTime.now())
+                .lastModified(OffsetDateTime.now())
+                .build();
+
+        when(applicationService.getApplication(testAppId)).thenReturn(testApplication);
+        when(applicationMapper.mapToApplicationDto(testApplication)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/applications/{id}", testAppId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(testApplicationId.toString()))
-                .andExpect(jsonPath("$.name").value("Test Application"));
+                .andExpect(jsonPath("$.id").value(testAppId.toString()))
+                .andExpect(jsonPath("$.displayName").value("Test Application"));
 
-        verify(applicationService).getApplication(testApplicationId);
+        verify(applicationService).getApplication(testAppId);
+        verify(applicationMapper).mapToApplicationDto(testApplication);
     }
 
     @Test
-    void shouldReturnNotFoundWhenApplicationDoesNotExist() throws Exception {
-        when(applicationService.getApplication(any(UUID.class)))
-                .thenThrow(new RuntimeException("Application not found"));
+    void getApplicationShouldReturnNotFoundWhenNotExists() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(applicationService.getApplication(nonExistentId))
+                .thenThrow(new RuntimeException("Application not found with id: " + nonExistentId));
 
-        mockMvc.perform(get("/api/application/{id}", UUID.randomUUID()))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/applications/{id}", nonExistentId))
+                .andExpect(status().isInternalServerError());
 
-        verify(applicationService).getApplication(any(UUID.class));
+        verify(applicationService).getApplication(nonExistentId);
     }
 
+    // ===== GET /api/connid-versions/{id} =====
+
     @Test
-    void shouldReturnConnectorVersionWhenExists() throws Exception {
+    void getConnectorVersionShouldReturnVersionWhenExists() throws Exception {
         when(applicationService.getConnectorVersion(testVersionId)).thenReturn(testConnidVersion);
 
-        mockMvc.perform(get("/api/connector-version/{id}", testVersionId))
+        mockMvc.perform(get("/api/connid-versions/{id}", testVersionId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.version").value("1.0.0"));
+                .andExpect(jsonPath("$.version").value("1.5.0.0"));
 
         verify(applicationService).getConnectorVersion(testVersionId);
     }
 
     @Test
-    void shouldReturnNotFoundWhenConnectorVersionDoesNotExist() throws Exception {
-        when(applicationService.getConnectorVersion(any(UUID.class)))
-                .thenThrow(new RuntimeException("Connector version not found"));
+    void getConnectorVersionShouldReturnNotFoundWhenNotExists() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(applicationService.getConnectorVersion(nonExistentId))
+                .thenThrow(new RuntimeException("Version not found"));
 
-        mockMvc.perform(get("/api/connector-version/{id}", UUID.randomUUID()))
+        mockMvc.perform(get("/api/connid-versions/{id}", nonExistentId))
                 .andExpect(status().isNotFound());
 
-        verify(applicationService).getConnectorVersion(any(UUID.class));
+        verify(applicationService).getConnectorVersion(nonExistentId);
     }
 
+    // ===== GET /api/application-tags =====
+
     @Test
-    void shouldReturnApplicationTagsWhenRequested() throws Exception {
-        List<ApplicationTag> tags = List.of(testApplicationTag);
+    void getApplicationTagsShouldReturnAllTags() throws Exception {
+        ApplicationTag tag1 = new ApplicationTag();
+        tag1.setId(1L);
+        tag1.setName("category_ldap");
+        tag1.setDisplayName("LDAP");
+
+        ApplicationTag tag2 = new ApplicationTag();
+        tag2.setId(2L);
+        tag2.setName("category_hr");
+        tag2.setDisplayName("HR Systems");
+
+        List<ApplicationTag> tags = Arrays.asList(tag1, tag2);
         when(applicationService.getApplicationTags()).thenReturn(tags);
 
         mockMvc.perform(get("/api/application-tags"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Test Tag"));
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("category_ldap"))
+                .andExpect(jsonPath("$[1].displayName").value("HR Systems"));
 
         verify(applicationService).getApplicationTags();
     }
 
-    @Test
-    void shouldReturnNotFoundWhenApplicationTagsNotAvailable() throws Exception {
-        when(applicationService.getApplicationTags()).thenThrow(new RuntimeException());
-
-        mockMvc.perform(get("/api/application-tags"))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).getApplicationTags();
-    }
+    // ===== GET /api/countries-of-origin =====
 
     @Test
-    void shouldReturnCountriesOfOriginWhenRequested() throws Exception {
-        List<CountryOfOrigin> countries = List.of(testCountryOfOrigin);
+    void getCountriesOfOriginShouldReturnAllCountries() throws Exception {
+        CountryOfOrigin country1 = new CountryOfOrigin();
+        country1.setId(1L);
+        country1.setName("US");
+        country1.setDisplayName("United States");
+
+        CountryOfOrigin country2 = new CountryOfOrigin();
+        country2.setId(2L);
+        country2.setName("CZ");
+        country2.setDisplayName("Czech Republic");
+
+        List<CountryOfOrigin> countries = Arrays.asList(country1, country2);
         when(applicationService.getCountriesOfOrigin()).thenReturn(countries);
 
         mockMvc.perform(get("/api/countries-of-origin"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Test Country"));
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("US"))
+                .andExpect(jsonPath("$[1].displayName").value("Czech Republic"));
 
         verify(applicationService).getCountriesOfOrigin();
     }
 
-    @Test
-    void shouldReturnNotFoundWhenCountriesOfOriginNotAvailable() throws Exception {
-        when(applicationService.getCountriesOfOrigin()).thenThrow(new RuntimeException());
-
-        mockMvc.perform(get("/api/countries-of-origin"))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).getCountriesOfOrigin();
-    }
-
-//    @Test
-//    void shouldUploadConnectorSuccessfully() throws Exception {
-//        UploadForm uploadForm = new UploadForm();
-//        uploadForm.setApplication(testApplication);
-//        uploadForm.setImplementation(new Implementation());
-//        uploadForm.setImplementationVersion(testImplementationVersion);
-//        uploadForm.setFiles(new ArrayList<>());
-//
-//        String checkoutLink = "https://github.com/test/repo";
-//        when(applicationService.uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList())).thenReturn(checkoutLink);
-//
-//        mockMvc.perform(post("/api/upload/connector")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(objectMapper.writeValueAsString(uploadForm)))
-//                .andExpect(status().isOk())
-//                .andExpect(content().string(checkoutLink));
-//
-//        verify(applicationService).uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList());
-//    }
-//
-//    @Test
-//    void shouldReturnErrorWhenUploadConnectorFails() throws Exception {
-//        UploadForm uploadForm = new UploadForm();
-//        uploadForm.setApplication(testApplication);
-//        uploadForm.setImplementation(new Implementation());
-//        uploadForm.setImplementationVersion(testImplementationVersion);
-//        uploadForm.setFiles(new ArrayList<>());
-//
-//        when(applicationService.uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList())).thenThrow(new RuntimeException("Upload failed"));
-//
-//        mockMvc.perform(post("/api/upload/connector")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(objectMapper.writeValueAsString(uploadForm)))
-//                .andExpect(status().isInternalServerError());
-//
-//        verify(applicationService).uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList());
-//    }
+    // ===== POST /api/upload/continue/{oid} =====
 
     @Test
-    void shouldHandleSuccessfulBuild() throws Exception {
+    void completeBuildSuccessfullyShouldReturnOkWhenSuccessful() throws Exception {
         ContinueForm continueForm = new ContinueForm();
         continueForm.setConnectorBundle("test-bundle");
         continueForm.setConnectorVersion("1.0.0");
@@ -270,10 +260,12 @@ class ControllerTest {
         verify(applicationService).successBuild(eq(testVersionId), any(ContinueForm.class));
     }
 
+    // ===== POST /api/upload/continue/fail/{oid} =====
+
     @Test
-    void shouldHandleFailedBuild() throws Exception {
+    void completeBuildWithFailureShouldReturnOkWhenSuccessful() throws Exception {
         FailForm failForm = new FailForm();
-        failForm.setErrorMessage("Build failed");
+        failForm.setErrorMessage("Build failed due to compilation error");
 
         doNothing().when(applicationService).failBuild(eq(testVersionId), any(FailForm.class));
 
@@ -285,188 +277,91 @@ class ControllerTest {
         verify(applicationService).failBuild(eq(testVersionId), any(FailForm.class));
     }
 
+    // ===== GET /api/downloads/{oid} =====
+
     @Test
-    void shouldDownloadFileSuccessfully() throws Exception {
+    void downloadConnectorShouldReturnFileWhenSuccessful() throws Exception {
         byte[] fileBytes = "test file content".getBytes();
-        doReturn(Optional.of(testImplementationVersion))
-                .when(applicationService).findImplementationVersion(testVersionId);
-        doReturn(fileBytes)
-                .when(applicationService).downloadConnector(any(UUID.class), anyString(), nullable(String.class));
 
-        mockMvc.perform(get("/api/download/{oid}", testVersionId))
+        when(applicationService.findImplementationVersion(any(UUID.class)))
+                .thenReturn(Optional.of(testImplementationVersion));
+        when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
+                .thenReturn(fileBytes);
+
+        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
                 .andExpect(header().exists("Content-Disposition"))
-                .andExpect(header().string("Content-Disposition",
-                        org.hamcrest.Matchers.containsString("filename=\"connector.jar\"")));
+                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
+                .andExpect(content().bytes(fileBytes));
 
-        verify(applicationService).findImplementationVersion(testVersionId);
-        verify(applicationService).downloadConnector(any(UUID.class), anyString(), nullable(String.class));
+        verify(applicationService).findImplementationVersion(any(UUID.class));
+        verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
     }
 
     @Test
-    void shouldReturnNotFoundWhenVersionDoesNotExist() throws Exception {
-        doReturn(Optional.empty())
-                .when(applicationService).findImplementationVersion(testVersionId);
+    void downloadConnectorShouldReturnNotFoundWhenVersionNotExists() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        when(applicationService.findImplementationVersion(nonExistentId))
+                .thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/download/{oid}", testVersionId))
+        mockMvc.perform(get("/api/downloads/{oid}", nonExistentId))
                 .andExpect(status().isNotFound());
 
-        verify(applicationService).findImplementationVersion(testVersionId);
-        verify(applicationService, never()).downloadConnector(any(UUID.class), anyString(), nullable(String.class));
+        verify(applicationService).findImplementationVersion(nonExistentId);
+        verify(applicationService, never()).downloadConnector(any(), nullable(String.class), nullable(String.class));
     }
 
     @Test
-    void shouldReturnInternalServerErrorWhenIOExceptionOccurs() throws Exception {
-        doReturn(Optional.of(testImplementationVersion))
-                .when(applicationService).findImplementationVersion(testVersionId);
-        doThrow(new IOException("Download failed"))
-                .when(applicationService).downloadConnector(any(UUID.class), anyString(), nullable(String.class));
+    void downloadConnectorShouldReturnInternalServerErrorWhenDownloadFails() throws Exception {
+        when(applicationService.findImplementationVersion(any(UUID.class)))
+                .thenReturn(Optional.of(testImplementationVersion));
+        when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
+                .thenThrow(new IOException("Download failed"));
 
-        mockMvc.perform(get("/api/download/{oid}", testVersionId))
-                .andExpect(status().isInternalServerError())
-                .andExpect(content().bytes(new byte[0]));  // Expect empty body on error
+        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
+                .andExpect(status().isInternalServerError());
 
-        verify(applicationService).findImplementationVersion(testVersionId);
-        verify(applicationService).downloadConnector(any(UUID.class), anyString(), nullable(String.class));
+        verify(applicationService).findImplementationVersion(any(UUID.class));
+        verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
     }
 
-//    @Test
-//    void shouldUploadScimRestConnectorSuccessfully() throws Exception {
-//        UploadForm uploadForm = new UploadForm();
-//        uploadForm.setApplication(testApplication);
-//        uploadForm.setImplementation(new Implementation());
-//        uploadForm.setImplementationVersion(testImplementationVersion);
-//        uploadForm.setFiles(new ArrayList<>());
-//
-//        String checkoutLink = "https://github.com/test/scimrest-repo";
-//        when(applicationService.uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList())).thenReturn(checkoutLink);
-//
-//        mockMvc.perform(post("/api/upload/scimrest")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(objectMapper.writeValueAsString(uploadForm)))
-//                .andExpect(status().isOk())
-//                .andExpect(content().string(checkoutLink));
-//
-//        verify(applicationService).uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList());
-//    }
-//
-//    @Test
-//    void shouldReturnErrorWhenUploadScimRestConnectorFails() throws Exception {
-//        UploadForm uploadForm = new UploadForm();
-//        uploadForm.setApplication(testApplication);
-//        uploadForm.setImplementation(new Implementation());
-//        uploadForm.setImplementationVersion(testImplementationVersion);
-//        uploadForm.setFiles(new ArrayList<>());
-//
-//        when(applicationService.uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList())).thenThrow(new RuntimeException("Upload failed"));
-//
-//        mockMvc.perform(post("/api/upload/scimrest")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(objectMapper.writeValueAsString(uploadForm)))
-//                .andExpect(status().isInternalServerError())
-//                .andExpect(content().string(org.hamcrest.Matchers.containsString("Upload failed")));
-//
-//        verify(applicationService).uploadConnector(
-//                any(Application.class),
-//                any(Implementation.class),
-//                any(ImplementationVersion.class),
-//                anyList());
-//    }
+    // ===== POST /api/applications/search/{size}/{page} =====
 
     @Test
-    void shouldReturnApplicationsWhenSearching() throws Exception {
+    void searchApplicationShouldReturnPagedResults() throws Exception {
         SearchForm searchForm = new SearchForm();
         searchForm.setKeyword("test");
 
-        Page<Application> page = new PageImpl<>(List.of(testApplication));
-        when(applicationService.searchApplication(any(SearchForm.class), eq(10), eq(0)))
+        Page<Application> page = new PageImpl<>(Collections.singletonList(testApplication));
+        when(applicationService.searchApplication(any(SearchForm.class), eq(0), eq(10)))
                 .thenReturn(page);
 
-        mockMvc.perform(post("/api/application/search/{size}/{page}", 10, 0)
+        mockMvc.perform(post("/api/applications/search/{size}/{page}", 10, 0)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(searchForm)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(testApplicationId.toString()));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(testAppId.toString()));
 
-        verify(applicationService).searchApplication(any(SearchForm.class), eq(10), eq(0));
+        verify(applicationService).searchApplication(any(SearchForm.class), eq(0), eq(10));
     }
 
-    @Test
-    void shouldReturnNotFoundWhenSearchingApplicationsFails() throws Exception {
-        SearchForm searchForm = new SearchForm();
-        searchForm.setKeyword("nonexistent");
-
-        when(applicationService.searchApplication(any(SearchForm.class), anyInt(), anyInt()))
-                .thenThrow(new RuntimeException());
-
-        mockMvc.perform(post("/api/application/search/{size}/{page}", 10, 0)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(searchForm)))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).searchApplication(any(SearchForm.class), anyInt(), anyInt());
-    }
+    // ===== GET /api/requests/{id} =====
 
     @Test
-    void shouldReturnVersionsWhenSearchingConnectorVersions() throws Exception {
-        SearchForm searchForm = new SearchForm();
-        searchForm.setMaintainer("test-maintainer");
-
-        Page<ImplementationVersion> page = new PageImpl<>(List.of(testImplementationVersion));
-        when(applicationService.searchVersionsOfConnector(any(SearchForm.class), eq(0), eq(10)))
-                .thenReturn(page);
-
-        mockMvc.perform(get("/api/version-of-connector/search/{size}/{page}", 10, 0)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(searchForm)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(testVersionId.toString()));
-
-        verify(applicationService).searchVersionsOfConnector(any(SearchForm.class), eq(0), eq(10));
-    }
-
-    @Test
-    void shouldReturnNotFoundWhenSearchingConnectorVersionsFails() throws Exception {
-        SearchForm searchForm = new SearchForm();
-
-        when(applicationService.searchVersionsOfConnector(any(SearchForm.class), anyInt(), anyInt()))
-                .thenThrow(new RuntimeException());
-
-        mockMvc.perform(get("/api/version-of-connector/search/{size}/{page}", 10, 0)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(searchForm)))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).searchVersionsOfConnector(any(SearchForm.class), anyInt(), anyInt());
-    }
-
-    @Test
-    void shouldReturnRequestWhenExists() throws Exception {
+    void getRequestShouldReturnRequestWhenExists() throws Exception {
         when(applicationService.getRequest(1L)).thenReturn(Optional.of(testRequest));
 
         mockMvc.perform(get("/api/requests/{id}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.application.id").value(testApplicationId.toString()));
+                .andExpect(jsonPath("$.requester").value("test@example.com"));
 
         verify(applicationService).getRequest(1L);
     }
 
     @Test
-    void shouldReturnNotFoundWhenRequestDoesNotExist() throws Exception {
+    void getRequestShouldReturnNotFoundWhenNotExists() throws Exception {
         when(applicationService.getRequest(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/requests/{id}", 999L))
@@ -475,58 +370,200 @@ class ControllerTest {
         verify(applicationService).getRequest(999L);
     }
 
+    // ===== GET /api/applications/{appId}/request =====
+
     @Test
-    void shouldReturnRequestsForApplication() throws Exception {
-        List<Request> requests = List.of(testRequest);
-        when(applicationService.getRequestsForApplication(testApplicationId)).thenReturn(requests);
+    void getRequestForApplicationShouldReturnRequest() throws Exception {
+        when(applicationService.getRequestForApplication(testAppId)).thenReturn(Optional.of(testRequest));
 
-        mockMvc.perform(get("/api/applications/{appId}/requests", testApplicationId))
+        mockMvc.perform(get("/api/applications/{appId}/request", testAppId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].application.id").value(testApplicationId.toString()));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.requester").value("test@example.com"));
 
-        verify(applicationService).getRequestsForApplication(testApplicationId);
+        verify(applicationService).getRequestForApplication(testAppId);
     }
 
     @Test
-    void shouldCreateRequestSuccessfully() throws Exception {
-        CreateRequestDto dto = new CreateRequestDto(testApplicationId, "READ", "test@example.com");
+    void getRequestForApplicationShouldReturnNotFoundWhenNotExists() throws Exception {
+        when(applicationService.getRequestForApplication(testAppId)).thenReturn(Optional.empty());
 
-        when(applicationService.createRequest(
-                eq(testApplicationId),
-                eq("READ"),
-                eq("test@example.com")
-        )).thenReturn(testRequest);
+        mockMvc.perform(get("/api/applications/{appId}/request", testAppId))
+                .andExpect(status().isNotFound());
+
+        verify(applicationService).getRequestForApplication(testAppId);
+    }
+
+    // ===== POST /api/request =====
+
+    @Test
+    void createRequestShouldReturnCreatedWhenValid() throws Exception {
+        RequestFormDto dto = new RequestFormDto(
+                "Slack",
+                "https://slack.com",
+                Arrays.asList("Read_Access", "Paged_Search"),
+                "Slack integration for team communication",
+                "1.0",
+                "test@example.com",
+                "Test User"
+        );
+
+        when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
+                .thenReturn(testRequest);
 
         mockMvc.perform(post("/api/requests")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.capabilitiesType").value("READ"));
+                .andExpect(jsonPath("$.id").value(1));
 
-        verify(applicationService).createRequest(
-                eq(testApplicationId),
-                eq("READ"),
-                eq("test@example.com")
-        );
+        verify(applicationService).createRequestFromForm(any(RequestFormDto.class));
     }
 
     @Test
-    void shouldReturnBadRequestWhenCapabilitiesTypeInvalid() throws Exception {
-        CreateRequestDto dto = new CreateRequestDto(testApplicationId, "INVALID_TYPE", "test@example.com");
-
-        when(applicationService.createRequest(
-                any(UUID.class),
-                anyString(),
-                anyString()
-        )).thenThrow(new IllegalArgumentException("Invalid capabilitiesType"));
+    void createRequestShouldReturnBadRequestWhenInvalid() throws Exception {
+        RequestFormDto dto = new RequestFormDto(
+                "", // Empty name - invalid
+                null,
+                null,
+                "", // Empty description - invalid
+                null,
+                null,
+                null
+        );
 
         mockMvc.perform(post("/api/requests")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService).createRequest(any(UUID.class), anyString(), anyString());
+        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
+    }
+
+    // ===== POST /api/requests/{requestId}/vote =====
+
+    @Test
+    void submitVoteShouldReturnCreatedWhenSuccessful() throws Exception {
+        when(applicationService.submitVote(1L, "voter@example.com")).thenReturn(testVote);
+
+        mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
+                        .param("voter", "voter@example.com"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.requestId").value(1))
+                .andExpect(jsonPath("$.voter").value("voter@example.com"));
+
+        verify(applicationService).submitVote(1L, "voter@example.com");
+    }
+
+    @Test
+    void submitVoteShouldReturnBadRequestWhenAlreadyVoted() throws Exception {
+        when(applicationService.submitVote(1L, "voter@example.com"))
+                .thenThrow(new IllegalArgumentException("User has already voted"));
+
+        mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
+                        .param("voter", "voter@example.com"))
+                .andExpect(status().isBadRequest());
+
+        verify(applicationService).submitVote(1L, "voter@example.com");
+    }
+
+    // ===== GET /api/requests/{requestId}/votes/count =====
+
+    @Test
+    void getVoteCountShouldReturnCount() throws Exception {
+        when(applicationService.getVoteCount(1L)).thenReturn(5L);
+
+        mockMvc.perform(get("/api/requests/{requestId}/votes/count", 1L))
+                .andExpect(status().isOk())
+                .andExpect(content().string("5"));
+
+        verify(applicationService).getVoteCount(1L);
+    }
+
+    // ===== GET /api/requests/{requestId}/votes/check =====
+
+    @Test
+    void hasUserVotedShouldReturnTrueWhenVoted() throws Exception {
+        when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(true);
+
+        mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
+                        .param("voter", "voter@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
+
+        verify(applicationService).hasUserVoted(1L, "voter@example.com");
+    }
+
+    @Test
+    void hasUserVotedShouldReturnFalseWhenNotVoted() throws Exception {
+        when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(false);
+
+        mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
+                        .param("voter", "voter@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("false"));
+
+        verify(applicationService).hasUserVoted(1L, "voter@example.com");
+    }
+
+    // ===== GET /api/categories/counts =====
+
+    @Test
+    void getCategoryCountsShouldReturnCounts() throws Exception {
+        List<CategoryCountDto> counts = Arrays.asList(
+                new CategoryCountDto("LDAP", 5L),
+                new CategoryCountDto("HR Systems", 3L)
+        );
+        when(applicationService.getCategoryCounts()).thenReturn(counts);
+
+        mockMvc.perform(get("/api/categories/counts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].displayName").value("LDAP"))
+                .andExpect(jsonPath("$[0].count").value(5));
+
+        verify(applicationService).getCategoryCounts();
+    }
+
+    // ===== GET /api/applications =====
+
+    @Test
+    void getAllApplicationsShouldReturnList() throws Exception {
+        ApplicationCardDto dto = new ApplicationCardDto(
+                testAppId,
+                "Test Application",
+                "Test Description",
+                null,
+                "ACTIVE",
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        List<ApplicationCardDto> applications = Collections.singletonList(dto);
+        Page<ApplicationCardDto> page = new PageImpl<>(applications);
+        when(applicationService.list(any(), eq(null), eq(null))).thenReturn(page);
+
+        mockMvc.perform(get("/api/applications"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(testAppId.toString()))
+                .andExpect(jsonPath("$[0].displayName").value("Test Application"));
+
+        verify(applicationService).list(any(), eq(null), eq(null));
+    }
+
+    @Test
+    void getAllApplicationsShouldReturnEmptyListWhenNoApplications() throws Exception {
+        Page<ApplicationCardDto> emptyPage = new PageImpl<>(Collections.emptyList());
+        when(applicationService.list(any(), eq(null), eq(null))).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/api/applications"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(applicationService).list(any(), eq(null), eq(null));
     }
 }

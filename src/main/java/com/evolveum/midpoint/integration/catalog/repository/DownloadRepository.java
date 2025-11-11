@@ -9,7 +9,7 @@ package com.evolveum.midpoint.integration.catalog.repository;
 
 import com.evolveum.midpoint.integration.catalog.object.Download;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
-import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 

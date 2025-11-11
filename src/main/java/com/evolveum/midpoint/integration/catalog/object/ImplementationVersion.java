@@ -96,7 +96,7 @@ public class ImplementationVersion {
     @Column(name = "released_date")
     private LocalDate releasedDate;
 
-    @Column(name = "publish_date", columnDefinition = "TIMESTAMPTZ")
+    @Column(name = "publish_date")
     private OffsetDateTime publishDate;
 
     @Enumerated(EnumType.STRING)
@@ -106,8 +106,11 @@ public class ImplementationVersion {
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "build_framework", columnDefinition = "buildFrameworkType")
+    @Column(name = "build_framework", columnDefinition = "buildFrameworkType", nullable = false)
     private BuildFrameworkType buildFramework;
+
+    @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
+    private CapabilitiesType[] capabilities;
 
     @Column(name = "connid_version")
     private String connidVersion;
@@ -119,7 +122,7 @@ public class ImplementationVersion {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
-    //connection to Downloads
+    //connection to Download
     @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)
     @OrderBy("downloadedAt DESC")
     private List<Download> downloads = new ArrayList<>();

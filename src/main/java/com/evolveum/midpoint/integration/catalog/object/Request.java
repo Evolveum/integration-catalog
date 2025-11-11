@@ -7,11 +7,10 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,16 +19,11 @@ import java.util.List;
  * Created by TomasS.
  */
 @Entity
-@Table(name = "request")
+@Table(name = "request", uniqueConstraints = {
+    @UniqueConstraint(name = "unique_request_per_application", columnNames = "application_id")
+})
 @Getter @Setter
 public class Request {
-
-    public enum CapabilitiesType {
-        READ,
-        CREATE,
-        MODIFY,
-        DELETE
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,10 +34,8 @@ public class Request {
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "CapabilitiesType")
-    private Request.CapabilitiesType capabilitiesType;
+    @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
+    private CapabilitiesType[] capabilities;
 
     private String requester;
 

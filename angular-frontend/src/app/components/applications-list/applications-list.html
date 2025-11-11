@@ -1,0 +1,415 @@
+<div class="container-fluid p-0" style="background-color: #e9ecef;">
+  <!-- Hero Banner -->
+  <div class="bg-primary text-white py-5 mb-5" style="background: linear-gradient(135deg, #2c5282 0%, #4a7ba7 100%); position: relative;">
+    <!-- Login/Logout Button (Top Right) -->
+    <div class="position-absolute top-0 end-0 p-3">
+      @if (currentUser()) {
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-white">{{ currentUser() }}</span>
+          <button class="btn btn-sm btn-light" (click)="logout()">Logout</button>
+        </div>
+      } @else {
+        <button class="btn btn-sm btn-light" (click)="openLoginModal()">Login</button>
+      }
+    </div>
+
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <h1 class="display-4 fw-bold mb-3">Integration Catalog</h1>
+          <p class="lead mb-4">Easily connect any application or system to midpoint</p>
+          <p class="mb-2">Explore available integrations to jump-start your workflow, build your own AI-guided assistance,</p>
+          <p class="mb-0">or upload an existing configuration to get started in just minutes. The process is fast, flexible, and user-friendly.</p>
+        </div>
+        <div class="col-lg-6 text-center">
+          <!-- Placeholder for illustration/graphic -->
+          <div class="d-flex justify-content-center align-items-center" style="min-height: 250px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" fill="currentColor" class="opacity-50" viewBox="0 0 16 16">
+              <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-4" style="background-color: #e9ecef;">
+
+  <!-- Tabs Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex gap-4 justify-content-center flex-wrap">
+        <button
+          type="button"
+          class="tab-button"
+          [class.active]="activeTab() === 'all'"
+          (click)="setActiveTab('all')"
+          style="background: none; border: none; border-bottom: 3px solid transparent; padding: 0.5rem 0; font-size: 1rem; color: #212529; cursor: pointer; min-width: 100px; border-top-left-radius: 4px; border-top-right-radius: 4px;"
+          [style.border-bottom-color]="activeTab() === 'all' ? '#0d6efd' : 'transparent'"
+        >
+          All ({{ applications().length }})
+        </button>
+        @for (category of categories(); track category.displayName) {
+          <button
+            type="button"
+            class="tab-button"
+            [class.active]="activeTab() === category.displayName"
+            (click)="setActiveTab(category.displayName)"
+            style="background: none; border: none; border-bottom: 3px solid transparent; padding: 0.5rem 0; font-size: 1rem; color: #212529; cursor: pointer; min-width: 100px; border-top-left-radius: 4px; border-top-right-radius: 4px;"
+            [style.border-bottom-color]="activeTab() === category.displayName ? '#0d6efd' : 'transparent'"
+          >
+            {{ category.displayName }} ({{ category.count }})
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Separator Line -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <hr style="border: 0; border-top: 2px solid #6c757d; margin: 0;">
+    </div>
+  </div>
+
+  <div class="row mb-5">
+    <div class="col-12">
+      <div class="d-flex gap-2 align-items-center">
+        <div class="input-group flex-grow-1">
+          <span class="input-group-text bg-white border-end-0" style="border-radius: 50px 0 0 50px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            </svg>
+          </span>
+          <input
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Search for integrations..."
+            [value]="searchQuery()"
+            (input)="onSearchChange($event)"
+            style="border-radius: 0 50px 50px 0;"
+          />
+        </div>
+        <button class="btn rounded-circle d-flex align-items-center justify-content-center" type="button" title="Filter" style="background-color: white; border: 1px solid #ced4da; width: 38px; height: 38px; padding: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sliders" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center my-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="alert alert-danger" role="alert">{{ error() }}</div>
+  }
+
+  @if (!loading() && !error() && featuredApplications().length > 0) {
+    <h2 class="h3 mb-4 text-center">Featured integration apps</h2>
+
+    <div class="position-relative mb-5">
+      <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center"
+              style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 2px solid #dee2e6; transition: opacity 0.3s ease;"
+              [style.opacity]="canScrollLeft() ? '1' : '0'"
+              (click)="scrollLeft()"
+              [disabled]="!canScrollLeft()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+        </svg>
+      </button>
+
+      <div class="scroll-container" #scrollContainer (scroll)="onScroll()" style="overflow-x: auto; scroll-behavior: smooth;">
+        <div class="d-flex gap-3 pe-5">
+          @for (app of featuredApplications(); track app.id) {
+            <div #featuredCard class="card position-relative" style="min-width: 250px; max-width: 250px; transition: opacity 0.3s ease;">
+              @if (app.tags && app.tags.length > 0) {
+                @for (tag of app.tags; track tag.id) {
+                  @if (tag.name === 'popular') {
+                    <span class="badge position-absolute top-0 end-0 m-2" style="font-size: 0.7rem; background-color: #ffe69c; color: #664d03;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-fire me-1" viewBox="0 0 16 16">
+                        <path d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16m0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c-.375-1.25.5-3.25 2-3.5-.179 1-.25 2 1 3 .625.5 1 1.364 1 2.25C11 14 9.657 15 8 15"/>
+                      </svg>
+                      {{ tag.displayName }}
+                    </span>
+                  }
+                }
+              }
+              <img [src]="app.logo" alt="" class="p-3" style="width: 90px; height: 90px; object-fit: contain;" />
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ app.displayName }}</h5>
+                @if (app.lifecycleState) {
+                  <span class="badge mb-2 align-self-start" style="background-color: #d4edda; color: #155724;">{{ formatLifecycleState(app.lifecycleState) }}</span>
+                }
+                <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
+                <a class="text-decoration-none mb-2" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">More Details</a>
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <button class="btn btn-sm mt-2"
+                          style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
+                          [disabled]="!currentUser()"
+                          [style.opacity]="currentUser() ? '1' : '0.6'"
+                          [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
+                          (click)="voteForRequest(app)">
+                    Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                  </button>
+                } @else {
+                  <button class="btn btn-sm mt-2" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">Download</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <button class="btn rounded-circle position-absolute top-50 end-0 translate-middle-y d-flex align-items-center justify-content-center"
+              style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 2px solid #dee2e6; transition: opacity 0.3s ease;"
+              [style.opacity]="canScrollRight() ? '1' : '0'"
+              (click)="scrollRight()"
+              [disabled]="!canScrollRight()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+        </svg>
+      </button>
+    </div>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="position-relative mb-4">
+      <div class="text-center">
+        <h2 class="h3 mb-1">More apps</h2>
+        <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations</p>
+      </div>
+      <div class="position-absolute top-50 end-0 translate-middle-y">
+        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <label class="mb-0 text-muted text-nowrap">Sort by</label>
+          <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)">
+            <option value="alphabetical">Alphabetical</option>
+            <option value="popularity">Popularity</option>
+            <option value="activity">Activity</option>
+          </select>
+        </div>
+
+        <div class="btn-group" role="group">
+          <button
+            type="button"
+            class="btn btn-sm"
+            [style.background-color]="viewMode() === 'grid' ? '#e9ecef' : '#adb5bd'"
+            [style.border-color]="viewMode() === 'grid' ? '#dee2e6' : '#adb5bd'"
+            (click)="setViewMode('grid')"
+            title="Grid view"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-grid" viewBox="0 0 16 16" [style.color]="viewMode() === 'grid' ? '#212529' : '#495057'">
+              <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5z"/>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            [style.background-color]="viewMode() === 'list' ? '#e9ecef' : '#adb5bd'"
+            [style.border-color]="viewMode() === 'list' ? '#dee2e6' : '#adb5bd'"
+            (click)="setViewMode('list')"
+            title="List view"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-list-task" viewBox="0 0 16 16" [style.color]="viewMode() === 'list' ? '#212529' : '#495057'">
+              <path fill-rule="evenodd" d="M2 2.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V3a.5.5 0 0 0-.5-.5zM3 3H2v1h1z"/>
+              <path d="M5 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5M5.5 7a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1zm0 4a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1z"/>
+              <path fill-rule="evenodd" d="M1.5 7a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5zM2 7h1v1H2zm0 3.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm1 .5H2v1h1z"/>
+            </svg>
+          </button>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    @if (viewMode() === 'grid') {
+      <div class="row g-4 mb-4">
+        @for (app of moreApplications(); track app.id) {
+          <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 shadow-sm position-relative">
+              @if (app.tags && app.tags.length > 0) {
+                @for (tag of app.tags; track tag.id) {
+                  @if (tag.name === 'popular') {
+                    <span class="badge position-absolute top-0 end-0 m-2" style="font-size: 0.7rem; background-color: #ffe69c; color: #664d03;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-fire me-1" viewBox="0 0 16 16">
+                        <path d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16m0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c-.375-1.25.5-3.25 2-3.5-.179 1-.25 2 1 3 .625.5 1 1.364 1 2.25C11 14 9.657 15 8 15"/>
+                      </svg>
+                      {{ tag.displayName }}
+                    </span>
+                  }
+                }
+              }
+              <img [src]="app.logo" alt="" class="p-3" style="width: 90px; height: 90px; object-fit: contain;" />
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ app.displayName }}</h5>
+                @if (app.lifecycleState) {
+                  <span class="badge mb-2 align-self-start" style="background-color: #d4edda; color: #155724;">{{ formatLifecycleState(app.lifecycleState) }}</span>
+                }
+                <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
+                <a class="text-decoration-none mb-2" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">More Details</a>
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <button class="btn btn-sm mt-2"
+                          style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
+                          [disabled]="!currentUser()"
+                          [style.opacity]="currentUser() ? '1' : '0.6'"
+                          [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
+                          (click)="voteForRequest(app)">
+                    Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                  </button>
+                } @else {
+                  <button class="btn btn-sm mt-2" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">Download</button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (viewMode() === 'list') {
+      <div class="mb-4">
+        @for (app of moreApplications(); track app.id) {
+          <div class="card mb-3 shadow-sm position-relative">
+            @if (app.tags && app.tags.length > 0) {
+              @for (tag of app.tags; track tag.id) {
+                @if (tag.name === 'popular') {
+                  <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2" style="font-size: 0.7rem;">{{ tag.displayName }}</span>
+                }
+              }
+            }
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-auto">
+                  <img [src]="app.logo" alt="" class="img-fluid" style="width: 48px; height: 48px; object-fit: contain;" />
+                </div>
+                <div class="col">
+                  <h5 class="card-title mb-1">{{ app.displayName }}</h5>
+                  @if (app.lifecycleState) {
+                    <span class="badge mb-2" style="background-color: #d4edda; color: #155724;">{{ formatLifecycleState(app.lifecycleState) }}</span>
+                  }
+                  <p class="card-text text-muted mb-0">{{ app.description }}</p>
+                  <a class="text-decoration-none mt-2 d-inline-block" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">More Details</a>
+                </div>
+                <div class="col-auto">
+                  @if (app.lifecycleState === 'REQUESTED') {
+                    <button class="btn"
+                            style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
+                            [disabled]="!currentUser()"
+                            [style.opacity]="currentUser() ? '1' : '0.6'"
+                            [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
+                            (click)="voteForRequest(app)">
+                      Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                    </button>
+                  } @else {
+                    <button class="btn" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">Download</button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-end">
+        <li class="page-item" [class.disabled]="currentPage() === 0">
+          <button class="page-link" style="background-color: white;" (click)="previousPage()" [disabled]="currentPage() === 0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-left-short me-1" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/>
+            </svg>
+            Previous
+          </button>
+        </li>
+
+        @for (page of [].constructor(totalPages()); track $index) {
+          <li class="page-item" [class.active]="currentPage() === $index">
+            <button class="page-link" [style.background-color]="currentPage() === $index ? '' : 'white'" (click)="goToPage($index)">
+              {{ $index + 1 }}
+            </button>
+          </li>
+        }
+
+        <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+          <button class="page-link" style="background-color: white;" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+            Next
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-right-short ms-1" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
+            </svg>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <hr style="border: 0; border-top: 2px solid #6c757d; margin: 3rem 0;">
+
+    <!-- Advanced Options Section -->
+    <div class="py-5 mt-5">
+      <div class="mx-auto" style="max-width: 800px;">
+        <h3 class="h4 mb-2 text-dark text-center">Need More Flexibility? Extend Your Integration</h3>
+        <p class="mb-4 text-center" style="color: #303030;">Choose from advanced options to tailor your midPoint setup, - whether you're uploading <br> your own configuration, requesting a custom solution, or bringing your own connector.</p>
+      </div>
+
+      <!-- Upload Configuration -->
+      <div class="d-flex align-items-stretch mb-3" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
+        <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #e6e6fa; aspect-ratio: 1/1; width: 120px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#6a0dad" class="bi bi-upload" viewBox="0 0 16 16">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+          </svg>
+        </div>
+        <div class="flex-grow-1 p-4 d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h5 class="mb-1">Upload Configuration</h5>
+            <p class="text-muted mb-0">Upload an existing connector configuration to quickly set up your integration</p>
+          </div>
+          <div class="flex-shrink-0 ms-4">
+            <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload me-2" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+              </svg>
+              Upload Configuration
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Request Tailored Solution -->
+      <div class="d-flex align-items-stretch" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
+        <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #fff0e6; aspect-ratio: 1/1; width: 120px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="#cc6600" class="bi bi-bezier2" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01q.269.27.484.605C8.246 5.097 8.5 6.459 8.5 8c0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a3 3 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>
+          </svg>
+        </div>
+        <div class="flex-grow-1 p-4 d-flex align-items-center">
+          <div class="flex-grow-1">
+            <h5 class="mb-1">Request Tailored Solution</h5>
+            <p class="text-muted mb-0">Need a specific integration or customization? Reach out to the Evolveum team or partners to build a solution that fits your exact use case and infrastructute.</p>
+          </div>
+          <div class="flex-shrink-0 ms-4">
+            <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="openRequestModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bezier2 me-2" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01q.269.27.484.605C8.246 5.097 8.5 6.459 8.5 8c0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a3 3 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>
+              </svg>
+              Request Tailored Solution
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+  </div>
+
+  <!-- Request Form Modal Component -->
+  <app-request-form [isRequestModalOpen]="isRequestModalOpen" (modalClosed)="closeRequestModal()"></app-request-form>
+
+  <!-- Login Modal Component -->
+  <app-login-modal [isOpen]="isLoginModalOpen" (modalClosed)="closeLoginModal()"></app-login-modal>
+</div>

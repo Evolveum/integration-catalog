@@ -43,7 +43,7 @@ public class ApplicationTag {
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "tag_type", nullable = false)
+    @Column(name = "tag_type", columnDefinition = "applicationTagType", nullable = false)
     private ApplicationTagType tagType;
 
     @OneToMany(mappedBy = "applicationTag", cascade = CascadeType.ALL, orphanRemoval = true)
