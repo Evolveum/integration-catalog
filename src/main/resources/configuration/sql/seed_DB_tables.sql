@@ -29,11 +29,11 @@ INSERT INTO public.country_of_origin (id, name, display_name) VALUES
   (5, 'illinois', 'Illinoins, USA');
 
 INSERT INTO public.connid_version (version, midpoint_version) VALUES
-  ('1.1.0.0', ARRAY['4.1.0','4.1.1']),
-  ('1.2.0.0', ARRAY['4.2.0','4.2.1']),
-  ('1.3.0.0', ARRAY['4.3.0','4.3.1']),
-  ('1.4.0.0', ARRAY['4.4.0','4.4.1']),
-  ('1.5.0.0', ARRAY['4.5.0','4.5.1']);
+  ('1.1.0.0', '4.1.0,4.1.1'),
+  ('1.2.0.0', '4.2.0,4.2.1'),
+  ('1.3.0.0', '4.3.0,4.3.1'),
+  ('1.4.0.0', '4.4.0,4.4.1'),
+  ('1.5.0.0', '4.5.0,4.5.1');
 
 INSERT INTO public.application
 (id, name, display_name, description, logo, lifecycle_state, created_at, last_modified) VALUES
@@ -92,71 +92,64 @@ Customer sign sing research. Against ready right high. Rise style rock tough.',
  '\x7db0fb87eece91b8232cb25a73972596b50cceaf2ef34689e67d08898c6dfdf60f44181b867d87e8a4ada0cc50ce412dd955f7003142501a50e89c5472ec22b4e4e6d63fc9ce6f31dfa887aa5f815b0ddaefad0ca8a041afe7b276fa00b7cc7523229699',
  'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54');
 
-INSERT INTO public.implementation_tag (id, name, display_name) VALUES
-  (1,  'ai_generated',      'AI Generated'),
-  (5,  'custom',            'CUSTOM'),
-  (6,  'paged_search',      'Paged search'),
-  (7,  'live_sync',         'Live sync'),
-  (8,  'script',            'Script'),
-  (9,  'password',          'Password'),
-  (10, 'credentials',       'Credentials'),
-  (11, 'test_connection',   'Test connection'),
-  (12, 'lot_of_text',       'Lot of text'),
-  (13, 'small_filler',      'Small filler'),
-  (14, 'big_filler',        'BIG FILLER');
+INSERT INTO public.connector_bundle (id, bundle_name, maintainer, framework, license, ticketing_system_link) VALUES
+(1,'com.evolveum.polygon.connector.sap.integration','Scott, Baker and Howard','SCIM_REST','MIT','http://clark.com/'),
+(2,'com.evolveum.polygon.connector.workday.adapter','Smith-Olson','SCIM_REST','APACHE_2','https://www.phillips.org/'),
+(3,'com.evolveum.polygon.connector.salesforce.connector','Wilson-Robinson','CONNID','MIT','http://www.may.info/'),
+(4,'com.evolveum.polygon.connector.azure.ad.sync','Crawford and Sons','CONNID','MIT','https://www.weber.com/'),
+(5,'com.evolveum.polygon.connector.oracle.connector','Stevens and Sons','CONNID','APACHE_2','http://levy-herrera.net/');
 
 INSERT INTO public.implementation
-(id, display_name, connector_bundle, maintainer, framework, ticketing_system_link, license, application_id) VALUES
-('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e','SAP Integration Implementation','com.evolveum.polygon.connector.sap.integration','Scott, Baker and Howard','SCIM_REST','http://clark.com/','MIT','4a3c7f04-4106-4934-add1-f329f6333ad0'),
-('c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f','Workday Adapter Implementation','com.evolveum.polygon.connector.workday.adapter','Smith-Olson','SCIM_REST','https://www.phillips.org/','APACHE_2','5f0ba262-a08b-44fc-b830-f4942e3efeb4'),
-('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d','LDAP Connector Implementation','com.evolveum.polygon.connector.salesforce.connector','Wilson-Robinson','CONNID','http://www.may.info/','MIT','e5c2e9d6-4d28-4a08-8374-998c5373a35c'),
-('d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a','DatabaseTable Connector Implementation','com.evolveum.polygon.connector.azure.ad.sync','Crawford and Sons','CONNID','https://www.weber.com/','MIT','9ed6e4fb-5f06-4081-845c-df023274e4db'),
-('e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b','CSV Connector Implementation','com.evolveum.polygon.connector.oracle.connector','Stevens and Sons','CONNID','http://levy-herrera.net/','APACHE_2','54dfdf0e-4528-4b03-967d-4af33e49a0ab'),
-('f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c','CSV Connector Implementation','com.evolveum.polygon.connector.oracle.connector','Stevens and Sons','CONNID','http://levy-herrera.net/','APACHE_2','54dfdf0e-4528-4b03-967d-4af33e49a0ab');
+(id, display_name, connector_bundle_id, application_id) VALUES
+('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e','SAP Integration Implementation',1,'4a3c7f04-4106-4934-add1-f329f6333ad0'),
+('c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f','Workday Adapter Implementation',2,'5f0ba262-a08b-44fc-b830-f4942e3efeb4'),
+('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d','LDAP Connector Implementation',3,'e5c2e9d6-4d28-4a08-8374-998c5373a35c'),
+('d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a','DatabaseTable Connector Implementation',4,'9ed6e4fb-5f06-4081-845c-df023274e4db'),
+('e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab'),
+('f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab');
+
+INSERT INTO public.bundle_version
+(id, connector_bundle_id, connector_version, browse_link, checkout_link, download_link, connid_version, released_date, build_framework, error_message, path_to_project) VALUES
+(1,1,'2.0.8','https://khan.com/','https://khan.com//tree/v2.0.8','http://chung-weaver.biz//downloads/connector-2.0.8.jar','1.2.0.0','2025-05-02','GRADLE',NULL,NULL),
+(2,5,'5.2','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-csv/tree/v2.8','https://nexus.evolveum.com/nexus/repository/public/com/evolveum/polygon/connector-csv/2.8/connector-csv-2.8.jar','1.5.0.0','2025-04-14','MAVEN',NULL,NULL),
+(3,5,'5.0.0','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.5.0.0','2025-04-14','MAVEN',NULL,NULL),
+(4,4,'5.1','http://www.ramirez-flores.biz/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.5.0.0','2025-04-14','MAVEN',NULL,NULL),
+(5,2,'3.0.1','https://www.serrano.com/','https://www.serrano.com//tree/v3.0.1','http://miles.org//downloads/connector-3.0.1.jar','1.3.0.0','2025-06-30','GRADLE',NULL,NULL),
+(6,3,'1.0.4','https://www.blake.org/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.1.0.0','2025-09-25','MAVEN',NULL,NULL),
+(7,4,'4.0.2','https://collins.com/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.4.0.0','2025-04-06','MAVEN',NULL,NULL);
 
 INSERT INTO public.implementation_version
-(id, description, connector_version, capabilities, browse_link, checkout_link, download_link, system_version, author, released_date, publish_date, lifecycle_state, build_framework, connid_version, implementation_id, error_message) VALUES
+(id, description, capabilities, system_version, author, publish_date, lifecycle_state, bundle_version_id, implementation_id, class_name) VALUES
 ('e87a6b1b-38c5-4834-96de-2418dbda9f1b',
  'Hit something action building majority body. Newspaper sell business write political tough not.
 Shake sing part picture person.',
- '2.0.8',
  ARRAY['CREATE','GET','DELETE','SCRIPT_ON_CONNECTOR','SCRIPT_ON_RESOURCE','AUTHENTICATION','SEARCH']::"CapabilityType"[],
- 'https://khan.com/','https://khan.com//tree/v2.0.8','http://chung-weaver.biz//downloads/connector-2.0.8.jar',
- 'System 1.5','tuckerjames@example.org','2025-05-02','2025-09-25 09:55:02','IN_PUBLISH_PROCESS','GRADLE','1.2.0.0','b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL),
+ 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_PUBLISH_PROCESS',1,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de08',
- 'CSV connector','5.2',
+ 'CSV connector',
  ARRAY['CREATE','GET','DELETE']::"CapabilityType"[],
- 'http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-csv/tree/v2.8','https://nexus.evolveum.com/nexus/repository/public/com/evolveum/polygon/connector-csv/2.8/connector-csv-2.8.jar',
- 'System 1.5','isabelthomas@evolveum.com','2025-04-14','2025-07-27 13:44:05','ACTIVE','MAVEN','1.5.0.0','e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL),
+ 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','ACTIVE',2,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de09',
- 'LDAP connector','5.0.0',
+ 'LDAP connector',
  ARRAY['CREATE','GET','UPDATE']::"CapabilityType"[],
- 'http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar',
- 'System 1.5','isabelthomas@example.com','2025-04-14','2025-07-27 13:44:05','ACTIVE','MAVEN','1.5.0.0','f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c',NULL),
+ 'System 1.5','isabelthomas@example.com','2025-07-27 13:44:05','ACTIVE',3,'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c',NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de10',
- 'Databasetable connector','5.1',
+ 'Databasetable connector',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'http://www.ramirez-flores.biz/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar',
- 'System 1.5','isabelthomas@evolveum.com','2025-04-14','2025-07-27 13:44:05','DEPRECATED','MAVEN','1.5.0.0','e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL),
+ 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','DEPRECATED',4,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL),
 ('eb460ab7-5797-42b0-ad70-eccdc113cf0c',
  'Level painting his lot sound. Involve note big everyone.
 Reflect claim throw huge. Head design amount pressure goal.',
- '3.0.1',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'https://www.serrano.com/','https://www.serrano.com//tree/v3.0.1','http://miles.org//downloads/connector-3.0.1.jar',
- 'API v59.0','iwarner@example.net','2025-06-30','2025-07-15 02:16:54','WITH_ERROR','GRADLE','1.3.0.0','c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f',NULL),
+ 'API v59.0','iwarner@example.net','2025-07-15 02:16:54','WITH_ERROR',5,'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f',NULL),
 ('eb19c64d-2cc9-4828-b38f-e4298be9b208',
  'Degree every others capital. Perform important animal fish find power thing.',
- '1.0.4',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'https://www.blake.org/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar',
- 'System 0.3','shelly74@example.com','2025-09-25','2025-09-22 22:19:49','ARCHIVED','MAVEN','1.1.0.0','a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',NULL),
+ 'System 0.3','shelly74@example.com','2025-09-22 22:19:49','ARCHIVED',6,'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',NULL),
 ('6d3544ab-e5ed-457f-b356-56e9fd419cbc',
  'Music rise area player. Focus wife particular class. Read protect add spend who cover also.',
- '4.0.2',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'https://collins.com/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar',
- 'System 1.51','zacharywilcox@example.net','2025-04-06','2025-02-09 14:52:59','ACTIVE','MAVEN','1.4.0.0','d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a',NULL);
+ 'System 1.51','zacharywilcox@example.net','2025-02-09 14:52:59','ACTIVE',7,'d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a',NULL);
 
 INSERT INTO public.downloads (implementation_version_id, ip_address, user_agent, downloaded_at, id) VALUES
 ('e87a6b1b-38c5-4834-96de-2418dbda9f1b','122.154.103.227','Mozilla/5.0 (Linux; Android 4.2.2) AppleWebKit/534.2 (KHTML, like Gecko) Chrome/56.0.868.0 Safari/534.2','2025-08-01 10:00:20','4fae33f4-7ab6-4ad8-8c5a-ec1f869d48b1'),
@@ -199,6 +192,19 @@ INSERT INTO public.application_origin (id, application_id, country_id) VALUES
 (7,'4a3c7f04-4106-4934-add1-f329f6333ad0',3),
 (3,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',3);
 
+INSERT INTO public.implementation_tag (id, name, display_name) VALUES
+  (1,  'ai_generated',      'AI Generated'),
+  (5,  'custom',            'CUSTOM'),
+  (6,  'paged_search',      'Paged search'),
+  (7,  'live_sync',         'Live sync'),
+  (8,  'script',            'Script'),
+  (9,  'password',          'Password'),
+  (10, 'credentials',       'Credentials'),
+  (11, 'test_connection',   'Test connection'),
+  (12, 'lot_of_text',       'Lot of text'),
+  (13, 'small_filler',      'Small filler'),
+  (14, 'big_filler',        'BIG FILLER');
+
 INSERT INTO public.implementation_implementation_tag (id, implementation_id, tag_id) VALUES
 (3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
 
@@ -219,5 +225,7 @@ SELECT pg_catalog.setval('public.country_of_origin_id_seq', 5, true);
 SELECT pg_catalog.setval('public.implementation_implementation_tag_id_seq', 21, true);
 SELECT pg_catalog.setval('public.implementation_tag_id_seq', 14, true);
 SELECT pg_catalog.setval('public.request_id_seq', 8, true);
+SELECT pg_catalog.setval('public.connector_bundle_id_seq', 5, true);
+SELECT pg_catalog.setval('public.bundle_version_id_seq', 7, true);
 
 COMMIT;

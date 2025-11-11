@@ -136,8 +136,11 @@ public class ApplicationService {
     }
 
     public ConnidVersion getConnectorVersion(UUID id) {
-        return connidVersionRepository.getReferenceById(
-                this.implementationVersionRepository.getReferenceById(id).getConnectorVersion());
+        ImplementationVersion implVersion = this.implementationVersionRepository.getReferenceById(id);
+        if (implVersion.getBundleVersion() != null && implVersion.getBundleVersion().getConnidVersion() != null) {
+            return connidVersionRepository.getReferenceById(implVersion.getBundleVersion().getConnidVersion());
+        }
+        return null;
     }
 
     public List<ApplicationTag> getApplicationTags() {
@@ -181,14 +184,23 @@ public class ApplicationService {
         implementation.setApplication(application);
         implementationVersion.setImplementation(implementation);
 
-        if (Implementation.FrameworkType.SCIM_REST.equals(implementation.getFramework())) {
+        // Check framework from ConnectorBundle
+        if (implementation.getConnectorBundle() != null &&
+                ConnectorBundle.FrameworkType.SCIM_REST.equals(implementation.getConnectorBundle().getFramework())) {
             try {
                 GithubClient githubClient = new GithubClient(githubProperties);
                 GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
-                implementationVersion.setCheckoutLink(repository.getHttpTransportUrl());
-                implementationVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+
+                // Store repository links in BundleVersion
+                if (implementationVersion.getBundleVersion() != null) {
+                    implementationVersion.getBundleVersion().setCheckoutLink(repository.getHttpTransportUrl());
+                    implementationVersion.getBundleVersion().setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                }
             } catch (Exception e) {
-                implementationVersion.setErrorMessage(e.getMessage());
+                // Store error in BundleVersion
+                if (implementationVersion.getBundleVersion() != null) {
+                    implementationVersion.getBundleVersion().setErrorMessage(e.getMessage());
+                }
                 log.error(e.getMessage());
             }
         }
@@ -197,28 +209,45 @@ public class ApplicationService {
         implementationRepository.save(implementation);
         implementationVersionRepository.save(implementationVersion);
 
-        if (implementationVersion.getErrorMessage() == null) {
+        // Check for errors in BundleVersion
+        String errorMessage = (implementationVersion.getBundleVersion() != null) ?
+                implementationVersion.getBundleVersion().getErrorMessage() : null;
+
+        if (errorMessage == null) {
             try {
+                // Get data from BundleVersion and ConnectorBundle for Jenkins
+                String checkoutLink = implementationVersion.getBundleVersion() != null ?
+                        implementationVersion.getBundleVersion().getCheckoutLink() : "";
+                String browseLink = implementationVersion.getBundleVersion() != null ?
+                        implementationVersion.getBundleVersion().getBrowseLink() : "";
+                String connectorVersion = implementationVersion.getBundleVersion() != null ?
+                        implementationVersion.getBundleVersion().getConnectorVersion() : "";
+                String framework = implementation.getConnectorBundle() != null ?
+                        implementation.getConnectorBundle().getFramework().name() : "";
+
                 JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
                 HttpResponse<String> response = jenkinsClient.triggerJob(
                         "integration-catalog-upload-connid-connector",
-                        Map.of("REPOSITORY_URL", implementationVersion.getCheckoutLink(),
-                                "BRANCH_URL", implementationVersion.getBrowseLink(),
+                        Map.of("REPOSITORY_URL", checkoutLink,
+                                "BRANCH_URL", browseLink,
                                 "CONNECTOR_OID", implementationVersion.getId().toString(),
-                                "IMPL_VERSION", implementationVersion.getConnectorVersion(),
+                                "IMPL_VERSION", connectorVersion,
                                 "IMPL_TITLE", implementation.getDisplayName(),
-                                "IMPL_FRAMEWORK", implementation.getFramework().name(),
+                                "IMPL_FRAMEWORK", framework,
                                 "SKIP_DEPLOY", "false"));
                 log.info(response.body());
                 return response.body();
             } catch (Exception e) {
-                implementationVersion.setErrorMessage(e.getMessage());
-                implementationVersionRepository.save(implementationVersion);
+                if (implementationVersion.getBundleVersion() != null) {
+                    implementationVersion.getBundleVersion().setErrorMessage(e.getMessage());
+                    implementationVersionRepository.save(implementationVersion);
+                }
                 log.error(e.getMessage());
+                errorMessage = e.getMessage();
             }
         }
 
-        return implementationVersion.getErrorMessage();
+        return errorMessage;
     }
 
     public String downloadConnector(String connectorVersion) {
@@ -228,13 +257,21 @@ public class ApplicationService {
 
     public void successBuild(UUID oid, ContinueForm continueForm) {
         ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
+
+        // Update BundleVersion with build information
+        if (version.getBundleVersion() != null) {
+            version.getBundleVersion().setConnectorVersion(continueForm.getConnectorVersion());
+            version.getBundleVersion().setDownloadLink(continueForm.getDownloadLink());
+        }
+
+        // Update ConnectorBundle name if provided
         Implementation implementation = version.getImplementation();
-        implementation.setConnectorBundle(continueForm.getConnectorBundle());
+        if (implementation.getConnectorBundle() != null && continueForm.getConnectorBundle() != null) {
+            implementation.getConnectorBundle().setBundleName(continueForm.getConnectorBundle());
+        }
 
         OffsetDateTime odt = OffsetDateTime.ofInstant(Instant.ofEpochMilli(continueForm.getPublishTime()), ZoneOffset.UTC);
-        version.setConnectorVersion(continueForm.getConnectorVersion())
-                .setDownloadLink(continueForm.getDownloadLink())
-                .setPublishDate(odt)
+        version.setPublishDate(odt)
                 .setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
 
         implementationRepository.save(implementation);
@@ -243,8 +280,12 @@ public class ApplicationService {
 
     public void failBuild(UUID oid, FailForm failForm) {
         ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
-        version.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.WITH_ERROR)
-                .setErrorMessage(failForm.getErrorMessage());
+        version.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.WITH_ERROR);
+
+        // Set error message on BundleVersion
+        if (version.getBundleVersion() != null) {
+            version.getBundleVersion().setErrorMessage(failForm.getErrorMessage());
+        }
 
         Implementation implementation = version.getImplementation();
         Application application = implementation.getApplication();
@@ -483,7 +524,15 @@ public class ApplicationService {
         ImplementationVersion version = implementationVersionRepository.findById(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
 
-        try (InputStream in = new URL(version.getDownloadLink()).openStream()) {
+        // Get download link from BundleVersion
+        String downloadLink = (version.getBundleVersion() != null) ?
+                version.getBundleVersion().getDownloadLink() : null;
+
+        if (downloadLink == null || downloadLink.isEmpty()) {
+            throw new IllegalArgumentException("No download link available for version: " + versionId);
+        }
+
+        try (InputStream in = new URL(downloadLink).openStream()) {
             byte[] fileBytes = in.readAllBytes();
 
             InetAddress inet = new InetAddress(ip);

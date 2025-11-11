@@ -25,6 +25,6 @@ public class ConnidVersion {
     @Column(name = "version")
     private String version;
 
-    @Column(name = "midpoint_version", nullable = false, columnDefinition = "text[]")
-    private String[] midpointVersion;
+    @Column(name = "midpoint_version", nullable = false)
+    private String midpointVersion;
 }

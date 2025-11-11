@@ -170,7 +170,15 @@ public class Controller {
         ImplementationVersion version = applicationService.findImplementationVersion(oid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
-        String filename = version.getDownloadLink().substring(version.getDownloadLink().lastIndexOf('/') + 1);
+        // Get download link from BundleVersion
+        String downloadLink = (version.getBundleVersion() != null) ?
+                version.getBundleVersion().getDownloadLink() : null;
+
+        if (downloadLink == null || downloadLink.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Download link not available");
+        }
+
+        String filename = downloadLink.substring(downloadLink.lastIndexOf('/') + 1);
         String ip = request.getRemoteAddr();
         String ua = request.getHeader("User-Agent");
 

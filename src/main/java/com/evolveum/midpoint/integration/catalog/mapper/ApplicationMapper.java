@@ -101,16 +101,27 @@ public class ApplicationMapper {
                             }
                             List<String> capabilities = convertCapabilitiesToList(version.getCapabilities());
                             String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
+
+                            // Get data from BundleVersion
+                            String connectorVersion = null;
+                            java.time.LocalDate releasedDate = null;
+                            String downloadLink = null;
+                            if (version.getBundleVersion() != null) {
+                                connectorVersion = version.getBundleVersion().getConnectorVersion();
+                                releasedDate = version.getBundleVersion().getReleasedDate();
+                                downloadLink = version.getBundleVersion().getDownloadLink();
+                            }
+
                             return new ImplementationVersionDto(
                                     version.getDescription(),
                                     implementationTags,
                                     capabilities,
-                                    version.getConnectorVersion(),
+                                    connectorVersion,
                                     version.getSystemVersion(),
-                                    version.getReleasedDate(),
+                                    releasedDate,
                                     version.getAuthor(),
                                     lifecycleState,
-                                    version.getDownloadLink()
+                                    downloadLink
                             );
                         }) : Stream.empty())
                 .toList();

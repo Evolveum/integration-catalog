@@ -70,6 +70,9 @@ class ControllerTest {
     private UUID testVersionId;
     private Application testApplication;
     private ImplementationVersion testImplementationVersion;
+    private ConnectorBundle testConnectorBundle;
+    private BundleVersion testBundleVersion;
+    private Implementation testImplementation;
     private ConnidVersion testConnidVersion;
     private Request testRequest;
     private Vote testVote;
@@ -89,13 +92,39 @@ class ControllerTest {
         testApplication.setCreatedAt(OffsetDateTime.now());
         testApplication.setLastModified(OffsetDateTime.now());
 
+        // Setup test ConnectorBundle
+        testConnectorBundle = new ConnectorBundle();
+        testConnectorBundle.setId(1);
+        testConnectorBundle.setBundleName("com.evolveum.polygon.connector.test");
+        testConnectorBundle.setMaintainer("Test Maintainer");
+        testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.CONNID);
+        testConnectorBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
+
+        // Setup test Implementation
+        testImplementation = new Implementation();
+        testImplementation.setId(UUID.randomUUID());
+        testImplementation.setDisplayName("Test Implementation");
+        testImplementation.setConnectorBundle(testConnectorBundle);
+        testImplementation.setApplication(testApplication);
+
+        // Setup test BundleVersion
+        testBundleVersion = new BundleVersion();
+        testBundleVersion.setId(1);
+        testBundleVersion.setConnectorVersion("1.0.0");
+        testBundleVersion.setDownloadLink("http://example.com/connector.jar");
+        testBundleVersion.setBrowseLink("http://example.com/browse");
+        testBundleVersion.setCheckoutLink("http://example.com/checkout");
+        testBundleVersion.setConnectorBundle(testConnectorBundle);
+        testBundleVersion.setBuildFramework(BundleVersion.BuildFrameworkType.MAVEN);
+        testBundleVersion.setConnidVersion("1.5.0.0");
+
         // Setup test ImplementationVersion
         testImplementationVersion = new ImplementationVersion();
         testImplementationVersion.setId(testVersionId);
-        testImplementationVersion.setConnectorVersion("1.0.0");
         testImplementationVersion.setDescription("Test Version");
-        testImplementationVersion.setDownloadLink("http://example.com/connector.jar");
         testImplementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
+        testImplementationVersion.setImplementation(testImplementation);
+        testImplementationVersion.setBundleVersion(testBundleVersion);
 
         // Setup test ConnidVersion
         testConnidVersion = new ConnidVersion();

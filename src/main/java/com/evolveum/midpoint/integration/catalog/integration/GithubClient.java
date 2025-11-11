@@ -75,7 +75,9 @@ public class GithubClient {
 
     private void createTag(GHRepository repo, String sha, ImplementationVersion newVersion) {
 
-        String tagVersion = "v" + newVersion.getConnectorVersion();
+        String connectorVersion = newVersion.getBundleVersion() != null ?
+                newVersion.getBundleVersion().getConnectorVersion() : "unknown";
+        String tagVersion = "v" + connectorVersion;
 
         try {
             GHTagObject tagObject = repo.createTag(tagVersion,
