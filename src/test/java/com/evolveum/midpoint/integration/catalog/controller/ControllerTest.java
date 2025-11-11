@@ -155,7 +155,7 @@ class ControllerTest {
         verify(applicationService).getApplication(nonExistentId);
     }
 
-    // ===== GET /api/connector-version/{id} =====
+    // ===== GET /api/connid-versions/{id} =====
 
     @Test
     void getConnectorVersionShouldReturnVersionWhenExists() throws Exception {
