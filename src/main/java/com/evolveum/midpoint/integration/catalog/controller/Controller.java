@@ -236,7 +236,7 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Request ID found"),
             @ApiResponse(responseCode = "404", description = "Request ID not found")
     })
-    @GetMapping("/request/{id}")
+    @GetMapping("/requests/{id}")
     public ResponseEntity<Request> getRequest(@PathVariable Long id) {
         return applicationService.getRequest(id)
                 .map(ResponseEntity::ok)
@@ -280,7 +280,7 @@ public class Controller {
             @ApiResponse(responseCode = "201", description = "Vote submitted successfully"),
             @ApiResponse(responseCode = "400", description = "User already voted or request not found")
     })
-    @PostMapping("/request/{requestId}/vote")
+    @PostMapping("/requests/{requestId}/vote")
     public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, @RequestParam String voter) {
         try {
             Vote vote = applicationService.submitVote(requestId, voter);
@@ -295,7 +295,7 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Vote count retrieved successfully")
     })
-    @GetMapping("/request/{requestId}/votes/count")
+    @GetMapping("/requests/{requestId}/votes/count")
     public ResponseEntity<Long> getVoteCount(@PathVariable Long requestId) {
         long count = applicationService.getVoteCount(requestId);
         return ResponseEntity.ok(count);
@@ -306,7 +306,7 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Check completed successfully")
     })
-    @GetMapping("/request/{requestId}/votes/check")
+    @GetMapping("/requests/{requestId}/votes/check")
     public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, @RequestParam String voter) {
         boolean hasVoted = applicationService.hasUserVoted(requestId, voter);
         return ResponseEntity.ok(hasVoted);
