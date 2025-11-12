@@ -342,4 +342,17 @@ public class Controller {
         Page<ApplicationCardDto> page = applicationService.list(Pageable.unpaged(), null, null);
         return ResponseEntity.ok(page.getContent());
     }
+
+    @Operation(summary = "Get available capabilities",
+            description = "Returns a list of all available capability types that can be used in requests")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Capabilities retrieved successfully")
+    })
+    @GetMapping("/capabilities")
+    public ResponseEntity<List<String>> getCapabilities() {
+        List<String> capabilities = java.util.Arrays.stream(ImplementationVersion.CapabilitiesType.values())
+                .map(Enum::name)
+                .toList();
+        return ResponseEntity.ok(capabilities);
+    }
 }

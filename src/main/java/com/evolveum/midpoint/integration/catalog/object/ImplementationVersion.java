@@ -6,10 +6,12 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.repository.adapter.CapabilitiesArrayConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
@@ -27,32 +29,52 @@ import java.util.UUID;
 @Accessors(chain = true)
 public class ImplementationVersion {
 
+//    public enum CapabilitiesType {
+//        CREATE("Create"),
+//        GET("Get"),
+//        UPDATE("Update"),
+//        DELETE("Delete"),
+//        TEST("Test"),
+//        SCRIPT_ON_CONNECTOR("ScriptOnConnector"),
+//        SCRIPT_ON_RESOURCE("ScriptOnResource"),
+//        AUTHENTICATION("Authentication"),
+//        SEARCH("Search"),
+//        VALIDATE("Validate"),
+//        SYNC("Sync"),
+//        LIVE_SYNC("LiveSync"),
+//        SCHEMA("Schema"),
+//        DISCOVER_CONFIGURATION("DiscoverConfiguration"),
+//        RESOLVE_USERNAME("ResolveUsername"),
+//        PARTIAL_SCHEMA("PartialSchema"),
+//        COMPLEX_UPDATE_DELTA("ComplexUpdateDelta"),
+//        UPDATE_DELTA("UpdateDelta");
+//
+//        public final String value;
+//
+//        CapabilitiesType(String value){
+//            this.value = value;
+//        }
+//    }
+
     public enum CapabilitiesType {
-        CREATE("Create"),
-        GET("Get"),
-        UPDATE("Update"),
-        DELETE("Delete"),
-        TEST("Test"),
-        SCRIPT_ON_CONNECTOR("ScriptOnConnector"),
-        SCRIPT_ON_RESOURCE("ScriptOnResource"),
-        AUTHENTICATION("Authentication"),
-        SEARCH("Search"),
-        VALIDATE("Validate"),
-        SYNC("Sync"),
-        LIVE_SYNC("LiveSync"),
-        SCHEMA("Schema"),
-        DISCOVER_CONFIGURATION("DiscoverConfiguration"),
-        RESOLVE_USERNAME("ResolveUsername"),
-        PARTIAL_SCHEMA("PartialSchema"),
-        COMPLEX_UPDATE_DELTA("ComplexUpdateDelta"),
-        UPDATE_DELTA("UpdateDelta");
-
-
-        public final String value;
-
-        CapabilitiesType(String value){
-            this.value = value;
-        }
+        CREATE,
+        GET,
+        UPDATE,
+        DELETE,
+        TEST,
+        SCRIPT_ON_CONNECTOR,
+        SCRIPT_ON_RESOURCE,
+        AUTHENTICATION,
+        SEARCH,
+        VALIDATE,
+        SYNC,
+        LIVE_SYNC,
+        SCHEMA,
+        DISCOVER_CONFIGURATION,
+        RESOLVE_USERNAME,
+        PARTIAL_SCHEMA,
+        COMPLEX_UPDATE_DELTA,
+        UPDATE_DELTA
     }
 
     public enum ImplementationVersionLifecycleType {
@@ -69,7 +91,9 @@ public class ImplementationVersion {
 
     private String description;
 
-    @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
+    @Column(name = "capabilities")
     private CapabilitiesType[] capabilities;
 
     @Column(name = "system_version")

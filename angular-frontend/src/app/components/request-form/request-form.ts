@@ -32,8 +32,27 @@ export class RequestForm {
   protected readonly isSubmitting = signal<boolean>(false);
   protected readonly submitSuccess = signal<boolean>(false);
   protected readonly submitError = signal<string | null>(null);
+  protected readonly availableCapabilities = signal<string[]>([]);
+  protected readonly isLoadingCapabilities = signal<boolean>(false);
 
-  constructor(private applicationService: ApplicationService) {}
+  constructor(private applicationService: ApplicationService) {
+    this.loadCapabilities();
+  }
+
+  private loadCapabilities(): void {
+    this.isLoadingCapabilities.set(true);
+    this.applicationService.getCapabilities().subscribe({
+      next: (capabilities: string[]) => {
+        this.availableCapabilities.set(capabilities);
+        this.isLoadingCapabilities.set(false);
+      },
+      error: (err: any) => {
+        console.error('Error loading capabilities:', err);
+        this.isLoadingCapabilities.set(false);
+        // Optionally set a fallback or show an error message
+      }
+    });
+  }
 
   protected closeRequestModal(): void {
     this.isRequestModalOpen.set(false);
@@ -113,9 +132,14 @@ export class RequestForm {
     }
     this.selectedCapabilities.update(caps => caps.filter(cap => cap !== capability));
     // Uncheck the corresponding checkbox
-    const checkbox = document.getElementById(`capability-${capability.toLowerCase().replace(/\s+/g, '-')}`) as HTMLInputElement;
+    const checkboxId = `capability-${capability.toLowerCase()}`;
+    const checkbox = document.getElementById(checkboxId) as HTMLInputElement;
     if (checkbox) {
       checkbox.checked = false;
     }
+  }
+
+  protected formatCapabilityName(capability: string): string {
+    return capability.replace(/_/g, ' ');
   }
 }
