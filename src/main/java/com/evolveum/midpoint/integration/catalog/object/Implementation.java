@@ -38,17 +38,8 @@ public class Implementation {
     private Application application;
 
     @OneToMany(mappedBy = "implementation")
-    private List<ImplementationVersion> implementationVersions;
+    private List<ImplementationVersion> implementationVersions = new ArrayList<>();
 
     @OneToMany(mappedBy = "implementation", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ImplementationImplementationTag> implementationImplementationTags;
-
-    public Implementation addImplementationVersion(ImplementationVersion implementationVersion) {
-        if (implementationVersions == null) {
-            implementationVersions = new ArrayList<>();
-        }
-        implementationVersion.setImplementation(this);
-        implementationVersions.add(implementationVersion);
-        return this;
-    }
 }

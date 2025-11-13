@@ -18,15 +18,15 @@ import { ApiService, ApplicationCard } from '../../core/http/api.service';
 export class HomeComponent implements OnInit {
   private api = inject(ApiService);
 
-  apps = signal<ApplicationCard[]>([]);
-  loading = signal(false);
-  error = signal<string | null>(null);
+  readonly apps = signal<ApplicationCard[]>([]);
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
 
   // paging/search (tweak as needed)
-  page = signal(0);
-  size = signal(12);
-  totalPages = signal(0);
-  q = signal('');
+  readonly page = signal(0);
+  readonly size = signal(12);
+  readonly totalPages = signal(0);
+  readonly q = signal('');
 
   ngOnInit(): void {
     this.loadApps();
