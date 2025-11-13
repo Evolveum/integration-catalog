@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -26,18 +32,6 @@ export class ApplicationService {
     return this.http.get<CategoryCount[]>(`${environment.apiUrl}/categories/counts`);
   }
 
-  getCommonTagCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/common-tags/counts`);
-  }
-
-  getAppStatusCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/app-status/counts`);
-  }
-
-  getSupportedOperationsCounts(): Observable<CategoryCount[]> {
-    return this.http.get<CategoryCount[]>(`${environment.apiUrl}/supported-operations/counts`);
-  }
-
   submitVote(requestId: number, voter: string): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
   }
@@ -52,5 +46,9 @@ export class ApplicationService {
 
   submitRequest(request: any): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/requests`, request);
+  }
+
+  getCapabilities(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/capabilities`);
   }
 }

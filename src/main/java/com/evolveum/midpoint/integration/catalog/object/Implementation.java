@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
@@ -24,8 +23,8 @@ import java.util.UUID;
 public class Implementation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "display_name")
     private String displayName;
@@ -35,7 +34,7 @@ public class Implementation {
     private ConnectorBundle connectorBundle;
 
     @ManyToOne
-    @JoinColumn(name = "application", nullable = false)
+    @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
     @OneToMany(mappedBy = "implementation")

@@ -1,3 +1,9 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
 <div class="container-fluid p-0" style="background-color: #e9ecef; min-height: 100vh;">
 <div class="container py-5">
   @if (loading()) {
@@ -576,15 +582,6 @@
                 <p class="mb-0">{{ application()!.lastModified | date: 'mediumDate' }}</p>
               } @else {
                 <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
-
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">Risk Level</h6>
-              @if (application()!.riskLevel) {
-                <p class="mb-0">{{ application()!.riskLevel }}</p>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not specified</p>
               }
             </div>
 

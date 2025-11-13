@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.CapabilitiesArrayConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +20,9 @@ import java.util.List;
  * Created by TomasS.
  */
 @Entity
-@Table(name = "request")
+@Table(name = "request", uniqueConstraints = {
+    @UniqueConstraint(name = "unique_request_per_application", columnNames = "application_id")
+})
 @Getter @Setter
 public class Request {
 
@@ -33,9 +35,10 @@ public class Request {
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @JdbcTypeCode(SqlTypes.JSON)
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
     @Column(name = "capabilities")
-    private String capabilities;
+    private CapabilitiesType[] capabilities;
 
     private String requester;
 

@@ -1,9 +1,17 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
 package com.evolveum.midpoint.integration.catalog.object;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,23 +38,27 @@ public class ConnectorBundle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "bundle_name", nullable = false, unique = true)
+    @Column(name = "bundle_name", nullable = false)
     private String bundleName;
 
-    @Column(name = "maintainer")
     private String maintainer;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "framework", columnDefinition = "varchar(64)", nullable = false)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "framework", columnDefinition = "frameworkType", nullable = false)
     private FrameworkType framework;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "license", columnDefinition = "varchar(64)", nullable = false)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "license", columnDefinition = "licenseType", nullable = false)
     private LicenseType license;
 
-    @Column(name = "link_on_ticketing_system", columnDefinition = "TEXT")
-    private String linkOnTicketingSystem;
+    @Column(name = "ticketing_system_link", columnDefinition = "TEXT")
+    private String ticketingSystemLink;
 
     @OneToMany(mappedBy = "connectorBundle")
     private List<Implementation> implementations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "connectorBundle")
+    private List<BundleVersion> bundleVersions = new ArrayList<>();
 }

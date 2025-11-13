@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
@@ -10,6 +9,8 @@ package com.evolveum.midpoint.integration.catalog.object;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.Set;
 
@@ -40,7 +41,8 @@ public class ApplicationTag {
     private String displayName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tag_type", nullable = false, columnDefinition = "varchar(64)")
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "tag_type", columnDefinition = "applicationTagType", nullable = false)
     private ApplicationTagType tagType;
 
     @OneToMany(mappedBy = "applicationTag", cascade = CascadeType.ALL, orphanRemoval = true)

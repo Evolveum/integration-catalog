@@ -1,11 +1,12 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
+
+import lombok.Getter;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -14,6 +15,7 @@ import java.util.Objects;
  * Composite primary key for Vote entity.
  * Created by TomasS.
  */
+@Getter
 public class VoteId implements Serializable {
     private Long requestId;
     private String voter;
@@ -25,16 +27,8 @@ public class VoteId implements Serializable {
         this.voter = voter;
     }
 
-    public Long getRequestId() {
-        return requestId;
-    }
-
     public void setRequestId(Long requestId) {
         this.requestId = requestId;
-    }
-
-    public String getVoter() {
-        return voter;
     }
 
     public void setVoter(String voter) {

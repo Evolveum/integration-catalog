@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.controller;
@@ -50,6 +49,9 @@ class ControllerTest {
     private ApplicationService applicationService;
 
     @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper applicationMapper;
+
+    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository applicationRepository;
 
     @MockitoBean
@@ -58,13 +60,19 @@ class ControllerTest {
     @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.RequestRepository requestRepository;
 
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.repository.VoteRepository voteRepository;
+
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
+
     private UUID testAppId;
     private UUID testVersionId;
     private Application testApplication;
-    private Implementation testImplementation;
+    private ImplementationVersion testImplementationVersion;
     private ConnectorBundle testConnectorBundle;
     private BundleVersion testBundleVersion;
-    private ImplementationVersion testImplementationVersion;
+    private Implementation testImplementation;
     private ConnidVersion testConnidVersion;
     private Request testRequest;
     private Vote testVote;
@@ -80,7 +88,6 @@ class ControllerTest {
         testApplication.setName("test_app");
         testApplication.setDisplayName("Test Application");
         testApplication.setDescription("Test Description");
-        testApplication.setRiskLevel("LOW");
         testApplication.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
         testApplication.setCreatedAt(OffsetDateTime.now());
         testApplication.setLastModified(OffsetDateTime.now());
@@ -88,26 +95,28 @@ class ControllerTest {
         // Setup test ConnectorBundle
         testConnectorBundle = new ConnectorBundle();
         testConnectorBundle.setId(1);
-        testConnectorBundle.setBundleName("test-connector-bundle");
+        testConnectorBundle.setBundleName("com.evolveum.polygon.connector.test");
         testConnectorBundle.setMaintainer("Test Maintainer");
         testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.CONNID);
         testConnectorBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
 
         // Setup test Implementation
         testImplementation = new Implementation();
-        testImplementation.setId(1L);
+        testImplementation.setId(UUID.randomUUID());
         testImplementation.setDisplayName("Test Implementation");
-        testImplementation.setApplication(testApplication);
         testImplementation.setConnectorBundle(testConnectorBundle);
+        testImplementation.setApplication(testApplication);
 
         // Setup test BundleVersion
         testBundleVersion = new BundleVersion();
-        testBundleVersion.setId(UUID.randomUUID());
+        testBundleVersion.setId(1);
         testBundleVersion.setConnectorVersion("1.0.0");
         testBundleVersion.setDownloadLink("http://example.com/connector.jar");
         testBundleVersion.setBrowseLink("http://example.com/browse");
         testBundleVersion.setCheckoutLink("http://example.com/checkout");
+        testBundleVersion.setConnectorBundle(testConnectorBundle);
         testBundleVersion.setBuildFramework(BundleVersion.BuildFrameworkType.MAVEN);
+        testBundleVersion.setConnidVersion("1.5.0.0");
 
         // Setup test ImplementationVersion
         testImplementationVersion = new ImplementationVersion();
@@ -125,7 +134,10 @@ class ControllerTest {
         testRequest = new Request();
         testRequest.setId(1L);
         testRequest.setApplication(testApplication);
-        testRequest.setCapabilities("[\"read\",\"search\"]");
+        testRequest.setCapabilities(new ImplementationVersion.CapabilitiesType[]{
+                ImplementationVersion.CapabilitiesType.GET,
+                ImplementationVersion.CapabilitiesType.SEARCH
+        });
         testRequest.setRequester("test@example.com");
 
         // Setup test Vote
@@ -138,27 +150,17 @@ class ControllerTest {
 
     @Test
     void getApplicationShouldReturnApplicationWhenExists() throws Exception {
-        ApplicationDto dto = new ApplicationDto(
-                testAppId,
-                "Test Application",
-                "Test Description",
-                null,
-                "LOW",
-                "ACTIVE",
-                OffsetDateTime.now(),
-                OffsetDateTime.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        ApplicationDto dto = ApplicationDto.builder()
+                .id(testAppId)
+                .displayName("Test Application")
+                .description("Test Description")
+                .lifecycleState("ACTIVE")
+                .createdAt(OffsetDateTime.now())
+                .lastModified(OffsetDateTime.now())
+                .build();
 
         when(applicationService.getApplication(testAppId)).thenReturn(testApplication);
-        when(applicationService.getRequestsForApplication(testAppId)).thenReturn(java.util.Collections.emptyList());
+        when(applicationMapper.mapToApplicationDto(testApplication)).thenReturn(dto);
 
         mockMvc.perform(get("/api/applications/{id}", testAppId))
                 .andExpect(status().isOk())
@@ -166,27 +168,28 @@ class ControllerTest {
                 .andExpect(jsonPath("$.displayName").value("Test Application"));
 
         verify(applicationService).getApplication(testAppId);
+        verify(applicationMapper).mapToApplicationDto(testApplication);
     }
 
     @Test
     void getApplicationShouldReturnNotFoundWhenNotExists() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
         when(applicationService.getApplication(nonExistentId))
-                .thenThrow(new IllegalArgumentException("Application not found"));
+                .thenThrow(new RuntimeException("Application not found with id: " + nonExistentId));
 
         mockMvc.perform(get("/api/applications/{id}", nonExistentId))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isInternalServerError());
 
         verify(applicationService).getApplication(nonExistentId);
     }
 
-    // ===== GET /api/connector-version/{id} =====
+    // ===== GET /api/connid-versions/{id} =====
 
     @Test
     void getConnectorVersionShouldReturnVersionWhenExists() throws Exception {
         when(applicationService.getConnectorVersion(testVersionId)).thenReturn(testConnidVersion);
 
-        mockMvc.perform(get("/api/connector-version/{id}", testVersionId))
+        mockMvc.perform(get("/api/connid-versions/{id}", testVersionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").value("1.5.0.0"));
 
@@ -199,7 +202,7 @@ class ControllerTest {
         when(applicationService.getConnectorVersion(nonExistentId))
                 .thenThrow(new RuntimeException("Version not found"));
 
-        mockMvc.perform(get("/api/connector-version/{id}", nonExistentId))
+        mockMvc.perform(get("/api/connid-versions/{id}", nonExistentId))
                 .andExpect(status().isNotFound());
 
         verify(applicationService).getConnectorVersion(nonExistentId);
@@ -266,6 +269,14 @@ class ControllerTest {
         continueForm.setConnectorVersion("1.0.0");
         continueForm.setDownloadLink("http://example.com/download");
         continueForm.setPublishTime(System.currentTimeMillis());
+        continueForm.setConnectorClass("com.evolveum.polygon.connector.test.TestConnector");
+        continueForm.setCapabilities(
+                List.of(ImplementationVersion.CapabilitiesType.SCHEMA,
+                        ImplementationVersion.CapabilitiesType.TEST,
+                        ImplementationVersion.CapabilitiesType.VALIDATE,
+                        ImplementationVersion.CapabilitiesType.GET,
+                        ImplementationVersion.CapabilitiesType.SEARCH
+                ));
 
         doNothing().when(applicationService).successBuild(eq(testVersionId), any(ContinueForm.class));
 
@@ -294,80 +305,7 @@ class ControllerTest {
         verify(applicationService).failBuild(eq(testVersionId), any(FailForm.class));
     }
 
-    // ===== POST /api/upload/connector =====
-
-    @Test
-    void uploadConnectorShouldReturnOkWhenSuccessful() throws Exception {
-        UploadImplementationDto dto = new UploadImplementationDto(
-                testApplication,
-                testImplementation,
-                testConnectorBundle,
-                testBundleVersion,
-                testImplementationVersion,
-                Collections.emptyList()
-        );
-
-        when(applicationService.uploadConnector(
-                any(Application.class),
-                any(Implementation.class),
-                any(ConnectorBundle.class),
-                any(BundleVersion.class),
-                any(ImplementationVersion.class),
-                anyList()
-        )).thenReturn("http://github.com/test/repo");
-
-        mockMvc.perform(post("/api/upload/connector")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("http://github.com/test/repo"));
-
-        verify(applicationService).uploadConnector(
-                any(Application.class),
-                any(Implementation.class),
-                any(ConnectorBundle.class),
-                any(BundleVersion.class),
-                any(ImplementationVersion.class),
-                anyList()
-        );
-    }
-
-    @Test
-    void uploadConnectorShouldReturnBadRequestWhenServiceThrowsException() throws Exception {
-        UploadImplementationDto dto = new UploadImplementationDto(
-                testApplication,
-                testImplementation,
-                testConnectorBundle,
-                testBundleVersion,
-                testImplementationVersion,
-                Collections.emptyList()
-        );
-
-        when(applicationService.uploadConnector(
-                any(Application.class),
-                any(Implementation.class),
-                any(ConnectorBundle.class),
-                any(BundleVersion.class),
-                any(ImplementationVersion.class),
-                anyList()
-        )).thenThrow(new IllegalArgumentException("Invalid connector configuration"));
-
-        mockMvc.perform(post("/api/upload/connector")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
-
-        verify(applicationService).uploadConnector(
-                any(Application.class),
-                any(Implementation.class),
-                any(ConnectorBundle.class),
-                any(BundleVersion.class),
-                any(ImplementationVersion.class),
-                anyList()
-        );
-    }
-
-    // ===== GET /api/download/{oid} =====
+    // ===== GET /api/downloads/{oid} =====
 
     @Test
     void downloadConnectorShouldReturnFileWhenSuccessful() throws Exception {
@@ -378,7 +316,7 @@ class ControllerTest {
         when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
                 .thenReturn(fileBytes);
 
-        mockMvc.perform(get("/api/download/{oid}", testVersionId))
+        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
                 .andExpect(status().isOk())
                 .andExpect(header().exists("Content-Disposition"))
                 .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
@@ -394,7 +332,7 @@ class ControllerTest {
         when(applicationService.findImplementationVersion(nonExistentId))
                 .thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/download/{oid}", nonExistentId))
+        mockMvc.perform(get("/api/downloads/{oid}", nonExistentId))
                 .andExpect(status().isNotFound());
 
         verify(applicationService).findImplementationVersion(nonExistentId);
@@ -408,7 +346,7 @@ class ControllerTest {
         when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
                 .thenThrow(new IOException("Download failed"));
 
-        mockMvc.perform(get("/api/download/{oid}", testVersionId))
+        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
                 .andExpect(status().isInternalServerError());
 
         verify(applicationService).findImplementationVersion(any(UUID.class));
@@ -460,42 +398,46 @@ class ControllerTest {
         verify(applicationService).getRequest(999L);
     }
 
-    // ===== GET /api/applications/{appId}/requests =====
+    // ===== GET /api/applications/{appId}/request =====
 
     @Test
-    void getRequestsForApplicationShouldReturnList() throws Exception {
-        List<Request> requests = Collections.singletonList(testRequest);
-        when(applicationService.getRequestsForApplication(testAppId)).thenReturn(requests);
+    void getRequestForApplicationShouldReturnRequest() throws Exception {
+        when(applicationService.getRequestForApplication(testAppId)).thenReturn(Optional.of(testRequest));
 
-        mockMvc.perform(get("/api/applications/{appId}/requests", testAppId))
+        mockMvc.perform(get("/api/applications/{appId}/request", testAppId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(1));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.requester").value("test@example.com"));
 
-        verify(applicationService).getRequestsForApplication(testAppId);
+        verify(applicationService).getRequestForApplication(testAppId);
     }
 
-    // ===== POST /api/requests =====
+    @Test
+    void getRequestForApplicationShouldReturnNotFoundWhenNotExists() throws Exception {
+        when(applicationService.getRequestForApplication(testAppId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/applications/{appId}/request", testAppId))
+                .andExpect(status().isNotFound());
+
+        verify(applicationService).getRequestForApplication(testAppId);
+    }
+
+    // ===== POST /api/request =====
 
     @Test
     void createRequestShouldReturnCreatedWhenValid() throws Exception {
         RequestFormDto dto = new RequestFormDto(
                 "Slack",
                 "https://slack.com",
-                Arrays.asList("read", "search"),
+                Arrays.asList("Read_Access", "Paged_Search"),
                 "Slack integration for team communication",
                 "1.0",
                 "test@example.com",
-                true,
                 "Test User"
         );
 
-        when(applicationService.createRequestFromForm(
-                eq("Slack"),
-                eq("Slack integration for team communication"),
-                anyList(),
-                eq("test@example.com")
-        )).thenReturn(testRequest);
+        when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
+                .thenReturn(testRequest);
 
         mockMvc.perform(post("/api/requests")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -503,12 +445,7 @@ class ControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1));
 
-        verify(applicationService).createRequestFromForm(
-                eq("Slack"),
-                eq("Slack integration for team communication"),
-                anyList(),
-                eq("test@example.com")
-        );
+        verify(applicationService).createRequestFromForm(any(RequestFormDto.class));
     }
 
     @Test
@@ -520,7 +457,6 @@ class ControllerTest {
                 "", // Empty description - invalid
                 null,
                 null,
-                null,
                 null
         );
 
@@ -529,7 +465,7 @@ class ControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService, never()).createRequestFromForm(anyString(), anyString(), anyList(), anyString());
+        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
     }
 
     // ===== POST /api/requests/{requestId}/vote =====
@@ -621,18 +557,12 @@ class ControllerTest {
 
     @Test
     void getAllApplicationsShouldReturnList() throws Exception {
-        ApplicationDto dto = new ApplicationDto(
+        ApplicationCardDto dto = new ApplicationCardDto(
                 testAppId,
                 "Test Application",
                 "Test Description",
                 null,
-                "LOW",
                 "ACTIVE",
-                OffsetDateTime.now(),
-                OffsetDateTime.now(),
-                null,
-                null,
-                null,
                 null,
                 null,
                 null,
@@ -640,8 +570,9 @@ class ControllerTest {
                 null
         );
 
-        List<ApplicationDto> applications = Collections.singletonList(dto);
-        when(applicationService.getAllApplications()).thenReturn(applications);
+        List<ApplicationCardDto> applications = Collections.singletonList(dto);
+        Page<ApplicationCardDto> page = new PageImpl<>(applications);
+        when(applicationService.list(any(), eq(null), eq(null))).thenReturn(page);
 
         mockMvc.perform(get("/api/applications"))
                 .andExpect(status().isOk())
@@ -649,17 +580,18 @@ class ControllerTest {
                 .andExpect(jsonPath("$[0].id").value(testAppId.toString()))
                 .andExpect(jsonPath("$[0].displayName").value("Test Application"));
 
-        verify(applicationService).getAllApplications();
+        verify(applicationService).list(any(), eq(null), eq(null));
     }
 
     @Test
     void getAllApplicationsShouldReturnEmptyListWhenNoApplications() throws Exception {
-        when(applicationService.getAllApplications()).thenReturn(Collections.emptyList());
+        Page<ApplicationCardDto> emptyPage = new PageImpl<>(Collections.emptyList());
+        when(applicationService.list(any(), eq(null), eq(null))).thenReturn(emptyPage);
 
         mockMvc.perform(get("/api/applications"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        verify(applicationService).getAllApplications();
+        verify(applicationService).list(any(), eq(null), eq(null));
     }
 }

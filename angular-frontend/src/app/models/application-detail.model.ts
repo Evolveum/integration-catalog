@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
 export interface CountryOfOrigin {
   id: number;
   name: string;
@@ -28,7 +34,6 @@ export interface ApplicationDetail {
   displayName: string;
   description: string;
   logo: string;
-  riskLevel: string | null;
   lifecycleState: string;
   lastModified: string;
   createdAt: string | null;

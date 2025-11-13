@@ -1,13 +1,12 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
 
-import com.evolveum.midpoint.integration.catalog.utils.InetAddress;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -34,8 +33,6 @@ public class Download {
 
     @Column(name = "ip_address", columnDefinition = "Inet", nullable = false)
     private InetAddress ipAddress;
-//    @Column(name = "ip_address", columnDefinition = "varchar(45)", nullable = false)
-//    private String ipAddress;
 
     @Column(name = "user_agent", nullable = false)
     private String userAgent;
