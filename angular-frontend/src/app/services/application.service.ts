@@ -47,4 +47,8 @@ export class ApplicationService {
   submitRequest(request: any): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/requests`, request);
   }
+
+  getCapabilities(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/capabilities`);
+  }
 }

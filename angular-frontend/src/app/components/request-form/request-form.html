@@ -111,58 +111,28 @@
               @if (isCapabilitiesDropdownOpen()) {
                 <div class="position-absolute w-100 border rounded bg-white shadow-sm mt-1"
                      style="z-index: 1000; max-height: 300px; overflow-y: auto;">
-                  <div class="p-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-paged-search" (change)="onCapabilityChange($event, 'Paged Search')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Paged Search</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-live-sync" (change)="onCapabilityChange($event, 'Live Sync')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Live Sync</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-read-access" (change)="onCapabilityChange($event, 'Read Access')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Read Access</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-update-data" (change)="onCapabilityChange($event, 'Update Data')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Update Data</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-create-entry" (change)="onCapabilityChange($event, 'Create Entry')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Create Entry</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-test-connection" (change)="onCapabilityChange($event, 'Test Connection')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Test Connection</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-auxiliary-object-classes" (change)="onCapabilityChange($event, 'Auxiliary Object Classes')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Auxiliary Object Classes</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-script-execution" (change)="onCapabilityChange($event, 'Script Execution')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Script Execution</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-password-security" (change)="onCapabilityChange($event, 'Password Security')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>Password Security</span>
-                    </label>
-                    <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                      <input class="me-2" type="checkbox" id="capability-user-credentials" (change)="onCapabilityChange($event, 'User Credentials')"
-                             style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
-                      <span>User Credentials</span>
-                    </label>
-                  </div>
+                  @if (isLoadingCapabilities()) {
+                    <div class="p-3 text-center text-muted">
+                      <span>Loading capabilities...</span>
+                    </div>
+                  } @else if (availableCapabilities().length === 0) {
+                    <div class="p-3 text-center text-muted">
+                      <span>No capabilities available</span>
+                    </div>
+                  } @else {
+                    <div class="p-3" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                      @for (capability of availableCapabilities(); track capability) {
+                        <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
+                          <input class="me-2" type="checkbox"
+                                 [id]="'capability-' + capability.toLowerCase()"
+                                 (change)="onCapabilityChange($event, capability)"
+                                 [checked]="selectedCapabilities().includes(capability)"
+                                 style="width: 18px; height: 18px; cursor: pointer; flex-shrink: 0;">
+                          <span>{{ formatCapabilityName(capability) }}</span>
+                        </label>
+                      }
+                    </div>
+                  }
 
                   <!-- Close button -->
                   <div class="border-top p-2 text-end">

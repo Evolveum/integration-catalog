@@ -7,9 +7,11 @@
 package com.evolveum.midpoint.integration.catalog.object;
 
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
+import com.evolveum.midpoint.integration.catalog.repository.adapter.CapabilitiesArrayConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +35,9 @@ public class Request {
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @Column(name = "capabilities", columnDefinition = "capabilitiesType[]")
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
+    @Column(name = "capabilities")
     private CapabilitiesType[] capabilities;
 
     private String requester;

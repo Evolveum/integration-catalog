@@ -170,7 +170,15 @@ public class Controller {
         ImplementationVersion version = applicationService.findImplementationVersion(oid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
-        String filename = version.getDownloadLink().substring(version.getDownloadLink().lastIndexOf('/') + 1);
+        // Get download link from BundleVersion
+        String downloadLink = (version.getBundleVersion() != null) ?
+                version.getBundleVersion().getDownloadLink() : null;
+
+        if (downloadLink == null || downloadLink.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Download link not available");
+        }
+
+        String filename = downloadLink.substring(downloadLink.lastIndexOf('/') + 1);
         String ip = request.getRemoteAddr();
         String ua = request.getHeader("User-Agent");
 
@@ -333,5 +341,18 @@ public class Controller {
         // Use list method without pagination to get all applications as cards
         Page<ApplicationCardDto> page = applicationService.list(Pageable.unpaged(), null, null);
         return ResponseEntity.ok(page.getContent());
+    }
+
+    @Operation(summary = "Get available capabilities",
+            description = "Returns a list of all available capability types that can be used in requests")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Capabilities retrieved successfully")
+    })
+    @GetMapping("/capabilities")
+    public ResponseEntity<List<String>> getCapabilities() {
+        List<String> capabilities = java.util.Arrays.stream(ImplementationVersion.CapabilitiesType.values())
+                .map(Enum::name)
+                .toList();
+        return ResponseEntity.ok(capabilities);
     }
 }

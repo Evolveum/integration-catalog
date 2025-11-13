@@ -10,8 +10,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,18 +22,6 @@ import java.util.UUID;
 @Accessors(chain = true)
 public class Implementation {
 
-    public enum FrameworkType {
-        CONNID,
-        SCIM_REST
-    }
-
-    public enum LicenseType {
-        MIT,
-        APACHE_2,
-        BSD,
-        EUPL
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -43,23 +29,9 @@ public class Implementation {
     @Column(name = "display_name")
     private String displayName;
 
-    @Column(name = "connector_bundle")
-    private String connectorBundle;
-
-    private String maintainer;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "framework", columnDefinition = "frameworkType", nullable = false)
-    private FrameworkType framework;
-
-    @Column(name = "ticketing_system_link")
-    private String ticketingSystemLink;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "license", columnDefinition = "licenseType", nullable = false)
-    private LicenseType license;
+    @ManyToOne
+    @JoinColumn(name = "connector_bundle_id", nullable = false)
+    private ConnectorBundle connectorBundle;
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)
