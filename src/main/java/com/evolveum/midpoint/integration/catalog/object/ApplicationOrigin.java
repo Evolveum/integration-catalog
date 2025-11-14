@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
@@ -22,12 +21,8 @@ import java.util.UUID;
 public class ApplicationOrigin {
 
     @Id
-    @Column(name = "application_id")
-    private UUID applicationId;
-
-    @Id
-    @Column(name = "country_id")
-    private int countryId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)

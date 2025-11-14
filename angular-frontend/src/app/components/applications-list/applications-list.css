@@ -1,0 +1,17 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+
+/* All styling is handled by Bootstrap utility classes in the HTML template */
+/* Keep this file for future custom styles if needed */
+
+/* Hide scrollbar for featured apps section */
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.integration;
@@ -76,7 +75,12 @@ public class GithubClient {
 
     private void createTag(GHRepository repo, String sha, ImplementationVersion newVersion) {
 
-        String tagVersion = "v" + newVersion.getConnectorVersion();
+        if (newVersion.getBundleVersion() == null || newVersion.getBundleVersion().getConnectorVersion() == null) {
+            throw new IllegalArgumentException("Bundle version and connector version must not be null");
+        }
+
+        String connectorVersion = newVersion.getBundleVersion().getConnectorVersion();
+        String tagVersion = "v" + connectorVersion;
 
         try {
             GHTagObject tagObject = repo.createTag(tagVersion,

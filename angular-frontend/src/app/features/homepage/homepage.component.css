@@ -1,0 +1,124 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+
+/* Hero/Header */
+.hero {
+  border-radius: 12px;
+  margin: 16px;
+  background: linear-gradient(135deg, #1f2a44, #0b1321);
+  color: #fff;
+}
+.hero-content {
+  padding: 24px 16px;
+}
+.hero h2 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+.hero p { margin: 0 0 16px 0; color: #dbeafe; }
+.search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.search-row input[type="search"] {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.search-row button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 0;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+.search-row button:hover { filter: brightness(1.05); }
+
+/* Content */
+.content { padding: 16px; }
+.muted { color: #64748b; }
+.error { color: #b91c1c; }
+
+/* Cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.card:focus,
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+.logo-wrap {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.logo-wrap img {
+  max-height: 64px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.card-title {
+  margin: 4px 0 2px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.vendor {
+  margin: 0 0 8px 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+.desc {
+  margin: 0 0 10px 0;
+  color: #334155;
+  min-height: 2.6em; /* keep row heights more even */
+}
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* Pager */
+.pager {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+}
+.pager button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+}
+.pager button:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}

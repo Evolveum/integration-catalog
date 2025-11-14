@@ -1,0 +1,20 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+
+/* All styling is handled by Bootstrap utility classes in the HTML template */
+/* Keep this file for future custom styles if needed */
+
+/* Tab styling - all tabs have black text */
+.nav-tabs .nav-link {
+  color: #000 !important;
+}
+
+/* Active tab styling with blue top border and bold text */
+.nav-tabs .nav-link.active {
+  border-top: 3px solid #0d6efd !important;
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+  font-weight: bold;
+}

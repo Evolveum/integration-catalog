@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
@@ -11,8 +10,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,18 +22,6 @@ import java.util.UUID;
 @Accessors(chain = true)
 public class Implementation {
 
-    public enum FrameworkType {
-        CONNID,
-        SCIM_REST
-    }
-
-    public enum LicenseType {
-        MIT,
-        APACHE_2,
-        BSD,
-        EUPL
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -44,23 +29,9 @@ public class Implementation {
     @Column(name = "display_name")
     private String displayName;
 
-    @Column(name = "connector_bundle")
-    private String connectorBundle;
-
-    private String maintainer;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "FrameworkType")
-    private FrameworkType framework;
-
-    @Column(name = "ticketing_system_link")
-    private String ticketingSystemLink;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(columnDefinition = "LicenseType")
-    private LicenseType license;
+    @ManyToOne
+    @JoinColumn(name = "connector_bundle_id", nullable = false)
+    private ConnectorBundle connectorBundle;
 
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)

@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,18 +16,21 @@ import lombok.Setter;
  */
 @Entity
 @Table(name = "votes")
+@IdClass(VoteId.class)
 @Getter @Setter
 public class Vote {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Column(name = "request_id")
+    private Long requestId;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "request_id", nullable = false)
-    private Request request;
-
+    @Id
     @Column(name = "voter", nullable = false)
     private String voter;
+
+    @JsonIgnore
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id", nullable = false, insertable = false, updatable = false)
+    private Request request;
 }
 

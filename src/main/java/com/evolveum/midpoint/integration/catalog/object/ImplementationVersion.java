@@ -1,20 +1,20 @@
 /*
- * Copyright (C) 2010-2025 Evolveum and contributors
+ * Copyright (c) 2010-2025 Evolveum and contributors
  *
- * This work is dual-licensed under the Apache License 2.0
- * and European Union Public License. See LICENSE file for details.
+ * Licensed under the EUPL-1.2 or later.
  */
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.repository.adapter.CapabilitiesArrayConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,32 +29,52 @@ import java.util.UUID;
 @Accessors(chain = true)
 public class ImplementationVersion {
 
+//    public enum CapabilitiesType {
+//        CREATE("Create"),
+//        GET("Get"),
+//        UPDATE("Update"),
+//        DELETE("Delete"),
+//        TEST("Test"),
+//        SCRIPT_ON_CONNECTOR("ScriptOnConnector"),
+//        SCRIPT_ON_RESOURCE("ScriptOnResource"),
+//        AUTHENTICATION("Authentication"),
+//        SEARCH("Search"),
+//        VALIDATE("Validate"),
+//        SYNC("Sync"),
+//        LIVE_SYNC("LiveSync"),
+//        SCHEMA("Schema"),
+//        DISCOVER_CONFIGURATION("DiscoverConfiguration"),
+//        RESOLVE_USERNAME("ResolveUsername"),
+//        PARTIAL_SCHEMA("PartialSchema"),
+//        COMPLEX_UPDATE_DELTA("ComplexUpdateDelta"),
+//        UPDATE_DELTA("UpdateDelta");
+//
+//        public final String value;
+//
+//        CapabilitiesType(String value){
+//            this.value = value;
+//        }
+//    }
+
     public enum CapabilitiesType {
-        CREATE("Create"),
-        GET("Get"),
-        UPDATE("Update"),
-        DELETE("Delete"),
-        TEST("Test"),
-        SCRIPT_ON_CONNECTOR("ScriptOnConnector"),
-        SCRIPT_ON_RESOURCE("ScriptOnResource"),
-        AUTHENTICATION("Authentication"),
-        SEARCH("Search"),
-        VALIDATE("Validate"),
-        SYNC("Sync"),
-        LIVE_SYNC("LiveSync"),
-        SCHEMA("Schema"),
-        DISCOVER_CONFIGURATION("DiscoverConfiguration"),
-        RESOLVE_USERNAME("ResolveUsername"),
-        PARTIAL_SCHEMA("PartialSchema"),
-        COMPLEX_UPDATE_DELTA("ComplexUpdateDelta"),
-        UPDATE_DELTA("UpdateDelta");
-
-
-        public final String value;
-
-        CapabilitiesType(String value){
-            this.value = value;
-        }
+        CREATE,
+        GET,
+        UPDATE,
+        DELETE,
+        TEST,
+        SCRIPT_ON_CONNECTOR,
+        SCRIPT_ON_RESOURCE,
+        AUTHENTICATION,
+        SEARCH,
+        VALIDATE,
+        SYNC,
+        LIVE_SYNC,
+        SCHEMA,
+        DISCOVER_CONFIGURATION,
+        RESOLVE_USERNAME,
+        PARTIAL_SCHEMA,
+        COMPLEX_UPDATE_DELTA,
+        UPDATE_DELTA
     }
 
     public enum ImplementationVersionLifecycleType {
@@ -65,38 +85,23 @@ public class ImplementationVersion {
         WITH_ERROR
     }
 
-    public enum BuildFrameworkType {
-        MAVEN,
-        GRADLE
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     private String description;
 
-    @Column(name = "connector_version")
-    private String connectorVersion;
-
-    @Column(name = "browse_link")
-    private String browseLink;
-
-    @Column(name = "checkout_link")
-    private String checkoutLink;
-
-    @Column(name = "download_link")
-    private String downloadLink;
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
+    @Column(name = "capabilities")
+    private CapabilitiesType[] capabilities;
 
     @Column(name = "system_version")
     private String systemVersion;
 
     private String author;
 
-    @Column(name = "released_date")
-    private LocalDate releasedDate;
-
-    @Column(name = "publish_date", columnDefinition = "TIMESTAMPTZ")
+    @Column(name = "publish_date")
     private OffsetDateTime publishDate;
 
     @Enumerated(EnumType.STRING)
@@ -104,22 +109,18 @@ public class ImplementationVersion {
     @Column(name = "lifecycle_state", columnDefinition = "implementationVersionLifecycleType")
     private ImplementationVersionLifecycleType lifecycleState;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "build_framework", columnDefinition = "buildFrameworkType")
-    private BuildFrameworkType buildFramework;
-
-    @Column(name = "connid_version")
-    private String connidVersion;
-
     @ManyToOne
     @JoinColumn(name = "implementation_id", nullable = false)
     private Implementation implementation;
 
-    @Column(name = "error_message", columnDefinition = "TEXT")
-    private String errorMessage;
+    @ManyToOne
+    @JoinColumn(name = "bundle_version_id", nullable = false)
+    private BundleVersion bundleVersion;
 
-    //connection to Downloads
+    @Column(name = "class_name")
+    private String className;
+
+    //connection to Download
     @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)
     @OrderBy("downloadedAt DESC")
     private List<Download> downloads = new ArrayList<>();
