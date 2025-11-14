@@ -252,7 +252,7 @@ class ControllerTest {
         continueForm.setDownloadLink("http://example.com/download");
         continueForm.setPublishTime(System.currentTimeMillis());
         continueForm.setConnectorClass("com.evolveum.polygon.connector.test.TestConnector");
-        continueForm.setCapabilities(
+        continueForm.setCapability(
                 List.of(ImplementationVersion.CapabilitiesType.SCHEMA,
                         ImplementationVersion.CapabilitiesType.TEST,
                         ImplementationVersion.CapabilitiesType.VALIDATE,
