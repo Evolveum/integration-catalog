@@ -4,16 +4,11 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, Output, EventEmitter, Input } from '@angular/core';
+import { Component, signal, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-interface ExistingImplementation {
-  id: string;
-  name: string;
-  description: string;
-  publishedDate: string;
-}
+import { ApplicationService } from '../../services/application.service';
+import { ImplementationListItem } from '../../models/implementation-list-item.model';
 
 @Component({
   selector: 'app-upload-form-impl',
@@ -22,7 +17,7 @@ interface ExistingImplementation {
   templateUrl: './upload-form-impl.html',
   styleUrls: ['./upload-form-impl.css']
 })
-export class UploadFormImpl {
+export class UploadFormImpl implements OnChanges {
   // Input from parent
   @Input() connectorType = signal<string>('');
   @Input() applicationId: string | null = null;
@@ -35,7 +30,10 @@ export class UploadFormImpl {
   protected readonly isNewVersion = signal<boolean | null>(true); // Preselect "Yes"
 
   // Step 3b: If new version, select existing implementation
-  protected readonly selectedImplementation = signal<ExistingImplementation | null>(null);
+  protected readonly selectedImplementation = signal<ImplementationListItem | null>(null);
+
+  // Track if user is in editing mode (after selecting implementation and clicking Select)
+  protected readonly isEditingVersion = signal<boolean>(false);
 
   // Step 3c: If new implementation, form fields
   protected readonly displayName = signal<string>('');
@@ -48,33 +46,45 @@ export class UploadFormImpl {
   protected readonly checkoutLink = signal<string>('');
   protected readonly pathToProjectDirectory = signal<string>('');
 
+  // File upload for evolveum-hosted low-code connectors
+  protected readonly uploadedFile = signal<File | null>(null);
+  protected readonly uploadedFileName = signal<string>('');
+
   // Available options for dropdowns (from backend enum LicenseType)
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
   protected readonly maintainerOptions: string[] = []; // Empty for now
 
-  // Mock data for existing implementations - TODO: Replace with actual service call
-  protected readonly existingImplementations = signal<ExistingImplementation[]>([
-    {
-      id: '1',
-      name: 'SCIM Connector',
-      description: 'The future of shared documents. Power your brand\'s communication across departments with seamless permissions and real-time updates.',
-      publishedDate: 'Sep 20, 2025'
-    },
-    {
-      id: '2',
-      name: 'Nimbus Sync Connector',
-      description: 'The future of shared documents. Power your brand\'s communication across departments with seamless permissions and real-time updates.',
-      publishedDate: 'Sep 20, 2025'
-    },
-    {
-      id: '3',
-      name: 'LDAP/AD',
-      description: 'The future of shared documents. Power your brand\'s communication across departments with seamless permissions and real-time updates.',
-      publishedDate: 'Sep 20, 2025'
-    }
-  ]);
+  // Existing implementations loaded from backend
+  protected readonly existingImplementations = signal<ImplementationListItem[]>([]);
+  protected readonly isLoadingImplementations = signal<boolean>(false);
 
-  constructor() {}
+  constructor(private applicationService: ApplicationService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Load implementations when applicationId changes
+    if (changes['applicationId'] && this.applicationId) {
+      this.loadImplementations();
+    }
+  }
+
+  private loadImplementations(): void {
+    if (!this.applicationId) {
+      return;
+    }
+
+    this.isLoadingImplementations.set(true);
+    this.applicationService.getImplementationsByApplicationId(this.applicationId).subscribe({
+      next: (implementations) => {
+        this.existingImplementations.set(implementations);
+        this.isLoadingImplementations.set(false);
+      },
+      error: (error) => {
+        console.error('Failed to load implementations:', error);
+        this.existingImplementations.set([]);
+        this.isLoadingImplementations.set(false);
+      }
+    });
+  }
 
   protected selectNewVersion(): void {
     this.isNewVersion.set(true);
@@ -87,28 +97,118 @@ export class UploadFormImpl {
     this.updateFormValidity();
   }
 
-  protected selectImplementation(impl: ExistingImplementation): void {
+  protected selectImplementation(impl: ImplementationListItem): void {
     this.selectedImplementation.set(impl);
     this.updateFormValidity();
   }
 
+  public confirmImplementationSelection(): void {
+    const impl = this.selectedImplementation();
+    if (!impl) return;
+
+    // Enter editing mode and populate form fields
+    this.isEditingVersion.set(true);
+
+    // Populate all fields from the selected implementation
+    this.displayName.set(impl.displayName);
+    this.maintainer.set(impl.maintainer);
+
+    // Add maintainer to options if not already present
+    if (impl.maintainer && !this.maintainerOptions.includes(impl.maintainer)) {
+      this.maintainerOptions.push(impl.maintainer);
+    }
+
+    this.licenseType.set(impl.licenseType);
+    this.implementationDescription.set(impl.implementationDescription);
+    this.browseLink.set(impl.browseLink);
+    this.ticketingLink.set(impl.ticketingLink);
+
+    // Transform build framework from uppercase (MAVEN/GRADLE) to capitalized (Maven/Gradle)
+    const buildFramework = impl.buildFramework ?
+      impl.buildFramework.charAt(0).toUpperCase() + impl.buildFramework.slice(1).toLowerCase()
+      : '';
+    this.buildFramework.set(buildFramework);
+
+    this.checkoutLink.set(impl.checkoutLink);
+    this.pathToProjectDirectory.set(impl.pathToProjectDirectory);
+
+    this.updateFormValidity();
+  }
+
+  public cancelEditing(): void {
+    // Exit editing mode and go back to implementation selection
+    this.isEditingVersion.set(false);
+
+    // Clear form fields
+    this.displayName.set('');
+    this.maintainer.set('');
+    this.licenseType.set('');
+    this.implementationDescription.set('');
+    this.browseLink.set('');
+    this.ticketingLink.set('');
+    this.buildFramework.set('');
+    this.checkoutLink.set('');
+    this.pathToProjectDirectory.set('');
+    this.uploadedFile.set(null);
+    this.uploadedFileName.set('');
+
+    this.updateFormValidity();
+  }
+
+  protected onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.uploadedFile.set(file);
+      this.uploadedFileName.set(file.name);
+      this.updateFormValidity();
+    }
+  }
+
+  protected triggerFileInput(): void {
+    const fileInput = document.getElementById('fileUpload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
   private updateFormValidity(): void {
     let isValid = false;
+    const isEvolveumHosted = this.connectorType() === 'evolveum-hosted';
 
-    if (this.isNewVersion() === false) {
-      // Creating new implementation - validate required fields:
-      // Display Name, License Type, Implementation Description, Build Framework are REQUIRED
-      isValid = this.displayName().trim() !== '' &&
-                this.licenseType().trim() !== '' &&
-                this.implementationDescription().trim() !== '' &&
-                this.buildFramework().trim() !== '';
-    } else if (this.isNewVersion() === true && this.selectedImplementation() !== null) {
+    if (this.isEditingVersion()) {
+      // Editing a version - validate required editable fields
+      if (isEvolveumHosted) {
+        // For evolveum-hosted: Implementation Description and File are REQUIRED
+        isValid = this.implementationDescription().trim() !== '' &&
+                  this.uploadedFile() !== null;
+      } else {
+        // For others: Implementation Description and Build Framework are REQUIRED
+        isValid = this.implementationDescription().trim() !== '' &&
+                  this.buildFramework().trim() !== '';
+      }
+    } else if (this.isNewVersion() === false) {
+      // Creating new implementation - validate required fields
+      if (isEvolveumHosted) {
+        // For evolveum-hosted: Display Name, Implementation Description, File are REQUIRED
+        isValid = this.displayName().trim() !== '' &&
+                  this.implementationDescription().trim() !== '' &&
+                  this.uploadedFile() !== null;
+      } else {
+        // For others: Display Name, License Type, Implementation Description, Build Framework are REQUIRED
+        isValid = this.displayName().trim() !== '' &&
+                  this.licenseType().trim() !== '' &&
+                  this.implementationDescription().trim() !== '' &&
+                  this.buildFramework().trim() !== '';
+      }
+    } else if (this.isNewVersion() === true && this.selectedImplementation() !== null && !this.isEditingVersion()) {
       // Adding new version - valid when implementation selected
       isValid = true;
     }
 
     const formData = {
       isNewVersion: this.isNewVersion(),
+      isEditingVersion: this.isEditingVersion(),
       selectedImplementation: this.selectedImplementation(),
       newImplementation: {
         displayName: this.displayName(),

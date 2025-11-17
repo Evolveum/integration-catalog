@@ -355,4 +355,21 @@ public class Controller {
                 .toList();
         return ResponseEntity.ok(capabilities);
     }
+
+    @Operation(summary = "Get implementations for application",
+            description = "Returns all implementations for a specific application")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Implementations retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Application not found")
+    })
+    @GetMapping("/applications/{applicationId}/implementations")
+    public ResponseEntity<List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto>> getImplementationsByApplicationId(@PathVariable UUID applicationId) {
+        try {
+            List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto> implementations =
+                    applicationService.getImplementationsByApplicationId(applicationId);
+            return ResponseEntity.ok(implementations);
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to load implementations: " + ex.getMessage());
+        }
+    }
 }

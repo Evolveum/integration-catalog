@@ -654,4 +654,32 @@ public class ApplicationService {
                 voteCount
         );
     }
+
+    /**
+     * Get implementations for a specific application.
+     * Fetches the latest implementation version for each implementation.
+     *
+     * @param applicationId the application UUID
+     * @return list of implementation DTOs with data from multiple tables
+     */
+    public List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto> getImplementationsByApplicationId(UUID applicationId) {
+        List<Implementation> implementations = implementationRepository.findByApplicationId(applicationId);
+
+        return implementations.stream()
+                .map(impl -> {
+                    // Get the latest published implementation version
+                    ImplementationVersion latestVersion = impl.getImplementationVersions().stream()
+                            .filter(v -> v.getLifecycleState() == ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE)
+                            .max((v1, v2) -> v1.getPublishDate().compareTo(v2.getPublishDate()))
+                            .orElse(null);
+
+                    if (latestVersion == null) {
+                        return null; // Skip implementations without active versions
+                    }
+
+                    return applicationMapper.mapToImplementationListItemDto(impl, latestVersion);
+                })
+                .filter(dto -> dto != null) // Remove null entries (implementations without active versions)
+                .toList();
+    }
 }

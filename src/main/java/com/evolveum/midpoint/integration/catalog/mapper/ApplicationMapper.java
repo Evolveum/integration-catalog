@@ -9,10 +9,14 @@ package com.evolveum.midpoint.integration.catalog.mapper;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
+import com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationApplicationTag;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
+import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
+import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
+import com.evolveum.midpoint.integration.catalog.object.Implementation;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 import com.evolveum.midpoint.integration.catalog.object.Request;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
@@ -219,5 +223,38 @@ public class ApplicationMapper {
                 .requestId(requestId)
                 .voteCount(voteCount)
                 .build();
+    }
+
+    /**
+     * Maps Implementation with its latest version to ImplementationListItemDto
+     * @param impl Implementation entity
+     * @param latestVersion Latest ImplementationVersion for this implementation
+     * @return ImplementationListItemDto
+     */
+    public ImplementationListItemDto mapToImplementationListItemDto(Implementation impl, ImplementationVersion latestVersion) {
+        ConnectorBundle bundle = impl.getConnectorBundle();
+        BundleVersion bundleVersion = latestVersion.getBundleVersion();
+
+        // Format publish date as DD.MM.YYYY
+        String publishedDate = latestVersion.getPublishDate() != null
+                ? latestVersion.getPublishDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                : "";
+
+        return new ImplementationListItemDto(
+                impl.getId(),
+                impl.getDisplayName(),                                    // name (for list display)
+                latestVersion.getDescription(),                          // description (for list display)
+                publishedDate,                                           // publishedDate
+                bundleVersion.getConnectorVersion(),                     // version
+                impl.getDisplayName(),                                   // displayName
+                bundle.getMaintainer(),                                  // maintainer
+                bundle.getLicense().name(),                              // licenseType
+                latestVersion.getDescription(),                          // implementationDescription
+                bundleVersion.getBrowseLink(),                           // browseLink
+                bundle.getTicketingSystemLink(),                         // ticketingLink
+                bundleVersion.getBuildFramework().name(),                // buildFramework
+                bundleVersion.getCheckoutLink(),                         // checkoutLink
+                bundleVersion.getPathToProject()                         // pathToProjectDirectory
+        );
     }
 }

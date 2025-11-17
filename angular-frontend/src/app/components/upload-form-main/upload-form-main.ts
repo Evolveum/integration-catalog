@@ -1,4 +1,4 @@
-import { Component, signal, Output, EventEmitter, Input, computed, OnInit } from '@angular/core';
+import { Component, signal, Output, EventEmitter, Input, computed, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -17,6 +17,8 @@ export class UploadFormMain implements OnInit {
   @Input() isOpen = signal<boolean>(false);
   @Input() applications = signal<Application[]>([]);
   @Output() modalClosed = new EventEmitter<void>();
+
+  @ViewChild(UploadFormImpl) uploadFormImpl!: UploadFormImpl;
 
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('evolveum-hosted');
@@ -347,6 +349,31 @@ export class UploadFormMain implements OnInit {
 
   protected onImplementationFormValidChange(isValid: boolean): void {
     this.isImplementationFormValid.set(isValid);
+  }
+
+  protected handleImplementationAction(): void {
+    const formData = this.implementationFormData();
+
+    // If selecting an existing implementation (isNewVersion = true and not editing yet)
+    if (formData?.isNewVersion === true && formData?.selectedImplementation && this.uploadFormImpl) {
+      this.uploadFormImpl.confirmImplementationSelection();
+    } else {
+      // Handle publish action for new implementation
+      // TODO: Implement publish logic
+      console.log('Publishing to catalog...');
+    }
+  }
+
+  protected handleBackFromImplementation(): void {
+    const formData = this.implementationFormData();
+
+    // If in editing mode, go back to implementation selection
+    if (formData?.isEditingVersion && this.uploadFormImpl) {
+      this.uploadFormImpl.cancelEditing();
+    } else {
+      // Otherwise, go back to previous step
+      this.previousStep();
+    }
   }
 
   private resetForm(): void {
