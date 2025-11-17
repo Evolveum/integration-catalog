@@ -21,7 +21,7 @@ export class UploadFormMain implements OnInit {
   @ViewChild(UploadFormImpl) uploadFormImpl!: UploadFormImpl;
 
   protected readonly currentStep = signal<number>(1);
-  protected readonly selectedConnectorType = signal<string>('evolveum-hosted');
+  protected readonly selectedConnectorType = signal<string>('');
   protected readonly searchQuery = signal<string>('');
   protected readonly selectedApplication = signal<Application | null>(null);
   protected readonly isDefineNewMode = signal<boolean>(false);
