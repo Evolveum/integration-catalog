@@ -1,16 +1,19 @@
-import { Component, signal, Output, EventEmitter, Input, computed } from '@angular/core';
+import { Component, signal, Output, EventEmitter, Input, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
+import { CountryService, Country } from '../../services/country.service';
+import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
 
 @Component({
   selector: 'app-upload-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl],
   templateUrl: './upload-form-main.html',
   styleUrls: ['./upload-form-main.css']
 })
-export class UploadFormMain {
+export class UploadFormMain implements OnInit {
   @Input() isOpen = signal<boolean>(false);
   @Input() applications = signal<Application[]>([]);
   @Output() modalClosed = new EventEmitter<void>();
@@ -31,16 +34,21 @@ export class UploadFormMain {
   protected readonly category = signal<string>('');
   protected readonly deploymentType = signal<string>('on-premise');
 
-  protected activeApplications = computed(() => {
-    return this.applications().filter(app => app.lifecycleState === 'ACTIVE');
-  });
+  // Countries from REST API
+  protected readonly allCountries = signal<Country[]>([]);
+  protected readonly selectedCountriesModel = signal<Country[]>([]);
+  protected readonly isLoadingCountries = signal<boolean>(true);
+
+  // Step 3 - Implementation form data
+  protected readonly implementationFormData = signal<any>(null);
+  protected readonly isImplementationFormValid = signal<boolean>(false);
 
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) {
       return [];
     }
-    return this.activeApplications().filter(app =>
+    return this.applications().filter(app =>
       app.displayName.toLowerCase().includes(query) ||
       app.description.toLowerCase().includes(query)
     );
@@ -64,22 +72,10 @@ export class UploadFormMain {
   });
 
   protected availableCountries = computed(() => {
-    // Get unique countries from all applications
-    const countriesMap = new Map<string, string>();
-    this.applications().forEach(app => {
-      if (app.origins) {
-        app.origins.forEach(origin => {
-          countriesMap.set(origin.name, origin.displayName);
-        });
-      }
-    });
-
     // Filter out countries that are already selected
     const selectedOrigins = this.origins();
-    return Array.from(countriesMap.entries())
-      .map(([name, displayName]) => displayName)
-      .filter(country => !selectedOrigins.includes(country))
-      .sort();
+    return this.allCountries()
+      .filter(country => !selectedOrigins.includes(country.name));
   });
 
   protected deploymentOptions = computed(() => {
@@ -125,7 +121,23 @@ export class UploadFormMain {
 
   protected readonly showOriginDropdown = signal<boolean>(false);
 
-  constructor() {}
+  constructor(private countryService: CountryService) {}
+
+  ngOnInit(): void {
+    // Fetch all countries from REST Countries API
+    this.countryService.getAllCountries().subscribe({
+      next: (countries) => {
+        this.allCountries.set(countries);
+        this.isLoadingCountries.set(false);
+      },
+      error: (error) => {
+        console.error('Failed to fetch countries from REST API:', error);
+        this.isLoadingCountries.set(false);
+        // Fallback to empty array if API fails
+        this.allCountries.set([]);
+      }
+    });
+  }
 
   protected closeModal(): void {
     this.modalClosed.emit();
@@ -156,9 +168,50 @@ export class UploadFormMain {
 
     // Populate origins from CountryOfOrigin objects
     if (app.origins) {
-      const countries = app.origins.map(origin => origin.displayName);
-      this.origins.set(countries);
-      this.loadedOrigins.set(countries); // Track which origins were loaded
+      const selectedCountries: Country[] = [];
+      const countryNamesForBadges: string[] = [];
+
+      app.origins.forEach(origin => {
+        // Extract country name from displayName (e.g., "Austria, Europe" -> "Austria")
+        const countryNamePart = origin.displayName.split(',')[0].trim();
+
+        // Try to match by the extracted country name (case-insensitive)
+        let matchedCountry = this.allCountries().find(c =>
+          c.name.toLowerCase() === countryNamePart.toLowerCase()
+        );
+
+        // If not found, try matching against the lowercase 'name' field from DB
+        if (!matchedCountry) {
+          matchedCountry = this.allCountries().find(c =>
+            c.name.toLowerCase() === origin.name.toLowerCase()
+          );
+        }
+
+        // If still not found, try partial match
+        if (!matchedCountry) {
+          matchedCountry = this.allCountries().find(c =>
+            c.name.toLowerCase().includes(countryNamePart.toLowerCase()) ||
+            countryNamePart.toLowerCase().includes(c.name.toLowerCase())
+          );
+        }
+
+        if (matchedCountry) {
+          selectedCountries.push(matchedCountry);
+          countryNamesForBadges.push(matchedCountry.name);
+        } else {
+          // Create a custom Country object for non-matched entries (like states, custom locations, etc.)
+          const customCountry: Country = {
+            name: origin.displayName,
+            code: origin.name.toUpperCase()
+          };
+          selectedCountries.push(customCountry);
+          countryNamesForBadges.push(origin.displayName);
+        }
+      });
+
+      this.origins.set(countryNamesForBadges);
+      this.loadedOrigins.set(countryNamesForBadges); // Track which origins were loaded
+      this.selectedCountriesModel.set(selectedCountries);
     }
 
     // Populate category from categories array (same as application-detail)
@@ -228,6 +281,7 @@ export class UploadFormMain {
     this.logoFile.set(null);
     this.origins.set([]);
     this.loadedOrigins.set([]);
+    this.selectedCountriesModel.set([]);
     this.category.set('');
     this.deploymentType.set('on-premise');
     this.showOriginDropdown.set(false);
@@ -258,14 +312,20 @@ export class UploadFormMain {
     this.showOriginDropdown.update(show => !show);
   }
 
-  protected addOriginFromDropdown(country: string): void {
-    if (country && !this.origins().includes(country)) {
-      this.origins.update(origins => [...origins, country]);
+  protected addOriginFromDropdown(country: Country): void {
+    if (country && !this.origins().includes(country.name)) {
+      this.origins.update(origins => [...origins, country.name]);
     }
   }
 
   protected removeOrigin(origin: string): void {
     this.origins.update(origins => origins.filter(o => o !== origin));
+  }
+
+  // Handle changes from ng-select
+  protected onCountriesChange(countries: Country[]): void {
+    this.selectedCountriesModel.set(countries);
+    this.origins.set(countries.map(c => c.name));
   }
 
   protected isOriginDismissible(origin: string): boolean {
@@ -280,6 +340,15 @@ export class UploadFormMain {
     }
   }
 
+  // Handle implementation form events
+  protected onImplementationFormDataChange(data: any): void {
+    this.implementationFormData.set(data);
+  }
+
+  protected onImplementationFormValidChange(isValid: boolean): void {
+    this.isImplementationFormValid.set(isValid);
+  }
+
   private resetForm(): void {
     this.currentStep.set(1);
     this.selectedConnectorType.set('evolveum-hosted');
@@ -292,6 +361,7 @@ export class UploadFormMain {
     this.logoFile.set(null);
     this.origins.set([]);
     this.loadedOrigins.set([]);
+    this.selectedCountriesModel.set([]);
     this.category.set('');
     this.deploymentType.set('on-premise');
     this.showOriginDropdown.set(false);

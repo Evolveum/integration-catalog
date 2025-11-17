@@ -1,0 +1,251 @@
+<div class="step-content">
+  <!-- Question: New version or new implementation? -->
+  <h6 class="mb-4" style="font-size: 1rem; font-weight: 500; color: #212529;">
+    Are you adding a new version of an existing implementation?
+  </h6>
+
+  <!-- Segmented control with outer border -->
+  <div class="toggle-container mb-4">
+    <div class="d-grid" style="grid-template-columns: 1fr 1fr;">
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="isNewVersion() === true"
+        (click)="selectNewVersion()">
+        Yes
+      </button>
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="isNewVersion() === false"
+        (click)="selectNewImplementation()">
+        No → I'm creating a new implementation
+      </button>
+    </div>
+  </div>
+
+  <!-- Show existing implementations list when "Yes" is selected -->
+  @if (isNewVersion() === true) {
+    <div>
+      <h6 class="mb-3 text-center" style="font-size: 0.875rem; font-weight: 600; color: #6c757d; letter-spacing: 0.5px;">
+        CHOOSE FROM EXISTING IMPLEMENTATIONS
+      </h6>
+
+      <!-- List of existing implementations -->
+      <div class="implementations-list">
+        @for (impl of existingImplementations(); track impl.id) {
+          <div
+            class="implementation-card"
+            [class.selected]="selectedImplementation()?.id === impl.id"
+            (click)="selectImplementation(impl)">
+            <div class="d-flex align-items-center">
+              <!-- Radio button -->
+              <div class="form-check me-3">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="implementation"
+                  [checked]="selectedImplementation()?.id === impl.id"
+                  [id]="'impl-' + impl.id"
+                  style="width: 20px; height: 20px; cursor: pointer;">
+              </div>
+
+              <!-- Content -->
+              <div class="flex-grow-1">
+                <h6 class="mb-2" style="font-size: 1rem; font-weight: 600; color: #212529;">
+                  {{ impl.name }}
+                </h6>
+                <p class="mb-2" style="font-size: 0.875rem; color: #6c757d; line-height: 1.5;">
+                  {{ impl.description }}
+                </p>
+                <p class="mb-0" style="font-size: 0.8125rem; color: #adb5bd;">
+                  Published: {{ impl.publishedDate }}
+                </p>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Show form when "No" is selected (creating new implementation) -->
+  @if (isNewVersion() === false) {
+    <div class="new-implementation-form">
+      <!-- Row 1: Display Name and Maintainer -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+            Display Name
+            <span class="text-danger ms-1">*</span>
+            <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+              </svg>
+              <span class="info-tooltip">Display name for the implementation.</span>
+            </span>
+          </label>
+          <input type="text" class="form-control" [(ngModel)]="displayName" (ngModelChange)="onFieldChange()" placeholder="">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+            Maintainer
+            <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+              </svg>
+              <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
+            </span>
+          </label>
+          <select class="form-select" [(ngModel)]="maintainer" (ngModelChange)="onFieldChange()">
+            <option value="">Select maintainer...</option>
+            @for (option of maintainerOptions; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 2: License Type -->
+      <div class="mb-3">
+        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+          License Type
+          <span class="text-danger ms-1">*</span>
+          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+            </svg>
+            <span class="info-tooltip">Select the license under which the connector is distributed.</span>
+          </span>
+        </label>
+        <select class="form-select" [(ngModel)]="licenseType" (ngModelChange)="onFieldChange()" style="max-width: 300px;">
+          <option value="">Select license...</option>
+          @for (option of licenseOptions; track option) {
+            <option [value]="option">{{ option }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Row 3: Implementation Description -->
+      <div class="mb-4">
+        <label class="form-label" style="font-weight: 600; font-size: 0.875rem;">
+          Implementation description
+          <span class="text-danger ms-1">*</span>
+        </label>
+        <textarea class="form-control" [(ngModel)]="implementationDescription" (ngModelChange)="onFieldChange()" rows="4" maxlength="300" placeholder="Type description..."></textarea>
+        <div class="text-end text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
+          {{ implementationDescription().length }}/300 characters
+        </div>
+      </div>
+
+      <!-- Metadata Section -->
+      <h6 class="mb-3" style="font-weight: 600; font-size: 0.9375rem;">Metadata</h6>
+
+      <!-- Browse Link -->
+      <div class="mb-3">
+        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+          Browse Link
+          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+            </svg>
+            <span class="info-tooltip">Link to browse the connector source code (e.g. GitHub, GitLab repository).</span>
+          </span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <input type="url" class="form-control" [(ngModel)]="browseLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
+        </div>
+      </div>
+
+      <!-- Link on Ticketing System -->
+      <div class="mb-4">
+        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+          Link on Ticketing System
+          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+            </svg>
+            <span class="info-tooltip">URL to the issue or task in your ticketing system related to this connector.</span>
+          </span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <input type="url" class="form-control" [(ngModel)]="ticketingLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
+        </div>
+      </div>
+
+      <!-- Build metadata Section -->
+      <h6 class="mb-3" style="font-weight: 600; font-size: 0.9375rem;">Build metadata</h6>
+
+      <!-- Build Framework Selection -->
+      <div class="mb-3">
+        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+          Build Framework Selection
+          <span class="text-danger ms-1">*</span>
+          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+            </svg>
+            <span class="info-tooltip">Choose the tool used to build the connector project (e.g. Maven, Gradle).</span>
+          </span>
+        </label>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="buildFramework" id="maven" value="Maven" [(ngModel)]="buildFramework" (ngModelChange)="onFieldChange()">
+            <label class="form-check-label" for="maven">Maven</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="buildFramework" id="gradle" value="Gradle" [(ngModel)]="buildFramework" (ngModelChange)="onFieldChange()">
+            <label class="form-check-label" for="gradle">Gradle</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checkout Link -->
+      <div class="mb-3">
+        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+          Checkout Link
+          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+            </svg>
+            <span class="info-tooltip">Local file system path where the connector project is stored.</span>
+          </span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <input type="text" class="form-control" [(ngModel)]="checkoutLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
+        </div>
+      </div>
+
+      <!-- Path to Project Directory -->
+      <div class="mb-4">
+        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+          Path to Project Directory
+          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+            </svg>
+            <span class="info-tooltip">Direct link to clone or download the connector repository.</span>
+          </span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <input type="text" class="form-control" [(ngModel)]="pathToProjectDirectory" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div class="alert d-flex align-items-start" style="background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; padding: 0.75rem 1rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0c5460" class="me-2 flex-shrink-0" viewBox="0 0 16 16" style="margin-top: 2px;">
+          <circle cx="8" cy="8" r="8" fill="#0c5460"/>
+          <text x="8" y="12" text-anchor="middle" fill="white" font-size="12" font-weight="bold">i</text>
+        </svg>
+        <div style="color: #0c5460; font-size: 0.875rem;">
+          <strong>Note:</strong> After upload, automated validation will run before the app appears in the catalog.
+        </div>
+      </div>
+    </div>
+  }
+</div>
