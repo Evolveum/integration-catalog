@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -73,6 +74,13 @@ public class Application {
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationOrigin> applicationOrigins;
+
+    // Transient fields for receiving data from frontend (not persisted to database)
+    @Transient
+    private List<String> origins; // Country names from frontend
+
+    @Transient
+    private List<ApplicationTagDto> tags; // Tag DTOs from frontend
 
     public Application addImplementation(Implementation implementation) {
         if (implementations == null) {

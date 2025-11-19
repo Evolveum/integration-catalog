@@ -22,11 +22,11 @@ INSERT INTO public.application_tag (id, name, display_name, tag_type) VALUES
   (11, 'internal_applications',            'Internal Applications',            'CATEGORY');
 
 INSERT INTO public.country_of_origin (id, name, display_name) VALUES
-  (1, 'austria',  'Austria, Europe'),
-  (2, 'france',   'France, EU'),
-  (3, 'cambodia', 'Cambodia, Asia'),
-  (4, 'croatia',  'Croatia, EU'),
-  (5, 'illinois', 'Illinoins, USA');
+  (1, 'austria',  'Austria'),
+  (2, 'france',   'France'),
+  (3, 'cambodia', 'Cambodia'),
+  (4, 'croatia',  'Croatia'),
+  (5, 'usa', 'USA');
 
 INSERT INTO public.connid_version (version, midpoint_version) VALUES
   ('1.1.0.0', '4.1.0,4.1.1'),

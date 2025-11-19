@@ -41,6 +41,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -102,6 +103,8 @@ public class ApplicationService {
                               CountryOfOriginRepository countryOfOriginRepository,
                               ImplementationRepository implementationRepository,
                               ImplementationVersionRepository implementationVersionRepository,
+                              ConnectorBundleRepository connectorBundleRepository,
+                              BundleVersionRepository bundleVersionRepository,
                               ConnidVersionRepository connidVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
@@ -109,13 +112,15 @@ public class ApplicationService {
                               RequestRepository requestRepository,
                               VoteRepository voteRepository,
                               ApplicationReadPort applicationReadPort,
-                              ApplicationMapper applicationMapper, BundleVersionRepository bundleVersionRepository, ConnectorBundleRepository connectorBundleRepository
+                              ApplicationMapper applicationMapper
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
         this.implementationRepository = implementationRepository;
         this.implementationVersionRepository = implementationVersionRepository;
+        this.connectorBundleRepository = connectorBundleRepository;
+        this.bundleVersionRepository = bundleVersionRepository;
         this.connidVersionRepository = connidVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
@@ -124,8 +129,6 @@ public class ApplicationService {
         this.voteRepository = voteRepository;
         this.applicationReadPort = applicationReadPort;
         this.applicationMapper = applicationMapper;
-        this.bundleVersionRepository = bundleVersionRepository;
-        this.connectorBundleRepository = connectorBundleRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -172,27 +175,76 @@ public class ApplicationService {
      * @param dto UploadImplementationDto containing application, implementation, implementationVersion, and files
      * @return
      */
-    public String uploadConnector(UploadImplementationDto dto) {
+    public String uploadConnector(UploadImplementationDto dto, String username) {
         Application application = dto.application();
         ImplementationDTO implementationDto = dto.implementation();
         Implementation implementation = new Implementation();
-
         implementation.setDisplayName(implementationDto.displayName());
         List<ItemFile> files = dto.files();
+
+        boolean isNewVersionOfExistingImplementation = false;
+        boolean isNewApplication = (application.getId() == null);
+        Implementation existingImplementation = null;
+
+        // Get origins and tags from the application DTO
+        // Frontend sends simple arrays: origins = ["country1", "country2"], tags = [{name: "tag1", tagType: "CATEGORY"}]
+        List<String> originNames = application.getOrigins();
+        List<ApplicationTagDto> tagDtos = application.getTags();
 
         if (application.getId() != null) {
             Optional<Application> existApplication = applicationRepository.findById(application.getId());
             application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
+        } else {
+            // For new applications, generate name from displayName if not set
+            if (application.getName() == null || application.getName().isEmpty()) {
+                String generatedName = application.getDisplayName()
+                        .toLowerCase()
+                        .replaceAll("\\s+", "_")
+                        .replaceAll("[^a-z0-9_]", "")
+                        .replaceAll("_+", "_")
+                        .replaceAll("^_|_$", "");
+                application.setName(generatedName);
+            }
         }
 
         implementation.setApplication(application);
 
-        ConnectorBundle connectorBundle = new ConnectorBundle();
-        connectorBundle.setFramework(implementationDto.framework());
-        connectorBundle.setLicense(implementationDto.license());
-        connectorBundle.setBundleName(implementationDto.bundleName());
-        connectorBundle.setMaintainer(implementationDto.maintainer());
-        connectorBundle.setTicketingSystemLink(implementationDto.ticketingSystemLink());
+        // Check if we're adding a new version to an existing implementation
+        ConnectorBundle connectorBundle;
+        if (implementationDto.implementationId() != null) {
+            // Adding a new version to existing implementation
+            Optional<Implementation> existImpl = implementationRepository.findById(implementationDto.implementationId());
+            if (existImpl.isPresent()) {
+                isNewVersionOfExistingImplementation = true;
+                existingImplementation = existImpl.get();
+                implementation = existingImplementation;
+                // Use the existing connector bundle
+                connectorBundle = existingImplementation.getConnectorBundle();
+            } else {
+                throw new RuntimeException("Implementation not found with id: " + implementationDto.implementationId());
+            }
+        } else {
+            // New implementation - create new connector bundle from DTO data
+            // Determine framework: if buildFramework is MAVEN → CONNID, otherwise → SCIM_REST
+            ConnectorBundle.FrameworkType framework = implementationDto.framework();
+            if (framework == null && implementationDto.buildFramework() != null) {
+                // Auto-set framework based on build type
+                framework = (implementationDto.buildFramework() == BundleVersion.BuildFrameworkType.MAVEN)
+                        ? ConnectorBundle.FrameworkType.CONNID
+                        : ConnectorBundle.FrameworkType.SCIM_REST;
+            }
+
+            if (framework == null) {
+                throw new IllegalArgumentException("Framework must be specified or buildFramework must be provided");
+            }
+
+            connectorBundle = new ConnectorBundle();
+            connectorBundle.setFramework(framework);
+            connectorBundle.setLicense(implementationDto.license());
+            connectorBundle.setBundleName(implementationDto.bundleName());
+            connectorBundle.setMaintainer(implementationDto.maintainer());
+            connectorBundle.setTicketingSystemLink(implementationDto.ticketingSystemLink());
+        }
 
         BundleVersion bundleVersion = new BundleVersion();
         bundleVersion.setConnectorVersion( implementationDto.connectorVersion());
@@ -200,65 +252,285 @@ public class ApplicationService {
         bundleVersion.setBuildFramework(implementationDto.buildFramework());
 
         ImplementationVersion implementationVersion = new ImplementationVersion();
-        implementationVersion.setDescription(implementationDto.description());
+        String description = implementationDto.description();
+        implementationVersion.setDescription(description);
+
+        // Process ApplicationOrigin - allow updating origins in all scenarios:
+        // 1. Creating new application
+        // 2. Creating new implementation for existing application
+        // 3. Adding new version to existing implementation (can still modify application origins)
+        if (originNames != null && !originNames.isEmpty()) {
+            // Initialize or clear the set to avoid transient entity issues
+            if (application.getApplicationOrigins() == null) {
+                application.setApplicationOrigins(new java.util.HashSet<>());
+            } else if (isNewApplication) {
+                // Clear any transient entities from DTO for new applications
+                application.getApplicationOrigins().clear();
+            }
+
+            // Process origin names - ensure CountryOfOrigin entities exist
+            try {
+                for (String countryDisplayName : originNames) {
+                    if (countryDisplayName == null || countryDisplayName.trim().isEmpty()) {
+                        continue;
+                    }
+
+                    // Normalize country name: lowercase with underscores
+                    String normalizedName = countryDisplayName.toLowerCase().replaceAll("\\s+", "_");
+
+                    // Look up existing country by normalized name, or create new one
+                    CountryOfOrigin existingCountry = countryOfOriginRepository.findByName(normalizedName)
+                            .orElseGet(() -> {
+                                CountryOfOrigin newCountry = new CountryOfOrigin();
+                                newCountry.setName(normalizedName);
+                                newCountry.setDisplayName(countryDisplayName);
+                                return countryOfOriginRepository.save(newCountry);
+                            });
+
+                    // Check if this origin already exists in the application
+                    boolean originExists = application.getApplicationOrigins().stream()
+                            .anyMatch(ao -> {
+                                Long aoCountryId = ao.getCountryOfOrigin().getId();
+                                if (aoCountryId != null && existingCountry.getId() != null) {
+                                    // Compare by ID if both are available
+                                    return aoCountryId.equals(existingCountry.getId());
+                                } else {
+                                    // Compare by name if IDs are not available
+                                    return ao.getCountryOfOrigin().getName().equals(existingCountry.getName());
+                                }
+                            });
+
+                    if (!originExists) {
+                        // Create new ApplicationOrigin with proper relationships
+                        ApplicationOrigin newAppOrigin = new ApplicationOrigin();
+                        newAppOrigin.setCountryOfOrigin(existingCountry);
+                        newAppOrigin.setApplication(application);
+                        application.getApplicationOrigins().add(newAppOrigin);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error processing origins: {}", e.getMessage(), e);
+                throw e;
+            }
+        }
+
+        // Process ApplicationApplicationTag - allow updating tags in all scenarios
+        if (tagDtos != null && !tagDtos.isEmpty()) {
+            // Initialize or clear the set to avoid transient entity issues
+            if (application.getApplicationApplicationTags() == null) {
+                application.setApplicationApplicationTags(new java.util.HashSet<>());
+            } else if (isNewApplication) {
+                // Clear any transient entities from DTO for new applications
+                application.getApplicationApplicationTags().clear();
+            }
+
+            // Process tag DTOs - ensure ApplicationTag entities exist
+            for (ApplicationTagDto tagDto : tagDtos) {
+                if (tagDto == null || tagDto.name() == null || tagDto.tagType() == null) {
+                    continue;
+                }
+
+                // Parse tagType string to enum
+                ApplicationTag.ApplicationTagType tagType;
+                try {
+                    tagType = ApplicationTag.ApplicationTagType.valueOf(tagDto.tagType());
+                } catch (IllegalArgumentException e) {
+                    continue;
+                }
+
+                // Look up existing tag by name and tagType
+                ApplicationTag existingTag = applicationTagRepository.findByNameAndTagType(
+                        tagDto.name(),
+                        tagType
+                ).orElseGet(() -> {
+                    ApplicationTag newTag = new ApplicationTag();
+                    newTag.setName(tagDto.name());
+                    newTag.setTagType(tagType);
+                    newTag.setDisplayName(tagDto.name()); // Use name as displayName if not provided
+                    return applicationTagRepository.save(newTag);
+                });
+
+                // Check if this tag already exists in the application
+                boolean tagExists = application.getApplicationApplicationTags().stream()
+                        .anyMatch(aat -> {
+                            Long aatTagId = aat.getApplicationTag().getId();
+                            if (aatTagId != null && existingTag.getId() != null) {
+                                // Compare by ID if both are available
+                                return aatTagId.equals(existingTag.getId());
+                            } else {
+                                // Compare by name and type if IDs are not available
+                                return aat.getApplicationTag().getName().equals(existingTag.getName()) &&
+                                       aat.getApplicationTag().getTagType().equals(existingTag.getTagType());
+                            }
+                        });
+
+                if (!tagExists) {
+                    // Create new ApplicationApplicationTag with proper relationships
+                    ApplicationApplicationTag newAppTag = new ApplicationApplicationTag();
+                    newAppTag.setApplicationTag(existingTag);
+                    newAppTag.setApplication(application);
+                    application.getApplicationApplicationTags().add(newAppTag);
+                }
+            }
+        }
+
+        // Set relationships
+        if (!isNewVersionOfExistingImplementation) {
+            // Only set these relationships when creating a new implementation
+            implementation.setApplication(application);
+            implementation.setConnectorBundle(connectorBundle);
+        }
+        bundleVersion.setConnectorBundle(connectorBundle);
         implementationVersion.setImplementation(implementation);
         implementationVersion.setBundleVersion(bundleVersion);
-        implementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.IN_PUBLISH_PROCESS);
 
-        implementation.setConnectorBundle(connectorBundle);
+        // Set default values for required fields
+        if (application.getLifecycleState() == null) {
+            application.setLifecycleState(Application.ApplicationLifecycleType.IN_PUBLISH_PROCESS);
+        }
 
-        // Check framework from ConnectorBundle
-        if (implementation.getConnectorBundle() != null) {
-            if (ConnectorBundle.FrameworkType.SCIM_REST.equals(implementation.getConnectorBundle().getFramework())) {
-                try {
-                    GithubClient githubClient = new GithubClient(githubProperties);
-                    GHRepository repository = githubClient.createProject(implementation.getDisplayName(),
-                            implementationVersion, files);
+        if (implementationVersion.getLifecycleState() == null) {
+            implementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.IN_PUBLISH_PROCESS);
+        }
 
-                    // Store repository links in BundleVersion
-                    if (implementationVersion.getBundleVersion() != null) {
-                        implementationVersion.getBundleVersion().setCheckoutLink(repository.getHttpTransportUrl());
-                        implementationVersion.getBundleVersion().setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+        if (implementationVersion.getPublishDate() == null) {
+            implementationVersion.setPublishDate(OffsetDateTime.now());
+        }
+
+        // Set ConnectorBundle defaults
+        if (connectorBundle.getBundleName() == null) {
+            // Generate bundle name from implementation display name
+            String bundleName = implementation.getDisplayName() != null
+                ? implementation.getDisplayName().toLowerCase().replaceAll("[^a-z0-9]", "-")
+                : "connector-bundle";
+            connectorBundle.setBundleName(bundleName);
+        }
+        if (connectorBundle.getLicense() == null) {
+            connectorBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
+        }
+        // Note: When isNewVersionOfExistingImplementation is true, we're already using
+        // the existing ConnectorBundle, so no need to copy fields
+
+        // Set BundleVersion defaults
+        if (bundleVersion.getConnectorVersion() == null) {
+            bundleVersion.setConnectorVersion(null);
+        }
+        // downloadLink will be set by Jenkins or copied from previous version - no default needed
+        if (bundleVersion.getConnidVersion() == null) {
+            bundleVersion.setConnidVersion(null);
+        }
+        if (bundleVersion.getReleasedDate() == null) {
+            bundleVersion.setReleasedDate(java.time.LocalDate.now());
+        }
+        if (bundleVersion.getBuildFramework() == null) {
+            bundleVersion.setBuildFramework(BundleVersion.BuildFrameworkType.MAVEN);
+        }
+
+        // Set ImplementationVersion defaults
+        if (implementationVersion.getSystemVersion() == null) {
+            implementationVersion.setSystemVersion(null);
+        }
+        if (implementationVersion.getClassName() == null) {
+            implementationVersion.setClassName(null);
+        }
+        if (implementationVersion.getAuthor() == null) {
+            implementationVersion.setAuthor(username);
+        }
+
+        // Copy capabilities and bundle version fields from latest version if adding new version to existing implementation
+        if (isNewVersionOfExistingImplementation) {
+            if (existingImplementation.getImplementationVersions() != null &&
+                !existingImplementation.getImplementationVersions().isEmpty()) {
+                ImplementationVersion latestVersion = existingImplementation.getImplementationVersions().stream()
+                    .max((v1, v2) -> {
+                        if (v1.getPublishDate() == null && v2.getPublishDate() == null) return 0;
+                        if (v1.getPublishDate() == null) return -1;
+                        if (v2.getPublishDate() == null) return 1;
+                        return v1.getPublishDate().compareTo(v2.getPublishDate());
+                    })
+                    .orElse(null);
+
+                if (latestVersion != null) {
+                    // Copy capabilities if not set
+                    if (implementationVersion.getCapabilities() == null && latestVersion.getCapabilities() != null) {
+                        implementationVersion.setCapabilities(latestVersion.getCapabilities());
                     }
-                } catch (Exception e) {
-                    // Store error in BundleVersion
-                    if (implementationVersion.getBundleVersion() != null) {
-                        implementationVersion.getBundleVersion().setErrorMessage(e.getMessage());
-                    }
-                    log.error(e.getMessage());
-                }
-            } else {
-                if (ConnectorBundle.FrameworkType.CONNID.equals(implementation.getConnectorBundle().getFramework())) {
-                    implementationVersion.getBundleVersion().setCheckoutLink(implementationDto.checkoutLink());
 
-                    if (implementationVersion.getBundleVersion() != null) {
-                        implementationVersion.getBundleVersion().setBrowseLink(implementationDto.browseLink());
+                    // Copy bundle version fields if not set
+                    BundleVersion latestBundleVersion = latestVersion.getBundleVersion();
+                    if (latestBundleVersion != null) {
+                        if (bundleVersion.getBrowseLink() == null || bundleVersion.getBrowseLink().isEmpty()) {
+                            bundleVersion.setBrowseLink(latestBundleVersion.getBrowseLink());
+                        }
+                        if (bundleVersion.getCheckoutLink() == null || bundleVersion.getCheckoutLink().isEmpty()) {
+                            bundleVersion.setCheckoutLink(latestBundleVersion.getCheckoutLink());
+                        }
+                        if (bundleVersion.getDownloadLink() == null || bundleVersion.getDownloadLink().isEmpty()) {
+                            bundleVersion.setDownloadLink(latestBundleVersion.getDownloadLink());
+                        }
                     }
                 }
             }
         }
 
-        applicationRepository.save(application);
-        connectorBundleRepository.save(connectorBundle);
-        implementationRepository.save(implementation);
-        bundleVersionRepository.save(bundleVersion);
-        implementationVersionRepository.save(implementationVersion);
+        // Clear error message - we don't want to store GitHub errors in the database
+        bundleVersion.setErrorMessage(null);
+
+        // Check framework from ConnectorBundle - only create GitHub repo for new implementations
+        if (!isNewVersionOfExistingImplementation) {
+            if (ConnectorBundle.FrameworkType.SCIM_REST.equals(connectorBundle.getFramework())) {
+                try {
+                    GithubClient githubClient = new GithubClient(githubProperties);
+                    GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
+
+                    // Store repository links in BundleVersion
+                    bundleVersion.setCheckoutLink(repository.getHttpTransportUrl());
+                    bundleVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                } catch (Exception e) {
+                    // Store error in BundleVersion
+                    bundleVersion.setErrorMessage(e.getMessage());
+                    log.error(e.getMessage());
+                }
+            } else if (ConnectorBundle.FrameworkType.CONNID.equals(connectorBundle.getFramework())) {
+                // For CONNID framework, use the provided links from DTO
+                if (implementationDto.checkoutLink() != null) {
+                    bundleVersion.setCheckoutLink(implementationDto.checkoutLink());
+                }
+                if (implementationDto.browseLink() != null) {
+                    bundleVersion.setBrowseLink(implementationDto.browseLink());
+                }
+            }
+        }
+
+        // Save entities in correct order to respect foreign key constraints
+        if (isNewVersionOfExistingImplementation) {
+            // When adding a new version to existing implementation:
+            // - Application already exists (don't save)
+            // - ConnectorBundle already exists (using existing one, don't save)
+            // - Implementation already exists (don't save)
+            // - Only save new BundleVersion and ImplementationVersion
+            bundleVersionRepository.save(bundleVersion);
+            implementationVersionRepository.save(implementationVersion);
+        } else {
+            // When creating a new implementation:
+            // - Save all entities in correct order
+            applicationRepository.save(application);
+            connectorBundleRepository.save(connectorBundle);
+            bundleVersionRepository.save(bundleVersion);
+            implementationRepository.save(implementation);
+            implementationVersionRepository.save(implementationVersion);
+        }
 
         // Check for errors in BundleVersion
-        String errorMessage = (implementationVersion.getBundleVersion() != null) ?
-                implementationVersion.getBundleVersion().getErrorMessage() : null;
+        String errorMessage = bundleVersion.getErrorMessage();
 
         if (errorMessage == null) {
             try {
                 // Get data from BundleVersion and ConnectorBundle for Jenkins
-                String checkoutLink = implementationVersion.getBundleVersion() != null ?
-                        implementationVersion.getBundleVersion().getCheckoutLink() : "";
-                String browseLink = implementationVersion.getBundleVersion() != null ?
-                        implementationVersion.getBundleVersion().getBrowseLink() : "";
-                String connectorVersion = implementationVersion.getBundleVersion() != null ?
-                        implementationVersion.getBundleVersion().getConnectorVersion() : "";
-                String framework = implementation.getConnectorBundle() != null ?
-                        implementation.getConnectorBundle().getFramework().name() : "";
+                String checkoutLink = bundleVersion.getCheckoutLink() != null ? bundleVersion.getCheckoutLink() : "";
+                String browseLink = bundleVersion.getBrowseLink() != null ? bundleVersion.getBrowseLink() : "";
+                String connectorVersion = bundleVersion.getConnectorVersion() != null ? bundleVersion.getConnectorVersion() : "";
+                String framework = connectorBundle.getFramework().name();
 
                 JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
                 HttpResponse<String> response = jenkinsClient.triggerJob(
@@ -274,21 +546,14 @@ public class ApplicationService {
                 log.info(response.body());
                 return response.body();
             } catch (Exception e) {
-                if (implementationVersion.getBundleVersion() != null) {
-                    implementationVersion.getBundleVersion().setErrorMessage(e.getMessage());
-                    implementationVersionRepository.save(implementationVersion);
-                }
+                bundleVersion.setErrorMessage(e.getMessage());
+                bundleVersionRepository.save(bundleVersion);
                 log.error(e.getMessage());
                 errorMessage = e.getMessage();
             }
         }
 
         return errorMessage;
-    }
-
-    public String downloadConnector(String connectorVersion) {
-        // TODO move impl from controller
-        return null;
     }
 
     public void successBuild(UUID oid, ContinueForm continueForm) {
@@ -691,5 +956,40 @@ public class ApplicationService {
                 requestId,
                 voteCount
         );
+    }
+
+    /**
+     * Get implementations for a specific application.
+     * Fetches the latest implementation version for each implementation.
+     *
+     * @param applicationId the application UUID
+     * @return list of implementation DTOs with data from multiple tables
+     */
+    public List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto> getImplementationsByApplicationId(UUID applicationId) {
+        List<Implementation> implementations = implementationRepository.findByApplicationId(applicationId);
+
+        return implementations.stream()
+                .map(impl -> {
+                    if (impl.getImplementationVersions() == null || impl.getImplementationVersions().isEmpty()) {
+                        return null;
+                    }
+
+                    ImplementationVersion latestVersion = impl.getImplementationVersions().stream()
+                            .max((v1, v2) -> {
+                                if (v1.getPublishDate() == null && v2.getPublishDate() == null) return 0;
+                                if (v1.getPublishDate() == null) return -1;
+                                if (v2.getPublishDate() == null) return 1;
+                                return v1.getPublishDate().compareTo(v2.getPublishDate());
+                            })
+                            .orElse(null);
+
+                    if (latestVersion == null) {
+                        return null;
+                    }
+
+                    return applicationMapper.mapToImplementationListItemDto(impl, latestVersion);
+                })
+                .filter(dto -> dto != null)
+                .toList();
     }
 }
