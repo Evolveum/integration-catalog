@@ -126,6 +126,7 @@ class ControllerTest {
         testImplementationVersion.setImplementation(testImplementation);
         testImplementationVersion.setBundleVersion(testBundleVersion);
 
+
         // Setup test ConnidVersion
         testConnidVersion = new ConnidVersion();
         testConnidVersion.setVersion("1.5.0.0");
@@ -270,7 +271,7 @@ class ControllerTest {
         continueForm.setDownloadLink("http://example.com/download");
         continueForm.setPublishTime(System.currentTimeMillis());
         continueForm.setConnectorClass("com.evolveum.polygon.connector.test.TestConnector");
-        continueForm.setCapabilities(
+        continueForm.setCapability(
                 List.of(ImplementationVersion.CapabilitiesType.SCHEMA,
                         ImplementationVersion.CapabilitiesType.TEST,
                         ImplementationVersion.CapabilitiesType.VALIDATE,

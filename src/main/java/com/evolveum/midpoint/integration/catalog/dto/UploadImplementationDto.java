@@ -20,10 +20,9 @@ import java.util.List;
  */
 public record UploadImplementationDto(
         Application application,
-        Implementation implementation,
         ConnectorBundle connectorBundle,
         BundleVersion bundleVersion,
-        ImplementationVersion implementationVersion,
+        ImplementationDTO implementation,
         List<ItemFile> files
 ) {
 }

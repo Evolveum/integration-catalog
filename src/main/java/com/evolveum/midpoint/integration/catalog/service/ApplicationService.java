@@ -6,13 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
-import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
-import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
-import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
-import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
+import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
@@ -75,12 +69,6 @@ public class ApplicationService {
     private final ImplementationVersionRepository implementationVersionRepository;
 
     @Autowired
-    private final ConnectorBundleRepository connectorBundleRepository;
-
-    @Autowired
-    private final BundleVersionRepository bundleVersionRepository;
-
-    @Autowired
     private final ConnidVersionRepository connidVersionRepository;
 
     @Autowired
@@ -103,6 +91,12 @@ public class ApplicationService {
 
     @Autowired
     private final ApplicationMapper applicationMapper;
+
+    @Autowired
+    private final BundleVersionRepository bundleVersionRepository;
+
+    @Autowired
+    private final ConnectorBundleRepository connectorBundleRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -183,13 +177,10 @@ public class ApplicationService {
      */
     public String uploadConnector(UploadImplementationDto dto, String username) {
         Application application = dto.application();
-        Implementation implementation = dto.implementation();
-        ConnectorBundle connectorBundle = dto.connectorBundle();
-        BundleVersion bundleVersion = dto.bundleVersion();
-        ImplementationVersion implementationVersion = dto.implementationVersion();
+        ImplementationDTO implementationDto = dto.implementation();
+        Implementation implementation = new Implementation();
+        implementation.setDisplayName(implementationDto.displayName());
         List<ItemFile> files = dto.files();
-
-        log.info("Upload connector called - Implementation description from DTO: {}", implementationVersion.getDescription());
 
         boolean isNewVersionOfExistingImplementation = false;
         boolean isNewApplication = (application.getId() == null);
@@ -199,17 +190,27 @@ public class ApplicationService {
         Set<ApplicationOrigin> dtoOrigins = application.getApplicationOrigins();
         Set<ApplicationApplicationTag> dtoTags = application.getApplicationApplicationTags();
 
-        log.info("Upload details - isNewApplication: {}, application.getId(): {}, dtoOrigins: {}, dtoOrigins size: {}",
-                isNewApplication,
-                application.getId(),
-                dtoOrigins != null ? "not null" : "null",
-                dtoOrigins != null ? dtoOrigins.size() : 0);
-
         if (application.getId() != null) {
             Optional<Application> existApplication = applicationRepository.findById(application.getId());
             application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
         }
 
+        implementation.setApplication(application);
+
+        ConnectorBundle connectorBundle = new ConnectorBundle();
+        connectorBundle.setFramework(implementationDto.framework());
+        connectorBundle.setLicense(implementationDto.license());
+        connectorBundle.setBundleName(implementationDto.bundleName());
+        connectorBundle.setMaintainer(implementationDto.maintainer());
+        connectorBundle.setTicketingSystemLink(implementationDto.ticketingSystemLink());
+
+        BundleVersion bundleVersion = new BundleVersion();
+        bundleVersion.setConnectorVersion( implementationDto.connectorVersion());
+        bundleVersion.setConnectorBundle(connectorBundle);
+        bundleVersion.setBuildFramework(implementationDto.buildFramework());
+
+        ImplementationVersion implementationVersion = new ImplementationVersion();
+        implementationVersion.setDescription(implementationDto.description());
         // Check if we're adding a new version to an existing implementation
         if (implementation.getId() != null) {
             Optional<Implementation> existImpl = implementationRepository.findById(implementation.getId());
@@ -227,9 +228,6 @@ public class ApplicationService {
         // 2. Creating new implementation for existing application
         // 3. Adding new version to existing implementation (can still modify application origins)
         if (dtoOrigins != null && !dtoOrigins.isEmpty()) {
-            log.info("Processing {} origins from DTO (isNewApplication: {}, isNewVersion: {})",
-                    dtoOrigins.size(), isNewApplication, isNewVersionOfExistingImplementation);
-
             // Initialize or clear the set to avoid transient entity issues
             if (application.getApplicationOrigins() == null) {
                 application.setApplicationOrigins(new java.util.HashSet<>());
@@ -237,26 +235,23 @@ public class ApplicationService {
                 // Clear any transient entities from DTO for new applications
                 application.getApplicationOrigins().clear();
             }
-            log.info("Existing origins count: {}", application.getApplicationOrigins().size());
 
             // Process ApplicationOrigin entities - ensure CountryOfOrigin entities exist
             for (ApplicationOrigin appOrigin : dtoOrigins) {
                 if (appOrigin.getCountryOfOrigin() != null) {
                     CountryOfOrigin country = appOrigin.getCountryOfOrigin();
-                    log.info("Processing country: {}", country.getName());
+                    String displayName = country.getDisplayName() != null ? country.getDisplayName() : country.getName();
+                    // Normalize country name: lowercase with underscores
+                    String normalizedName = displayName.toLowerCase().replaceAll("\\s+", "_");
 
-                    // Look up existing country by name, or create new one
-                    CountryOfOrigin existingCountry = countryOfOriginRepository.findByName(country.getName())
+                    // Look up existing country by normalized name, or create new one
+                    CountryOfOrigin existingCountry = countryOfOriginRepository.findByName(normalizedName)
                             .orElseGet(() -> {
                                 CountryOfOrigin newCountry = new CountryOfOrigin();
-                                newCountry.setName(country.getName());
-                                newCountry.setDisplayName(country.getName()); // Use name as displayName if not provided
-                                CountryOfOrigin saved = countryOfOriginRepository.save(newCountry);
-                                log.info("Created new country: {} with ID: {}", saved.getName(), saved.getId());
-                                return saved;
+                                newCountry.setName(normalizedName);
+                                newCountry.setDisplayName(displayName);
+                                return countryOfOriginRepository.save(newCountry);
                             });
-
-                    log.info("Using country: {} with ID: {}", existingCountry.getName(), existingCountry.getId());
 
                     // Check if this origin already exists in the application
                     boolean originExists = application.getApplicationOrigins().stream()
@@ -277,20 +272,13 @@ public class ApplicationService {
                         newAppOrigin.setCountryOfOrigin(existingCountry);
                         newAppOrigin.setApplication(application);
                         application.getApplicationOrigins().add(newAppOrigin);
-                        log.info("Added new ApplicationOrigin to application");
-                    } else {
-                        log.info("Origin already exists, skipping");
                     }
                 }
             }
-
-            log.info("Total origins added to application: {}", application.getApplicationOrigins().size());
         }
 
         // Process ApplicationApplicationTag - allow updating tags in all scenarios
         if (dtoTags != null && !dtoTags.isEmpty()) {
-            log.info("Processing {} tags from DTO", dtoTags.size());
-
             // Initialize or clear the set to avoid transient entity issues
             if (application.getApplicationApplicationTags() == null) {
                 application.setApplicationApplicationTags(new java.util.HashSet<>());
@@ -298,7 +286,6 @@ public class ApplicationService {
                 // Clear any transient entities from DTO for new applications
                 application.getApplicationApplicationTags().clear();
             }
-            log.info("Existing tags count: {}", application.getApplicationApplicationTags().size());
 
             // Process ApplicationApplicationTag entities - ensure ApplicationTag entities exist
             for (ApplicationApplicationTag appTag : dtoTags) {
@@ -336,9 +323,6 @@ public class ApplicationService {
                         newAppTag.setApplicationTag(existingTag);
                         newAppTag.setApplication(application);
                         application.getApplicationApplicationTags().add(newAppTag);
-                        log.info("Added new tag: {} to application", existingTag.getName());
-                    } else {
-                        log.info("Tag {} already exists, skipping", existingTag.getName());
                     }
                 }
             }
@@ -386,6 +370,10 @@ public class ApplicationService {
                 connectorBundle.setMaintainer(existingBundle.getMaintainer());
             }
         }
+        implementationVersion.setBundleVersion(bundleVersion);
+        implementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.IN_PUBLISH_PROCESS);
+
+        implementation.setConnectorBundle(connectorBundle);
 
         // Set BundleVersion defaults
         if (bundleVersion.getConnectorVersion() == null) {
@@ -449,37 +437,36 @@ public class ApplicationService {
             }
         }
 
-        // Set default capabilities to GET if still null
-        if (implementationVersion.getCapabilities() == null) {
-            implementationVersion.setCapabilities(new ImplementationVersion.CapabilitiesType[]{
-                ImplementationVersion.CapabilitiesType.GET
-            });
-        }
-
         // Clear error message - we don't want to store GitHub errors in the database
         bundleVersion.setErrorMessage(null);
 
         // Check framework from ConnectorBundle - only create GitHub repo for new implementations
-        if (!isNewVersionOfExistingImplementation && ConnectorBundle.FrameworkType.SCIM_REST.equals(connectorBundle.getFramework())) {
-            try {
-                GithubClient githubClient = new GithubClient(githubProperties);
-                GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
+        if (!isNewVersionOfExistingImplementation) {
+            if (ConnectorBundle.FrameworkType.SCIM_REST.equals(connectorBundle.getFramework())) {
+                try {
+                    GithubClient githubClient = new GithubClient(githubProperties);
+                    GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
 
-                // Store repository links in BundleVersion
-                bundleVersion.setCheckoutLink(repository.getHttpTransportUrl());
-                bundleVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
-            } catch (Exception e) {
-                // Log the error but don't store it in the database
-                log.warn("Failed to create GitHub repository: {}", e.getMessage());
-                // Don't set error message - these are expected when GitHub isn't configured
+                    // Store repository links in BundleVersion
+                    bundleVersion.setCheckoutLink(repository.getHttpTransportUrl());
+                    bundleVersion.setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                } catch (Exception e) {
+                    // Store error in BundleVersion
+                    bundleVersion.setErrorMessage(e.getMessage());
+                    log.error(e.getMessage());
+                }
+            } else if (ConnectorBundle.FrameworkType.CONNID.equals(connectorBundle.getFramework())) {
+                // For CONNID framework, use the provided links from DTO
+                if (implementationDto.checkoutLink() != null) {
+                    bundleVersion.setCheckoutLink(implementationDto.checkoutLink());
+                }
+                if (implementationDto.browseLink() != null) {
+                    bundleVersion.setBrowseLink(implementationDto.browseLink());
+                }
             }
         }
 
         // Save entities in correct order to respect foreign key constraints
-        log.info("Before save - Implementation description: {}", implementationVersion.getDescription());
-        log.info("Before save - Application origins count: {}",
-                application.getApplicationOrigins() != null ? application.getApplicationOrigins().size() : 0);
-
         if (isNewVersionOfExistingImplementation) {
             // When adding a new version to existing implementation:
             // - Application already exists (don't save)
@@ -491,17 +478,12 @@ public class ApplicationService {
         } else {
             // When creating a new implementation:
             // - Save all entities in correct order
-            Application savedApplication = applicationRepository.save(application);
-            log.info("After saving application - Origins count: {}",
-                    savedApplication.getApplicationOrigins() != null ? savedApplication.getApplicationOrigins().size() : 0);
-
+            applicationRepository.save(application);
             connectorBundleRepository.save(connectorBundle);
             bundleVersionRepository.save(bundleVersion);
             implementationRepository.save(implementation);
             implementationVersionRepository.save(implementationVersion);
         }
-
-        log.info("After save - Implementation description: {}", implementationVersion.getDescription());
 
         // Check for errors in BundleVersion
         String errorMessage = bundleVersion.getErrorMessage();
@@ -523,7 +505,8 @@ public class ApplicationService {
                                 "IMPL_VERSION", connectorVersion,
                                 "IMPL_TITLE", implementation.getDisplayName(),
                                 "IMPL_FRAMEWORK", framework,
-                                "SKIP_DEPLOY", "false"));
+                                "SKIP_DEPLOY", "false",
+                                "CONNECTOR_CLASS", implementationDto.className()));
                 log.info(response.body());
                 return response.body();
             } catch (Exception e) {
@@ -535,11 +518,6 @@ public class ApplicationService {
         }
 
         return errorMessage;
-    }
-
-    public String downloadConnector(String connectorVersion) {
-        // TODO move impl from controller
-        return null;
     }
 
     public void successBuild(UUID oid, ContinueForm continueForm) {
@@ -560,6 +538,8 @@ public class ApplicationService {
         OffsetDateTime odt = OffsetDateTime.ofInstant(Instant.ofEpochMilli(continueForm.getPublishTime()), ZoneOffset.UTC);
         version.setPublishDate(odt)
                 .setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
+        version.setCapabilities(continueForm.getCapability().toArray(new ImplementationVersion.CapabilitiesType[0]));
+        version.setClassName(continueForm.getConnectorClass());
 
         implementationRepository.save(implementation);
         implementationVersionRepository.save(version);
