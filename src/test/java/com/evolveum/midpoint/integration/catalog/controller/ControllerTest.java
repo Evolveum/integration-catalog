@@ -126,6 +126,7 @@ class ControllerTest {
         testImplementationVersion.setImplementation(testImplementation);
         testImplementationVersion.setBundleVersion(testBundleVersion);
 
+
         // Setup test ConnidVersion
         testConnidVersion = new ConnidVersion();
         testConnidVersion.setVersion("1.5.0.0");

@@ -6,13 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
-import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
-import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
-import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
-import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
+import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
@@ -97,6 +91,12 @@ public class ApplicationService {
     @Autowired
     private final ApplicationMapper applicationMapper;
 
+    @Autowired
+    private final BundleVersionRepository bundleVersionRepository;
+
+    @Autowired
+    private final ConnectorBundleRepository connectorBundleRepository;
+
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
@@ -109,7 +109,7 @@ public class ApplicationService {
                               RequestRepository requestRepository,
                               VoteRepository voteRepository,
                               ApplicationReadPort applicationReadPort,
-                              ApplicationMapper applicationMapper
+                              ApplicationMapper applicationMapper, BundleVersionRepository bundleVersionRepository, ConnectorBundleRepository connectorBundleRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -124,6 +124,8 @@ public class ApplicationService {
         this.voteRepository = voteRepository;
         this.applicationReadPort = applicationReadPort;
         this.applicationMapper = applicationMapper;
+        this.bundleVersionRepository = bundleVersionRepository;
+        this.connectorBundleRepository = connectorBundleRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -172,8 +174,10 @@ public class ApplicationService {
      */
     public String uploadConnector(UploadImplementationDto dto) {
         Application application = dto.application();
-        Implementation implementation = dto.implementation();
-        ImplementationVersion implementationVersion = dto.implementationVersion();
+        ImplementationDTO implementationDto = dto.implementation();
+        Implementation implementation = new Implementation();
+
+        implementation.setDisplayName(implementationDto.displayName());
         List<ItemFile> files = dto.files();
 
         if (application.getId() != null) {
@@ -182,31 +186,62 @@ public class ApplicationService {
         }
 
         implementation.setApplication(application);
+
+        ConnectorBundle connectorBundle = new ConnectorBundle();
+        connectorBundle.setFramework(implementationDto.framework());
+        connectorBundle.setLicense(implementationDto.license());
+        connectorBundle.setBundleName(implementationDto.bundleName());
+        connectorBundle.setMaintainer(implementationDto.maintainer());
+        connectorBundle.setTicketingSystemLink(implementationDto.ticketingSystemLink());
+
+        BundleVersion bundleVersion = new BundleVersion();
+        bundleVersion.setConnectorVersion( implementationDto.connectorVersion());
+        bundleVersion.setConnectorBundle(connectorBundle);
+        bundleVersion.setBuildFramework(implementationDto.buildFramework());
+
+        ImplementationVersion implementationVersion = new ImplementationVersion();
+        implementationVersion.setDescription(implementationDto.description());
         implementationVersion.setImplementation(implementation);
+        implementationVersion.setBundleVersion(bundleVersion);
+        implementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.IN_PUBLISH_PROCESS);
+
+        implementation.setConnectorBundle(connectorBundle);
 
         // Check framework from ConnectorBundle
-        if (implementation.getConnectorBundle() != null &&
-                ConnectorBundle.FrameworkType.SCIM_REST.equals(implementation.getConnectorBundle().getFramework())) {
-            try {
-                GithubClient githubClient = new GithubClient(githubProperties);
-                GHRepository repository = githubClient.createProject(implementation.getDisplayName(), implementationVersion, files);
+        if (implementation.getConnectorBundle() != null) {
+            if (ConnectorBundle.FrameworkType.SCIM_REST.equals(implementation.getConnectorBundle().getFramework())) {
+                try {
+                    GithubClient githubClient = new GithubClient(githubProperties);
+                    GHRepository repository = githubClient.createProject(implementation.getDisplayName(),
+                            implementationVersion, files);
 
-                // Store repository links in BundleVersion
-                if (implementationVersion.getBundleVersion() != null) {
-                    implementationVersion.getBundleVersion().setCheckoutLink(repository.getHttpTransportUrl());
-                    implementationVersion.getBundleVersion().setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                    // Store repository links in BundleVersion
+                    if (implementationVersion.getBundleVersion() != null) {
+                        implementationVersion.getBundleVersion().setCheckoutLink(repository.getHttpTransportUrl());
+                        implementationVersion.getBundleVersion().setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                    }
+                } catch (Exception e) {
+                    // Store error in BundleVersion
+                    if (implementationVersion.getBundleVersion() != null) {
+                        implementationVersion.getBundleVersion().setErrorMessage(e.getMessage());
+                    }
+                    log.error(e.getMessage());
                 }
-            } catch (Exception e) {
-                // Store error in BundleVersion
-                if (implementationVersion.getBundleVersion() != null) {
-                    implementationVersion.getBundleVersion().setErrorMessage(e.getMessage());
+            } else {
+                if (ConnectorBundle.FrameworkType.CONNID.equals(implementation.getConnectorBundle().getFramework())) {
+                    implementationVersion.getBundleVersion().setCheckoutLink(implementationDto.checkoutLink());
+
+                    if (implementationVersion.getBundleVersion() != null) {
+                        implementationVersion.getBundleVersion().setBrowseLink(implementationDto.browseLink());
+                    }
                 }
-                log.error(e.getMessage());
             }
         }
 
         applicationRepository.save(application);
+        connectorBundleRepository.save(connectorBundle);
         implementationRepository.save(implementation);
+        bundleVersionRepository.save(bundleVersion);
         implementationVersionRepository.save(implementationVersion);
 
         // Check for errors in BundleVersion
@@ -234,7 +269,8 @@ public class ApplicationService {
                                 "IMPL_VERSION", connectorVersion,
                                 "IMPL_TITLE", implementation.getDisplayName(),
                                 "IMPL_FRAMEWORK", framework,
-                                "SKIP_DEPLOY", "false"));
+                                "SKIP_DEPLOY", "false",
+                                "CONNECTOR_CLASS", implementationDto.className()));
                 log.info(response.body());
                 return response.body();
             } catch (Exception e) {
@@ -273,6 +309,8 @@ public class ApplicationService {
         OffsetDateTime odt = OffsetDateTime.ofInstant(Instant.ofEpochMilli(continueForm.getPublishTime()), ZoneOffset.UTC);
         version.setPublishDate(odt)
                 .setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
+        version.setCapabilities(continueForm.getCapability().toArray(new ImplementationVersion.CapabilitiesType[0]));
+        version.setClassName(continueForm.getConnectorClass());
 
         implementationRepository.save(implementation);
         implementationVersionRepository.save(version);

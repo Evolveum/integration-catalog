@@ -58,9 +58,9 @@ public class GithubClient {
 //            GHBlob blob = repo.createBlob().textContent(file.content()).create();
             treeBuilder.add(file.path(), file.content(), false);
         }
-        
+
         createTag(repo, latestCommit.getSHA1(), newVersion);
-        
+
         GHTree tree = treeBuilder.create();
         GHCommit commit = repo.createCommit()
                 .message(newVersion.getDescription())
