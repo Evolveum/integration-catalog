@@ -56,4 +56,8 @@ export class ApplicationService {
   getImplementationsByApplicationId(applicationId: string): Observable<ImplementationListItem[]> {
     return this.http.get<ImplementationListItem[]>(`${environment.apiUrl}/applications/${applicationId}/implementations`);
   }
+
+  uploadConnector(payload: any): Observable<string> {
+    return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
+  }
 }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { CountryService, Country } from '../../services/country.service';
+import { ApplicationService } from '../../services/application.service';
 import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
 
 @Component({
@@ -123,7 +124,10 @@ export class UploadFormMain implements OnInit {
 
   protected readonly showOriginDropdown = signal<boolean>(false);
 
-  constructor(private countryService: CountryService) {}
+  constructor(
+    private countryService: CountryService,
+    private applicationService: ApplicationService
+  ) {}
 
   ngOnInit(): void {
     // Fetch all countries from REST Countries API
@@ -352,16 +356,98 @@ export class UploadFormMain implements OnInit {
   }
 
   protected handleImplementationAction(): void {
+    console.log('handleImplementationAction called');
     const formData = this.implementationFormData();
+    console.log('formData:', formData);
+    console.log('isNewVersion:', formData?.isNewVersion);
+    console.log('isEditingVersion:', formData?.isEditingVersion);
+    console.log('selectedImplementation:', formData?.selectedImplementation);
 
     // If selecting an existing implementation (isNewVersion = true and not editing yet)
-    if (formData?.isNewVersion === true && formData?.selectedImplementation && this.uploadFormImpl) {
+    if (formData?.isNewVersion === true && formData?.selectedImplementation && !formData?.isEditingVersion && this.uploadFormImpl) {
+      console.log('Calling confirmImplementationSelection');
       this.uploadFormImpl.confirmImplementationSelection();
     } else {
-      // Handle publish action for new implementation
-      // TODO: Implement publish logic
-      console.log('Publishing to catalog...');
+      // Handle publish action for new implementation or editing existing
+      console.log('Calling publishToCatalog');
+      this.publishToCatalog();
     }
+  }
+
+  private publishToCatalog(): void {
+    console.log('publishToCatalog called');
+    const formData = this.implementationFormData();
+    console.log('Form data:', formData);
+
+    if (!formData) {
+      alert('Form data is missing. Please fill out all required fields.');
+      return;
+    }
+
+    // Build the payload - must match backend UploadImplementationDto structure
+    const payload = {
+      application: {
+        id: this.selectedApplication()?.id || null,
+        displayName: this.displayName(),
+        description: this.description(),
+        logo: null,
+        // Include origins/countries from step 2
+        applicationOrigins: this.origins().map(countryName => ({
+          countryOfOrigin: { name: countryName }
+        })),
+        // Include tags (category and deployment type) from step 2
+        applicationApplicationTags: [
+          ...(this.category() ? [{ applicationTag: { name: this.category(), tagType: 'CATEGORY' } }] : []),
+          ...(this.deploymentType() ? [{ applicationTag: { name: this.deploymentType(), tagType: 'DEPLOYMENT' } }] : [])
+        ]
+      },
+      implementation: {
+        id: formData.selectedImplementation?.id || null, // Include implementation ID if adding new version
+        displayName: formData.displayName
+      },
+      connectorBundle: {
+        maintainer: formData.maintainer,
+        framework: this.mapConnectorTypeToFramework(this.selectedConnectorType()),
+        license: formData.licenseType,
+        ticketingSystemLink: formData.ticketingLink
+      },
+      bundleVersion: {
+        browseLink: formData.browseLink,
+        checkoutLink: formData.checkoutLink,
+        buildFramework: formData.buildFramework ? formData.buildFramework.toUpperCase() : null,
+        pathToProject: formData.pathToProjectDirectory
+      },
+      implementationVersion: {
+        description: formData.implementationDescription
+      },
+      files: formData.uploadedFile ? [{
+        name: formData.uploadedFile.name,
+        data: formData.uploadedFile.data
+      }] : []
+    };
+
+    console.log('Publishing payload:', payload);
+
+    this.applicationService.uploadConnector(payload).subscribe({
+      next: (response: string) => {
+        console.log('Upload successful:', response);
+        alert('Successfully published to catalog!');
+        this.closeModal();
+      },
+      error: (error: any) => {
+        console.error('Upload failed:', error);
+        alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
+      }
+    });
+  }
+
+  private mapConnectorTypeToFramework(connectorType: string): string {
+    const mapping: Record<string, string> = {
+      'java-based': 'CONNID',
+      'own-repo': 'SCIM_REST',
+      'evolveum-hosted': 'SCIM_REST'
+    };
+    return mapping[connectorType] || 'CONNID';
   }
 
   protected handleBackFromImplementation(): void {

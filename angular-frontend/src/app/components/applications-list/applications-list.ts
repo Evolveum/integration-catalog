@@ -267,6 +267,11 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   }
 
   protected openUploadModal(): void {
+    if (!this.authService.isLoggedIn()) {
+      alert('You need to log in to upload a configuration. Please log in and try again.');
+      this.isLoginModalOpen.set(true);
+      return;
+    }
     this.isUploadModalOpen.set(true);
   }
 

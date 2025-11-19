@@ -13,7 +13,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.List;
 import java.util.UUID;
 
-public interface ImplementationRepository extends JpaRepository<Implementation, Long>,
+public interface ImplementationRepository extends JpaRepository<Implementation, UUID>,
         JpaSpecificationExecutor<Implementation> {
 
     /**

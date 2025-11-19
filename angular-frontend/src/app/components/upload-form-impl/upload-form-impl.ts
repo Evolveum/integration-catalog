@@ -47,7 +47,7 @@ export class UploadFormImpl implements OnChanges {
   protected readonly pathToProjectDirectory = signal<string>('');
 
   // File upload for evolveum-hosted low-code connectors
-  protected readonly uploadedFile = signal<File | null>(null);
+  protected readonly uploadedFile = signal<{name: string, data: string} | null>(null);
   protected readonly uploadedFileName = signal<string>('');
 
   // Available options for dropdowns (from backend enum LicenseType)
@@ -159,9 +159,22 @@ export class UploadFormImpl implements OnChanges {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
-      this.uploadedFile.set(file);
-      this.uploadedFileName.set(file.name);
-      this.updateFormValidity();
+
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64String = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:application/zip;base64,")
+        const base64Data = base64String.split(',')[1];
+
+        this.uploadedFile.set({
+          name: file.name,
+          data: base64Data
+        } as any);
+        this.uploadedFileName.set(file.name);
+        this.updateFormValidity();
+      };
+      reader.readAsDataURL(file);
     }
   }
 
@@ -210,17 +223,16 @@ export class UploadFormImpl implements OnChanges {
       isNewVersion: this.isNewVersion(),
       isEditingVersion: this.isEditingVersion(),
       selectedImplementation: this.selectedImplementation(),
-      newImplementation: {
-        displayName: this.displayName(),
-        maintainer: this.maintainer(),
-        licenseType: this.licenseType(),
-        description: this.implementationDescription(),
-        browseLink: this.browseLink(),
-        ticketingLink: this.ticketingLink(),
-        buildFramework: this.buildFramework(),
-        checkoutLink: this.checkoutLink(),
-        pathToProjectDirectory: this.pathToProjectDirectory()
-      }
+      displayName: this.displayName(),
+      maintainer: this.maintainer(),
+      licenseType: this.licenseType(),
+      implementationDescription: this.implementationDescription(),
+      browseLink: this.browseLink(),
+      ticketingLink: this.ticketingLink(),
+      buildFramework: this.buildFramework(),
+      checkoutLink: this.checkoutLink(),
+      pathToProjectDirectory: this.pathToProjectDirectory(),
+      uploadedFile: this.uploadedFile()
     };
 
     this.formDataChanged.emit(formData);

@@ -19,8 +19,21 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (isBackendRequest) {
     // attach bearer token if present
     const token = localStorage.getItem('access_token');
-    const authReq = token
-      ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+
+    // Get current user from localStorage
+    const currentUser = localStorage.getItem('currentUser');
+
+    // Clone request and add headers
+    const headers: { [key: string]: string } = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (currentUser) {
+      headers['X-User-Name'] = currentUser;
+    }
+
+    const authReq = Object.keys(headers).length > 0
+      ? req.clone({ setHeaders: headers })
       : req;
     return next(authReq);
   }
