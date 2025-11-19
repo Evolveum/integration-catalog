@@ -391,35 +391,33 @@ export class UploadFormMain implements OnInit {
         displayName: this.displayName(),
         description: this.description(),
         logo: null,
-        // Include origins/countries from step 2
-        applicationOrigins: this.origins().map(countryName => ({
-          countryOfOrigin: { name: countryName }
-        })),
-        // Include tags (category and deployment type) from step 2
-        applicationApplicationTags: [
-          ...(this.category() ? [{ applicationTag: { name: this.category(), tagType: 'CATEGORY' } }] : []),
-          ...(this.deploymentType() ? [{ applicationTag: { name: this.deploymentType(), tagType: 'DEPLOYMENT' } }] : [])
+        // Send origins as simple array of country names
+        origins: this.origins(),
+        // Send tags as simple array of tag names with types
+        tags: [
+          ...(this.category() ? [{ name: this.category(), tagType: 'CATEGORY' }] : []),
+          ...(this.deploymentType() ? [{ name: this.deploymentType(), tagType: 'DEPLOYMENT' }] : [])
         ]
       },
       implementation: {
-        id: formData.selectedImplementation?.id || null, // Include implementation ID if adding new version
-        displayName: formData.displayName
-      },
-      connectorBundle: {
+        implementationId: formData.selectedImplementation?.id || null, // Include implementation ID if adding new version
+        displayName: formData.displayName,
+        description: formData.implementationDescription,
         maintainer: formData.maintainer,
         framework: this.mapConnectorTypeToFramework(this.selectedConnectorType()),
         license: formData.licenseType,
-        ticketingSystemLink: formData.ticketingLink
-      },
-      bundleVersion: {
+        ticketingSystemLink: formData.ticketingLink,
         browseLink: formData.browseLink,
         checkoutLink: formData.checkoutLink,
         buildFramework: formData.buildFramework ? formData.buildFramework.toUpperCase() : null,
-        pathToProject: formData.pathToProjectDirectory
+        bundleName: null,
+        connectorVersion: null,
+        downloadLink: null,
+        connidVersion: null,
+        className: null
       },
-      implementationVersion: {
-        description: formData.implementationDescription
-      },
+      connectorBundle: null,
+      bundleVersion: null,
       files: formData.uploadedFile ? [{
         name: formData.uploadedFile.name,
         data: formData.uploadedFile.data
