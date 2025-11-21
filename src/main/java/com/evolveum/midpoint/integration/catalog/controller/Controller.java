@@ -6,11 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
-import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
-import com.evolveum.midpoint.integration.catalog.dto.CategoryCountDto;
-import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
+import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -354,5 +350,22 @@ public class Controller {
                 .map(Enum::name)
                 .toList();
         return ResponseEntity.ok(capabilities);
+    }
+
+    @Operation(summary = "Verify status - success",
+            description = "")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Verify status - success, bundle with such version found, but not with this connector implementation"),
+            @ApiResponse(responseCode = "400", description = "Verify status - Failed"),
+            @ApiResponse(responseCode = "404", description = "Verify status - Failed, either no such bundle found, or such version of bundle is not present"),
+            @ApiResponse(responseCode = "409", description = "Verify status - Failed, a class was already found for a bundle with corresponding version")
+    })
+    @PostMapping("/upload/verify")
+    public ResponseEntity<Boolean> verify(@RequestBody VerifyBundleInformationForm verifiPayload) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.verify(verifiPayload));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 }

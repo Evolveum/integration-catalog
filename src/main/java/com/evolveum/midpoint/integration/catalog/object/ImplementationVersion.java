@@ -120,6 +120,9 @@ public class ImplementationVersion {
     @Column(name = "class_name")
     private String className;
 
+    @Column(name = "error_message")
+    private String errorMessage;
+
     //connection to Download
     @OneToMany(mappedBy = "implementationVersion", cascade = CascadeType.ALL, orphanRemoval = false)
     @OrderBy("downloadedAt DESC")

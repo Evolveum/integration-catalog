@@ -59,9 +59,6 @@ public class BundleVersion {
     @Column(name = "build_framework", columnDefinition = "buildFrameworkType", nullable = false)
     private BuildFrameworkType buildFramework;
 
-    @Column(name = "error_message")
-    private String errorMessage;
-
     @Column(name = "path_to_project", columnDefinition = "TEXT")
     private String pathToProject;
 

@@ -38,7 +38,7 @@ public class ConnectorBundle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "bundle_name", nullable = false)
+    @Column(name = "bundle_name", unique = true, nullable = false)
     private String bundleName;
 
     private String maintainer;

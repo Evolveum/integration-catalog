@@ -13,6 +13,8 @@ import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hibernate.validator.internal.IgnoreForbiddenApisErrors;
+import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -594,5 +596,68 @@ class ControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
 
         verify(applicationService).list(any(), eq(null), eq(null));
+    }
+
+    // TODO, Set up positive scenario
+    @Ignore
+    @Test
+    void verifyConnectorBundleVersionNoBundleWithSuchClassName() throws Exception {
+        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
+        verifyBundleInformationForm.setOid(testVersionId);
+        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
+        verifyBundleInformationForm.setVersion("1.0.0");
+
+        doNothing().when(applicationService).verify(
+                any(VerifyBundleInformationForm.class));
+
+        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
+                .andExpect(status().isOk());
+
+        verify(applicationService).verify(
+                any(VerifyBundleInformationForm.class));
+    }
+
+    // TODO, Set up conflict scenario
+    @Ignore
+    @Test
+    void verifyConnectorBundleVersionBundleWithSuchClassName() throws Exception {
+        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
+        verifyBundleInformationForm.setOid(testVersionId);
+        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
+        verifyBundleInformationForm.setVersion("1.0.0");
+
+        doNothing().when(applicationService).verify(
+                any(VerifyBundleInformationForm.class));
+
+        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
+                .andExpect(status().isConflict());
+
+        verify(applicationService).verify(
+                any(VerifyBundleInformationForm.class));
+    }
+
+    // TODO, Set up Not found
+    @Ignore
+    @Test
+    void verifyConnectorBundleVersionNoSuchBundle() throws Exception {
+        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
+        verifyBundleInformationForm.setOid(testVersionId);
+        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
+        verifyBundleInformationForm.setVersion("1.0.0");
+
+        doNothing().when(applicationService).verify(
+                any(VerifyBundleInformationForm.class));
+
+        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
+                .andExpect(status().isNotFound());
+
+        verify(applicationService).verify(
+                any(VerifyBundleInformationForm.class));
     }
 }

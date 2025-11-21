@@ -17,6 +17,7 @@ public record ImplementationDTO(
         String checkoutLink,
         String downloadLink,
         String connidVersion,
-        String className
+        String className,
+        String pathToProject
 ) {
 }
