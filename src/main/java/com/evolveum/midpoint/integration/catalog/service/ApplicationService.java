@@ -34,7 +34,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -701,23 +700,23 @@ public class ApplicationService {
     public Boolean verify(VerifyBundleInformationForm verifiPayload) {
 
         String bundleName = verifiPayload.getBundleName();
-        String err = null;
+        String err;
         // TODO should only be one
-        List<ConnectorBundle> bundles = connectorBundleRepository.findByBundleName(bundleName);
+        Optional<ConnectorBundle> bundle = connectorBundleRepository.findByBundleName(bundleName);
         UUID implementationVersionId = verifiPayload.getOid();
         Optional<ConnectorBundle> connectorBundle = connectorBundleRepository.
                 findByBundleVersions_ImplementationVersions_Id(implementationVersionId);
 
-        if (!connectorBundle.isPresent()) {
+        if (connectorBundle.isEmpty()) {
 ///  TODO bad request or Internal server error ? (silent)
             err = "No bundle found containing the connector Implementation version with OID " + implementationVersionId + ".";
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, err);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
         }
 
         ImplementationVersion sourceImplementationVersion = implementationVersionRepository.
                 getReferenceById(implementationVersionId);
 
-        if (bundles.isEmpty()) {
+        if (bundle.isEmpty()) {
 
             err = "No bundle found with bundle name " + bundleName + ".";
             sourceImplementationVersion.setErrorMessage(err);
@@ -739,36 +738,35 @@ public class ApplicationService {
                 sourceImplementationVersion.setErrorMessage(err);
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, err);
             }
-            for (ConnectorBundle bundle : bundles) {
-                List<BundleVersion> bundleVersions = bundle.getBundleVersions();
-                for (BundleVersion bundleVersion : bundleVersions) {
-                    if (version.equals(bundleVersion.getConnectorVersion())) {
-                        List<ImplementationVersion> implementationVersions = bundleVersion.getImplementationVersions();
-                        for (ImplementationVersion implementationVersion : implementationVersions) {
-                            if (className.equals(implementationVersion.getClassName())) {
 
-                                // TODO fetch, set error, delete, do something else ???
+            List<BundleVersion> bundleVersions = bundle.get().getBundleVersions();
+            for (BundleVersion bundleVersion : bundleVersions) {
+                if (version.equals(bundleVersion.getConnectorVersion())) {
+                    List<ImplementationVersion> implementationVersions = bundleVersion.getImplementationVersions();
+                    for (ImplementationVersion implementationVersion : implementationVersions) {
+                        if (className.equals(implementationVersion.getClassName())) {
+
+                            // TODO fetch, set error, delete, do something else ???
 //                                ImplementationVersion implVersion = implementationVersionRepository.getReferenceById(oid);
-                                err = "The connector bundle " + bundleName + " with the version "
-                                        + version + " already contains a implementation" + " for the connector class "
-                                        + className;
-                                sourceImplementationVersion.setErrorMessage(err);
-                                throw new ResponseStatusException(HttpStatus.CONFLICT, err);
-                            }
-                        }
-                        try {
-
-                            moveAndDeleteConnectorBundle(connectorBundle.get(),
-                                    bundleVersion, sourceImplementationVersion);
-                        } catch (Exception e) {
-
-                            err = e.getLocalizedMessage();
+                            err = "The connector bundle " + bundleName + " with the version "
+                                    + version + " already contains a implementation" + " for the connector class "
+                                    + className;
                             sourceImplementationVersion.setErrorMessage(err);
-                            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
+                            throw new ResponseStatusException(HttpStatus.CONFLICT, err);
                         }
-
-                        return true;
                     }
+                    try {
+
+                        moveImplVersionAndDeleteConnectorBundle(connectorBundle.get(),
+                                bundleVersion, sourceImplementationVersion);
+                    } catch (Exception e) {
+
+                        err = e.getLocalizedMessage();
+                        sourceImplementationVersion.setErrorMessage(err);
+                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
+                    }
+
+                    return true;
                 }
             }
 
@@ -780,7 +778,7 @@ public class ApplicationService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void moveAndDeleteConnectorBundle(
+    public void moveImplVersionAndDeleteConnectorBundle(
             ConnectorBundle sourceBundle,
             BundleVersion targetBundleVersion, ImplementationVersion sourceImplementationVersion) {
 

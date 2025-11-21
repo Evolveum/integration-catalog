@@ -10,13 +10,12 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface ConnectorBundleRepository extends JpaRepository<ConnectorBundle, Integer>,
         JpaSpecificationExecutor<ConnectorBundle> {
 
-    List<ConnectorBundle> findByBundleName(String bundleName);
+    Optional<ConnectorBundle> findByBundleName(String bundleName);
     Optional<ConnectorBundle> findByBundleVersions_ImplementationVersions_Id(UUID implementationVersionId);
 }
