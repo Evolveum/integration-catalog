@@ -59,6 +59,6 @@ public class ConnectorBundle {
     @OneToMany(mappedBy = "connectorBundle")
     private List<Implementation> implementations = new ArrayList<>();
 
-    @OneToMany(mappedBy = "connectorBundle")
+    @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BundleVersion> bundleVersions = new ArrayList<>();
 }

@@ -200,8 +200,10 @@ public class ApplicationService {
         bundleVersion.setConnectorVersion( implementationDto.connectorVersion());
         bundleVersion.setConnectorBundle(connectorBundle);
         bundleVersion.setBuildFramework(implementationDto.buildFramework());
-        //TODO
+
         bundleVersion.setPathToProject(implementationDto.pathToProject());
+        bundleVersion.setBrowseLink(implementationDto.browseLink());
+        bundleVersion.setCheckoutLink(implementationDto.checkoutLink());
 
         ImplementationVersion implementationVersion = new ImplementationVersion();
         implementationVersion.setDescription(implementationDto.description());
@@ -214,22 +216,26 @@ public class ApplicationService {
         // Check framework from ConnectorBundle
         if (implementation.getConnectorBundle() != null) {
             if (ConnectorBundle.FrameworkType.SCIM_REST.equals(implementation.getConnectorBundle().getFramework())) {
-                try {
-                    GithubClient githubClient = new GithubClient(githubProperties);
-                    GHRepository repository = githubClient.createProject(implementation.getDisplayName(),
-                            implementationVersion, files);
 
-                    // Store repository links in BundleVersion
-                    if (implementationVersion.getBundleVersion() != null) {
-                        implementationVersion.getBundleVersion().setCheckoutLink(repository.getHttpTransportUrl());
-                        implementationVersion.getBundleVersion().setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                if (!(bundleVersion.getCheckoutLink() != null && !bundleVersion.getCheckoutLink().isEmpty()
+                        && bundleVersion.getBrowseLink() != null && !bundleVersion.getBrowseLink().isEmpty())) {
+                    try {
+                        GithubClient githubClient = new GithubClient(githubProperties);
+                        GHRepository repository = githubClient.createProject(implementation.getDisplayName(),
+                                implementationVersion, files);
+
+                        // Store repository links in BundleVersion
+                        if (implementationVersion.getBundleVersion() != null) {
+                            implementationVersion.getBundleVersion().setCheckoutLink(repository.getHttpTransportUrl());
+                            implementationVersion.getBundleVersion().setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
+                        }
+                    } catch (Exception e) {
+                        // Store error in BundleVersion
+                        if (implementationVersion.getBundleVersion() != null) {
+                            implementationVersion.setErrorMessage(e.getMessage());
+                        }
+                        log.error(e.getMessage());
                     }
-                } catch (Exception e) {
-                    // Store error in BundleVersion
-                    if (implementationVersion.getBundleVersion() != null) {
-                        implementationVersion.setErrorMessage(e.getMessage());
-                    }
-                    log.error(e.getMessage());
                 }
             } else {
                 if (ConnectorBundle.FrameworkType.CONNID.equals(implementation.getConnectorBundle().getFramework())) {
@@ -259,10 +265,12 @@ public class ApplicationService {
                         implementationVersion.getBundleVersion().getCheckoutLink() : "";
                 String browseLink = implementationVersion.getBundleVersion() != null ?
                         implementationVersion.getBundleVersion().getBrowseLink() : "";
-                String connectorVersion = implementationVersion.getBundleVersion() != null ?
-                        implementationVersion.getBundleVersion().getConnectorVersion() : "";
                 String framework = implementation.getConnectorBundle() != null ?
                         implementation.getConnectorBundle().getFramework().name() : "";
+                String className = implementationDto.className() != null ?
+                        implementationDto.className() : "";
+                String pathToProject = implementationDto.pathToProject() != null ?
+                        implementationDto.pathToProject() : "";
 
                 JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
                 HttpResponse<String> response = jenkinsClient.triggerJob(
@@ -273,8 +281,8 @@ public class ApplicationService {
                                 "IMPL_TITLE", implementation.getDisplayName(),
                                 "IMPL_FRAMEWORK", framework,
                                 "SKIP_DEPLOY", "false",
-                                "CONNECTOR_CLASS", implementationDto.className(),
-                                "PATH_TO_PROJECT", implementationDto.pathToProject()));
+                                "CONNECTOR_CLASS", className,
+                                "PATH_TO_PROJECT", pathToProject));
                 log.info(response.body());
                 return response.body();
             } catch (Exception e) {
@@ -697,25 +705,39 @@ public class ApplicationService {
         );
     }
 
+
+    /**
+     * Verify validity of the implementation version based on the data produced by the jenkins pipeline.
+     * The process checks id a new connector bundle implementation version should be assigned to a existing connector-bundle.
+     * Used in case of bundled connectors, i.e. Ldap contains an implementation (connector class) for Ldap connectors
+     * but also an implementation version which handles AD based systems.
+     *
+     * @param verifiPayload Json form used to verify the validity of the implementation version.
+     * @return Boolean signaling that the implementation version is valid and the Jenkins pipeline can proceed.
+     */
     public Boolean verify(VerifyBundleInformationForm verifiPayload) {
 
         String bundleName = verifiPayload.getBundleName();
         String err;
-        // TODO should only be one
         Optional<ConnectorBundle> bundle = connectorBundleRepository.findByBundleName(bundleName);
         UUID implementationVersionId = verifiPayload.getOid();
         Optional<ConnectorBundle> connectorBundle = connectorBundleRepository.
                 findByBundleVersions_ImplementationVersions_Id(implementationVersionId);
 
         if (connectorBundle.isEmpty()) {
-///  TODO bad request or Internal server error ? (silent)
             err = "No bundle found containing the connector Implementation version with OID " + implementationVersionId + ".";
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
         }
 
-        ImplementationVersion sourceImplementationVersion = implementationVersionRepository.
-                getReferenceById(implementationVersionId);
+        Optional<ImplementationVersion> iVersion = implementationVersionRepository.
+                findById(implementationVersionId);
 
+        if(iVersion.isEmpty()){
+            err = "No implementation version found with id " + implementationVersionId + ".";
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
+        }
+
+        ImplementationVersion sourceImplementationVersion = iVersion.get();
         if (bundle.isEmpty()) {
 
             err = "No bundle found with bundle name " + bundleName + ".";
@@ -746,8 +768,6 @@ public class ApplicationService {
                     for (ImplementationVersion implementationVersion : implementationVersions) {
                         if (className.equals(implementationVersion.getClassName())) {
 
-                            // TODO fetch, set error, delete, do something else ???
-//                                ImplementationVersion implVersion = implementationVersionRepository.getReferenceById(oid);
                             err = "The connector bundle " + bundleName + " with the version "
                                     + version + " already contains a implementation" + " for the connector class "
                                     + className;
@@ -770,6 +790,7 @@ public class ApplicationService {
                 }
             }
 
+            ///  Handle this step, link to the correct bundle.
             err = "No connector bundle found for " +
                     "bundle name " + bundleName + ", version " + version + " and connector class " + className;
             sourceImplementationVersion.setErrorMessage(err);
@@ -778,17 +799,37 @@ public class ApplicationService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public void moveImplVersionAndDeleteConnectorBundle(
-            ConnectorBundle sourceBundle,
-            BundleVersion targetBundleVersion, ImplementationVersion sourceImplementationVersion) {
+    public void moveImplVersionAndDeleteConnectorBundle(ConnectorBundle sourceBundle,
+        BundleVersion targetBundleVersion, ImplementationVersion sourceImplementationVersion) {
+
+        if (sourceBundle.getBundleName() != null && !sourceBundle.getBundleName().isEmpty()) {
+
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Illegal state of connector" +
+                    " bundle. Bundle already contains implementation version which is being verified");
+        }
 
         sourceImplementationVersion.setBundleVersion(targetBundleVersion);
         targetBundleVersion.getImplementationVersions().add(sourceImplementationVersion);
-
+        ConnectorBundle targetBundle = targetBundleVersion.getConnectorBundle();
         for (BundleVersion bv : sourceBundle.getBundleVersions()) {
+
+            for (ImplementationVersion iv : bv.getImplementationVersions()) {
+
+                if (iv.getId().equals(sourceImplementationVersion.getId())) {
+                    continue;
+                }
+                implementationVersionRepository.delete(iv);
+            }
             bv.getImplementationVersions().clear();
-            bundleVersionRepository.delete(bv);
+            bv.setConnectorBundle(null);
         }
+        sourceBundle.getBundleVersions().clear();
+
+        for (Implementation impl : sourceBundle.getImplementations()) {
+            impl.setConnectorBundle(targetBundle);
+            targetBundle.getImplementations().add(impl);
+        }
+        sourceBundle.getImplementations().clear();
         connectorBundleRepository.delete(sourceBundle);
     }
 }
