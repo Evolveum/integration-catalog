@@ -19,7 +19,10 @@ INSERT INTO public.application_tag (id, name, display_name, tag_type) VALUES
   (8,  'popular',                          'Popular',                          'COMMON'),
   (9,  'us',                               'USA based',                        'LOCALITY'),
   (10, 'uk',                               'UK',                               'LOCALITY'),
-  (11, 'internal_applications',            'Internal Applications',            'CATEGORY');
+  (11, 'internal_applications',            'Internal Applications',            'CATEGORY'),
+  (12, 'evolveum-creation',                'Profesional By Evolveum',          'COMMON'),
+  (13, 'community-creation',               'Created by Community',             'COMMON'),
+  (14, 'partner-creation',                 'Created by Evolveum Partners',     'COMMON');
 
 INSERT INTO public.country_of_origin (id, name, display_name) VALUES
   (1, 'austria',  'Austria'),
@@ -181,7 +184,8 @@ INSERT INTO public.application_application_tag (id, application_id, tag_id) VALU
 (18,'5f0ba262-a08b-44fc-b830-f4942e3efeb2',11),
 (17,'5f0ba262-a08b-44fc-b830-f4942e3efeb3',11),
 (14,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',1),
-(15,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',8);
+(15,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',8),
+(16,'54dfdf0e-4528-4b03-967d-4af33e49a0ab');
 
 INSERT INTO public.application_origin (id, application_id, country_id) VALUES
 (5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab',5),

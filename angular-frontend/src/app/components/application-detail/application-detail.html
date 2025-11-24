@@ -4,67 +4,133 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<div class="container-fluid p-0" style="background-color: #e9ecef; min-height: 100vh;">
-<div class="container py-5">
+<div class="container-fluid p-0" style="background-color: #ffffff; min-height: 100vh;">
+  <!-- Back Button at Top -->
+  @if (!loading() && !error() && application()) {
+    <div style="background-color: #d9e3ec; padding: 0.75rem 0;">
+      <div class="container">
+        <button class="btn d-flex align-items-center" (click)="goBack()" style="border: none; padding: 0; background: none; color: #2c5282;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 0.5rem;">
+            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+          </svg>
+          Back to Integration Catalog
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Header Bar -->
+  <div style="background-color: #d9e3ec; padding: 1rem 0;">
+    <div class="container">
+      <div class="text-center text-muted" style="font-size: 0.875rem;"></div>
+    </div>
+  </div>
+
   @if (loading()) {
-    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+    <div class="container py-5">
+      <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
     </div>
   }
 
   @if (error()) {
-    <div class="alert alert-danger" role="alert">
-      <h4 class="alert-heading">Error</h4>
-      <p>{{ error() }}</p>
-      <hr>
-      <button class="btn btn-primary" (click)="goBack()">
-        <i class="bi bi-arrow-left"></i> Back to Integration Catalog
-      </button>
+    <div class="container py-5">
+      <div class="alert alert-danger" role="alert">
+        <h4 class="alert-heading">Error</h4>
+        <p>{{ error() }}</p>
+        <hr>
+        <button class="btn btn-primary" (click)="goBack()">
+          <i class="bi bi-arrow-left"></i> Back to Integration Catalog
+        </button>
+      </div>
     </div>
   }
 
   @if (!loading() && !error() && application()) {
-    <div class="mb-4">
-      <button class="btn text-primary" (click)="goBack()" style="border: none;">
-        ← Back to Integration Catalog
-      </button>
-    </div>
+    <!-- Header Section -->
+    <div style="background-color: #e8eef3; padding: 2rem 0;">
+      <div class="container">
+        <div class="d-flex align-items-start gap-4">
+        <!-- Logo -->
+        <div class="flex-shrink-0">
+          <div style="width: 140px; height: 140px; border-radius: 50%; background-color: #ffffff; display: flex; align-items: center; justify-content: center; padding: 1.5rem;">
+            <img [src]="application()!.logo" [alt]="application()!.displayName"
+                 style="width: 100%; height: 100%; object-fit: contain;" />
+          </div>
+        </div>
 
+        <!-- Title and Info -->
+        <div class="flex-grow-1">
+          <h1 class="h2 mb-2" style="color: #1a202c; font-weight: 600;">
+            {{ application()!.displayName }}
+            @if (application()!.tags && application()!.tags!.length > 0) {
+              @for (tag of application()!.tags!; track tag.id) {
+                @if (tag.name === 'popular') {
+                  <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffc107; color: #000; font-size: 0.75rem; font-weight: 600; vertical-align: middle; padding: 0.35rem 0.65rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
+                    </svg>
+                    {{ tag.displayName }}
+                  </span>
+                }
+              }
+            }
+          </h1>
+          @if (application()!.tags && application()!.tags!.length > 0) {
+            @for (tag of application()!.tags!; track tag.id) {
+              @if (tag.tagType === 'COMMON' && (tag.name === 'evolveum-creation' || tag.name === 'community-creation' || tag.name === 'partner-creation')) {
+                <p class="mb-3" style="color: #718096; font-size: 0.95rem;">{{ tag.displayName }}</p>
+              }
+            }
+          }
+          <p class="mb-4" style="color: #4a5568;">{{ application()!.description }}</p>
+
+          <!-- Stats Row -->
+          <div class="d-flex align-items-center gap-4" style="color: #4a5568; font-size: 0.875rem;">
+            <!-- Star Rating (Placeholder) -->
+            <div class="d-flex align-items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#f59e0b" viewBox="0 0 16 16">
+                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+              </svg>
+              <span style="font-weight: 500;"><b>"4.4</b> (404 reviews)"</span>
+            </div>
+
+            <!-- Installations (Placeholder) -->
+            <div class="d-flex align-items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+              </svg>
+              <span style="font-weight: 500;">"404 installations"</span>
+            </div>
+
+            <!-- Updated Date -->
+            <div class="d-flex align-items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+              </svg>
+              <span style="font-weight: 500;">{{ getTimeSinceLastUpdate(application()!.lastModified) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-5">
     <div class="row">
       <!-- Left Panel - Main Content -->
       <div class="col-lg-8">
-        <div class="card shadow-sm mb-4">
-          <div class="card-body">
-            <div class="row align-items-center mb-4">
-              <div class="col-auto">
-                <img [src]="application()!.logo" [alt]="application()!.displayName"
-                     class="img-fluid rounded" style="max-width: 100px; max-height: 100px;" />
-              </div>
-              <div class="col">
-                <h1 class="card-title mb-2">
-                  {{ application()!.displayName }}
-                  @if (application()!.tags && application()!.tags!.length > 0) {
-                    @for (tag of application()!.tags!; track tag.id) {
-                      @if (tag.name === 'popular') {
-                        <span class="badge bg-warning text-dark ms-2" style="font-size: 0.75rem;">{{ tag.displayName }}</span>
-                      }
-                    }
-                  }
-                </h1>
-                @if (application()!.lifecycleState) {
-                  <span class="badge bg-primary">{{ formatLifecycleState(application()!.lifecycleState) }}</span>
-                }
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col-12">
-                <h2 class="h4 mb-3">Description</h2>
-                <p class="text-muted">{{ application()!.description }}</p>
-              </div>
-            </div>
+        <div class="bg-white p-4 rounded mb-4">
+          <!-- Description Section -->
+          <div class="mb-4">
+            <h2 class="h5 mb-3">Description</h2>
+            <p class="text-muted">{{ application()!.description }}</p>
+          </div>
 
             <!-- REQUESTED Application Info -->
             @if (application()!.lifecycleState === 'REQUESTED') {
@@ -113,210 +179,383 @@
               <div class="row mt-4">
                 <div class="col-12">
                   <!-- Tabs Navigation -->
-                  <ul class="nav nav-tabs mb-3">
-                    <li class="nav-item">
-                      <a class="nav-link"
-                         [class.active]="activeTab() === 'main'"
-                         (click)="setActiveTab('main')"
-                         style="cursor: pointer;">
-                        Main version(s)
-                      </a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link"
-                         [class.active]="activeTab() === 'other'"
-                         (click)="setActiveTab('other')"
-                         style="cursor: pointer;">
-                        Other versions ({{ getTotalVersionsCount() }})
-                      </a>
-                    </li>
-                  </ul>
+                  <div style="background-color: #dfe3e7; padding: 0.25rem; border-radius: 8px; display: inline-flex; gap: 0.25rem; margin-bottom: 1.5rem;">
+                    <button
+                      (click)="setActiveTab('main')"
+                      [style.background-color]="activeTab() === 'main' ? '#ffffff' : 'transparent'"
+                      [style.color]="activeTab() === 'main' ? '#1a202c' : '#4a5568'"
+                      [style.font-weight]="activeTab() === 'main' ? '600' : '400'"
+                      style="border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">
+                      Main version(s)
+                    </button>
+                    <button
+                      (click)="setActiveTab('other')"
+                      [style.background-color]="activeTab() === 'other' ? '#ffffff' : 'transparent'"
+                      [style.color]="activeTab() === 'other' ? '#1a202c' : '#4a5568'"
+                      [style.font-weight]="activeTab() === 'other' ? '600' : '400'"
+                      style="border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">
+                      Other versions ({{ getTotalVersionsCount() }})
+                    </button>
+                  </div>
+
+                  <!-- Filter Section -->
+                  <div class="d-flex align-items-center justify-content-between mb-4" style="gap: 1rem;">
+                    <!-- Left: Filter Chips -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap" style="flex: 1;">
+                      @if (hasActiveFilters()) {
+                        <!-- Capabilities Filter Chip -->
+                        @if (filterState().capabilities.length > 0) {
+                          <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                            <span>Capability</span>
+                            <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                              {{ filterState().capabilities.length }}
+                            </span>
+                            <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                              </svg>
+                            </button>
+                            <button type="button" (click)="clearCapabilitiesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                              </svg>
+                            </button>
+                          </div>
+                        }
+
+                        <!-- ConnId Version Filter Chip -->
+                        @if (filterState().midpointVersions.length > 0) {
+                          <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                            <span>ConnId Version</span>
+                            <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                              {{ filterState().midpointVersions.length }}
+                            </span>
+                            <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                              </svg>
+                            </button>
+                            <button type="button" (click)="clearVersionsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                              </svg>
+                            </button>
+                          </div>
+                        }
+                      }
+                    </div>
+
+                    <!-- Right: Filter Buttons -->
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                      <button type="button" (click)="toggleFilterModal()" class="btn btn-sm d-flex align-items-center gap-2" style="background-color: white; border: 1px solid #cbd5e0; color: #000000; padding: 0.4rem 0.75rem; border-radius: 50px; white-space: nowrap;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
+                        </svg>
+                        Filter
+                      </button>
+                      <button type="button" (click)="resetFilters()" class="btn btn-sm" style="background-color: transparent; border: none; color: #6c757d; padding: 0.4rem 0.75rem; white-space: nowrap;">
+                        Reset filter
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Filter Modal -->
+                  @if (isFilterModalOpen()) {
+                    <div class="position-fixed top-0 start-0 w-100 h-100" style="background-color: rgba(0, 0, 0, 0.5); z-index: 1050;" (click)="toggleFilterModal()">
+                      <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg" style="width: 90%; max-width: 800px; max-height: 80vh; overflow: hidden; z-index: 1051;" (click)="$event.stopPropagation()">
+                        <div class="d-flex flex-column h-100">
+                          <!-- Two-panel layout -->
+                          <div class="d-flex flex-grow-1" style="overflow: hidden;">
+                            <!-- Left Sidebar -->
+                            <div class="border-end" style="width: 250px; overflow-y: auto;">
+                              <div class="d-flex flex-column">
+                                <!-- Capabilities Section -->
+                                <button type="button" (click)="selectFilterSection('capabilities')" [style.background-color]="selectedFilterSection() === 'capabilities' ? '#f8f9fa' : 'transparent'" [style.border-left]="selectedFilterSection() === 'capabilities' ? '3px solid #0d6efd' : '3px solid transparent'" style="text-align: left; border: none; border-left: 3px solid transparent; padding: 1rem 1.5rem; cursor: pointer; transition: all 0.2s;">
+                                  <span style="font-weight: 500;">Capabilities</span>
+                                </button>
+
+                                <!-- Midpoint Version Section -->
+                                <button type="button" (click)="selectFilterSection('versions')" [style.background-color]="selectedFilterSection() === 'versions' ? '#f8f9fa' : 'transparent'" [style.border-left]="selectedFilterSection() === 'versions' ? '3px solid #0d6efd' : '3px solid transparent'" style="text-align: left; border: none; border-left: 3px solid transparent; padding: 1rem 1.5rem; cursor: pointer; transition: all 0.2s;">
+                                  <span style="font-weight: 500;">Midpoint Version</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            <!-- Right Content Area -->
+                            <div class="flex-grow-1 p-4" style="overflow-y: auto;">
+                              <!-- Capabilities Content -->
+                              @if (selectedFilterSection() === 'capabilities') {
+                                <div class="d-flex flex-column gap-2">
+                                  @for (capability of getAllCapabilities(); track capability) {
+                                    <div class="d-flex align-items-center gap-2" style="cursor: pointer;" (click)="toggleCapabilityFilter(capability)">
+                                      <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        @if (isCapabilitySelected(capability)) {
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
+                                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
+                                          </svg>
+                                        }
+                                      </div>
+                                      <span>{{ formatCapabilityText(capability) }}</span>
+                                    </div>
+                                  }
+                                </div>
+                              }
+
+                              <!-- Midpoint Version Content -->
+                              @if (selectedFilterSection() === 'versions') {
+                                <div class="d-flex flex-column gap-2">
+                                  @for (version of getAllMidpointVersions(); track version) {
+                                    <div class="d-flex align-items-center gap-2" style="cursor: pointer;" (click)="toggleMidpointVersionFilter(version)">
+                                      <div [style.background-color]="isMidpointVersionSelected(version) ? '#0d6efd' : 'transparent'" [style.border-color]="isMidpointVersionSelected(version) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        @if (isMidpointVersionSelected(version)) {
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
+                                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
+                                          </svg>
+                                        }
+                                      </div>
+                                      <span>{{ version }}</span>
+                                    </div>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
 
                   <!-- Tab Content -->
                   @if (activeTab() === 'main') {
                     @if (activeEvolvumVersions().length > 0) {
-                      <h2 class="h6 mb-3 text-muted">CREATED BY EVOLVEUM OR EVOLVEUM PARTNER</h2>
+                      <h2 class="h6 mb-3 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Best Version By Evolveum</h2>
                     @for (version of activeEvolvumVersions(); track $index) {
                     <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
-                          }
-                        </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
-                        @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
-                        } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
-                        }
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
-
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
+                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
+                        <!-- Version Header -->
+                        <div class="d-flex align-items-start justify-content-between mb-3">
+                          <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <h3 class="h5 mb-0">
+                                @if (version.connectorVersion) {
+                                  Version {{ version.connectorVersion }}
+                                } @else {
+                                  Version {{ $index + 1 }}
                                 }
+                              </h3>
+                              @if (version.systemVersion) {
+                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
+                              }
+                            </div>
 
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
-                              </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
+                            <!-- Creator and Meta Info -->
+                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
+                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
+                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
+                                  </svg>
+                                  <span>AI Generated</span>
+                                </div>
+                              }
+                              @if (version.author) {
+                                <div class="d-flex align-items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+                                  </svg>
+                                  <span>Created by [{{ version.author }}]</span>
+                                </div>
+                              }
+                            </div>
+
+                            <!-- Connector Type, Published Date, Downloads -->
+                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
+                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
+                              @if (version.releasedDate) {
+                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
+                              }
+                              <div class="d-flex align-items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                   <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                   <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                                 </svg>
-                                Download This Version
-                              </a>
+                                <span>"46 Downloads"</span>
+                              </div>
                             </div>
                           </div>
+                        </div>
+
+                        <!-- Description -->
+                        @if (version.description) {
+                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
                         } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
+                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
+                        }
+                        <!-- Capabilities -->
+                        @if (hasNonInstalledCapabilities(version.capabilities)) {
+                          <div class="mb-3">
+                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
+                            <div class="d-flex flex-wrap gap-2">
+                              @let allCapabilities = filterInstalledCapability(version.capabilities);
+                              @let isVersionExpanded = isExpanded($index);
+                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
+                              @let remainingCount = allCapabilities.length - 10;
+
+                              @for (item of visibleCapabilities; track $index) {
+                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
+                              }
+
+                              @if (remainingCount > 0) {
+                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
+                                  @if (isVersionExpanded) {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                                    </svg>
+                                  } @else {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                    </svg>
+                                  }
+                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
+                                </span>
+                              }
+                            </div>
                           </div>
                         }
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
+                            Edit
+                          </button>
+                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                          </a>
+                        </div>
                       </div>
                     </div>
                     }
                     }
 
                     @if (activeCommunityVersions().length > 0) {
-                      <h2 class="h6 mb-3 mt-5 text-muted">CREATED BY COMMUNITY</h2>
+                      <h2 class="h6 mb-3 mt-5 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Best Version By Community</h2>
                     @for (version of activeCommunityVersions(); track $index) {
                     <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
-                          }
-                        </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
-                        @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
-                        } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
-                        }
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
-
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
+                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
+                        <!-- Version Header -->
+                        <div class="d-flex align-items-start justify-content-between mb-3">
+                          <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <h3 class="h5 mb-0">
+                                @if (version.connectorVersion) {
+                                  Version {{ version.connectorVersion }}
+                                } @else {
+                                  Version {{ $index + 1 }}
                                 }
+                              </h3>
+                              @if (version.systemVersion) {
+                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
+                              }
+                            </div>
 
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
-                              </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
+                            <!-- Creator and Meta Info -->
+                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
+                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
+                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #000;">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
+                                  </svg>
+                                  <span>AI Generated</span>
+                                </div>
+                              }
+                              @if (version.author) {
+                                <div class="d-flex align-items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+                                  </svg>
+                                  <span>Created by [{{ version.author }}]</span>
+                                </div>
+                              }
+                            </div>
+
+                            <!-- Connector Type, Published Date, Downloads -->
+                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
+                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
+                              @if (version.releasedDate) {
+                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
+                              }
+                              <div class="d-flex align-items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
                                   <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                   <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                                 </svg>
-                                Download This Version
-                              </a>
+                                <span>"46 Downloads"</span>
+                              </div>
                             </div>
                           </div>
+                        </div>
+
+                        <!-- Description -->
+                        @if (version.description) {
+                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
                         } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
+                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
+                        }
+                        <!-- Capabilities -->
+                        @if (hasNonInstalledCapabilities(version.capabilities)) {
+                          <div class="mb-3">
+                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
+                            <div class="d-flex flex-wrap gap-2">
+                              @let allCapabilities = filterInstalledCapability(version.capabilities);
+                              @let isVersionExpanded = isExpanded($index);
+                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
+                              @let remainingCount = allCapabilities.length - 10;
+
+                              @for (item of visibleCapabilities; track $index) {
+                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
+                              }
+
+                              @if (remainingCount > 0) {
+                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
+                                  @if (isVersionExpanded) {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                                    </svg>
+                                  } @else {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                    </svg>
+                                  }
+                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
+                                </span>
+                              }
+                            </div>
                           </div>
                         }
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
+                            Edit
+                          </button>
+                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                          </a>
+                        </div>
                       </div>
                     </div>
                     }
@@ -329,7 +568,7 @@
 
                   @if (activeTab() === 'other') {
                     @if (otherEvolvumVersions().length > 0) {
-                      <h2 class="h6 mb-3 text-muted">CREATED BY EVOLVEUM OR EVOLVEUM PARTNER</h2>
+                      <h2 class="h6 mb-3 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Created By Evolveum Or Evolveum Partner</h2>
                     @for (version of otherEvolvumVersions(); track $index) {
                     <div class="mb-4">
                       <div class="border p-3 rounded position-relative">
@@ -380,53 +619,61 @@
                         } @else {
                           <p class="text-muted fst-italic mb-2">No description available</p>
                         }
+                        <!-- Capabilities -->
                         @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
+                          <div class="mb-3">
+                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
+                            <div class="d-flex flex-wrap gap-2">
+                              @let allCapabilities = filterInstalledCapability(version.capabilities);
+                              @let isVersionExpanded = isExpanded($index);
+                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
+                              @let remainingCount = allCapabilities.length - 10;
 
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
-                                }
+                              @for (item of visibleCapabilities; track $index) {
+                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
+                              }
 
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
-                              </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Download This Version
-                              </a>
+                              @if (remainingCount > 0) {
+                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
+                                  @if (isVersionExpanded) {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                                    </svg>
+                                  } @else {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                    </svg>
+                                  }
+                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
+                                </span>
+                              }
                             </div>
                           </div>
-                        } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
-                          </div>
                         }
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
+                            Edit
+                          </button>
+                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                          </a>
+                        </div>
                       </div>
                     </div>
                     }
                     }
 
                     @if (otherCommunityVersions().length > 0) {
-                      <h2 class="h6 mb-3 mt-5 text-muted">CREATED BY COMMUNITY</h2>
+                      <h2 class="h6 mb-3 mt-5 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Created By Community</h2>
                     @for (version of otherCommunityVersions(); track $index) {
                     <div class="mb-4">
                       <div class="border p-3 rounded position-relative">
@@ -477,46 +724,54 @@
                         } @else {
                           <p class="text-muted fst-italic mb-2">No description available</p>
                         }
+                        <!-- Capabilities -->
                         @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
+                          <div class="mb-3">
+                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
+                            <div class="d-flex flex-wrap gap-2">
+                              @let allCapabilities = filterInstalledCapability(version.capabilities);
+                              @let isVersionExpanded = isExpanded($index);
+                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
+                              @let remainingCount = allCapabilities.length - 10;
 
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
-                                }
+                              @for (item of visibleCapabilities; track $index) {
+                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
+                              }
 
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
-                              </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Download This Version
-                              </a>
+                              @if (remainingCount > 0) {
+                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
+                                  @if (isVersionExpanded) {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                                    </svg>
+                                  } @else {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                    </svg>
+                                  }
+                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
+                                </span>
+                              }
                             </div>
                           </div>
-                        } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
-                          </div>
                         }
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
+                            Edit
+                          </button>
+                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                          </a>
+                        </div>
                       </div>
                     </div>
                     }
@@ -529,78 +784,132 @@
                 </div>
               </div>
             }
-          </div>
         </div>
       </div>
 
-      <!-- Right Panel - Quick Info -->
+      <!-- Right Panel - Sidebar -->
       <div class="col-lg-4">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h3 class="h5 mb-3">Quick Info</h3>
-            <hr class="mb-4">
-
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">Tags</h6>
-              @if (application()!.tags && application()!.tags!.length > 0) {
-                <div class="d-flex flex-wrap gap-1">
-                  @for (tag of application()!.tags!; track tag.id) {
-                    @if (tag.name !== 'popular' && tag.tagType !== 'CATEGORY') {
-                      @if (tag.tagType === 'DEPLOYMENT') {
-                        <span class="badge bg-primary">{{ tag.displayName }}</span>
-                      }
-                      @if (tag.tagType === 'LOCALITY') {
-                        <span class="badge bg-info">{{ tag.displayName }}</span>
-                      }
-                      @if (tag.tagType === 'COMMON') {
-                        <span class="badge bg-secondary">{{ tag.displayName }}</span>
-                      }
+        <div class="p-4 rounded shadow-sm" style="background-color: #f8f8ff;">
+          <!-- Tags Section -->
+          <div class="mb-4">
+            <h6 class="text-muted small mb-2">Tags</h6>
+            @if (application()!.tags && application()!.tags!.length > 0) {
+              <div class="d-flex flex-column gap-2">
+                @for (tag of application()!.tags!; track tag.id) {
+                  @if (tag.name !== 'popular' && tag.tagType !== 'CATEGORY' && tag.tagType !== 'COMMON') {
+                    @if (tag.tagType === 'DEPLOYMENT') {
+                      <span class="badge" style="background-color: #cfe2ff; color: #084298; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
+                    }
+                    @if (tag.tagType === 'LOCALITY') {
+                      <span class="badge" style="background-color: #d1ecf1; color: #0c5460; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
+                    }
+                    @if (tag.tagType === 'COMMON') {
+                      <span class="badge" style="background-color: #e2e3e5; color: #41464b; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
                     }
                   }
-                </div>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
+                }
+              </div>
+            } @else {
+              <p class="mb-0 text-muted" style="font-size: 0.875rem;">No tags available</p>
+            }
+          </div>
 
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">App Category</h6>
-              @if (application()!.categories && application()!.categories!.length > 0) {
-                <div>
-                  @for (category of application()!.categories!; track category.id) {
-                    <p class="mb-1">{{ category.displayName }}</p>
-                  }
-                </div>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
+          <!-- <hr> -->
 
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">Last Updated</h6>
-              @if (application()!.lastModified) {
-                <p class="mb-0">{{ application()!.lastModified | date: 'mediumDate' }}</p>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
+          <!-- App Category -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">App Category</h6>
+            @if (application()!.categories && application()!.categories!.length > 0) {
+              <div>
+                @for (category of application()!.categories!; track category.id) {
+                  <p class="mb-1">{{ category.displayName }}</p>
+                }
+              </div>
+            } @else {
+              <p class="mb-0 text-muted" style="font-size: 0.875rem;">Not available</p>
+            }
+          </div>
 
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">Origin(s)</h6>
-              @if (application()!.origins && application()!.origins!.length > 0) {
-                <div>
-                  @for (origin of application()!.origins!; track origin.id) {
-                    <p class="mb-1">{{ origin.displayName }}</p>
-                  }
-                </div>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
+          <!-- Last Update -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">Last Update</h6>
+            @if (application()!.lastModified) {
+              <p class="mb-0">{{ application()!.lastModified | date: 'MMM d, yyyy' }}</p>
+            } @else {
+              <p class="mb-0 text-muted" style="font-size: 0.875rem;">Not available</p>
+            }
+          </div>
+
+          <!-- Maintainer Location (Placeholder) -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">Maintainer Location</h6>
+            <p class="mb-0">France, Europe<br>Illinois, USA</p>
+          </div>
+
+          <!-- Maintainer Location Icon (Placeholder) -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">Maintainer Location</h6>
+            <div class="d-flex align-items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+              </svg>
             </div>
+          </div>
+
+          <!-- Installations (Placeholder) -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">Installations</h6>
+            <p class="mb-0 fw-bold" style="font-size: 1.5rem;">"404"</p>
           </div>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Fixed Position Filter Dropdowns -->
+  @if (openDropdown() === 'capabilities' && dropdownPosition()) {
+    <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+      @for (capability of getAllCapabilities(); track capability) {
+        <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
+          <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+            @if (isCapabilitySelected(capability)) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
+                <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
+              </svg>
+            }
+          </div>
+          <span>{{ formatCapabilityText(capability) }}</span>
+        </div>
+      }
+      <div class="border-top pt-2 mt-2">
+        <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+      </div>
+    </div>
   }
-</div>
+
+  @if (openDropdown() === 'versions' && dropdownPosition()) {
+    <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+      @for (version of getAllMidpointVersions(); track version) {
+        <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleMidpointVersionFilter(version); $event.stopPropagation()">
+          <div [style.background-color]="isMidpointVersionSelected(version) ? '#0d6efd' : 'transparent'" [style.border-color]="isMidpointVersionSelected(version) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+            @if (isMidpointVersionSelected(version)) {
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
+                <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
+              </svg>
+            }
+          </div>
+          <span>{{ version }}</span>
+        </div>
+      }
+      <div class="border-top pt-2 mt-2">
+        <a href="javascript:void(0)" (click)="clearVersionsFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+      </div>
+    </div>
+  }
+
+  <!-- Backdrop to close dropdown when clicking outside -->
+  @if (openDropdown()) {
+    <div (click)="closeDropdown()" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9998;"></div>
+  }
+  }
 </div>

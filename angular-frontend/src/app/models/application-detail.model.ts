@@ -27,6 +27,7 @@ export interface ImplementationVersion {
   author: string | null;
   lifecycleState: string | null;
   downloadLink: string | null;
+  framework: string | null;
 }
 
 export interface ApplicationDetail {

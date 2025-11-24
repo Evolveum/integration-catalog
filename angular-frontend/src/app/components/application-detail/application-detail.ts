@@ -27,6 +27,14 @@ export class ApplicationDetail implements OnInit {
   protected readonly otherEvolvumVersions = signal<any[]>([]);
   protected readonly otherCommunityVersions = signal<any[]>([]);
   protected readonly activeTab = signal<'main' | 'other'>('main');
+  protected readonly isFilterModalOpen = signal<boolean>(false);
+  protected readonly filterState = signal<{capabilities: string[], midpointVersions: string[]}>({
+    capabilities: [],
+    midpointVersions: []
+  });
+  protected readonly openDropdown = signal<string | null>(null);
+  protected readonly dropdownPosition = signal<{ top: number; left: number } | null>(null);
+  protected readonly selectedFilterSection = signal<string>('capabilities');
 
   constructor(
     private route: ActivatedRoute,
@@ -82,6 +90,157 @@ export class ApplicationDetail implements OnInit {
     this.activeTab.set(tab);
   }
 
+  protected toggleFilterModal(): void {
+    this.isFilterModalOpen.update(open => !open);
+  }
+
+  protected selectFilterSection(section: string): void {
+    this.selectedFilterSection.set(section);
+  }
+
+  protected toggleDropdown(filterType: string, event: MouseEvent): void {
+    if (this.openDropdown() === filterType) {
+      this.openDropdown.set(null);
+      this.dropdownPosition.set(null);
+    } else {
+      const target = event.currentTarget as HTMLElement;
+      const rect = target.closest('.filter-chip')?.getBoundingClientRect();
+
+      if (rect) {
+        this.dropdownPosition.set({
+          top: rect.bottom + 8,
+          left: rect.left
+        });
+      }
+      this.openDropdown.set(filterType);
+    }
+  }
+
+  protected closeDropdown(): void {
+    this.openDropdown.set(null);
+    this.dropdownPosition.set(null);
+  }
+
+  protected resetFilters(): void {
+    this.filterState.set({
+      capabilities: [],
+      midpointVersions: []
+    });
+    this.applyFilters();
+  }
+
+  protected clearCapabilitiesFilter(): void {
+    this.filterState.update(state => ({ ...state, capabilities: [] }));
+    this.applyFilters();
+    this.closeDropdown();
+  }
+
+  protected clearVersionsFilter(): void {
+    this.filterState.update(state => ({ ...state, midpointVersions: [] }));
+    this.applyFilters();
+    this.closeDropdown();
+  }
+
+  protected toggleCapabilityFilter(capability: string): void {
+    const current = this.filterState().capabilities;
+    if (current.includes(capability)) {
+      this.filterState.update(state => ({
+        ...state,
+        capabilities: state.capabilities.filter(c => c !== capability)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        capabilities: [...state.capabilities, capability]
+      }));
+    }
+    this.applyFilters();
+  }
+
+  protected toggleMidpointVersionFilter(version: string): void {
+    const current = this.filterState().midpointVersions;
+    if (current.includes(version)) {
+      this.filterState.update(state => ({
+        ...state,
+        midpointVersions: state.midpointVersions.filter(v => v !== version)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        midpointVersions: [...state.midpointVersions, version]
+      }));
+    }
+    this.applyFilters();
+  }
+
+  protected removeCapabilityFilter(capability: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      capabilities: state.capabilities.filter(c => c !== capability)
+    }));
+    this.applyFilters();
+  }
+
+  protected removeMidpointVersionFilter(version: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      midpointVersions: state.midpointVersions.filter(v => v !== version)
+    }));
+    this.applyFilters();
+  }
+
+  protected getAllCapabilities(): string[] {
+    const app = this.application();
+    if (!app || !app.implementationVersions) return [];
+
+    const capabilitiesSet = new Set<string>();
+    app.implementationVersions.forEach(version => {
+      if (version.capabilities) {
+        version.capabilities.forEach(cap => {
+          if (cap !== 'Installed') {
+            capabilitiesSet.add(cap);
+          }
+        });
+      }
+    });
+
+    return Array.from(capabilitiesSet).sort();
+  }
+
+  protected getAllMidpointVersions(): string[] {
+    const app = this.application();
+    if (!app || !app.implementationVersions) return [];
+
+    const versionsSet = new Set<string>();
+    app.implementationVersions.forEach(version => {
+      if (version.systemVersion) {
+        versionsSet.add(version.systemVersion);
+      }
+    });
+
+    return Array.from(versionsSet).sort();
+  }
+
+  protected isCapabilitySelected(capability: string): boolean {
+    return this.filterState().capabilities.includes(capability);
+  }
+
+  protected isMidpointVersionSelected(version: string): boolean {
+    return this.filterState().midpointVersions.includes(version);
+  }
+
+  protected hasActiveFilters(): boolean {
+    const filters = this.filterState();
+    return filters.capabilities.length > 0 || filters.midpointVersions.length > 0;
+  }
+
+  private applyFilters(): void {
+    const app = this.application();
+    if (app && app.implementationVersions) {
+      this.groupVersionsByLifecycleState(app.implementationVersions);
+    }
+  }
+
   protected getTotalVersionsCount(): number {
     return this.otherEvolvumVersions().length + this.otherCommunityVersions().length;
   }
@@ -101,6 +260,50 @@ export class ApplicationDetail implements OnInit {
       default:
         return state;
     }
+  }
+
+  protected getTimeSinceLastUpdate(lastModified: string | null): string {
+    if (!lastModified) return 'Unknown';
+
+    const lastModifiedDate = new Date(lastModified);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - lastModifiedDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+
+    if (diffYears > 0) {
+      return `Updated ${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
+    } else if (diffMonths > 0) {
+      return `Updated ${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+    } else if (diffDays > 0) {
+      return `Updated ${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Updated today';
+    }
+  }
+
+  protected formatCapabilityText(text: string): string {
+    if (!text) return '';
+
+    // Replace underscores with spaces
+    const withSpaces = text.replace(/_/g, ' ');
+
+    // Convert to lowercase and capitalize first letter
+    const formatted = withSpaces.toLowerCase();
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  }
+
+  protected formatConnectorType(framework: string | null): string {
+    if (!framework) return 'Unknown';
+
+    const normalizedFramework = framework.toUpperCase();
+    if (normalizedFramework === 'CONNID') {
+      return 'Java-based';
+    } else if (normalizedFramework === 'SCIM_REST') {
+      return 'Low-code';
+    }
+    return framework;
   }
 
   private loadApplication(id: string): void {
@@ -127,12 +330,30 @@ export class ApplicationDetail implements OnInit {
       return;
     }
 
+    // Apply filters
+    const filters = this.filterState();
+    let filteredVersions = versions;
+
+    if (filters.capabilities.length > 0) {
+      filteredVersions = filteredVersions.filter(version =>
+        version.capabilities && version.capabilities.some((cap: string) =>
+          filters.capabilities.includes(cap)
+        )
+      );
+    }
+
+    if (filters.midpointVersions.length > 0) {
+      filteredVersions = filteredVersions.filter(version =>
+        version.systemVersion && filters.midpointVersions.includes(version.systemVersion)
+      );
+    }
+
     const activeEvolveum: any[] = [];
     const activeCommunity: any[] = [];
     const otherEvolveum: any[] = [];
     const otherCommunity: any[] = [];
 
-    versions.forEach(version => {
+    filteredVersions.forEach(version => {
       const isEvolveum = version.author && version.author.toLowerCase().includes('evolveum');
       const isActive = version.lifecycleState === 'ACTIVE';
 

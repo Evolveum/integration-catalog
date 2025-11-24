@@ -110,10 +110,15 @@ public class ApplicationMapper {
                             String connectorVersion = null;
                             java.time.LocalDate releasedDate = null;
                             String downloadLink = null;
+                            String framework = null;
                             if (version.getBundleVersion() != null) {
                                 connectorVersion = version.getBundleVersion().getConnectorVersion();
                                 releasedDate = version.getBundleVersion().getReleasedDate();
                                 downloadLink = version.getBundleVersion().getDownloadLink();
+                                if (version.getBundleVersion().getConnectorBundle() != null
+                                        && version.getBundleVersion().getConnectorBundle().getFramework() != null) {
+                                    framework = version.getBundleVersion().getConnectorBundle().getFramework().name();
+                                }
                             }
 
                             return new ImplementationVersionDto(
@@ -125,7 +130,8 @@ public class ApplicationMapper {
                                     releasedDate,
                                     version.getAuthor(),
                                     lifecycleState,
-                                    downloadLink
+                                    downloadLink,
+                                    framework
                             );
                         }) : Stream.empty())
                 .toList();
