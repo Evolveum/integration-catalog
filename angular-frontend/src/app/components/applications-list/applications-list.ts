@@ -14,12 +14,13 @@ import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
 import { LoginModal } from '../login-modal/login-modal';
 import { UploadFormMain } from '../upload-form-main/upload-form-main';
+import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, LoginModal, UploadFormMain],
+  imports: [CommonModule, FormsModule, RequestForm, LoginModal, UploadFormMain, FilterModal],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.css']
 })
@@ -30,6 +31,34 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected applications = signal<Application[]>([]);
   protected readonly categories = signal<CategoryCount[]>([]);
+
+  protected readonly allCapabilities = [
+    'CREATE',
+    'GET',
+    'UPDATE',
+    'DELETE',
+    'TEST',
+    'SCRIPT_ON_CONNECTOR',
+    'SCRIPT_ON_RESOURCE',
+    'AUTHENTICATION',
+    'SEARCH',
+    'VALIDATE',
+    'SYNC',
+    'LIVE_SYNC',
+    'SCHEMA',
+    'DISCOVER_CONFIGURATION',
+    'RESOLVE_USERNAME',
+    'PARTIAL_SCHEMA',
+    'COMPLEX_UPDATE_DELTA',
+    'UPDATE_DELTA'
+  ];
+
+  protected readonly allAppStatuses = [
+    'ACTIVE',
+    'REQUESTED',
+    'WITH_ERROR',
+    'IN_PUBLISH_PROCESS'
+  ];
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
   protected readonly searchQuery = signal('');
@@ -43,15 +72,32 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected isRequestModalOpen = signal<boolean>(false);
   protected isLoginModalOpen = signal<boolean>(false);
   protected isUploadModalOpen = signal<boolean>(false);
+  protected isFilterModalOpen = signal<boolean>(false);
+  protected openDropdown = signal<string | null>(null);
+  protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
+
+  protected filterState = signal<FilterState>({
+    trending: false,
+    categories: [],
+    capabilities: [],
+    appStatus: []
+  });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
 
   protected readonly featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
+    const filters = this.filterState();
     const apps = this.applications();
-    // Don't show featured apps when searching or filtering by category
-    if (query || activeTab !== 'all') {
+
+    // Don't show featured apps when searching or filtering
+    const hasActiveFilters = filters.trending ||
+                            filters.categories.length > 0 ||
+                            filters.capabilities.length > 0 ||
+                            filters.appStatus.length > 0;
+
+    if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
     }
     return apps;
@@ -60,6 +106,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly moreApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
+    const filters = this.filterState();
     let apps = [...this.applications()];
 
     // Filter by category tab (if not 'all')
@@ -72,13 +119,36 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     // When searching, show all matching apps. When not searching, show all apps
     if (query) {
       apps = apps.filter(app =>
-        app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query) ||
-        app.lifecycleState?.toLowerCase().includes(query) ||
-        app.tags?.some(tag =>
-          tag.name.toLowerCase().includes(query) ||
-          tag.displayName.toLowerCase().includes(query)
+        app.displayName.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply advanced filters
+    if (filters.trending) {
+      apps = apps.filter(app => app.tags?.some(tag => tag.name === 'popular'));
+    }
+
+    if (filters.categories.length > 0) {
+      apps = apps.filter(app => {
+        const allTags = [...(app.categories || []), ...(app.tags || [])];
+        return allTags.some(tag =>
+          filters.categories.includes(tag.name) &&
+          (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
+        );
+      });
+    }
+
+    if (filters.capabilities.length > 0) {
+      apps = apps.filter(app =>
+        app.capabilities?.some((capability: string) =>
+          filters.capabilities.includes(capability)
         )
+      );
+    }
+
+    if (filters.appStatus.length > 0) {
+      apps = apps.filter(app =>
+        app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
       );
     }
 
@@ -105,9 +175,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return apps.slice(start, end);
   });
 
+  protected readonly activeIntegrationsCount = computed(() => {
+    return this.applications().filter(app => app.lifecycleState === 'ACTIVE').length;
+  });
+
   protected readonly filteredCount = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
+    const filters = this.filterState();
     let apps = this.applications();
 
     // Filter by category tab (if not 'all')
@@ -119,13 +194,36 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
     if (query) {
       apps = apps.filter(app =>
-        app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query) ||
-        app.lifecycleState?.toLowerCase().includes(query) ||
-        app.tags?.some(tag =>
-          tag.name.toLowerCase().includes(query) ||
-          tag.displayName.toLowerCase().includes(query)
+        app.displayName.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply advanced filters
+    if (filters.trending) {
+      apps = apps.filter(app => app.tags?.some(tag => tag.name === 'popular'));
+    }
+
+    if (filters.categories.length > 0) {
+      apps = apps.filter(app => {
+        const allTags = [...(app.categories || []), ...(app.tags || [])];
+        return allTags.some(tag =>
+          filters.categories.includes(tag.name) &&
+          (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
+        );
+      });
+    }
+
+    if (filters.capabilities.length > 0) {
+      apps = apps.filter(app =>
+        app.capabilities?.some((capability: string) =>
+          filters.capabilities.includes(capability)
         )
+      );
+    }
+
+    if (filters.appStatus.length > 0) {
+      apps = apps.filter(app =>
+        app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
       );
     }
 
@@ -158,6 +256,210 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const value = (event.target as HTMLInputElement).value;
     this.searchQuery.set(value);
     this.currentPage.set(0);
+  }
+
+  protected resetFilter(): void {
+    this.searchQuery.set('');
+    this.filterState.set({
+      trending: false,
+      categories: [],
+      capabilities: [],
+      appStatus: []
+    });
+    this.currentPage.set(0);
+  }
+
+  protected toggleDropdown(filterType: string, event: MouseEvent): void {
+    if (this.openDropdown() === filterType) {
+      this.openDropdown.set(null);
+      this.dropdownPosition.set(null);
+    } else {
+      const target = event.currentTarget as HTMLElement;
+      const rect = target.closest('.filter-chip')?.getBoundingClientRect();
+
+      if (rect) {
+        this.dropdownPosition.set({
+          top: rect.bottom + 8,
+          left: rect.left
+        });
+      }
+      this.openDropdown.set(filterType);
+    }
+  }
+
+  protected closeDropdown(): void {
+    this.openDropdown.set(null);
+    this.dropdownPosition.set(null);
+  }
+
+  protected clearTrendingFilter(): void {
+    this.filterState.update(state => ({ ...state, trending: false }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearCategoriesFilter(): void {
+    this.filterState.update(state => ({ ...state, categories: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearCapabilitiesFilter(): void {
+    this.filterState.update(state => ({ ...state, capabilities: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearAppStatusFilter(): void {
+    this.filterState.update(state => ({ ...state, appStatus: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected removeCategoryFilter(category: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      categories: state.categories.filter(c => c !== category)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeCapabilityFilter(capability: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      capabilities: state.capabilities.filter(c => c !== capability)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeAppStatusFilter(status: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      appStatus: state.appStatus.filter(s => s !== status)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected toggleCategoryInFilter(category: string): void {
+    const categories = this.filterState().categories;
+    if (categories.includes(category)) {
+      this.removeCategoryFilter(category);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        categories: [...state.categories, category]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleCapabilityInFilter(capability: string): void {
+    const capabilities = this.filterState().capabilities;
+    if (capabilities.includes(capability)) {
+      this.removeCapabilityFilter(capability);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        capabilities: [...state.capabilities, capability]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleAppStatusInFilter(status: string): void {
+    const statuses = this.filterState().appStatus;
+    if (statuses.includes(status)) {
+      this.removeAppStatusFilter(status);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        appStatus: [...state.appStatus, status]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected getFilteredCountForCategory(category: string): number {
+    const apps = this.applications();
+    return apps.filter(app => {
+      const allTags = [...(app.categories || []), ...(app.tags || [])];
+      return allTags.some(tag =>
+        tag.name === category && (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
+      );
+    }).length;
+  }
+
+  protected getFilteredCountForCapability(capability: string): number {
+    const apps = this.applications();
+    return apps.filter(app =>
+      app.capabilities?.includes(capability)
+    ).length;
+  }
+
+  protected getFilteredCountForAppStatus(status: string): number {
+    const apps = this.applications();
+    return apps.filter(app =>
+      app.lifecycleState === status
+    ).length;
+  }
+
+  protected getTrendingCount(): number {
+    const apps = this.applications();
+    return apps.filter(app =>
+      app.tags?.some(tag => tag.name === 'popular')
+    ).length;
+  }
+
+  protected formatCapability(capability: string): string {
+    return capability
+      .split('_')
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  protected formatAppStatus(status: string): string {
+    return this.formatLifecycleState(status);
+  }
+
+  protected getCategoryDisplayName(categoryName: string): string {
+    // Find the display name by looking through all applications' tags
+    for (const app of this.applications()) {
+      const allTags = [...(app.categories || []), ...(app.tags || [])];
+      const tag = allTags.find(t => t.name === categoryName);
+      if (tag) {
+        return tag.displayName;
+      }
+    }
+    return categoryName;
+  }
+
+  protected getAllAvailableCategories(): Array<{name: string, displayName: string}> {
+    const categoriesMap = new Map<string, string>();
+
+    for (const app of this.applications()) {
+      const allTags = [...(app.categories || []), ...(app.tags || [])];
+      for (const tag of allTags) {
+        if (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT') {
+          categoriesMap.set(tag.name, tag.displayName);
+        }
+      }
+    }
+
+    return Array.from(categoriesMap.entries())
+      .map(([name, displayName]) => ({ name, displayName }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  protected isCategorySelected(category: string): boolean {
+    return this.filterState().categories.includes(category);
+  }
+
+  protected isCapabilitySelected(capability: string): boolean {
+    return this.filterState().capabilities.includes(capability);
+  }
+
+  protected isAppStatusSelected(status: string): boolean {
+    return this.filterState().appStatus.includes(status);
   }
 
   protected onSortChange(event: Event): void {
@@ -238,7 +540,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       const visibilityRatio = visibleWidth / cardWidth;
 
       // If card is fully visible (or almost fully), opacity is 1, otherwise 0.5
-      if (visibilityRatio >= 0.95) {
+      if (visibilityRatio >= 0.99) {
         card.style.opacity = '1';
       } else {
         card.style.opacity = '0.5';
@@ -279,6 +581,19 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.isUploadModalOpen.set(false);
   }
 
+  protected openFilterModal(): void {
+    this.isFilterModalOpen.set(true);
+  }
+
+  protected closeFilterModal(): void {
+    this.isFilterModalOpen.set(false);
+  }
+
+  protected applyFilter(filterState: FilterState): void {
+    this.filterState.set(filterState);
+    this.currentPage.set(0);
+  }
+
   protected logout(): void {
     this.authService.logout();
   }
@@ -312,6 +627,12 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     });
   }
 
+  protected isPopular(app: Application): boolean {
+    return app.tags?.some(tag => tag.name === 'popular' || tag.name === 'POPULAR') ||
+           app.categories?.some(tag => tag.name === 'popular' || tag.name === 'POPULAR') ||
+           false;
+  }
+
   protected formatLifecycleState(state: string | null): string {
     if (!state) return '';
 
@@ -332,8 +653,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   private loadApplications(): void {
     this.applicationService.getAll().subscribe({
       next: (data) => {
-        // console.log('Received applications:', data);
-        // console.log('First app lifecycle_state:', data[0]?.lifecycle_state);
         this.applications.set(data);
         this.loading.set(false);
         setTimeout(() => {

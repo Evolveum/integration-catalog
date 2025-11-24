@@ -932,17 +932,39 @@ public class ApplicationService {
                     .toList();
         }
 
-        // Get request info if lifecycle state is REQUESTED
+        // Get request info and capabilities if lifecycle state is REQUESTED
         Long requestId = null;
         Long voteCount = null;
+        List<String> capabilities = new java.util.ArrayList<>();
         if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
             Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
             if (requestOpt.isPresent()) {
                 Request request = requestOpt.get();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(request.getId());
+                // Get capabilities from request
+                if (request.getCapabilities() != null) {
+                    capabilities.addAll(java.util.Arrays.stream(request.getCapabilities())
+                            .map(Enum::name)
+                            .toList());
+                }
             }
         }
+
+        // Aggregate capabilities from all implementations
+        if (app.getImplementations() != null) {
+            app.getImplementations().stream()
+                    .filter(impl -> impl.getImplementationVersions() != null)
+                    .flatMap(impl -> impl.getImplementationVersions().stream())
+                    .filter(version -> version.getCapabilities() != null)
+                    .flatMap(version -> java.util.Arrays.stream(version.getCapabilities()))
+                    .map(Enum::name)
+                    .distinct()
+                    .forEach(capabilities::add);
+        }
+
+        // Deduplicate capabilities
+        capabilities = capabilities.stream().distinct().toList();
 
         return new ApplicationCardDto(
                 app.getId(),
@@ -953,6 +975,7 @@ public class ApplicationService {
                 origins,
                 categories,
                 tags,
+                capabilities.isEmpty() ? null : capabilities,
                 requestId,
                 voteCount
         );

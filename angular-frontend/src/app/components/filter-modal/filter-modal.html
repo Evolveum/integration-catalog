@@ -1,0 +1,170 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+@if (isOpen()) {
+  <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;" (click)="closeModal()"></div>
+  <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;" (click)="closeModal()">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 800px; margin: auto;">
+      <div class="modal-content" (click)="$event.stopPropagation()" style="border-radius: 12px;">
+
+        <div class="d-flex" style="min-height: 500px;">
+          <!-- Left Sidebar -->
+          <div class="filter-sidebar" style="width: 250px; min-width: 250px; flex-shrink: 0; background-color: #f8f9fa; border-right: 1px solid #dee2e6; border-radius: 12px 0 0 12px; padding: 1.5rem 0;">
+            <div
+              class="filter-option"
+              [class.active]="selectedSection() === 'trending'"
+              (click)="selectSection('trending')"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
+              [style.background-color]="selectedSection() === 'trending' ? '#e9ecef' : 'transparent'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07"/>
+              </svg>
+              <span>Trending</span>
+            </div>
+
+            <div
+              class="filter-option"
+              [class.active]="selectedSection() === 'categories'"
+              (click)="selectSection('categories')"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
+              [style.background-color]="selectedSection() === 'categories' ? '#e9ecef' : 'transparent'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder" viewBox="0 0 16 16">
+                <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139q.323-.119.684-.12h5.396z"/>
+              </svg>
+              <span>Categories</span>
+            </div>
+
+            <div
+              class="filter-option"
+              [class.active]="selectedSection() === 'capabilities'"
+              (click)="selectSection('capabilities')"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
+              [style.background-color]="selectedSection() === 'capabilities' ? '#e9ecef' : 'transparent'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tag" viewBox="0 0 16 16">
+                <path d="M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0"/>
+                <path d="M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1m0 5.586 7 7L13.586 9l-7-7H2z"/>
+              </svg>
+              <span>Capabilities</span>
+            </div>
+
+            <div
+              class="filter-option"
+              [class.active]="selectedSection() === 'midpoint'"
+              (click)="selectSection('midpoint')"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; opacity: 0.5;"
+              [style.background-color]="selectedSection() === 'midpoint' ? '#e9ecef' : 'transparent'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box" viewBox="0 0 16 16">
+                <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/>
+              </svg>
+              <span>Midpoint version</span>
+            </div>
+
+            <div
+              class="filter-option"
+              [class.active]="selectedSection() === 'appstatus'"
+              (click)="selectSection('appstatus')"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
+              [style.background-color]="selectedSection() === 'appstatus' ? '#e9ecef' : 'transparent'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-circle-fill" viewBox="0 0 16 16">
+                <circle cx="8" cy="8" r="8"/>
+              </svg>
+              <span>App status</span>
+            </div>
+          </div>
+
+          <!-- Right Content -->
+          <div class="filter-content flex-grow-1" style="padding: 2rem;">
+            <!-- Trending -->
+            @if (selectedSection() === 'trending') {
+              <div>
+                <h5 class="mb-4">Trending</h5>
+                <div>
+                  <span
+                    class="badge"
+                    [class.selected]="trending()"
+                    (click)="toggleTrending()"
+                    style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                    [style.border]="trending() ? '1px solid #2722c7' : '1px solid #a6a6a6'"
+                    [style.background-color]="trending() ? '#f2f2f2' : 'white'"
+                    [style.color]="trending() ? '#0c3c85' : '#212529'">
+                    Popular
+                  </span>
+                </div>
+              </div>
+            }
+
+            <!-- Categories -->
+            @if (selectedSection() === 'categories') {
+              <div>
+                <h5 class="mb-4">Categories</h5>
+                <div class="category-list">
+                  @for (category of categories(); track category.name) {
+                    <div
+                      class="category-item d-flex justify-content-between align-items-center py-2 px-3"
+                      (click)="toggleCategory(category.name)"
+                      style="cursor: pointer; border-radius: 4px; margin-bottom: 0.5rem;"
+                      [style.background-color]="isCategorySelected(category.name) ? '#dee2e6' : 'transparent'">
+                      <span>{{ category.displayName }}</span>
+                      <span class="text-muted">{{ category.count }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Capabilities -->
+            @if (selectedSection() === 'capabilities') {
+              <div>
+                <h5 class="mb-4">Capabilities</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (capability of capabilities; track capability) {
+                    <span
+                      class="badge capability-badge"
+                      [class.selected]="isCapabilitySelected(capability)"
+                      (click)="toggleCapability(capability)"
+                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                      [style.border]="isCapabilitySelected(capability) ? '1px solid #2722c7' : '1px solid #a6a6a6'"
+                      [style.background-color]="isCapabilitySelected(capability) ? '#f2f2f2' : 'white'"
+                      [style.color]="isCapabilitySelected(capability) ? '#2722c7' : '#212529'">
+                      {{ formatCapability(capability) }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Midpoint Version (placeholder) -->
+            @if (selectedSection() === 'midpoint') {
+              <div>
+                <h5 class="mb-4">Midpoint version</h5>
+                <p class="text-muted">Coming soon...</p>
+              </div>
+            }
+
+            <!-- App Status -->
+            @if (selectedSection() === 'appstatus') {
+              <div>
+                <h5 class="mb-4">App status</h5>
+                <div class="status-list">
+                  @for (status of appStatuses; track status.name) {
+                    <div
+                      class="status-item d-flex justify-content-between align-items-center py-2 px-3"
+                      (click)="toggleAppStatus(status.name)"
+                      style="cursor: pointer; border-radius: 4px; margin-bottom: 0.5rem;"
+                      [style.background-color]="isAppStatusSelected(status.name) ? '#dee2e6' : 'transparent'">
+                      <span>{{ status.displayName }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}

@@ -8,7 +8,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Application } from '../models/application.model';
-import { ApplicationDetail } from '../models/application-detail.model';
+import { ApplicationDetail, ApplicationTag } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
 import { environment } from '../../environments/environment';
@@ -59,5 +59,9 @@ export class ApplicationService {
 
   uploadConnector(payload: any): Observable<string> {
     return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
+  }
+
+  getAllTags(): Observable<ApplicationTag[]> {
+    return this.http.get<ApplicationTag[]>(`${environment.apiUrl}/application-tags`);
   }
 }
