@@ -6,6 +6,8 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import ch.qos.logback.classic.Logger;
+import com.evolveum.midpoint.integration.catalog.IntegrationCatalogApplication;
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
@@ -23,6 +25,7 @@ import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -52,6 +55,9 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class ApplicationService {
+
+    private static final Logger LOG
+            = (Logger) LoggerFactory.getLogger(ApplicationService.class);
 
     private static final long DOWNLOAD_OFFSET_SECONDS = 10;
 
@@ -601,6 +607,7 @@ public class ApplicationService {
                 version.getBundleVersion().getDownloadLink() : null;
 
         if (downloadLink == null || downloadLink.isEmpty()) {
+
             throw new IllegalArgumentException("No download link available for version: " + versionId);
         }
 
@@ -748,6 +755,7 @@ public class ApplicationService {
 
         if (connectorBundle.isEmpty()) {
             err = "No bundle found containing the connector Implementation version with OID " + implementationVersionId + ".";
+
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
         }
 
@@ -804,6 +812,7 @@ public class ApplicationService {
                     } catch (Exception e) {
 
                         err = e.getLocalizedMessage();
+                        LOG.error(err);
                         sourceImplementationVersion.setErrorMessage(err);
                         throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
                     }
@@ -819,6 +828,7 @@ public class ApplicationService {
             } catch (Exception e) {
 
                 err = e.getLocalizedMessage();
+                LOG.error(err);
                 sourceImplementationVersion.setErrorMessage(err);
                 throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
             }
@@ -851,6 +861,8 @@ public class ApplicationService {
         BundleVersion targetBundleVersion, ImplementationVersion sourceImplementationVersion) {
 
         if (sourceBundle.getBundleName() != null && !sourceBundle.getBundleName().isEmpty()) {
+            LOG.error("Illegal state of connector bundle. Bundle already contains implementation version " +
+                    "which is being verified");
 
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Illegal state of connector" +
                     " bundle. Bundle already contains implementation version which is being verified");
