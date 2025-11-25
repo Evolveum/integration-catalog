@@ -272,6 +272,7 @@ public class ApplicationService {
                 String pathToProject = implementationDto.pathToProject() != null ?
                         implementationDto.pathToProject() : "";
 
+                //TODO
                 JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
                 HttpResponse<String> response = jenkinsClient.triggerJob(
                         "integration-catalog-upload-connid-connector",
@@ -285,6 +286,7 @@ public class ApplicationService {
                                 "PATH_TO_PROJECT", pathToProject));
                 log.info(response.body());
                 return response.body();
+//                return  "";
             } catch (Exception e) {
                 if (implementationVersion.getBundleVersion() != null) {
                     implementationVersion.setErrorMessage(e.getMessage());
@@ -305,17 +307,36 @@ public class ApplicationService {
 
     public void successBuild(UUID oid, ContinueForm continueForm) {
         ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
+        Implementation implementation = version.getImplementation();
+//        String connectorBundleName = continueForm.getConnectorBundle();
 
         // Update BundleVersion with build information
-        if (version.getBundleVersion() != null) {
-            version.getBundleVersion().setConnectorVersion(continueForm.getConnectorVersion());
-            version.getBundleVersion().setDownloadLink(continueForm.getDownloadLink());
+
+        BundleVersion bundleVersion = version.getBundleVersion();
+        if (bundleVersion != null) {
+            bundleVersion.setConnectorVersion(continueForm.getConnectorVersion());
+            bundleVersion.setDownloadLink(continueForm.getDownloadLink());
         }
 
-        // Update ConnectorBundle name if provided
-        Implementation implementation = version.getImplementation();
-        if (implementation.getConnectorBundle() != null && continueForm.getConnectorBundle() != null) {
-            implementation.getConnectorBundle().setBundleName(continueForm.getConnectorBundle());
+        // Check if this upload is not just a different version of a similar connector bundle
+        String newBundleName = continueForm.getConnectorBundle();
+        Optional<ConnectorBundle> existingBundle = connectorBundleRepository.findByBundleName(newBundleName);
+        ConnectorBundle sourceBundle = implementation.getConnectorBundle();
+
+        if (existingBundle.isPresent()) {
+            // We want to move everything to the target bundle and delete the source
+            ConnectorBundle targetBundle = existingBundle.get();
+
+            moveBundleVersionAndDeleteConnectorBundle(sourceBundle, targetBundle);
+
+            // IMPORTANT: update implementation bundle AFTER the move
+            implementation.setConnectorBundle(targetBundle);
+
+        } else {
+            // Only update the bundle name if this is not a cross-bundle merge
+            if (sourceBundle != null) {
+                sourceBundle.setBundleName(newBundleName);
+            }
         }
 
         OffsetDateTime odt = OffsetDateTime.ofInstant(Instant.ofEpochMilli(continueForm.getPublishTime()), ZoneOffset.UTC);
@@ -324,7 +345,8 @@ public class ApplicationService {
         version.setCapabilities(continueForm.getCapability().toArray(new ImplementationVersion.CapabilitiesType[0]));
         version.setClassName(continueForm.getConnectorClass());
 
-        implementationRepository.save(implementation);
+
+//        implementationRepository.save(implementation);
         implementationVersionRepository.save(version);
     }
 
@@ -708,7 +730,7 @@ public class ApplicationService {
 
     /**
      * Verify validity of the implementation version based on the data produced by the jenkins pipeline.
-     * The process checks id a new connector bundle implementation version should be assigned to a existing connector-bundle.
+     * The process checks id a new connector bundle implementation version should be assigned to an existing connector-bundle.
      * Used in case of bundled connectors, i.e. Ldap contains an implementation (connector class) for Ldap connectors
      * but also an implementation version which handles AD based systems.
      *
@@ -732,7 +754,7 @@ public class ApplicationService {
         Optional<ImplementationVersion> iVersion = implementationVersionRepository.
                 findById(implementationVersionId);
 
-        if(iVersion.isEmpty()){
+        if (iVersion.isEmpty()) {
             err = "No implementation version found with id " + implementationVersionId + ".";
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
         }
@@ -789,14 +811,40 @@ public class ApplicationService {
                     return true;
                 }
             }
+            try {
 
-            ///  Handle this step, link to the correct bundle.
-            err = "No connector bundle found for " +
-                    "bundle name " + bundleName + ", version " + version + " and connector class " + className;
-            sourceImplementationVersion.setErrorMessage(err);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
+                moveBundleVersionAndDeleteConnectorBundle(connectorBundle.get(), bundle.get());
+                return true;
+
+            } catch (Exception e) {
+
+                err = e.getLocalizedMessage();
+                sourceImplementationVersion.setErrorMessage(err);
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
+            }
         }
     }
+    @Transactional(rollbackFor = Exception.class)
+    private void moveBundleVersionAndDeleteConnectorBundle(ConnectorBundle sourceBundle,
+                                                           ConnectorBundle targetBundle) {
+
+        for (Implementation impl : sourceBundle.getImplementations()) {
+            impl.setConnectorBundle(targetBundle);
+            targetBundle.getImplementations().add(impl);
+        }
+        sourceBundle.getImplementations().clear();
+
+        for (BundleVersion bv : sourceBundle.getBundleVersions()) {
+
+            bv.setConnectorBundle(targetBundle);
+            targetBundle.getBundleVersions().add(bv);
+        }
+
+        sourceBundle.getBundleVersions().clear();
+
+        connectorBundleRepository.delete(sourceBundle);
+    }
+
 
     @Transactional(rollbackFor = Exception.class)
     public void moveImplVersionAndDeleteConnectorBundle(ConnectorBundle sourceBundle,
