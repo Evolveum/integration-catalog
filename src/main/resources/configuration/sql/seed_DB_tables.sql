@@ -109,47 +109,47 @@ INSERT INTO public.implementation
 ('f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab');
 
 INSERT INTO public.bundle_version
-(id, connector_bundle_id, connector_version, browse_link, checkout_link, download_link, connid_version, released_date, build_framework, error_message, path_to_project) VALUES
-(1,1,'2.0.8','https://khan.com/','https://khan.com//tree/v2.0.8','http://chung-weaver.biz//downloads/connector-2.0.8.jar','1.2.0.0','2025-05-02','GRADLE',NULL,NULL),
-(2,5,'5.2','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-csv/tree/v2.8','https://nexus.evolveum.com/nexus/repository/public/com/evolveum/polygon/connector-csv/2.8/connector-csv-2.8.jar','1.5.0.0','2025-04-14','MAVEN',NULL,NULL),
-(3,5,'5.0.0','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.5.0.0','2025-04-14','MAVEN',NULL,NULL),
-(4,4,'5.1','http://www.ramirez-flores.biz/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.5.0.0','2025-04-14','MAVEN',NULL,NULL),
-(5,2,'3.0.1','https://www.serrano.com/','https://www.serrano.com//tree/v3.0.1','http://miles.org//downloads/connector-3.0.1.jar','1.3.0.0','2025-06-30','GRADLE',NULL,NULL),
-(6,3,'1.0.4','https://www.blake.org/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.1.0.0','2025-09-25','MAVEN',NULL,NULL),
-(7,4,'4.0.2','https://collins.com/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.4.0.0','2025-04-06','MAVEN',NULL,NULL);
+(id, connector_bundle_id, connector_version, browse_link, checkout_link, download_link, connid_version, released_date, build_framework, path_to_project) VALUES
+(1,1,'2.0.8','https://khan.com/','https://khan.com//tree/v2.0.8','http://chung-weaver.biz//downloads/connector-2.0.8.jar','1.2.0.0','2025-05-02','GRADLE',NULL),
+(2,5,'5.2','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-csv/tree/v2.8','https://nexus.evolveum.com/nexus/repository/public/com/evolveum/polygon/connector-csv/2.8/connector-csv-2.8.jar','1.5.0.0','2025-04-14','MAVEN',NULL),
+(3,5,'5.0.0','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.5.0.0','2025-04-14','MAVEN',NULL),
+(4,4,'5.1','http://www.ramirez-flores.biz/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.5.0.0','2025-04-14','MAVEN',NULL),
+(5,2,'3.0.1','https://www.serrano.com/','https://www.serrano.com//tree/v3.0.1','http://miles.org//downloads/connector-3.0.1.jar','1.3.0.0','2025-06-30','GRADLE',NULL),
+(6,3,'1.0.4','https://www.blake.org/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.1.0.0','2025-09-25','MAVEN',NULL),
+(7,4,'4.0.2','https://collins.com/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.4.0.0','2025-04-06','MAVEN',NULL);
 
 INSERT INTO public.implementation_version
-(id, description, capabilities, system_version, author, publish_date, lifecycle_state, bundle_version_id, implementation_id, class_name) VALUES
+(id, description, capabilities, system_version, author, publish_date, lifecycle_state, bundle_version_id, implementation_id, error_message, class_name) VALUES
 ('e87a6b1b-38c5-4834-96de-2418dbda9f1b',
  'Hit something action building majority body. Newspaper sell business write political tough not.
 Shake sing part picture person.',
  ARRAY['CREATE','GET','DELETE','SCRIPT_ON_CONNECTOR','SCRIPT_ON_RESOURCE','AUTHENTICATION','SEARCH']::"CapabilityType"[],
- 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_PUBLISH_PROCESS',1,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL),
+ 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_PUBLISH_PROCESS',1,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL,NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de08',
  'CSV connector',
  ARRAY['CREATE','GET','DELETE']::"CapabilityType"[],
- 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','ACTIVE',2,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL),
+ 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','ACTIVE',2,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL,NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de09',
  'LDAP connector',
  ARRAY['CREATE','GET','UPDATE']::"CapabilityType"[],
- 'System 1.5','isabelthomas@example.com','2025-07-27 13:44:05','ACTIVE',3,'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c',NULL),
+ 'System 1.5','isabelthomas@example.com','2025-07-27 13:44:05','ACTIVE',3,'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c',NULL,NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de10',
  'Databasetable connector',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','DEPRECATED',4,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL),
+ 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','DEPRECATED',4,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL,NULL),
 ('eb460ab7-5797-42b0-ad70-eccdc113cf0c',
  'Level painting his lot sound. Involve note big everyone.
 Reflect claim throw huge. Head design amount pressure goal.',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'API v59.0','iwarner@example.net','2025-07-15 02:16:54','WITH_ERROR',5,'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f',NULL),
+ 'API v59.0','iwarner@example.net','2025-07-15 02:16:54','WITH_ERROR',5,'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f',NULL,NULL),
 ('eb19c64d-2cc9-4828-b38f-e4298be9b208',
  'Degree every others capital. Perform important animal fish find power thing.',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'System 0.3','shelly74@example.com','2025-09-22 22:19:49','ARCHIVED',6,'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',NULL),
+ 'System 0.3','shelly74@example.com','2025-09-22 22:19:49','ARCHIVED',6,'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',NULL,NULL),
 ('6d3544ab-e5ed-457f-b356-56e9fd419cbc',
  'Music rise area player. Focus wife particular class. Read protect add spend who cover also.',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'System 1.51','zacharywilcox@example.net','2025-02-09 14:52:59','ACTIVE',7,'d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a',NULL);
+ 'System 1.51','zacharywilcox@example.net','2025-02-09 14:52:59','ACTIVE',7,'d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a',NULL,NULL);
 
 INSERT INTO public.downloads (implementation_version_id, ip_address, user_agent, downloaded_at, id) VALUES
 ('e87a6b1b-38c5-4834-96de-2418dbda9f1b','122.154.103.227','Mozilla/5.0 (Linux; Android 4.2.2) AppleWebKit/534.2 (KHTML, like Gecko) Chrome/56.0.868.0 Safari/534.2','2025-08-01 10:00:20','4fae33f4-7ab6-4ad8-8c5a-ec1f869d48b1'),
