@@ -457,7 +457,7 @@
                         <span class="info-tooltip">Select the primary category this application belongs to.</span>
                       </span>
                     </label>
-                    <select class="form-select" [(ngModel)]="category" style="max-width: 280px;" [disabled]="selectedApplication() !== null">
+                    <select class="form-select" [(ngModel)]="category" style="max-width: 280px;" [disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'">
                       <option value="">Select category...</option>
                       @for (cat of availableCategories(); track cat.name) {
                         <option [value]="cat.name">{{ cat.displayName }}</option>
