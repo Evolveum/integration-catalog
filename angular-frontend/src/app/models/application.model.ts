@@ -29,4 +29,5 @@ export interface Application {
   pendingRequest?: boolean;
   requestId?: number | null;
   voteCount?: number;
+  frameworks?: string[] | null;
 }

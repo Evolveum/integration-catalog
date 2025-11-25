@@ -114,6 +114,43 @@
   display: none;
 }
 
+/* Radio buttons in modal - show the circle */
+.modal .form-check-input[type="radio"] {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.modal .form-check-input[type="radio"]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.modal .form-check-label {
+  display: inline;
+  padding: 0;
+  cursor: pointer;
+  background-color: transparent !important;
+}
+
+.modal .form-check-input[type="radio"]:checked + .form-check-label {
+  background-color: transparent !important;
+}
+
+.modal .form-check-input[type="radio"]:checked + .form-check-label::before {
+  display: none;
+}
+
+/* Remove focus shadow on form controls and buttons in modal */
+.modal .form-control:focus,
+.modal .form-select:focus,
+.modal .btn:focus {
+  box-shadow: none;
+}
+
 .form-check-label {
   font-size: 0.95rem;
   color: #495057;

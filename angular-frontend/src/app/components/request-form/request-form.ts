@@ -8,6 +8,7 @@ import { Component, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-request-form',
@@ -22,10 +23,9 @@ export class RequestForm {
 
   protected formData = {
     integrationApplicationName: '',
-    baseUrl: '',
+    deploymentType: '',
     description: '',
-    systemVersion: '',
-    email: ''
+    systemVersion: ''
   };
   protected readonly selectedCapabilities = signal<string[]>([]);
   protected readonly isCapabilitiesDropdownOpen = signal<boolean>(false);
@@ -35,7 +35,10 @@ export class RequestForm {
   protected readonly availableCapabilities = signal<string[]>([]);
   protected readonly isLoadingCapabilities = signal<boolean>(false);
 
-  constructor(private applicationService: ApplicationService) {
+  constructor(
+    private applicationService: ApplicationService,
+    private authService: AuthService
+  ) {
     this.loadCapabilities();
   }
 
@@ -63,10 +66,9 @@ export class RequestForm {
   protected resetForm(): void {
     this.formData = {
       integrationApplicationName: '',
-      baseUrl: '',
+      deploymentType: '',
       description: '',
-      systemVersion: '',
-      email: ''
+      systemVersion: ''
     };
     this.selectedCapabilities.set([]);
     this.submitSuccess.set(false);
@@ -79,12 +81,11 @@ export class RequestForm {
 
     const request = {
       integrationApplicationName: this.formData.integrationApplicationName,
-      baseUrl: this.formData.baseUrl,
+      deploymentType: this.formData.deploymentType,
       capabilities: this.selectedCapabilities(),
       description: this.formData.description,
       systemVersion: this.formData.systemVersion,
-      email: this.formData.email,
-      requester: this.formData.email || 'anonymous'
+      requester: this.authService.currentUser()
     };
 
     this.applicationService.submitRequest(request).subscribe({

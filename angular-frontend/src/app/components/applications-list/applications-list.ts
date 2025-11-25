@@ -43,6 +43,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected isRequestModalOpen = signal<boolean>(false);
   protected isLoginModalOpen = signal<boolean>(false);
   protected isUploadModalOpen = signal<boolean>(false);
+  protected showLoginRequiredMessage = signal<boolean>(false);
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
 
@@ -251,7 +252,17 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   }
 
   protected openRequestModal(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+      this.isLoginModalOpen.set(true);
+      return;
+    }
     this.isRequestModalOpen.set(true);
+  }
+
+  protected closeLoginRequiredMessage(): void {
+    this.showLoginRequiredMessage.set(false);
   }
 
   protected closeRequestModal(): void {
@@ -268,7 +279,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected openUploadModal(): void {
     if (!this.authService.isLoggedIn()) {
-      alert('You need to log in to upload a configuration. Please log in and try again.');
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
       this.isLoginModalOpen.set(true);
       return;
     }

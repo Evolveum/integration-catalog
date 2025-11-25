@@ -25,7 +25,8 @@ public record ApplicationDto(
         List<ApplicationTagDto> tags,
         List<ImplementationVersionDto> implementationVersions,
         Long requestId,
-        Long voteCount
+        Long voteCount,
+        List<String> frameworks
 ) {
     public static Builder builder() {
         return new Builder();
@@ -47,6 +48,7 @@ public record ApplicationDto(
         private List<ImplementationVersionDto> implementationVersions;
         private Long requestId;
         private Long voteCount;
+        private List<String> frameworks;
 
         public Builder id(UUID id) {
             this.id = id;
@@ -123,6 +125,11 @@ public record ApplicationDto(
             return this;
         }
 
+        public Builder frameworks(List<String> frameworks) {
+            this.frameworks = frameworks;
+            return this;
+        }
+
         public ApplicationDto build() {
             return new ApplicationDto(
                     id,
@@ -139,7 +146,8 @@ public record ApplicationDto(
                     tags,
                     implementationVersions,
                     requestId,
-                    voteCount
+                    voteCount,
+                    frameworks
             );
         }
     }

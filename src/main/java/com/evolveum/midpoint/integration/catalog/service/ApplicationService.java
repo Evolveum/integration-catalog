@@ -101,6 +101,9 @@ public class ApplicationService {
     @Autowired
     private final ConnectorBundleRepository connectorBundleRepository;
 
+    @Autowired
+    private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
+
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
@@ -115,7 +118,8 @@ public class ApplicationService {
                               RequestRepository requestRepository,
                               VoteRepository voteRepository,
                               ApplicationReadPort applicationReadPort,
-                              ApplicationMapper applicationMapper
+                              ApplicationMapper applicationMapper,
+                              ApplicationApplicationTagRepository applicationApplicationTagRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -132,6 +136,7 @@ public class ApplicationService {
         this.applicationMapper = applicationMapper;
         this.bundleVersionRepository = bundleVersionRepository;
         this.connectorBundleRepository = connectorBundleRepository;
+        this.applicationApplicationTagRepository = applicationApplicationTagRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -342,6 +347,14 @@ public class ApplicationService {
                 try {
                     tagType = ApplicationTag.ApplicationTagType.valueOf(tagDto.tagType());
                 } catch (IllegalArgumentException e) {
+                    continue;
+                }
+
+                // Handle special case for DEPLOYMENT type with "both" value
+                if (tagType == ApplicationTag.ApplicationTagType.DEPLOYMENT && "both".equalsIgnoreCase(tagDto.name())) {
+                    // Add both cloud-based and on-premise tags
+                    addDeploymentTagToApplication(application, "cloud-based");
+                    addDeploymentTagToApplication(application, "on-premise");
                     continue;
                 }
 
@@ -726,14 +739,16 @@ public class ApplicationService {
      * Creates a new Application and Request from the request form submission.
      * The Application will be created with lifecycle state REQUESTED.
      *
-     * @param dto RequestFormDto containing integrationApplicationName, description, capabilities, and email
+     * @param dto RequestFormDto containing integrationApplicationName, deploymentType, description, capabilities, and systemVersion
      * @return The created Request entity
      */
+    @Transactional
     public Request createRequestFromForm(RequestFormDto dto) {
         String integrationApplicationName = dto.integrationApplicationName();
         String description = dto.description();
         List<String> capabilities = dto.capabilities();
-        String email = dto.email();
+        String deploymentType = dto.deploymentType();
+        String requester = dto.requester();
 
         // Generate abbreviated name: lowercase, spaces replaced with underscores, remove special characters
         String abbreviatedName = integrationApplicationName.toLowerCase()
@@ -759,6 +774,11 @@ public class ApplicationService {
             // Save the application (UUID is auto-generated, timestamps are auto-set)
             application = applicationRepository.save(application);
 
+            // Save deployment type tags to application_application_tag
+            if (deploymentType != null && !deploymentType.isEmpty()) {
+                saveDeploymentTypeTags(application, deploymentType);
+            }
+
             // Check if a request already exists for this application
             if (requestRepository.existsByApplicationId(application.getId())) {
                 throw new IllegalStateException("A request already exists for application: " + application.getDisplayName());
@@ -776,7 +796,7 @@ public class ApplicationService {
             Request request = new Request();
             request.setApplication(application);
             request.setCapabilities(capabilitiesArray);
-            request.setRequester(email); // Email is optional, can be null
+            request.setRequester(requester);
 
             return requestRepository.save(request);
         } catch (IllegalStateException e) {
@@ -785,6 +805,81 @@ public class ApplicationService {
         } catch (Exception e) {
             log.error("Failed to create request for application: {}", integrationApplicationName, e);
             throw new RuntimeException("Failed to create request: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Saves deployment type tags to application_application_tag table.
+     * If deploymentType is "both", saves both "cloud-based" and "on-premise" tags.
+     *
+     * @param application The application to associate with the tags
+     * @param deploymentType The deployment type: "on-premise", "cloud-based", or "both"
+     */
+    private void saveDeploymentTypeTags(Application application, String deploymentType) {
+        if ("both".equalsIgnoreCase(deploymentType)) {
+            // Save both cloud-based and on-premise tags
+            saveDeploymentTag(application, "cloud-based");
+            saveDeploymentTag(application, "on-premise");
+        } else {
+            // Save single deployment type tag
+            saveDeploymentTag(application, deploymentType);
+        }
+    }
+
+    /**
+     * Saves a single deployment tag to application_application_tag table.
+     *
+     * @param application The application to associate with the tag
+     * @param tagName The tag name (e.g., "cloud-based" or "on-premise")
+     */
+    private void saveDeploymentTag(Application application, String tagName) {
+        Optional<ApplicationTag> tagOpt = applicationTagRepository.findByNameAndTagType(
+                tagName, ApplicationTag.ApplicationTagType.DEPLOYMENT);
+
+        if (tagOpt.isPresent()) {
+            ApplicationApplicationTag appTag = new ApplicationApplicationTag();
+            appTag.setApplication(application);
+            appTag.setApplicationTag(tagOpt.get());
+            applicationApplicationTagRepository.save(appTag);
+        } else {
+            log.warn("Deployment tag not found: {}", tagName);
+        }
+    }
+
+    /**
+     * Adds a deployment tag to an application's tag set (used during upload flow).
+     * This method adds the tag to the application's in-memory set without saving to DB directly.
+     *
+     * @param application The application to add the tag to
+     * @param tagName The tag name (e.g., "cloud-based" or "on-premise")
+     */
+    private void addDeploymentTagToApplication(Application application, String tagName) {
+        Optional<ApplicationTag> tagOpt = applicationTagRepository.findByNameAndTagType(
+                tagName, ApplicationTag.ApplicationTagType.DEPLOYMENT);
+
+        if (tagOpt.isPresent()) {
+            ApplicationTag existingTag = tagOpt.get();
+
+            // Check if this tag already exists in the application
+            boolean tagExists = application.getApplicationApplicationTags().stream()
+                    .anyMatch(aat -> {
+                        Long aatTagId = aat.getApplicationTag().getId();
+                        if (aatTagId != null && existingTag.getId() != null) {
+                            return aatTagId.equals(existingTag.getId());
+                        } else {
+                            return aat.getApplicationTag().getName().equals(existingTag.getName()) &&
+                                   aat.getApplicationTag().getTagType().equals(existingTag.getTagType());
+                        }
+                    });
+
+            if (!tagExists) {
+                ApplicationApplicationTag newAppTag = new ApplicationApplicationTag();
+                newAppTag.setApplicationTag(existingTag);
+                newAppTag.setApplication(application);
+                application.getApplicationApplicationTags().add(newAppTag);
+            }
+        } else {
+            log.warn("Deployment tag not found: {}", tagName);
         }
     }
 
@@ -968,6 +1063,9 @@ public class ApplicationService {
             }
         }
 
+        // Extract frameworks from implementations
+        List<String> frameworks = applicationMapper.extractFrameworks(app);
+
         return new ApplicationCardDto(
                 app.getId(),
                 app.getDisplayName(),
@@ -978,7 +1076,8 @@ public class ApplicationService {
                 categories,
                 tags,
                 requestId,
-                voteCount
+                voteCount,
+                frameworks
         );
     }
 

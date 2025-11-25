@@ -4,6 +4,28 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
+<!-- Login Required Toast Notification -->
+@if (showLoginRequiredMessage()) {
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+    <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); min-width: 350px;">
+      <!-- Warning header row -->
+      <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #ffc107; color: #212529;">
+        <div class="d-flex align-items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+          </svg>
+          <strong>Login Required</strong>
+        </div>
+        <button type="button" class="btn-close" (click)="closeLoginRequiredMessage()" aria-label="Close"></button>
+      </div>
+      <!-- Light yellow message row -->
+      <div class="px-3 py-2" style="background-color: #fff3cd; color: #212529;">
+        You need to log in to submit a request. Please log in and try again.
+      </div>
+    </div>
+  </div>
+}
+
 <div class="container-fluid p-0" style="background-color: #e9ecef;">
   <!-- Hero Banner -->
   <div class="bg-primary text-white py-5 mb-5" style="background: linear-gradient(135deg, #2c5282 0%, #4a7ba7 100%); position: relative;">

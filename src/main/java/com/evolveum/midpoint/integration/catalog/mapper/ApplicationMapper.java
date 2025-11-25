@@ -146,6 +146,23 @@ public class ApplicationMapper {
     }
 
     /**
+     * Extracts unique frameworks from application's implementations
+     * @param app Application entity
+     * @return List of unique framework names (e.g., "CONNID", "SCIM_REST") or null if no implementations
+     */
+    public List<String> extractFrameworks(Application app) {
+        if (app.getImplementations() == null || app.getImplementations().isEmpty()) {
+            return null;
+        }
+        return app.getImplementations().stream()
+                .map(Implementation::getConnectorBundle)
+                .filter(bundle -> bundle != null && bundle.getFramework() != null)
+                .map(bundle -> bundle.getFramework().name())
+                .distinct()
+                .toList();
+    }
+
+    /**
      * Maps Application entity to ApplicationDto with request data fetched automatically
      * @param app Application entity
      * @return ApplicationDto
@@ -202,6 +219,9 @@ public class ApplicationMapper {
         List<ApplicationTagDto> tags = mapAllTags(app);
         List<ImplementationVersionDto> implementationVersions = mapImplementationVersions(app);
 
+        // Extract frameworks from implementations
+        List<String> frameworks = extractFrameworks(app);
+
         // Convert lifecycle state
         String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
 
@@ -222,6 +242,7 @@ public class ApplicationMapper {
                 .implementationVersions(implementationVersions)
                 .requestId(requestId)
                 .voteCount(voteCount)
+                .frameworks(frameworks)
                 .build();
     }
 
