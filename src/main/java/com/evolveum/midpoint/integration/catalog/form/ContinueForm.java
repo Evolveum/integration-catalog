@@ -20,6 +20,6 @@ public class ContinueForm {
     private Long publishTime;
     private String downloadLink;
     private String connectorClass;
-    private List<ImplementationVersion.CapabilitiesType> capabilities;
+    private List<ImplementationVersion.CapabilitiesType> capability;
 
 }

@@ -18,8 +18,7 @@ import java.util.List;
  */
 public record UploadImplementationDto(
         Application application,
-        Implementation implementation,
-        ImplementationVersion implementationVersion,
+        ImplementationDTO implementation,
         List<ItemFile> files
 ) {
 }

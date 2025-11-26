@@ -38,7 +38,7 @@ public class ConnectorBundle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "bundle_name", nullable = false)
+    @Column(name = "bundle_name", unique = true)
     private String bundleName;
 
     private String maintainer;
@@ -59,6 +59,6 @@ public class ConnectorBundle {
     @OneToMany(mappedBy = "connectorBundle")
     private List<Implementation> implementations = new ArrayList<>();
 
-    @OneToMany(mappedBy = "connectorBundle")
+    @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BundleVersion> bundleVersions = new ArrayList<>();
 }
