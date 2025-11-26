@@ -1,0 +1,57 @@
+# Copyright (c) 2010-2025 Evolveum and contributors
+#
+# Licensed under the EUPL-1.2 or later.
+
+services:
+  integration-catalog:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        MAVEN_ARGS: "-Dspring.profiles.active=prod"
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/integration_catalog
+      SPRING_DATASOURCE_USERNAME: integration_catalog
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_password
+      GITHUB_TOKEN_FILE: /run/secrets/github_token
+      JENKINS_URL: https://jenkins.evolveum.com/
+      JENKINS_TOKEN_FILE: /run/secrets/jenkins_token
+      JENKINS_USERNAME_FILE: /run/secrets/jenkins_username
+    depends_on:
+      - db
+    secrets:
+      - db_password
+      - github_token
+      - jenkins_token
+      - jenkins_username
+
+  db:
+    image: postgres:16-alpine
+    container_name: integration-catalog-db
+    environment:
+      POSTGRES_DB: integration_catalog
+      POSTGRES_USER: integration_catalog
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ../config/sql:/docker-entrypoint-initdb.d
+#      - ../src/main/resources/configuration/sql:/docker-entrypoint-initdb.d
+    secrets:
+      - db_password
+
+volumes:
+  db_data:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  github_token:
+    file: ./secrets/github_token.txt
+  jenkins_token:
+    file: ./secrets/jenkins_token.txt
+  jenkins_username:
+    file: ./secrets/jenkins_username.txt
