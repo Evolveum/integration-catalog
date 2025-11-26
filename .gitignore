@@ -83,3 +83,6 @@ angular-frontend/__screenshots__/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Docker secrets
+docker/secrets/*
