@@ -85,4 +85,4 @@ yarn-debug.log*
 yarn-error.log*
 
 # Docker secrets
-docker/secrets/*
+docker/secrets/
