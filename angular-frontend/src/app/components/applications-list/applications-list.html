@@ -169,7 +169,11 @@
                   }
                 }
               }
-              <img [src]="app.logo" alt="" class="p-3" style="width: 90px; height: 90px; object-fit: contain;" />
+              <div class="p-3">
+                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+                  {{ app.displayName.charAt(0) }}
+                </div>
+              </div>
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">{{ app.displayName }}</h5>
                 @if (app.lifecycleState) {
@@ -273,7 +277,11 @@
                   }
                 }
               }
-              <img [src]="app.logo" alt="" class="p-3" style="width: 90px; height: 90px; object-fit: contain;" />
+              <div class="p-3">
+                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+                  {{ app.displayName.charAt(0) }}
+                </div>
+              </div>
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">{{ app.displayName }}</h5>
                 @if (app.lifecycleState) {
@@ -314,7 +322,9 @@
             <div class="card-body">
               <div class="row align-items-center">
                 <div class="col-auto">
-                  <img [src]="app.logo" alt="" class="img-fluid" style="width: 48px; height: 48px; object-fit: contain;" />
+                  <div style="width: 90px; height: 90px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+                    {{ app.displayName.charAt(0) }}
+                  </div>
                 </div>
                 <div class="col">
                   <h5 class="card-title mb-1">{{ app.displayName }}</h5>
