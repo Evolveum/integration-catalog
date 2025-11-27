@@ -1,0 +1,580 @@
+<!-- Publish Success Toast Notification -->
+@if (showPublishSuccess()) {
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+    <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); min-width: 350px;">
+      <!-- Green header row -->
+      <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #198754; color: white;">
+        <div class="d-flex align-items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+          </svg>
+          <strong>Published Successfully!</strong>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="closePublishSuccessToast()" aria-label="Close"></button>
+      </div>
+      <!-- Light green message row -->
+      <div class="px-3 py-2" style="background-color: #d1e7dd; color: black;">
+        Your connector has been successfully published to the catalog.
+      </div>
+    </div>
+  </div>
+}
+
+@if (isOpen()) {
+  <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;" (click)="closeModal()"></div>
+  <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 700px; margin: auto;">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem;">
+          <h5 class="modal-title mb-0">Upload App to Integration Catalog</h5>
+          <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
+        </div>
+
+        <!-- Step Navigation -->
+        <div class="steps-container" style="padding: 1.5rem 1.5rem 0 1.5rem;">
+          <div class="d-flex justify-content-between position-relative" style="padding-bottom: 1rem;">
+            <!-- Step 1 -->
+            <div class="step-item flex-fill text-center position-relative" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
+              <div class="d-flex align-items-center">
+                <div class="step-number-wrapper d-flex align-items-center">
+                  <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
+                        [style.background-color]="currentStep() > 1 ? '#28a745' : (currentStep() === 1 ? '#0d6efd' : '#6c757d')"
+                        [style.color]="'white'"
+                        style="width: 28px; height: 28px; font-size: 0.875rem; font-weight: 600;">
+                    @if (currentStep() > 1) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+                      </svg>
+                    } @else {
+                      1
+                    }
+                  </span>
+                  <span class="step-label ms-2"
+                        [style.color]="currentStep() === 1 ? '#212529' : '#6c757d'"
+                        [style.font-weight]="currentStep() === 1 ? '600' : '400'"
+                        style="font-size: 0.875rem; white-space: nowrap;">Select<br>Connector type</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-item flex-fill text-center position-relative" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
+              <div class="d-flex align-items-center justify-content-center">
+                <div class="step-number-wrapper d-flex align-items-center">
+                  <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
+                        [style.background-color]="currentStep() > 2 ? '#28a745' : (currentStep() === 2 ? '#0d6efd' : '#6c757d')"
+                        [style.color]="'white'"
+                        style="width: 28px; height: 28px; font-size: 0.875rem; font-weight: 600;">
+                    @if (currentStep() > 2) {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+                      </svg>
+                    } @else {
+                      2
+                    }
+                  </span>
+                  <span class="step-label ms-2"
+                        [style.color]="currentStep() === 2 ? '#212529' : '#6c757d'"
+                        [style.font-weight]="currentStep() === 2 ? '600' : '400'"
+                        style="font-size: 0.875rem; white-space: nowrap;">Define Target App</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-item flex-fill text-center position-relative" [class.active]="currentStep() === 3">
+              <div class="d-flex align-items-center justify-content-end">
+                <div class="step-number-wrapper d-flex align-items-center">
+                  <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
+                        [style.background-color]="currentStep() === 3 ? '#0d6efd' : '#6c757d'"
+                        [style.color]="'white'"
+                        style="width: 28px; height: 28px; font-size: 0.875rem; font-weight: 600;">3</span>
+                  <span class="step-label ms-2"
+                        [style.color]="currentStep() === 3 ? '#212529' : '#6c757d'"
+                        [style.font-weight]="currentStep() === 3 ? '600' : '400'"
+                        style="font-size: 0.875rem; white-space: nowrap;">Define Implementation</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Progress Bar -->
+          <div class="position-relative" style="height: 3px; background-color: #dee2e6; margin-top: 0;">
+            <div class="progress-bar-fill"
+                 [style.left]="currentStep() === 1 ? '0%' : (currentStep() === 2 ? '33.33%' : '66.66%')"
+                 style="position: absolute; height: 100%; width: 33.33%; background-color: #0d6efd; transition: left 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body" style="padding: 2rem 1.5rem;" (click)="showOriginDropdown.set(false)">
+          <!-- Step 1: Select Connector Type -->
+          @if (currentStep() === 1) {
+            <div class="step-content">
+              <h6 class="mb-4 text-center" style="font-size: 1rem; font-weight: 500;">Select the Type of Connector You Want to Upload</h6>
+
+              <!-- Info Note -->
+              <div class="alert d-flex align-items-start" style="background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 1.5rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0c5460" class="me-2 flex-shrink-0" viewBox="0 0 16 16" style="margin-top: 2px;">
+                  <circle cx="8" cy="8" r="8" fill="#0c5460"/>
+                  <text x="8" y="12" text-anchor="middle" fill="white" font-size="12" font-weight="bold">i</text>
+                </svg>
+                <div style="color: #0c5460; font-size: 0.875rem;">
+                  <strong>Note</strong> Once published, this connector will appear in the public catalog and be visible to other users.
+                </div>
+              </div>
+
+              <!-- Connector Type Options -->
+              <div class="mb-3">
+                <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem; margin-bottom: 1rem;">
+                  Connector Type Options
+                  <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                      <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                    </svg>
+                    <span class="info-tooltip">Choose the type of connector based on your deployment needs and technical requirements.</span>
+                  </span>
+                </label>
+
+                <!-- Option 1: Java-based Connector -->
+                <div class="connector-option mb-3"
+                     [class.selected]="selectedConnectorType() === 'java-based'"
+                     (click)="selectConnectorType('java-based')"
+                     style="border: 2px solid #dee2e6; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s;">
+                  <div class="d-flex align-items-center">
+                    <input type="radio"
+                           name="connectorType"
+                           [checked]="selectedConnectorType() === 'java-based'"
+                           class="form-check-input me-3 flex-shrink-0"
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center mb-1">
+                        <span style="font-weight: 600; font-size: 0.9375rem;">Java-based Connector</span>
+                      </div>
+                      <div style="color: #6c757d; font-size: 0.875rem;">
+                        Typically deployed in the same environment as MidPoint.<br>
+                        Requires uploading a .jar file.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Option 2: Low-code Connector with Own Repository -->
+                <div class="connector-option mb-3"
+                     [class.selected]="selectedConnectorType() === 'own-repo'"
+                     (click)="selectConnectorType('own-repo')"
+                     style="border: 2px solid #dee2e6; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s;">
+                  <div class="d-flex align-items-center">
+                    <input type="radio"
+                           name="connectorType"
+                           [checked]="selectedConnectorType() === 'own-repo'"
+                           class="form-check-input me-3 flex-shrink-0"
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center mb-1">
+                        <span style="font-weight: 600; font-size: 0.9375rem;">Low-code Connector with Own Repository</span>
+                      </div>
+                      <div style="color: #6c757d; font-size: 0.875rem;">
+                        Connector is maintained in your own version-controlled repository (e.g., GitHub, GitLab).<br>
+                        Requires entering repository URL.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Option 3: Low-code connector Evolveum-hosted repository -->
+                <div class="connector-option mb-3"
+                     [class.selected]="selectedConnectorType() === 'evolveum-hosted'"
+                     (click)="selectConnectorType('evolveum-hosted')"
+                     style="border: 2px solid; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s;"
+                     [style.border-color]="selectedConnectorType() === 'evolveum-hosted' ? '#0d6efd' : '#dee2e6'"
+                     [style.background-color]="selectedConnectorType() === 'evolveum-hosted' ? '#e7f3ff' : 'white'">
+                  <div class="d-flex align-items-center">
+                    <input type="radio"
+                           name="connectorType"
+                           [checked]="selectedConnectorType() === 'evolveum-hosted'"
+                           class="form-check-input me-3 flex-shrink-0"
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center mb-1">
+                        <span style="font-weight: 600; font-size: 0.9375rem;">Low-code connector Evolveum-hosted repository</span>
+                      </div>
+                      <div style="color: #495057; font-size: 0.875rem;">
+                        Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Help Text -->
+              <div class="d-flex align-items-start mt-4" style="color: #6c757d; font-size: 0.875rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2 flex-shrink-0" viewBox="0 0 16 16" style="margin-top: 2px;">
+                  <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                </svg>
+                <span>If you're unsure, ask your system administrator or the team responsible for connector development.</span>
+              </div>
+            </div>
+          }
+
+          <!-- Step 2: Define Target App & Implementation -->
+          @if (currentStep() === 2) {
+            <div class="step-content">
+              @if (!showImplementationForm()) {
+                <h6 class="mb-4 text-center" style="font-size: 1rem; font-weight: 400;">Search or define a new application to continue.</h6>
+
+                <!-- Search Input -->
+                <div class="position-relative mb-4">
+                  <div class="search-input-wrapper">
+                    <div class="d-flex align-items-center">
+                      <span class="search-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#6c757d" viewBox="0 0 16 16">
+                          <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        class="search-input"
+                        [value]="searchQuery()"
+                        (input)="onSearchChange($event)"
+                        placeholder="Search applications...">
+                      @if (searchQuery()) {
+                        <button class="clear-search-btn" type="button" (click)="clearSearch()">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#6c757d" viewBox="0 0 16 16">
+                            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                          </svg>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Selected Application Card (shown after selection, before form) -->
+                @if (selectedApplication() && !showDetailsForm()) {
+                  <div class="card mb-4" style="border: 1px solid #dee2e6; border-radius: 8px;">
+                    <div class="card-body d-flex align-items-center" style="padding: 1.5rem;">
+                      <div class="flex-shrink-0 me-3">
+                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 600;">
+                          {{ selectedApplication()!.displayName.charAt(0) }}
+                        </div>
+                      </div>
+                      <div class="flex-grow-1">
+                        <h6 class="mb-2" style="font-size: 1rem; font-weight: 600;">{{ selectedApplication()!.displayName }}</h6>
+                        <p class="mb-0 text-muted" style="font-size: 0.875rem;">{{ selectedApplication()!.description }}</p>
+                      </div>
+                      <div class="d-flex align-items-stretch ms-3">
+                        <div style="width: 1px; background-color: #dee2e6; margin: -1.5rem 0;"></div>
+                        <button type="button" class="btn btn-link p-0 ms-3" (click)="removeSelectedApplication()" style="color: #6c757d;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- Search Results -->
+                @if (!selectedApplication() && searchQuery() && filteredApplications().length > 0) {
+                  <div class="search-results mb-4">
+                    @for (app of filteredApplications(); track app.id) {
+                      <div class="card mb-3" style="border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer; transition: all 0.2s;" (click)="selectApplication(app)">
+                        <div class="card-body d-flex align-items-start" style="padding: 1.5rem;">
+                          <div class="flex-shrink-0 me-3">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 600;">
+                              {{ app.displayName.charAt(0) }}
+                            </div>
+                          </div>
+                          <div class="flex-grow-1">
+                            <h6 class="mb-2" style="font-size: 1rem; font-weight: 600;">{{ app.displayName }}</h6>
+                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">{{ app.description }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Empty State / Define New -->
+                @if (!selectedApplication() && (!searchQuery() || filteredApplications().length === 0)) {
+                  <div class="text-center py-5">
+                    <p class="text-muted mb-3">Didn't find your app in the database? Add a new one!</p>
+                    <button type="button" class="btn d-inline-flex align-items-center" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="enterDefineNewMode()">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/>
+                      </svg>
+                      Define new
+                    </button>
+                  </div>
+                }
+              }
+
+              <!-- Implementation Form (shown when app selected or Define New clicked) -->
+              @if (showImplementationForm()) {
+                <div>
+                  <h6 class="mb-4 text-center" style="font-size: 1rem; font-weight: 400;">Provide details for the implementation.</h6>
+
+                  <!-- Display Name -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                      Display Name
+                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                        </svg>
+                        <span class="info-tooltip">The name that will be displayed for this application in the catalog.</span>
+                      </span>
+                    </label>
+                    <input type="text" class="form-control" [(ngModel)]="displayName" placeholder="TypeName.." style="max-width: 240px;" [disabled]="selectedApplication() !== null">
+                  </div>
+
+                  <!-- Upload Logo - DISABLED FOR NOW
+                  <div class="mb-4">
+                    @if (selectedApplication() && selectedApplication()!.logo) {
+                      <div class="mb-3">
+                        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                          App logo
+                          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                            </svg>
+                            <span class="info-tooltip">This will appear in Presentation pages and in your project dashboard.</span>
+                          </span>
+                        </label>
+                        <div class="border rounded p-2 d-inline-block" style="background-color: #f8f9fa;">
+                          <img [src]="selectedApplication()!.logo" alt="App logo" style="width: 80px; height: 80px; object-fit: contain;">
+                        </div>
+                      </div>
+                    } @else {
+                      <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                        App logo
+                        <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                          </svg>
+                          <span class="info-tooltip">This will appear in Presentation pages and in your project dashboard.</span>
+                        </span>
+                      </label>
+                      <div class="logo-upload-area" style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 2rem; background-color: #f8f9fa; text-align: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#6c757d" class="mb-3" viewBox="0 0 16 16">
+                          <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+                          <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-1.998 2M14 2H4a1 1 0 0 0-1 1h9.002a2 2 0 0 1 2 2v7A1 1 0 0 0 15 11V3a1 1 0 0 0-1-1M2.002 4a1 1 0 0 0-1 1v8l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71a.5.5 0 0 1 .577-.094l1.777 1.947V5a1 1 0 0 0-1-1z"/>
+                        </svg>
+                        <h6 class="mb-2" style="font-size: 0.9375rem; font-weight: 600;">Upload a logo</h6>
+                        <p class="text-muted mb-3" style="font-size: 0.8125rem;">Accepted type files: lorem ipsum lorem ipsum</p>
+                        <input type="file" id="logoUpload" class="d-none" (change)="onLogoUpload($event)" accept="image/*">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="logoUpload.click()">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+                          </svg>
+                          Upload
+                        </button>
+                        <input #logoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/*">
+                      </div>
+                    }
+                  </div>
+                  END Upload Logo - DISABLED FOR NOW -->
+
+                  <!-- Description -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                      Description
+                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                        </svg>
+                        <span class="info-tooltip">Provide a brief description of what this application does.</span>
+                      </span>
+                    </label>
+                    <div class="position-relative">
+                      <textarea class="form-control" [value]="description()" (input)="onDescriptionChange($event)"
+                                placeholder="Type description of application..." rows="5" maxlength="350" [disabled]="selectedApplication() !== null"></textarea>
+                      <div class="text-end text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ description().length }}/350 characters</div>
+                    </div>
+                  </div>
+
+                  <!-- Origin(s) -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                      Origin(s)
+                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                        </svg>
+                        <span class="info-tooltip">Select one or more countries where the connector or system originates from.</span>
+                      </span>
+                    </label>
+
+                    <!-- ng-select component -->
+                    @if (isLoadingCountries()) {
+                      <div class="text-muted" style="padding: 0.5rem;">
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Loading countries...
+                      </div>
+                    } @else {
+                      <ng-select
+                        [items]="allCountries()"
+                        [multiple]="true"
+                        [closeOnSelect]="false"
+                        [searchable]="true"
+                        [clearable]="false"
+                        bindLabel="name"
+                        placeholder="Search and select countries..."
+                        [ngModel]="selectedCountriesModel()"
+                        (ngModelChange)="onCountriesChange($event)"
+                        notFoundText="No countries found">
+                        <ng-template ng-option-tmp let-item="item">
+                          {{ item.name }}
+                        </ng-template>
+                        <ng-template ng-multi-label-tmp let-items="items" let-clear="clear">
+                          @for (item of items; track item.name) {
+                            <span class="badge d-inline-flex align-items-center me-2 mb-1"
+                                  [style.background-color]="isOriginDismissible(item.name) ? '#6c757d' : '#17a2b8'"
+                                  [style.color]="'white'"
+                                  style="padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 500; border-radius: 4px; height: 28px; line-height: 1;">
+                              <span style="white-space: nowrap;">{{ item.name }}</span>
+                              @if (isOriginDismissible(item.name)) {
+                                <button type="button" class="btn-close btn-close-white ms-2" (click)="clear(item)" style="font-size: 0.65rem; width: 0.5em; height: 0.5em;"></button>
+                              }
+                            </span>
+                          }
+                        </ng-template>
+                      </ng-select>
+                    }
+                  </div>
+
+                  <!-- Category -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                      Category
+                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                        </svg>
+                        <span class="info-tooltip">Select the primary category this application belongs to.</span>
+                      </span>
+                    </label>
+                    <select class="form-select" [(ngModel)]="category" style="max-width: 280px;" [disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'">
+                      <option value="">Select category...</option>
+                      @for (cat of availableCategories(); track cat.name) {
+                        <option [value]="cat.name">{{ cat.displayName }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <!-- Deployment Type -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                      Deployment Type
+                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                          <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                        </svg>
+                        <span class="info-tooltip">Choose how this application is deployed.</span>
+                      </span>
+                    </label>
+                    <div class="d-flex gap-4">
+                      @for (option of deploymentOptions(); track option.value) {
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="deploymentType" [id]="'deployment-' + option.value" [value]="option.value" [(ngModel)]="deploymentType">
+                          <label class="form-check-label" [for]="'deployment-' + option.value">
+                            {{ option.label }}
+                          </label>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Step 3: Define Implementation -->
+          @if (currentStep() === 3) {
+            <app-upload-form-impl
+              [connectorType]="selectedConnectorType"
+              [applicationId]="selectedApplication()?.id ?? null"
+              (formDataChanged)="onImplementationFormDataChange($event)"
+              (formValid)="onImplementationFormValidChange($event)">
+            </app-upload-form-impl>
+          }
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer d-flex justify-content-between" style="border-top: 1px solid #dee2e6; padding: 1rem 1.5rem;">
+          @if (currentStep() === 1) {
+            <button type="button" class="btn" style="color: #0d6efd; background: none; border: none; padding: 0.375rem 0.75rem;" (click)="closeModal()">Cancel</button>
+          }
+          @if (currentStep() === 2 && !showImplementationForm() && !selectedApplication()) {
+            <button type="button" class="btn d-flex align-items-center" style="color: #0d6efd; background: none; border: none; padding: 0.375rem 0.75rem;" (click)="previousStep()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                  </svg>
+                  Back: Select Connector type
+            </button>
+          }
+          @if (currentStep() === 2 && !showImplementationForm() && selectedApplication()) {
+            <button type="button" class="btn d-flex align-items-center" style="color: #0d6efd; background: none; border: none; padding: 0.375rem 0.75rem;" (click)="removeSelectedApplication()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                  </svg>
+                  Back to search app
+            </button>
+          }
+          @if (currentStep() === 2 && showImplementationForm() && !isDefineNewMode()) {
+            <button type="button" class="btn d-flex align-items-center" style="color: #0d6efd; background: none; border: none; padding: 0.375rem 0.75rem;" (click)="showDetailsForm.set(false); clearApplicationDetailsFields()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                  </svg>
+                  Back to selected app
+            </button>
+          }
+          @if (currentStep() === 2 && showImplementationForm() && isDefineNewMode()) {
+            <button type="button" class="btn d-flex align-items-center" style="color: #0d6efd; background: none; border: none; padding: 0.375rem 0.75rem;" (click)="removeSelectedApplication(); isDefineNewMode.set(false)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                  </svg>
+                  Back to search app
+            </button>
+          }
+          @if (currentStep() === 3) {
+            <button type="button" class="btn d-flex align-items-center" style="color: #0d6efd; background: none; border: none; padding: 0.375rem 0.75rem;" (click)="handleBackFromImplementation()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                  </svg>
+                  {{ implementationFormData()?.isEditingVersion ? 'Back to implementation selection' : 'Back: Define Target Application' }}
+            </button>
+          }
+          <div>
+            @if (currentStep() === 1) {
+              <button type="button" class="btn btn-primary" (click)="nextStep()">Next: Define Target Application</button>
+            }
+            @if (currentStep() === 2 && canContinueWithSelection()) {
+              <button type="button" class="btn btn-primary" (click)="continueWithSelectedApp()">
+                Continue
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="ms-2" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/>
+                </svg>
+              </button>
+            }
+            @if (currentStep() === 2 && showImplementationForm()) {
+              <button type="button" class="btn btn-primary" (click)="nextStep()" [disabled]="!canSubmitForm()">
+                Next: Define Implementation
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="ms-2" viewBox="0 0 16 16">
+                  <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/>
+                </svg>
+              </button>
+            }
+            @if (currentStep() === 3) {
+              <button type="button" class="btn btn-primary" [disabled]="!isImplementationFormValid()" (click)="handleImplementationAction()">
+                {{ implementationFormData()?.isNewVersion === false || implementationFormData()?.isEditingVersion ? 'Publish to catalog' : 'Select' }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

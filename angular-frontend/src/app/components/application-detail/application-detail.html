@@ -39,8 +39,9 @@
           <div class="card-body">
             <div class="row align-items-center mb-4">
               <div class="col-auto">
-                <img [src]="application()!.logo" [alt]="application()!.displayName"
-                     class="img-fluid rounded" style="max-width: 100px; max-height: 100px;" />
+                <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+                  {{ application()!.displayName.charAt(0) }}
+                </div>
               </div>
               <div class="col">
                 <h1 class="card-title mb-2">

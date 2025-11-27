@@ -13,12 +13,13 @@ import { Application } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
 import { LoginModal } from '../login-modal/login-modal';
+import { UploadFormMain } from '../upload-form-main/upload-form-main';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, LoginModal],
+  imports: [CommonModule, FormsModule, RequestForm, LoginModal, UploadFormMain],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.css']
 })
@@ -27,7 +28,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   @ViewChild('scrollContainerMore') scrollContainerMore!: ElementRef<HTMLDivElement>;
   @ViewChildren('featuredCard') featuredCards!: QueryList<ElementRef<HTMLDivElement>>;
 
-  protected readonly applications = signal<Application[]>([]);
+  protected applications = signal<Application[]>([]);
   protected readonly categories = signal<CategoryCount[]>([]);
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
@@ -39,8 +40,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
   protected readonly viewMode = signal<'grid' | 'list'>('grid');
   protected readonly activeTab = signal<string>('all');
-  protected readonly isRequestModalOpen = signal<boolean>(false);
-  protected readonly isLoginModalOpen = signal<boolean>(false);
+  protected isRequestModalOpen = signal<boolean>(false);
+  protected isLoginModalOpen = signal<boolean>(false);
+  protected isUploadModalOpen = signal<boolean>(false);
+  protected showLoginRequiredMessage = signal<boolean>(false);
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
 
@@ -249,7 +252,17 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   }
 
   protected openRequestModal(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+      this.isLoginModalOpen.set(true);
+      return;
+    }
     this.isRequestModalOpen.set(true);
+  }
+
+  protected closeLoginRequiredMessage(): void {
+    this.showLoginRequiredMessage.set(false);
   }
 
   protected closeRequestModal(): void {
@@ -262,6 +275,20 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected closeLoginModal(): void {
     this.isLoginModalOpen.set(false);
+  }
+
+  protected openUploadModal(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+      this.isLoginModalOpen.set(true);
+      return;
+    }
+    this.isUploadModalOpen.set(true);
+  }
+
+  protected closeUploadModal(): void {
+    this.isUploadModalOpen.set(false);
   }
 
   protected logout(): void {

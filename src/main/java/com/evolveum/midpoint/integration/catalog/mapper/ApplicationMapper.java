@@ -9,10 +9,14 @@ package com.evolveum.midpoint.integration.catalog.mapper;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
+import com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationApplicationTag;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
+import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
+import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
+import com.evolveum.midpoint.integration.catalog.object.Implementation;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 import com.evolveum.midpoint.integration.catalog.object.Request;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
@@ -142,6 +146,23 @@ public class ApplicationMapper {
     }
 
     /**
+     * Extracts unique frameworks from application's implementations
+     * @param app Application entity
+     * @return List of unique framework names (e.g., "CONNID", "SCIM_REST") or null if no implementations
+     */
+    public List<String> extractFrameworks(Application app) {
+        if (app.getImplementations() == null || app.getImplementations().isEmpty()) {
+            return null;
+        }
+        return app.getImplementations().stream()
+                .map(Implementation::getConnectorBundle)
+                .filter(bundle -> bundle != null && bundle.getFramework() != null)
+                .map(bundle -> bundle.getFramework().name())
+                .distinct()
+                .toList();
+    }
+
+    /**
      * Maps Application entity to ApplicationDto with request data fetched automatically
      * @param app Application entity
      * @return ApplicationDto
@@ -198,6 +219,9 @@ public class ApplicationMapper {
         List<ApplicationTagDto> tags = mapAllTags(app);
         List<ImplementationVersionDto> implementationVersions = mapImplementationVersions(app);
 
+        // Extract frameworks from implementations
+        List<String> frameworks = extractFrameworks(app);
+
         // Convert lifecycle state
         String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
 
@@ -218,6 +242,40 @@ public class ApplicationMapper {
                 .implementationVersions(implementationVersions)
                 .requestId(requestId)
                 .voteCount(voteCount)
+                .frameworks(frameworks)
                 .build();
+    }
+
+    /**
+     * Maps Implementation with its latest version to ImplementationListItemDto
+     * @param impl Implementation entity
+     * @param latestVersion Latest ImplementationVersion for this implementation
+     * @return ImplementationListItemDto
+     */
+    public ImplementationListItemDto mapToImplementationListItemDto(Implementation impl, ImplementationVersion latestVersion) {
+        ConnectorBundle bundle = impl.getConnectorBundle();
+        BundleVersion bundleVersion = latestVersion.getBundleVersion();
+
+        // Format publish date as DD.MM.YYYY
+        String publishedDate = latestVersion.getPublishDate() != null
+                ? latestVersion.getPublishDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                : "";
+
+        return new ImplementationListItemDto(
+                impl.getId(),
+                impl.getDisplayName(),                                    // name (for list display)
+                latestVersion.getDescription(),                          // description (for list display)
+                publishedDate,                                           // publishedDate
+                bundleVersion.getConnectorVersion(),                     // version
+                impl.getDisplayName(),                                   // displayName
+                bundle.getMaintainer(),                                  // maintainer
+                bundle.getLicense().name(),                              // licenseType
+                latestVersion.getDescription(),                          // implementationDescription
+                bundleVersion.getBrowseLink(),                           // browseLink
+                bundle.getTicketingSystemLink(),                         // ticketingLink
+                bundleVersion.getBuildFramework().name(),                // buildFramework
+                bundleVersion.getCheckoutLink(),                         // checkoutLink
+                bundleVersion.getPathToProject()                         // pathToProjectDirectory
+        );
     }
 }

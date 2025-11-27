@@ -59,20 +59,33 @@
           <!-- Row 5 -->
           <div class="mb-3">
             <label class="form-label">
-              Base URL Application (Optional)
-              <button type="button" class="btn btn-link p-0 ms-1" style="border: none;" title="Base URL information">
+              Deployment Type<span class="text-danger">*</span>
+              <button type="button" class="btn btn-link p-0 ms-1" style="border: none;" title="Deployment type information">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle-fill" viewBox="0 0 16 16" style="color: #6ea8fe;">
                   <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
                 </svg>
               </button>
             </label>
-            <input type="url" class="form-control" [(ngModel)]="formData.baseUrl">
+            <div class="d-flex gap-4">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="deploymentType" id="deploymentOnPremise" value="on-premise" [(ngModel)]="formData.deploymentType" required>
+                <label class="form-check-label" for="deploymentOnPremise">On-premise</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="deploymentType" id="deploymentCloudBased" value="cloud-based" [(ngModel)]="formData.deploymentType" required>
+                <label class="form-check-label" for="deploymentCloudBased">Cloud-based</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="deploymentType" id="deploymentBoth" value="both" [(ngModel)]="formData.deploymentType" required>
+                <label class="form-check-label" for="deploymentBoth">Both</label>
+              </div>
+            </div>
           </div>
 
           <!-- Row 6 & 7 -->
           <div class="mb-3">
             <label class="form-label">
-              Requested Capabilities
+              Requested Capabilities*
               <button type="button" class="btn btn-link p-0 ms-1" style="border: none;" title="Capabilities information">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle-fill" viewBox="0 0 16 16" style="color: #6ea8fe;">
                   <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
@@ -150,29 +163,16 @@
           </div>
 
           <!-- Row 10 & 11 -->
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <label class="form-label">
-                System Version (Optional)
-                <button type="button" class="btn btn-link p-0 ms-1" style="border: none;" title="System version information">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle-fill" viewBox="0 0 16 16" style="color: #6ea8fe;">
-                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-                  </svg>
-                </button>
-              </label>
-              <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">
-                Your Contact Email (Optional)
-                <button type="button" class="btn btn-link p-0 ms-1" style="border: none;" title="Contact email information">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle-fill" viewBox="0 0 16 16" style="color: #6ea8fe;">
-                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-                  </svg>
-                </button>
-              </label>
-              <input type="email" class="form-control" [(ngModel)]="formData.email">
-            </div>
+          <div class="mb-3">
+            <label class="form-label">
+              System Version (Optional)
+              <button type="button" class="btn btn-link p-0 ms-1" style="border: none;" title="System version information">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle-fill" viewBox="0 0 16 16" style="color: #6ea8fe;">
+                  <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+                </svg>
+              </button>
+            </label>
+            <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
           </div>
 
           <!-- Row 12 -->
@@ -185,7 +185,7 @@
             </div>
           }
 
-          <!-- Row 14 -->
+          <!-- Row 13 -->
           <div class="d-flex justify-content-between">
             <button type="button" class="btn" style="color: #0d6efd; background-color: #fff; border: none;" (click)="closeRequestModal()" [disabled]="isSubmitting()">Cancel</button>
             <button type="button" class="btn" style="color: #fff; background-color: #0d6efd;" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description">

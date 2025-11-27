@@ -122,9 +122,11 @@ public class Controller {
 
     @Operation(summary = "", description = "")
     @PostMapping("/upload/connector")
-    public ResponseEntity<String> uploadConnector(@RequestBody UploadImplementationDto dto) {
+    public ResponseEntity<String> uploadConnector(
+            @RequestBody UploadImplementationDto dto,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, username));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -367,5 +369,18 @@ public class Controller {
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
+    }
+
+    @Operation(summary = "Get implementations for application",
+            description = "Returns all implementations for a specific application")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Implementations retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Application not found")
+    })
+    @GetMapping("/applications/{applicationId}/implementations")
+    public ResponseEntity<List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto>> getImplementationsByApplicationId(@PathVariable UUID applicationId) {
+        List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto> implementations =
+                applicationService.getImplementationsByApplicationId(applicationId);
+        return ResponseEntity.ok(implementations);
     }
 }

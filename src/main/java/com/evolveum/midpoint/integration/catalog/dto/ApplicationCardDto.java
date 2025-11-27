@@ -22,5 +22,6 @@ public record ApplicationCardDto(
         List<ApplicationTagDto> categories,
         List<ApplicationTagDto> tags,
         Long requestId,
-        Long voteCount
+        Long voteCount,
+        List<String> frameworks
 ) {}

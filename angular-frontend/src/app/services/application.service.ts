@@ -10,6 +10,7 @@ import { Observable } from 'rxjs';
 import { Application } from '../models/application.model';
 import { ApplicationDetail } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
+import { ImplementationListItem } from '../models/implementation-list-item.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -50,5 +51,13 @@ export class ApplicationService {
 
   getCapabilities(): Observable<string[]> {
     return this.http.get<string[]>(`${environment.apiUrl}/capabilities`);
+  }
+
+  getImplementationsByApplicationId(applicationId: string): Observable<ImplementationListItem[]> {
+    return this.http.get<ImplementationListItem[]>(`${environment.apiUrl}/applications/${applicationId}/implementations`);
+  }
+
+  uploadConnector(payload: any): Observable<string> {
+    return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
   }
 }
