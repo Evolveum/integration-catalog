@@ -8,6 +8,7 @@ import { Component, signal, Output, EventEmitter, Input, OnInit, OnChanges, Simp
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
+import { AuthService } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 
 @Component({
@@ -52,13 +53,23 @@ export class UploadFormImpl implements OnChanges {
 
   // Available options for dropdowns (from backend enum LicenseType)
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
-  protected readonly maintainerOptions: string[] = []; // Empty for now
+  protected maintainerOptions: string[] = [];
 
   // Existing implementations loaded from backend
   protected readonly existingImplementations = signal<ImplementationListItem[]>([]);
   protected readonly isLoadingImplementations = signal<boolean>(false);
 
-  constructor(private applicationService: ApplicationService) {}
+  constructor(
+    private applicationService: ApplicationService,
+    private authService: AuthService
+  ) {
+    // Initialize maintainer options with current user
+    const currentUser = this.authService.currentUser();
+    if (currentUser) {
+      this.maintainerOptions = [currentUser];
+      this.maintainer.set(currentUser);
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     // Load implementations when applicationId changes
@@ -139,9 +150,9 @@ export class UploadFormImpl implements OnChanges {
     // Exit editing mode and go back to implementation selection
     this.isEditingVersion.set(false);
 
-    // Clear form fields
+    // Clear form fields (reset maintainer to current user)
     this.displayName.set('');
-    this.maintainer.set('');
+    this.maintainer.set(this.authService.currentUser() || '');
     this.licenseType.set('');
     this.implementationDescription.set('');
     this.browseLink.set('');

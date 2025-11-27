@@ -66,7 +66,7 @@ public class Application {
     @Column(name = "last_modified")
     private OffsetDateTime lastModified;
 
-    @OneToMany(mappedBy = "application")
+    @OneToMany(mappedBy = "application", fetch = FetchType.EAGER)
     private List<Implementation> implementations;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)

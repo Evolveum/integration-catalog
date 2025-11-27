@@ -46,15 +46,48 @@ export class UploadFormMain implements OnInit {
   protected readonly implementationFormData = signal<any>(null);
   protected readonly isImplementationFormValid = signal<boolean>(false);
 
+  // Toast notifications
+  protected readonly showPublishSuccess = signal<boolean>(false);
+
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) {
       return [];
     }
-    return this.applications().filter(app =>
-      app.displayName.toLowerCase().includes(query) ||
-      app.description.toLowerCase().includes(query)
-    );
+
+    const connectorType = this.selectedConnectorType();
+    const targetFramework = connectorType === 'java-based' ? 'CONNID' : 'SCIM_REST';
+
+    // Debug: log all apps and their frameworks
+    console.log('All applications:', this.applications().map(a => ({
+      name: a.displayName,
+      lifecycleState: a.lifecycleState,
+      frameworks: a.frameworks
+    })));
+    console.log('Target framework:', targetFramework);
+
+    return this.applications().filter(app => {
+      // First filter by search query
+      const matchesQuery = app.displayName.toLowerCase().includes(query) ||
+        app.description.toLowerCase().includes(query);
+
+      if (!matchesQuery) {
+        return false;
+      }
+
+      // Always show REQUESTED apps (they have no implementations yet)
+      if (app.lifecycleState === 'REQUESTED') {
+        return true;
+      }
+
+      // For other apps, check if they have the matching framework
+      // If no frameworks (empty or null), don't show the app
+      if (!app.frameworks || app.frameworks.length === 0) {
+        return false;
+      }
+
+      return app.frameworks.includes(targetFramework);
+    });
   });
 
   protected availableCategories = computed(() => {
@@ -148,6 +181,10 @@ export class UploadFormMain implements OnInit {
   protected closeModal(): void {
     this.modalClosed.emit();
     this.resetForm();
+  }
+
+  protected closePublishSuccessToast(): void {
+    this.showPublishSuccess.set(false);
   }
 
   protected nextStep(): void {
@@ -446,8 +483,9 @@ export class UploadFormMain implements OnInit {
     this.applicationService.uploadConnector(payload).subscribe({
       next: (response: string) => {
         console.log('Upload successful:', response);
-        alert('Successfully published to catalog!');
         this.closeModal();
+        this.showPublishSuccess.set(true);
+        setTimeout(() => this.showPublishSuccess.set(false), 5000);
       },
       error: (error: any) => {
         console.error('Upload failed:', error);

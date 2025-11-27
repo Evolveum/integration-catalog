@@ -74,6 +74,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected isUploadModalOpen = signal<boolean>(false);
   protected isFilterModalOpen = signal<boolean>(false);
   protected openDropdown = signal<string | null>(null);
+  protected showLoginRequiredMessage = signal<boolean>(false);
   protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
 
   protected filterState = signal<FilterState>({
@@ -553,7 +554,17 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   }
 
   protected openRequestModal(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+      this.isLoginModalOpen.set(true);
+      return;
+    }
     this.isRequestModalOpen.set(true);
+  }
+
+  protected closeLoginRequiredMessage(): void {
+    this.showLoginRequiredMessage.set(false);
   }
 
   protected closeRequestModal(): void {
@@ -570,7 +581,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected openUploadModal(): void {
     if (!this.authService.isLoggedIn()) {
-      alert('You need to log in to upload a configuration. Please log in and try again.');
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
       this.isLoginModalOpen.set(true);
       return;
     }
