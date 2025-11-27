@@ -304,7 +304,8 @@ export class UploadFormMain implements OnInit {
   protected canSubmitForm(): boolean {
     return this.displayName().trim() !== '' &&
            this.description().trim() !== '' &&
-           this.category() !== '';
+           this.category() !== '' &&
+           this.deploymentType() !== '';
   }
 
   protected onLogoUpload(event: Event): void {
@@ -330,8 +331,24 @@ export class UploadFormMain implements OnInit {
 
   // Handle changes from ng-select
   protected onCountriesChange(countries: Country[]): void {
-    this.selectedCountriesModel.set(countries);
-    this.origins.set(countries.map(c => c.name));
+    // Prevent removal of origins loaded from DB
+    const loadedOriginNames = this.loadedOrigins();
+    const currentCountryNames = countries.map(c => c.name);
+
+    // Check if any loaded origins were removed
+    const missingLoadedOrigins = loadedOriginNames.filter(name => !currentCountryNames.includes(name));
+
+    if (missingLoadedOrigins.length > 0) {
+      // Re-add the missing loaded origins
+      const allCountries = this.allCountries();
+      const missingCountries = allCountries.filter(c => missingLoadedOrigins.includes(c.name));
+      const restoredCountries = [...countries, ...missingCountries];
+      this.selectedCountriesModel.set(restoredCountries);
+      this.origins.set(restoredCountries.map(c => c.name));
+    } else {
+      this.selectedCountriesModel.set(countries);
+      this.origins.set(countries.map(c => c.name));
+    }
   }
 
   protected isOriginDismissible(origin: string): boolean {
