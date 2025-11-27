@@ -46,7 +46,7 @@
               <div style="font-size: 0.9rem; opacity: 0.9;">Active integrations</div>
             </div>
             <div class="text-center">
-              <div class="display-4 fw-bold mb-2">0</div>
+              <div class="display-4 fw-bold mb-2">"404"</div>
               <div style="font-size: 0.9rem; opacity: 0.9;">Apps downloaded</div>
             </div>
           </div>
@@ -253,7 +253,7 @@
       <div class="scroll-container" #scrollContainer (scroll)="onScroll()" style="overflow-x: auto; scroll-behavior: smooth;">
         <div class="d-flex gap-4 pe-5">
           @for (app of featuredApplications(); track app.id) {
-            <div #featuredCard class="card position-relative" style="width: 240px; min-width: 240px; height: 420px; transition: opacity 0.3s ease;">
+            <div #featuredCard class="card position-relative" style="width: 300px; min-width: 300px; height: 420px; transition: opacity 0.3s ease;">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
@@ -362,7 +362,7 @@
       <div class="d-flex flex-wrap gap-4 mb-4">
         @for (app of moreApplications(); track app.id) {
           <div>
-            <div class="card shadow-sm position-relative" style="width: 240px; min-width: 240px; height: 420px;">
+            <div class="card shadow-sm position-relative" style="width: 300px; min-width: 300px; height: 420px;">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
