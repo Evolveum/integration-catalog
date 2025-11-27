@@ -26,6 +26,7 @@ export interface Application {
   origins: CountryOfOrigin[] | null;
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
+  capabilities?: string[] | null;
   pendingRequest?: boolean;
   requestId?: number | null;
   voteCount?: number;

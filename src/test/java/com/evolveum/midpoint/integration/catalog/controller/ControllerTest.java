@@ -459,7 +459,6 @@ class ControllerTest {
                 null,
                 "", // Empty description - invalid
                 null,
-                null,
                 null
         );
 
@@ -566,7 +565,6 @@ class ControllerTest {
                 "Test Description",
                 null,
                 "ACTIVE",
-                null,
                 null,
                 null,
                 null,

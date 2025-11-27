@@ -43,7 +43,7 @@ export class UploadFormImpl implements OnChanges {
   protected readonly implementationDescription = signal<string>('');
   protected readonly browseLink = signal<string>('');
   protected readonly ticketingLink = signal<string>('');
-  protected readonly buildFramework = signal<string>(''); // No preselected value
+  protected readonly buildFramework = signal<string>('Maven'); // Default to Maven
   protected readonly checkoutLink = signal<string>('');
   protected readonly pathToProjectDirectory = signal<string>('');
 
@@ -199,6 +199,8 @@ export class UploadFormImpl implements OnChanges {
   private updateFormValidity(): void {
     let isValid = false;
     const isEvolveumHosted = this.connectorType() === 'evolveum-hosted';
+    const isOwnRepo = this.connectorType() === 'own-repo';
+    const isJavaBased = this.connectorType() === 'java-based';
 
     if (this.isEditingVersion()) {
       // Editing a version - validate required editable fields
@@ -206,10 +208,15 @@ export class UploadFormImpl implements OnChanges {
         // For evolveum-hosted: Implementation Description and File are REQUIRED
         isValid = this.implementationDescription().trim() !== '' &&
                   this.uploadedFile() !== null;
-      } else {
-        // For others: Implementation Description and Build Framework are REQUIRED
+      } else if (isJavaBased) {
+        // For java-based: Implementation Description, Build Framework, Browse Link, Checkout Link are REQUIRED
         isValid = this.implementationDescription().trim() !== '' &&
-                  this.buildFramework().trim() !== '';
+                  this.buildFramework().trim() !== '' &&
+                  this.browseLink().trim() !== '' &&
+                  this.checkoutLink().trim() !== '';
+      } else {
+        // For own-repo: Only Implementation Description is REQUIRED (build framework not shown)
+        isValid = this.implementationDescription().trim() !== '';
       }
     } else if (this.isNewVersion() === false) {
       // Creating new implementation - validate required fields
@@ -218,12 +225,19 @@ export class UploadFormImpl implements OnChanges {
         isValid = this.displayName().trim() !== '' &&
                   this.implementationDescription().trim() !== '' &&
                   this.uploadedFile() !== null;
-      } else {
-        // For others: Display Name, License Type, Implementation Description, Build Framework are REQUIRED
+      } else if (isJavaBased) {
+        // For java-based: Display Name, License Type, Implementation Description, Build Framework, Browse Link, Checkout Link are REQUIRED
         isValid = this.displayName().trim() !== '' &&
                   this.licenseType().trim() !== '' &&
                   this.implementationDescription().trim() !== '' &&
-                  this.buildFramework().trim() !== '';
+                  this.buildFramework().trim() !== '' &&
+                  this.browseLink().trim() !== '' &&
+                  this.checkoutLink().trim() !== '';
+      } else {
+        // For own-repo: Display Name, License Type, Implementation Description are REQUIRED (build framework not shown)
+        isValid = this.displayName().trim() !== '' &&
+                  this.licenseType().trim() !== '' &&
+                  this.implementationDescription().trim() !== '';
       }
     } else if (this.isNewVersion() === true && this.selectedImplementation() !== null && !this.isEditingVersion()) {
       // Adding new version - valid when implementation selected

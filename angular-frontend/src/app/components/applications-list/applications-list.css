@@ -15,3 +15,49 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Spinning animation for the gear icon */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Filter chips container */
+.filter-chips-container {
+  scrollbar-width: thin;
+  scrollbar-color: #dee2e6 transparent;
+}
+
+.filter-chips-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.filter-chips-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.filter-chips-container::-webkit-scrollbar-thumb {
+  background-color: #dee2e6;
+  border-radius: 3px;
+}
+
+.filter-chips-container::-webkit-scrollbar-thumb:hover {
+  background-color: #adb5bd;
+}
+
+/* Filter chip hover effect */
+.filter-chip {
+  transition: box-shadow 0.2s ease;
+}
+
+.filter-chip:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-chip button:hover {
+  color: #dc3545 !important;
+}

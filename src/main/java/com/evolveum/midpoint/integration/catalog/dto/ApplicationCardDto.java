@@ -21,6 +21,7 @@ public record ApplicationCardDto(
         List<CountryOfOriginDto> origins,
         List<ApplicationTagDto> categories,
         List<ApplicationTagDto> tags,
+        List<String> capabilities,
         Long requestId,
         Long voteCount,
         List<String> frameworks

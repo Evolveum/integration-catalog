@@ -1,0 +1,20 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+
+.filter-option:hover {
+  background-color: #e9ecef !important;
+}
+
+.category-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.status-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.capability-badge:hover {
+  opacity: 0.9;
+}
