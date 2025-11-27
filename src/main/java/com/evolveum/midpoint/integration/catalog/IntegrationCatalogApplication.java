@@ -6,9 +6,11 @@
 
 package com.evolveum.midpoint.integration.catalog;
 
+import ch.qos.logback.classic.Logger;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -23,9 +25,13 @@ public class IntegrationCatalogApplication {
 		SpringApplication.run(IntegrationCatalogApplication.class, args);
 	}
 
+	private static final Logger LOG
+			= (Logger) LoggerFactory.getLogger(IntegrationCatalogApplication.class);
+
 	//check if DB is connected - 0=fine
 	@Bean
 	CommandLineRunner pingDb(ApplicationRepository repo) {
-		return args -> System.out.println("✅ Applications in DB: " + repo.count());
+		LOG.info("Applications in DB: " + repo.count());
+		return args -> System.out.println("Applications in DB: " + repo.count());
 	}
 }
