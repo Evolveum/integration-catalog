@@ -329,10 +329,9 @@
                     <input type="text" class="form-control" [(ngModel)]="displayName" placeholder="TypeName.." style="max-width: 240px;" [disabled]="selectedApplication() !== null">
                   </div>
 
-                  <!-- Upload Logo -->
+                  <!-- Upload Logo - DISABLED FOR NOW
                   <div class="mb-4">
                     @if (selectedApplication() && selectedApplication()!.logo) {
-                      <!-- Display existing logo -->
                       <div class="mb-3">
                         <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
                           App logo
@@ -348,7 +347,6 @@
                         </div>
                       </div>
                     } @else {
-                      <!-- Upload logo area -->
                       <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
                         App logo
                         <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
@@ -377,6 +375,7 @@
                       </div>
                     }
                   </div>
+                  END Upload Logo - DISABLED FOR NOW -->
 
                   <!-- Description -->
                   <div class="mb-4">
