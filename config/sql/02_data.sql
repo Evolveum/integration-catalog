@@ -81,7 +81,11 @@ Customer sign sing research. Against ready right high. Rise style rock tough.',
 ('5f0ba262-a08b-44fc-b830-f4942e3efeb4','crowd-connector-adapter','Crowd Connector Adapter',
  'Election character risk subject inside stay. Former serve beautiful make international ever. Election character risk subject inside stay',
  '\x7db0fb87eece91b8232cb25a73972596b50cceaf2ef34689e67d08898c6dfdf60f44181b867d87e8a4ada0cc50ce412dd955f7003142501a50e89c5472ec22b4e4e6d63fc9ce6f31dfa887aa5f815b0ddaefad0ca8a041afe7b276fa00b7cc7523229699',
- 'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54');
+ 'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54'),
+('5f0ba262-a08b-44fc-b830-f4942e3efeb5','special-adapter','Special Adapter',
+ 'Election character risk subject inside stay. Former serve is a free online encyclopedia, created and edited by volunteers around the world and hosted by the Wikimedia Foundation',
+ '\x7db0fb87eece91b8232cb25a73972596b50cceaf2ef34689e67d08898c6dfdf60f44181b867d87e8a4ada0cc50ce412dd955f7003142501a50e89c5472ec22b4e4e6d63fc9ce6f31dfa887aa5f815b0ddaefad0ca8a041afe7b276fa00b7cc7523229699',
+ 'ACTIVE','2025-09-27 04:02:54','2025-09-27 04:02:54');
 
 INSERT INTO connector_bundle (id, bundle_name, maintainer, framework, license, ticketing_system_link) VALUES
 (1,'com.evolveum.polygon.connector.sap.integration','Scott, Baker and Howard','SCIM_REST','MIT','http://clark.com/'),
