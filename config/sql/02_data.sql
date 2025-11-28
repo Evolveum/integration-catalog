@@ -6,9 +6,7 @@
 
 BEGIN;
 
-SET search_path = public;
-
-INSERT INTO public.application_tag (id, name, display_name, tag_type) VALUES
+INSERT INTO application_tag (id, name, display_name, tag_type) VALUES
   (1,  'directory_systems',                'Directory Systems',                'CATEGORY'),
   (2,  'hr_systems',                       'HR Systems',                       'CATEGORY'),
   (3,  'office_and_email_systems',         'Office and Email Systems',         'CATEGORY'),
@@ -24,21 +22,21 @@ INSERT INTO public.application_tag (id, name, display_name, tag_type) VALUES
   (13, 'community-creation',               'Created by Community',             'COMMON'),
   (14, 'partner-creation',                 'Created by Evolveum Partners',     'COMMON');
 
-INSERT INTO public.country_of_origin (id, name, display_name) VALUES
+INSERT INTO country_of_origin (id, name, display_name) VALUES
   (1, 'austria',  'Austria'),
   (2, 'france',   'France'),
   (3, 'cambodia', 'Cambodia'),
   (4, 'croatia',  'Croatia'),
   (5, 'usa', 'USA');
 
-INSERT INTO public.connid_version (version, midpoint_version) VALUES
+INSERT INTO connid_version (version, midpoint_version) VALUES
   ('1.1.0.0', '4.1.0,4.1.1'),
   ('1.2.0.0', '4.2.0,4.2.1'),
   ('1.3.0.0', '4.3.0,4.3.1'),
   ('1.4.0.0', '4.4.0,4.4.1'),
   ('1.5.0.0', '4.5.0,4.5.1');
 
-INSERT INTO public.application
+INSERT INTO application
 (id, name, display_name, description, logo, lifecycle_state, created_at, last_modified) VALUES
 ('54dfdf0e-4528-4b03-967d-4af33e49a0ab','csv-connector','CSV Connector',
  'Near day goal question effect third many. Attack direction future show he lose morning hit.
@@ -95,14 +93,14 @@ Customer sign sing research. Against ready right high. Rise style rock tough.',
  '\x7db0fb87eece91b8232cb25a73972596b50cceaf2ef34689e67d08898c6dfdf60f44181b867d87e8a4ada0cc50ce412dd955f7003142501a50e89c5472ec22b4e4e6d63fc9ce6f31dfa887aa5f815b0ddaefad0ca8a041afe7b276fa00b7cc7523229699',
  'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54');
 
-INSERT INTO public.connector_bundle (id, bundle_name, maintainer, framework, license, ticketing_system_link) VALUES
+INSERT INTO connector_bundle (id, bundle_name, maintainer, framework, license, ticketing_system_link) VALUES
 (1,'com.evolveum.polygon.connector.sap.integration','Scott, Baker and Howard','SCIM_REST','MIT','http://clark.com/'),
 (2,'com.evolveum.polygon.connector.workday.adapter','Smith-Olson','SCIM_REST','APACHE_2','https://www.phillips.org/'),
 (3,'com.evolveum.polygon.connector.salesforce.connector','Wilson-Robinson','CONNID','MIT','http://www.may.info/'),
 (4,'com.evolveum.polygon.connector.azure.ad.sync','Crawford and Sons','CONNID','MIT','https://www.weber.com/'),
 (5,'com.evolveum.polygon.connector.oracle.connector','Stevens and Sons','CONNID','APACHE_2','http://levy-herrera.net/');
 
-INSERT INTO public.implementation
+INSERT INTO implementation
 (id, display_name, connector_bundle_id, application_id) VALUES
 ('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e','SAP Integration Implementation',1,'4a3c7f04-4106-4934-add1-f329f6333ad0'),
 ('c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f','Workday Adapter Implementation',2,'5f0ba262-a08b-44fc-b830-f4942e3efeb4'),
@@ -111,7 +109,7 @@ INSERT INTO public.implementation
 ('e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab'),
 ('f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab');
 
-INSERT INTO public.bundle_version
+INSERT INTO bundle_version
 (id, connector_bundle_id, connector_version, browse_link, checkout_link, download_link, connid_version, released_date, build_framework, path_to_project) VALUES
 (1,1,'2.0.8','https://khan.com/','https://khan.com//tree/v2.0.8','http://chung-weaver.biz//downloads/connector-2.0.8.jar','1.2.0.0','2025-05-02','GRADLE',NULL),
 (2,5,'5.2','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-csv/tree/v2.8','https://nexus.evolveum.com/nexus/repository/public/com/evolveum/polygon/connector-csv/2.8/connector-csv-2.8.jar','1.5.0.0','2025-04-14','MAVEN',NULL),
@@ -121,7 +119,7 @@ INSERT INTO public.bundle_version
 (6,3,'1.0.4','https://www.blake.org/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.1.0.0','2025-09-25','MAVEN',NULL),
 (7,4,'4.0.2','https://collins.com/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.4.0.0','2025-04-06','MAVEN',NULL);
 
-INSERT INTO public.implementation_version
+INSERT INTO implementation_version
 (id, description, capabilities, system_version, author, publish_date, lifecycle_state, bundle_version_id, implementation_id, error_message, class_name) VALUES
 ('e87a6b1b-38c5-4834-96de-2418dbda9f1b',
  'Hit something action building majority body. Newspaper sell business write political tough not.
@@ -154,14 +152,14 @@ Reflect claim throw huge. Head design amount pressure goal.',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
  'System 1.51','zacharywilcox@example.net','2025-02-09 14:52:59','ACTIVE',7,'d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a',NULL,NULL);
 
-INSERT INTO public.downloads (implementation_version_id, ip_address, user_agent, downloaded_at, id) VALUES
+INSERT INTO downloads (implementation_version_id, ip_address, user_agent, downloaded_at, id) VALUES
 ('e87a6b1b-38c5-4834-96de-2418dbda9f1b','122.154.103.227','Mozilla/5.0 (Linux; Android 4.2.2) AppleWebKit/534.2 (KHTML, like Gecko) Chrome/56.0.868.0 Safari/534.2','2025-08-01 10:00:20','4fae33f4-7ab6-4ad8-8c5a-ec1f869d48b1'),
 ('6d3544ab-e5ed-457f-b356-56e9fd419cbc','219.90.145.191','Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.0; Trident/5.0)','2025-09-15 15:03:31','f8771572-28bb-47a4-afef-f21256d0ce9a'),
 ('5616cdc5-2b90-42ac-b347-78928126de09','83.160.162.104','Opera/8.86.(Windows NT 5.2; de-DE) Presto/2.9.162 Version/12.00','2025-03-13 20:52:30','6e7cbe6c-2fdc-4d60-ba87-443e58bc1de7'),
 ('eb19c64d-2cc9-4828-b38f-e4298be9b208','182.165.80.49','Mozilla/5.0 (iPad; CPU iPad OS 15_8_2 like Mac OS X) AppleWebKit/536.1 (KHTML, like Gecko) CriOS/39.0.895.0 Mobile/52C249 Safari/536.1','2025-03-31 17:46:53','81503522-8948-41bf-82ba-05ad7e299d79'),
 ('eb460ab7-5797-42b0-ad70-eccdc113cf0c','43.154.255.67','Opera/8.62.(X11; Linux x86_64; tg-TJ) Presto/2.9.177 Version/10.00','2025-06-01 16:36:32','8172d5e5-675a-45ab-8e55-690f5a4e88d0');
 
-INSERT INTO public.application_application_tag (id, application_id, tag_id) VALUES
+INSERT INTO application_application_tag (id, application_id, tag_id) VALUES
 (1,'54dfdf0e-4528-4b03-967d-4af33e49a0ab',2),
 (2,'54dfdf0e-4528-4b03-967d-4af33e49a0ab',5),
 (3,'54dfdf0e-4528-4b03-967d-4af33e49a0ab',7),
@@ -185,9 +183,9 @@ INSERT INTO public.application_application_tag (id, application_id, tag_id) VALU
 (17,'5f0ba262-a08b-44fc-b830-f4942e3efeb3',11),
 (14,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',1),
 (15,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',8),
-(16,'54dfdf0e-4528-4b03-967d-4af33e49a0ab');
+(16,'54dfdf0e-4528-4b03-967d-4af33e49a0ab', 12);
 
-INSERT INTO public.application_origin (id, application_id, country_id) VALUES
+INSERT INTO application_origin (id, application_id, country_id) VALUES
 (5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab',5),
 (1,'e5c2e9d6-4d28-4a08-8374-998c5373a35c',1),
 (8,'9ed6e4fb-5f06-4081-845c-df023274e4db',1),
@@ -196,7 +194,7 @@ INSERT INTO public.application_origin (id, application_id, country_id) VALUES
 (7,'4a3c7f04-4106-4934-add1-f329f6333ad0',3),
 (3,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',3);
 
-INSERT INTO public.implementation_tag (id, name, display_name) VALUES
+INSERT INTO implementation_tag (id, name, display_name) VALUES
   (1,  'ai_generated',      'AI Generated'),
   (5,  'custom',            'CUSTOM'),
   (6,  'paged_search',      'Paged search'),
@@ -209,27 +207,27 @@ INSERT INTO public.implementation_tag (id, name, display_name) VALUES
   (13, 'small_filler',      'Small filler'),
   (14, 'big_filler',        'BIG FILLER');
 
-INSERT INTO public.implementation_implementation_tag (id, implementation_id, tag_id) VALUES
+INSERT INTO implementation_implementation_tag (id, implementation_id, tag_id) VALUES
 (3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
 
-INSERT INTO public.request (id, application_id, capabilities, requester) VALUES
+INSERT INTO request (id, application_id, capabilities, requester) VALUES
 (7,'7774eb84-2b8e-41ba-9f40-65cfbf39f927', ARRAY['CREATE']::"CapabilityType"[], NULL),
 (8,'2e216899-cc0b-4a56-8788-c8892fa8f0a2', ARRAY['CREATE','GET']::"CapabilityType"[], 'tomo.simon@gmail.com');
 
-INSERT INTO public.votes (request_id, voter) VALUES
+INSERT INTO votes (request_id, voter) VALUES
 (7,'u1'),
 (7,'u2'),
 (8,'u1'),
 (7,'u3');
 
-SELECT pg_catalog.setval('public.application_application_tag_id_seq', 30, true);
-SELECT pg_catalog.setval('public.application_origin_id_seq', 8, true);
-SELECT pg_catalog.setval('public.application_tag_id_seq', 20, true);
-SELECT pg_catalog.setval('public.country_of_origin_id_seq', 5, true);
-SELECT pg_catalog.setval('public.implementation_implementation_tag_id_seq', 21, true);
-SELECT pg_catalog.setval('public.implementation_tag_id_seq', 14, true);
-SELECT pg_catalog.setval('public.request_id_seq', 8, true);
-SELECT pg_catalog.setval('public.connector_bundle_id_seq', 5, true);
-SELECT pg_catalog.setval('public.bundle_version_id_seq', 7, true);
+SELECT pg_catalog.setval('application_application_tag_id_seq', 30, true);
+SELECT pg_catalog.setval('application_origin_id_seq', 8, true);
+SELECT pg_catalog.setval('application_tag_id_seq', 20, true);
+SELECT pg_catalog.setval('country_of_origin_id_seq', 5, true);
+SELECT pg_catalog.setval('implementation_implementation_tag_id_seq', 21, true);
+SELECT pg_catalog.setval('implementation_tag_id_seq', 14, true);
+SELECT pg_catalog.setval('request_id_seq', 8, true);
+SELECT pg_catalog.setval('connector_bundle_id_seq', 5, true);
+SELECT pg_catalog.setval('bundle_version_id_seq', 7, true);
 
 COMMIT;

@@ -15,7 +15,9 @@ FROM maven:3.9.4-eclipse-temurin-21 AS backend-build
 WORKDIR /integration-catalog/backend
 COPY pom.xml .
 COPY src ./src
-COPY --from=frontend-build /integration-catalog/angular-frontend/dist ./angular-frontend/dist
+RUN mkdir -p src/main/resources/static
+COPY --from=frontend-build /integration-catalog/angular-frontend/dist/ic-frontend-ngmodule/browser/. ./src/main/resources/static/
+
 RUN mvn clean package -DskipTests
 
 # --- Stage 3: Runtime image ---

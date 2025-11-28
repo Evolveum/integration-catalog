@@ -435,7 +435,6 @@ class ControllerTest {
                 Arrays.asList("Read_Access", "Paged_Search"),
                 "Slack integration for team communication",
                 "1.0",
-                "test@example.com",
                 "Test User"
         );
 
@@ -565,6 +564,9 @@ class ControllerTest {
                 "Test Description",
                 null,
                 "ACTIVE",
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,

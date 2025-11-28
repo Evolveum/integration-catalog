@@ -39,7 +39,6 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
       - ../config/sql:/docker-entrypoint-initdb.d
-#      - ../src/main/resources/configuration/sql:/docker-entrypoint-initdb.d
     secrets:
       - db_password
 
