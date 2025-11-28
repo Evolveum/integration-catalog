@@ -438,6 +438,19 @@ export class UploadFormMain implements OnInit {
       return;
     }
 
+    // Extract version from browseLink URL (e.g., https://github.com/user/repo/tree/v1.3 -> v1.3)
+    const connectorVersionFromUrl = this.extractVersionFromBrowseLink(formData.browseLink);
+
+    // Parse uploaded JSON file to get files array and extract version/bundleName if available
+    const parsedFile = this.parseUploadedJsonFile(formData.uploadedFile);
+
+    // Use version from URL first, then from uploaded file
+    const connectorVersion = connectorVersionFromUrl || parsedFile.connectorVersion || null;
+    const bundleName = parsedFile.bundleName || null;
+
+    console.log('Final connectorVersion:', connectorVersion);
+    console.log('Final bundleName:', bundleName);
+
     // Build the payload - must match backend UploadImplementationDto structure
     const payload = {
       application: {
@@ -459,26 +472,23 @@ export class UploadFormMain implements OnInit {
         description: formData.implementationDescription,
         maintainer: formData.maintainer,
         framework: this.mapConnectorTypeToFramework(this.selectedConnectorType()),
-        license: formData.licenseType,
-        ticketingSystemLink: formData.ticketingLink,
-        browseLink: formData.browseLink,
-        checkoutLink: formData.checkoutLink,
+        license: formData.licenseType || null, // Send null instead of empty string for enum
+        ticketingSystemLink: formData.ticketingLink || null,
+        browseLink: formData.browseLink || null,
+        checkoutLink: formData.checkoutLink || null,
         buildFramework: formData.buildFramework ? formData.buildFramework.toUpperCase() : null,
-        bundleName: null,
-        connectorVersion: null,
+        pathToProject: formData.pathToProjectDirectory || null,
+        bundleName: bundleName,
+        connectorVersion: connectorVersion,
         downloadLink: null,
         connidVersion: null,
         className: null
       },
-      connectorBundle: null,
-      bundleVersion: null,
-      files: formData.uploadedFile ? [{
-        name: formData.uploadedFile.name,
-        data: formData.uploadedFile.data
-      }] : []
+      files: parsedFile.files
     };
 
     console.log('Publishing payload:', payload);
+    console.log('Publishing payload (JSON):', JSON.stringify(payload, null, 2));
 
     this.applicationService.uploadConnector(payload).subscribe({
       next: (response: string) => {
@@ -501,6 +511,108 @@ export class UploadFormMain implements OnInit {
       'evolveum-hosted': 'SCIM_REST'
     };
     return mapping[connectorType] || 'CONNID';
+  }
+
+  private extractVersionFromBrowseLink(browseLink: string | null): string | null {
+    if (!browseLink) {
+      return null;
+    }
+    // Match URLs ending with /tree/{version}
+    const treeMatch = browseLink.match(/\/tree\/([^\/]+)$/);
+    if (treeMatch) {
+      return treeMatch[1];
+    }
+    return null;
+  }
+
+  private parseUploadedJsonFile(uploadedFile: {name: string, data: string} | null): {files: any[], connectorVersion?: string, bundleName?: string} {
+    if (!uploadedFile || !uploadedFile.data) {
+      return {
+        files: []
+      };
+    }
+
+    // Only parse JSON files
+    if (!uploadedFile.name.toLowerCase().endsWith('.json')) {
+      console.log('Uploaded file is not a JSON file, skipping parse:', uploadedFile.name);
+      // Backend expects ItemFile with 'path' and 'content' fields
+      return {
+        files: [{
+          path: uploadedFile.name,
+          content: uploadedFile.data
+        }]
+      };
+    }
+
+    try {
+      // Decode base64 data to string
+      const jsonString = atob(uploadedFile.data);
+      console.log('=== DEBUG: Parsing JSON file ===');
+      console.log('File name:', uploadedFile.name);
+      console.log('Decoded JSON string (first 500 chars):', jsonString.substring(0, 500));
+      const parsedJson = JSON.parse(jsonString);
+      console.log('Parsed JSON:', parsedJson);
+
+      // If the JSON has a "files" wrapper, extract files and version info
+      if (parsedJson.files && Array.isArray(parsedJson.files)) {
+        console.log('Extracted files array from wrapper');
+
+        // Try to extract version from connector.manifest.json or MANIFEST.MF
+        let connectorVersion: string | undefined;
+        let bundleName: string | undefined;
+
+        for (const file of parsedJson.files) {
+          if (file.path === 'connector.manifest.json' && file.content) {
+            try {
+              const manifest = JSON.parse(file.content);
+              if (manifest.connector?.version) {
+                connectorVersion = manifest.connector.version;
+                console.log('Extracted connectorVersion from connector.manifest.json:', connectorVersion);
+              }
+              if (manifest.connector?.artifactId) {
+                bundleName = manifest.connector.artifactId;
+                console.log('Extracted bundleName from connector.manifest.json:', bundleName);
+              }
+            } catch (e) {
+              console.log('Could not parse connector.manifest.json content');
+            }
+          }
+
+          // Also check MANIFEST.MF as fallback
+          if (file.path === 'META-INF/MANIFEST.MF' && file.content && !connectorVersion) {
+            const versionMatch = file.content.match(/ConnectorBundle-Version:\s*(.+)/);
+            if (versionMatch) {
+              connectorVersion = versionMatch[1].trim();
+              console.log('Extracted connectorVersion from MANIFEST.MF:', connectorVersion);
+            }
+            const nameMatch = file.content.match(/ConnectorBundle-Name:\s*(.+)/);
+            if (nameMatch && !bundleName) {
+              bundleName = nameMatch[1].trim();
+              console.log('Extracted bundleName from MANIFEST.MF:', bundleName);
+            }
+          }
+        }
+
+        return {
+          files: parsedJson.files,
+          ...(connectorVersion && { connectorVersion }),
+          ...(bundleName && { bundleName })
+        };
+      }
+
+      return parsedJson;
+    } catch (e) {
+      console.error('Failed to parse uploaded JSON file:', e);
+      console.error('Sending raw file as base64 instead');
+      // If parsing fails, send the raw file data
+      // Backend expects ItemFile with 'path' and 'content' fields
+      return {
+        files: [{
+          path: uploadedFile.name,
+          content: uploadedFile.data
+        }]
+      };
+    }
   }
 
   protected handleBackFromImplementation(): void {
