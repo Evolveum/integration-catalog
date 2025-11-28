@@ -43,29 +43,25 @@ INSERT INTO application
 Crime single heavy surface shake admit matter. Expert look instead.',
  '\xa961c4a91369fcde892dad2cbfaac913a9d3475499526077963b8a5bfd155f944aecc98becdf1f239b2a17cd09ef83e8635fa28227dc3a37666fe26990255bf2a989bc1f40354a4914bca0370e92444ba113745c95a40c19e388f965c27e6ca80c80767c',
  'ACTIVE','2025-06-29 05:51:48','2025-06-29 05:51:48'),
-('7774eb84-2b8e-41ba-9f40-65cfbf39f927','pokus_1','Pokus 1','pOKUS',
- NULL,'REQUESTED','2025-10-24 08:49:41','2025-10-24 08:49:41'),
 ('e5c2e9d6-4d28-4a08-8374-998c5373a35a','salesforce-connector','Salesforce Connector',
  'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
  NULL,'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'),
-('e5c2e9d6-4d28-4a08-8374-998c5373a35b','salesforce-connector','Salesforce Connector',
- 'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
+('e5c2e9d6-4d28-4a08-8374-998c5373a35b','night-connector','Night Connector',
+ 'Before according scene include arrive measure themselves. Early on more.',
  NULL,'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'),
 ('e5c2e9d6-4d28-4a08-8374-998c5373a35c','ldap-connector','LDAP Connector',
- 'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
+ 'Short description about what I want, so there should be a lot of text here.  Maybe even more.',
  '\x70722ffd80a5819cbffd0b6eee772d15d4345c9ba3c786f94a733d6c1e23ca9f0ab3dc23375031e2a719c300d5b8d53b580e013e411672bdf25d4f2ea159e76a0450f731ac825a9ecd42cf125dd4ed7fca0cbe25cb4c03af8730381578847c79f1e671b0',
  'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'),
-('e5c2e9d6-4d28-4a08-8374-998c5373a35d','salesforce-connector','Salesforce Connector',
- 'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
+('e5c2e9d6-4d28-4a08-8374-998c5373a35d','authorize-me-connector','Authorize me Connector',
+ 'Standalone Adaptive SSH Connector for midPoint IDM, capable of managing any system or server that supports SSH and scripting, including customizations for Microsoft.',
  NULL,'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'),
-('e5c2e9d6-4d28-4a08-8374-998c5373a35e','salesforce-connector','Salesforce Connector',
- 'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
+('e5c2e9d6-4d28-4a08-8374-998c5373a35e','switch-connector','SWITCH edu-ID Affiliation Connector',
+ 'The connector itself is available under the terms of Apache License 2.0. To our best knowledge, there is no extra license needed to use this connector.',
  NULL,'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'),
 ('e5c2e9d6-4d28-4a08-8374-998c5373a35f','salesforce-connector','Salesforce Connector',
  'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
  NULL,'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'),
-('2e216899-cc0b-4a56-8788-c8892fa8f0a2','pokus_1.2','pokus 1.2','aj tu je text',
- NULL,'REQUESTED','2025-10-24 11:24:33','2025-10-24 11:24:33'),
 ('9ed6e4fb-5f06-4081-845c-df023274e4db','databasetable-connector','DatabaseTable Connector',
  'Career name these thank word explain. Past care over whom. Another moment sometimes camera every. While fly game wind data debate myself.',
  '\x34d87c4cb5324cb11182d876130e944cc385e0debfd7ea28165ec5a65b932bcf7bd35c1101614a6e204090baf734d551f560e1c02bbab81ff4d9470c178bb7a682f12eb694505a15ef2c38cd825aebf14d04c869de66ebb7a2692646b36ea37b09311504',
@@ -74,22 +70,16 @@ Crime single heavy surface shake admit matter. Expert look instead.',
  'Success green news can hot. Assume lay system tend message recognize however.
 Customer sign sing research. Against ready right high. Rise style rock tough.',
  '\x33353af1f318a9c95c213338529ccadb0d0d9708a725a8574ee71f21bd29841000ec416ad2287128248df40539fdbe01dd782cb8077b5e27eb03af688666d8c595c82b55ff646af97ecbede8646138e846fd111804c11b32b11cdbe0d35294cc5c70dfcf',
- 'IN_PUBLISH_PROCESS','2025-03-12 18:54:19','2025-03-12 18:54:19'),
-('4a3c7f04-4106-4934-add1-f329f6333ad1','sap-integration','SAP Integration',
- 'Success green news can hot. Assume lay system tend message recognize however.
+ 'ACTIVE','2025-03-12 18:54:19','2025-03-12 18:54:19'),
+('4a3c7f04-4106-4934-add1-f329f6333ad1','siebel-integration','Siebel Connector',
+ 'Oracle Siebel Connector for midPoint is community developed connector that manages user accounts in Siebel user management.
 Customer sign sing research. Against ready right high. Rise style rock tough.',
  NULL,'IN_PUBLISH_PROCESS','2025-03-12 18:54:19','2025-03-12 18:54:19'),
 ('5f0ba262-a08b-44fc-b830-f4942e3efeb1','workday-adapter','Workday Adapter',
  'Before according scene include arrive measure themselves. Long during media last son record history. Early on more.',
  NULL,'IN_PUBLISH_PROCESS','2025-09-27 04:02:54','2025-09-27 04:02:54'),
-('5f0ba262-a08b-44fc-b830-f4942e3efeb2','workday-adapter','Workday Adapter',
- 'Before according scene include arrive measure themselves. Long during media last son record history. Early on more.',
- NULL,'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54'),
-('5f0ba262-a08b-44fc-b830-f4942e3efeb3','workday-adapter','Workday Adapter',
- 'Before according scene include arrive measure themselves. Long during media last son record history. Early on more.',
- NULL,'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54'),
-('5f0ba262-a08b-44fc-b830-f4942e3efeb4','workday-adapter','Workday Adapter',
- 'Before according scene include arrive measure themselves. Long during media last son record history. Early on more.',
+('5f0ba262-a08b-44fc-b830-f4942e3efeb4','crowd-connector-adapter','Crowd Connector Adapter',
+ 'Election character risk subject inside stay. Former serve beautiful make international ever. Election character risk subject inside stay',
  '\x7db0fb87eece91b8232cb25a73972596b50cceaf2ef34689e67d08898c6dfdf60f44181b867d87e8a4ada0cc50ce412dd955f7003142501a50e89c5472ec22b4e4e6d63fc9ce6f31dfa887aa5f815b0ddaefad0ca8a041afe7b276fa00b7cc7523229699',
  'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54');
 
@@ -131,7 +121,7 @@ Shake sing part picture person.',
  ARRAY['CREATE','GET','DELETE']::"CapabilityType"[],
  'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','ACTIVE',2,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL,NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de09',
- 'LDAP connector',
+ 'CSV connector other',
  ARRAY['CREATE','GET','UPDATE']::"CapabilityType"[],
  'System 1.5','isabelthomas@example.com','2025-07-27 13:44:05','ACTIVE',3,'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c',NULL,NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de10',
@@ -179,8 +169,6 @@ INSERT INTO application_application_tag (id, application_id, tag_id) VALUES
 (13,'4a3c7f04-4106-4934-add1-f329f6333ad0',10),
 (25,'4a3c7f04-4106-4934-add1-f329f6333ad1',2),
 (19,'5f0ba262-a08b-44fc-b830-f4942e3efeb1',2),
-(18,'5f0ba262-a08b-44fc-b830-f4942e3efeb2',11),
-(17,'5f0ba262-a08b-44fc-b830-f4942e3efeb3',11),
 (14,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',1),
 (15,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',8),
 (16,'54dfdf0e-4528-4b03-967d-4af33e49a0ab', 12);
@@ -209,16 +197,6 @@ INSERT INTO implementation_tag (id, name, display_name) VALUES
 
 INSERT INTO implementation_implementation_tag (id, implementation_id, tag_id) VALUES
 (3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
-
-INSERT INTO request (id, application_id, capabilities, requester) VALUES
-(7,'7774eb84-2b8e-41ba-9f40-65cfbf39f927', ARRAY['CREATE']::"CapabilityType"[], NULL),
-(8,'2e216899-cc0b-4a56-8788-c8892fa8f0a2', ARRAY['CREATE','GET']::"CapabilityType"[], 'tomo.simon@gmail.com');
-
-INSERT INTO votes (request_id, voter) VALUES
-(7,'u1'),
-(7,'u2'),
-(8,'u1'),
-(7,'u3');
 
 SELECT pg_catalog.setval('application_application_tag_id_seq', 30, true);
 SELECT pg_catalog.setval('application_origin_id_seq', 8, true);

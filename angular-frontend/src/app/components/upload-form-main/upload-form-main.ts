@@ -488,7 +488,7 @@ export class UploadFormMain implements OnInit {
     };
 
     console.log('Publishing payload:', payload);
-    console.log('Publishing payload (JSON):', JSON.stringify(payload, null, 2));
+    // console.log('Publishing payload (JSON):', JSON.stringify(payload, null, 2));
 
     this.applicationService.uploadConnector(payload).subscribe({
       next: (response: string) => {
@@ -520,7 +520,12 @@ export class UploadFormMain implements OnInit {
     // Match URLs ending with /tree/{version}
     const treeMatch = browseLink.match(/\/tree\/([^\/]+)$/);
     if (treeMatch) {
-      return treeMatch[1];
+      let version = treeMatch[1];
+      // Remove 'v' prefix if present (e.g., "v1.3" -> "1.3")
+      if (version.toLowerCase().startsWith('v')) {
+        version = version.substring(1);
+      }
+      return version;
     }
     return null;
   }
