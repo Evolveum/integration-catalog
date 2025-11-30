@@ -12,4 +12,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface BundleVersionRepository extends JpaRepository<BundleVersion, Integer>,
         JpaSpecificationExecutor<BundleVersion> {
+
+    boolean existsByConnectorBundleIdAndConnectorVersion(Integer connectorBundleId, String connectorVersion);
+
+    boolean existsByConnectorVersion(String connectorVersion);
 }

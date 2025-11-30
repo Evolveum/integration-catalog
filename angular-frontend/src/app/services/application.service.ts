@@ -61,7 +61,24 @@ export class ApplicationService {
     return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
   }
 
+  checkVersionExists(version: string): Observable<boolean> {
+    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version?version=${encodeURIComponent(version)}`);
+  }
+
   getAllTags(): Observable<ApplicationTag[]> {
     return this.http.get<ApplicationTag[]>(`${environment.apiUrl}/application-tags`);
+  }
+
+  getTotalDownloadsCount(): Observable<number> {
+    return this.http.get<number>(`${environment.apiUrl}/statistics/downloads-count`);
+  }
+
+  getApplicationDownloadsCount(applicationId: string): Observable<number> {
+    return this.http.get<number>(`${environment.apiUrl}/applications/${applicationId}/downloads-count`);
+  }
+
+  downloadConnector(versionId: string): void {
+    const url = `${environment.apiUrl}/downloads/${versionId}`;
+    window.open(url, '_blank');
   }
 }

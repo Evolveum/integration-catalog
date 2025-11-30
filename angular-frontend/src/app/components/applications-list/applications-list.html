@@ -47,7 +47,7 @@
       <!-- title -->
       <div class="row">
         <div class="col-12 text-center">
-          <h1 class="display-4 fw-bold mb-3">Integration Catalog</h1>
+          <h1 class="display-6 fw-bold mb-3">Integration Catalog</h1>
         </div>
       </div>
 
@@ -65,12 +65,12 @@
         <div class="col-lg-6 d-flex justify-content-center">
           <div class="d-flex gap-5">
             <div class="text-center">
-              <div class="display-4 fw-bold mb-2">{{ activeIntegrationsCount() }}</div>
-              <div style="font-size: 0.9rem; opacity: 0.9;">Active integrations</div>
+              <div class="display-4 fw-bold mb-2" style="color: #A3CDCC;">{{ activeIntegrationsCount() }}</div>
+              <div style="font-size: 0.9rem; opacity: 0.9; color: #A3CDCC;">Active integrations</div>
             </div>
             <div class="text-center">
-              <div class="display-4 fw-bold mb-2">"404"</div>
-              <div style="font-size: 0.9rem; opacity: 0.9;">Apps downloaded</div>
+              <div class="display-4 fw-bold mb-2" style="color: #A3CDCC;">{{ totalDownloadsCount() }}</div>
+              <div style="font-size: 0.9rem; opacity: 0.9; color: #A3CDCC;">Apps downloaded</div>
             </div>
           </div>
         </div>
@@ -95,37 +95,22 @@
 
   <!-- Description + filter section (gray background) -->
   <div class="pt-5 pb-4">
-    <div class="container">
-      <div class="row mb-3">
-        <div class="col-lg-6">
-          <p class="mb-0" style="color: #303030;">
-            Explore available integrations to jump-start your workflow, build your own with AI-guided assistance,
-            or upload an existing configuration to get started in just minutes. The process is fast, flexible, and
-            user-friendly.
-          </p>
-        </div>
-        <div class="col-lg-6"></div>
+    <div class="row mb-3 mx-auto" style="width: 1080px;">
+      <div class="col-lg-6">
+        <p class="mb-0" style="color: #303030;">
+          Explore available integrations to jump-start your workflow, build your own with AI-guided assistance,
+          or upload an existing configuration to get started in just minutes. The process is fast, flexible, and
+          user-friendly.
+        </p>
       </div>
-
-      <!-- Your existing filter row (search + button + reset) goes here -->
-      <!-- Example skeleton: -->
-      <div class="row">
-        <div class="col-12">
-          <!-- existing filter markup from your file -->
-        </div>
-      </div>
+      <div class="col-lg-6"></div>
     </div>
   </div>
 
 
-  <!-- Description / filter section – PONECHAJ, ale bez pôvodného <p> "Explore..." -->
-  <div class="container py-4" style="background-color: #e9ecef;">
-    <div class="row mb-3">
-      <div class="col-12">
-      </div>
-    </div>
-
-  <div class="row mb-3">
+  <!-- Description / filter section -->
+  <div class="py-4" style="background-color: #e9ecef;">
+  <div class="row mb-3 mx-auto" style="width: 1080px;">
     <div class="col-12">
       <div class="d-flex gap-2 align-items-center">
         <div class="input-group flex-grow-1">
@@ -140,7 +125,7 @@
             placeholder="Filter by name or version..."
             [value]="searchQuery()"
             (input)="onSearchChange($event)"
-            style="border-radius: 0 50px 50px 0; border-color: #dee2e6;"
+            style="border-radius: 0 50px 50px 0; border-color: #dee2e6; box-shadow: none; outline: none;"
           />
         </div>
         <button class="btn d-flex align-items-center gap-2" type="button" title="Filter" style="background-color: white; border: 1px solid #ced4da; color: #212529; padding: 0.5rem 1.5rem; border-radius: 50px;" (click)="openFilterModal()">
@@ -158,7 +143,7 @@
 
   <!-- Active Filters Row -->
   @if (filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0) {
-    <div class="row mb-4">
+    <div class="row mb-4 mx-auto" style="width: 1080px;">
       <div class="col-12">
         <div class="d-flex align-items-center justify-content-between gap-3">
           <div class="filter-chips-container flex-grow-1" style="overflow-x: auto; overflow-y: visible; white-space: nowrap; -webkit-overflow-scrolling: touch;">
@@ -262,7 +247,7 @@
   @if (!loading() && !error() && featuredApplications().length > 0) {
     <h2 class="h3 mb-4 text-center">Featured integration apps</h2>
 
-    <div class="position-relative mb-5">
+    <div class="position-relative mb-5 mx-auto" style="width: 1080px;">
       <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center"
               style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 2px solid #dee2e6; transition: opacity 0.3s ease;"
               [style.opacity]="canScrollLeft() ? '1' : '0'"
@@ -273,15 +258,20 @@
         </svg>
       </button>
 
-      <div class="scroll-container" #scrollContainer (scroll)="onScroll()" style="overflow-x: auto; scroll-behavior: smooth;">
+      <div class="scroll-container" #scrollContainer (scroll)="onScroll()" style="overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth;">
         <div class="d-flex gap-4 pe-5">
           @for (app of featuredApplications(); track app.id) {
-            <div #featuredCard class="card position-relative" style="width: 300px; min-width: 300px; height: 420px; transition: opacity 0.3s ease;">
+            <div #featuredCard class="card position-relative" style="width: 252px; min-width: 252px; height: 380px; transition: opacity 0.3s ease;">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
                   <span class="badge" style="font-size: 0.7rem; background-color: #fff3cd; color: #856404;">
                     Popular
+                  </span>
+                }
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <span class="badge" style="font-size: 0.7rem; background-color: #e2e3e5; color: #2b2e31;">
+                    Requested
                   </span>
                 }
                 @if (app.lifecycleState === 'WITH_ERROR') {
@@ -301,9 +291,9 @@
                 </div>
               </div>
               <div class="card-body d-flex flex-column">
-                <h5 class="card-title">{{ app.displayName }}</h5>
-                <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
-                <a class="text-decoration-none mb-2" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
+                <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
+                <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
+                <a class="text-decoration-none" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
                   More Details
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16" style="margin-left: 4px;">
                     <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
@@ -311,7 +301,7 @@
                 </a>
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
-                  <button class="btn btn-sm mt-2"
+                  <button class="btn btn-sm mt-auto"
                           style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
                           [disabled]="!currentUser()"
                           [style.opacity]="currentUser() ? '1' : '0.6'"
@@ -320,18 +310,18 @@
                     Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                   </button>
                 } @else if (app.lifecycleState === 'WITH_ERROR') {
-                  <a class="text-decoration-none text-center mt-2" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
-                    See error details
+                  <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
+                    <u>See error details</u> 
                   </a>
                 } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                  <div class="text-center mt-2">
+                  <div class="text-center mt-auto">
                     <p class="text-muted small mb-2">Importing... This make take a moment.</p>
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16" style="color: #0d6efd; animation: spin 2s linear infinite;">
                       <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
                     </svg>
                   </div>
                 } @else {
-                  <button class="btn btn-sm mt-2" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">
+                  <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
                       <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
                       <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
@@ -358,14 +348,13 @@
   }
 
   @if (!loading() && !error()) {
-    <div class="mb-4">
+    <div class="mb-4 mx-auto" style="width: 1080px;">
       <!-- First row: More apps heading and See All link (hidden when filters are active) -->
       @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0)) {
-        <div class="position-relative mb-3">
+        <div class="position-relative mb-5">
           <div class="text-center">
             <h2 class="h3 mb-0">More apps</h2>
           </div>
-          <a class="text-decoration-none position-absolute top-0 end-0" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;">See All</a>
         </div>
 
         <!-- Second row: Showing count (only when no filters) -->
@@ -375,7 +364,7 @@
           </div>
           <div class="position-absolute top-0 end-0 d-flex align-items-baseline gap-2">
             <label class="mb-0 text-muted text-nowrap">Sort by</label>
-            <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)" style="min-width: 150px;">
+            <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)" style="width: 216px; height: 44;">
               <option value="alphabetical">Alphabetical</option>
               <option value="popularity">Popularity</option>
               <option value="activity">Activity</option>
@@ -386,15 +375,20 @@
     </div>
 
     @if (viewMode() === 'grid') {
-      <div class="d-flex flex-wrap gap-4 mb-4">
+      <div class="d-flex flex-wrap gap-4 mb-4 mx-auto" style="width: 1080px;">
         @for (app of moreApplications(); track app.id) {
           <div>
-            <div class="card shadow-sm position-relative" style="width: 300px; min-width: 300px; height: 420px;">
+            <div class="card shadow-sm position-relative" style="width: 252px; min-width: 252px; height: 380px;">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
                   <span class="badge" style="font-size: 0.7rem; background-color: #fff3cd; color: #856404;">
                     Popular
+                  </span>
+                }
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <span class="badge" style="font-size: 0.7rem; background-color: #e2e3e5; color: #2b2e31;">
+                    Requested
                   </span>
                 }
                 @if (app.lifecycleState === 'WITH_ERROR') {
@@ -414,9 +408,9 @@
                 </div>
               </div>
               <div class="card-body d-flex flex-column">
-                <h5 class="card-title">{{ app.displayName }}</h5>
-                <p class="card-text text-muted small flex-grow-1">{{ app.description }}</p>
-                <a class="text-decoration-none mb-2" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
+                <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
+                <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
+                <a class="text-decoration-none" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
                   More Details
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16" style="margin-left: 4px;">
                     <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
@@ -424,7 +418,7 @@
                 </a>
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
-                  <button class="btn btn-sm mt-2"
+                  <button class="btn btn-sm mt-auto"
                           style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
                           [disabled]="!currentUser()"
                           [style.opacity]="currentUser() ? '1' : '0.6'"
@@ -433,18 +427,18 @@
                     Vote @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                   </button>
                 } @else if (app.lifecycleState === 'WITH_ERROR') {
-                  <a class="text-decoration-none text-center mt-2" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
-                    See error details
+                  <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
+                    <u>See error details</u>
                   </a>
                 } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                  <div class="text-center mt-2">
+                  <div class="text-center mt-auto">
                     <p class="text-muted small mb-2">Importing... This may take a moment.</p>
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-gear-fill" viewBox="0 0 16 16" style="color: #0d6efd; animation: spin 2s linear infinite;">
                       <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
                     </svg>
                   </div>
                 } @else {
-                  <button class="btn btn-sm mt-2" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">
+                  <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
                       <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
                       <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
@@ -460,7 +454,7 @@
     }
 
     @if (viewMode() === 'list') {
-      <div class="mb-4">
+      <div class="mb-4 mx-auto" style="width: 1080px;">
         @for (app of moreApplications(); track app.id) {
           <div class="card mb-3 shadow-sm position-relative">
             <!-- Status indicators at top right -->
@@ -489,8 +483,8 @@
                   </div>
                 </div>
                 <div class="col">
-                  <h5 class="card-title mb-1">{{ app.displayName }}</h5>
-                  <p class="card-text text-muted mb-0">{{ app.description }}</p>
+                  <h5 class="card-title mb-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
+                  <p class="card-text text-muted mb-0" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">{{ app.description }}</p>
                   <a class="text-decoration-none mt-2 d-inline-block" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
                     More Details
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16" style="margin-left: 4px;">
@@ -510,7 +504,7 @@
                     </button>
                   } @else if (app.lifecycleState === 'WITH_ERROR') {
                     <a class="text-decoration-none" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
-                      See error details
+                      <u>See error details</u>
                     </a>
                   } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
                     <div class="text-center">
@@ -520,7 +514,7 @@
                       </svg>
                     </div>
                   } @else {
-                    <button class="btn" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;">
+                    <button class="btn" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;" (click)="navigateToDetail(app.id)">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
                         <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
                         <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
@@ -536,7 +530,7 @@
       </div>
     }
 
-    <nav aria-label="Page navigation">
+    <nav aria-label="Page navigation" class="mx-auto" style="width: 1080px;">
       <ul class="pagination justify-content-end">
         <li class="page-item" [class.disabled]="currentPage() === 0">
           <button class="page-link" style="background-color: white;" (click)="previousPage()" [disabled]="currentPage() === 0">
@@ -569,7 +563,7 @@
     <hr style="border: 0; border-top: 2px solid #6c757d; margin: 3rem 0;">
 
     <!-- Advanced Options Section -->
-    <div class="py-5 mt-5">
+    <div class="py-5 mt-5 mx-auto" style="width: 1080px;">
       <div class="mx-auto" style="max-width: 800px;">
         <h3 class="h4 mb-2 text-dark text-center">Need More Flexibility? Extend Your Integration</h3>
         <p class="mb-4 text-center" style="color: #303030;">Choose from advanced options to tailor your midPoint setup, - whether you're uploading <br> your own configuration, requesting a custom solution, or bringing your own connector.</p>

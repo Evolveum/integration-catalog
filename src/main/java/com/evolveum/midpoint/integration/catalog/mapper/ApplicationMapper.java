@@ -19,6 +19,7 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 import com.evolveum.midpoint.integration.catalog.object.Implementation;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 import com.evolveum.midpoint.integration.catalog.object.Request;
+import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import org.springframework.stereotype.Component;
@@ -35,10 +36,12 @@ public class ApplicationMapper {
 
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
+    private final DownloadRepository downloadRepository;
 
-    public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository) {
+    public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository, DownloadRepository downloadRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
+        this.downloadRepository = downloadRepository;
     }
 
     /**
@@ -111,6 +114,7 @@ public class ApplicationMapper {
                             java.time.LocalDate releasedDate = null;
                             String downloadLink = null;
                             String framework = null;
+                            String midpointVersion = null;
                             if (version.getBundleVersion() != null) {
                                 connectorVersion = version.getBundleVersion().getConnectorVersion();
                                 releasedDate = version.getBundleVersion().getReleasedDate();
@@ -119,9 +123,16 @@ public class ApplicationMapper {
                                         && version.getBundleVersion().getConnectorBundle().getFramework() != null) {
                                     framework = version.getBundleVersion().getConnectorBundle().getFramework().name();
                                 }
+                                if (version.getBundleVersion().getConnidVersionObject() != null) {
+                                    midpointVersion = version.getBundleVersion().getConnidVersionObject().getMidpointVersion();
+                                }
                             }
 
+                            // Get download count for this version
+                            Long downloadCount = downloadRepository.countByImplementationVersionId(version.getId());
+
                             return new ImplementationVersionDto(
+                                    version.getId(),
                                     version.getDescription(),
                                     implementationTags,
                                     capabilities,
@@ -131,7 +142,10 @@ public class ApplicationMapper {
                                     version.getAuthor(),
                                     lifecycleState,
                                     downloadLink,
-                                    framework
+                                    framework,
+                                    version.getErrorMessage(),
+                                    downloadCount,
+                                    midpointVersion
                             );
                         }) : Stream.empty())
                 .toList();

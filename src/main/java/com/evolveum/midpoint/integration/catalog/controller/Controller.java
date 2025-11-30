@@ -46,11 +46,13 @@ public class Controller {
 
     private final ImplementationVersionRepository implementationVersionRepository;
     private final RequestRepository requestRepository;
+    private final DownloadRepository downloadRepository;
 
     private final ApplicationMapper applicationMapper;
 
     public Controller(ApplicationService applicationService, DownloadRepository downloadRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository, ApplicationMapper applicationMapper) {
         this.applicationService = applicationService;
+        this.downloadRepository = downloadRepository;
         this.implementationVersionRepository = implementationVersionRepository;
         this.requestRepository = requestRepository;
         this.applicationMapper = applicationMapper;
@@ -118,6 +120,13 @@ public class Controller {
         } catch (RuntimeException ex) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @Operation(summary = "Check if connector version exists", description = "Returns true if the specified version already exists in the catalog")
+    @GetMapping("/upload/check-version")
+    public ResponseEntity<Boolean> checkVersionExists(@RequestParam String version) {
+        boolean exists = applicationService.checkVersionExists(version);
+        return ResponseEntity.ok(exists);
     }
 
     @Operation(summary = "", description = "")
@@ -352,6 +361,28 @@ public class Controller {
                 .map(Enum::name)
                 .toList();
         return ResponseEntity.ok(capabilities);
+    }
+
+    @Operation(summary = "Get total downloads count",
+            description = "Returns the total number of downloads across all applications")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Total downloads count retrieved successfully")
+    })
+    @GetMapping("/statistics/downloads-count")
+    public ResponseEntity<Long> getTotalDownloadsCount() {
+        long count = downloadRepository.count();
+        return ResponseEntity.ok(count);
+    }
+
+    @Operation(summary = "Get downloads count for an application",
+            description = "Returns the total number of downloads for a specific application")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Application downloads count retrieved successfully")
+    })
+    @GetMapping("/applications/{applicationId}/downloads-count")
+    public ResponseEntity<Long> getApplicationDownloadsCount(@PathVariable UUID applicationId) {
+        long count = downloadRepository.countByImplementationVersionImplementationApplicationId(applicationId);
+        return ResponseEntity.ok(count);
     }
 
     @Operation(summary = "Verify status - success",

@@ -89,7 +89,7 @@ public class ImplementationVersion {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Convert(converter = CapabilitiesArrayConverter.class)

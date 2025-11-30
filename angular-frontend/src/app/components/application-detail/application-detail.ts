@@ -35,6 +35,7 @@ export class ApplicationDetail implements OnInit {
   protected readonly openDropdown = signal<string | null>(null);
   protected readonly dropdownPosition = signal<{ top: number; left: number } | null>(null);
   protected readonly selectedFilterSection = signal<string>('capabilities');
+  protected readonly applicationDownloadsCount = signal<number>(0);
 
   constructor(
     private route: ActivatedRoute,
@@ -46,6 +47,7 @@ export class ApplicationDetail implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadApplication(id);
+      this.loadApplicationDownloadsCount(id);
     } else {
       this.error.set('No application ID provided');
       this.loading.set(false);
@@ -213,8 +215,8 @@ export class ApplicationDetail implements OnInit {
 
     const versionsSet = new Set<string>();
     app.implementationVersions.forEach(version => {
-      if (version.systemVersion) {
-        versionsSet.add(version.systemVersion);
+      if (version.midpointVersion) {
+        versionsSet.add(version.midpointVersion);
       }
     });
 
@@ -306,6 +308,10 @@ export class ApplicationDetail implements OnInit {
     return framework;
   }
 
+  protected downloadVersion(versionId: string): void {
+    this.applicationService.downloadConnector(versionId);
+  }
+
   private loadApplication(id: string): void {
     this.applicationService.getById(id).subscribe({
       next: (data) => {
@@ -317,6 +323,17 @@ export class ApplicationDetail implements OnInit {
         this.error.set('Failed to load application details');
         this.loading.set(false);
         console.error('Error loading application:', err);
+      }
+    });
+  }
+
+  private loadApplicationDownloadsCount(applicationId: string): void {
+    this.applicationService.getApplicationDownloadsCount(applicationId).subscribe({
+      next: (count) => {
+        this.applicationDownloadsCount.set(count);
+      },
+      error: (err) => {
+        console.error('Error loading application downloads count:', err);
       }
     });
   }
@@ -344,7 +361,7 @@ export class ApplicationDetail implements OnInit {
 
     if (filters.midpointVersions.length > 0) {
       filteredVersions = filteredVersions.filter(version =>
-        version.systemVersion && filters.midpointVersions.includes(version.systemVersion)
+        version.midpointVersion && filters.midpointVersions.includes(version.midpointVersion)
       );
     }
 

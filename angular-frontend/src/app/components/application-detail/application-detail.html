@@ -382,7 +382,7 @@
                                   <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                   <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                                 </svg>
-                                <span>"46 Downloads"</span>
+                                <span>{{ version.downloadCount || 0 }} Downloads</span>
                               </div>
                             </div>
                           </div>
@@ -429,19 +429,46 @@
                           </div>
                         }
 
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2 mt-3">
-                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
-                            Edit
-                          </button>
-                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                            </svg>
-                            Download
-                          </a>
-                        </div>
+                        <!-- Action Buttons or Error Banner -->
+                        @if (version.errorMessage) {
+                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
+                            <div class="d-flex align-items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
+                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                              </svg>
+                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                </svg>
+                                Retry Publish
+                              </button>
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                                </svg>
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
+                              Edit
+                            </button>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                              </svg>
+                              Download
+                            </button>
+                          </div>
+                        }
                       </div>
                     </div>
                     }
@@ -471,7 +498,7 @@
                             <!-- Creator and Meta Info -->
                             <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
                               @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #000;">
+                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                                     <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
                                   </svg>
@@ -499,7 +526,7 @@
                                   <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                   <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                                 </svg>
-                                <span>"46 Downloads"</span>
+                                <span>{{ version.downloadCount || 0 }} Downloads</span>
                               </div>
                             </div>
                           </div>
@@ -546,19 +573,46 @@
                           </div>
                         }
 
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2 mt-3">
-                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
-                            Edit
-                          </button>
-                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                            </svg>
-                            Download
-                          </a>
-                        </div>
+                        <!-- Action Buttons or Error Banner -->
+                        @if (version.errorMessage) {
+                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
+                            <div class="d-flex align-items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
+                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                              </svg>
+                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                </svg>
+                                Retry Publish
+                              </button>
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                                </svg>
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
+                              Edit
+                            </button>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                              </svg>
+                              Download
+                            </button>
+                          </div>
+                        }
                       </div>
                     </div>
                     }
@@ -574,53 +628,65 @@
                       <h2 class="h6 mb-3 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Created By Evolveum Or Evolveum Partner</h2>
                     @for (version of otherEvolvumVersions(); track $index) {
                     <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
-                          }
-                          @if (version.lifecycleState) {
-                            <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
-                          }
+                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
+                        <!-- Version Header -->
+                        <div class="d-flex align-items-start justify-content-between mb-3">
+                          <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <h3 class="h5 mb-0">
+                                @if (version.connectorVersion) {
+                                  Version {{ version.connectorVersion }}
+                                } @else {
+                                  Version {{ $index + 1 }}
+                                }
+                              </h3>
+                              @if (version.systemVersion) {
+                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
+                              }
+                            </div>
+
+                            <!-- Creator and Meta Info -->
+                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
+                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
+                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
+                                  </svg>
+                                  <span>AI Generated</span>
+                                </div>
+                              }
+                              @if (version.author) {
+                                <div class="d-flex align-items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+                                  </svg>
+                                  <span>Created by [{{ version.author }}]</span>
+                                </div>
+                              }
+                            </div>
+
+                            <!-- Connector Type, Published Date, Downloads -->
+                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
+                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
+                              @if (version.releasedDate) {
+                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
+                              }
+                              <div class="d-flex align-items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                </svg>
+                                <span>{{ version.downloadCount || 0 }} Downloads</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
+
+                        <!-- Description -->
                         @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
+                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
                         } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
+                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
                         }
                         <!-- Capabilities -->
                         @if (hasNonInstalledCapabilities(version.capabilities)) {
@@ -657,19 +723,46 @@
                           </div>
                         }
 
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2 mt-3">
-                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
-                            Edit
-                          </button>
-                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                            </svg>
-                            Download
-                          </a>
-                        </div>
+                        <!-- Action Buttons or Error Banner -->
+                        @if (version.errorMessage) {
+                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
+                            <div class="d-flex align-items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
+                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                              </svg>
+                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                </svg>
+                                Retry Publish
+                              </button>
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                                </svg>
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
+                              Edit
+                            </button>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                              </svg>
+                              Download
+                            </button>
+                          </div>
+                        }
                       </div>
                     </div>
                     }
@@ -679,53 +772,65 @@
                       <h2 class="h6 mb-3 mt-5 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Created By Community</h2>
                     @for (version of otherCommunityVersions(); track $index) {
                     <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
-                          }
-                          @if (version.lifecycleState) {
-                            <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
-                          }
+                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
+                        <!-- Version Header -->
+                        <div class="d-flex align-items-start justify-content-between mb-3">
+                          <div>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                              <h3 class="h5 mb-0">
+                                @if (version.connectorVersion) {
+                                  Version {{ version.connectorVersion }}
+                                } @else {
+                                  Version {{ $index + 1 }}
+                                }
+                              </h3>
+                              @if (version.systemVersion) {
+                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
+                              }
+                            </div>
+
+                            <!-- Creator and Meta Info -->
+                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
+                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
+                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
+                                  </svg>
+                                  <span>AI Generated</span>
+                                </div>
+                              }
+                              @if (version.author) {
+                                <div class="d-flex align-items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+                                  </svg>
+                                  <span>Created by [{{ version.author }}]</span>
+                                </div>
+                              }
+                            </div>
+
+                            <!-- Connector Type, Published Date, Downloads -->
+                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
+                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
+                              @if (version.releasedDate) {
+                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
+                              }
+                              <div class="d-flex align-items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                </svg>
+                                <span>{{ version.downloadCount || 0 }} Downloads</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
+
+                        <!-- Description -->
                         @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
+                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
                         } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
+                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
                         }
                         <!-- Capabilities -->
                         @if (hasNonInstalledCapabilities(version.capabilities)) {
@@ -762,19 +867,46 @@
                           </div>
                         }
 
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2 mt-3">
-                          <button class="btn btn-outline-secondary" style="font-size: 0.875rem;">
-                            Edit
-                          </button>
-                          <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn" [class.disabled]="!version.downloadLink" style="background-color: #3f6db1; color: #ffffff; font-size: 0.875rem; border: none;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                              <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                            </svg>
-                            Download
-                          </a>
-                        </div>
+                        <!-- Action Buttons or Error Banner -->
+                        @if (version.errorMessage) {
+                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
+                            <div class="d-flex align-items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
+                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                              </svg>
+                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                </svg>
+                                Retry Publish
+                              </button>
+                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                                </svg>
+                                Edit
+                              </button>
+                            </div>
+                          </div>
+                        } @else {
+                          <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
+                              Edit
+                            </button>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                              </svg>
+                              Download
+                            </button>
+                          </div>
+                        }
                       </div>
                     </div>
                     }
@@ -807,7 +939,7 @@
                       <span class="badge" style="background-color: #d1ecf1; color: #0c5460; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
                     }
                     @if (tag.tagType === 'COMMON') {
-                      <span class="badge" style="background-color: #e2e3e5; color: #41464b; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
+                      <span class="badge" style="background-color: #e2e3e5; color: #2b2e31; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
                     }
                   }
                 }
@@ -843,26 +975,22 @@
             }
           </div>
 
-          <!-- Maintainer Location (Placeholder) -->
+          <!-- Maintainer Location -->
           <div class="mb-5">
             <h6 class="text-muted small mb-1">Maintainer Location</h6>
-            <p class="mb-0">France, Europe<br>Illinois, USA</p>
+            @if (application()!.origins && application()!.origins!.length > 0) {
+              @for (origin of application()!.origins!; track origin.id) {
+                <p class="mb-0 fw-bold" style="color: #5B656F;">{{ origin.displayName }}</p>
+              }
+            } @else {
+              <p class="mb-0 text-muted" style="font-size: 0.875rem;">Not available</p>
+            }
           </div>
 
-          <!-- Maintainer Location Icon (Placeholder) -->
+          <!-- Downloads -->
           <div class="mb-5">
-            <h6 class="text-muted small mb-1">Maintainer Location</h6>
-            <div class="d-flex align-items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
-              </svg>
-            </div>
-          </div>
-
-          <!-- Installations (Placeholder) -->
-          <div class="mb-5">
-            <h6 class="text-muted small mb-1">Installations</h6>
-            <p class="mb-0 fw-bold" style="font-size: 1.5rem;">"404"</p>
+            <h6 class="text-muted small mb-1">Downloads</h6>
+            <p class="mb-0 fw-bold" style="font-size: 1.3rem; font-weight: 600; color: #5B656F;">{{ applicationDownloadsCount() }}</p>
           </div>
         </div>
       </div>

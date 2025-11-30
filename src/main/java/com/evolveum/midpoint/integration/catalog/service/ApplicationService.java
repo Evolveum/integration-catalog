@@ -19,7 +19,6 @@ import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
-import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
@@ -175,6 +174,18 @@ public class ApplicationService {
 
     public List<CountryOfOrigin> getCountriesOfOrigin() {
         return countryOfOriginRepository.findAll();
+    }
+
+    /**
+     * Check if a connector version already exists
+     * @param connectorVersion The version string to check
+     * @return true if the version already exists, false otherwise
+     */
+    public boolean checkVersionExists(String connectorVersion) {
+        if (connectorVersion == null || connectorVersion.isEmpty()) {
+            return false;
+        }
+        return bundleVersionRepository.existsByConnectorVersion(connectorVersion);
     }
 
     /**
@@ -728,15 +739,20 @@ public class ApplicationService {
         return requestRepository.findAll();
     }
 
-    public void recordDownloadIfNew(ImplementationVersion version, InetAddress ip, String userAgent, OffsetDateTime cutoff) {
+    public void recordDownloadIfNew(ImplementationVersion version, String ip, String userAgent, OffsetDateTime cutoff) {
+        String browserName = com.evolveum.midpoint.integration.catalog.util.UserAgentParser.parseBrowserName(userAgent);
+        String deviceType = com.evolveum.midpoint.integration.catalog.util.UserAgentParser.parseDeviceType(userAgent);
+        String parsedUserAgent = browserName + "," + deviceType;
+
         boolean duplicate = downloadRepository
-                .existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(version, ip, userAgent, cutoff);
+                .existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(
+                        version, ip, parsedUserAgent, cutoff);
 
         if (!duplicate) {
             Download dl = new Download();
             dl.setImplementationVersion(version);
             dl.setIpAddress(ip);
-            dl.setUserAgent(userAgent);
+            dl.setUserAgent(parsedUserAgent);
             dl.setDownloadedAt(OffsetDateTime.now());
             downloadRepository.save(dl);
         }
@@ -979,9 +995,8 @@ public class ApplicationService {
         try (InputStream in = new URL(downloadLink).openStream()) {
             byte[] fileBytes = in.readAllBytes();
 
-            InetAddress inet = new InetAddress(ip);
             OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
-            recordDownloadIfNew(version, inet, userAgent, cutoff);
+            recordDownloadIfNew(version, ip, userAgent, cutoff);
 
             return fileBytes;
         }

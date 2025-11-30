@@ -18,6 +18,7 @@ export interface ApplicationTag {
 }
 
 export interface ImplementationVersion {
+  id: string;
   description: string | null;
   implementationTags: string[] | null;
   capabilities: string[] | null;
@@ -28,6 +29,9 @@ export interface ImplementationVersion {
   lifecycleState: string | null;
   downloadLink: string | null;
   framework: string | null;
+  errorMessage: string | null;
+  downloadCount: number | null;
+  midpointVersion: string | null;
 }
 
 export interface ApplicationDetail {

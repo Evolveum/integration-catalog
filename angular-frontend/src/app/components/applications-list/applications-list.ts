@@ -31,6 +31,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected applications = signal<Application[]>([]);
   protected readonly categories = signal<CategoryCount[]>([]);
+  protected readonly totalDownloadsCount = signal<number>(0);
 
   protected readonly allCapabilities = [
     'CREATE',
@@ -244,6 +245,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.loadApplications();
     this.loadCategories();
+    this.loadTotalDownloadsCount();
   }
 
   ngAfterViewInit(): void {
@@ -687,6 +689,17 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       },
       error: (err) => {
         console.error('Error loading categories:', err);
+      }
+    });
+  }
+
+  private loadTotalDownloadsCount(): void {
+    this.applicationService.getTotalDownloadsCount().subscribe({
+      next: (count) => {
+        this.totalDownloadsCount.set(count);
+      },
+      error: (err) => {
+        console.error('Error loading total downloads count:', err);
       }
     });
   }

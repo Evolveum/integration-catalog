@@ -48,6 +48,8 @@ export class UploadFormMain implements OnInit {
 
   // Toast notifications
   protected readonly showPublishSuccess = signal<boolean>(false);
+  protected readonly showVersionExistsWarning = signal<boolean>(false);
+  protected readonly existingVersion = signal<string>('');
 
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -451,6 +453,37 @@ export class UploadFormMain implements OnInit {
     console.log('Final connectorVersion:', connectorVersion);
     console.log('Final bundleName:', bundleName);
 
+    // Check if version already exists before publishing
+    if (connectorVersion) {
+      this.applicationService.checkVersionExists(connectorVersion).subscribe({
+        next: (exists: boolean) => {
+          if (exists) {
+            // Show warning and don't proceed
+            this.existingVersion.set(connectorVersion);
+            this.showVersionExistsWarning.set(true);
+          } else {
+            // Version doesn't exist, proceed with upload
+            this.doPublish(formData, connectorVersion, bundleName, parsedFile.files);
+          }
+        },
+        error: (error: any) => {
+          console.error('Version check failed:', error);
+          // On error, proceed with upload anyway (let backend handle it)
+          this.doPublish(formData, connectorVersion, bundleName, parsedFile.files);
+        }
+      });
+    } else {
+      // No version specified, proceed with upload
+      this.doPublish(formData, connectorVersion, bundleName, parsedFile.files);
+    }
+  }
+
+  protected closeVersionExistsWarning(): void {
+    this.showVersionExistsWarning.set(false);
+    this.existingVersion.set('');
+  }
+
+  private doPublish(formData: any, connectorVersion: string | null, bundleName: string | null, files: any[]): void {
     // Build the payload - must match backend UploadImplementationDto structure
     const payload = {
       application: {
@@ -484,7 +517,7 @@ export class UploadFormMain implements OnInit {
         connidVersion: null,
         className: null
       },
-      files: parsedFile.files
+      files: files
     };
 
     console.log('Publishing payload:', payload);
