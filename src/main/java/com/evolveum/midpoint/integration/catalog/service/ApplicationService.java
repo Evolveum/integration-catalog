@@ -626,13 +626,13 @@ public class ApplicationService {
 
         if (existingBundle.isPresent()) {
             // We want to move everything to the target bundle and delete the source
-            ConnectorBundle targetBundle = existingBundle.get();
+            if (!(sourceBundle.getBundleName() != null && !sourceBundle.getBundleName().isEmpty())) {
+                ConnectorBundle targetBundle = existingBundle.get();
+                moveBundleVersionAndDeleteConnectorBundle(sourceBundle, targetBundle);
 
-            moveBundleVersionAndDeleteConnectorBundle(sourceBundle, targetBundle);
-
-            // IMPORTANT: update implementation bundle AFTER the move
-            implementation.setConnectorBundle(targetBundle);
-
+                // IMPORTANT: update implementation bundle AFTER the move
+                implementation.setConnectorBundle(targetBundle);
+            }
         } else {
             // Only update the bundle name if this is not a cross-bundle merge
             if (sourceBundle != null) {
