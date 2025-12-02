@@ -277,7 +277,7 @@ public class ApplicationService {
         ImplementationVersion implementationVersion = new ImplementationVersion();
         String description = implementationDto.description();
         implementationVersion.setDescription(description);
-        implementationVersion.setClassName(implementationDto.className());
+        //implementationVersion.setClassName(implementationDto.className());
 
         // Process ApplicationOrigin - allow updating origins in all scenarios:
         // 1. Creating new application
