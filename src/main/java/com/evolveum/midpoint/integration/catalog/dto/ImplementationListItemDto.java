@@ -27,5 +27,6 @@ public record ImplementationListItemDto(
         String ticketingLink,             // connector_bundle.ticketing_system_link
         String buildFramework,            // bundle_version.build_framework
         String checkoutLink,              // bundle_version.checkout_link
-        String pathToProjectDirectory     // bundle_version.path_to_project
+        String pathToProjectDirectory,     // bundle_version.path_to_project
+        String className                  // implmentation_version.class_name
 ) {}

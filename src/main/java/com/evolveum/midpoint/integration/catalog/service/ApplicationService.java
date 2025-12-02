@@ -277,6 +277,7 @@ public class ApplicationService {
         ImplementationVersion implementationVersion = new ImplementationVersion();
         String description = implementationDto.description();
         implementationVersion.setDescription(description);
+        //implementationVersion.setClassName(implementationDto.className());
 
         // Process ApplicationOrigin - allow updating origins in all scenarios:
         // 1. Creating new application
@@ -485,6 +486,10 @@ public class ApplicationService {
                     // Copy capabilities if not set
                     if (implementationVersion.getCapabilities() == null && latestVersion.getCapabilities() != null) {
                         implementationVersion.setCapabilities(latestVersion.getCapabilities());
+                    }
+                    // Copy className if not set
+                    if (implementationVersion.getClassName() == null && latestVersion.getClassName() != null) {
+                        implementationVersion.setClassName(latestVersion.getClassName());
                     }
 
                     // Copy bundle version fields if not set

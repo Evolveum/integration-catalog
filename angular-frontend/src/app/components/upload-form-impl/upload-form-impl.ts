@@ -46,6 +46,7 @@ export class UploadFormImpl implements OnChanges {
   protected readonly buildFramework = signal<string>('Maven'); // Default to Maven
   protected readonly checkoutLink = signal<string>('');
   protected readonly pathToProjectDirectory = signal<string>('');
+  protected readonly className = signal<string>('');
 
   // File upload for evolveum-hosted low-code connectors
   protected readonly uploadedFile = signal<{name: string, data: string} | null>(null);
@@ -142,6 +143,7 @@ export class UploadFormImpl implements OnChanges {
 
     this.checkoutLink.set(impl.checkoutLink);
     this.pathToProjectDirectory.set(impl.pathToProjectDirectory);
+    this.className.set(impl.className);
 
     this.updateFormValidity();
   }
@@ -160,6 +162,7 @@ export class UploadFormImpl implements OnChanges {
     this.buildFramework.set('');
     this.checkoutLink.set('');
     this.pathToProjectDirectory.set('');
+    this.className.set('');
     this.uploadedFile.set(null);
     this.uploadedFileName.set('');
 
@@ -257,6 +260,7 @@ export class UploadFormImpl implements OnChanges {
       buildFramework: this.buildFramework(),
       checkoutLink: this.checkoutLink(),
       pathToProjectDirectory: this.pathToProjectDirectory(),
+      className: this.className(),
       uploadedFile: this.uploadedFile()
     };
 

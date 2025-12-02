@@ -289,6 +289,22 @@
             <input type="text" class="form-control" [(ngModel)]="pathToProjectDirectory" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
           </div>
         </div>
+
+      <div class="mb-4">
+        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+          Class name
+          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
+                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
+              </svg>
+              <span class="info-tooltip">Class name.</span>
+            </span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <input type="text" class="form-control" [(ngModel)]="className" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
+        </div>
+      </div>
       }
 
       <!-- Note (only for evolveum-hosted) -->

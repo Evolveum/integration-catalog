@@ -19,4 +19,5 @@ export interface ImplementationListItem {
   buildFramework: string;
   checkoutLink: string;
   pathToProjectDirectory: string;
+  className: string;
 }
