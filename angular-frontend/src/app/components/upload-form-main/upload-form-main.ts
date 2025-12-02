@@ -511,11 +511,11 @@ export class UploadFormMain implements OnInit {
         checkoutLink: formData.checkoutLink || null,
         buildFramework: formData.buildFramework ? formData.buildFramework.toUpperCase() : null,
         pathToProject: formData.pathToProjectDirectory || null,
+        className: formData.className || null,
         bundleName: bundleName,
         connectorVersion: connectorVersion,
         downloadLink: null,
-        connidVersion: null,
-        className: null
+        connidVersion: null
       },
       files: files
     };

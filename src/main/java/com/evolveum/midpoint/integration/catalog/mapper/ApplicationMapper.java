@@ -295,7 +295,8 @@ public class ApplicationMapper {
                 bundle.getTicketingSystemLink(),                         // ticketingLink
                 bundleVersion.getBuildFramework().name(),                // buildFramework
                 bundleVersion.getCheckoutLink(),                         // checkoutLink
-                bundleVersion.getPathToProject()                         // pathToProjectDirectory
+                bundleVersion.getPathToProject(),                         // pathToProjectDirectory
+                latestVersion.getClassName()
         );
     }
 }
