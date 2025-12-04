@@ -723,8 +723,13 @@
                           </div>
                         }
 
-                        <!-- Action Buttons or Error Banner -->
-                        @if (version.errorMessage) {
+                        <!-- Action Buttons or Error Banner or Publishing State -->
+                        @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                          <div class="text-center mt-3 py-3">
+                            <p class="text-muted mb-3">Importing... This may take a moment.</p>
+                            <img src="icon gear.svg" alt="Importing" width="52" height="42">
+                          </div>
+                        } @else if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
                             <div class="d-flex align-items-center gap-2">
                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
@@ -867,8 +872,13 @@
                           </div>
                         }
 
-                        <!-- Action Buttons or Error Banner -->
-                        @if (version.errorMessage) {
+                        <!-- Action Buttons or Error Banner or Publishing State -->
+                        @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                          <div class="text-center mt-3 py-3">
+                            <p class="text-muted mb-3">Importing... This may take a moment.</p>
+                            <img src="icon gear.svg" alt="Importing" width="52" height="42">
+                          </div>
+                        } @else if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
                             <div class="d-flex align-items-center gap-2">
                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">

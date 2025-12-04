@@ -18,3 +18,13 @@
   border-top-right-radius: 0.25rem;
   font-weight: bold;
 }
+
+/* Spinning animation for publishing state */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
