@@ -54,12 +54,12 @@
               class="filter-option"
               [class.active]="selectedSection() === 'midpoint'"
               (click)="selectSection('midpoint')"
-              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; opacity: 0.5;"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'midpoint' ? '#e9ecef' : 'transparent'">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box" viewBox="0 0 16 16">
                 <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/>
               </svg>
-              <span>Midpoint version</span>
+              <span>MidPoint version</span>
             </div>
 
             <div
@@ -136,11 +136,26 @@
               </div>
             }
 
-            <!-- Midpoint Version (placeholder) -->
+            <!-- MidPoint Version -->
             @if (selectedSection() === 'midpoint') {
               <div>
-                <h5 class="mb-4">Midpoint version</h5>
-                <p class="text-muted">Coming soon...</p>
+                <h5 class="mb-4">MidPoint version</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (version of midpointVersions(); track version) {
+                    <span
+                      class="badge version-badge"
+                      [class.selected]="isMidpointVersionSelected(version)"
+                      (click)="toggleMidpointVersion(version)"
+                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                      [style.border]="isMidpointVersionSelected(version) ? '1px solid #2722c7' : '1px solid #a6a6a6'"
+                      [style.background-color]="isMidpointVersionSelected(version) ? '#f2f2f2' : 'white'"
+                      [style.color]="isMidpointVersionSelected(version) ? '#2722c7' : '#212529'">
+                      {{ version }}
+                    </span>
+                  } @empty {
+                    <p class="text-muted">No MidPoint versions available</p>
+                  }
+                </div>
               </div>
             }
 

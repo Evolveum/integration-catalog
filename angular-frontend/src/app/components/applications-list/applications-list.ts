@@ -82,7 +82,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     trending: false,
     categories: [],
     capabilities: [],
-    appStatus: []
+    appStatus: [],
+    midpointVersions: []
   });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
@@ -97,7 +98,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const hasActiveFilters = filters.trending ||
                             filters.categories.length > 0 ||
                             filters.capabilities.length > 0 ||
-                            filters.appStatus.length > 0;
+                            filters.appStatus.length > 0 ||
+                            filters.midpointVersions.length > 0;
 
     if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
@@ -151,6 +153,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     if (filters.appStatus.length > 0) {
       apps = apps.filter(app =>
         app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
+      );
+    }
+
+    if (filters.midpointVersions.length > 0) {
+      apps = apps.filter(app =>
+        app.midpointVersions?.some((version: string) =>
+          filters.midpointVersions.includes(version)
+        )
       );
     }
 
@@ -229,6 +239,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       );
     }
 
+    if (filters.midpointVersions.length > 0) {
+      apps = apps.filter(app =>
+        app.midpointVersions?.some((version: string) =>
+          filters.midpointVersions.includes(version)
+        )
+      );
+    }
+
     return apps.length;
   });
 
@@ -267,7 +285,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       trending: false,
       categories: [],
       capabilities: [],
-      appStatus: []
+      appStatus: [],
+      midpointVersions: []
     });
     this.currentPage.set(0);
   }
@@ -319,6 +338,12 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.closeDropdown();
   }
 
+  protected clearMidpointVersionsFilter(): void {
+    this.filterState.update(state => ({ ...state, midpointVersions: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
   protected removeCategoryFilter(category: string): void {
     this.filterState.update(state => ({
       ...state,
@@ -339,6 +364,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.filterState.update(state => ({
       ...state,
       appStatus: state.appStatus.filter(s => s !== status)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeMidpointVersionFilter(version: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      midpointVersions: state.midpointVersions.filter(v => v !== version)
     }));
     this.currentPage.set(0);
   }
@@ -377,6 +410,19 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       this.filterState.update(state => ({
         ...state,
         appStatus: [...state.appStatus, status]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleMidpointVersionInFilter(version: string): void {
+    const versions = this.filterState().midpointVersions;
+    if (versions.includes(version)) {
+      this.removeMidpointVersionFilter(version);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        midpointVersions: [...state.midpointVersions, version]
       }));
       this.currentPage.set(0);
     }
@@ -464,6 +510,20 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected isAppStatusSelected(status: string): boolean {
     return this.filterState().appStatus.includes(status);
   }
+
+  protected isMidpointVersionSelected(version: string): boolean {
+    return this.filterState().midpointVersions.includes(version);
+  }
+
+  protected allMidpointVersions = computed(() => {
+    const versionsSet = new Set<string>();
+    for (const app of this.applications()) {
+      if (app.midpointVersions) {
+        app.midpointVersions.forEach(v => versionsSet.add(v));
+      }
+    }
+    return Array.from(versionsSet).sort();
+  });
 
   protected onSortChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value as 'alphabetical' | 'popularity' | 'activity';
@@ -593,6 +653,11 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected closeUploadModal(): void {
     this.isUploadModalOpen.set(false);
+  }
+
+  protected reloadApplications(): void {
+    this.loading.set(true);
+    this.loadApplications();
   }
 
   protected openFilterModal(): void {

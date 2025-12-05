@@ -73,9 +73,7 @@
               @for (tag of application()!.tags!; track tag.id) {
                 @if (tag.name === 'popular') {
                   <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffc107; color: #000; font-size: 0.75rem; font-weight: 600; vertical-align: middle; padding: 0.35rem 0.65rem;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                    </svg>
+                    <img src="popular_icon.svg" alt="" width="12" height="12">
                     {{ tag.displayName }}
                   </span>
                 }
@@ -285,39 +283,41 @@
                             </div>
 
                             <!-- Right Content Area -->
-                            <div class="flex-grow-1 p-4" style="overflow-y: auto;">
+                            <div class="p-4" style="width: 550px; overflow-y: auto;">
                               <!-- Capabilities Content -->
                               @if (selectedFilterSection() === 'capabilities') {
-                                <div class="d-flex flex-column gap-2">
-                                  @for (capability of getAllCapabilities(); track capability) {
-                                    <div class="d-flex align-items-center gap-2" style="cursor: pointer;" (click)="toggleCapabilityFilter(capability)">
-                                      <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                        @if (isCapabilitySelected(capability)) {
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-                                          </svg>
-                                        }
-                                      </div>
-                                      <span>{{ formatCapabilityText(capability) }}</span>
-                                    </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                  @for (capability of allCapabilities; track capability) {
+                                    <span
+                                      class="badge capability-badge"
+                                      [class.selected]="isCapabilitySelected(capability)"
+                                      (click)="toggleCapabilityFilter(capability)"
+                                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                                      [style.border]="isCapabilitySelected(capability) ? '1px solid #2722c7' : '1px solid #a6a6a6'"
+                                      [style.background-color]="isCapabilitySelected(capability) ? '#f2f2f2' : 'white'"
+                                      [style.color]="isCapabilitySelected(capability) ? '#2722c7' : '#212529'">
+                                      {{ formatCapabilityText(capability) }}
+                                    </span>
                                   }
                                 </div>
                               }
 
                               <!-- Midpoint Version Content -->
                               @if (selectedFilterSection() === 'versions') {
-                                <div class="d-flex flex-column gap-2">
+                                <div class="d-flex flex-wrap gap-2">
                                   @for (version of getAllMidpointVersions(); track version) {
-                                    <div class="d-flex align-items-center gap-2" style="cursor: pointer;" (click)="toggleMidpointVersionFilter(version)">
-                                      <div [style.background-color]="isMidpointVersionSelected(version) ? '#0d6efd' : 'transparent'" [style.border-color]="isMidpointVersionSelected(version) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                        @if (isMidpointVersionSelected(version)) {
-                                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-                                          </svg>
-                                        }
-                                      </div>
-                                      <span>{{ version }}</span>
-                                    </div>
+                                    <span
+                                      class="badge version-badge"
+                                      [class.selected]="isMidpointVersionSelected(version)"
+                                      (click)="toggleMidpointVersionFilter(version)"
+                                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                                      [style.border]="isMidpointVersionSelected(version) ? '1px solid #2722c7' : '1px solid #a6a6a6'"
+                                      [style.background-color]="isMidpointVersionSelected(version) ? '#f2f2f2' : 'white'"
+                                      [style.color]="isMidpointVersionSelected(version) ? '#2722c7' : '#212529'">
+                                      {{ version }}
+                                    </span>
+                                  } @empty {
+                                    <p class="text-muted">No MidPoint versions available</p>
                                   }
                                 </div>
                               }
@@ -727,7 +727,7 @@
                         @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
                           <div class="text-center mt-3 py-3">
                             <p class="text-muted mb-3">Importing... This may take a moment.</p>
-                            <img src="icon gear.svg" alt="Importing" width="52" height="42">
+                            <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
                           </div>
                         } @else if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
@@ -876,7 +876,7 @@
                         @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
                           <div class="text-center mt-3 py-3">
                             <p class="text-muted mb-3">Importing... This may take a moment.</p>
-                            <img src="icon gear.svg" alt="Importing" width="52" height="42">
+                            <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
                           </div>
                         } @else if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
@@ -1010,7 +1010,7 @@
   <!-- Fixed Position Filter Dropdowns -->
   @if (openDropdown() === 'capabilities' && dropdownPosition()) {
     <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
-      @for (capability of getAllCapabilities(); track capability) {
+      @for (capability of allCapabilities; track capability) {
         <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
           <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
             @if (isCapabilitySelected(capability)) {

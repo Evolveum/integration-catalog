@@ -14,6 +14,7 @@ export interface FilterState {
   categories: string[];
   capabilities: string[];
   appStatus: string[];
+  midpointVersions: string[];
 }
 
 interface CategoryCount {
@@ -35,7 +36,8 @@ export class FilterModal implements OnInit {
     trending: false,
     categories: [],
     capabilities: [],
-    appStatus: []
+    appStatus: [],
+    midpointVersions: []
   });
   @Output() modalClosed = new EventEmitter<void>();
   @Output() filterApplied = new EventEmitter<FilterState>();
@@ -47,9 +49,11 @@ export class FilterModal implements OnInit {
   protected selectedCategories = signal<Set<string>>(new Set());
   protected selectedCapabilities = signal<Set<string>>(new Set());
   protected selectedAppStatus = signal<Set<string>>(new Set());
+  protected selectedMidpointVersions = signal<Set<string>>(new Set());
 
   // Data for filters
   protected readonly categories = signal<CategoryCount[]>([]);
+  protected readonly midpointVersions = signal<string[]>([]);
   protected readonly capabilities: string[] = [
     'CREATE',
     'GET',
@@ -85,11 +89,13 @@ export class FilterModal implements OnInit {
       this.selectedCategories.set(new Set(filterState.categories));
       this.selectedCapabilities.set(new Set(filterState.capabilities));
       this.selectedAppStatus.set(new Set(filterState.appStatus));
+      this.selectedMidpointVersions.set(new Set(filterState.midpointVersions));
     });
   }
 
   ngOnInit(): void {
     this.loadCategories();
+    this.loadMidpointVersions();
   }
 
   protected selectSection(section: string): void {
@@ -142,6 +148,20 @@ export class FilterModal implements OnInit {
     return this.selectedAppStatus().has(status);
   }
 
+  protected toggleMidpointVersion(version: string): void {
+    const current = new Set(this.selectedMidpointVersions());
+    if (current.has(version)) {
+      current.delete(version);
+    } else {
+      current.add(version);
+    }
+    this.selectedMidpointVersions.set(current);
+  }
+
+  protected isMidpointVersionSelected(version: string): boolean {
+    return this.selectedMidpointVersions().has(version);
+  }
+
   protected formatCapability(capability: string): string {
     return capability
       .split('_')
@@ -155,7 +175,8 @@ export class FilterModal implements OnInit {
       trending: this.trending(),
       categories: Array.from(this.selectedCategories()),
       capabilities: Array.from(this.selectedCapabilities()),
-      appStatus: Array.from(this.selectedAppStatus())
+      appStatus: Array.from(this.selectedAppStatus()),
+      midpointVersions: Array.from(this.selectedMidpointVersions())
     };
     this.filterApplied.emit(filterState);
     this.modalClosed.emit();
@@ -189,6 +210,25 @@ export class FilterModal implements OnInit {
       },
       error: (err) => {
         console.error('Error loading categories:', err);
+      }
+    });
+  }
+
+  private loadMidpointVersions(): void {
+    // Load unique midpoint versions from all applications
+    this.applicationService.getAll().subscribe({
+      next: (apps) => {
+        const versionsSet = new Set<string>();
+        apps.forEach(app => {
+          if (app.midpointVersions) {
+            app.midpointVersions.forEach(version => versionsSet.add(version));
+          }
+        });
+        const sortedVersions = Array.from(versionsSet).sort();
+        this.midpointVersions.set(sortedVersions);
+      },
+      error: (err) => {
+        console.error('Error loading midpoint versions:', err);
       }
     });
   }
