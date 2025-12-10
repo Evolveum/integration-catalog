@@ -68,7 +68,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 12;
   protected readonly sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
-  protected readonly viewMode = signal<'grid' | 'list'>('grid');
   protected readonly activeTab = signal<string>('all');
   protected isRequestModalOpen = signal<boolean>(false);
   protected isLoginModalOpen = signal<boolean>(false);
@@ -83,7 +82,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     categories: [],
     capabilities: [],
     appStatus: [],
-    midpointVersions: []
+    midpointVersions: [],
+    integrationMethods: []
   });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
@@ -286,7 +286,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       categories: [],
       capabilities: [],
       appStatus: [],
-      midpointVersions: []
+      midpointVersions: [],
+      integrationMethods: []
     });
     this.currentPage.set(0);
   }
@@ -340,6 +341,12 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected clearMidpointVersionsFilter(): void {
     this.filterState.update(state => ({ ...state, midpointVersions: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearIntegrationMethodsFilter(): void {
+    this.filterState.update(state => ({ ...state, integrationMethods: [] }));
     this.currentPage.set(0);
     this.closeDropdown();
   }
@@ -426,6 +433,22 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       }));
       this.currentPage.set(0);
     }
+  }
+
+  protected toggleIntegrationMethodInFilter(method: string): void {
+    const methods = this.filterState().integrationMethods;
+    if (methods.includes(method)) {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: state.integrationMethods.filter(m => m !== method)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: [...state.integrationMethods, method]
+      }));
+    }
+    this.currentPage.set(0);
   }
 
   protected getFilteredCountForCategory(category: string): number {
@@ -515,6 +538,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return this.filterState().midpointVersions.includes(version);
   }
 
+  protected isIntegrationMethodSelected(method: string): boolean {
+    return this.filterState().integrationMethods.includes(method);
+  }
+
   protected allMidpointVersions = computed(() => {
     const versionsSet = new Set<string>();
     for (const app of this.applications()) {
@@ -525,14 +552,17 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return Array.from(versionsSet).sort();
   });
 
+  protected readonly allIntegrationMethods: string[] = [
+    'SCIM',
+    'openLDAP',
+    'REST API',
+    'CSV file import'
+  ];
+
   protected onSortChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value as 'alphabetical' | 'popularity' | 'activity';
     this.sortBy.set(value);
     this.currentPage.set(0);
-  }
-
-  protected setViewMode(mode: 'grid' | 'list'): void {
-    this.viewMode.set(mode);
   }
 
   protected setActiveTab(tab: string): void {

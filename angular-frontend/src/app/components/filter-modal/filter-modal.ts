@@ -15,6 +15,7 @@ export interface FilterState {
   capabilities: string[];
   appStatus: string[];
   midpointVersions: string[];
+  integrationMethods: string[];
 }
 
 interface CategoryCount {
@@ -37,7 +38,8 @@ export class FilterModal implements OnInit {
     categories: [],
     capabilities: [],
     appStatus: [],
-    midpointVersions: []
+    midpointVersions: [],
+    integrationMethods: []
   });
   @Output() modalClosed = new EventEmitter<void>();
   @Output() filterApplied = new EventEmitter<FilterState>();
@@ -50,6 +52,7 @@ export class FilterModal implements OnInit {
   protected selectedCapabilities = signal<Set<string>>(new Set());
   protected selectedAppStatus = signal<Set<string>>(new Set());
   protected selectedMidpointVersions = signal<Set<string>>(new Set());
+  protected selectedIntegrationMethods = signal<Set<string>>(new Set());
 
   // Data for filters
   protected readonly categories = signal<CategoryCount[]>([]);
@@ -80,6 +83,12 @@ export class FilterModal implements OnInit {
     { name: 'REQUESTED', displayName: 'Requested' },
     { name: 'WITH_ERROR', displayName: 'With error' }
   ];
+  protected readonly integrationMethods: string[] = [
+    'SCIM',
+    'openLDAP',
+    'REST API',
+    'CSV file import'
+  ];
 
   constructor(private applicationService: ApplicationService) {
     // Sync internal state when currentFilterState changes
@@ -90,6 +99,7 @@ export class FilterModal implements OnInit {
       this.selectedCapabilities.set(new Set(filterState.capabilities));
       this.selectedAppStatus.set(new Set(filterState.appStatus));
       this.selectedMidpointVersions.set(new Set(filterState.midpointVersions));
+      this.selectedIntegrationMethods.set(new Set(filterState.integrationMethods));
     });
   }
 
@@ -162,6 +172,20 @@ export class FilterModal implements OnInit {
     return this.selectedMidpointVersions().has(version);
   }
 
+  protected toggleIntegrationMethod(method: string): void {
+    const current = new Set(this.selectedIntegrationMethods());
+    if (current.has(method)) {
+      current.delete(method);
+    } else {
+      current.add(method);
+    }
+    this.selectedIntegrationMethods.set(current);
+  }
+
+  protected isIntegrationMethodSelected(method: string): boolean {
+    return this.selectedIntegrationMethods().has(method);
+  }
+
   protected formatCapability(capability: string): string {
     return capability
       .split('_')
@@ -176,7 +200,8 @@ export class FilterModal implements OnInit {
       categories: Array.from(this.selectedCategories()),
       capabilities: Array.from(this.selectedCapabilities()),
       appStatus: Array.from(this.selectedAppStatus()),
-      midpointVersions: Array.from(this.selectedMidpointVersions())
+      midpointVersions: Array.from(this.selectedMidpointVersions()),
+      integrationMethods: Array.from(this.selectedIntegrationMethods())
     };
     this.filterApplied.emit(filterState);
     this.modalClosed.emit();

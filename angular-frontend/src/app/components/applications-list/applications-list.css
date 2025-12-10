@@ -77,3 +77,11 @@ textarea:focus,
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* Pagination buttons consistent height */
+.pagination .page-link {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

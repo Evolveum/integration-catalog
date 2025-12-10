@@ -47,14 +47,14 @@
         <!-- title -->
         <div class="row">
           <div class="col-12 text-center">
-            <h1 class="display-6 fw-bold mb-3">Integration Catalog</h1>
+            <h1 class="display-6 fw-bold mb-3" style="font-size: 48px;">Integration Catalog</h1>
           </div>
         </div>
 
         <!-- subtitle -->
         <div class="row">
           <div class="col-12 text-center">
-            <p class="lead mb-4">
+            <p class="lead mb-4" style="font-size: 28px;">
               Easily connect any application or system to midPoint.
             </p>
           </div>
@@ -83,7 +83,7 @@
     <div class="d-none d-md-block"
         style="
           position: absolute;
-          right: 20%;
+          right: 28%;
           top: 150px;     /* tweak this to match head.jpg */
           z-index: 5;">
       <img
@@ -115,9 +115,7 @@
         <div class="d-flex gap-2 align-items-center">
           <div class="input-group flex-grow-1">
             <span class="input-group-text bg-white border-end-0" style="border-radius: 50px 0 0 50px; border-color: #dee2e6;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-              </svg>
+              <img src="search.svg" alt="" width="24" height="24">
             </span>
             <input
               type="text"
@@ -129,9 +127,7 @@
             />
           </div>
           <button class="btn d-flex align-items-center gap-2" type="button" title="Filter" style="background-color: white; border: 1px solid #ced4da; color: #212529; padding: 0.5rem 1.5rem; border-radius: 50px;" (click)="openFilterModal()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel" viewBox="0 0 16 16">
-              <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
-            </svg>
+            <img src="filter-solid.svg" alt="" width="30" height="30">
             Filter
           </button>
           <button class="btn" type="button" style="background-color: transparent; border: none; color: #6c757d; padding: 0.5rem 1rem; white-space: nowrap;" (click)="resetFilter()">
@@ -142,7 +138,7 @@
     </div>
 
     <!-- Active Filters Row -->
-    @if (filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0) {
+    @if (filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0) {
       <div class="row mb-4 mx-auto" style="width: 1080px;">
         <div class="col-12">
           <div class="d-flex align-items-center justify-content-between gap-3">
@@ -150,7 +146,7 @@
               <div class="d-inline-flex gap-2 align-items-center" style="padding: 0.25rem 0 3rem 0;">
 
               <!-- Trending Filter Chip -->
-              @if (filterState().trending) {
+              <!-- @if (filterState().trending) {
                 <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
                   <span>Trending</span>
                   <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">1</span>
@@ -160,7 +156,7 @@
                     </svg>
                   </button>
                 </div>
-              }
+              } -->
 
               <!-- Categories Filter Chip -->
               @if (filterState().categories.length > 0) {
@@ -170,14 +166,10 @@
                     {{ filterState().categories.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-                    </svg>
+                    <img src="chevron-down.svg" alt="" width="24" height="24">
                   </button>
                   <button type="button" (click)="clearCategoriesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-                    </svg>
+                    <img src="close button.svg" alt="Importing" width="16" height="16">
                   </button>
                 </div>
               }
@@ -190,14 +182,10 @@
                     {{ filterState().capabilities.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-                    </svg>
+                    <img src="chevron-down.svg" alt="" width="24" height="24">
                   </button>
                   <button type="button" (click)="clearCapabilitiesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-                    </svg>
+                    <img src="close button.svg" alt="Importing" width="16" height="16">
                   </button>
                 </div>
               }
@@ -210,14 +198,10 @@
                     {{ filterState().appStatus.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-                    </svg>
+                    <img src="chevron-down.svg" alt="" width="24" height="24">
                   </button>
                   <button type="button" (click)="clearAppStatusFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-                    </svg>
+                    <img src="close button.svg" alt="Importing" width="16" height="16">
                   </button>
                 </div>
               }
@@ -230,14 +214,26 @@
                     {{ filterState().midpointVersions.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-                    </svg>
+                    <img src="chevron-down.svg" alt="" width="24" height="24">
                   </button>
                   <button type="button" (click)="clearMidpointVersionsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-                    </svg>
+                    <img src="close button.svg" alt="Importing" width="16" height="16">
+                  </button>
+                </div>
+              }
+
+              <!-- Integration Method Filter Chip -->
+              @if (filterState().integrationMethods.length > 0) {
+                <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                  <span>Integration method</span>
+                  <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                    {{ filterState().integrationMethods.length }}
+                  </span>
+                  <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
+                    <img src="chevron-down.svg" alt="" width="24" height="24">
+                  </button>
+                  <button type="button" (click)="clearIntegrationMethodsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
+                    <img src="close button.svg" alt="Importing" width="16" height="16">
                   </button>
                 </div>
               }
@@ -269,7 +265,7 @@
 
       <div class="position-relative mb-5 mx-auto" style="width: 1080px;">
         <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center"
-                style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 2px solid #dee2e6; transition: opacity 0.3s ease;"
+                style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 1px solid #dee2e6; transition: opacity 0.3s ease;"
                 [style.opacity]="canScrollLeft() ? '1' : '0'"
                 (click)="scrollLeft()"
                 [disabled]="!canScrollLeft()">
@@ -285,8 +281,8 @@
                 <!-- Status indicators at top right -->
                 <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                   @if (isPopular(app)) {
-                    <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #fff3cd; color: #856404;">
-                      <img src="popular_icon.svg" alt="" width="10" height="10">
+                    <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #ffdd8c; color: #7A510B;">
+                      <img src="popular_icon.svg" alt="" width="12" height="12">
                       Popular
                     </span>
                   }
@@ -296,12 +292,12 @@
                     </span>
                   }
                   @if (app.lifecycleState === 'WITH_ERROR') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: #f8d7da; color: #842029;">
+                    <span class="badge" style="font-size: 0.7rem; background-color: rgba(220, 53, 69, 0.15); color: #DC3545;">
                       Error
                     </span>
                   }
                   @if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: #d1ecf1; color: #0c5460;">
+                    <span class="badge" style="font-size: 0.7rem; background-color: rgba(23, 162, 184, 0.15); color: var(--text-publishing-color);">
                       Publishing...
                     </span>
                   }
@@ -314,11 +310,9 @@
                 <div class="card-body d-flex flex-column">
                   <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
                   <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
-                  <a class="text-decoration-none" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
+                  <a class="text-decoration-none" style="color: var(--btn-more-details-color); cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
                     More Details
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16" style="margin-left: 4px;">
-                      <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
-                    </svg>
+                    <img src="icon_arrowmore_details.svg" alt="Downlaod" width="20" height="20">
                   </a>
                   <!-- Bottom section based on lifecycle state -->
                   @if (app.lifecycleState === 'REQUESTED') {
@@ -332,7 +326,7 @@
                       <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                     </button>
                   } @else if (app.lifecycleState === 'WITH_ERROR') {
-                    <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
+                    <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
                       <u>See error details</u>
                     </a>
                   } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
@@ -342,8 +336,8 @@
                     </div>
                   } @else {
                     <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
-                      <img src="light_download-rounded.svg" alt="Downlaod" width="20" height="20">
-                      <span style="font-weight: 600;">Download</span>
+                      <span style="font-weight: 600; color: #353a41;">Continue to download&nbsp;&nbsp;</span>
+                      <img src="Frame 1171276455.svg" alt="" width="20" height="20">                      
                     </button>
                   }
                 </div>
@@ -353,7 +347,7 @@
         </div>
 
         <button class="btn rounded-circle position-absolute top-50 end-0 translate-middle-y d-flex align-items-center justify-content-center"
-                style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 2px solid #dee2e6; transition: opacity 0.3s ease;"
+                style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 1px solid #dee2e6; transition: opacity 0.3s ease;"
                 [style.opacity]="canScrollRight() ? '1' : '0'"
                 (click)="scrollRight()"
                 [disabled]="!canScrollRight()">
@@ -367,7 +361,7 @@
     @if (!loading() && !error()) {
       <div class="mb-4 mx-auto" style="width: 1080px;">
         <!-- First row: More apps heading and See All link (hidden when filters are active) -->
-        @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0)) {
+        @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0)) {
           <div class="position-relative mb-5">
             <div class="text-center">
               <h2 class="h3 mb-0">More apps</h2>
@@ -380,171 +374,93 @@
               <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations.</p>
             </div>
             <div class="position-absolute top-0 end-0 d-flex align-items-baseline gap-2">
-              <label class="mb-0 text-muted text-nowrap">Sort by</label>
-              <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)" style="width: 216px; height: 44;">
-                <option value="alphabetical">Alphabetical</option>
-                <option value="popularity">Popularity</option>
-                <option value="activity">Activity</option>
+              <label class="mb-0 text-muted text-nowrap" style="color: #353a41; size: 16px;">Sort by</label>
+              <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)" style="width: 145px; height: 44px;">
+                <option value="alphabetical" style="font-size: 24px;">Alphabetical</option>
+                <option value="popularity" style="font-size: 24px;">Popularity</option>
+                <option value="activity" style="font-size: 24px;">Activity</option>
               </select>
             </div>
           </div>
         }
       </div>
 
-      @if (viewMode() === 'grid') {
-        <div class="d-flex flex-wrap gap-4 mb-4 mx-auto" style="width: 1080px;">
-          @for (app of moreApplications(); track app.id) {
-            <div>
-              <div class="card shadow-sm position-relative" style="width: 252px; min-width: 252px; height: 380px;">
-                <!-- Status indicators at top right -->
-                <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
-                  @if (isPopular(app)) {
-                    <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #fff3cd; color: #856404;">
-                      <img src="popular_icon.svg" alt="" width="10" height="10">
-                      Popular
-                    </span>
-                  }
-                  @if (app.lifecycleState === 'REQUESTED') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: #e2e3e5; color: #2b2e31;">
-                      Requested
-                    </span>
-                  }
-                  @if (app.lifecycleState === 'WITH_ERROR') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: #f8d7da; color: #842029;">
-                      Error
-                    </span>
-                  }
-                  @if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: #d1ecf1; color: #0c5460;">
-                      Publishing...
-                    </span>
-                  }
-                </div>
-                <div class="p-3">
-                  <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
-                    {{ app.displayName.charAt(0) }}
-                  </div>
-                </div>
-                <div class="card-body d-flex flex-column">
-                  <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
-                  <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
-                  <a class="text-decoration-none" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
-                    More Details
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16" style="margin-left: 4px;">
-                      <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
-                    </svg>
-                  </a>
-                  <!-- Bottom section based on lifecycle state -->
-                  @if (app.lifecycleState === 'REQUESTED') {
-                    <button class="btn btn-sm mt-auto"
-                            style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
-                            [disabled]="!currentUser()"
-                            [style.opacity]="currentUser() ? '1' : '0.6'"
-                            [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
-                            (click)="voteForRequest(app)">
-                      <img src="thumbs_up.svg" alt="" width="20" height="20" class="me-1">
-                      <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
-                    </button>
-                  } @else if (app.lifecycleState === 'WITH_ERROR') {
-                    <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
-                      <u>See error details</u>
-                    </a>
-                  } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                    <div class="text-center mt-auto">
-                      <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                      <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
-                    </div>
-                  } @else {
-                    <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
-                      <img src="light_download-rounded.svg" alt="Downlaod" width="20" height="20">
-                      <span style="font-weight: 600;">Download</span>
-                    </button>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      }
-
-      @if (viewMode() === 'list') {
-        <div class="mb-4 mx-auto" style="width: 1080px;">
-          @for (app of moreApplications(); track app.id) {
-            <div class="card mb-3 shadow-sm position-relative">
+      <div class="d-flex flex-wrap gap-4 mb-4 mx-auto" style="width: 1080px;">
+        @for (app of moreApplications(); track app.id) {
+          <div>
+            <div class="card shadow-sm position-relative" style="width: 252px; min-width: 252px; height: 380px;">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
-                  <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #fff3cd; color: #856404;">
-                    <img src="popular_icon.svg" alt="" width="10" height="10">
+                  <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #ffdd8c; color: #7A510B;">
+                    <img src="popular_icon.svg" alt="" width="12" height="12">
                     Popular
                   </span>
                 }
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <span class="badge" style="font-size: 0.7rem; background-color: #e2e3e5; color: #2b2e31;">
+                    Requested
+                  </span>
+                }
                 @if (app.lifecycleState === 'WITH_ERROR') {
-                  <span class="badge" style="font-size: 0.7rem; background-color: #f8d7da; color: #842029;">
+                  <span class="badge" style="font-size: 0.7rem; background-color: rgba(220, 53, 69, 0.15);; color: #DC3545;">
                     Error
                   </span>
                 }
                 @if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                  <span class="badge" style="font-size: 0.7rem; background-color: #d1ecf1; color: #0c5460;">
+                  <span class="badge" style="font-size: 0.7rem; background-color: rgba(23, 162, 184, 0.15); color: var(--text-publishing-color);">
                     Publishing...
                   </span>
                 }
               </div>
-              <div class="card-body">
-                <div class="row align-items-center">
-                  <div class="col-auto">
-                    <div style="width: 90px; height: 90px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
-                      {{ app.displayName.charAt(0) }}
-                    </div>
-                  </div>
-                  <div class="col">
-                    <h5 class="card-title mb-1" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
-                    <p class="card-text text-muted mb-0" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;">{{ app.description }}</p>
-                    <a class="text-decoration-none mt-2 d-inline-block" style="color: #0d6efd; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
-                      More Details
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-short" viewBox="0 0 16 16" style="margin-left: 4px;">
-                        <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
-                      </svg>
-                    </a>
-                  </div>
-                  <div class="col-auto">
-                    @if (app.lifecycleState === 'REQUESTED') {
-                      <button class="btn"
-                              style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
-                              [disabled]="!currentUser()"
-                              [style.opacity]="currentUser() ? '1' : '0.6'"
-                              [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
-                              (click)="voteForRequest(app)">
-                        <img src="thumbs_up.svg" alt="" width="20" height="20" class="me-1">
-                        <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
-                      </button>
-                    } @else if (app.lifecycleState === 'WITH_ERROR') {
-                      <a class="text-decoration-none" style="color: #dc3545; cursor: pointer; font-size: 0.875rem;" (click)="navigateToDetail(app.id)">
-                        <u>See error details</u>
-                      </a>
-                    } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                      <div class="text-center">
-                        <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                        <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
-                      </div>
-                    } @else {
-                      <button class="btn" style="background-color: #0d6efd; border: 1px solid #0d6efd; color: #fff;" (click)="navigateToDetail(app.id)">
-                        <img src="light_download-rounded.svg" alt="Downlaod" width="20" height="20">
-                        <span style="font-weight: 600;">Download</span>
-                      </button>
-                    }
-                  </div>
+              <div class="p-3">
+                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+                  {{ app.displayName.charAt(0) }}
                 </div>
               </div>
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
+                <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
+                <a class="text-decoration-none" style="color: var(--btn-more-details-color); cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
+                  More Details
+                  <img src="icon_arrowmore_details.svg" alt="Downlaod" width="20" height="20">
+                </a>
+                <!-- Bottom section based on lifecycle state -->
+                @if (app.lifecycleState === 'REQUESTED') {
+                  <button class="btn btn-sm mt-auto"
+                          style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
+                          [disabled]="!currentUser()"
+                          [style.opacity]="currentUser() ? '1' : '0.6'"
+                          [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
+                          (click)="voteForRequest(app)">
+                    <img src="thumbs_up.svg" alt="" width="20" height="20" class="me-1">
+                    <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                  </button>
+                } @else if (app.lifecycleState === 'WITH_ERROR') {
+                  <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
+                    <u>See error details</u>
+                  </a>
+                } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                  <div class="text-center mt-auto">
+                    <p class="text-muted small mb-2">Importing... This may take a moment.</p>
+                    <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
+                  </div>
+                } @else {
+                  <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
+                    <span style="font-weight: 600; color: #353a41;">Continue to download&nbsp;&nbsp;</span>
+                    <img src="Frame 1171276455.svg" alt="" width="20" height="20">
+                  </button>
+                }
+              </div>
             </div>
-          }
-        </div>
-      }
+          </div>
+        }
+      </div>
 
       <nav aria-label="Page navigation" class="mx-auto" style="width: 1080px;">
         <ul class="pagination justify-content-end">
           <li class="page-item" [class.disabled]="currentPage() === 0">
-            <button class="page-link" style="background-color: white;" (click)="previousPage()" [disabled]="currentPage() === 0">
+            <button class="page-link" style="background-color: white; color: black; font-weight: 600;" (click)="previousPage()" [disabled]="currentPage() === 0">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-left-short me-1" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/>
               </svg>
@@ -554,14 +470,14 @@
 
           @for (page of [].constructor(totalPages()); track $index) {
             <li class="page-item" [class.active]="currentPage() === $index">
-              <button class="page-link" [style.background-color]="currentPage() === $index ? '' : 'white'" (click)="goToPage($index)">
+              <button class="page-link" style="font-weight: 600;" [style.background-color]="currentPage() === $index ? '#206F9D' : 'white'" [style.color]="currentPage() === $index ? 'white' : 'black'" (click)="goToPage($index)" >
                 {{ $index + 1 }}
               </button>
             </li>
           }
 
           <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
-            <button class="page-link" style="background-color: white;" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+            <button class="page-link" style="background-color: white; color: black; font-weight: 600;" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
               Next
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-right-short ms-1" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
@@ -583,19 +499,16 @@
         <!-- Upload Configuration -->
         <div class="d-flex align-items-stretch mb-3" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
           <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #e6e6fa; aspect-ratio: 1/1; width: 120px;">
-            <img src="BoxArrowUp.svg" alt="Upload" width="42" height="42">
+            <img src="BoxArrowUp.svg" alt="Upload" width="56" height="56">
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
-              <h5 class="mb-1">Upload Configuration</h5>
+              <h5 class="mb-1" style="font-weight: 600;">Upload Configuration</h5>
               <p class="text-muted mb-0">Upload an existing connector configuration to quickly set up your integration</p>
             </div>
             <div class="flex-shrink-0 ms-4">
-              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="openUploadModal()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload me-2" viewBox="0 0 16 16">
-                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
-                  <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
-                </svg>
+              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600;" (click)="openUploadModal()">
+                <img src="icon.svg" alt="" width="16" height="18">
                 Upload Configuration
               </button>
             </div>
@@ -605,7 +518,7 @@
         <!-- Request Tailored Solution -->
         <div class="d-flex align-items-stretch" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
           <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #fff0e6; aspect-ratio: 1/1; width: 120px;">
-            <img src="GitPullRequest.svg" alt="Request" width="42" height="42">
+            <img src="GitPullRequest.svg" alt="Request" width="56" height="56">
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
@@ -613,8 +526,8 @@
               <p class="text-muted mb-0">Need a specific integration or customization? Reach out to the Evolveum team or partners to build a solution that fits your exact use case and infrastructure.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
-              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="openRequestModal()">
-                <img src="GitPullRequestSmall.svg" alt="RequestSmall" width="18" height="18">
+              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600;" (click)="openRequestModal()">
+                <img src="icon_request.svg" alt="RequestSmall" width="18" height="18">
                 Request Tailored Solution
               </button>
             </div>
@@ -713,6 +626,26 @@
         }
         <div class="border-top pt-2 mt-2">
           <a href="javascript:void(0)" (click)="clearMidpointVersionsFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+        </div>
+      </div>
+    }
+
+    @if (openDropdown() === 'integrationMethods' && dropdownPosition()) {
+      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+        @for (method of allIntegrationMethods; track method) {
+          <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleIntegrationMethodInFilter(method); $event.stopPropagation()">
+            <div [style.background-color]="isIntegrationMethodSelected(method) ? '#0d6efd' : 'transparent'" [style.border-color]="isIntegrationMethodSelected(method) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+              @if (isIntegrationMethodSelected(method)) {
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
+                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
+                </svg>
+              }
+            </div>
+            <span>{{ method }}</span>
+          </div>
+        }
+        <div class="border-top pt-2 mt-2">
+          <a href="javascript:void(0)" (click)="clearIntegrationMethodsFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
         </div>
       </div>
     }
