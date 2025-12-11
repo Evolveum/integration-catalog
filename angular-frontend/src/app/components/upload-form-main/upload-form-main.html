@@ -45,8 +45,8 @@
 @if (isOpen()) {
   <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;" (click)="closeModal()"></div>
   <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 700px; margin: auto;">
-      <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-dialog modal-dialog-centered" style="width: 775px; height: 922px; max-width: 775px; margin: auto;">
+      <div class="modal-content" style="height: 922px;" (click)="$event.stopPropagation()">
         <!-- Modal Header -->
         <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem;">
           <h5 class="modal-title mb-0">Upload App to Integration Catalog</h5>

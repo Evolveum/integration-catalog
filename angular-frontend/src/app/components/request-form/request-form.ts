@@ -143,6 +143,11 @@ export class RequestForm {
   }
 
   protected formatCapabilityName(capability: string): string {
-    return capability.replace(/_/g, ' ');
+    return capability
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 }
