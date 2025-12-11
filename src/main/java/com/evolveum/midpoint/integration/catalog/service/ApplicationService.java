@@ -1130,6 +1130,21 @@ public class ApplicationService {
         // Extract frameworks from implementations
         List<String> frameworks = applicationMapper.extractFrameworks(app);
 
+        // Extract unique midpoint versions from all implementations
+        List<String> midpointVersions = new java.util.ArrayList<>();
+        if (app.getImplementations() != null) {
+            app.getImplementations().stream()
+                    .filter(impl -> impl.getImplementationVersions() != null)
+                    .flatMap(impl -> impl.getImplementationVersions().stream())
+                    .filter(version -> version.getBundleVersion() != null
+                            && version.getBundleVersion().getConnidVersionObject() != null
+                            && version.getBundleVersion().getConnidVersionObject().getMidpointVersion() != null)
+                    .map(version -> version.getBundleVersion().getConnidVersionObject().getMidpointVersion())
+                    .distinct()
+                    .sorted()
+                    .forEach(midpointVersions::add);
+        }
+
         return new ApplicationCardDto(
                 app.getId(),
                 app.getDisplayName(),
@@ -1142,7 +1157,8 @@ public class ApplicationService {
                 capabilities.isEmpty() ? null : capabilities,
                 requestId,
                 voteCount,
-                frameworks
+                frameworks,
+                midpointVersions.isEmpty() ? null : midpointVersions
         );
     }
 

@@ -7,6 +7,13 @@
 :root {
   --color-light-blue: #3C8DBC;
   --color-dark-blue: #206F9D;
+  --color-black: #000000;
   --btn-download-bg: color-mix(in srgb, var(--color-light-blue) 50%, var(--color-dark-blue));
   --btn-download-color: #ffffff;
+
+  --btn-more-details-blue: #367FAA;
+  --btn-more-details-color: color-mix(in srgb, var(--btn-more-details-blue), var(--color-black) 20%);
+
+  --text-publishing-blue: #17A2B8;
+  --text-publishing-color: color-mix(in srgb, var(--text-publishing-blue), var(--color-black) 50%);
 }

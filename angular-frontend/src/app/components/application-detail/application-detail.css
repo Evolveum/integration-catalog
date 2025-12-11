@@ -19,12 +19,16 @@
   font-weight: bold;
 }
 
-/* Spinning animation for publishing state */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+/* Slow blink animation for publishing state */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    opacity: 0;
   }
+}
+
+.blink-animation {
+  animation: blink 2s ease-in-out infinite;
 }

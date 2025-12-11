@@ -3,6 +3,18 @@
   Licensed under the EUPL-1.2 or later.
 */
 
+/* Default state - gray text */
+.filter-option {
+  color: #212529;
+  opacity: 0.75;
+}
+
+/* Selected/Active state - black text */
+.filter-option.active {
+  color: #000000;
+  opacity: 1;
+}
+
 .filter-option:hover {
   background-color: #e9ecef !important;
 }
