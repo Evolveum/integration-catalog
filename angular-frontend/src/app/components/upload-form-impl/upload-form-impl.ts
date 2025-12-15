@@ -132,7 +132,7 @@ export class UploadFormImpl implements OnChanges {
 
     this.licenseType.set(impl.licenseType);
     this.implementationDescription.set(impl.implementationDescription);
-    this.browseLink.set(impl.browseLink);
+    // browseLink intentionally not loaded - always empty for new versions
     this.ticketingLink.set(impl.ticketingLink);
 
     // Transform build framework from uppercase (MAVEN/GRADLE) to capitalized (Maven/Gradle)
@@ -141,7 +141,7 @@ export class UploadFormImpl implements OnChanges {
       : '';
     this.buildFramework.set(buildFramework);
 
-    this.checkoutLink.set(impl.checkoutLink);
+    // checkoutLink intentionally not loaded - always empty for new versions
     this.pathToProjectDirectory.set(impl.pathToProjectDirectory);
     this.className.set(impl.className);
 

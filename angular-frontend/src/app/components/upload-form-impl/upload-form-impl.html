@@ -2,7 +2,7 @@
   <!-- Show this header when editing a version -->
   @if (isEditingVersion() && selectedImplementation()) {
     <h6 class="mb-4 text-center" style="font-size: 1rem; font-weight: 500; color: #212529;">
-      You are editing a new version of {{ selectedImplementation()!.displayName }} {{ selectedImplementation()!.version }}
+      You are editing a new version of {{ selectedImplementation()!.displayName }}
     </h6>
   }
 
@@ -85,16 +85,17 @@
       <!-- Display Name -->
       <div class="mb-3">
         <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
-          Display Name
-          @if (!isEditingVersion()) {
-            <span class="text-danger ms-1">*</span>
-          }
+          Display Name*
           <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
             <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
             <span class="info-tooltip">Display name for the implementation.</span>
           </span>
         </label>
-        <input type="text" class="form-control" [(ngModel)]="displayName" (ngModelChange)="onFieldChange()" placeholder="" [disabled]="isEditingVersion()" style="max-width: 300px;">
+        <input type="text" class="form-control" [(ngModel)]="displayName" (ngModelChange)="onFieldChange()" placeholder=""
+               [style.max-width]="'300px'"
+               [style.background-color]="isEditingVersion() ? '#fcfcfc' : ''"
+               [style.color]="isEditingVersion() ? '#6c757d' : ''"
+               [disabled]="isEditingVersion()">
       </div>
 
       <!-- Maintainer -->
@@ -106,7 +107,11 @@
             <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
           </span>
         </label>
-        <select class="form-select" [(ngModel)]="maintainer" (ngModelChange)="onFieldChange()" style="max-width: 300px;" [disabled]="isEditingVersion()">
+        <select class="form-select" [(ngModel)]="maintainer" (ngModelChange)="onFieldChange()"
+                [style.max-width]="'300px'"
+                [style.background-color]="isEditingVersion() ? '#fcfcfc' : ''"
+                [style.color]="isEditingVersion() ? '#6c757d' : ''"
+                [disabled]="isEditingVersion()">
           <option value="">Select maintainer...</option>
           @for (option of maintainerOptions; track option) {
             <option [value]="option">{{ option }}</option>
@@ -118,16 +123,17 @@
       @if (connectorType() !== 'evolveum-hosted') {
         <div class="mb-3">
           <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
-            License Type
-            @if (!isEditingVersion()) {
-              <span class="text-danger ms-1">*</span>
-            }
+            License Type*
             <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
               <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Select the license under which the connector is distributed.</span>
             </span>
           </label>
-          <select class="form-select" [(ngModel)]="licenseType" (ngModelChange)="onFieldChange()" style="max-width: 300px;" [disabled]="isEditingVersion()">
+          <select class="form-select" [(ngModel)]="licenseType" (ngModelChange)="onFieldChange()"
+                  [style.max-width]="'300px'"
+                  [style.background-color]="isEditingVersion() ? '#fcfcfc' : ''"
+                  [style.color]="isEditingVersion() ? '#6c757d' : ''"
+                  [disabled]="isEditingVersion()">
             <option value="">Select license...</option>
             @for (option of licenseOptions; track option) {
               <option [value]="option">{{ option }}</option>
@@ -139,8 +145,7 @@
       <!-- Row 3: Implementation Description -->
       <div class="mb-4">
         <label class="form-label" style="font-weight: 600; font-size: 0.875rem;">
-          Implementation description
-          <span class="text-danger ms-1">*</span>
+          Implementation description*
         </label>
         <textarea class="form-control" [(ngModel)]="implementationDescription" (ngModelChange)="onFieldChange()" rows="4" maxlength="350" placeholder="Type description..."></textarea>
         <div class="text-end text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
@@ -176,10 +181,7 @@
       @if (connectorType() !== 'evolveum-hosted') {
         <div class="mb-3">
           <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
-            Browse Link
-            @if (connectorType() === 'java-based') {
-              <span class="text-danger ms-1">*</span>
-            }
+            Browse Link*
             <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
               <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Link to browse the connector source code (e.g. GitHub, GitLab repository).</span>
@@ -203,7 +205,10 @@
         </label>
         <div class="input-group">
           <span class="input-group-text"><i class="fa-solid fa-link" style="font-size: 14px;"></i></span>
-          <input type="url" class="form-control" [(ngModel)]="ticketingLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here..." [disabled]="isEditingVersion()">
+          <input type="url" class="form-control" [(ngModel)]="ticketingLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here..."
+                 [style.background-color]="isEditingVersion() ? '#fcfcfc' : ''"
+                 [style.color]="isEditingVersion() ? '#6c757d' : ''"
+                 [disabled]="isEditingVersion()">
         </div>
       </div>
 
@@ -215,8 +220,7 @@
         @if (connectorType() === 'java-based') {
           <div class="mb-3">
           <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
-            Build Framework Selection
-            <span class="text-danger ms-1">*</span>
+            Build Framework Selection*
             <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
               <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Choose the tool used to build the connector project (e.g. Maven, Gradle).</span>
@@ -238,10 +242,7 @@
       <!-- Checkout Link -->
       <div class="mb-3">
         <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
-          Checkout Link
-          @if (connectorType() === 'java-based') {
-            <span class="text-danger ms-1">*</span>
-          }
+          Checkout Link*
           <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
             <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
             <span class="info-tooltip">Local file system path where the connector project is stored.</span>
