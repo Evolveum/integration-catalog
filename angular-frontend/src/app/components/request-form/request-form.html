@@ -11,9 +11,7 @@
       <!-- Green header row -->
       <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #198754; color: white;">
         <div class="d-flex align-items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
-            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-          </svg>
+          <i class="fa-solid fa-circle-check" style="font-size: 18px;"></i>
           <strong>Request Successful!</strong>
         </div>
         <button type="button" class="btn-close btn-close-white" (click)="closeSuccessMessage()" aria-label="Close"></button>
@@ -29,162 +27,163 @@
 <!-- Request Tailored Solution Modal -->
 @if (isRequestModalOpen()) {
   <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;" (click)="closeRequestModal()"></div>
-  <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 800px; max-height: 753px; margin: auto;">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem;">
-          <h6 class="modal-title mb-0" style="color: #5b656f;">Request Tailored Solution</h6>
-          <button type="button" class="btn p-0 ms-auto" style="border: none; background: none;" (click)="closeRequestModal()" aria-label="Close">
-            <img src="close button.svg" alt="Close" width="16" height="16">
-          </button>
-        </div>
-        <div class="modal-body mx-auto" style="padding: 1.5rem; width: 762px; " >
-          <!-- Row 1 -->
-          <h4 style="font-weight: 400; font-size: 20px; color: #000000; text-align: center;">Didn't find the integration you need?</h4>
-
-          <!-- Row 2 -->
-          <h4 style="font-weight: 400; font-size: 20px; color: #000000; text-align: center; margin-bottom: 1.5rem;">Tell us what you're looking for and we'll help you connect it.</h4>
-
-          <!-- Row 3 & 4 -->
-          <div class="mb-3">
-            <label class="form-label" style="color: #000000;">
-              Integration Application Name*
-              <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Application name information">
-                <img src="info icon.svg" alt="" width="14" height="12">
-              </button>
-            </label>
-            <input type="text" class="form-control" style="width: 356px;" [(ngModel)]="formData.integrationApplicationName" required>
+    <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 800px; max-height: 753px; margin: auto;">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem;">
+            <h6 class="modal-title mb-0" style="color: #5b656f;">Request Tailored Solution</h6>
+            <button type="button" class="btn p-0 ms-auto" style="border: none; background: none;" (click)="closeRequestModal()" aria-label="Close">
+              <i class="fa-solid fa-xmark" style="font-size: 14px; color: #6c757d;"></i>
+            </button>
           </div>
+          <div class="modal-body" style="padding: 0;">
+            <!-- Row 1 -->
+            <h4 style="font-weight: 400; font-size: 20px; color: #000000; text-align: center; padding: 1.5rem 1.5rem 0 1.5rem; margin: 0;">Didn't find the integration you need?</h4>
 
-          <!-- Row 5 -->
-          <div class="mb-3">
-            <label class="form-label" style="color: #000000; font-weight: 600;">
-              Deployment Type
-              <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Deployment type information">
-                <img src="info icon.svg" alt="" width="14" height="12">
-              </button>
-            </label>
-            <div class="d-flex gap-4">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="deploymentType" id="deploymentOnPremise" value="on-premise" [(ngModel)]="formData.deploymentType" required>
-                <label class="form-check-label" for="deploymentOnPremise" style="color: #000000;">On-premise</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="deploymentType" id="deploymentCloudBased" value="cloud-based" [(ngModel)]="formData.deploymentType" required>
-                <label class="form-check-label" for="deploymentCloudBased" style="color: #000000;">Cloud-based</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="deploymentType" id="deploymentBoth" value="both" [(ngModel)]="formData.deploymentType" required>
-                <label class="form-check-label" for="deploymentBoth" style="color: #000000;">Both</label>
-              </div>
+            <!-- Row 2 -->
+            <h4 style="font-weight: 400; font-size: 20px; color: #000000; text-align: center; padding: 0 1.5rem 1.5rem 1.5rem; margin: 0;">Tell us what you're looking for and we'll help you connect it.</h4>
+
+            <div style="padding: 0 1.5rem;">
+            <!-- Row 3 & 4 -->
+            <div class="mb-3">
+              <label class="form-label" style="color: #000000;">
+                Integration Application Name*
+                <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Application name information">
+                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+                </button>
+              </label>
+              <input type="text" class="form-control" style="width: 356px;" [(ngModel)]="formData.integrationApplicationName" required>
             </div>
-          </div>
 
-          <!-- Row 6 & 7 -->
-          <div class="mb-3">
-            <label class="form-label" style="color: #000000; font-weight: 600;">
-              Requested Capabilities
-              <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Capabilities information">
-                <img src="info icon.svg" alt="" width="14" height="12">
-              </button>
-            </label>
-
-            <!-- Custom dropdown field -->
-            <div class="position-relative">
-              <div class="form-control d-flex flex-wrap align-items-center gap-2"
-                   (click)="toggleCapabilitiesDropdown()"
-                   style="min-height: 41px; cursor: pointer; padding: 6px 2.25rem 6px 6px;">
-
-                @if (selectedCapabilities().length === 0) {
-                  <span style="color: #6c757d; padding-left: 6px;">Select</span>
-                } @else {
-                  @for (capability of selectedCapabilities(); track capability) {
-                    <span class="badge d-inline-flex align-items-center" style="background-color: rgba(96, 92, 171, 0.1); color: black; font-size: 14px; font-weight: 400; padding: 6px 10px; border-radius: 4px;">
-                      {{ formatCapabilityName(capability) }}
-                      <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center" style="border: none; background: none;" (click)="removeCapability(capability, $event)" aria-label="Remove">
-                        <img src="Vector.svg" alt="Remove" width="10" height="10">
-                      </button>
-                    </span>
-                  }
-                }
-
-                <!-- Dropdown arrow -->
-                <img src="Clear.svg" alt="" width="11" height="16"
-                     class="position-absolute top-50 end-0 translate-middle-y me-2"
-                     [style.transform]="isCapabilitiesDropdownOpen() ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)'"
-                     style="transition: transform 0.2s;">
-              </div>
-
-              <!-- Dropdown menu with checkboxes -->
-              @if (isCapabilitiesDropdownOpen()) {
-                <div class="position-absolute w-100 bg-white mt-1"
-                     style="z-index: 1000; max-height: 350px; overflow-y: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
-                  @if (isLoadingCapabilities()) {
-                    <div class="p-4 text-center text-muted">
-                      <span>Loading capabilities...</span>
-                    </div>
-                  } @else if (availableCapabilities().length === 0) {
-                    <div class="p-4 text-center text-muted">
-                      <span>No capabilities available</span>
-                    </div>
-                  } @else {
-                    <div class="p-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2rem;">
-                      @for (capability of availableCapabilities(); track capability) {
-                        <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
-                          <input type="checkbox"
-                                 [id]="'capability-' + capability.toLowerCase()"
-                                 (change)="onCapabilityChange($event, capability)"
-                                 [checked]="selectedCapabilities().includes(capability)"
-                                 style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; margin-right: 12px; border-radius: 4px; border: 2px solid #d0d5dd; accent-color: #605cab;">
-                          <span style="color: #000000; font-size: 14px; font-weight: 400; background-color: rgba(96, 92, 168, 0.1); padding: 4px 8px; border-radius: 4px;">{{ formatCapabilityName(capability) }}</span>
-                        </label>
-                      }
-                    </div>
-                  }
-
-                  <!-- Bottom separator -->
-                  <div style="border-top: 1px solid #e4e7ec; margin: 0 1rem;"></div>
-                  <div class="p-3"></div>
+            <!-- Row 5 -->
+            <div class="mb-3">
+              <label class="form-label" style="color: #000000; font-weight: 600;">
+                Deployment Type
+                <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Deployment type information">
+                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+                </button>
+              </label>
+              <div class="d-flex gap-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="deploymentType" id="deploymentOnPremise" value="on-premise" [(ngModel)]="formData.deploymentType" required>
+                  <label class="form-check-label" for="deploymentOnPremise" style="color: #000000;">On-premise</label>
                 </div>
-              }
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="deploymentType" id="deploymentCloudBased" value="cloud-based" [(ngModel)]="formData.deploymentType" required>
+                  <label class="form-check-label" for="deploymentCloudBased" style="color: #000000;">Cloud-based</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="deploymentType" id="deploymentBoth" value="both" [(ngModel)]="formData.deploymentType" required>
+                  <label class="form-check-label" for="deploymentBoth" style="color: #000000;">Both</label>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <!-- Row 8 & 9 -->
-          <div class="mb-3">
-            <label class="form-label" style="color: #000000; font-weight: 600;">Short description*</label>
-            <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the integration you need and your use case." required></textarea>
-          </div>
+            <!-- Row 6 & 7 -->
+            <div class="mb-3">
+              <label class="form-label" style="color: #000000; font-weight: 600;">
+                Requested Capabilities
+                <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Capabilities information">
+                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+                </button>
+              </label>
 
-          <!-- Row 10 & 11 -->
-          <div class="mb-3">
-            <label class="form-label" style="color: #000000;">
-              <span style="font-weight: 600;">System Version</span> <span style="font-weight: 400;">(Optional)</span>
-              <button type="button" class="btn btn-link p-0 ms-1" style="border: none; position: relative; top: -3px;" title="System version information">
-                <img src="info icon.svg" alt="" width="14" height="12">
+              <!-- Custom dropdown field -->
+              <div class="position-relative">
+                <div class="form-control d-flex flex-wrap align-items-center gap-2"
+                    (click)="toggleCapabilitiesDropdown()"
+                    style="min-height: 41px; cursor: pointer; padding: 6px 2.25rem 6px 6px;">
+
+                  @if (selectedCapabilities().length === 0) {
+                    <span style="color: #6c757d; padding-left: 6px;">Select</span>
+                  } @else {
+                    @for (capability of selectedCapabilities(); track capability) {
+                      <span class="badge d-inline-flex align-items-center" style="background-color: rgba(96, 92, 171, 0.1); color: black; font-size: 14px; font-weight: 400; padding: 6px 10px; border-radius: 4px;">
+                        {{ formatCapabilityName(capability) }}
+                        <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center" style="border: none; background: none;" (click)="removeCapability(capability, $event)" aria-label="Remove">
+                          <i class="fa-solid fa-circle-xmark" style="font-size: 12px; color: #495057;"></i>
+                        </button>
+                      </span>
+                    }
+                  }
+
+                  <!-- Dropdown arrow -->
+                  <i class="fa-solid fa-sort-down position-absolute top-50 end-0 me-2"
+                      style="font-size: 12px; color: #353A41; transform: translateY(-50%); pointer-events: none; margin-top: -3px;" ></i>
+                </div>
+
+                <!-- Dropdown menu with checkboxes -->
+                @if (isCapabilitiesDropdownOpen()) {
+                  <div class="position-absolute w-100 bg-white mt-1"
+                      style="z-index: 1000; max-height: 350px; overflow-y: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
+                    @if (isLoadingCapabilities()) {
+                      <div class="p-4 text-center text-muted">
+                        <span>Loading capabilities...</span>
+                      </div>
+                    } @else if (availableCapabilities().length === 0) {
+                      <div class="p-4 text-center text-muted">
+                        <span>No capabilities available</span>
+                      </div>
+                    } @else {
+                      <div class="p-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2rem;">
+                        @for (capability of availableCapabilities(); track capability) {
+                          <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
+                            <input type="checkbox"
+                                  [id]="'capability-' + capability.toLowerCase()"
+                                  (change)="onCapabilityChange($event, capability)"
+                                  [checked]="selectedCapabilities().includes(capability)"
+                                  style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; margin-right: 12px; border-radius: 4px; border: 2px solid #d0d5dd; accent-color: #605cab;">
+                            <span style="color: #000000; font-size: 14px; font-weight: 400; background-color: rgba(96, 92, 168, 0.1); padding: 4px 8px; border-radius: 4px;">{{ formatCapabilityName(capability) }}</span>
+                          </label>
+                        }
+                      </div>
+                    }
+
+                    <!-- Bottom separator -->
+                    <div style="border-top: 1px solid #e4e7ec; margin: 0 1rem;"></div>
+                    <div class="p-3"></div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Row 8 & 9 -->
+            <div class="mb-3">
+              <label class="form-label" style="color: #000000; font-weight: 600;">Short description*</label>
+              <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the integration you need and your use case." required></textarea>
+            </div>
+
+            <!-- Row 10 & 11 -->
+            <div class="mb-3">
+              <label class="form-label" style="color: #000000;">
+                <span style="font-weight: 600;">System Version</span> <span style="font-weight: 400;">(Optional)</span>
+                <button type="button" class="btn btn-link p-0 ms-1" style="border: none; position: relative; top: -3px;" title="System version information">
+                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+                </button>
+              </label>
+              <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
+            </div>
+
+            </div>
+            <!-- Row 12 -->
+            <hr style="border: 0; border-top: 1px solid #adb5bd; margin: 0;">
+            <div style="padding: 1.5rem;">
+            <!-- Error Message -->
+            @if (submitError()) {
+              <div class="alert alert-danger mb-3" role="alert">
+                {{ submitError() }}
+              </div>
+            }
+
+            <!-- Row 13 -->
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn" style="background-color: #fff; border: none; padding-left: 0;" (click)="closeRequestModal()" [disabled]="isSubmitting()">
+                <span style="color: #206F9D;">Cancel</span>
               </button>
-            </label>
-            <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
-          </div>
-
-          <!-- Row 12 --> <!--(800px - 756px) is total window width - inner div width-->
-          <hr style="border: 0; border-top: 1px solid #adb5bd; margin: 1rem calc(-1 * (800px - 766px) / 2 - 1.5rem);">
-
-          <!-- Error Message -->
-          @if (submitError()) {
-            <div class="alert alert-danger mb-3" role="alert">
-              {{ submitError() }}
+              <button type="button" class="btn" style="color: var(--btn-download-color); background-color: var(--midpoint-special-color); font-weight: 600;" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description">
+                {{ isSubmitting() ? 'Submitting...' : 'Submit request' }}
+              </button>
             </div>
-          }
-
-          <!-- Row 13 -->
-          <div class="d-flex justify-content-between">
-            <button type="button" class="btn" style="background-color: #fff; border: none; padding-left: 0;" (click)="closeRequestModal()" [disabled]="isSubmitting()">
-              <img src="Button.svg" alt="Cancel" width="45" height="24">
-            </button>
-            <button type="button" class="btn" style="color: var(--btn-download-color); background-color: var(--btn-download-bg);" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description">
-              {{ isSubmitting() ? 'Submitting...' : 'Submit Request' }}
-            </button>
           </div>
         </div>
       </div>

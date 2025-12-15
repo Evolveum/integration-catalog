@@ -90,9 +90,7 @@
             <span class="text-danger ms-1">*</span>
           }
           <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-            </svg>
+            <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
             <span class="info-tooltip">Display name for the implementation.</span>
           </span>
         </label>
@@ -104,9 +102,7 @@
         <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
           Maintainer
           <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-            </svg>
+            <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
             <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
           </span>
         </label>
@@ -127,9 +123,7 @@
               <span class="text-danger ms-1">*</span>
             }
             <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-              </svg>
+              <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Select the license under which the connector is distributed.</span>
             </span>
           </label>
@@ -158,10 +152,7 @@
       @if (connectorType() === 'evolveum-hosted') {
         <div class="mb-4">
           <div class="d-flex flex-column align-items-center justify-content-center p-4" style="border: 2px dashed #dee2e6; border-radius: 8px; background-color: #f8f9fa;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#6c757d" viewBox="0 0 16 16" class="mb-2">
-              <path d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.569 14.502 11 12.687 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z"/>
-              <path d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708l3 3z"/>
-            </svg>
+            <i class="fa-solid fa-cloud-arrow-up mb-2" style="font-size: 40px; color: #6c757d;"></i>
             <h6 class="mb-1" style="font-weight: 600; font-size: 0.9375rem; color: #212529;">Upload File</h6>
             <p class="mb-3 text-muted" style="font-size: 0.8125rem; text-align: center;">Accepted type files: .json</p>
             @if (uploadedFileName()) {
@@ -169,10 +160,7 @@
             }
             <input type="file" id="fileUpload" (change)="onFileSelected($event)" accept=".json" style="display: none;">
             <button type="button" class="btn btn-outline-primary btn-sm" (click)="triggerFileInput()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-1" viewBox="0 0 16 16">
-                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
-              </svg>
+              <i class="fa-solid fa-upload me-1" style="font-size: 12px;"></i>
               Upload
             </button>
           </div>
@@ -193,14 +181,12 @@
               <span class="text-danger ms-1">*</span>
             }
             <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-              </svg>
+              <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Link to browse the connector source code (e.g. GitHub, GitLab repository).</span>
             </span>
           </label>
           <div class="input-group">
-            <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+            <span class="input-group-text"><i class="fa-solid fa-link" style="font-size: 14px;"></i></span>
             <input type="url" class="form-control" [(ngModel)]="browseLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
           </div>
         </div>
@@ -211,14 +197,12 @@
         <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
           Link on Ticketing System
           <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-            </svg>
+            <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
             <span class="info-tooltip">URL to the issue or task in your ticketing system related to this connector.</span>
           </span>
         </label>
         <div class="input-group">
-          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <span class="input-group-text"><i class="fa-solid fa-link" style="font-size: 14px;"></i></span>
           <input type="url" class="form-control" [(ngModel)]="ticketingLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here..." [disabled]="isEditingVersion()">
         </div>
       </div>
@@ -234,9 +218,7 @@
             Build Framework Selection
             <span class="text-danger ms-1">*</span>
             <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-              </svg>
+              <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Choose the tool used to build the connector project (e.g. Maven, Gradle).</span>
             </span>
           </label>
@@ -261,14 +243,12 @@
             <span class="text-danger ms-1">*</span>
           }
           <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-              <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-            </svg>
+            <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
             <span class="info-tooltip">Local file system path where the connector project is stored.</span>
           </span>
         </label>
         <div class="input-group">
-          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <span class="input-group-text"><i class="fa-solid fa-link" style="font-size: 14px;"></i></span>
           <input type="text" class="form-control" [(ngModel)]="checkoutLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
         </div>
       </div>
@@ -278,14 +258,12 @@
           <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
             Path to Project Directory
             <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-              </svg>
+              <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Direct link to clone or download the connector repository.</span>
             </span>
           </label>
           <div class="input-group">
-            <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+            <span class="input-group-text"><i class="fa-solid fa-link" style="font-size: 14px;"></i></span>
             <input type="text" class="form-control" [(ngModel)]="pathToProjectDirectory" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
           </div>
         </div>
@@ -294,14 +272,12 @@
         <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
           Class name
           <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#17a2b8" viewBox="0 0 16 16">
-                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
-              </svg>
+              <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
               <span class="info-tooltip">Class name.</span>
             </span>
         </label>
         <div class="input-group">
-          <span class="input-group-text"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/></svg></span>
+          <span class="input-group-text"><i class="fa-solid fa-link" style="font-size: 14px;"></i></span>
           <input type="text" class="form-control" [(ngModel)]="className" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
         </div>
       </div>
@@ -310,10 +286,7 @@
       <!-- Note (only for evolveum-hosted) -->
       @if (connectorType() === 'evolveum-hosted') {
         <div class="alert d-flex align-items-start" style="background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; padding: 0.75rem 1rem;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0c5460" class="me-2 flex-shrink-0" viewBox="0 0 16 16" style="margin-top: 2px;">
-            <circle cx="8" cy="8" r="8" fill="#0c5460"/>
-            <text x="8" y="12" text-anchor="middle" fill="white" font-size="12" font-weight="bold">i</text>
-          </svg>
+          <i class="fa-solid fa-circle-info me-2 flex-shrink-0" style="font-size: 16px; color: var(--text-publishing-blue); margin-top: 2px;"></i>
           <div style="color: #0c5460; font-size: 0.875rem;">
             <strong>Note:</strong> After upload, automated validation will run before the app appears in the catalog.
           </div>

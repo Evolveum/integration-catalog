@@ -10,9 +10,7 @@
     <div style="background-color: #d9e3ec; padding: 0.75rem 0;">
       <div class="container">
         <button class="btn d-flex align-items-center" (click)="goBack()" style="border: none; padding: 0; background: none; color: #2c5282;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 0.5rem;">
-            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-          </svg>
+          <i class="fa-solid fa-arrow-left" style="font-size: 14px; margin-right: 0.5rem;"></i>
           Back to Integration Catalog
         </button>
       </div>
@@ -43,7 +41,7 @@
         <p>{{ error() }}</p>
         <hr>
         <button class="btn btn-primary" (click)="goBack()">
-          <i class="bi bi-arrow-left"></i> Back to Integration Catalog
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to Integration Catalog
         </button>
       </div>
     </div>
@@ -73,7 +71,7 @@
               @for (tag of application()!.tags!; track tag.id) {
                 @if (tag.name === 'popular') {
                   <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffc107; color: #000; font-size: 0.75rem; font-weight: 600; vertical-align: middle; padding: 0.35rem 0.65rem;">
-                    <img src="popular_icon.svg" alt="" width="12" height="12">
+                    <i class="fa-solid fa-fire" style="font-size: 12px;"></i>
                     {{ tag.displayName }}
                   </span>
                 }
@@ -93,27 +91,19 @@
           <div class="d-flex align-items-center gap-4" style="color: #4a5568; font-size: 0.875rem;">
             <!-- Star Rating (Placeholder) -->
             <div class="d-flex align-items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#f59e0b" viewBox="0 0 16 16">
-                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-              </svg>
+              <i class="fa-solid fa-star" style="font-size: 14px; color: #f59e0b;"></i>
               <span style="font-weight: 500;"><b>"4.4</b> (404 reviews)"</span>
             </div>
 
             <!-- Installations (Placeholder) -->
             <div class="d-flex align-items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-              </svg>
+              <i class="fa-solid fa-download" style="font-size: 14px;"></i>
               <span style="font-weight: 500;">{{ applicationDownloadsCount() }} download(s)</span>
             </div>
 
             <!-- Updated Date -->
             <div class="d-flex align-items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
-                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
-              </svg>
+              <i class="fa-regular fa-clock" style="font-size: 14px;"></i>
               <span style="font-weight: 500;">{{ getTimeSinceLastUpdate(application()!.lastModified) }}</span>
             </div>
           </div>
@@ -212,14 +202,10 @@
                               {{ filterState().capabilities.length }}
                             </span>
                             <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-                              </svg>
+                              <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
                             </button>
                             <button type="button" (click)="clearCapabilitiesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-                              </svg>
+                              <i class="fa-solid fa-xmark" style="font-size: 12px;"></i>
                             </button>
                           </div>
                         }
@@ -232,14 +218,10 @@
                               {{ filterState().midpointVersions.length }}
                             </span>
                             <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-                              </svg>
+                              <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
                             </button>
                             <button type="button" (click)="clearVersionsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-                              </svg>
+                              <i class="fa-solid fa-xmark" style="font-size: 12px;"></i>
                             </button>
                           </div>
                         }
@@ -249,7 +231,7 @@
                     <!-- Right: Filter Buttons -->
                     <div class="d-flex align-items-center gap-2 flex-shrink-0">
                       <button type="button" (click)="toggleFilterModal()" class="btn btn-sm d-flex align-items-center gap-2" style="background-color: white; border: 1px solid #cbd5e0; color: #000000; padding: 0.4rem 0.75rem; border-radius: 50px; white-space: nowrap;">
-                        <img src="filter-solid.svg" alt="" width="30" height="30">
+                        <i class="fa-solid fa-filter" style="font-size: 18px;"></i>
                         Filter
                       </button>
                       <button type="button" (click)="resetFilters()" class="btn btn-sm" style="background-color: transparent; border: none; color: #6c757d; padding: 0.4rem 0.75rem; white-space: nowrap;">
@@ -353,17 +335,13 @@
                             <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
                               @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
                                 <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
                                   <span>AI Generated</span>
                                 </div>
                               }
                               @if (version.author) {
                                 <div class="d-flex align-items-center gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
                                   <span>Created by [{{ version.author }}]</span>
                                 </div>
                               }
@@ -376,10 +354,7 @@
                                 <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
                               }
                               <div class="d-flex align-items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
+                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
                                 <span>{{ version.downloadCount || 0 }} Downloads</span>
                               </div>
                             </div>
@@ -409,16 +384,9 @@
                               @if (remainingCount > 0) {
                                 <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
                                   @if (isVersionExpanded) {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
                                   } @else {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
                                   }
                                   {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
                                 </span>
@@ -431,24 +399,16 @@
                         @if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
                             <div class="d-flex align-items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
-                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-                              </svg>
+                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
                               <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                                </svg>
+                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
                                 Retry Publish
                               </button>
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                                </svg>
+                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
                                 Edit
                               </button>
                             </div>
@@ -458,11 +418,8 @@
                             <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
                               Edit
                             </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
                               Download
                             </button>
                           </div>
@@ -497,17 +454,13 @@
                             <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
                               @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
                                 <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
                                   <span>AI Generated</span>
                                 </div>
                               }
                               @if (version.author) {
                                 <div class="d-flex align-items-center gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
                                   <span>Created by [{{ version.author }}]</span>
                                 </div>
                               }
@@ -520,10 +473,7 @@
                                 <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
                               }
                               <div class="d-flex align-items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
+                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
                                 <span>{{ version.downloadCount || 0 }} Downloads</span>
                               </div>
                             </div>
@@ -553,16 +503,9 @@
                               @if (remainingCount > 0) {
                                 <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
                                   @if (isVersionExpanded) {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
                                   } @else {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
                                   }
                                   {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
                                 </span>
@@ -575,24 +518,16 @@
                         @if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
                             <div class="d-flex align-items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
-                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-                              </svg>
+                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
                               <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                                </svg>
+                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
                                 Retry Publish
                               </button>
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                                </svg>
+                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
                                 Edit
                               </button>
                             </div>
@@ -602,11 +537,8 @@
                             <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
                               Edit
                             </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
                               Download
                             </button>
                           </div>
@@ -647,17 +579,13 @@
                             <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
                               @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
                                 <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
                                   <span>AI Generated</span>
                                 </div>
                               }
                               @if (version.author) {
                                 <div class="d-flex align-items-center gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
                                   <span>Created by [{{ version.author }}]</span>
                                 </div>
                               }
@@ -670,10 +598,7 @@
                                 <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
                               }
                               <div class="d-flex align-items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
+                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
                                 <span>{{ version.downloadCount || 0 }} Downloads</span>
                               </div>
                             </div>
@@ -703,16 +628,9 @@
                               @if (remainingCount > 0) {
                                 <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
                                   @if (isVersionExpanded) {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
                                   } @else {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
                                   }
                                   {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
                                 </span>
@@ -725,29 +643,21 @@
                         @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
                           <div class="text-center mt-3 py-3">
                             <p class="text-muted mb-3">Importing... This may take a moment.</p>
-                            <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
+                            <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
                           </div>
                         } @else if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
                             <div class="d-flex align-items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
-                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-                              </svg>
+                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
                               <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                                </svg>
+                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
                                 Retry Publish
                               </button>
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                                </svg>
+                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
                                 Edit
                               </button>
                             </div>
@@ -757,11 +667,8 @@
                             <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
                               Edit
                             </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
                               Download
                             </button>
                           </div>
@@ -796,17 +703,13 @@
                             <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
                               @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
                                 <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
                                   <span>AI Generated</span>
                                 </div>
                               }
                               @if (version.author) {
                                 <div class="d-flex align-items-center gap-1">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                  </svg>
+                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
                                   <span>Created by [{{ version.author }}]</span>
                                 </div>
                               }
@@ -819,10 +722,7 @@
                                 <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
                               }
                               <div class="d-flex align-items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
+                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
                                 <span>{{ version.downloadCount || 0 }} Downloads</span>
                               </div>
                             </div>
@@ -852,16 +752,9 @@
                               @if (remainingCount > 0) {
                                 <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
                                   @if (isVersionExpanded) {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
-                                      <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
-                                      <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
                                   } @else {
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
-                                      <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
-                                    </svg>
+                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
                                   }
                                   {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
                                 </span>
@@ -874,29 +767,21 @@
                         @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
                           <div class="text-center mt-3 py-3">
                             <p class="text-muted mb-3">Importing... This may take a moment.</p>
-                            <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
+                            <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
                           </div>
                         } @else if (version.errorMessage) {
                           <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
                             <div class="d-flex align-items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#842029" viewBox="0 0 16 16">
-                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-                              </svg>
+                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
                               <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                                  <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                                </svg>
+                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
                                 Retry Publish
                               </button>
                               <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                                </svg>
+                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
                                 Edit
                               </button>
                             </div>
@@ -906,11 +791,8 @@
                             <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
                               Edit
                             </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--btn-download-bg); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px; margin-right: 4px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
+                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
+                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
                               Download
                             </button>
                           </div>
@@ -1012,9 +894,7 @@
         <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
           <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
             @if (isCapabilitySelected(capability)) {
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-              </svg>
+              <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
             }
           </div>
           <span>{{ formatCapabilityText(capability) }}</span>
@@ -1032,9 +912,7 @@
         <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleMidpointVersionFilter(version); $event.stopPropagation()">
           <div [style.background-color]="isMidpointVersionSelected(version) ? '#0d6efd' : 'transparent'" [style.border-color]="isMidpointVersionSelected(version) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
             @if (isMidpointVersionSelected(version)) {
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-              </svg>
+              <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
             }
           </div>
           <span>{{ version }}</span>

@@ -8,7 +8,7 @@
   --color-light-blue: #3C8DBC;
   --color-dark-blue: #206F9D;
   --color-black: #000000;
-  --btn-download-bg: color-mix(in srgb, var(--color-light-blue) 50%, var(--color-dark-blue));
+  --midpoint-special-color: color-mix(in srgb, var(--color-light-blue) 50%, var(--color-dark-blue));
   --btn-download-color: #ffffff;
 
   --btn-more-details-blue: #367FAA;

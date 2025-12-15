@@ -12,9 +12,7 @@
         <!-- Warning header row -->
         <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #ffc107; color: #212529;">
           <div class="d-flex align-items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
-              <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-            </svg>
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px;"></i>
             <strong>Login Required</strong>
           </div>
           <button type="button" class="btn-close" (click)="closeLoginRequiredMessage()" aria-label="Close"></button>
@@ -115,7 +113,7 @@
         <div class="d-flex gap-2 align-items-center">
           <div class="input-group flex-grow-1">
             <span class="input-group-text bg-white border-end-0" style="border-radius: 50px 0 0 50px; border-color: #dee2e6;">
-              <img src="search.svg" alt="" width="24" height="24">
+              <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #6c757d;"></i>
             </span>
             <input
               type="text"
@@ -127,7 +125,8 @@
             />
           </div>
           <button class="btn d-flex align-items-center gap-2" type="button" title="Filter" style="background-color: white; border: 1px solid #ced4da; color: #212529; padding: 0.5rem 1.5rem; border-radius: 50px;" (click)="openFilterModal()">
-            <img src="filter-solid.svg" alt="" width="30" height="30">
+            <i class="fa-solid fa-filter" style="font-size: 18px;"></i>
+            <!-- <i class="fa-regular fa-bars-filter" style="font-size: 18px;"></i> -->
             Filter
           </button>
           <button class="btn" type="button" style="background-color: transparent; border: none; color: #6c757d; padding: 0.5rem 1rem; white-space: nowrap;" (click)="resetFilter()">
@@ -151,9 +150,7 @@
                   <span>Trending</span>
                   <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">1</span>
                   <button type="button" (click)="clearTrendingFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-                    </svg>
+                    <i class="fa-solid fa-xmark" style="font-size: 12px;"></i>
                   </button>
                 </div>
               } -->
@@ -166,10 +163,10 @@
                     {{ filterState().categories.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="chevron-down.svg" alt="" width="24" height="24">
+                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
                   </button>
                   <button type="button" (click)="clearCategoriesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="close button.svg" alt="Importing" width="16" height="16">
+                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
                   </button>
                 </div>
               }
@@ -182,10 +179,10 @@
                     {{ filterState().capabilities.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="chevron-down.svg" alt="" width="24" height="24">
+                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
                   </button>
                   <button type="button" (click)="clearCapabilitiesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="close button.svg" alt="Importing" width="16" height="16">
+                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
                   </button>
                 </div>
               }
@@ -198,10 +195,10 @@
                     {{ filterState().appStatus.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="chevron-down.svg" alt="" width="24" height="24">
+                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
                   </button>
                   <button type="button" (click)="clearAppStatusFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="close button.svg" alt="Importing" width="16" height="16">
+                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
                   </button>
                 </div>
               }
@@ -214,10 +211,10 @@
                     {{ filterState().midpointVersions.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="chevron-down.svg" alt="" width="24" height="24">
+                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
                   </button>
                   <button type="button" (click)="clearMidpointVersionsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="close button.svg" alt="Importing" width="16" height="16">
+                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
                   </button>
                 </div>
               }
@@ -230,10 +227,10 @@
                     {{ filterState().integrationMethods.length }}
                   </span>
                   <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="chevron-down.svg" alt="" width="24" height="24">
+                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
                   </button>
                   <button type="button" (click)="clearIntegrationMethodsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <img src="close button.svg" alt="Importing" width="16" height="16">
+                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
                   </button>
                 </div>
               }
@@ -269,9 +266,7 @@
                 [style.opacity]="canScrollLeft() ? '1' : '0'"
                 (click)="scrollLeft()"
                 [disabled]="!canScrollLeft()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
-          </svg>
+          <i class="fa-solid fa-chevron-left" style="font-size: 16px;"></i>
         </button>
 
         <div class="scroll-container" #scrollContainer (scroll)="onScroll()" style="overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth;">
@@ -282,7 +277,7 @@
                 <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                   @if (isPopular(app)) {
                     <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #ffdd8c; color: #7A510B;">
-                      <img src="popular_icon.svg" alt="" width="12" height="12">
+                      <i class="fa-solid fa-fire-flame-curved" style="font-size: 12px;"></i>
                       Popular
                     </span>
                   }
@@ -311,8 +306,7 @@
                   <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
                   <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
                   <a class="text-decoration-none" style="color: var(--btn-more-details-color); cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
-                    More Details
-                    <img src="icon_arrowmore_details.svg" alt="Downlaod" width="20" height="20">
+                    <u>See App Details</u>
                   </a>
                   <!-- Bottom section based on lifecycle state -->
                   @if (app.lifecycleState === 'REQUESTED') {
@@ -322,7 +316,7 @@
                             [style.opacity]="currentUser() ? '1' : '0.6'"
                             [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
                             (click)="voteForRequest(app)">
-                      <img src="thumbs_up.svg" alt="" width="20" height="20" class="me-1">
+                      <i class="fa-solid fa-thumbs-up me-1" style="font-size: 16px;"></i>
                       <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                     </button>
                   } @else if (app.lifecycleState === 'WITH_ERROR') {
@@ -332,12 +326,12 @@
                   } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
                     <div class="text-center mt-auto">
                       <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                      <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
+                      <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
                     </div>
                   } @else {
                     <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
                       <span style="font-weight: 600; color: #353a41;">Continue to download&nbsp;&nbsp;</span>
-                      <img src="Frame 1171276455.svg" alt="" width="20" height="20">                      
+                      <i class="fa-solid fa-arrow-right" style="font-size: 14px;"></i>                      
                     </button>
                   }
                 </div>
@@ -351,9 +345,7 @@
                 [style.opacity]="canScrollRight() ? '1' : '0'"
                 (click)="scrollRight()"
                 [disabled]="!canScrollRight()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-          </svg>
+          <i class="fa-solid fa-chevron-right" style="font-size: 16px;"></i>
         </button>
       </div>
     }
@@ -393,7 +385,7 @@
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
                   <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #ffdd8c; color: #7A510B;">
-                    <img src="popular_icon.svg" alt="" width="12" height="12">
+                    <i class="fa-solid fa-fire-flame-curved" style="font-size: 12px;"></i>
                     Popular
                   </span>
                 }
@@ -422,8 +414,7 @@
                 <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
                 <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
                 <a class="text-decoration-none" style="color: var(--btn-more-details-color); cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
-                  More Details
-                  <img src="icon_arrowmore_details.svg" alt="Downlaod" width="20" height="20">
+                  <u>See App Details</u>
                 </a>
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
@@ -433,7 +424,7 @@
                           [style.opacity]="currentUser() ? '1' : '0.6'"
                           [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
                           (click)="voteForRequest(app)">
-                    <img src="thumbs_up.svg" alt="" width="20" height="20" class="me-1">
+                    <i class="fa-solid fa-thumbs-up me-1" style="font-size: 16px;"></i>
                     <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                   </button>
                 } @else if (app.lifecycleState === 'WITH_ERROR') {
@@ -443,12 +434,12 @@
                 } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
                   <div class="text-center mt-auto">
                     <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                    <img src="icon_gear.svg" alt="Importing" width="52" height="42" class="blink-animation">
+                    <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
                   </div>
                 } @else {
                   <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
                     <span style="font-weight: 600; color: #353a41;">Continue to download&nbsp;&nbsp;</span>
-                    <img src="Frame 1171276455.svg" alt="" width="20" height="20">
+                    <i class="fa-solid fa-arrow-right" style="font-size: 14px;"></i>
                   </button>
                 }
               </div>
@@ -461,9 +452,7 @@
         <ul class="pagination justify-content-end">
           <li class="page-item" [class.disabled]="currentPage() === 0">
             <button class="page-link" style="background-color: white; color: black; font-weight: 600;" (click)="previousPage()" [disabled]="currentPage() === 0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-left-short me-1" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M12 8a.5.5 0 0 1-.5.5H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H11.5a.5.5 0 0 1 .5.5"/>
-              </svg>
+              <i class="fa-solid fa-arrow-left me-1" style="font-size: 14px;"></i>
               Previous
             </button>
           </li>
@@ -479,15 +468,13 @@
           <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
             <button class="page-link" style="background-color: white; color: black; font-weight: 600;" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
               Next
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-right-short ms-1" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
-              </svg>
+              <i class="fa-solid fa-arrow-right ms-1" style="font-size: 14px;"></i>
             </button>
           </li>
         </ul>
       </nav>
 
-      <hr style="border: 0; border-top: 2px solid #6c757d; margin: 3rem 0;">
+      <hr style="border: 0; border-top: 1px solid #6c757d; margin: 3rem 0; width: 1080px; margin-left: auto; margin-right: auto;">
 
       <!-- Advanced Options Section -->
       <div class="py-5 mt-5 mx-auto" style="width: 1080px;">
@@ -497,18 +484,19 @@
         </div>
 
         <!-- Upload Configuration -->
-        <div class="d-flex align-items-stretch mb-3" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #e6e6fa; aspect-ratio: 1/1; width: 120px;">
-            <img src="BoxArrowUp.svg" alt="Upload" width="56" height="56">
+        <div class="d-flex align-items-stretch mb-3" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; height: 148px;">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #e6e6fa; aspect-ratio: 1/1; width: 137px;">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 40px; color: #6c757d;"></i>
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
               <h5 class="mb-1" style="font-weight: 600;">Upload Configuration</h5>
-              <p class="text-muted mb-0">Upload an existing connector configuration to quickly set up your integration</p>
+              <p class="text mb-0">Upload an existing connector configuration to quickly set up your<br>integration catalog.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
-              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600;" (click)="openUploadModal()">
-                <img src="icon.svg" alt="" width="16" height="18">
+              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600; height: 44px;" (click)="openUploadModal()">
+                <!-- <i class="fa-solid fa-upload me-1" style="font-size: 14px;"></i> -->
+                <i class="fa-solid fa-arrow-up-from-bracket" style="font-size: 18px;"></i>
                 Upload Configuration
               </button>
             </div>
@@ -516,18 +504,18 @@
         </div>
 
         <!-- Request Tailored Solution -->
-        <div class="d-flex align-items-stretch" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #fff0e6; aspect-ratio: 1/1; width: 120px;">
-            <img src="GitPullRequest.svg" alt="Request" width="56" height="56">
+        <div class="d-flex align-items-stretch" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; height: 148px;">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #fff0e6; aspect-ratio: 1/1; width: 137px;">
+            <i class="fa-solid fa-code-pull-request" style="font-size: 40px; color: #6c757d;"></i>
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
               <h5 class="mb-1">Request Tailored Solution</h5>
-              <p class="text-muted mb-0">Need a specific integration or customization? Reach out to the Evolveum team or partners to build a solution that fits your exact use case and infrastructure.</p>
+              <p class="text mb-0">Need a specific integration or customization? Reach out to the Evolveum team or<br>partners to build a solution that fits your exact use case and infrastructure.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
-              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600;" (click)="openRequestModal()">
-                <img src="icon_request.svg" alt="RequestSmall" width="18" height="18">
+              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600; height: 44px;" (click)="openRequestModal()">
+                <i class="fa-solid fa-code-pull-request me-1" style="font-size: 18px;"></i>
                 Request Tailored Solution
               </button>
             </div>
@@ -556,9 +544,7 @@
           <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCategoryInFilter(category.name); $event.stopPropagation()">
             <div [style.background-color]="isCategorySelected(category.name) ? '#0d6efd' : 'transparent'" [style.border-color]="isCategorySelected(category.name) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
               @if (isCategorySelected(category.name)) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-                </svg>
+                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
               }
             </div>
             <span>{{ category.displayName }}</span>
@@ -576,9 +562,7 @@
           <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCapabilityInFilter(capability); $event.stopPropagation()">
             <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
               @if (isCapabilitySelected(capability)) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-                </svg>
+                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
               }
             </div>
             <span>{{ formatCapability(capability) }}</span>
@@ -596,9 +580,7 @@
           <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleAppStatusInFilter(status); $event.stopPropagation()">
             <div [style.background-color]="isAppStatusSelected(status) ? '#0d6efd' : 'transparent'" [style.border-color]="isAppStatusSelected(status) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
               @if (isAppStatusSelected(status)) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-                </svg>
+                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
               }
             </div>
             <span>{{ formatAppStatus(status) }}</span>
@@ -616,9 +598,7 @@
           <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleMidpointVersionInFilter(version); $event.stopPropagation()">
             <div [style.background-color]="isMidpointVersionSelected(version) ? '#0d6efd' : 'transparent'" [style.border-color]="isMidpointVersionSelected(version) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
               @if (isMidpointVersionSelected(version)) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-                </svg>
+                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
               }
             </div>
             <span>{{ version }}</span>
@@ -636,9 +616,7 @@
           <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleIntegrationMethodInFilter(method); $event.stopPropagation()">
             <div [style.background-color]="isIntegrationMethodSelected(method) ? '#0d6efd' : 'transparent'" [style.border-color]="isIntegrationMethodSelected(method) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
               @if (isIntegrationMethodSelected(method)) {
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="white" viewBox="0 0 16 16">
-                  <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>
-                </svg>
+                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
               }
             </div>
             <span>{{ method }}</span>

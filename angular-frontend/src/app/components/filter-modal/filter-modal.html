@@ -19,9 +19,7 @@
               (click)="selectSection('trending')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'trending' ? '#e9ecef' : 'transparent'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07"/>
-              </svg>
+              <i class="fa-solid fa-chart-line" style="font-size: 14px;"></i>
               <span>Trending</span>
             </div> -->
 
@@ -31,7 +29,7 @@
               (click)="selectSection('categories')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'categories' ? '#e9ecef' : 'transparent'">
-              <img [src]="selectedSection() === 'categories' ? 'copy selected.svg' : 'copy.svg'" alt="" width="24" height="24">
+              <i class="fa-regular fa-folder-open" [style.color]="selectedSection() === 'categories' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
               <span style="font-weight: 600;">Categories</span>
             </div>
 
@@ -41,7 +39,7 @@
               (click)="selectSection('capabilities')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'capabilities' ? '#e9ecef' : 'transparent'">
-              <img [src]="selectedSection() === 'capabilities' ? 'puzzle-line selected.svg' : 'ri_puzzle-line.svg'" alt="" width="24" height="24">
+              <i class="fa-solid fa-puzzle-piece" [style.color]="selectedSection() === 'capabilities' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
               <span style="font-weight: 600;">Capabilities</span>
             </div>
 
@@ -51,7 +49,7 @@
               (click)="selectSection('midpoint')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'midpoint' ? '#e9ecef' : 'transparent'">
-              <img [src]="selectedSection() === 'midpoint' ? 'octicon_versions selected.svg' : 'octicon_versions-16.svg'" alt="" width="24" height="24">
+              <i class="fa-solid fa-code-branch" [style.color]="selectedSection() === 'midpoint' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
               <span style="font-weight: 600;">MidPoint version</span>
             </div>
 
@@ -61,7 +59,7 @@
               (click)="selectSection('appstatus')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'appstatus' ? '#e9ecef' : 'transparent'">
-              <img [src]="selectedSection() === 'appstatus' ? 'tag-outline selected.svg' : 'mdi_tag-outline.svg'" alt="" width="24" height="24">
+              <i class="fa-solid fa-tag" [style.color]="selectedSection() === 'appstatus' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
               <span style="font-weight: 600;">App status</span>
             </div>
 
@@ -71,7 +69,7 @@
               (click)="selectSection('integration')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'integration' ? '#e9ecef' : 'transparent'">
-              <img [src]="selectedSection() === 'integration' ? 'integration method selected.svg' : 'material-symbols_integration-instructions-outline-rounded.svg'" alt="" width="24" height="24">
+              <i class="fa-solid fa-plug" [style.color]="selectedSection() === 'integration' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
               <span style="font-weight: 600;">Integration method</span>
             </div>
           </div>
