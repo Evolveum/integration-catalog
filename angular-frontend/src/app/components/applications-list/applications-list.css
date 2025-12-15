@@ -16,14 +16,18 @@
   scrollbar-width: none;
 }
 
-/* Spinning animation for the gear icon */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+/* Slow blink animation for the gear icon */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
   }
-  to {
-    transform: rotate(360deg);
+  50% {
+    opacity: 0;
   }
+}
+
+.blink-animation {
+  animation: blink 2s ease-in-out infinite;
 }
 
 /* Filter chips container */
@@ -72,4 +76,12 @@ textarea:focus,
 .btn:focus {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Pagination buttons consistent height */
+.pagination .page-link {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

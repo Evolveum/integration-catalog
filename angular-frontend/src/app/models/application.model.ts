@@ -31,4 +31,5 @@ export interface Application {
   requestId?: number | null;
   voteCount?: number;
   frameworks?: string[] | null;
+  midpointVersions?: string[] | null;
 }

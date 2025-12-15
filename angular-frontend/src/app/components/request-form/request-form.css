@@ -122,6 +122,13 @@
   margin-right: 0.5rem;
   cursor: pointer;
   appearance: auto;
+  accent-color: var(--midpoint-special-color) !important;
+}
+
+/* Bootstrap radio button checked state */
+.modal .form-check-input[type="radio"]:checked {
+  background-color: var(--midpoint-special-color) !important;
+  border-color: var(--midpoint-special-color) !important;
 }
 
 .modal .form-check-input[type="radio"]:focus {
