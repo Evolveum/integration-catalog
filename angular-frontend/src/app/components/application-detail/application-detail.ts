@@ -8,7 +8,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail as ApplicationDetailModel } from '../../models/application-detail.model';
+import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail } from '../../models/application-detail.model';
 
 @Component({
   selector: 'app-application-detail',
@@ -36,6 +36,7 @@ export class ApplicationDetail implements OnInit {
   protected readonly dropdownPosition = signal<{ top: number; left: number } | null>(null);
   protected readonly selectedFilterSection = signal<string>('capabilities');
   protected readonly applicationDownloadsCount = signal<number>(0);
+  protected readonly logoLoadError = signal<boolean>(false);
 
   constructor(
     private route: ActivatedRoute,
@@ -313,6 +314,38 @@ export class ApplicationDetail implements OnInit {
 
   protected downloadVersion(versionId: string): void {
     this.applicationService.downloadConnector(versionId);
+  }
+
+  // ==================== Logo Methods ====================
+
+  /**
+   * Check if the current application has a logo
+   */
+  protected hasLogo(): boolean {
+    const app = this.application();
+    return app ? hasLogoDetail(app) : false;
+  }
+
+  /**
+   * Get the logo URL for the current application
+   */
+  protected getLogoUrl(): string {
+    const app = this.application();
+    return app ? this.applicationService.getLogoUrl(app.id) : '';
+  }
+
+  /**
+   * Handle logo load error - fallback to letter avatar
+   */
+  protected onLogoError(): void {
+    this.logoLoadError.set(true);
+  }
+
+  /**
+   * Check if should show letter avatar (no logo or logo failed to load)
+   */
+  protected shouldShowLetterAvatar(): boolean {
+    return !this.hasLogo() || this.logoLoadError();
   }
 
   private loadApplication(id: string): void {

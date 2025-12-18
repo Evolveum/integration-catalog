@@ -16,6 +16,7 @@ import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
+import com.evolveum.midpoint.integration.catalog.service.LogoStorageService;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
@@ -43,6 +45,7 @@ import java.util.UUID;
 public class Controller {
 
     private final ApplicationService applicationService;
+    private final LogoStorageService logoStorageService;
 
     private final ImplementationVersionRepository implementationVersionRepository;
     private final RequestRepository requestRepository;
@@ -50,8 +53,14 @@ public class Controller {
 
     private final ApplicationMapper applicationMapper;
 
-    public Controller(ApplicationService applicationService, DownloadRepository downloadRepository, ImplementationVersionRepository implementationVersionRepository, RequestRepository requestRepository, ApplicationMapper applicationMapper) {
+    public Controller(ApplicationService applicationService,
+                      LogoStorageService logoStorageService,
+                      DownloadRepository downloadRepository,
+                      ImplementationVersionRepository implementationVersionRepository,
+                      RequestRepository requestRepository,
+                      ApplicationMapper applicationMapper) {
         this.applicationService = applicationService;
+        this.logoStorageService = logoStorageService;
         this.downloadRepository = downloadRepository;
         this.implementationVersionRepository = implementationVersionRepository;
         this.requestRepository = requestRepository;
@@ -413,5 +422,120 @@ public class Controller {
         List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto> implementations =
                 applicationService.getImplementationsByApplicationId(applicationId);
         return ResponseEntity.ok(implementations);
+    }
+
+    // ==================== Logo Endpoints ====================
+
+    @Operation(summary = "Upload application logo",
+            description = "Uploads a logo image for an application. Supported formats: PNG, JPEG, GIF, SVG, WebP")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Logo uploaded successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid file (wrong type, too large, or empty)"),
+            @ApiResponse(responseCode = "404", description = "Application not found"),
+            @ApiResponse(responseCode = "500", description = "Failed to save logo file")
+    })
+    @PostMapping(value = "/applications/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadLogo(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            Application application = applicationService.getApplication(id);
+            logoStorageService.saveLogo(application, file);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to upload logo: " + ex.getMessage(), ex);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to save logo file: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Operation(summary = "Get application logo",
+            description = "Returns the logo image for an application with proper Content-Type header")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Logo retrieved successfully"),
+            @ApiResponse(responseCode = "304", description = "Logo not modified (ETag match)"),
+            @ApiResponse(responseCode = "404", description = "Application or logo not found")
+    })
+    @GetMapping("/applications/{id}/logo")
+    public ResponseEntity<byte[]> getLogo(
+            @PathVariable UUID id,
+            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
+        Application application;
+        try {
+            application = applicationService.getApplication(id);
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
+        }
+
+        // Check if logo exists (either file-based or legacy bytea)
+        byte[] logoBytes = null;
+        String contentType = "image/png"; // default
+        String etag = null;
+
+        if (application.getLogoPath() != null && !application.getLogoPath().isBlank()) {
+            // File-based logo
+            logoBytes = logoStorageService.loadLogoBytes(application.getLogoPath());
+            if (logoBytes == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Logo file not found on disk");
+            }
+            contentType = application.getLogoContentType() != null
+                    ? application.getLogoContentType()
+                    : "image/png";
+            // Generate ETag from path and size
+            etag = "\"" + application.getLogoPath().hashCode() + "-" + application.getLogoSizeBytes() + "\"";
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No logo available for this application");
+        }
+
+        // Check If-None-Match for caching
+        if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
+                    .eTag(etag)
+                    .build();
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setContentLength(logoBytes.length);
+        headers.setCacheControl("public, max-age=86400"); // Cache for 24 hours
+        headers.setETag(etag);
+
+        // Set Content-Disposition for download hint
+        if (application.getLogoOriginalName() != null) {
+            headers.setContentDisposition(
+                    org.springframework.http.ContentDisposition.inline()
+                            .filename(application.getLogoOriginalName())
+                            .build());
+        }
+
+        return new ResponseEntity<>(logoBytes, headers, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Delete application logo",
+            description = "Removes the logo file and clears metadata from the application")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Logo deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Application not found")
+    })
+    @DeleteMapping("/applications/{id}/logo")
+    public ResponseEntity<Void> deleteLogo(@PathVariable UUID id) {
+        try {
+            Application application = applicationService.getApplication(id);
+            logoStorageService.deleteLogo(application);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to delete logo: " + ex.getMessage(), ex);
+        }
     }
 }

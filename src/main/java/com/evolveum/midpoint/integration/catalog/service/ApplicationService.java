@@ -19,6 +19,7 @@ import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
+import com.evolveum.midpoint.integration.catalog.configuration.LogoStorageProperties;
 
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
@@ -31,11 +32,15 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -103,6 +108,9 @@ public class ApplicationService {
     @Autowired
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
 
+    @Autowired
+    private final LogoStorageProperties logoStorageProperties;
+
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
@@ -118,7 +126,8 @@ public class ApplicationService {
                               VoteRepository voteRepository,
                               ApplicationReadPort applicationReadPort,
                               ApplicationMapper applicationMapper,
-                              ApplicationApplicationTagRepository applicationApplicationTagRepository
+                              ApplicationApplicationTagRepository applicationApplicationTagRepository,
+                              LogoStorageProperties logoStorageProperties
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -136,6 +145,7 @@ public class ApplicationService {
         this.bundleVersionRepository = bundleVersionRepository;
         this.connectorBundleRepository = connectorBundleRepository;
         this.applicationApplicationTagRepository = applicationApplicationTagRepository;
+        this.logoStorageProperties = logoStorageProperties;
     }
 
     public Application getApplication(UUID uuid) {
@@ -1149,7 +1159,10 @@ public class ApplicationService {
                 app.getId(),
                 app.getDisplayName(),
                 app.getDescription(),
-                app.getLogo(),
+                app.getLogoPath(),
+                app.getLogoContentType(),
+                app.getLogoOriginalName(),
+                app.getLogoSizeBytes(),
                 lifecycleState,
                 origins,
                 categories,
@@ -1349,5 +1362,215 @@ public class ApplicationService {
                 })
                 .filter(dto -> dto != null)
                 .toList();
+    }
+
+    // ==================== Logo Management Methods ====================
+
+    private static final Set<String> ALLOWED_LOGO_CONTENT_TYPES = Set.of(
+            "image/png", "image/jpeg", "image/jpg", "image/gif", "image/svg+xml", "image/webp"
+    );
+
+    /**
+     * Uploads a logo for an application.
+     * Deletes old file if present, saves new file, updates DB fields, and persists.
+     *
+     * @param applicationId the application UUID
+     * @param file the logo file to upload
+     * @return the updated application
+     * @throws IOException if file operation fails
+     * @throws IllegalArgumentException if file validation fails
+     */
+    @Transactional
+    public Application uploadLogo(UUID applicationId, MultipartFile file) throws IOException {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Application not found with id: " + applicationId));
+
+        // Validate file
+        validateLogoFile(file);
+
+        // Delete old logo file if present
+        deleteLogoFileIfExists(application.getLogoPath());
+
+        // Generate safe filename (UUID-based)
+        String originalFilename = file.getOriginalFilename();
+        String extension = getFileExtension(originalFilename);
+        String safeFilename = UUID.randomUUID().toString() + extension;
+
+        // Save file to disk
+        Path targetPath = Path.of(logoStorageProperties.basePath()).resolve(safeFilename);
+        Files.createDirectories(targetPath.getParent());
+        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+        // Update DB fields
+        application.setLogoPath(safeFilename);
+        application.setLogoContentType(file.getContentType());
+        application.setLogoOriginalName(originalFilename);
+        application.setLogoSizeBytes(file.getSize());
+
+        log.info("Uploaded logo for application {}: {} ({} bytes)",
+                applicationId, safeFilename, file.getSize());
+
+        return applicationRepository.save(application);
+    }
+
+    /**
+     * Gets logo bytes for an application.
+     * Pattern 1: Returns null if no logo (caller handles 404).
+     *
+     * @param applicationId the application UUID
+     * @return LogoData with bytes and metadata, or null if no logo
+     */
+    public LogoData getLogoOrNull(UUID applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Application not found with id: " + applicationId));
+
+        // Check file-based logo first
+        if (application.getLogoPath() != null && !application.getLogoPath().isBlank()) {
+            Path logoPath = Path.of(logoStorageProperties.basePath()).resolve(application.getLogoPath());
+            if (Files.exists(logoPath)) {
+                try {
+                    byte[] bytes = Files.readAllBytes(logoPath);
+                    return new LogoData(
+                            bytes,
+                            application.getLogoContentType(),
+                            application.getLogoOriginalName(),
+                            application.getLogoSizeBytes(),
+                            application.getLogoPath()
+                    );
+                } catch (IOException e) {
+                    log.error("Failed to read logo file: {}", logoPath, e);
+                    return null;
+                }
+            }
+        }
+
+        return null; // No logo available
+    }
+
+    /**
+     * Gets logo bytes for an application.
+     * Pattern 2: Returns placeholder if no logo.
+     *
+     * @param applicationId the application UUID
+     * @param placeholderBytes the placeholder image bytes to return if no logo
+     * @param placeholderContentType the content type of the placeholder
+     * @return LogoData with bytes and metadata (never null)
+     */
+    public LogoData getLogoOrPlaceholder(UUID applicationId, byte[] placeholderBytes, String placeholderContentType) {
+        LogoData logo = getLogoOrNull(applicationId);
+        if (logo != null) {
+            return logo;
+        }
+
+        // Return placeholder
+        return new LogoData(
+                placeholderBytes,
+                placeholderContentType,
+                "placeholder.png",
+                (long) placeholderBytes.length,
+                null
+        );
+    }
+
+    /**
+     * Deletes logo for an application.
+     * Removes file from disk and clears DB fields.
+     *
+     * @param applicationId the application UUID
+     * @return the updated application
+     */
+    @Transactional
+    public Application deleteLogo(UUID applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Application not found with id: " + applicationId));
+
+        // Delete file from disk
+        deleteLogoFileIfExists(application.getLogoPath());
+
+        // Clear all logo fields
+        application.setLogoPath(null);
+        application.setLogoContentType(null);
+        application.setLogoOriginalName(null);
+        application.setLogoSizeBytes(null);
+
+        log.info("Deleted logo for application {}", applicationId);
+
+        return applicationRepository.save(application);
+    }
+
+    /**
+     * Validates the logo file for size and content type.
+     */
+    private void validateLogoFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Logo file is required");
+        }
+
+        if (file.getSize() > logoStorageProperties.maxSizeBytes()) {
+            throw new IllegalArgumentException(
+                    String.format("Logo file size %d bytes exceeds maximum allowed size of %d bytes",
+                            file.getSize(), logoStorageProperties.maxSizeBytes()));
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_LOGO_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException(
+                    String.format("Invalid content type '%s'. Allowed: %s",
+                            contentType, ALLOWED_LOGO_CONTENT_TYPES));
+        }
+    }
+
+    /**
+     * Deletes a logo file from disk if it exists.
+     */
+    private void deleteLogoFileIfExists(String logoPath) {
+        if (logoPath == null || logoPath.isBlank()) {
+            return;
+        }
+
+        Path filePath = Path.of(logoStorageProperties.basePath()).resolve(logoPath);
+        try {
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("Deleted logo file: {}", filePath);
+            }
+        } catch (IOException e) {
+            log.error("Failed to delete logo file: {}", filePath, e);
+        }
+    }
+
+    /**
+     * Extracts file extension from filename.
+     */
+    private String getFileExtension(String filename) {
+        if (filename == null) {
+            return "";
+        }
+        int lastDot = filename.lastIndexOf('.');
+        return lastDot == -1 ? "" : filename.substring(lastDot);
+    }
+
+    /**
+     * DTO for returning logo data with metadata.
+     */
+    public record LogoData(
+            byte[] bytes,
+            String contentType,
+            String originalName,
+            Long sizeBytes,
+            String path
+    ) {
+        /**
+         * Generates an ETag for caching.
+         */
+        public String generateETag() {
+            if (path != null && sizeBytes != null) {
+                return "\"" + path.hashCode() + "-" + sizeBytes + "\"";
+            }
+            return "\"" + java.util.Arrays.hashCode(bytes) + "\"";
+        }
     }
 }

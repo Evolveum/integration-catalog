@@ -14,7 +14,10 @@ public record ApplicationDto(
         UUID id,
         String displayName,
         String description,
-        byte[] logo,
+        String logoPath,
+        String logoContentType,
+        String logoOriginalName,
+        Long logoSizeBytes,
         String lifecycleState,
         OffsetDateTime lastModified,
         OffsetDateTime createdAt,
@@ -36,7 +39,10 @@ public record ApplicationDto(
         private UUID id;
         private String displayName;
         private String description;
-        private byte[] logo;
+        private String logoPath;
+        private String logoContentType;
+        private String logoOriginalName;
+        private Long logoSizeBytes;
         private String lifecycleState;
         private OffsetDateTime lastModified;
         private OffsetDateTime createdAt;
@@ -65,8 +71,23 @@ public record ApplicationDto(
             return this;
         }
 
-        public Builder logo(byte[] logo) {
-            this.logo = logo;
+        public Builder logoPath(String logoPath) {
+            this.logoPath = logoPath;
+            return this;
+        }
+
+        public Builder logoContentType(String logoContentType) {
+            this.logoContentType = logoContentType;
+            return this;
+        }
+
+        public Builder logoOriginalName(String logoOriginalName) {
+            this.logoOriginalName = logoOriginalName;
+            return this;
+        }
+
+        public Builder logoSizeBytes(Long logoSizeBytes) {
+            this.logoSizeBytes = logoSizeBytes;
             return this;
         }
 
@@ -135,7 +156,10 @@ public record ApplicationDto(
                     id,
                     displayName,
                     description,
-                    logo,
+                    logoPath,
+                    logoContentType,
+                    logoOriginalName,
+                    logoSizeBytes,
                     lifecycleState,
                     lastModified,
                     createdAt,

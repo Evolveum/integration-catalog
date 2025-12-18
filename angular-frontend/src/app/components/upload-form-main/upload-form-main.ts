@@ -33,6 +33,7 @@ export class UploadFormMain implements OnInit {
   protected readonly displayName = signal<string>('');
   protected readonly description = signal<string>('');
   protected readonly logoFile = signal<File | null>(null);
+  protected readonly logoPreviewUrl = signal<string | null>(null);
   protected readonly origins = signal<string[]>([]);
   protected readonly loadedOrigins = signal<string[]>([]); // Track origins loaded from selected app
   protected readonly category = signal<string>('');
@@ -324,7 +325,7 @@ export class UploadFormMain implements OnInit {
   protected clearApplicationDetailsFields(): void {
     this.displayName.set('');
     this.description.set('');
-    this.logoFile.set(null);
+    this.clearLogo(); // Clear logo file and preview
     this.origins.set([]);
     this.loadedOrigins.set([]);
     this.selectedCountriesModel.set([]);
@@ -351,8 +352,46 @@ export class UploadFormMain implements OnInit {
   protected onLogoUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.logoFile.set(input.files[0]);
+      const file = input.files[0];
+
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type. Please upload PNG, JPEG, GIF, SVG, or WebP images.');
+        return;
+      }
+
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert('File too large. Maximum size is 5MB.');
+        return;
+      }
+
+      this.logoFile.set(file);
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      this.logoPreviewUrl.set(previewUrl);
     }
+  }
+
+  protected clearLogo(): void {
+    // Revoke the old preview URL to prevent memory leaks
+    const oldUrl = this.logoPreviewUrl();
+    if (oldUrl) {
+      URL.revokeObjectURL(oldUrl);
+    }
+    this.logoFile.set(null);
+    this.logoPreviewUrl.set(null);
+  }
+
+  protected getLogoUrl(): string | null {
+    const app = this.selectedApplication();
+    if (app && (app.logoPath || app.logo)) {
+      return this.applicationService.getLogoUrl(app.id);
+    }
+    return null;
   }
 
   protected toggleOriginDropdown(): void {
@@ -527,6 +566,14 @@ export class UploadFormMain implements OnInit {
     this.applicationService.uploadConnector(payload).subscribe({
       next: (response: string) => {
         console.log('Upload successful:', response);
+
+        // Upload logo if present - try to extract application ID from response
+        // Response might be application ID or a message containing it
+        const applicationId = this.selectedApplication()?.id || this.extractApplicationIdFromResponse(response);
+        if (applicationId) {
+          this.uploadLogoIfPresent(applicationId);
+        }
+
         this.closeModal();
         this.showPublishSuccess.set(true);
         this.uploadCompleted.emit();
@@ -537,6 +584,12 @@ export class UploadFormMain implements OnInit {
         alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
       }
     });
+  }
+
+  private extractApplicationIdFromResponse(response: string): string | null {
+    // Try to extract UUID from response string
+    const uuidMatch = response.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    return uuidMatch ? uuidMatch[0] : null;
   }
 
   private mapConnectorTypeToFramework(connectorType: string): string {
@@ -676,12 +729,30 @@ export class UploadFormMain implements OnInit {
     this.showDetailsForm.set(false);
     this.displayName.set('');
     this.description.set('');
-    this.logoFile.set(null);
+    this.clearLogo(); // Clear logo file and preview
     this.origins.set([]);
     this.loadedOrigins.set([]);
     this.selectedCountriesModel.set([]);
     this.category.set('');
     this.deploymentType.set('on-premise');
     this.showOriginDropdown.set(false);
+  }
+
+  /**
+   * Upload logo for an application after it's created/updated
+   */
+  private uploadLogoIfPresent(applicationId: string): void {
+    const logoFile = this.logoFile();
+    if (logoFile && applicationId) {
+      this.applicationService.uploadLogo(applicationId, logoFile).subscribe({
+        next: () => {
+          console.log('Logo uploaded successfully for application:', applicationId);
+        },
+        error: (error: any) => {
+          console.error('Failed to upload logo:', error);
+          // Don't block the main flow, logo upload is secondary
+        }
+      });
+    }
   }
 }
