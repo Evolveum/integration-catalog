@@ -80,10 +80,13 @@ CREATE TABLE application (
 	name character varying(255),
 	display_name character varying(255),
 	description character varying(255),
-	logo bytea,
 	lifecycle_state ApplicationLifecycleType NOT NULL,
 	created_at timestamp without time zone NOT NULL,
-	last_modified timestamp without time zone NOT NULL
+	last_modified timestamp without time zone NOT NULL,
+	logo_path character varying(255),
+	logo_content_type character varying(100),
+	logo_original_name character varying(255),
+	logo_size_bytes bigint
 );
 
 CREATE TABLE application_application_tag (

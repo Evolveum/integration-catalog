@@ -52,6 +52,38 @@ public class LogoStorageService {
         this.applicationRepository = applicationRepository;
         this.basePath = Paths.get(logoStorageProperties.basePath()).toAbsolutePath().normalize();
         log.info("Logo storage base path resolved to: {}", this.basePath);
+
+        validateAndInitializeStorageDirectory();
+    }
+
+    /**
+     * Validates and initializes the logo storage directory at startup.
+     * Creates the directory if it doesn't exist and verifies write permissions.
+     *
+     * @throws IllegalStateException if the directory cannot be created or is not writable
+     */
+    private void validateAndInitializeStorageDirectory() {
+        try {
+            if (!Files.exists(basePath)) {
+                Files.createDirectories(basePath);
+                log.info("Created logo storage directory: {}", basePath);
+            }
+
+            if (!Files.isDirectory(basePath)) {
+                throw new IllegalStateException(
+                        String.format("Logo storage path exists but is not a directory: %s", basePath));
+            }
+
+            if (!Files.isWritable(basePath)) {
+                throw new IllegalStateException(
+                        String.format("Logo storage directory is not writable: %s", basePath));
+            }
+
+            log.info("Logo storage directory validated successfully: {}", basePath);
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    String.format("Failed to create logo storage directory: %s", basePath), e);
+        }
     }
 
     /**
