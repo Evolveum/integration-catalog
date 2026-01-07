@@ -16,7 +16,7 @@ import java.util.List;
  */
 public record RequestFormDto(
         @NotBlank String integrationApplicationName,
-        @NotBlank String deploymentType,
+        String deploymentType,
         List<String> capabilities,
         @NotBlank String description,
         String systemVersion,

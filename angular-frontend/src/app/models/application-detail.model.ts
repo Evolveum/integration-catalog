@@ -38,7 +38,11 @@ export interface ApplicationDetail {
   id: string;
   displayName: string;
   description: string;
-  logo: string;
+  logo: string | null; // Legacy base64 field (deprecated)
+  logoPath: string | null;
+  logoContentType: string | null;
+  logoOriginalName: string | null;
+  logoSizeBytes: number | null;
   lifecycleState: string;
   lastModified: string;
   createdAt: string | null;
@@ -48,4 +52,11 @@ export interface ApplicationDetail {
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
   implementationVersions: ImplementationVersion[] | null;
+}
+
+/**
+ * Helper function to check if application detail has a logo
+ */
+export function hasLogoDetail(app: ApplicationDetail): boolean {
+  return !!(app.logoPath || (app.logo && app.logo.length > 0));
 }

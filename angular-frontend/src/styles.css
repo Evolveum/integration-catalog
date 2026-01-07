@@ -4,5 +4,17 @@
 */
 
 @import './_variables.css';
+@import '@fortawesome/fontawesome-free/css/all.css';
 
 /* You can add global styles to this file, and also import other style files */
+
+/* Global radio button styling */
+input[type="radio"] {
+  accent-color: var(--midpoint-special-color) !important;
+}
+
+/* Bootstrap radio button checked state */
+.form-check-input[type="radio"]:checked {
+  background-color: var(--midpoint-special-color) !important;
+  border-color: var(--midpoint-special-color) !important;
+}
