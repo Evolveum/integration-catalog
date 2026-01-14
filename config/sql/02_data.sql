@@ -34,6 +34,8 @@ INSERT INTO connid_version (version, midpoint_version) VALUES
   ('1.2.0.0', '4.2.0,4.2.1'),
   ('1.3.0.0', '4.3.0,4.3.1'),
   ('1.4.0.0', '4.4.0,4.4.1'),
+  ('1.5.2.0', '4.4.0,4.4.1'),
+  ('1.5.3.0-M3', '4.4.0,4.4.1'),
   ('1.5.0.0', '4.5.0,4.5.1');
 
 INSERT INTO application
@@ -43,7 +45,7 @@ INSERT INTO application
 Crime single heavy surface shake admit matter. Expert look instead.',
  '\xa961c4a91369fcde892dad2cbfaac913a9d3475499526077963b8a5bfd155f944aecc98becdf1f239b2a17cd09ef83e8635fa28227dc3a37666fe26990255bf2a989bc1f40354a4914bca0370e92444ba113745c95a40c19e388f965c27e6ca80c80767c',
  'ACTIVE','2025-06-29 05:51:48','2025-06-29 05:51:48'),
-('e5c2e9d6-4d28-4a08-8374-998c5373a35a','salesforce-connector','Salesforce Connector',
+('e5c2e9d6-4d28-4a08-8374-998c5373a35a','sap-connector','SAP Connector',
  'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
  NULL,'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'),
 ('e5c2e9d6-4d28-4a08-8374-998c5373a35b','night-connector','Night Connector',
@@ -66,7 +68,7 @@ Crime single heavy surface shake admit matter. Expert look instead.',
  'Career name these thank word explain. Past care over whom. Another moment sometimes camera every. While fly game wind data debate myself.',
  '\x34d87c4cb5324cb11182d876130e944cc385e0debfd7ea28165ec5a65b932bcf7bd35c1101614a6e204090baf734d551f560e1c02bbab81ff4d9470c178bb7a682f12eb694505a15ef2c38cd825aebf14d04c869de66ebb7a2692646b36ea37b09311504',
  'WITH_ERROR','2025-01-20 08:29:41','2025-01-20 08:29:41'),
-('4a3c7f04-4106-4934-add1-f329f6333ad0','sap-integration','SAP Integration',
+('4a3c7f04-4106-4934-add1-f329f6333ad0','open-project-integration','Open Project Integration',
  'Success green news can hot. Assume lay system tend message recognize however.
 Customer sign sing research. Against ready right high. Rise style rock tough.',
  '\x33353af1f318a9c95c213338529ccadb0d0d9708a725a8574ee71f21bd29841000ec416ad2287128248df40539fdbe01dd782cb8077b5e27eb03af688666d8c595c82b55ff646af97ecbede8646138e846fd111804c11b32b11cdbe0d35294cc5c70dfcf',
@@ -88,34 +90,38 @@ Customer sign sing research. Against ready right high. Rise style rock tough.',
  'ACTIVE','2025-09-27 04:02:54','2025-09-27 04:02:54');
 
 INSERT INTO connector_bundle (id, bundle_name, maintainer, framework, license, ticketing_system_link) VALUES
-(1,'com.evolveum.polygon.connector.sap.integration','Scott, Baker and Howard','SCIM_REST','MIT','http://clark.com/'),
-(2,'com.evolveum.polygon.connector.workday.adapter','Smith-Olson','SCIM_REST','APACHE_2','https://www.phillips.org/'),
-(3,'com.evolveum.polygon.connector.salesforce.connector','Wilson-Robinson','CONNID','MIT','http://www.may.info/'),
-(4,'com.evolveum.polygon.connector.azure.ad.sync','Crawford and Sons','CONNID','MIT','https://www.weber.com/'),
-(5,'com.evolveum.polygon.connector.oracle.connector','Stevens and Sons','CONNID','APACHE_2','http://levy-herrera.net/');
+(1,'com.evolveum.polygon.scimrest.open-project-noclass','Scott, Baker and Howard','SCIM_REST','APACHE_2','https://support.evolveum.com/projects/midpoint'),
+(2,'com.evolveum.polygon.connector.workday.adapter','Smith-Olson','SCIM_REST','MIT','https://www.phillips.org/'),
+(3,'com.evolveum.polygon.connector-ldap','Wilson-Robinson','CONNID','APACHE_2','https://support.evolveum.com/projects/midpoint'),
+(4,'com.evolveum.polygon.connector-databasetable','Crawford and Sons','CONNID','APACHE_2','https://support.evolveum.com/projects/midpoint'),
+(5,'com.evolveum.polygon.connector-csv','Stevens and Sons','CONNID','APACHE_2','https://support.evolveum.com/projects/midpoint');
 
 INSERT INTO implementation
 (id, display_name, connector_bundle_id, application_id) VALUES
-('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e','SAP Integration Implementation',1,'4a3c7f04-4106-4934-add1-f329f6333ad0'),
+('b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e','Open Project Integration Implementation',1,'4a3c7f04-4106-4934-add1-f329f6333ad0'),
 ('c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f','Workday Adapter Implementation',2,'5f0ba262-a08b-44fc-b830-f4942e3efeb4'),
 ('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d','LDAP Connector Implementation',3,'e5c2e9d6-4d28-4a08-8374-998c5373a35c'),
 ('d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a','DatabaseTable Connector Implementation',4,'9ed6e4fb-5f06-4081-845c-df023274e4db'),
-('e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab'),
-('f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab');
-
+('e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b','CSV Connector Implementation',5,'54dfdf0e-4528-4b03-967d-4af33e49a0ab');
 INSERT INTO bundle_version
 (id, connector_bundle_id, connector_version, browse_link, checkout_link, download_link, connid_version, released_date, build_framework, path_to_project) VALUES
-(1,1,'2.0.8','https://khan.com/','https://khan.com//tree/v2.0.8','http://chung-weaver.biz//downloads/connector-2.0.8.jar','1.2.0.0','2025-05-02','GRADLE',NULL),
-(2,5,'5.2','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-csv/tree/v2.8','https://nexus.evolveum.com/nexus/repository/public/com/evolveum/polygon/connector-csv/2.8/connector-csv-2.8.jar','1.5.0.0','2025-04-14','MAVEN',NULL),
-(3,5,'5.0.0','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.5.0.0','2025-04-14','MAVEN',NULL),
-(4,4,'5.1','http://www.ramirez-flores.biz/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.5.0.0','2025-04-14','MAVEN',NULL),
+(1,1,'1.3.5','https://github.com/integration-catalog-test/Open-Project-Connector/tree/v1.3.5','https://github.com/integration-catalog-test/Open-Project-Connector.git','https://nexus.evolveum.com/nexus/repository/integration-catalog/com/evolveum/polygon/open-project/1.3.5/open-project-1.3.5.jar','1.5.0.0','2025-05-02','MAVEN',NULL),
+(2,5,'2.8','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-csv/tree/v2.8','https://nexus.evolveum.com/nexus/repository/public/com/evolveum/polygon/connector-csv/2.8/connector-csv-2.8.jar','1.5.2.0','2024-08-16','MAVEN',NULL),
+(3,5,'3.9','http://www.ramirez-flores.biz/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.5.3.0-M3','2025-03-17','MAVEN',NULL),
+(4,4,'5.1','http://www.ramirez-flores.biz/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.5.2.0','2024-08-16','MAVEN',NULL),
 (5,2,'3.0.1','https://www.serrano.com/','https://www.serrano.com//tree/v3.0.1','http://miles.org//downloads/connector-3.0.1.jar','1.3.0.0','2025-06-30','GRADLE',NULL),
 (6,3,'1.0.4','https://www.blake.org/','https://github.com/Evolveum/connector-ldap/tree/v3.9','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-ldap/3.9.1/connector-ldap-3.9.1.jar','1.1.0.0','2025-09-25','MAVEN',NULL),
-(7,4,'4.0.2','https://collins.com/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.4.0.0','2025-04-06','MAVEN',NULL);
+(7,4,'4.0.2','https://collins.com/','https://github.com/Evolveum/openicf/releases/tag/connector-databasetable-v1.5.1.0','https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-databasetable/1.5.2.0/connector-databasetable-1.5.2.0.jar','1.4.0.0','2025-04-06','MAVEN',NULL),
+(8,1,'1.3.7','https://github.com/integration-catalog-test/Open-Project-Connector/tree/v1.3.7','https://github.com/integration-catalog-test/Open-Project-Connector.git','https://nexus.evolveum.com/nexus/repository/integration-catalog/com/evolveum/polygon/open-project/1.3.7/open-project-1.3.7.jar','1.5.0.0','2025-08-02','MAVEN',NULL);
 
 INSERT INTO implementation_version
 (id, description, capabilities, system_version, author, publish_date, lifecycle_state, bundle_version_id, implementation_id, error_message, class_name) VALUES
 ('e87a6b1b-38c5-4834-96de-2418dbda9f1b',
+ 'Hit something action building majority body. Newspaper sell business write political tough not.
+Shake sing part picture person.',
+ ARRAY['CREATE','GET','DELETE','SCRIPT_ON_CONNECTOR','SCRIPT_ON_RESOURCE','AUTHENTICATION','SEARCH']::"CapabilityType"[],
+ 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_PUBLISH_PROCESS',8,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL,NULL),
+ ('e87a6b1b-38c5-4834-96de-2418dbda9f1a',
  'Hit something action building majority body. Newspaper sell business write political tough not.
 Shake sing part picture person.',
  ARRAY['CREATE','GET','DELETE','SCRIPT_ON_CONNECTOR','SCRIPT_ON_RESOURCE','AUTHENTICATION','SEARCH']::"CapabilityType"[],
@@ -125,13 +131,13 @@ Shake sing part picture person.',
  ARRAY['CREATE','GET','DELETE']::"CapabilityType"[],
  'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','ACTIVE',2,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL,NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de09',
- 'CSV connector other',
+ 'OpenLDAP connector',
  ARRAY['CREATE','GET','UPDATE']::"CapabilityType"[],
- 'System 1.5','isabelthomas@example.com','2025-07-27 13:44:05','ACTIVE',3,'f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c',NULL,NULL),
+ 'OpenLdap 3.3.4','isabelthomas@example.com','2025-07-27 13:44:05','ACTIVE',3,'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',NULL,'com.evolveum.polygon.connector.ldap.LdapConnector'),
 ('5616cdc5-2b90-42ac-b347-78928126de10',
  'Databasetable connector',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','DEPRECATED',4,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL,NULL),
+ 'System 1.5','isabelthomas@evolveum.com','2025-07-27 13:44:05','ACTIVE',4,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',NULL,NULL),
 ('eb460ab7-5797-42b0-ad70-eccdc113cf0c',
  'Level painting his lot sound. Involve note big everyone.
 Reflect claim throw huge. Head design amount pressure goal.',
@@ -140,7 +146,7 @@ Reflect claim throw huge. Head design amount pressure goal.',
 ('eb19c64d-2cc9-4828-b38f-e4298be9b208',
  'Degree every others capital. Perform important animal fish find power thing.',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
- 'System 0.3','shelly74@example.com','2025-09-22 22:19:49','ARCHIVED',6,'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',NULL,NULL),
+ 'System 0.3','shelly74@example.com','2025-09-22 22:19:49','ACTIVE',6,'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',NULL,NULL),
 ('6d3544ab-e5ed-457f-b356-56e9fd419cbc',
  'Music rise area player. Focus wife particular class. Read protect add spend who cover also.',
  ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[],
@@ -210,6 +216,6 @@ SELECT pg_catalog.setval('implementation_implementation_tag_id_seq', 21, true);
 SELECT pg_catalog.setval('implementation_tag_id_seq', 14, true);
 SELECT pg_catalog.setval('request_id_seq', 8, true);
 SELECT pg_catalog.setval('connector_bundle_id_seq', 5, true);
-SELECT pg_catalog.setval('bundle_version_id_seq', 7, true);
+SELECT pg_catalog.setval('bundle_version_id_seq', 8, true);
 
 COMMIT;

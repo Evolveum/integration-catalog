@@ -651,6 +651,14 @@ public class ApplicationService {
         version.setCapabilities(continueForm.getCapability().toArray(new ImplementationVersion.CapabilitiesType[0]));
         version.setClassName(continueForm.getConnectorClass());
 
+        try {
+            Application application = version.getImplementation().getApplication();
+            application.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
+            applicationRepository.save(application);
+        } catch (Exception e) {
+            //TODO
+        }
+
 
 //        implementationRepository.save(implementation);
         implementationVersionRepository.save(version);

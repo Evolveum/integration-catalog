@@ -12,12 +12,12 @@ fi
 
 # Read GitHub token from secret file
 if [ -f "$GITHUB_TOKEN_FILE" ]; then
-    export GITHUB_TOKEN=$(cat "$GITHUB_TOKEN_FILE")
+    export GITHUB_APITOKEN=$(cat "$GITHUB_TOKEN_FILE")
 fi
 
 # Read Jenkins token from secret file
 if [ -f "$JENKINS_TOKEN_FILE" ]; then
-    export JENKINS_TOKEN=$(cat "$JENKINS_TOKEN_FILE")
+    export JENKINS_APITOKEN=$(cat "$JENKINS_TOKEN_FILE")
 fi
 
 # Read Jenkins username from secret file
