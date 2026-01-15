@@ -68,7 +68,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 12;
   protected readonly sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
-  protected readonly viewMode = signal<'grid' | 'list'>('grid');
   protected readonly activeTab = signal<string>('all');
   protected isRequestModalOpen = signal<boolean>(false);
   protected isLoginModalOpen = signal<boolean>(false);
@@ -82,7 +81,9 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     trending: false,
     categories: [],
     capabilities: [],
-    appStatus: []
+    appStatus: [],
+    midpointVersions: [],
+    integrationMethods: []
   });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
@@ -97,7 +98,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const hasActiveFilters = filters.trending ||
                             filters.categories.length > 0 ||
                             filters.capabilities.length > 0 ||
-                            filters.appStatus.length > 0;
+                            filters.appStatus.length > 0 ||
+                            filters.midpointVersions.length > 0;
 
     if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
@@ -151,6 +153,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     if (filters.appStatus.length > 0) {
       apps = apps.filter(app =>
         app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
+      );
+    }
+
+    if (filters.midpointVersions.length > 0) {
+      apps = apps.filter(app =>
+        app.midpointVersions?.some((version: string) =>
+          filters.midpointVersions.includes(version)
+        )
       );
     }
 
@@ -229,6 +239,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       );
     }
 
+    if (filters.midpointVersions.length > 0) {
+      apps = apps.filter(app =>
+        app.midpointVersions?.some((version: string) =>
+          filters.midpointVersions.includes(version)
+        )
+      );
+    }
+
     return apps.length;
   });
 
@@ -267,7 +285,9 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       trending: false,
       categories: [],
       capabilities: [],
-      appStatus: []
+      appStatus: [],
+      midpointVersions: [],
+      integrationMethods: []
     });
     this.currentPage.set(0);
   }
@@ -319,6 +339,18 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.closeDropdown();
   }
 
+  protected clearMidpointVersionsFilter(): void {
+    this.filterState.update(state => ({ ...state, midpointVersions: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearIntegrationMethodsFilter(): void {
+    this.filterState.update(state => ({ ...state, integrationMethods: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
   protected removeCategoryFilter(category: string): void {
     this.filterState.update(state => ({
       ...state,
@@ -339,6 +371,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.filterState.update(state => ({
       ...state,
       appStatus: state.appStatus.filter(s => s !== status)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeMidpointVersionFilter(version: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      midpointVersions: state.midpointVersions.filter(v => v !== version)
     }));
     this.currentPage.set(0);
   }
@@ -380,6 +420,35 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       }));
       this.currentPage.set(0);
     }
+  }
+
+  protected toggleMidpointVersionInFilter(version: string): void {
+    const versions = this.filterState().midpointVersions;
+    if (versions.includes(version)) {
+      this.removeMidpointVersionFilter(version);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        midpointVersions: [...state.midpointVersions, version]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleIntegrationMethodInFilter(method: string): void {
+    const methods = this.filterState().integrationMethods;
+    if (methods.includes(method)) {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: state.integrationMethods.filter(m => m !== method)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: [...state.integrationMethods, method]
+      }));
+    }
+    this.currentPage.set(0);
   }
 
   protected getFilteredCountForCategory(category: string): number {
@@ -465,14 +534,35 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return this.filterState().appStatus.includes(status);
   }
 
+  protected isMidpointVersionSelected(version: string): boolean {
+    return this.filterState().midpointVersions.includes(version);
+  }
+
+  protected isIntegrationMethodSelected(method: string): boolean {
+    return this.filterState().integrationMethods.includes(method);
+  }
+
+  protected allMidpointVersions = computed(() => {
+    const versionsSet = new Set<string>();
+    for (const app of this.applications()) {
+      if (app.midpointVersions) {
+        app.midpointVersions.forEach(v => versionsSet.add(v));
+      }
+    }
+    return Array.from(versionsSet).sort();
+  });
+
+  protected readonly allIntegrationMethods: string[] = [
+    'SCIM',
+    'openLDAP',
+    'REST API',
+    'CSV file import'
+  ];
+
   protected onSortChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value as 'alphabetical' | 'popularity' | 'activity';
     this.sortBy.set(value);
     this.currentPage.set(0);
-  }
-
-  protected setViewMode(mode: 'grid' | 'list'): void {
-    this.viewMode.set(mode);
   }
 
   protected setActiveTab(tab: string): void {
@@ -593,6 +683,11 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected closeUploadModal(): void {
     this.isUploadModalOpen.set(false);
+  }
+
+  protected reloadApplications(): void {
+    this.loading.set(true);
+    this.loadApplications();
   }
 
   protected openFilterModal(): void {

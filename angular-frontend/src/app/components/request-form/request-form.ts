@@ -20,6 +20,7 @@ import { AuthService } from '../../services/auth.service';
 export class RequestForm {
   @Input() isRequestModalOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
+  @Output() requestSubmitted = new EventEmitter<void>();
 
   protected formData = {
     integrationApplicationName: '',
@@ -93,6 +94,7 @@ export class RequestForm {
         this.isSubmitting.set(false);
         this.closeRequestModal();
         this.submitSuccess.set(true);
+        this.requestSubmitted.emit();
         // Auto-hide success message after 5 seconds
         setTimeout(() => {
           this.submitSuccess.set(false);
@@ -141,6 +143,11 @@ export class RequestForm {
   }
 
   protected formatCapabilityName(capability: string): string {
-    return capability.replace(/_/g, ' ');
+    return capability
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 }

@@ -191,23 +191,26 @@ export class ApplicationDetail implements OnInit {
     this.applyFilters();
   }
 
-  protected getAllCapabilities(): string[] {
-    const app = this.application();
-    if (!app || !app.implementationVersions) return [];
-
-    const capabilitiesSet = new Set<string>();
-    app.implementationVersions.forEach(version => {
-      if (version.capabilities) {
-        version.capabilities.forEach(cap => {
-          if (cap !== 'Installed') {
-            capabilitiesSet.add(cap);
-          }
-        });
-      }
-    });
-
-    return Array.from(capabilitiesSet).sort();
-  }
+  protected readonly allCapabilities = [
+    'CREATE',
+    'GET',
+    'UPDATE',
+    'DELETE',
+    'TEST',
+    'SCRIPT_ON_CONNECTOR',
+    'SCRIPT_ON_RESOURCE',
+    'AUTHENTICATION',
+    'SEARCH',
+    'VALIDATE',
+    'SYNC',
+    'LIVE_SYNC',
+    'SCHEMA',
+    'DISCOVER_CONFIGURATION',
+    'RESOLVE_USERNAME',
+    'PARTIAL_SCHEMA',
+    'COMPLEX_UPDATE_DELTA',
+    'UPDATE_DELTA'
+  ];
 
   protected getAllMidpointVersions(): string[] {
     const app = this.application();
