@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.mapper;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
@@ -24,6 +25,8 @@ import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -267,6 +270,123 @@ public class ApplicationMapper {
                 .voteCount(voteCount)
                 .frameworks(frameworks)
                 .build();
+    }
+
+    /**
+     * Convert Application entity to ApplicationCardDto for list display
+     * @param app Application entity
+     * @return ApplicationCardDto
+     */
+    public ApplicationCardDto toCardDto(Application app) {
+        String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+
+        // Convert origins from ApplicationOrigin join table
+        List<CountryOfOriginDto> origins = null;
+        if (app.getApplicationOrigins() != null) {
+            origins = app.getApplicationOrigins().stream()
+                    .map(appOrigin -> new CountryOfOriginDto(
+                            appOrigin.getCountryOfOrigin().getId(),
+                            appOrigin.getCountryOfOrigin().getName(),
+                            appOrigin.getCountryOfOrigin().getDisplayName()
+                    ))
+                    .toList();
+        }
+
+        // Convert categories and tags from ApplicationApplicationTag join table
+        List<ApplicationTagDto> categories = null;
+        List<ApplicationTagDto> tags = null;
+        if (app.getApplicationApplicationTags() != null) {
+            categories = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+
+            tags = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+        }
+
+        // Get request info and capabilities if lifecycle state is REQUESTED
+        Long requestId = null;
+        Long voteCount = null;
+        List<String> capabilities = new ArrayList<>();
+        if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
+            Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
+            if (requestOpt.isPresent()) {
+                Request request = requestOpt.get();
+                requestId = request.getId();
+                voteCount = voteRepository.countByRequestId(request.getId());
+                // Get capabilities from request
+                if (request.getCapabilities() != null) {
+                    capabilities.addAll(Arrays.stream(request.getCapabilities())
+                            .map(Enum::name)
+                            .toList());
+                }
+            }
+        }
+
+        // Aggregate capabilities from all implementations
+        if (app.getImplementations() != null) {
+            app.getImplementations().stream()
+                    .filter(impl -> impl.getImplementationVersions() != null)
+                    .flatMap(impl -> impl.getImplementationVersions().stream())
+                    .filter(version -> version.getCapabilities() != null)
+                    .flatMap(version -> Arrays.stream(version.getCapabilities()))
+                    .map(Enum::name)
+                    .distinct()
+                    .forEach(capabilities::add);
+        }
+
+        // Deduplicate capabilities
+        capabilities = capabilities.stream().distinct().toList();
+
+        // Extract frameworks from implementations
+        List<String> frameworks = extractFrameworks(app);
+
+        // Extract unique midpoint versions from all implementations
+        List<String> midpointVersions = new ArrayList<>();
+        if (app.getImplementations() != null) {
+            app.getImplementations().stream()
+                    .filter(impl -> impl.getImplementationVersions() != null)
+                    .flatMap(impl -> impl.getImplementationVersions().stream())
+                    .filter(version -> version.getBundleVersion() != null
+                            && version.getBundleVersion().getConnidVersionObject() != null
+                            && version.getBundleVersion().getConnidVersionObject().getMidpointVersion() != null)
+                    .map(version -> version.getBundleVersion().getConnidVersionObject().getMidpointVersion())
+                    .distinct()
+                    .sorted()
+                    .forEach(midpointVersions::add);
+        }
+
+        return new ApplicationCardDto(
+                app.getId(),
+                app.getDisplayName(),
+                app.getDescription(),
+                app.getLogoPath(),
+                app.getLogoContentType(),
+                app.getLogoOriginalName(),
+                app.getLogoSizeBytes(),
+                lifecycleState,
+                origins,
+                categories,
+                tags,
+                capabilities.isEmpty() ? null : capabilities,
+                requestId,
+                voteCount,
+                frameworks,
+                midpointVersions.isEmpty() ? null : midpointVersions
+        );
     }
 
     /**

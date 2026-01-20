@@ -83,7 +83,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     capabilities: [],
     appStatus: [],
     midpointVersions: [],
-    integrationMethods: []
+    integrationMethods: [],
+    maintainers: []
   });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
@@ -287,7 +288,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       capabilities: [],
       appStatus: [],
       midpointVersions: [],
-      integrationMethods: []
+      integrationMethods: [],
+      maintainers: []
     });
     this.currentPage.set(0);
   }
@@ -347,6 +349,12 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected clearIntegrationMethodsFilter(): void {
     this.filterState.update(state => ({ ...state, integrationMethods: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearMaintainersFilter(): void {
+    this.filterState.update(state => ({ ...state, maintainers: [] }));
     this.currentPage.set(0);
     this.closeDropdown();
   }
@@ -451,6 +459,22 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.currentPage.set(0);
   }
 
+  protected toggleMaintainerInFilter(maintainer: string): void {
+    const maintainers = this.filterState().maintainers;
+    if (maintainers.includes(maintainer)) {
+      this.filterState.update(state => ({
+        ...state,
+        maintainers: state.maintainers.filter(m => m !== maintainer)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        maintainers: [...state.maintainers, maintainer]
+      }));
+    }
+    this.currentPage.set(0);
+  }
+
   protected getFilteredCountForCategory(category: string): number {
     const apps = this.applications();
     return apps.filter(app => {
@@ -542,6 +566,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return this.filterState().integrationMethods.includes(method);
   }
 
+  protected isMaintainerSelected(maintainer: string): boolean {
+    return this.filterState().maintainers.includes(maintainer);
+  }
+
   protected allMidpointVersions = computed(() => {
     const versionsSet = new Set<string>();
     for (const app of this.applications()) {
@@ -557,6 +585,12 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     'openLDAP',
     'REST API',
     'CSV file import'
+  ];
+
+  protected readonly allMaintainers: string[] = [
+    'Evolveum',
+    'Community',
+    'Partner'
   ];
 
   protected onSortChange(event: Event): void {

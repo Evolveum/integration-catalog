@@ -1,17 +1,17 @@
 <!-- Publish Success Toast Notification -->
 @if (showPublishSuccess()) {
-  <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
-    <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); min-width: 350px;">
+  <div class="position-fixed top-0 end-0 p-3 toast-container">
+    <div class="toast-box">
       <!-- Green header row -->
-      <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #198754; color: white;">
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-success">
         <div class="d-flex align-items-center gap-2">
-          <i class="fa-solid fa-circle-check" style="font-size: 18px;"></i>
+          <i class="fa-solid fa-circle-check toast-icon"></i>
           <strong>Published Successfully!</strong>
         </div>
         <button type="button" class="btn-close btn-close-white" (click)="closePublishSuccessToast()" aria-label="Close"></button>
       </div>
       <!-- Light green message row -->
-      <div class="px-3 py-2" style="background-color: #d1e7dd; color: black;">
+      <div class="px-3 py-2 toast-body-success">
         Your connector has been successfully published to the catalog.
       </div>
     </div>
@@ -20,18 +20,18 @@
 
 <!-- Version Exists Warning Toast Notification -->
 @if (showVersionExistsWarning()) {
-  <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
-    <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); min-width: 350px;">
+  <div class="position-fixed top-0 end-0 p-3 toast-container">
+    <div class="toast-box">
       <!-- Yellow/Orange header row -->
-      <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #ffc107; color: #000;">
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
         <div class="d-flex align-items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation" style="font-size: 18px;"></i>
+          <i class="fa-solid fa-triangle-exclamation toast-icon"></i>
           <strong>Version Already Exists</strong>
         </div>
         <button type="button" class="btn-close" (click)="closeVersionExistsWarning()" aria-label="Close"></button>
       </div>
       <!-- Light yellow message row -->
-      <div class="px-3 py-2" style="background-color: #fff3cd; color: #000;">
+      <div class="px-3 py-2 toast-body-warning">
         Version <strong>{{ existingVersion() }}</strong> already exists in the catalog. Please use a different version number.
       </div>
     </div>
@@ -39,37 +39,36 @@
 }
 
 @if (isOpen()) {
-  <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;" (click)="closeModal()"></div>
-  <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 775px; margin: auto;">
+  <div class="modal-backdrop modal-backdrop-overlay" (click)="closeModal()"></div>
+  <div class="modal modal-container">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-upload">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <!-- Modal Header -->
-        <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem;">
+        <div class="modal-header modal-header-upload">
           <h5 class="modal-title mb-0">Upload App to Integration Catalog</h5>
           <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
         </div>
 
         <!-- Step Navigation -->
-        <div class="steps-container" style="padding: 1.5rem 1.5rem 0 1.5rem;">
-          <div class="d-flex justify-content-between position-relative" style="padding-bottom: 1rem;">
+        <div class="steps-container steps-container-padding">
+          <div class="d-flex justify-content-between position-relative steps-padding-bottom">
             <!-- Step 1 -->
             <div class="step-item flex-fill text-center position-relative" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
               <div class="d-flex align-items-center">
                 <div class="step-number-wrapper d-flex align-items-center">
                   <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
-                        [style.background-color]="currentStep() > 1 ? '#198754' : (currentStep() === 1 ? 'var(--midpoint-special-color)' : '#6c757d')"
-                        [style.color]="'white'"
-                        style="width: 28px; height: 28px; font-size: 0.875rem; font-weight: 600;">
+                        [class.step-number-completed]="currentStep() > 1"
+                        [class.step-number-active]="currentStep() === 1"
+                        [class.step-number-inactive]="currentStep() < 1">
                     @if (currentStep() > 1) {
-                      <i class="fa-solid fa-check" style="font-size: 12px;"></i>
+                      <i class="fa-solid fa-check step-check-icon"></i>
                     } @else {
                       1
                     }
                   </span>
-                  <span class="step-label ms-2"
-                        [style.color]="currentStep() === 1 ? '#212529' : '#6c757d'"
-                        [style.font-weight]="currentStep() === 1 ? '600' : '400'"
-                        style="font-size: 0.875rem; white-space: nowrap;">Select Connector type</span>
+                  <span class="step-label ms-2 step-label-text"
+                        [class.step-label-active]="currentStep() === 1"
+                        [class.step-label-inactive]="currentStep() !== 1">Select Connector type</span>
                 </div>
               </div>
             </div>
@@ -79,19 +78,18 @@
               <div class="d-flex align-items-center justify-content-center">
                 <div class="step-number-wrapper d-flex align-items-center">
                   <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
-                        [style.background-color]="currentStep() > 2 ? '#198754' : (currentStep() === 2 ? 'var(--midpoint-special-color)' : '#6c757d')"
-                        [style.color]="'white'"
-                        style="width: 28px; height: 28px; font-size: 0.875rem; font-weight: 600;">
+                        [class.step-number-completed]="currentStep() > 2"
+                        [class.step-number-active]="currentStep() === 2"
+                        [class.step-number-inactive]="currentStep() < 2">
                     @if (currentStep() > 2) {
-                      <i class="fa-solid fa-check" style="font-size: 12px;"></i>
+                      <i class="fa-solid fa-check step-check-icon"></i>
                     } @else {
                       2
                     }
                   </span>
-                  <span class="step-label ms-2"
-                        [style.color]="currentStep() === 2 ? '#212529' : '#6c757d'"
-                        [style.font-weight]="currentStep() === 2 ? '600' : '400'"
-                        style="font-size: 0.875rem; white-space: nowrap; text-align: left;">Define Target App</span>
+                  <span class="step-label ms-2 step-label-text text-start"
+                        [class.step-label-active]="currentStep() === 2"
+                        [class.step-label-inactive]="currentStep() !== 2">Define Target App</span>
                 </div>
               </div>
             </div>
@@ -101,66 +99,61 @@
               <div class="d-flex align-items-center justify-content-end">
                 <div class="step-number-wrapper d-flex align-items-center">
                   <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
-                        [style.background-color]="currentStep() === 3 ? 'var(--midpoint-special-color)' : '#6c757d'"
-                        [style.color]="'white'"
-                        style="width: 28px; height: 28px; font-size: 0.875rem; font-weight: 600;">3</span>
-                  <span class="step-label ms-2"
-                        [style.color]="currentStep() === 3 ? '#212529' : '#6c757d'"
-                        [style.font-weight]="currentStep() === 3 ? '600' : '400'"
-                        style="font-size: 0.875rem; white-space: nowrap; text-align: left;">Define Implementation</span>
+                        [class.step-number-active]="currentStep() === 3"
+                        [class.step-number-inactive]="currentStep() !== 3">3</span>
+                  <span class="step-label ms-2 step-label-text text-start"
+                        [class.step-label-active]="currentStep() === 3"
+                        [class.step-label-inactive]="currentStep() !== 3">Define Implementation</span>
                 </div>
               </div>
             </div>
           </div>
           <!-- Progress Bar -->
-          <div class="position-relative" style="height: 3px; background-color: #dee2e6; margin-top: 0;">
+          <div class="position-relative progress-bar-container">
             <div class="progress-bar-fill"
-                 [style.left]="currentStep() === 1 ? '0%' : (currentStep() === 2 ? '33.33%' : '66.66%')"
-                 style="position: absolute; height: 100%; width: 33.33%; background-color: var(--midpoint-special-color); transition: left 0.3s ease;"></div>
+                 [style.left]="currentStep() === 1 ? '0%' : (currentStep() === 2 ? '33.33%' : '66.66%')"></div>
           </div>
         </div>
 
         <!-- Modal Body -->
-        <div class="modal-body" style="padding: 2rem 1.5rem;" (click)="showOriginDropdown.set(false)">
+        <div class="modal-body modal-body-upload" (click)="showOriginDropdown.set(false)">
           <!-- Step 1: Select Connector Type -->
           @if (currentStep() === 1) {
             <div class="step-content">
-              <h6 class="mb-4 text-center" style="font-size: 1rem; font-weight: 500;">Select the Type of Connector You Want to Upload</h6>
+              <h6 class="mb-4 text-center step-heading">Select the Type of Connector You Want to Upload</h6>
 
               <!-- Info Note -->
-              <div class="alert d-flex align-items-start" style="background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 1.5rem;">
-                <i class="fa-solid fa-circle-info me-2 flex-shrink-0" style="font-size: 16px; color: var(--text-publishing-blue); margin-top: 2px;"></i>
-                <div style="color: #0c5460; font-size: 0.875rem;">
+              <div class="alert d-flex align-items-start alert-info-note">
+                <i class="fa-solid fa-circle-info me-2 flex-shrink-0 alert-icon"></i>
+                <div class="alert-text">
                   <strong>Note</strong> Once published, this connector will appear in the public catalog and be visible to other users.
                 </div>
               </div>
 
               <!-- Connector Type Options -->
               <div class="mb-3">
-                <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem; margin-bottom: 1rem;">
+                <label class="form-label d-flex align-items-center form-label-upload">
                   Connector Type Options
-                  <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                    <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                  <span class="info-icon-wrapper position-relative ms-2">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
                     <span class="info-tooltip">Choose the type of connector based on your deployment needs and technical requirements.</span>
                   </span>
                 </label>
 
                 <!-- Option 1: Java-based Connector -->
-                <div class="connector-option mb-3"
+                <div class="connector-option mb-3 connector-option-card"
                      [class.selected]="selectedConnectorType() === 'java-based'"
-                     (click)="selectConnectorType('java-based')"
-                     style="border: 2px solid #dee2e6; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s;">
+                     (click)="selectConnectorType('java-based')">
                   <div class="d-flex align-items-center">
                     <input type="radio"
                            name="connectorType"
                            [checked]="selectedConnectorType() === 'java-based'"
-                           class="form-check-input me-3 flex-shrink-0"
-                           style="width: 20px; height: 20px; cursor: pointer;">
+                           class="form-check-input me-3 flex-shrink-0 radio-input">
                     <div class="flex-grow-1">
                       <div class="d-flex align-items-center mb-1">
-                        <span style="font-weight: 600; font-size: 0.9375rem;">Java-based Connector</span>
+                        <span class="connector-title">Java-based Connector</span>
                       </div>
-                      <div style="color: var(--color-black); font-size: 0.875rem;">
+                      <div class="connector-description">
                         Typically deployed in the same environment as MidPoint.<br>
                         &nbsp;
                       </div>
@@ -169,21 +162,19 @@
                 </div>
 
                 <!-- Option 2: Low-code Connector with Own Repository -->
-                <div class="connector-option mb-3"
+                <div class="connector-option mb-3 connector-option-card"
                      [class.selected]="selectedConnectorType() === 'own-repo'"
-                     (click)="selectConnectorType('own-repo')"
-                     style="border: 2px solid #dee2e6; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s;">
+                     (click)="selectConnectorType('own-repo')">
                   <div class="d-flex align-items-center">
                     <input type="radio"
                            name="connectorType"
                            [checked]="selectedConnectorType() === 'own-repo'"
-                           class="form-check-input me-3 flex-shrink-0"
-                           style="width: 20px; height: 20px; cursor: pointer;">
+                           class="form-check-input me-3 flex-shrink-0 radio-input">
                     <div class="flex-grow-1">
                       <div class="d-flex align-items-center mb-1">
-                        <span style="font-weight: 600; font-size: 0.9375rem;">Low-code Connector with Own Repository</span>
+                        <span class="connector-title">Low-code Connector with Own Repository</span>
                       </div>
-                      <div style="color: var(--color-black); font-size: 0.875rem;">
+                      <div class="connector-description">
                         Connector is maintained in your own version-controlled repository (e.g., GitHub, GitLab).<br>
                         Requires entering repository URL.
                       </div>
@@ -192,23 +183,19 @@
                 </div>
 
                 <!-- Option 3: Low-code connector Evolveum-hosted repository -->
-                <div class="connector-option mb-3"
+                <div class="connector-option mb-3 connector-option-card"
                      [class.selected]="selectedConnectorType() === 'evolveum-hosted'"
-                     (click)="selectConnectorType('evolveum-hosted')"
-                     style="border: 2px solid; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s;"
-                     [style.border-color]="selectedConnectorType() === 'evolveum-hosted' ? 'var(--midpoint-special-color)' : '#dee2e6'"
-                     [style.background-color]="selectedConnectorType() === 'evolveum-hosted' ? '#e7f3ff' : 'white'">
+                     (click)="selectConnectorType('evolveum-hosted')">
                   <div class="d-flex align-items-center">
                     <input type="radio"
                            name="connectorType"
                            [checked]="selectedConnectorType() === 'evolveum-hosted'"
-                           class="form-check-input me-3 flex-shrink-0"
-                           style="width: 20px; height: 20px; cursor: pointer;">
+                           class="form-check-input me-3 flex-shrink-0 radio-input">
                     <div class="flex-grow-1">
                       <div class="d-flex align-items-center mb-1">
-                        <span style="font-weight: 600; font-size: 0.9375rem;">Low-code connector Evolveum-hosted repository</span>
+                        <span class="connector-title">Low-code connector Evolveum-hosted repository</span>
                       </div>
-                      <div style="color: var(--color-black); font-size: 0.875rem;">
+                      <div class="connector-description">
                         Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
                       </div>
                     </div>
@@ -217,8 +204,8 @@
               </div>
 
               <!-- Help Text -->
-              <div class="d-flex align-items-start mt-4" style="color: var(--color-black); font-size: 0.875rem;">
-                <i class="fa-regular fa-lightbulb me-2 flex-shrink-0" style="font-size: 14px; margin-top: 2px; color: var(--midpoint-special-color);"></i>
+              <div class="d-flex align-items-start mt-4 help-text">
+                <i class="fa-regular fa-lightbulb me-2 flex-shrink-0 help-icon"></i>
                 <span>If you're unsure, ask your system administrator or the team responsible for connector development.</span>
               </div>
             </div>
@@ -228,14 +215,14 @@
           @if (currentStep() === 2) {
             <div class="step-content">
               @if (!showImplementationForm()) {
-                <h6 class="mb-4 text-center" style="font-size: 1rem; font-weight: 400;">Search or define a new application to continue.</h6>
+                <h6 class="mb-4 text-center step-heading-light">Search or define a new application to continue.</h6>
 
                 <!-- Search Input -->
                 <div class="position-relative mb-4">
                   <div class="search-input-wrapper">
                     <div class="d-flex align-items-center">
                       <span class="search-icon-wrapper">
-                        <i class="fa-solid fa-magnifying-glass" style="font-size: 14px; color: #6c757d;"></i>
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
                       </span>
                       <input
                         type="text"
@@ -245,7 +232,7 @@
                         placeholder="Search applications...">
                       @if (searchQuery()) {
                         <button class="clear-search-btn" type="button" (click)="clearSearch()">
-                          <i class="fa-solid fa-xmark" style="font-size: 12px; color: #6c757d;"></i>
+                          <i class="fa-solid fa-xmark clear-icon"></i>
                         </button>
                       }
                     </div>
@@ -254,21 +241,21 @@
 
                 <!-- Selected Application Card (shown after selection, before form) -->
                 @if (selectedApplication() && !showDetailsForm()) {
-                  <div class="card mb-4" style="border: 1px solid #dee2e6; border-radius: 8px;">
-                    <div class="card-body d-flex align-items-center" style="padding: 1.5rem;">
+                  <div class="card mb-4 app-card">
+                    <div class="card-body d-flex align-items-center app-card-body">
                       <div class="flex-shrink-0 me-3">
-                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 600;">
+                        <div class="app-avatar">
                           {{ selectedApplication()!.displayName.charAt(0) }}
                         </div>
                       </div>
                       <div class="flex-grow-1">
-                        <h6 class="mb-2" style="font-size: 1rem; font-weight: 600;">{{ selectedApplication()!.displayName }}</h6>
-                        <p class="mb-0 text-muted" style="font-size: 0.875rem;">{{ selectedApplication()!.description }}</p>
+                        <h6 class="mb-2 app-title">{{ selectedApplication()!.displayName }}</h6>
+                        <p class="mb-0 text-muted app-description">{{ selectedApplication()!.description }}</p>
                       </div>
                       <div class="d-flex align-items-stretch ms-3">
-                        <div style="width: 1px; background-color: #dee2e6; margin: -1.5rem 0;"></div>
-                        <button type="button" class="btn btn-link p-0 ms-3" (click)="removeSelectedApplication()" style="color: #6c757d;">
-                          <i class="fa-solid fa-trash" style="font-size: 16px;"></i>
+                        <div class="card-separator"></div>
+                        <button type="button" class="btn btn-link p-0 ms-3 text-muted" (click)="removeSelectedApplication()">
+                          <i class="fa-solid fa-trash trash-icon"></i>
                         </button>
                       </div>
                     </div>
@@ -279,16 +266,16 @@
                 @if (!selectedApplication() && searchQuery() && filteredApplications().length > 0) {
                   <div class="search-results mb-4">
                     @for (app of filteredApplications(); track app.id) {
-                      <div class="card mb-3" style="border: 1px solid #dee2e6; border-radius: 8px; cursor: pointer; transition: all 0.2s;" (click)="selectApplication(app)">
-                        <div class="card-body d-flex align-items-start" style="padding: 1.5rem;">
+                      <div class="card mb-3 app-card" (click)="selectApplication(app)">
+                        <div class="card-body d-flex align-items-start app-card-body">
                           <div class="flex-shrink-0 me-3">
-                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 600;">
+                            <div class="app-avatar">
                               {{ app.displayName.charAt(0) }}
                             </div>
                           </div>
                           <div class="flex-grow-1">
-                            <h6 class="mb-2" style="font-size: 1rem; font-weight: 600;">{{ app.displayName }}</h6>
-                            <p class="mb-0 text-muted" style="font-size: 0.875rem;">{{ app.description }}</p>
+                            <h6 class="mb-2 app-title">{{ app.displayName }}</h6>
+                            <p class="mb-0 text-muted app-description">{{ app.description }}</p>
                           </div>
                         </div>
                       </div>
@@ -300,8 +287,8 @@
                 @if (!selectedApplication() && (!searchQuery() || filteredApplications().length === 0)) {
                   <div class="text-center py-5">
                     <p class="text-muted mb-3">Didn't find your app in the database? Add a new one!</p>
-                    <button type="button" class="btn d-inline-flex align-items-center" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;" (click)="enterDefineNewMode()">
-                      <i class="fa-solid fa-circle-plus me-2" style="font-size: 16px;"></i>
+                    <button type="button" class="btn d-inline-flex align-items-center btn-define-new" (click)="enterDefineNewMode()">
+                      <i class="fa-solid fa-circle-plus me-2 trash-icon"></i>
                       Define new
                     </button>
                   </div>
@@ -311,30 +298,28 @@
               <!-- Implementation Form (shown when app selected or Define New clicked) -->
               @if (showImplementationForm()) {
                 <div>
-                  <h6 class="mb-4 text-center" style="font-size: 1rem; font-weight: 400;">Provide details for the implementation.</h6>
+                  <h6 class="mb-4 text-center step-heading-light">Provide details for the implementation.</h6>
 
                   <!-- Display Name -->
                   <div class="mb-4">
-                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                    <label class="form-label d-flex align-items-center form-label-upload">
                       Display Name*
-                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                        <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                      <span class="info-icon-wrapper position-relative ms-2">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">The name that will be displayed for this application in the catalog.</span>
                       </span>
                     </label>
-                    <input type="text" class="form-control" [(ngModel)]="displayName" placeholder="TypeName.."
-                           [style.max-width]="'240px'"
-                           [style.background-color]="selectedApplication() !== null ? '#fcfcfc' : ''"
-                           [style.color]="selectedApplication() !== null ? '#6c757d' : ''"
+                    <input type="text" class="form-control input-width-sm" [(ngModel)]="displayName" placeholder="TypeName.."
+                           [class.input-disabled]="selectedApplication() !== null"
                            [disabled]="selectedApplication() !== null">
                   </div>
 
                   <!-- Upload Logo -->
                   <div class="mb-4">
-                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                    <label class="form-label d-flex align-items-center form-label-upload">
                       App logo
-                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                        <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                      <span class="info-icon-wrapper position-relative ms-2">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">This will appear in the catalog and application details. Supported formats: PNG, JPEG, GIF, SVG, WebP. Max size: 5MB.</span>
                       </span>
                     </label>
@@ -342,8 +327,8 @@
                     <!-- Show existing logo from selected app -->
                     @if (selectedApplication() && getLogoUrl()) {
                       <div class="d-flex align-items-center gap-3">
-                        <div class="border rounded p-2" style="background-color: #f8f9fa;">
-                          <img [src]="getLogoUrl()" alt="App logo" style="width: 80px; height: 80px; object-fit: contain;">
+                        <div class="border rounded p-2 bg-light">
+                          <img [src]="getLogoUrl()" alt="App logo" class="logo-preview">
                         </div>
                       </div>
                     }
@@ -351,13 +336,13 @@
                     <!-- Show preview of newly uploaded logo -->
                     @else if (logoPreviewUrl()) {
                       <div class="d-flex align-items-center gap-3">
-                        <div class="border rounded p-2" style="background-color: #f8f9fa;">
-                          <img [src]="logoPreviewUrl()" alt="Logo preview" style="width: 80px; height: 80px; object-fit: contain;">
+                        <div class="border rounded p-2 bg-light">
+                          <img [src]="logoPreviewUrl()" alt="Logo preview" class="logo-preview">
                         </div>
                         <div>
-                          <div class="text-muted mb-1" style="font-size: 0.8125rem;">{{ logoFile()?.name }}</div>
+                          <div class="text-muted mb-1 upload-text">{{ logoFile()?.name }}</div>
                           <button type="button" class="btn btn-outline-danger btn-sm" (click)="clearLogo()">
-                            <i class="fa-solid fa-trash me-1" style="font-size: 12px;"></i>
+                            <i class="fa-solid fa-trash me-1 upload-btn-icon"></i>
                             Remove
                           </button>
                         </div>
@@ -366,13 +351,13 @@
 
                     <!-- Show upload area when no logo -->
                     @else {
-                      <div class="logo-upload-area" style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 2rem; background-color: #f8f9fa; text-align: center;">
-                        <i class="fa-solid fa-image mb-3" style="font-size: 40px; color: #6c757d;"></i>
-                        <h6 class="mb-2" style="font-size: 0.9375rem; font-weight: 600;">Upload a logo</h6>
-                        <p class="text-muted mb-3" style="font-size: 0.8125rem;">Accepted formats: PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
+                      <div class="logo-upload-area">
+                        <i class="fa-solid fa-image mb-3 logo-icon"></i>
+                        <h6 class="mb-2 upload-title">Upload a logo</h6>
+                        <p class="text-muted mb-3 upload-text">Accepted formats: PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
                         <input #logoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml,image/webp">
                         <button type="button" class="btn btn-outline-secondary btn-sm" (click)="logoUpload.click()">
-                          <i class="fa-solid fa-upload me-2" style="font-size: 12px;"></i>
+                          <i class="fa-solid fa-upload me-2 upload-btn-icon"></i>
                           Upload
                         </button>
                       </div>
@@ -381,29 +366,28 @@
 
                   <!-- Description -->
                   <div class="mb-4">
-                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                    <label class="form-label d-flex align-items-center form-label-upload">
                       Description*
-                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                        <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                      <span class="info-icon-wrapper position-relative ms-2">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Provide a brief description of what this application does.</span>
                       </span>
                     </label>
                     <div class="position-relative">
                       <textarea class="form-control" [value]="description()" (input)="onDescriptionChange($event)"
                                 placeholder="Type description of application..." rows="5" maxlength="350"
-                                [style.background-color]="selectedApplication() !== null ? '#fcfcfc' : ''"
-                                [style.color]="selectedApplication() !== null ? '#6c757d' : ''"
+                                [class.input-disabled]="selectedApplication() !== null"
                                 [disabled]="selectedApplication() !== null"></textarea>
-                      <div class="text-end text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ description().length }}/350 characters</div>
+                      <div class="text-end text-muted char-counter">{{ description().length }}/350 characters</div>
                     </div>
                   </div>
 
                   <!-- Origin(s) -->
                   <div class="mb-4">
-                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                    <label class="form-label d-flex align-items-center form-label-upload">
                       Origin(s)
-                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                        <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                      <span class="info-icon-wrapper position-relative ms-2">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Select one or more countries where the connector or system originates from.</span>
                       </span>
                     </label>
@@ -448,17 +432,15 @@
 
                   <!-- Category -->
                   <div class="mb-4">
-                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                    <label class="form-label d-flex align-items-center form-label-upload">
                       Category*
-                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                        <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                      <span class="info-icon-wrapper position-relative ms-2">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Select the primary category this application belongs to.</span>
                       </span>
                     </label>
-                    <select class="form-select" [(ngModel)]="category"
-                            [style.max-width]="'280px'"
-                            [style.background-color]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED' ? '#fcfcfc' : ''"
-                            [style.color]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED' ? '#6c757d' : ''"
+                    <select class="form-select input-width-md" [(ngModel)]="category"
+                            [class.input-disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'"
                             [disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'">
                       <option value="">Select category...</option>
                       @for (cat of availableCategories(); track cat.name) {
@@ -469,10 +451,10 @@
 
                   <!-- Deployment Type -->
                   <div class="mb-4">
-                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                    <label class="form-label d-flex align-items-center form-label-upload">
                       Deployment Type
-                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                        <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                      <span class="info-icon-wrapper position-relative ms-2">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Choose how this application is deployed.</span>
                       </span>
                     </label>
@@ -504,58 +486,58 @@
         </div>
 
         <!-- Modal Footer -->
-        <div class="modal-footer d-flex justify-content-between" style="border-top: 1px solid #dee2e6; padding: 1rem 1.5rem;">
+        <div class="modal-footer d-flex justify-content-between modal-footer-upload">
           @if (currentStep() === 1) {
-            <button type="button" class="btn" style="color: var(--midpoint-special-color); background: none; border: none; padding: 0.375rem 0.75rem;" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn btn-back" (click)="closeModal()">Cancel</button>
           }
           @if (currentStep() === 2 && !showImplementationForm() && !selectedApplication()) {
-            <button type="button" class="btn d-flex align-items-center" style="color: var(--midpoint-special-color); background: none; border: none; padding: 0.375rem 0.75rem;" (click)="previousStep()">
-                  <i class="fa-solid fa-arrow-left me-2" style="font-size: 12px;"></i>
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
                   Back: Select Connector type
             </button>
           }
           @if (currentStep() === 2 && !showImplementationForm() && selectedApplication()) {
-            <button type="button" class="btn d-flex align-items-center" style="color: var(--midpoint-special-color); background: none; border: none; padding: 0.375rem 0.75rem;" (click)="removeSelectedApplication()">
-                  <i class="fa-solid fa-arrow-left me-2" style="font-size: 12px;"></i>
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="removeSelectedApplication()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
                   Back to search app
             </button>
           }
           @if (currentStep() === 2 && showImplementationForm() && !isDefineNewMode()) {
-            <button type="button" class="btn d-flex align-items-center" style="color: var(--midpoint-special-color); background: none; border: none; padding: 0.375rem 0.75rem;" (click)="showDetailsForm.set(false); clearApplicationDetailsFields()">
-                  <i class="fa-solid fa-arrow-left me-2" style="font-size: 12px;"></i>
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="showDetailsForm.set(false); clearApplicationDetailsFields()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
                   Back to selected app
             </button>
           }
           @if (currentStep() === 2 && showImplementationForm() && isDefineNewMode()) {
-            <button type="button" class="btn d-flex align-items-center" style="color: var(--midpoint-special-color); background: none; border: none; padding: 0.375rem 0.75rem;" (click)="removeSelectedApplication(); isDefineNewMode.set(false)">
-                  <i class="fa-solid fa-arrow-left me-2" style="font-size: 12px;"></i>
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="removeSelectedApplication(); isDefineNewMode.set(false)">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
                   Back to search app
             </button>
           }
           @if (currentStep() === 3) {
-            <button type="button" class="btn d-flex align-items-center" style="color: var(--midpoint-special-color); background: none; border: none; padding: 0.375rem 0.75rem;" (click)="handleBackFromImplementation()">
-                  <i class="fa-solid fa-arrow-left me-2" style="font-size: 12px;"></i>
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="handleBackFromImplementation()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
                   {{ implementationFormData()?.isEditingVersion ? 'Back to implementation selection' : 'Back: Define Target Application' }}
             </button>
           }
           <div>
             @if (currentStep() === 1) {
-              <button type="button" class="btn btn-primary" style="background-color: var(--midpoint-special-color); border-color: var(--midpoint-special-color);" (click)="nextStep()">Next: Define Target Application</button>
+              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()">Next: Define Target Application</button>
             }
             @if (currentStep() === 2 && canContinueWithSelection()) {
-              <button type="button" class="btn btn-primary" style="background-color: var(--midpoint-special-color); border-color: var(--midpoint-special-color);" (click)="continueWithSelectedApp()">
+              <button type="button" class="btn btn-primary btn-next" (click)="continueWithSelectedApp()">
                 Continue
-                <i class="fa-solid fa-arrow-right ms-2" style="font-size: 12px;"></i>
+                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
             }
             @if (currentStep() === 2 && showImplementationForm()) {
-              <button type="button" class="btn btn-primary" style="background-color: var(--midpoint-special-color); border-color: var(--midpoint-special-color);" (click)="nextStep()" [disabled]="!canSubmitForm()">
+              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!canSubmitForm()">
                 Next: Define Implementation
-                <i class="fa-solid fa-arrow-right ms-2" style="font-size: 12px;"></i>
+                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
             }
             @if (currentStep() === 3) {
-              <button type="button" class="btn btn-primary" style="background-color: var(--midpoint-special-color); border-color: var(--midpoint-special-color);" [disabled]="!isImplementationFormValid()" (click)="handleImplementationAction()">
+              <button type="button" class="btn btn-primary btn-next" [disabled]="!isImplementationFormValid()" (click)="handleImplementationAction()">
                 {{ implementationFormData()?.isNewVersion === false || implementationFormData()?.isEditingVersion ? 'Publish to catalog' : 'Select' }}
               </button>
             }

@@ -3,34 +3,190 @@
   Licensed under the EUPL-1.2 or later.
 */
 
-/* All styling is handled by Bootstrap utility classes in the HTML template */
-/* Keep this file for future custom styles if needed */
-
-/* Hide scrollbar for featured apps section */
-.scroll-container::-webkit-scrollbar {
-  display: none;
+/* ========================================
+   PAGE LAYOUT
+   ======================================== */
+.page-bg {
+  background-color: #e9ecef;
 }
 
-.scroll-container {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.content-width {
+  width: 1080px;
 }
 
-/* Slow blink animation for the gear icon */
-@keyframes blink {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
+/* ========================================
+   HERO BANNER
+   ======================================== */
+.hero-gradient {
+  background: linear-gradient(270deg, #223558 0%, #36538B 52.88%, #2C4471 85.58%);
 }
 
-.blink-animation {
-  animation: blink 2s ease-in-out infinite;
+.hero-title {
+  font-size: 48px;
 }
 
-/* Filter chips container */
+.hero-subtitle {
+  font-size: 28px;
+}
+
+.hero-stat-value {
+  color: #A3CDCC;
+}
+
+.hero-stat-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  color: #A3CDCC;
+}
+
+/* ========================================
+   TOAST NOTIFICATION
+   ======================================== */
+.toast-container {
+  z-index: 2000;
+}
+
+.toast-box {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-width: 350px;
+}
+
+.toast-header-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.toast-body-warning {
+  background-color: #fff3cd;
+  color: #212529;
+}
+
+/* ========================================
+   OVERLAY IMAGE
+   ======================================== */
+.overlay-image-container {
+  position: absolute;
+  right: 28%;
+  top: 150px;
+  z-index: 5;
+}
+
+.overlay-image {
+  max-width: 450px;
+  height: auto;
+}
+
+/* ========================================
+   DESCRIPTION TEXT
+   ======================================== */
+.description-text {
+  color: #303030;
+}
+
+/* ========================================
+   SEARCH INPUT
+   ======================================== */
+.search-icon-container {
+  border-radius: 50px 0 0 50px;
+  border-color: #dee2e6;
+}
+
+.search-input {
+  border-radius: 0 50px 50px 0;
+  border-color: #dee2e6;
+  box-shadow: none;
+  outline: none;
+}
+
+.search-icon {
+  font-size: 18px;
+  color: #6c757d;
+}
+
+/* ========================================
+   FILTER BUTTONS
+   ======================================== */
+.btn-filter-main {
+  background-color: white;
+  border: 1px solid #ced4da;
+  color: #212529;
+  padding: 0.5rem 1.5rem;
+  border-radius: 50px;
+}
+
+.btn-reset-filter {
+  background-color: transparent;
+  border: none;
+  color: #6c757d;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+}
+
+/* ========================================
+   FILTER CHIPS
+   ======================================== */
+.filter-chips-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-chips-inner {
+  padding: 0.25rem 0 3rem 0;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: white;
+  border: 2px solid var(--midpoint-special-color);
+  border-radius: 50px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: box-shadow 0.2s ease;
+}
+
+.filter-chip:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-chip button:hover {
+  color: #dc3545 !important;
+}
+
+.badge-counter {
+  background-color: var(--midpoint-special-color);
+  color: white;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  color: #6c757d;
+}
+
+.btn-icon .fa-chevron-down {
+  color: #000000;
+}
+
+/* ========================================
+   FILTER CHIPS SCROLLBAR
+   ======================================== */
 .filter-chips-container {
   scrollbar-width: thin;
   scrollbar-color: #dee2e6 transparent;
@@ -53,20 +209,383 @@
   background-color: #adb5bd;
 }
 
-/* Filter chip hover effect */
-.filter-chip {
-  transition: box-shadow 0.2s ease;
+/* ========================================
+   SCROLL CONTAINER
+   ======================================== */
+.scroll-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.filter-chip:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.scroll-container::-webkit-scrollbar {
+  display: none;
 }
 
-.filter-chip button:hover {
-  color: #dc3545 !important;
+/* ========================================
+   SCROLL BUTTONS
+   ======================================== */
+.scroll-btn {
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background-color: white;
+  border: 1px solid #dee2e6;
+  transition: opacity 0.3s ease;
 }
 
-/* Remove focus outlines from all form elements */
+/* ========================================
+   APP CARDS
+   ======================================== */
+.app-card {
+  width: 252px;
+  min-width: 252px;
+  height: 380px;
+  transition: opacity 0.3s ease;
+}
+
+/* ========================================
+   STATUS BADGES
+   ======================================== */
+.badge-popular-card {
+  font-size: 0.7rem;
+  background-color: #ffdd8c;
+  color: #7A510B;
+}
+
+.badge-requested-card {
+  font-size: 0.7rem;
+  background-color: #e2e3e5;
+  color: #2b2e31;
+}
+
+.badge-error-card {
+  font-size: 0.7rem;
+  background-color: #dc3545;
+  color: #ffffff;
+}
+
+.badge-publishing-card {
+  font-size: 0.7rem;
+  background-color: rgba(23, 162, 184, 0.15);
+  color: var(--text-publishing-color);
+}
+
+/* ========================================
+   LOGO CONTAINERS (CARDS)
+   ======================================== */
+.logo-container-sm {
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.letter-avatar-sm {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+/* ========================================
+   CARD CONTENT
+   ======================================== */
+.card-title-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  min-height: calc(1.4em * 4);
+}
+
+/* ========================================
+   CARD LINKS & BUTTONS
+   ======================================== */
+.link-details {
+  color: var(--btn-more-details-color);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.link-error {
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.btn-vote {
+  background-color: #FFFFFF;
+  border: 1px solid #ced4da;
+  color: #212529;
+  height: 38px;
+}
+
+.btn-continue {
+  background-color: #e9ecef;
+  border: 1px solid #ced4da;
+  color: #212529;
+  height: 38px;
+}
+
+.btn-continue-text {
+  font-weight: 600;
+  color: #353a41;
+}
+
+/* ========================================
+   PUBLISHING STATE
+   ======================================== */
+.publishing-icon {
+  font-size: 36px;
+  color: var(--midpoint-special-color);
+}
+
+/* ========================================
+   ICON SIZES
+   ======================================== */
+.icon-xs {
+  font-size: 10px;
+}
+
+.icon-sm {
+  font-size: 12px;
+}
+
+.icon-md {
+  font-size: 14px;
+}
+
+.icon-lg {
+  font-size: 16px;
+}
+
+.icon-xl {
+  font-size: 18px;
+}
+
+.icon-xxl {
+  font-size: 20px;
+}
+
+.icon-40 {
+  font-size: 40px;
+}
+
+/* ========================================
+   PAGINATION
+   ======================================== */
+.page-link-default {
+  background-color: white;
+  color: black;
+  font-weight: 600;
+}
+
+.page-link-active {
+  background-color: #206F9D;
+  color: white;
+  font-weight: 600;
+}
+
+.pagination .page-link {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ========================================
+   DIVIDER
+   ======================================== */
+.divider-line {
+  border: 0;
+  border-top: 1px solid #6c757d;
+  margin: 3rem auto;
+  width: 1080px;
+}
+
+/* ========================================
+   ADVANCED OPTIONS SECTION
+   ======================================== */
+.options-box {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 148px;
+}
+
+.options-icon-box-purple {
+  background-color: #e6e6fa;
+  aspect-ratio: 1/1;
+  width: 137px;
+}
+
+.options-icon-box-orange {
+  background-color: #fff0e6;
+  aspect-ratio: 1/1;
+  width: 137px;
+}
+
+.options-icon {
+  font-size: 40px;
+  color: #6c757d;
+}
+
+.btn-option {
+  background-color: #e9ecef;
+  border: 1px solid #ced4da;
+  color: #212529;
+  font-weight: 600;
+  height: 44px;
+}
+
+/* ========================================
+   DROPDOWNS
+   ======================================== */
+.filter-dropdown {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 0.75rem;
+  min-width: 200px;
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 9999;
+}
+
+.checkbox-custom {
+  width: 16px;
+  height: 16px;
+  border: 1px solid;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.checkbox-checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.checkbox-unchecked {
+  background-color: transparent;
+  border-color: #dee2e6;
+}
+
+.link-clear-filter {
+  color: #0d6efd;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+/* ========================================
+   BACKDROP
+   ======================================== */
+.click-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+}
+
+/* ========================================
+   UTILITIES
+   ======================================== */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.z-index-10 {
+  z-index: 10;
+}
+
+.fw-600 {
+  font-weight: 600;
+}
+
+.sort-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.sort-select {
+  width: 145px;
+  height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none !important;
+  padding-right: 30px;
+  cursor: pointer;
+}
+
+.sort-select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-70%);
+  pointer-events: none;
+}
+
+.max-w-800 {
+  max-width: 800px;
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.blink-animation {
+  animation: blink 2s ease-in-out infinite;
+}
+
+/* ========================================
+   FORM FOCUS STATES
+   ======================================== */
 input:focus,
 button:focus,
 select:focus,
@@ -76,12 +595,4 @@ textarea:focus,
 .btn:focus {
   outline: none !important;
   box-shadow: none !important;
-}
-
-/* Pagination buttons consistent height */
-.pagination .page-link {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }

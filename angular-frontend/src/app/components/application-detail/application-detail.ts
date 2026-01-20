@@ -37,6 +37,18 @@ export class ApplicationDetail implements OnInit {
   protected readonly selectedFilterSection = signal<string>('capabilities');
   protected readonly applicationDownloadsCount = signal<number>(0);
   protected readonly logoLoadError = signal<boolean>(false);
+  protected readonly versionSearchQuery = signal<string>('');
+  protected readonly selectedIntegrationMethod = signal<string | null>(null);
+  protected readonly isIntegrationNoteVisible = signal<boolean>(true);
+  protected readonly isContinuePressed = signal<boolean>(false);
+  protected readonly allVersions = signal<any[]>([]);
+
+  protected readonly integrationMethods = [
+    { id: 'scim', name: 'SCIM', description: 'Standardized provisioning' },
+    { id: 'csv', name: 'CSV import', description: 'Batch CSV file import' },
+    { id: 'ldap', name: 'openLDAP', description: 'Existing LDAP directory' },
+    { id: 'rest', name: 'REST API', description: 'Custom REST connector' }
+  ];
 
   constructor(
     private route: ActivatedRoute,
@@ -93,6 +105,30 @@ export class ApplicationDetail implements OnInit {
     this.activeTab.set(tab);
   }
 
+  protected selectIntegrationMethod(methodId: string): void {
+    this.selectedIntegrationMethod.set(methodId);
+    // Reset continue state when method changes
+    this.isContinuePressed.set(false);
+  }
+
+  protected onContinueClick(): void {
+    this.isContinuePressed.set(true);
+  }
+
+  protected onChangeMethodClick(): void {
+    this.isContinuePressed.set(false);
+  }
+
+  protected getSelectedMethodName(): string {
+    const selectedId = this.selectedIntegrationMethod();
+    const method = this.integrationMethods.find(m => m.id === selectedId);
+    return method ? method.name : '';
+  }
+
+  protected hideIntegrationNote(): void {
+    this.isIntegrationNoteVisible.set(false);
+  }
+
   protected toggleFilterModal(): void {
     this.isFilterModalOpen.update(open => !open);
   }
@@ -129,7 +165,13 @@ export class ApplicationDetail implements OnInit {
       capabilities: [],
       midpointVersions: []
     });
+    this.versionSearchQuery.set('');
     this.applyFilters();
+  }
+
+  protected onVersionSearchChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.versionSearchQuery.set(value);
   }
 
   protected clearCapabilitiesFilter(): void {
@@ -380,6 +422,7 @@ export class ApplicationDetail implements OnInit {
       this.activeCommunityVersions.set([]);
       this.otherEvolvumVersions.set([]);
       this.otherCommunityVersions.set([]);
+      this.allVersions.set([]);
       return;
     }
 
@@ -400,6 +443,9 @@ export class ApplicationDetail implements OnInit {
         version.midpointVersion && filters.midpointVersions.includes(version.midpointVersion)
       );
     }
+
+    // Set all versions (for new unified view)
+    this.allVersions.set(filteredVersions);
 
     const activeEvolveum: any[] = [];
     const activeCommunity: any[] = [];

@@ -13,7 +13,7 @@
 
 /* Toggle buttons (segmented control) */
 .toggle-container {
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--color-border-light);
   border-radius: 6px;
   padding: 0.25rem;
   display: inline-block;
@@ -24,8 +24,8 @@
   padding: 0.2rem 0.75rem;
   font-size: 0.8rem;
   font-weight: 400;
-  color: #212529;
-  background-color: white;
+  color: var(--color-text-dark);
+  background-color: var(--color-white);
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
@@ -34,12 +34,12 @@
 }
 
 .toggle-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-bg-light);
 }
 
 .toggle-btn.active {
   background-color: var(--midpoint-special-color);
-  color: white;
+  color: var(--color-white);
   border-color: var(--midpoint-special-color);
 }
 
@@ -51,22 +51,22 @@
 }
 
 .implementation-card {
-  border: 2px solid #dee2e6;
+  border: 2px solid var(--color-border-light);
   border-radius: 8px;
   padding: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: white;
+  background-color: var(--color-white);
 }
 
 .implementation-card:hover {
   border-color: var(--midpoint-special-color);
-  box-shadow: 0 2px 8px rgba(0, 129, 132, 0.15);
+  box-shadow: 0 2px 8px var(--shadow-teal);
 }
 
 .implementation-card.selected {
   border-color: var(--midpoint-special-color);
-  background-color: #f8f9fa;
+  background-color: var(--color-bg-light);
 }
 
 /* Info icon tooltip styles */
@@ -83,8 +83,8 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background-color: #212529;
-  color: white;
+  background-color: var(--color-text-dark);
+  color: var(--color-white);
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 0.8125rem;
@@ -92,7 +92,7 @@
   white-space: normal;
   width: 250px;
   text-align: left;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px var(--shadow-card);
   z-index: 1000;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   pointer-events: none;
@@ -106,7 +106,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: #212529;
+  border-top-color: var(--color-text-dark);
 }
 
 .info-icon-wrapper:hover .info-tooltip {
@@ -120,4 +120,130 @@
 
 .info-icon-wrapper:hover svg {
   transform: scale(1.1);
+}
+
+/* Section Headers */
+.section-header-lg {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-dark);
+}
+
+.section-header-sm {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-secondary);
+  letter-spacing: 0.5px;
+}
+
+.section-header-md {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+/* Implementation List Item Styles */
+.impl-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.impl-description {
+  font-size: 0.875rem;
+  color: var(--color-gray-secondary);
+  line-height: 1.5;
+}
+
+.impl-date {
+  font-size: 0.8125rem;
+  color: var(--color-text-light);
+}
+
+/* Form Labels */
+.form-label-impl {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Input Styling */
+.input-width-sm {
+  max-width: 300px;
+}
+
+.input-disabled {
+  background-color: var(--color-bg-disabled);
+  color: var(--color-gray-secondary);
+}
+
+.radio-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+/* Info Icon */
+.info-icon {
+  font-size: 14px;
+  color: var(--text-publishing-blue);
+}
+
+/* Character Counter */
+.char-counter {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* File Upload Area */
+.file-upload-area {
+  border: 2px dashed var(--color-border-light);
+  border-radius: 8px;
+  background-color: var(--color-bg-light);
+}
+
+.upload-icon {
+  font-size: 40px;
+  color: var(--color-gray-secondary);
+}
+
+.upload-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text-dark);
+}
+
+.upload-text {
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.upload-success-text {
+  font-size: 0.875rem;
+}
+
+.btn-upload-icon {
+  font-size: 12px;
+}
+
+/* Link Icons */
+.link-icon {
+  font-size: 14px;
+}
+
+/* Alert/Note Box */
+.alert-info-note {
+  background-color: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+}
+
+.alert-icon {
+  font-size: 16px;
+  color: var(--text-publishing-blue);
+  margin-top: 2px;
+}
+
+.alert-text {
+  color: var(--color-info-text);
+  font-size: 0.875rem;
 }

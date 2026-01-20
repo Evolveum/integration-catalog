@@ -16,6 +16,7 @@ export interface FilterState {
   appStatus: string[];
   midpointVersions: string[];
   integrationMethods: string[];
+  maintainers: string[];
 }
 
 interface CategoryCount {
@@ -39,7 +40,8 @@ export class FilterModal implements OnInit {
     capabilities: [],
     appStatus: [],
     midpointVersions: [],
-    integrationMethods: []
+    integrationMethods: [],
+    maintainers: []
   });
   @Output() modalClosed = new EventEmitter<void>();
   @Output() filterApplied = new EventEmitter<FilterState>();
@@ -53,6 +55,7 @@ export class FilterModal implements OnInit {
   protected selectedAppStatus = signal<Set<string>>(new Set());
   protected selectedMidpointVersions = signal<Set<string>>(new Set());
   protected selectedIntegrationMethods = signal<Set<string>>(new Set());
+  protected selectedMaintainers = signal<Set<string>>(new Set());
 
   // Data for filters
   protected readonly categories = signal<CategoryCount[]>([]);
@@ -89,6 +92,11 @@ export class FilterModal implements OnInit {
     'REST API',
     'CSV file import'
   ];
+  protected readonly maintainers: string[] = [
+    'Evolveum',
+    'Community',
+    'Partner'
+  ];
 
   constructor(private applicationService: ApplicationService) {
     // Sync internal state when currentFilterState changes
@@ -100,6 +108,7 @@ export class FilterModal implements OnInit {
       this.selectedAppStatus.set(new Set(filterState.appStatus));
       this.selectedMidpointVersions.set(new Set(filterState.midpointVersions));
       this.selectedIntegrationMethods.set(new Set(filterState.integrationMethods));
+      this.selectedMaintainers.set(new Set(filterState.maintainers));
     });
   }
 
@@ -186,6 +195,20 @@ export class FilterModal implements OnInit {
     return this.selectedIntegrationMethods().has(method);
   }
 
+  protected toggleMaintainer(maintainer: string): void {
+    const current = new Set(this.selectedMaintainers());
+    if (current.has(maintainer)) {
+      current.delete(maintainer);
+    } else {
+      current.add(maintainer);
+    }
+    this.selectedMaintainers.set(current);
+  }
+
+  protected isMaintainerSelected(maintainer: string): boolean {
+    return this.selectedMaintainers().has(maintainer);
+  }
+
   protected formatCapability(capability: string): string {
     return capability
       .split('_')
@@ -201,7 +224,8 @@ export class FilterModal implements OnInit {
       capabilities: Array.from(this.selectedCapabilities()),
       appStatus: Array.from(this.selectedAppStatus()),
       midpointVersions: Array.from(this.selectedMidpointVersions()),
-      integrationMethods: Array.from(this.selectedIntegrationMethods())
+      integrationMethods: Array.from(this.selectedIntegrationMethods()),
+      maintainers: Array.from(this.selectedMaintainers())
     };
     this.filterApplied.emit(filterState);
     this.modalClosed.emit();
