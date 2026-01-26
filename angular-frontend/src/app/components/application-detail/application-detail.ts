@@ -8,14 +8,14 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail as ApplicationDetailModel } from '../../models/application-detail.model';
+import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail } from '../../models/application-detail.model';
 
 @Component({
   selector: 'app-application-detail',
   imports: [CommonModule],
   standalone: true,
   templateUrl: './application-detail.html',
-  styleUrls: ['./application-detail.css']
+  styleUrls: ['./application-detail.scss']
 })
 export class ApplicationDetail implements OnInit {
   protected readonly application = signal<ApplicationDetailModel | null>(null);
@@ -36,6 +36,19 @@ export class ApplicationDetail implements OnInit {
   protected readonly dropdownPosition = signal<{ top: number; left: number } | null>(null);
   protected readonly selectedFilterSection = signal<string>('capabilities');
   protected readonly applicationDownloadsCount = signal<number>(0);
+  protected readonly logoLoadError = signal<boolean>(false);
+  protected readonly versionSearchQuery = signal<string>('');
+  protected readonly selectedIntegrationMethod = signal<string | null>(null);
+  protected readonly isIntegrationNoteVisible = signal<boolean>(true);
+  protected readonly isContinuePressed = signal<boolean>(false);
+  protected readonly allVersions = signal<any[]>([]);
+
+  protected readonly integrationMethods = [
+    { id: 'scim', name: 'SCIM', description: 'Standardized provisioning' },
+    { id: 'csv', name: 'CSV import', description: 'Batch CSV file import' },
+    { id: 'ldap', name: 'openLDAP', description: 'Existing LDAP directory' },
+    { id: 'rest', name: 'REST API', description: 'Custom REST connector' }
+  ];
 
   constructor(
     private route: ActivatedRoute,
@@ -92,6 +105,30 @@ export class ApplicationDetail implements OnInit {
     this.activeTab.set(tab);
   }
 
+  protected selectIntegrationMethod(methodId: string): void {
+    this.selectedIntegrationMethod.set(methodId);
+    // Reset continue state when method changes
+    this.isContinuePressed.set(false);
+  }
+
+  protected onContinueClick(): void {
+    this.isContinuePressed.set(true);
+  }
+
+  protected onChangeMethodClick(): void {
+    this.isContinuePressed.set(false);
+  }
+
+  protected getSelectedMethodName(): string {
+    const selectedId = this.selectedIntegrationMethod();
+    const method = this.integrationMethods.find(m => m.id === selectedId);
+    return method ? method.name : '';
+  }
+
+  protected hideIntegrationNote(): void {
+    this.isIntegrationNoteVisible.set(false);
+  }
+
   protected toggleFilterModal(): void {
     this.isFilterModalOpen.update(open => !open);
   }
@@ -128,7 +165,13 @@ export class ApplicationDetail implements OnInit {
       capabilities: [],
       midpointVersions: []
     });
+    this.versionSearchQuery.set('');
     this.applyFilters();
+  }
+
+  protected onVersionSearchChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.versionSearchQuery.set(value);
   }
 
   protected clearCapabilitiesFilter(): void {
@@ -191,23 +234,26 @@ export class ApplicationDetail implements OnInit {
     this.applyFilters();
   }
 
-  protected getAllCapabilities(): string[] {
-    const app = this.application();
-    if (!app || !app.implementationVersions) return [];
-
-    const capabilitiesSet = new Set<string>();
-    app.implementationVersions.forEach(version => {
-      if (version.capabilities) {
-        version.capabilities.forEach(cap => {
-          if (cap !== 'Installed') {
-            capabilitiesSet.add(cap);
-          }
-        });
-      }
-    });
-
-    return Array.from(capabilitiesSet).sort();
-  }
+  protected readonly allCapabilities = [
+    'CREATE',
+    'GET',
+    'UPDATE',
+    'DELETE',
+    'TEST',
+    'SCRIPT_ON_CONNECTOR',
+    'SCRIPT_ON_RESOURCE',
+    'AUTHENTICATION',
+    'SEARCH',
+    'VALIDATE',
+    'SYNC',
+    'LIVE_SYNC',
+    'SCHEMA',
+    'DISCOVER_CONFIGURATION',
+    'RESOLVE_USERNAME',
+    'PARTIAL_SCHEMA',
+    'COMPLEX_UPDATE_DELTA',
+    'UPDATE_DELTA'
+  ];
 
   protected getAllMidpointVersions(): string[] {
     const app = this.application();
@@ -312,6 +358,38 @@ export class ApplicationDetail implements OnInit {
     this.applicationService.downloadConnector(versionId);
   }
 
+  // ==================== Logo Methods ====================
+
+  /**
+   * Check if the current application has a logo
+   */
+  protected hasLogo(): boolean {
+    const app = this.application();
+    return app ? hasLogoDetail(app) : false;
+  }
+
+  /**
+   * Get the logo URL for the current application
+   */
+  protected getLogoUrl(): string {
+    const app = this.application();
+    return app ? this.applicationService.getLogoUrl(app.id) : '';
+  }
+
+  /**
+   * Handle logo load error - fallback to letter avatar
+   */
+  protected onLogoError(): void {
+    this.logoLoadError.set(true);
+  }
+
+  /**
+   * Check if should show letter avatar (no logo or logo failed to load)
+   */
+  protected shouldShowLetterAvatar(): boolean {
+    return !this.hasLogo() || this.logoLoadError();
+  }
+
   private loadApplication(id: string): void {
     this.applicationService.getById(id).subscribe({
       next: (data) => {
@@ -344,6 +422,7 @@ export class ApplicationDetail implements OnInit {
       this.activeCommunityVersions.set([]);
       this.otherEvolvumVersions.set([]);
       this.otherCommunityVersions.set([]);
+      this.allVersions.set([]);
       return;
     }
 
@@ -364,6 +443,9 @@ export class ApplicationDetail implements OnInit {
         version.midpointVersion && filters.midpointVersions.includes(version.midpointVersion)
       );
     }
+
+    // Set all versions (for new unified view)
+    this.allVersions.set(filteredVersions);
 
     const activeEvolveum: any[] = [];
     const activeCommunity: any[] = [];

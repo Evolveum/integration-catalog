@@ -16,7 +16,10 @@ public record ApplicationCardDto(
         UUID id,
         String displayName,
         String description,
-        byte[] logo,
+        String logoPath,
+        String logoContentType,
+        String logoOriginalName,
+        Long logoSizeBytes,
         String lifecycleState,
         List<CountryOfOriginDto> origins,
         List<ApplicationTagDto> categories,
@@ -24,5 +27,6 @@ public record ApplicationCardDto(
         List<String> capabilities,
         Long requestId,
         Long voteCount,
-        List<String> frameworks
+        List<String> frameworks,
+        List<String> midpointVersions
 ) {}

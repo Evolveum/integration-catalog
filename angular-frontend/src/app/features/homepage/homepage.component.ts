@@ -13,7 +13,7 @@ import { ApiService, ApplicationCard } from '../../core/http/api.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './homepage.component.html',
-  styleUrls: ['./homepage.component.css']
+  styleUrls: ['./homepage.component.scss']
 })
 export class HomeComponent implements OnInit {
   private api = inject(ApiService);

@@ -81,4 +81,34 @@ export class ApplicationService {
     const url = `${environment.apiUrl}/downloads/${versionId}`;
     window.open(url, '_blank');
   }
+
+  // ==================== Logo Methods ====================
+
+  /**
+   * Get the logo URL for an application
+   */
+  getLogoUrl(applicationId: string): string {
+    return `${environment.apiUrl}/applications/${applicationId}/logo`;
+  }
+
+  /**
+   * Upload a logo for an application
+   */
+  uploadLogo(applicationId: string, file: File): Observable<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${applicationId}/logo`,
+      formData
+    );
+  }
+
+  /**
+   * Delete a logo for an application
+   */
+  deleteLogo(applicationId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/applications/${applicationId}/logo`
+    );
+  }
 }
