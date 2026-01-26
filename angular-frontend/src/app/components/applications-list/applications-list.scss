@@ -2,6 +2,7 @@
   Copyright (c) 2010-2025 Evolveum and contributors
   Licensed under the EUPL-1.2 or later.
 */
+@use 'variables' as *;
 
 /* ========================================
    PAGE LAYOUT
@@ -47,8 +48,6 @@
 }
 
 .toast-box {
-  border-radius: 8px;
-  overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   min-width: 350px;
 }
@@ -139,13 +138,9 @@
 }
 
 .filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background-color: white;
-  border: 2px solid var(--midpoint-special-color);
-  border-radius: 50px;
+  border: 2px solid $midpoint-special-color;
   font-size: 0.875rem;
   font-weight: 600;
   transition: box-shadow 0.2s ease;
@@ -160,13 +155,10 @@
 }
 
 .badge-counter {
-  background-color: var(--midpoint-special-color);
+  background-color: $midpoint-special-color;
   color: white;
   width: 20px;
   height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   font-size: 0.75rem;
 }
 
@@ -175,8 +167,6 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
   color: #6c757d;
 }
 
@@ -213,8 +203,6 @@
    SCROLL CONTAINER
    ======================================== */
 .scroll-container {
-  overflow-x: auto;
-  overflow-y: hidden;
   scroll-behavior: smooth;
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -271,7 +259,7 @@
 .badge-publishing-card {
   font-size: 0.7rem;
   background-color: rgba(23, 162, 184, 0.15);
-  color: var(--text-publishing-color);
+  color: $text-publishing-color;
 }
 
 /* ========================================
@@ -282,10 +270,6 @@
   height: 60px;
   border-radius: 4px;
   background-color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
 }
 
 .logo-image {
@@ -299,9 +283,6 @@
   height: 60px;
   background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
   border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: white;
   font-size: 28px;
   font-weight: 600;
@@ -329,7 +310,7 @@
    CARD LINKS & BUTTONS
    ======================================== */
 .link-details {
-  color: var(--btn-more-details-color);
+  color: $btn-more-details-color;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
@@ -366,7 +347,7 @@
    ======================================== */
 .publishing-icon {
   font-size: 36px;
-  color: var(--midpoint-special-color);
+  color: $midpoint-special-color;
 }
 
 /* ========================================
@@ -439,7 +420,6 @@
   background-color: white;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  overflow: hidden;
   height: 148px;
 }
 
@@ -474,13 +454,11 @@
 .filter-dropdown {
   background: white;
   border: 1px solid #dee2e6;
-  border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   min-width: 200px;
   max-width: 300px;
   max-height: 300px;
-  overflow-y: auto;
   z-index: 9999;
 }
 
@@ -489,9 +467,6 @@
   height: 16px;
   border: 1px solid;
   border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
@@ -516,11 +491,6 @@
    BACKDROP
    ======================================== */
 .click-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   z-index: 9998;
 }
 
@@ -537,11 +507,6 @@
 
 .fw-600 {
   font-weight: 600;
-}
-
-.sort-select-wrapper {
-  position: relative;
-  display: inline-block;
 }
 
 .sort-select {

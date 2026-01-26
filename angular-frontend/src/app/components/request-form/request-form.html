@@ -7,7 +7,7 @@
 <!-- Success Toast Notification -->
 @if (submitSuccess()) {
   <div class="position-fixed top-0 end-0 p-3 toast-container">
-    <div class="toast-box">
+    <div class="toast-box rounded-2 overflow-hidden">
       <!-- Green header row -->
       <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-success">
         <div class="d-flex align-items-center gap-2">
@@ -26,8 +26,8 @@
 
 <!-- Request Tailored Solution Modal -->
 @if (isRequestModalOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay" (click)="closeRequestModal()"></div>
-    <div class="modal modal-container">
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeRequestModal()"></div>
+    <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
       <div class="modal-dialog modal-dialog-centered modal-dialog-request">
         <div class="modal-content" (click)="$event.stopPropagation()">
           <div class="modal-header modal-header-request">
@@ -38,7 +38,7 @@
           </div>
           <div class="modal-body modal-body-request">
             <!-- Row 1 -->
-            <h4 class="form-heading">Didn't find the integration you need?</h4>
+            <h4 class="form-heading text-center">Didn't find the integration you need?</h4>
 
             <!-- Row 2 -->
             <h4 class="form-heading form-heading-bottom">Tell us what you're looking for and we'll help you connect it.</h4>
@@ -112,7 +112,7 @@
 
                 <!-- Dropdown menu with checkboxes -->
                 @if (isCapabilitiesDropdownOpen()) {
-                  <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu">
+                  <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu overflow-auto">
                     @if (isLoadingCapabilities()) {
                       <div class="p-4 text-center text-muted">
                         <span>Loading capabilities...</span>

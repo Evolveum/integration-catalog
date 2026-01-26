@@ -15,7 +15,7 @@ import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail } from '../.
   imports: [CommonModule],
   standalone: true,
   templateUrl: './application-detail.html',
-  styleUrls: ['./application-detail.css']
+  styleUrls: ['./application-detail.scss']
 })
 export class ApplicationDetail implements OnInit {
   protected readonly application = signal<ApplicationDetailModel | null>(null);

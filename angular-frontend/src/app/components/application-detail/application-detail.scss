@@ -2,6 +2,7 @@
   Copyright (c) 2010-2025 Evolveum and contributors
   Licensed under the EUPL-1.2 or later.
 */
+@use 'variables' as *;
 
 /* ========================================
    PAGE LAYOUT
@@ -42,10 +43,6 @@
   height: 70px;
   border-radius: 4px;
   background-color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
 }
 
 .logo-image {
@@ -59,9 +56,6 @@
   height: 70px;
   background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
   border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: white;
   font-size: 28px;
   font-weight: 600;
@@ -214,9 +208,6 @@
   color: white;
   width: 20px;
   height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   font-size: 0.75rem;
 }
 
@@ -279,8 +270,6 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
   color: #6c757d;
 }
 
@@ -328,13 +317,9 @@
    FILTER CHIPS
    ======================================== */
 .filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background-color: white;
   border: 1px solid #dee2e6;
-  border-radius: 50px;
   font-size: 0.875rem;
 }
 
@@ -356,12 +341,10 @@
 
 .modal-sidebar {
   width: 250px;
-  overflow-y: auto;
 }
 
 .modal-main {
   width: 550px;
-  overflow-y: auto;
 }
 
 .modal-section-btn {
@@ -422,13 +405,11 @@
 .filter-dropdown {
   background: white;
   border: 1px solid #dee2e6;
-  border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   min-width: 200px;
   max-width: 300px;
   max-height: 300px;
-  overflow-y: auto;
   z-index: 9999;
 }
 
@@ -437,9 +418,6 @@
   height: 16px;
   border: 1px solid;
   border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
@@ -458,11 +436,6 @@
    BACKDROP
    ======================================== */
 .click-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   z-index: 9998;
 }
 
@@ -472,7 +445,7 @@
 .breadcrumb-text {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: $color-text-secondary;
   padding-left: 1.5rem;
 }
 
@@ -482,13 +455,13 @@
   padding: 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--midpoint-special-color);
+  color: $midpoint-special-color;
   cursor: pointer;
   text-decoration: none;
 }
 
 .breadcrumb-link:hover {
-  color: var(--color-dark-blue);
+  color: $color-dark-blue;
 }
 
 /* ========================================
@@ -511,8 +484,8 @@
    DOWNLOAD BUTTON
    ======================================== */
 .btn-download {
-  background-color: var(--midpoint-special-color);
-  color: var(--btn-download-color);
+  background-color: $midpoint-special-color;
+  color: $btn-download-color;
   border: none;
 }
 
@@ -520,7 +493,7 @@
    PUBLISHING STATE
    ======================================== */
 .publishing-icon {
-  color: var(--midpoint-special-color);
+  color: $midpoint-special-color;
 }
 
 /* ========================================
@@ -577,33 +550,31 @@
 .integration-methods-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .integration-method-card {
-  border: 2px solid var(--color-border-light);
+  border: 2px solid $color-border-light;
   border-radius: 8px;
   padding: 1rem 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: var(--color-white);
+  background-color: $color-white;
 }
 
 .integration-method-card:hover {
-  border-color: var(--midpoint-special-color);
+  border-color: $midpoint-special-color;
 }
 
 .integration-method-card.selected {
-  border-color: var(--midpoint-special-color);
-  background-color: var(--color-bg-light);
+  border-color: $midpoint-special-color;
+  background-color: $color-bg-light;
 }
 
 .integration-method-radio {
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: var(--midpoint-special-color);
+  accent-color: $midpoint-special-color;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -611,26 +582,24 @@
 .integration-method-title {
   font-weight: 600;
   font-size: 0.9375rem;
-  color: var(--color-text-dark);
+  color: $color-text-dark;
   margin-bottom: 0.25rem;
 }
 
 .integration-method-description {
   font-size: 0.875rem;
-  color: var(--color-gray-secondary);
+  color: $color-gray-secondary;
 }
 
 .integration-note {
-  display: flex;
-  align-items: center;
   padding: 0.75rem 1rem;
-  background-color: var(--color-bg-light);
-  border: 1px solid var(--color-bg-muted);
+  background-color: $color-bg-light;
+  border: 1px solid $color-bg-muted;
   border-radius: 4px;
 }
 
 .note-icon {
-  color: var(--color-gray-secondary);
+  color: $color-gray-secondary;
 }
 
 .btn-close-note {
@@ -638,22 +607,19 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  color: var(--color-border-input);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: $color-border-input;
   width: 16px;
   height: 16px;
   font-size: 10px;
 }
 
 .btn-close-note:hover {
-  color: var(--color-gray-secondary);
+  color: $color-gray-secondary;
 }
 
 .btn-continue {
-  background-color: var(--midpoint-special-color);
-  color: var(--color-white);
+  background-color: $midpoint-special-color;
+  color: $color-white;
   border: none;
   padding: 0.5rem 1.5rem;
   font-weight: 500;
@@ -661,13 +627,13 @@
 }
 
 .btn-continue:hover:not(:disabled) {
-  background-color: var(--color-dark-blue);
-  color: var(--color-white);
+  background-color: $color-dark-blue;
+  color: $color-white;
 }
 
 .btn-continue:disabled {
-  background-color: var(--color-light-blue);
-  color: var(--color-white);
+  background-color: $color-light-blue;
+  color: $color-white;
   cursor: not-allowed;
   opacity: 0.65;
 }
@@ -676,19 +642,15 @@
    COLLAPSED METHOD VIEW
    ======================================== */
 .selected-method-container {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background-color: var(--color-white);
-  border: 1px solid var(--color-border-light);
-  border-radius: 50px;
+  background-color: $color-white;
+  border: 1px solid $color-border-light;
 }
 
 .selected-method-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-dark);
+  color: $color-text-dark;
 }
 
 .btn-change-method {
@@ -697,33 +659,30 @@
   padding: 0;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--midpoint-special-color);
+  color: $midpoint-special-color;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
 }
 
 .btn-change-method:hover {
-  color: var(--color-dark-blue);
+  color: $color-dark-blue;
 }
 
 /* ========================================
    VERSIONS PLACEHOLDER
    ======================================== */
 .versions-placeholder {
-  background-color: var(--color-bg-light);
-  border: 1px solid var(--color-border-light);
+  background-color: $color-bg-light;
+  border: 1px solid $color-border-light;
   border-radius: 8px;
   padding: 3rem 2rem;
-  text-align: center;
-  color: var(--color-text-secondary);
+  color: $color-text-secondary;
 }
 
 /* ========================================
    DISABLED SEARCH STYLES
    ======================================== */
 .search-disabled {
-  background-color: var(--color-bg-light) !important;
+  background-color: $color-bg-light !important;
   cursor: not-allowed;
 }
 

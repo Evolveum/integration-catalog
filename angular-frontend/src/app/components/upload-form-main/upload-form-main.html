@@ -1,7 +1,7 @@
 <!-- Publish Success Toast Notification -->
 @if (showPublishSuccess()) {
   <div class="position-fixed top-0 end-0 p-3 toast-container">
-    <div class="toast-box">
+    <div class="toast-box rounded-2 overflow-hidden">
       <!-- Green header row -->
       <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-success">
         <div class="d-flex align-items-center gap-2">
@@ -21,7 +21,7 @@
 <!-- Version Exists Warning Toast Notification -->
 @if (showVersionExistsWarning()) {
   <div class="position-fixed top-0 end-0 p-3 toast-container">
-    <div class="toast-box">
+    <div class="toast-box rounded-2 overflow-hidden">
       <!-- Yellow/Orange header row -->
       <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
         <div class="d-flex align-items-center gap-2">
@@ -39,8 +39,8 @@
 }
 
 @if (isOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay" (click)="closeModal()"></div>
-  <div class="modal modal-container">
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
+  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
     <div class="modal-dialog modal-dialog-centered modal-dialog-upload">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <!-- Modal Header -->
@@ -110,7 +110,7 @@
           </div>
           <!-- Progress Bar -->
           <div class="position-relative progress-bar-container">
-            <div class="progress-bar-fill"
+            <div class="progress-bar-fill position-absolute"
                  [style.left]="currentStep() === 1 ? '0%' : (currentStep() === 2 ? '33.33%' : '66.66%')"></div>
           </div>
         </div>
@@ -134,7 +134,7 @@
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
                   Connector Type Options
-                  <span class="info-icon-wrapper position-relative ms-2">
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
                     <span class="info-tooltip">Choose the type of connector based on your deployment needs and technical requirements.</span>
                   </span>
@@ -221,17 +221,17 @@
                 <div class="position-relative mb-4">
                   <div class="search-input-wrapper">
                     <div class="d-flex align-items-center">
-                      <span class="search-icon-wrapper">
+                      <span class="search-icon-wrapper d-flex align-items-center">
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
                       </span>
                       <input
                         type="text"
-                        class="search-input"
+                        class="search-input flex-grow-1"
                         [value]="searchQuery()"
                         (input)="onSearchChange($event)"
                         placeholder="Search applications...">
                       @if (searchQuery()) {
-                        <button class="clear-search-btn" type="button" (click)="clearSearch()">
+                        <button class="clear-search-btn d-flex align-items-center" type="button" (click)="clearSearch()">
                           <i class="fa-solid fa-xmark clear-icon"></i>
                         </button>
                       }
@@ -244,7 +244,7 @@
                   <div class="card mb-4 app-card">
                     <div class="card-body d-flex align-items-center app-card-body">
                       <div class="flex-shrink-0 me-3">
-                        <div class="app-avatar">
+                        <div class="app-avatar d-flex align-items-center justify-content-center">
                           {{ selectedApplication()!.displayName.charAt(0) }}
                         </div>
                       </div>
@@ -269,7 +269,7 @@
                       <div class="card mb-3 app-card" (click)="selectApplication(app)">
                         <div class="card-body d-flex align-items-start app-card-body">
                           <div class="flex-shrink-0 me-3">
-                            <div class="app-avatar">
+                            <div class="app-avatar d-flex align-items-center justify-content-center">
                               {{ app.displayName.charAt(0) }}
                             </div>
                           </div>
@@ -304,7 +304,7 @@
                   <div class="mb-4">
                     <label class="form-label d-flex align-items-center form-label-upload">
                       Display Name*
-                      <span class="info-icon-wrapper position-relative ms-2">
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                         <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">The name that will be displayed for this application in the catalog.</span>
                       </span>
@@ -318,7 +318,7 @@
                   <div class="mb-4">
                     <label class="form-label d-flex align-items-center form-label-upload">
                       App logo
-                      <span class="info-icon-wrapper position-relative ms-2">
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                         <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">This will appear in the catalog and application details. Supported formats: PNG, JPEG, GIF, SVG, WebP. Max size: 5MB.</span>
                       </span>
@@ -351,7 +351,7 @@
 
                     <!-- Show upload area when no logo -->
                     @else {
-                      <div class="logo-upload-area">
+                      <div class="logo-upload-area text-center">
                         <i class="fa-solid fa-image mb-3 logo-icon"></i>
                         <h6 class="mb-2 upload-title">Upload a logo</h6>
                         <p class="text-muted mb-3 upload-text">Accepted formats: PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
@@ -368,7 +368,7 @@
                   <div class="mb-4">
                     <label class="form-label d-flex align-items-center form-label-upload">
                       Description*
-                      <span class="info-icon-wrapper position-relative ms-2">
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                         <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Provide a brief description of what this application does.</span>
                       </span>
@@ -386,7 +386,7 @@
                   <div class="mb-4">
                     <label class="form-label d-flex align-items-center form-label-upload">
                       Origin(s)
-                      <span class="info-icon-wrapper position-relative ms-2">
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                         <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Select one or more countries where the connector or system originates from.</span>
                       </span>
@@ -434,7 +434,7 @@
                   <div class="mb-4">
                     <label class="form-label d-flex align-items-center form-label-upload">
                       Category*
-                      <span class="info-icon-wrapper position-relative ms-2">
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                         <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Select the primary category this application belongs to.</span>
                       </span>
@@ -453,7 +453,7 @@
                   <div class="mb-4">
                     <label class="form-label d-flex align-items-center form-label-upload">
                       Deployment Type
-                      <span class="info-icon-wrapper position-relative ms-2">
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                         <i class="fa-solid fa-circle-info info-icon"></i>
                         <span class="info-tooltip">Choose how this application is deployed.</span>
                       </span>

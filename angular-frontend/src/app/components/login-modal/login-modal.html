@@ -5,8 +5,8 @@
  -->
 
 @if (isOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay" (click)="closeModal()"></div>
-  <div class="modal modal-container">
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
+  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
     <div class="modal-dialog modal-dialog-centered modal-dialog-login">
       <div class="modal-content" (click)="$event.stopPropagation()">
         <div class="modal-header modal-header-login">

@@ -271,12 +271,7 @@ public class ConnectorUploadService {
         }
 
         ImplementationVersion latestVersion = existingImpl.getImplementationVersions().stream()
-                .max((v1, v2) -> {
-                    if (v1.getPublishDate() == null && v2.getPublishDate() == null) return 0;
-                    if (v1.getPublishDate() == null) return -1;
-                    if (v2.getPublishDate() == null) return 1;
-                    return v1.getPublishDate().compareTo(v2.getPublishDate());
-                })
+                .max(ImplementationVersion.latestByPublishDate)
                 .orElse(null);
 
         if (latestVersion == null) {

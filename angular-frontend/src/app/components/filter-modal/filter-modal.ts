@@ -30,7 +30,7 @@ interface CategoryCount {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './filter-modal.html',
-  styleUrls: ['./filter-modal.css']
+  styleUrls: ['./filter-modal.scss']
 })
 export class FilterModal implements OnInit {
   @Input() isOpen = signal<boolean>(false);

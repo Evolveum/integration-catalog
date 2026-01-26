@@ -22,7 +22,7 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RequestForm, LoginModal, UploadFormMain, FilterModal],
   templateUrl: './applications-list.html',
-  styleUrls: ['./applications-list.css']
+  styleUrls: ['./applications-list.scss']
 })
 export class ApplicationsList implements OnInit, AfterViewInit {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;

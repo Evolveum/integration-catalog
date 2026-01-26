@@ -8,7 +8,7 @@
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
     <div class="position-fixed top-0 end-0 p-3 toast-container">
-      <div class="toast-box">
+      <div class="toast-box rounded-2 overflow-hidden">
         <!-- Warning header row -->
         <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
           <div class="d-flex align-items-center gap-2">
@@ -137,15 +137,15 @@
 
               <!-- Categories Filter Chip -->
               @if (filterState().categories.length > 0) {
-                <div class="filter-chip position-relative">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Category</span>
-                  <span class="badge rounded-circle badge-counter">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().categories.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" class="btn-icon">
+                  <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearCategoriesFilter()" class="btn-icon">
+                  <button type="button" (click)="clearCategoriesFilter()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -153,15 +153,15 @@
 
               <!-- Capabilities Filter Chip -->
               @if (filterState().capabilities.length > 0) {
-                <div class="filter-chip position-relative">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Capability</span>
-                  <span class="badge rounded-circle badge-counter">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().capabilities.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon">
+                  <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon">
+                  <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -169,15 +169,15 @@
 
               <!-- App Status Filter Chip -->
               @if (filterState().appStatus.length > 0) {
-                <div class="filter-chip position-relative">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>App status</span>
-                  <span class="badge rounded-circle badge-counter">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().appStatus.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" class="btn-icon">
+                  <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearAppStatusFilter()" class="btn-icon">
+                  <button type="button" (click)="clearAppStatusFilter()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -185,15 +185,15 @@
 
               <!-- MidPoint Version Filter Chip -->
               @if (filterState().midpointVersions.length > 0) {
-                <div class="filter-chip position-relative">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>MidPoint version</span>
-                  <span class="badge rounded-circle badge-counter">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().midpointVersions.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" class="btn-icon">
+                  <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearMidpointVersionsFilter()" class="btn-icon">
+                  <button type="button" (click)="clearMidpointVersionsFilter()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -201,15 +201,15 @@
 
               <!-- Integration Method Filter Chip -->
               @if (filterState().integrationMethods.length > 0) {
-                <div class="filter-chip position-relative">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Integration method</span>
-                  <span class="badge rounded-circle badge-counter">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().integrationMethods.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" class="btn-icon">
+                  <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearIntegrationMethodsFilter()" class="btn-icon">
+                  <button type="button" (click)="clearIntegrationMethodsFilter()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -217,15 +217,15 @@
 
               <!-- Maintainer Filter Chip -->
               @if (filterState().maintainers.length > 0) {
-                <div class="filter-chip position-relative">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Maintainer</span>
-                  <span class="badge rounded-circle badge-counter">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().maintainers.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('maintainers', $event); $event.stopPropagation()" class="btn-icon">
+                  <button type="button" (click)="toggleDropdown('maintainers', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearMaintainersFilter()" class="btn-icon">
+                  <button type="button" (click)="clearMaintainersFilter()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -264,7 +264,7 @@
           <i class="fa-solid fa-chevron-left icon-lg"></i>
         </button>
 
-        <div class="scroll-container" #scrollContainer (scroll)="onScroll()">
+        <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
           <div class="d-flex gap-4 pe-5">
             @for (app of featuredApplications(); track app.id) {
               <div #featuredCard class="card position-relative app-card">
@@ -294,14 +294,14 @@
                 </div>
                 <div class="p-3">
                   @if (!shouldShowAppLetterAvatar(app)) {
-                    <div class="logo-container-sm">
+                    <div class="logo-container-sm d-flex align-items-center justify-content-center overflow-hidden">
                       <img [src]="getAppLogoUrl(app)"
                            [alt]="app.displayName"
                            (error)="onAppLogoError(app.id)"
                            class="logo-image" />
                     </div>
                   } @else {
-                    <div class="letter-avatar-sm">
+                    <div class="letter-avatar-sm d-flex align-items-center justify-content-center">
                       {{ app.displayName.charAt(0) }}
                     </div>
                   }
@@ -375,7 +375,7 @@
             </div>
             <div class="position-absolute top-0 end-0 d-flex align-items-baseline gap-2">
               <label class="mb-0 text-muted text-nowrap description-text">Sort by</label>
-              <div class="sort-select-wrapper">
+              <div class="sort-select-wrapper position-relative d-inline-block">
                 <select class="form-select form-select-sm sort-select" [value]="sortBy()" (change)="onSortChange($event)">
                   <option value="alphabetical">&nbsp;Alphabetical</option>
                   <option value="popularity">&nbsp;Popularity</option>
@@ -418,14 +418,14 @@
               </div>
               <div class="p-3">
                 @if (!shouldShowAppLetterAvatar(app)) {
-                  <div class="logo-container-sm">
+                  <div class="logo-container-sm d-flex align-items-center justify-content-center overflow-hidden">
                     <img [src]="getAppLogoUrl(app)"
                          [alt]="app.displayName"
                          (error)="onAppLogoError(app.id)"
                          class="logo-image" />
                   </div>
                 } @else {
-                  <div class="letter-avatar-sm">
+                  <div class="letter-avatar-sm d-flex align-items-center justify-content-center">
                     {{ app.displayName.charAt(0) }}
                   </div>
                 }
@@ -509,7 +509,7 @@
         </div>
 
         <!-- Upload Configuration -->
-        <div class="d-flex align-items-stretch mb-3 options-box">
+        <div class="d-flex align-items-stretch mb-3 options-box overflow-hidden">
           <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-purple">
             <i class="fa-solid fa-cloud-arrow-up options-icon"></i>
           </div>
@@ -528,7 +528,7 @@
         </div>
 
         <!-- Request Tailored Solution -->
-        <div class="d-flex align-items-stretch options-box">
+        <div class="d-flex align-items-stretch options-box overflow-hidden">
           <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-orange">
             <i class="fa-solid fa-code-pull-request options-icon"></i>
           </div>
@@ -563,10 +563,10 @@
 
     <!-- Fixed Position Filter Dropdowns -->
     @if (openDropdown() === 'categories' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (category of getAllAvailableCategories(); track category.name) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCategoryInFilter(category.name); $event.stopPropagation()">
-            <div class="checkbox-custom" [class.checkbox-checked]="isCategorySelected(category.name)" [class.checkbox-unchecked]="!isCategorySelected(category.name)">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCategorySelected(category.name)" [class.checkbox-unchecked]="!isCategorySelected(category.name)">
               @if (isCategorySelected(category.name)) {
                 <i class="fa-solid fa-check icon-xs text-white"></i>
               }
@@ -581,10 +581,10 @@
     }
 
     @if (openDropdown() === 'capabilities' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (capability of allCapabilities; track capability) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCapabilityInFilter(capability); $event.stopPropagation()">
-            <div class="checkbox-custom" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
               @if (isCapabilitySelected(capability)) {
                 <i class="fa-solid fa-check icon-xs text-white"></i>
               }
@@ -599,10 +599,10 @@
     }
 
     @if (openDropdown() === 'appStatus' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (status of allAppStatuses; track status) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleAppStatusInFilter(status); $event.stopPropagation()">
-            <div class="checkbox-custom" [class.checkbox-checked]="isAppStatusSelected(status)" [class.checkbox-unchecked]="!isAppStatusSelected(status)">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isAppStatusSelected(status)" [class.checkbox-unchecked]="!isAppStatusSelected(status)">
               @if (isAppStatusSelected(status)) {
                 <i class="fa-solid fa-check icon-xs text-white"></i>
               }
@@ -617,10 +617,10 @@
     }
 
     @if (openDropdown() === 'midpointVersions' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (version of allMidpointVersions(); track version) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionInFilter(version); $event.stopPropagation()">
-            <div class="checkbox-custom" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
               @if (isMidpointVersionSelected(version)) {
                 <i class="fa-solid fa-check icon-xs text-white"></i>
               }
@@ -635,10 +635,10 @@
     }
 
     @if (openDropdown() === 'integrationMethods' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (method of allIntegrationMethods; track method) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleIntegrationMethodInFilter(method); $event.stopPropagation()">
-            <div class="checkbox-custom" [class.checkbox-checked]="isIntegrationMethodSelected(method)" [class.checkbox-unchecked]="!isIntegrationMethodSelected(method)">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isIntegrationMethodSelected(method)" [class.checkbox-unchecked]="!isIntegrationMethodSelected(method)">
               @if (isIntegrationMethodSelected(method)) {
                 <i class="fa-solid fa-check icon-xs text-white"></i>
               }
@@ -653,10 +653,10 @@
     }
 
     @if (openDropdown() === 'maintainers' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (maintainer of allMaintainers; track maintainer) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMaintainerInFilter(maintainer); $event.stopPropagation()">
-            <div class="checkbox-custom" [class.checkbox-checked]="isMaintainerSelected(maintainer)" [class.checkbox-unchecked]="!isMaintainerSelected(maintainer)">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMaintainerSelected(maintainer)" [class.checkbox-unchecked]="!isMaintainerSelected(maintainer)">
               @if (isMaintainerSelected(maintainer)) {
                 <i class="fa-solid fa-check icon-xs text-white"></i>
               }
@@ -672,7 +672,7 @@
 
     <!-- Backdrop to close dropdown when clicking outside -->
     @if (openDropdown()) {
-      <div (click)="closeDropdown()" class="click-backdrop"></div>
+      <div (click)="closeDropdown()" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
     }
   </div>
 </div>

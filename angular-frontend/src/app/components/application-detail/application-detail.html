@@ -36,14 +36,14 @@
         <!-- Logo -->
         <div class="flex-shrink-0">
           @if (!shouldShowLetterAvatar()) {
-            <div class="logo-container">
+            <div class="logo-container d-flex align-items-center justify-content-center overflow-hidden">
               <img [src]="getLogoUrl()"
                    [alt]="application()!.displayName"
                    (error)="onLogoError()"
                    class="logo-image" />
             </div>
           } @else {
-            <div class="letter-avatar">
+            <div class="letter-avatar d-flex align-items-center justify-content-center">
               {{ application()!.displayName.charAt(0) }}
             </div>
           }
@@ -186,7 +186,7 @@
                     <h5 class="mb-2">Choose an integration method</h5>
                     <p class="text-sm mb-3">This selection defines how {{ application()?.displayName }} will be integrated and filters available connector versions.</p>
 
-                    <div class="integration-methods-grid">
+                    <div class="integration-methods-grid gap-3 mb-3">
                       @for (method of integrationMethods; track method.id) {
                         <div
                           class="integration-method-card"
@@ -217,7 +217,7 @@
                           <i class="fa-solid fa-circle-exclamation note-icon me-2"></i>
                           <span class="text-sm"><strong>Note</strong> Select an integration method to see available connector versions</span>
                         </div>
-                        <button type="button" class="btn-close-note" (click)="hideIntegrationNote()">
+                        <button type="button" class="btn-close-note d-flex align-items-center justify-content-center" (click)="hideIntegrationNote()">
                           <i class="fa-solid fa-xmark"></i>
                         </button>
                       </div>
@@ -235,9 +235,9 @@
                   } @else {
                     <!-- Collapsed View -->
                     <h5 class="mb-3">Integration method</h5>
-                    <div class="selected-method-container mb-4">
+                    <div class="selected-method-container mb-4 d-inline-flex align-items-center gap-3 rounded-pill">
                       <span class="selected-method-name">{{ getSelectedMethodName() }}</span>
-                      <button type="button" class="btn-change-method" (click)="onChangeMethodClick()">
+                      <button type="button" class="btn-change-method d-inline-flex align-items-center" (click)="onChangeMethodClick()">
                         <i class="fa-solid fa-pen-to-square me-1"></i>
                         Change
                       </button>
@@ -282,15 +282,15 @@
                     <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
                       <!-- Capabilities Filter Chip -->
                       @if (filterState().capabilities.length > 0) {
-                        <div class="filter-chip position-relative">
+                        <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                           <span>Capability</span>
-                          <span class="badge rounded-circle badge-counter">
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                             {{ filterState().capabilities.length }}
                           </span>
-                          <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon">
+                          <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                             <i class="fa-solid fa-chevron-down icon-xs"></i>
                           </button>
-                          <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon">
+                          <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon d-inline-flex align-items-center">
                             <i class="fa-solid fa-xmark icon-sm"></i>
                           </button>
                         </div>
@@ -298,15 +298,15 @@
 
                       <!-- ConnId Version Filter Chip -->
                       @if (filterState().midpointVersions.length > 0) {
-                        <div class="filter-chip position-relative">
+                        <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                           <span>ConnId Version</span>
-                          <span class="badge rounded-circle badge-counter">
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                             {{ filterState().midpointVersions.length }}
                           </span>
-                          <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" class="btn-icon">
+                          <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                             <i class="fa-solid fa-chevron-down icon-xs"></i>
                           </button>
-                          <button type="button" (click)="clearVersionsFilter()" class="btn-icon">
+                          <button type="button" (click)="clearVersionsFilter()" class="btn-icon d-inline-flex align-items-center">
                             <i class="fa-solid fa-xmark icon-sm"></i>
                           </button>
                         </div>
@@ -322,7 +322,7 @@
                           <!-- Two-panel layout -->
                           <div class="d-flex flex-grow-1 overflow-hidden">
                             <!-- Left Sidebar -->
-                            <div class="border-end modal-sidebar">
+                            <div class="border-end modal-sidebar overflow-auto">
                               <div class="d-flex flex-column">
                                 <!-- Capabilities Section -->
                                 <button type="button" (click)="selectFilterSection('capabilities')" class="modal-section-btn" [class.modal-section-btn-active]="selectedFilterSection() === 'capabilities'">
@@ -337,7 +337,7 @@
                             </div>
 
                             <!-- Right Content Area -->
-                            <div class="p-4 modal-main">
+                            <div class="p-4 modal-main overflow-auto">
                               <!-- Capabilities Content -->
                               @if (selectedFilterSection() === 'capabilities') {
                                 <div class="d-flex flex-wrap gap-2">
@@ -379,7 +379,7 @@
                   <!-- Versions Content -->
                   @if (!isContinuePressed()) {
                     <!-- Placeholder when Continue not pressed -->
-                    <div class="versions-placeholder">
+                    <div class="versions-placeholder text-center">
                       <p class="mb-2">Select an integration method to see available connector versions.</p>
                       <p class="text-muted">We will show only versions that support chosen method.</p>
                     </div>
@@ -600,10 +600,10 @@
 
   <!-- Fixed Position Filter Dropdowns -->
   @if (openDropdown() === 'capabilities' && dropdownPosition()) {
-    <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+    <div class="filter-dropdown overflow-auto rounded-2" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
       @for (capability of allCapabilities; track capability) {
         <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
-          <div class="checkbox-custom" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
+          <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
             @if (isCapabilitySelected(capability)) {
               <i class="fa-solid fa-check icon-xs text-white"></i>
             }
@@ -618,10 +618,10 @@
   }
 
   @if (openDropdown() === 'versions' && dropdownPosition()) {
-    <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+    <div class="filter-dropdown overflow-auto rounded-2" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
       @for (version of getAllMidpointVersions(); track version) {
         <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionFilter(version); $event.stopPropagation()">
-          <div class="checkbox-custom" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
+          <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
             @if (isMidpointVersionSelected(version)) {
               <i class="fa-solid fa-check icon-xs text-white"></i>
             }
@@ -637,7 +637,7 @@
 
   <!-- Backdrop to close dropdown when clicking outside -->
   @if (openDropdown()) {
-    <div (click)="closeDropdown()" class="click-backdrop"></div>
+    <div (click)="closeDropdown()" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
   }
   }
 </div>

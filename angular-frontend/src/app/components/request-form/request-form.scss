@@ -2,6 +2,7 @@
   Copyright (c) 2010-2025 Evolveum and contributors
   Licensed under the EUPL-1.2 or later.
 */
+@use 'variables' as *;
 
 .form-check {
   margin-bottom: 0.5rem;
@@ -20,13 +21,13 @@
   margin-right: 0.5rem;
   cursor: pointer;
   appearance: auto;
-  accent-color: var(--midpoint-special-color) !important;
+  accent-color: $midpoint-special-color !important;
 }
 
 /* Bootstrap radio button checked state */
 .modal .form-check-input[type="radio"]:checked {
-  background-color: var(--midpoint-special-color) !important;
-  border-color: var(--midpoint-special-color) !important;
+  background-color: $midpoint-special-color !important;
+  border-color: $midpoint-special-color !important;
 }
 
 .modal .form-check-input[type="radio"]:focus {
@@ -58,7 +59,7 @@
 
 .form-check-label {
   font-size: 0.95rem;
-  color: var(--color-text-secondary);
+  color: $color-text-secondary;
   cursor: pointer;
   display: block;
   padding: 0.25rem 0.5rem 0.25rem 0.75rem;
@@ -66,7 +67,7 @@
 }
 
 .form-check-input:checked + .form-check-label {
-  background-color: var(--color-bg-hover);
+  background-color: $color-bg-hover;
 }
 
 .form-check-input:checked + .form-check-label::before {
@@ -76,23 +77,23 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background-color: var(--color-primary);
+  background-color: $color-primary;
 }
 
 .form-label {
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: $color-text-secondary;
   margin-bottom: 0.5rem;
 }
 
 .form-control, .form-select {
-  border: 1px solid var(--color-border-input);
+  border: 1px solid $color-border-input;
   border-radius: 4px;
 }
 
 .form-control:focus, .form-select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 0.2rem var(--shadow-primary);
+  border-color: $color-primary;
+  box-shadow: 0 0 0 0.2rem $shadow-primary;
 }
 
 .btn {
@@ -102,23 +103,23 @@
 }
 
 .btn-primary {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
+  background-color: $color-primary;
+  border-color: $color-primary;
 }
 
 .btn-primary:hover {
-  background-color: var(--color-primary-hover);
-  border-color: var(--color-primary-active);
+  background-color: $color-primary-hover;
+  border-color: $color-primary-active;
 }
 
 .btn-secondary {
-  background-color: var(--color-secondary);
-  border-color: var(--color-secondary);
+  background-color: $color-secondary;
+  border-color: $color-secondary;
 }
 
 .btn-secondary:hover {
-  background-color: var(--color-secondary-hover);
-  border-color: var(--color-secondary-active);
+  background-color: $color-secondary-hover;
+  border-color: $color-secondary-active;
 }
 
 /* Toast Notification */
@@ -127,20 +128,18 @@
 }
 
 .toast-box {
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px var(--shadow-card);
+  box-shadow: 0 4px 6px $shadow-card;
   min-width: 350px;
 }
 
 .toast-header-success {
-  background-color: var(--color-success);
-  color: var(--color-white);
+  background-color: $color-success;
+  color: $color-white;
 }
 
 .toast-body-success {
-  background-color: var(--color-success-bg);
-  color: var(--color-black);
+  background-color: $color-success-bg;
+  color: $color-black;
 }
 
 .toast-icon {
@@ -149,24 +148,12 @@
 
 /* Modal Styles */
 .modal-backdrop-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1040;
 }
 
 .modal-container {
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
   z-index: 1050;
-  overflow: auto;
 }
 
 .modal-dialog-request {
@@ -176,12 +163,12 @@
 }
 
 .modal-header-request {
-  border-bottom: 1px solid var(--color-border-light);
+  border-bottom: 1px solid $color-border-light;
   padding: 1rem 1.5rem;
 }
 
 .modal-title-request {
-  color: var(--color-text-muted);
+  color: $color-text-muted;
 }
 
 .btn-close-icon {
@@ -191,7 +178,7 @@
 
 .close-icon {
   font-size: 14px;
-  color: var(--color-gray-secondary);
+  color: $color-gray-secondary;
 }
 
 .modal-body-request {
@@ -202,8 +189,7 @@
 .form-heading {
   font-weight: 400;
   font-size: 20px;
-  color: var(--color-black);
-  text-align: center;
+  color: $color-black;
   padding: 1.5rem 1.5rem 0 1.5rem;
   margin: 0;
 }
@@ -218,11 +204,11 @@
 
 /* Form Labels */
 .form-label-black {
-  color: var(--color-black);
+  color: $color-black;
 }
 
 .form-label-bold {
-  color: var(--color-black);
+  color: $color-black;
   font-weight: 600;
 }
 
@@ -239,7 +225,7 @@
 
 .info-icon-sm {
   font-size: 12px;
-  color: var(--text-publishing-blue);
+  color: $text-publishing-blue;
 }
 
 /* Capability Dropdown */
@@ -250,13 +236,13 @@
 }
 
 .capability-placeholder {
-  color: var(--color-gray-secondary);
+  color: $color-gray-secondary;
   padding-left: 6px;
 }
 
 .capability-badge {
-  background-color: var(--color-accent-purple-light);
-  color: var(--color-black);
+  background-color: $color-accent-purple-light;
+  color: $color-black;
   font-size: 14px;
   font-weight: 400;
   padding: 6px 10px;
@@ -270,12 +256,12 @@
 
 .remove-icon {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: $color-text-secondary;
 }
 
 .dropdown-arrow {
   font-size: 12px;
-  color: var(--color-icon-dark);
+  color: $color-icon-dark;
   transform: translateY(-50%);
   pointer-events: none;
   margin-top: -3px;
@@ -285,9 +271,8 @@
 .capability-dropdown-menu {
   z-index: 1000;
   max-height: 350px;
-  overflow-y: auto;
   border-radius: 12px;
-  box-shadow: 0 4px 20px var(--shadow-dropdown);
+  box-shadow: 0 4px 20px $shadow-dropdown;
 }
 
 .capability-grid {
@@ -303,28 +288,28 @@
   flex-shrink: 0;
   margin-right: 12px;
   border-radius: 4px;
-  border: 2px solid var(--color-border-input);
-  accent-color: var(--color-accent-purple);
+  border: 2px solid $color-border-input;
+  accent-color: $color-accent-purple;
 }
 
 .capability-label-text {
-  color: var(--color-black);
+  color: $color-black;
   font-size: 14px;
   font-weight: 400;
-  background-color: var(--color-accent-purple-light);
+  background-color: $color-accent-purple-light;
   padding: 4px 8px;
   border-radius: 4px;
 }
 
 .dropdown-separator {
-  border-top: 1px solid var(--color-separator);
+  border-top: 1px solid $color-separator;
   margin: 0 1rem;
 }
 
 /* Form Separator */
 .form-separator {
   border: 0;
-  border-top: 1px solid var(--color-text-light);
+  border-top: 1px solid $color-text-light;
   margin: 0;
 }
 
@@ -334,18 +319,18 @@
 
 /* Form Buttons */
 .btn-cancel {
-  background-color: var(--color-white);
+  background-color: $color-white;
   border: none;
   padding-left: 0;
 }
 
 .btn-cancel-text {
-  color: var(--color-dark-blue);
+  color: $color-dark-blue;
 }
 
 .btn-submit {
-  color: var(--btn-download-color);
-  background-color: var(--midpoint-special-color);
+  color: $btn-download-color;
+  background-color: $midpoint-special-color;
   font-weight: 600;
 }
 

@@ -5,8 +5,8 @@
  -->
 
 @if (isOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay" (click)="closeModal()"></div>
-  <div class="modal modal-container" (click)="closeModal()">
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
+  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto" (click)="closeModal()">
     <div class="modal-dialog modal-dialog-centered modal-dialog-filter">
       <div class="modal-content modal-content-filter" (click)="$event.stopPropagation()">
 
@@ -14,7 +14,7 @@
           <!-- Left Sidebar -->
           <div class="filter-sidebar">
             <!-- <div
-              class="filter-option"
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'trending'"
               (click)="selectSection('trending')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
@@ -24,7 +24,7 @@
             </div> -->
 
             <div
-              class="filter-option"
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'categories'"
               (click)="selectSection('categories')">
               <i class="fa-solid fa-list filter-option-icon"></i>
@@ -32,7 +32,7 @@
             </div>
 
             <div
-              class="filter-option"
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'capabilities'"
               (click)="selectSection('capabilities')">
               <i class="fa-solid fa-puzzle-piece filter-option-icon"></i>
@@ -40,7 +40,7 @@
             </div>
 
             <div
-              class="filter-option"
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'midpoint'"
               (click)="selectSection('midpoint')">
               <i class="fa-solid fa-layer-group filter-option-icon"></i>
@@ -48,7 +48,7 @@
             </div>
 
             <div
-              class="filter-option"
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'appstatus'"
               (click)="selectSection('appstatus')">
               <i class="fa-solid fa-tag filter-option-icon"></i>
@@ -56,7 +56,7 @@
             </div>
 
             <div
-              class="filter-option"
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'integration'"
               (click)="selectSection('integration')">
               <i class="fa-solid fa-code filter-option-icon"></i>
@@ -64,7 +64,7 @@
             </div>
 
             <div
-              class="filter-option"
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'maintainer'"
               (click)="selectSection('maintainer')">
               <i class="fa-solid fa-user-gear filter-option-icon"></i>
@@ -118,7 +118,7 @@
                 <div class="d-flex flex-wrap gap-2">
                   @for (capability of capabilities; track capability) {
                     <span
-                      class="badge filter-badge"
+                      class="badge filter-badge rounded-pill"
                       [class.selected]="isCapabilitySelected(capability)"
                       (click)="toggleCapability(capability)">
                       {{ formatCapability(capability) }}
@@ -135,7 +135,7 @@
                 <div class="d-flex flex-wrap gap-2">
                   @for (version of midpointVersions(); track version) {
                     <span
-                      class="badge filter-badge"
+                      class="badge filter-badge rounded-pill"
                       [class.selected]="isMidpointVersionSelected(version)"
                       (click)="toggleMidpointVersion(version)">
                       {{ version }}
@@ -154,7 +154,7 @@
                 <div class="d-flex flex-wrap gap-2">
                   @for (status of appStatuses; track status.name) {
                     <span
-                      class="badge filter-badge"
+                      class="badge filter-badge rounded-pill"
                       [class.selected]="isAppStatusSelected(status.name)"
                       (click)="toggleAppStatus(status.name)">
                       {{ status.displayName }}
@@ -171,7 +171,7 @@
                 <div class="d-flex flex-wrap gap-2">
                   @for (method of integrationMethods; track method) {
                     <span
-                      class="badge filter-badge"
+                      class="badge filter-badge rounded-pill"
                       [class.selected]="isIntegrationMethodSelected(method)"
                       (click)="toggleIntegrationMethod(method)">
                       {{ method }}
@@ -188,7 +188,7 @@
                 <div class="d-flex flex-wrap gap-2">
                   @for (maintainer of maintainers; track maintainer) {
                     <span
-                      class="badge filter-badge"
+                      class="badge filter-badge rounded-pill"
                       [class.selected]="isMaintainerSelected(maintainer)"
                       (click)="toggleMaintainer(maintainer)">
                       {{ maintainer }}

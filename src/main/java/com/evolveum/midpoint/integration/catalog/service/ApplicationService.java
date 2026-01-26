@@ -7,10 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
-import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
-import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
-import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
@@ -21,27 +18,18 @@ import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
 import lombok.extern.slf4j.Slf4j;
-import org.kohsuke.github.GHRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.http.HttpResponse;
-import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -426,12 +414,7 @@ public class ApplicationService {
                     }
 
                     ImplementationVersion latestVersion = impl.getImplementationVersions().stream()
-                            .max((v1, v2) -> {
-                                if (v1.getPublishDate() == null && v2.getPublishDate() == null) return 0;
-                                if (v1.getPublishDate() == null) return -1;
-                                if (v2.getPublishDate() == null) return 1;
-                                return v1.getPublishDate().compareTo(v2.getPublishDate());
-                            })
+                            .max(ImplementationVersion.latestByPublishDate)
                             .orElse(null);
 
                     return applicationMapper.mapToImplementationListItemDto(impl, latestVersion);

@@ -42,7 +42,7 @@
       </h6>
 
       <!-- List of existing implementations -->
-      <div class="implementations-list">
+      <div class="implementations-list d-flex flex-column gap-3">
         @for (impl of existingImplementations(); track impl.id) {
           <div
             class="implementation-card"
@@ -85,7 +85,7 @@
       <div class="mb-3">
         <label class="form-label d-flex align-items-center form-label-impl">
           Display Name*
-          <span class="info-icon-wrapper position-relative ms-2">
+          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
             <i class="fa-solid fa-circle-info info-icon"></i>
             <span class="info-tooltip">Display name for the implementation.</span>
           </span>
@@ -99,7 +99,7 @@
       <div class="mb-3">
         <label class="form-label d-flex align-items-center form-label-impl">
           Maintainer
-          <span class="info-icon-wrapper position-relative ms-2">
+          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
             <i class="fa-solid fa-circle-info info-icon"></i>
             <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
           </span>
@@ -119,7 +119,7 @@
         <div class="mb-3">
           <label class="form-label d-flex align-items-center form-label-impl">
             License Type*
-            <span class="info-icon-wrapper position-relative ms-2">
+            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Select the license under which the connector is distributed.</span>
             </span>
@@ -152,7 +152,7 @@
           <div class="d-flex flex-column align-items-center justify-content-center p-4 file-upload-area">
             <i class="fa-solid fa-cloud-arrow-up mb-2 upload-icon"></i>
             <h6 class="mb-1 upload-title">Upload File</h6>
-            <p class="mb-3 text-muted upload-text">Accepted type files: .json</p>
+            <p class="mb-3 text-muted upload-text text-center">Accepted type files: .json</p>
             @if (uploadedFileName()) {
               <p class="mb-2 text-success upload-success-text">Selected: {{ uploadedFileName() }}</p>
             }
@@ -175,7 +175,7 @@
         <div class="mb-3">
           <label class="form-label d-flex align-items-center form-label-impl">
             Browse Link*
-            <span class="info-icon-wrapper position-relative ms-2">
+            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Link to browse the connector source code (e.g. GitHub, GitLab repository).</span>
             </span>
@@ -191,7 +191,7 @@
       <div class="mb-4">
         <label class="form-label d-flex align-items-center form-label-impl">
           Link on Ticketing System
-          <span class="info-icon-wrapper position-relative ms-2">
+          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
             <i class="fa-solid fa-circle-info info-icon"></i>
             <span class="info-tooltip">URL to the issue or task in your ticketing system related to this connector.</span>
           </span>
@@ -213,7 +213,7 @@
           <div class="mb-3">
           <label class="form-label d-flex align-items-center form-label-impl">
             Build Framework Selection*
-            <span class="info-icon-wrapper position-relative ms-2">
+            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Choose the tool used to build the connector project (e.g. Maven, Gradle).</span>
             </span>
@@ -235,7 +235,7 @@
       <div class="mb-3">
         <label class="form-label d-flex align-items-center form-label-impl">
           Checkout Link*
-          <span class="info-icon-wrapper position-relative ms-2">
+          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
             <i class="fa-solid fa-circle-info info-icon"></i>
             <span class="info-tooltip">Local file system path where the connector project is stored.</span>
           </span>
@@ -250,7 +250,7 @@
         <div class="mb-4">
           <label class="form-label d-flex align-items-center form-label-impl">
             Path to Project Directory
-            <span class="info-icon-wrapper position-relative ms-2">
+            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Direct link to clone or download the connector repository.</span>
             </span>
@@ -264,7 +264,7 @@
       <div class="mb-4">
         <label class="form-label d-flex align-items-center form-label-impl">
           Class name
-          <span class="info-icon-wrapper position-relative ms-2">
+          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Class name.</span>
             </span>
