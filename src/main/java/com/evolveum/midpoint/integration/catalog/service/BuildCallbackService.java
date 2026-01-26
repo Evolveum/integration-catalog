@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 import com.evolveum.midpoint.integration.catalog.object.Implementation;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
+import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
 import com.evolveum.midpoint.integration.catalog.repository.ConnectorBundleRepository;
 import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
 
@@ -38,6 +39,7 @@ public class BuildCallbackService {
 
     private final ImplementationVersionRepository implementationVersionRepository;
     private final ConnectorBundleRepository connectorBundleRepository;
+    private final ApplicationRepository applicationRepository;
     private final BundleMergeService bundleMergeService;
 
     /**
@@ -86,6 +88,15 @@ public class BuildCallbackService {
         version.setCapabilities(continueForm.getCapability().toArray(new ImplementationVersion.CapabilitiesType[0]));
         version.setClassName(continueForm.getConnectorClass());
         implementationVersionRepository.save(version);
+
+        // Set application lifecycle to ACTIVE on successful build
+        try {
+            Application application = version.getImplementation().getApplication();
+            application.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
+            applicationRepository.save(application);
+        } catch (Exception e) {
+            log.error("Failed to update application lifecycle state", e);
+        }
     }
 
     /**
