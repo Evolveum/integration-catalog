@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
-import { Application, hasLogo } from '../../models/application.model';
+import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
 import { LoginModal } from '../login-modal/login-modal';
@@ -112,58 +112,9 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
     const filters = this.filterState();
-    let apps = [...this.applications()];
 
-    // Filter by category tab (if not 'all')
-    if (activeTab !== 'all') {
-      apps = apps.filter(app =>
-        app.categories?.some((category: any) => category.displayName === activeTab)
-      );
-    }
-
-    // When searching, show all matching apps. When not searching, show all apps
-    if (query) {
-      apps = apps.filter(app =>
-        app.displayName.toLowerCase().includes(query)
-      );
-    }
-
-    // Apply advanced filters
-    if (filters.trending) {
-      apps = apps.filter(app => app.tags?.some(tag => tag.name === 'popular'));
-    }
-
-    if (filters.categories.length > 0) {
-      apps = apps.filter(app => {
-        const allTags = [...(app.categories || []), ...(app.tags || [])];
-        return allTags.some(tag =>
-          filters.categories.includes(tag.name) &&
-          (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
-        );
-      });
-    }
-
-    if (filters.capabilities.length > 0) {
-      apps = apps.filter(app =>
-        app.capabilities?.some((capability: string) =>
-          filters.capabilities.includes(capability)
-        )
-      );
-    }
-
-    if (filters.appStatus.length > 0) {
-      apps = apps.filter(app =>
-        app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
-      );
-    }
-
-    if (filters.midpointVersions.length > 0) {
-      apps = apps.filter(app =>
-        app.midpointVersions?.some((version: string) =>
-          filters.midpointVersions.includes(version)
-        )
-      );
-    }
+    // Apply shared filtering logic
+    let apps = this.applyFilters([...this.applications()], query, activeTab, filters);
 
     // Sort based on selected option
     const sortOption = this.sortBy();
@@ -196,28 +147,38 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
     const filters = this.filterState();
-    let apps = this.applications();
+
+    return this.applyFilters(this.applications(), query, activeTab, filters).length;
+  });
+
+  /**
+   * Applies all filters to the applications list.
+   * Shared by moreApplications and filteredCount computed signals.
+   */
+  private applyFilters(apps: Application[], query: string, activeTab: string, filters: FilterState): Application[] {
+    let filtered = apps;
 
     // Filter by category tab (if not 'all')
     if (activeTab !== 'all') {
-      apps = apps.filter(app =>
-        app.categories?.some((category: any) => category.displayName === activeTab)
+      filtered = filtered.filter(app =>
+        app.categories?.some((category: ApplicationTag) => category.displayName === activeTab)
       );
     }
 
+    // Filter by search query
     if (query) {
-      apps = apps.filter(app =>
+      filtered = filtered.filter(app =>
         app.displayName.toLowerCase().includes(query)
       );
     }
 
     // Apply advanced filters
     if (filters.trending) {
-      apps = apps.filter(app => app.tags?.some(tag => tag.name === 'popular'));
+      filtered = filtered.filter(app => app.tags?.some(tag => tag.name === 'popular'));
     }
 
     if (filters.categories.length > 0) {
-      apps = apps.filter(app => {
+      filtered = filtered.filter(app => {
         const allTags = [...(app.categories || []), ...(app.tags || [])];
         return allTags.some(tag =>
           filters.categories.includes(tag.name) &&
@@ -227,7 +188,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     }
 
     if (filters.capabilities.length > 0) {
-      apps = apps.filter(app =>
+      filtered = filtered.filter(app =>
         app.capabilities?.some((capability: string) =>
           filters.capabilities.includes(capability)
         )
@@ -235,21 +196,21 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     }
 
     if (filters.appStatus.length > 0) {
-      apps = apps.filter(app =>
+      filtered = filtered.filter(app =>
         app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
       );
     }
 
     if (filters.midpointVersions.length > 0) {
-      apps = apps.filter(app =>
+      filtered = filtered.filter(app =>
         app.midpointVersions?.some((version: string) =>
           filters.midpointVersions.includes(version)
         )
       );
     }
 
-    return apps.length;
-  });
+    return filtered;
+  }
 
   protected readonly totalPages = computed(() => {
     return Math.ceil(this.filteredCount() / this.itemsPerPage);

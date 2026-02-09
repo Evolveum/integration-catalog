@@ -80,7 +80,6 @@ public class Controller {
             ApplicationDto dto = applicationMapper.mapToApplicationDto(app);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
-            ex.printStackTrace();
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Failed to load application: " + ex.getMessage(), ex);
         }
