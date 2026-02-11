@@ -23,8 +23,8 @@ import java.util.List;
 public class ConnectorBundle {
 
     public enum FrameworkType {
-        CONNID,
-        SCIM_REST
+        JAVA_BASED,
+        LOW_CODE
     }
 
     public enum LicenseType {

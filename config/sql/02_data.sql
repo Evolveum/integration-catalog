@@ -81,11 +81,11 @@ INSERT INTO application
  'ACTIVE','2025-09-27 04:02:54','2025-09-27 04:02:54', NULL, NULL, NULL, NULL);
 
 INSERT INTO connector_bundle (id, bundle_name, maintainer, framework, license, ticketing_system_link) VALUES
-(1,'com.evolveum.polygon.scimrest.open-project-noclass','Scott, Baker and Howard','SCIM_REST','APACHE_2','https://support.evolveum.com/projects/midpoint'),
-(2,'com.evolveum.polygon.connector.workday.adapter','Smith-Olson','SCIM_REST','MIT','https://www.phillips.org/'),
-(3,'com.evolveum.polygon.connector-ldap','Wilson-Robinson','CONNID','APACHE_2','https://support.evolveum.com/projects/midpoint'),
-(4,'com.evolveum.polygon.connector-databasetable','Crawford and Sons','CONNID','APACHE_2','https://support.evolveum.com/projects/midpoint'),
-(5,'com.evolveum.polygon.connector-csv','Stevens and Sons','CONNID','APACHE_2','https://support.evolveum.com/projects/midpoint');
+(1,'com.evolveum.polygon.scimrest.open-project-noclass','Scott, Baker and Howard','LOW_CODE','APACHE_2','https://support.evolveum.com/projects/midpoint'),
+(2,'com.evolveum.polygon.connector.workday.adapter','Smith-Olson','LOW_CODE','MIT','https://www.phillips.org/'),
+(3,'com.evolveum.polygon.connector-ldap','Wilson-Robinson','JAVA_BASED','APACHE_2','https://support.evolveum.com/projects/midpoint'),
+(4,'com.evolveum.polygon.connector-databasetable','Crawford and Sons','JAVA_BASED','APACHE_2','https://support.evolveum.com/projects/midpoint'),
+(5,'com.evolveum.polygon.connector-csv','Stevens and Sons','JAVA_BASED','APACHE_2','https://support.evolveum.com/projects/midpoint');
 
 INSERT INTO implementation
 (id, display_name, connector_bundle_id, application_id) VALUES

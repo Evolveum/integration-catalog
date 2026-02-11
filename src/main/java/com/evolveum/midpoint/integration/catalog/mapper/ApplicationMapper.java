@@ -171,7 +171,7 @@ public class ApplicationMapper {
     /**
      * Extracts unique frameworks from application's implementations
      * @param app Application entity
-     * @return List of unique framework names (e.g., "CONNID", "SCIM_REST") or null if no implementations
+     * @return List of unique framework names (e.g., "JAVA_BASED", "LOW_CODE") or null if no implementations
      */
     public List<String> extractFrameworks(Application app) {
         if (app.getImplementations() == null || app.getImplementations().isEmpty()) {

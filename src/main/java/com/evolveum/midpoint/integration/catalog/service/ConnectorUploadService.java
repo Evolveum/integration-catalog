@@ -159,8 +159,8 @@ public class ConnectorUploadService {
         ConnectorBundle.FrameworkType framework = implementationDto.framework();
         if (framework == null && implementationDto.buildFramework() != null) {
             framework = (implementationDto.buildFramework() == BundleVersion.BuildFrameworkType.MAVEN)
-                    ? ConnectorBundle.FrameworkType.CONNID
-                    : ConnectorBundle.FrameworkType.SCIM_REST;
+                    ? ConnectorBundle.FrameworkType.JAVA_BASED
+                    : ConnectorBundle.FrameworkType.LOW_CODE;
         }
 
         if (framework == null) {
@@ -313,7 +313,7 @@ public class ConnectorUploadService {
         ConnectorBundle bundle = implRes.bundle();
         Implementation implementation = implRes.implementation();
 
-        if (ConnectorBundle.FrameworkType.SCIM_REST.equals(bundle.getFramework())) {
+        if (ConnectorBundle.FrameworkType.LOW_CODE.equals(bundle.getFramework())) {
             boolean hasLinks = bundleVersion.getCheckoutLink() != null && !bundleVersion.getCheckoutLink().isEmpty()
                     && bundleVersion.getBrowseLink() != null && !bundleVersion.getBrowseLink().isEmpty();
 

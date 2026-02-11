@@ -62,7 +62,7 @@ export class UploadFormMain implements OnInit {
     }
 
     const connectorType = this.selectedConnectorType();
-    const targetFramework = connectorType === 'java-based' ? 'CONNID' : 'SCIM_REST';
+    const targetFramework = connectorType === 'java-based' ? 'JAVA_BASED' : 'LOW_CODE';
 
     return this.applications().filter(app => {
       // First filter by search query
@@ -568,11 +568,11 @@ export class UploadFormMain implements OnInit {
 
   private mapConnectorTypeToFramework(connectorType: string): string {
     const mapping: Record<string, string> = {
-      'java-based': 'CONNID',
-      'own-repo': 'SCIM_REST',
-      'evolveum-hosted': 'SCIM_REST'
+      'java-based': 'JAVA_BASED',
+      'own-repo': 'LOW_CODE',
+      'evolveum-hosted': 'LOW_CODE'
     };
-    return mapping[connectorType] || 'CONNID';
+    return mapping[connectorType] || 'JAVA_BASED';
   }
 
   private extractVersionFromBrowseLink(browseLink: string | null): string | null {
