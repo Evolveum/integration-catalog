@@ -19,11 +19,6 @@
   font-weight: 700;
 }
 .hero p { margin: 0 0 16px 0; color: #dbeafe; }
-.search-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
 .search-row input[type="search"] {
   flex: 1;
   padding: 10px 12px;
@@ -68,10 +63,6 @@
 }
 .logo-wrap {
   height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
 }
 .logo-wrap img {
   max-height: 64px;
@@ -94,7 +85,6 @@
   color: #334155;
   min-height: 2.6em; /* keep row heights more even */
 }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag {
   background: #eef2ff;
   color: #3730a3;
@@ -105,10 +95,6 @@
 
 /* Pager */
 .pager {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
   margin-top: 16px;
 }
 .pager button {

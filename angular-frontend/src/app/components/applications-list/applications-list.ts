@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
-import { Application } from '../../models/application.model';
+import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
 import { LoginModal } from '../login-modal/login-modal';
@@ -22,7 +22,7 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RequestForm, LoginModal, UploadFormMain, FilterModal],
   templateUrl: './applications-list.html',
-  styleUrls: ['./applications-list.css']
+  styleUrls: ['./applications-list.scss']
 })
 export class ApplicationsList implements OnInit, AfterViewInit {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
@@ -68,7 +68,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 12;
   protected readonly sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
-  protected readonly viewMode = signal<'grid' | 'list'>('grid');
   protected readonly activeTab = signal<string>('all');
   protected isRequestModalOpen = signal<boolean>(false);
   protected isLoginModalOpen = signal<boolean>(false);
@@ -82,7 +81,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     trending: false,
     categories: [],
     capabilities: [],
-    appStatus: []
+    appStatus: [],
+    midpointVersions: [],
+    integrationMethods: [],
+    maintainers: []
   });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
@@ -97,7 +99,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const hasActiveFilters = filters.trending ||
                             filters.categories.length > 0 ||
                             filters.capabilities.length > 0 ||
-                            filters.appStatus.length > 0;
+                            filters.appStatus.length > 0 ||
+                            filters.midpointVersions.length > 0;
 
     if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
@@ -109,50 +112,9 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
     const filters = this.filterState();
-    let apps = [...this.applications()];
 
-    // Filter by category tab (if not 'all')
-    if (activeTab !== 'all') {
-      apps = apps.filter(app =>
-        app.categories?.some((category: any) => category.displayName === activeTab)
-      );
-    }
-
-    // When searching, show all matching apps. When not searching, show all apps
-    if (query) {
-      apps = apps.filter(app =>
-        app.displayName.toLowerCase().includes(query)
-      );
-    }
-
-    // Apply advanced filters
-    if (filters.trending) {
-      apps = apps.filter(app => app.tags?.some(tag => tag.name === 'popular'));
-    }
-
-    if (filters.categories.length > 0) {
-      apps = apps.filter(app => {
-        const allTags = [...(app.categories || []), ...(app.tags || [])];
-        return allTags.some(tag =>
-          filters.categories.includes(tag.name) &&
-          (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
-        );
-      });
-    }
-
-    if (filters.capabilities.length > 0) {
-      apps = apps.filter(app =>
-        app.capabilities?.some((capability: string) =>
-          filters.capabilities.includes(capability)
-        )
-      );
-    }
-
-    if (filters.appStatus.length > 0) {
-      apps = apps.filter(app =>
-        app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
-      );
-    }
+    // Apply shared filtering logic
+    let apps = this.applyFilters([...this.applications()], query, activeTab, filters);
 
     // Sort based on selected option
     const sortOption = this.sortBy();
@@ -185,28 +147,38 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
     const filters = this.filterState();
-    let apps = this.applications();
+
+    return this.applyFilters(this.applications(), query, activeTab, filters).length;
+  });
+
+  /**
+   * Applies all filters to the applications list.
+   * Shared by moreApplications and filteredCount computed signals.
+   */
+  private applyFilters(apps: Application[], query: string, activeTab: string, filters: FilterState): Application[] {
+    let filtered = apps;
 
     // Filter by category tab (if not 'all')
     if (activeTab !== 'all') {
-      apps = apps.filter(app =>
-        app.categories?.some((category: any) => category.displayName === activeTab)
+      filtered = filtered.filter(app =>
+        app.categories?.some((category: ApplicationTag) => category.displayName === activeTab)
       );
     }
 
+    // Filter by search query
     if (query) {
-      apps = apps.filter(app =>
+      filtered = filtered.filter(app =>
         app.displayName.toLowerCase().includes(query)
       );
     }
 
     // Apply advanced filters
     if (filters.trending) {
-      apps = apps.filter(app => app.tags?.some(tag => tag.name === 'popular'));
+      filtered = filtered.filter(app => app.tags?.some(tag => tag.name === 'popular'));
     }
 
     if (filters.categories.length > 0) {
-      apps = apps.filter(app => {
+      filtered = filtered.filter(app => {
         const allTags = [...(app.categories || []), ...(app.tags || [])];
         return allTags.some(tag =>
           filters.categories.includes(tag.name) &&
@@ -216,7 +188,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     }
 
     if (filters.capabilities.length > 0) {
-      apps = apps.filter(app =>
+      filtered = filtered.filter(app =>
         app.capabilities?.some((capability: string) =>
           filters.capabilities.includes(capability)
         )
@@ -224,13 +196,21 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     }
 
     if (filters.appStatus.length > 0) {
-      apps = apps.filter(app =>
+      filtered = filtered.filter(app =>
         app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
       );
     }
 
-    return apps.length;
-  });
+    if (filters.midpointVersions.length > 0) {
+      filtered = filtered.filter(app =>
+        app.midpointVersions?.some((version: string) =>
+          filters.midpointVersions.includes(version)
+        )
+      );
+    }
+
+    return filtered;
+  }
 
   protected readonly totalPages = computed(() => {
     return Math.ceil(this.filteredCount() / this.itemsPerPage);
@@ -267,7 +247,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       trending: false,
       categories: [],
       capabilities: [],
-      appStatus: []
+      appStatus: [],
+      midpointVersions: [],
+      integrationMethods: [],
+      maintainers: []
     });
     this.currentPage.set(0);
   }
@@ -319,6 +302,24 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.closeDropdown();
   }
 
+  protected clearMidpointVersionsFilter(): void {
+    this.filterState.update(state => ({ ...state, midpointVersions: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearIntegrationMethodsFilter(): void {
+    this.filterState.update(state => ({ ...state, integrationMethods: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearMaintainersFilter(): void {
+    this.filterState.update(state => ({ ...state, maintainers: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
   protected removeCategoryFilter(category: string): void {
     this.filterState.update(state => ({
       ...state,
@@ -339,6 +340,14 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.filterState.update(state => ({
       ...state,
       appStatus: state.appStatus.filter(s => s !== status)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeMidpointVersionFilter(version: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      midpointVersions: state.midpointVersions.filter(v => v !== version)
     }));
     this.currentPage.set(0);
   }
@@ -380,6 +389,51 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       }));
       this.currentPage.set(0);
     }
+  }
+
+  protected toggleMidpointVersionInFilter(version: string): void {
+    const versions = this.filterState().midpointVersions;
+    if (versions.includes(version)) {
+      this.removeMidpointVersionFilter(version);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        midpointVersions: [...state.midpointVersions, version]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleIntegrationMethodInFilter(method: string): void {
+    const methods = this.filterState().integrationMethods;
+    if (methods.includes(method)) {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: state.integrationMethods.filter(m => m !== method)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: [...state.integrationMethods, method]
+      }));
+    }
+    this.currentPage.set(0);
+  }
+
+  protected toggleMaintainerInFilter(maintainer: string): void {
+    const maintainers = this.filterState().maintainers;
+    if (maintainers.includes(maintainer)) {
+      this.filterState.update(state => ({
+        ...state,
+        maintainers: state.maintainers.filter(m => m !== maintainer)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        maintainers: [...state.maintainers, maintainer]
+      }));
+    }
+    this.currentPage.set(0);
   }
 
   protected getFilteredCountForCategory(category: string): number {
@@ -465,14 +519,45 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return this.filterState().appStatus.includes(status);
   }
 
+  protected isMidpointVersionSelected(version: string): boolean {
+    return this.filterState().midpointVersions.includes(version);
+  }
+
+  protected isIntegrationMethodSelected(method: string): boolean {
+    return this.filterState().integrationMethods.includes(method);
+  }
+
+  protected isMaintainerSelected(maintainer: string): boolean {
+    return this.filterState().maintainers.includes(maintainer);
+  }
+
+  protected allMidpointVersions = computed(() => {
+    const versionsSet = new Set<string>();
+    for (const app of this.applications()) {
+      if (app.midpointVersions) {
+        app.midpointVersions.forEach(v => versionsSet.add(v));
+      }
+    }
+    return Array.from(versionsSet).sort();
+  });
+
+  protected readonly allIntegrationMethods: string[] = [
+    'SCIM',
+    'openLDAP',
+    'REST API',
+    'CSV file import'
+  ];
+
+  protected readonly allMaintainers: string[] = [
+    'Evolveum',
+    'Community',
+    'Partner'
+  ];
+
   protected onSortChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value as 'alphabetical' | 'popularity' | 'activity';
     this.sortBy.set(value);
     this.currentPage.set(0);
-  }
-
-  protected setViewMode(mode: 'grid' | 'list'): void {
-    this.viewMode.set(mode);
   }
 
   protected setActiveTab(tab: string): void {
@@ -595,6 +680,11 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.isUploadModalOpen.set(false);
   }
 
+  protected reloadApplications(): void {
+    this.loading.set(true);
+    this.loadApplications();
+  }
+
   protected openFilterModal(): void {
     this.isFilterModalOpen.set(true);
   }
@@ -702,5 +792,38 @@ export class ApplicationsList implements OnInit, AfterViewInit {
         console.error('Error loading total downloads count:', err);
       }
     });
+  }
+
+  // ==================== Logo Methods ====================
+
+  // Track logo load errors per application
+  protected logoLoadErrors = new Set<string>();
+
+  /**
+   * Check if an application has a logo
+   */
+  protected appHasLogo(app: Application): boolean {
+    return hasLogo(app);
+  }
+
+  /**
+   * Get the logo URL for an application
+   */
+  protected getAppLogoUrl(app: Application): string {
+    return this.applicationService.getLogoUrl(app.id);
+  }
+
+  /**
+   * Handle logo load error - marks the app to show fallback
+   */
+  protected onAppLogoError(appId: string): void {
+    this.logoLoadErrors.add(appId);
+  }
+
+  /**
+   * Check if should show letter avatar for an app
+   */
+  protected shouldShowAppLetterAvatar(app: Application): boolean {
+    return !this.appHasLogo(app) || this.logoLoadErrors.has(app.id);
   }
 }

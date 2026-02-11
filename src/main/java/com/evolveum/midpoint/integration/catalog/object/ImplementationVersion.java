@@ -17,6 +17,7 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +29,16 @@ import java.util.UUID;
 @Getter @Setter
 @Accessors(chain = true)
 public class ImplementationVersion {
+
+    /**
+     * Comparator for finding the latest version by publish date.
+     * Treats null publish dates as earlier than non-null dates.
+     */
+    public static final Comparator<ImplementationVersion> latestByPublishDate =
+            Comparator.comparing(
+                    ImplementationVersion::getPublishDate,
+                    Comparator.nullsFirst(Comparator.naturalOrder())
+            );
 
 //    public enum CapabilitiesType {
 //        CREATE("Create"),

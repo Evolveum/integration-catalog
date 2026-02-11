@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
+@use 'sass:color';
+
+// Brand Colors
+$color-light-blue: #3C8DBC;
+$color-dark-blue: #206F9D;
+$color-darker-blue: #605CA2;
+$color-black: #000000;
+$color-white: #ffffff;
+$midpoint-special-color: color.mix($color-light-blue, $color-dark-blue, 50%);
+
+// Button Colors
+$btn-download-color: #ffffff;
+$btn-more-details-blue: #367FAA;
+$btn-more-details-color: color.mix($btn-more-details-blue, $color-black, 80%);
+
+// Publishing Colors
+$text-publishing-blue: #17A2B8;
+$text-publishing-color: color.mix($text-publishing-blue, $color-black, 50%);
+
+// Text Colors
+$color-text-dark: #212529;
+$color-text-secondary: #495057;
+$color-text-muted: #5b656f;
+$color-text-light: #adb5bd;
+
+// Gray Scale
+$color-gray-secondary: #6c757d;
+$color-gray-dark: #5c636a;
+$color-icon-dark: #353A41;
+
+// Background Colors
+$color-bg-light: #f8f9fa;
+$color-bg-hover: #f1f3f5;
+$color-bg-disabled: #fcfcfc;
+$color-bg-selected: #e7f3ff;
+$color-bg-muted: #e9ecef;
+
+// Border Colors
+$color-border-light: #dee2e6;
+$color-border-input: #ced4da;
+$color-separator: #e4e7ec;
+
+// Primary Colors (Bootstrap-like)
+$color-primary: #0d6efd;
+$color-primary-hover: #0b5ed7;
+$color-primary-active: #0a58ca;
+
+// Secondary Colors
+$color-secondary: #6c757d;
+$color-secondary-hover: #5c636a;
+$color-secondary-active: #565e64;
+
+// Success Colors
+$color-success: #198754;
+$color-success-bg: #d1e7dd;
+
+// Warning Colors
+$color-warning: #ffc107;
+$color-warning-bg: #fff3cd;
+
+// Info Colors
+$color-info-bg: #d1ecf1;
+$color-info-border: #bee5eb;
+$color-info-text: #0c5460;
+
+// Accent Colors
+$color-accent-purple: #605cab;
+$color-accent-purple-light: rgba(96, 92, 168, 0.1);
+
+// Shadow Colors
+$shadow-card: rgba(0, 0, 0, 0.1);
+$shadow-dropdown: rgba(0, 0, 0, 0.08);
+$shadow-teal: rgba(0, 129, 132, 0.15);
+$shadow-primary: rgba(13, 110, 253, 0.25);

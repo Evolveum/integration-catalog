@@ -49,9 +49,18 @@ public class Application {
 
     private String description;
 
-    //TODO - how to load logo - this way or with url somehow
-    @Column(columnDefinition = "bytea")
-    private byte[] logo;
+    // Logo file storage fields
+    @Column(name = "logo_path")
+    private String logoPath;
+
+    @Column(name = "logo_content_type", length = 100)
+    private String logoContentType;
+
+    @Column(name = "logo_original_name")
+    private String logoOriginalName;
+
+    @Column(name = "logo_size_bytes")
+    private Long logoSizeBytes;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)

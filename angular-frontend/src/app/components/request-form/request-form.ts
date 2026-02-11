@@ -7,6 +7,7 @@
 import { Component, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -15,11 +16,12 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './request-form.html',
-  styleUrls: ['./request-form.css']
+  styleUrls: ['./request-form.scss']
 })
 export class RequestForm {
   @Input() isRequestModalOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
+  @Output() requestSubmitted = new EventEmitter<void>();
 
   protected formData = {
     integrationApplicationName: '',
@@ -49,7 +51,7 @@ export class RequestForm {
         this.availableCapabilities.set(capabilities);
         this.isLoadingCapabilities.set(false);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         console.error('Error loading capabilities:', err);
         this.isLoadingCapabilities.set(false);
         // Optionally set a fallback or show an error message
@@ -93,12 +95,13 @@ export class RequestForm {
         this.isSubmitting.set(false);
         this.closeRequestModal();
         this.submitSuccess.set(true);
+        this.requestSubmitted.emit();
         // Auto-hide success message after 5 seconds
         setTimeout(() => {
           this.submitSuccess.set(false);
         }, 5000);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
         this.submitError.set('Failed to submit request. Please try again.');
         console.error('Error submitting request:', err);
@@ -141,6 +144,11 @@ export class RequestForm {
   }
 
   protected formatCapabilityName(capability: string): string {
-    return capability.replace(/_/g, ' ');
+    return capability
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 }

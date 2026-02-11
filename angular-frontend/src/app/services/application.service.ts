@@ -11,6 +11,7 @@ import { Application } from '../models/application.model';
 import { ApplicationDetail, ApplicationTag } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
+import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -33,8 +34,8 @@ export class ApplicationService {
     return this.http.get<CategoryCount[]>(`${environment.apiUrl}/categories/counts`);
   }
 
-  submitVote(requestId: number, voter: string): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
+  submitVote(requestId: number, voter: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
   }
 
   getVoteCount(requestId: number): Observable<number> {
@@ -45,8 +46,8 @@ export class ApplicationService {
     return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check?voter=${voter}`);
   }
 
-  submitRequest(request: any): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/requests`, request);
+  submitRequest(request: IntegrationRequest): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/requests`, request);
   }
 
   getCapabilities(): Observable<string[]> {
@@ -57,7 +58,7 @@ export class ApplicationService {
     return this.http.get<ImplementationListItem[]>(`${environment.apiUrl}/applications/${applicationId}/implementations`);
   }
 
-  uploadConnector(payload: any): Observable<string> {
+  uploadConnector(payload: UploadConnectorPayload): Observable<string> {
     return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
   }
 
@@ -80,5 +81,35 @@ export class ApplicationService {
   downloadConnector(versionId: string): void {
     const url = `${environment.apiUrl}/downloads/${versionId}`;
     window.open(url, '_blank');
+  }
+
+  // ==================== Logo Methods ====================
+
+  /**
+   * Get the logo URL for an application
+   */
+  getLogoUrl(applicationId: string): string {
+    return `${environment.apiUrl}/applications/${applicationId}/logo`;
+  }
+
+  /**
+   * Upload a logo for an application
+   */
+  uploadLogo(applicationId: string, file: File): Observable<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${applicationId}/logo`,
+      formData
+    );
+  }
+
+  /**
+   * Delete a logo for an application
+   */
+  deleteLogo(applicationId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/applications/${applicationId}/logo`
+    );
   }
 }

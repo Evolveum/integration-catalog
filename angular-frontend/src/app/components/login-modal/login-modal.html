@@ -5,15 +5,15 @@
  -->
 
 @if (isOpen()) {
-  <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;" (click)="closeModal()"></div>
-  <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px; margin: auto;">
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
+  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-login">
       <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem;">
+        <div class="modal-header modal-header-login">
           <h5 class="modal-title mb-0">Login</h5>
           <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
         </div>
-        <div class="modal-body" style="padding: 1.5rem;">
+        <div class="modal-body modal-body-login">
           <form (ngSubmit)="login()">
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
