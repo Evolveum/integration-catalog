@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.mapper;
 
+import com.evolveum.midpoint.integration.catalog.dto.ActiveConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
@@ -384,6 +385,93 @@ public class ApplicationMapper {
                 capabilities.isEmpty() ? null : capabilities,
                 requestId,
                 voteCount,
+                frameworks,
+                midpointVersions.isEmpty() ? null : midpointVersions
+        );
+    }
+
+    /**
+     * Convert Application entity to ActiveConnectorDto for the active connectors endpoint.
+     * @param app Application entity
+     * @return ActiveConnectorDto
+     */
+    public ActiveConnectorDto toActiveConnectorDto(Application app) {
+        // Convert origins from ApplicationOrigin join table
+        List<CountryOfOriginDto> origins = null;
+        if (app.getApplicationOrigins() != null) {
+            origins = app.getApplicationOrigins().stream()
+                    .map(appOrigin -> new CountryOfOriginDto(
+                            appOrigin.getCountryOfOrigin().getId(),
+                            appOrigin.getCountryOfOrigin().getName(),
+                            appOrigin.getCountryOfOrigin().getDisplayName()
+                    ))
+                    .toList();
+        }
+
+        // Convert categories and tags from ApplicationApplicationTag join table
+        List<ApplicationTagDto> categories = null;
+        List<ApplicationTagDto> tags = null;
+        if (app.getApplicationApplicationTags() != null) {
+            categories = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+
+            tags = app.getApplicationApplicationTags().stream()
+                    .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
+                    .map(aat -> new ApplicationTagDto(
+                            aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(),
+                            aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()
+                    ))
+                    .toList();
+        }
+
+        // Aggregate capabilities from all implementations
+        List<String> capabilities = new ArrayList<>();
+        if (app.getImplementations() != null) {
+            app.getImplementations().stream()
+                    .filter(impl -> impl.getImplementationVersions() != null)
+                    .flatMap(impl -> impl.getImplementationVersions().stream())
+                    .filter(version -> version.getCapabilities() != null)
+                    .flatMap(version -> Arrays.stream(version.getCapabilities()))
+                    .map(Enum::name)
+                    .distinct()
+                    .forEach(capabilities::add);
+        }
+
+        // Extract frameworks from implementations
+        List<String> frameworks = extractFrameworks(app);
+
+        // Extract unique midpoint versions from all implementations
+        List<String> midpointVersions = new ArrayList<>();
+        if (app.getImplementations() != null) {
+            app.getImplementations().stream()
+                    .filter(impl -> impl.getImplementationVersions() != null)
+                    .flatMap(impl -> impl.getImplementationVersions().stream())
+                    .filter(version -> version.getBundleVersion() != null
+                            && version.getBundleVersion().getConnidVersionObject() != null
+                            && version.getBundleVersion().getConnidVersionObject().getMidpointVersion() != null)
+                    .map(version -> version.getBundleVersion().getConnidVersionObject().getMidpointVersion())
+                    .distinct()
+                    .sorted()
+                    .forEach(midpointVersions::add);
+        }
+
+        return new ActiveConnectorDto(
+                app.getId(),
+                app.getDisplayName(),
+                app.getDescription(),
+                origins,
+                categories,
+                tags,
+                capabilities.isEmpty() ? null : capabilities,
                 frameworks,
                 midpointVersions.isEmpty() ? null : midpointVersions
         );
