@@ -158,8 +158,7 @@
 
 .modal-dialog-request {
   max-width: 800px;
-  max-height: 753px;
-  margin: auto;
+  margin: 1.75rem auto;
 }
 
 .modal-header-request {
@@ -268,6 +267,75 @@
   margin-top: -3px;
 }
 
+/* Integration Method Dropdown */
+.integration-method-trigger {
+  min-height: 41px;
+  cursor: pointer;
+  padding: 6px 2.25rem 6px 12px;
+}
+
+.dropdown-arrow-sm {
+  font-size: 10px;
+  color: $color-icon-dark;
+  pointer-events: none;
+}
+
+.integration-method-dropdown {
+  z-index: 1000;
+  border: 1px solid $color-border-input;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px $shadow-dropdown;
+  overflow: hidden;
+}
+
+.integration-method-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  margin: 0;
+  border-bottom: 1px solid $color-border-light;
+  font-size: 14px;
+  color: $color-black;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.integration-method-option-selected {
+  background-color: rgba($color-light-blue, 0.08);
+  color: $midpoint-special-color-20;
+}
+
+.integration-method-radio {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: $color-primary;
+}
+
+.integration-method-view-more {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: $color-primary;
+  font-size: 14px;
+  font-weight: 500;
+  border-top: 1px solid $color-border-light;
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.view-more-icon {
+  font-size: 10px;
+}
+
 /* Dropdown Menu */
 .capability-dropdown-menu {
   z-index: 1000;
@@ -340,10 +408,152 @@
   margin-bottom: 0;
 }
 
+/* Capabilities Scope Radio List */
+.capabilities-scope-list {
+  border: 1px solid $color-border-input;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.capabilities-scope-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  margin: 0;
+  border-bottom: 1px solid $color-border-light;
+  font-size: 14px;
+  color: $color-black;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.capabilities-scope-option-selected {
+  background-color: rgba($color-light-blue, 0.08);
+  color: $midpoint-special-color-20;
+}
+
+/* Collaborate Checkbox */
+.collaborate-label {
+  cursor: pointer;
+  margin-bottom: 0;
+  gap: 10px;
+}
+
+.collaborate-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  appearance: none;
+  border: 1px solid $color-border-input;
+  border-radius: 4px;
+  background-color: $color-white;
+
+  &:checked {
+    background-color: $color-primary;
+    border-color: $color-primary;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+  }
+}
+
 .fw-600 {
   font-weight: 600;
 }
 
 .fw-400 {
   font-weight: 400;
+}
+
+/* Specific Object Class Cards */
+.object-class-card {
+  border: 1px solid $color-border-input;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.object-class-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.object-class-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $color-black;
+}
+
+.object-class-card-subtitle {
+  font-size: 14px;
+  color: $color-text-muted;
+  margin-top: 2px;
+}
+
+.btn-remove-object-class {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text-secondary;
+
+  &:hover {
+    color: #BB2D3B;
+  }
+}
+
+.object-class-field {
+  cursor: text;
+  position: relative;
+}
+
+.object-class-search-icon {
+  font-size: 13px;
+  color: $color-black;
+  flex-shrink: 0;
+}
+
+.object-class-text-input {
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: $color-black;
+  border: none;
+
+  &::placeholder {
+    color: $color-gray-secondary;
+  }
+}
+
+.capability-dropdown-disabled {
+  background-color: $color-bg-muted;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.capability-placeholder-disabled {
+  color: $color-text-muted;
+}
+
+.btn-add-object-class {
+  color: $color-dark-blue;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }

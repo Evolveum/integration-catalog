@@ -10,9 +10,11 @@
 $color-light-blue: #3C8DBC;
 $color-dark-blue: #206F9D;
 $color-darker-blue: #605CA2;
+$color-mid-blue: #367FAA;
 $color-black: #000000;
 $color-white: #ffffff;
 $midpoint-special-color: color.mix($color-light-blue, $color-dark-blue, 50%);
+$midpoint-special-color-20: color.mix($color-mid-blue, $color-black, 80%);
 
 // Button Colors
 $btn-download-color: #ffffff;

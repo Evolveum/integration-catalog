@@ -25,10 +25,17 @@ export class RequestForm {
 
   protected formData = {
     integrationApplicationName: '',
-    deploymentType: '',
+    integrationMethod: '',
     description: '',
-    systemVersion: ''
+    systemVersion: '',
+    contactEmail: '',
+    openToCollaborate: false,
+    deploymentType: '',
+    capabilitiesScope: 'global'
   };
+  protected readonly integrationMethods = ['SCIM generic', 'Manual connector', 'REST API', 'Number 4', 'Peekaboo', 'We have been found, RUN'];
+  protected readonly isIntegrationMethodDropdownOpen = signal<boolean>(false);
+  protected readonly isIntegrationMethodExpanded = signal<boolean>(false);
   protected readonly selectedCapabilities = signal<string[]>([]);
   protected readonly isCapabilitiesDropdownOpen = signal<boolean>(false);
   protected readonly isSubmitting = signal<boolean>(false);
@@ -36,6 +43,11 @@ export class RequestForm {
   protected readonly submitError = signal<string | null>(null);
   protected readonly availableCapabilities = signal<string[]>([]);
   protected readonly isLoadingCapabilities = signal<boolean>(false);
+  protected readonly specificObjectClassEntries = signal<Array<{
+    objectClass: string;
+    capabilities: string[];
+    isCapabilitiesDropdownOpen: boolean;
+  }>>([{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
 
   constructor(
     private applicationService: ApplicationService,
@@ -68,11 +80,16 @@ export class RequestForm {
   protected resetForm(): void {
     this.formData = {
       integrationApplicationName: '',
-      deploymentType: '',
+      integrationMethod: '',
       description: '',
-      systemVersion: ''
+      systemVersion: '',
+      contactEmail: '',
+      openToCollaborate: false,
+      deploymentType: '',
+      capabilitiesScope: 'global'
     };
     this.selectedCapabilities.set([]);
+    this.specificObjectClassEntries.set([{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
     this.submitSuccess.set(false);
     this.submitError.set(null);
   }
@@ -83,10 +100,13 @@ export class RequestForm {
 
     const request = {
       integrationApplicationName: this.formData.integrationApplicationName,
+      integrationMethod: this.formData.integrationMethod,
       deploymentType: this.formData.deploymentType,
       capabilities: this.selectedCapabilities(),
       description: this.formData.description,
       systemVersion: this.formData.systemVersion,
+      contactEmail: this.formData.contactEmail,
+      openToCollaborate: this.formData.openToCollaborate,
       requester: this.authService.currentUser()
     };
 
@@ -121,6 +141,26 @@ export class RequestForm {
     this.isCapabilitiesDropdownOpen.set(false);
   }
 
+  protected toggleIntegrationMethodDropdown(): void {
+    this.isIntegrationMethodDropdownOpen.update(value => !value);
+  }
+
+  protected selectIntegrationMethod(method: string): void {
+    this.formData.integrationMethod = method;
+    this.isIntegrationMethodDropdownOpen.set(false);
+  }
+
+  protected get visibleIntegrationMethods(): string[] {
+    return this.isIntegrationMethodExpanded()
+      ? this.integrationMethods
+      : this.integrationMethods.slice(0, 4);
+  }
+
+  protected toggleIntegrationMethodExpanded(event: Event): void {
+    event.stopPropagation();
+    this.isIntegrationMethodExpanded.update(v => !v);
+  }
+
   protected onCapabilityChange(event: Event, capability: string): void {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {
@@ -150,5 +190,60 @@ export class RequestForm {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  }
+
+  protected addObjectClassEntry(): void {
+    this.specificObjectClassEntries.update(entries => [
+      ...entries,
+      { objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }
+    ]);
+  }
+
+  protected removeObjectClassEntry(index: number): void {
+    this.specificObjectClassEntries.update(entries => entries.filter((_, i) => i !== index));
+  }
+
+  protected updateObjectClass(index: number, value: string): void {
+    this.specificObjectClassEntries.update(entries =>
+      entries.map((entry, i) => {
+        if (i !== index) return entry;
+        const isCapabilitiesDropdownOpen = value ? entry.isCapabilitiesDropdownOpen : false;
+        return { ...entry, objectClass: value, isCapabilitiesDropdownOpen };
+      })
+    );
+  }
+
+  protected toggleSpecificCapabilitiesDropdown(index: number): void {
+    const entry = this.specificObjectClassEntries()[index];
+    if (!entry?.objectClass) return;
+    this.specificObjectClassEntries.update(entries =>
+      entries.map((e, i) => i === index
+        ? { ...e, isCapabilitiesDropdownOpen: !e.isCapabilitiesDropdownOpen }
+        : e
+      )
+    );
+  }
+
+  protected onSpecificCapabilityChange(event: Event, index: number, capability: string): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.specificObjectClassEntries.update(entries =>
+      entries.map((entry, i) => {
+        if (i !== index) return entry;
+        const capabilities = checked
+          ? [...entry.capabilities, capability]
+          : entry.capabilities.filter(c => c !== capability);
+        return { ...entry, capabilities };
+      })
+    );
+  }
+
+  protected removeSpecificCapability(index: number, capability: string, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.specificObjectClassEntries.update(entries =>
+      entries.map((entry, i) => i === index
+        ? { ...entry, capabilities: entry.capabilities.filter(c => c !== capability) }
+        : entry
+      )
+    );
   }
 }

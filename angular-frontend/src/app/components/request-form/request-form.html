@@ -28,7 +28,7 @@
 @if (isRequestModalOpen()) {
   <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeRequestModal()"></div>
     <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
-      <div class="modal-dialog modal-dialog-centered modal-dialog-request">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-dialog-request">
         <div class="modal-content" (click)="$event.stopPropagation()">
           <div class="modal-header modal-header-request">
             <h6 class="modal-title mb-0 modal-title-request">Request Tailored Solution</h6>
@@ -58,7 +58,94 @@
             <!-- Row 5 -->
             <div class="mb-3">
               <label class="form-label form-label-bold">
-                Deployment Type
+                Integration method*
+                <button type="button" class="btn btn-link p-0 btn-info-icon" title="Integration method information">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+
+              <!-- Custom dropdown field -->
+              <div class="position-relative">
+                <div class="form-control d-flex align-items-center integration-method-trigger"
+                    (click)="toggleIntegrationMethodDropdown()">
+                  @if (!formData.integrationMethod) {
+                    <span class="capability-placeholder">Select</span>
+                  } @else {
+                    <span>{{ formData.integrationMethod }}</span>
+                  }
+                  <i class="fa-solid fa-chevron-down position-absolute end-0 me-3 dropdown-arrow-sm"></i>
+                </div>
+
+                @if (isIntegrationMethodDropdownOpen()) {
+                  <div class="position-absolute w-100 bg-white mt-1 integration-method-dropdown">
+                    @for (method of visibleIntegrationMethods; track method) {
+                      <label class="d-flex align-items-center integration-method-option"
+                            [class.integration-method-option-selected]="formData.integrationMethod === method"
+                            (click)="selectIntegrationMethod(method)">
+                        <input type="radio"
+                              name="integrationMethod"
+                              [value]="method"
+                              [checked]="formData.integrationMethod === method"
+                              class="integration-method-radio">
+                        <span>{{ method }}</span>
+                      </label>
+                    }
+                    @if (integrationMethods.length > 4) {
+                      <div class="integration-method-view-more" (click)="toggleIntegrationMethodExpanded($event)">
+                        @if (isIntegrationMethodExpanded()) {
+                          <i class="fa-solid fa-chevron-up me-1 view-more-icon"></i>
+                          <span>View less</span>
+                        } @else {
+                          <i class="fa-solid fa-chevron-down me-1 view-more-icon"></i>
+                          <span>View more</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Row 8 & 9 -->
+            <div class="mb-3">
+              <label class="form-label form-label-bold">Short description*</label>
+              <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the integration you need and your use case." required></textarea>
+            </div>
+
+            <!-- System Version & Contact Email side by side -->
+            <div class="d-flex gap-3 mb-3">
+              <div class="flex-fill">
+                <label class="form-label form-label-black">
+                  <span class="fw-600">System version</span> <span class="fw-400">(Optional)</span>
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="System version information">
+                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                  </button>
+                </label>
+                <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
+              </div>
+              <div class="flex-fill">
+                <label class="form-label form-label-black">
+                  <span class="fw-600">Your contact email</span> <span class="fw-400">(Optional)</span>
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Contact email information">
+                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                  </button>
+                </label>
+                <input type="email" class="form-control" [(ngModel)]="formData.contactEmail">
+              </div>
+            </div>
+
+            <!-- Collaborate checkbox -->
+            <div class="mb-3">
+              <label class="d-flex align-items-center collaborate-label">
+                <input type="checkbox" class="collaborate-checkbox" [(ngModel)]="formData.openToCollaborate">
+                <span class="form-label-black">I'm open to collaborate with the community.</span>
+              </label>
+            </div>
+
+            <!-- Deployment Type -->
+            <div class="mb-3">
+              <label class="form-label form-label-bold">
+                Deployment type
                 <button type="button" class="btn btn-link p-0 btn-info-icon" title="Deployment type information">
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
@@ -79,10 +166,34 @@
               </div>
             </div>
 
-            <!-- Row 6 & 7 -->
+            <!-- Configure capabilities for -->
+            <div class="mb-3">
+              <label class="form-label form-label-bold">Configure capabilities for:</label>
+              <div class="capabilities-scope-list">
+                <label class="d-flex align-items-center capabilities-scope-option"
+                      [class.capabilities-scope-option-selected]="formData.capabilitiesScope === 'global'"
+                      (click)="formData.capabilitiesScope = 'global'">
+                  <input type="radio" name="capabilitiesScope" value="global"
+                        [(ngModel)]="formData.capabilitiesScope"
+                        class="integration-method-radio">
+                  <span>All object classes (Global)</span>
+                </label>
+                <label class="d-flex align-items-center capabilities-scope-option"
+                      [class.capabilities-scope-option-selected]="formData.capabilitiesScope === 'specific'"
+                      (click)="formData.capabilitiesScope = 'specific'">
+                  <input type="radio" name="capabilitiesScope" value="specific"
+                        [(ngModel)]="formData.capabilitiesScope"
+                        class="integration-method-radio">
+                  <span>Specific object classes</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Requested Capabilities: shown based on scope selection -->
+            @if (formData.capabilitiesScope === 'global') {
             <div class="mb-3">
               <label class="form-label form-label-bold">
-                Requested Capabilities
+                Requested Global Capabilities
                 <button type="button" class="btn btn-link p-0 btn-info-icon" title="Capabilities information">
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
@@ -143,23 +254,101 @@
                 }
               </div>
             </div>
+            }
 
-            <!-- Row 8 & 9 -->
+            <!-- Specific Object Classes (only visible when Specific is selected) -->
+            @if (formData.capabilitiesScope === 'specific') {
             <div class="mb-3">
-              <label class="form-label form-label-bold">Short description*</label>
-              <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the integration you need and your use case." required></textarea>
-            </div>
+              @for (entry of specificObjectClassEntries(); track $index; let i = $index) {
+                <div class="object-class-card">
+                  <!-- Card Header -->
+                  <div class="object-class-card-header">
+                    <div>
+                      <div class="object-class-card-title">{{ entry.objectClass || 'New object class' }}</div>
+                      @if (entry.objectClass) {
+                        <div class="object-class-card-subtitle">Object class</div>
+                      }
+                    </div>
+                    @if (i > 0) {
+                      <button type="button" class="btn btn-remove-object-class" (click)="removeObjectClassEntry(i)">
+                        <i class="fa-solid fa-trash-can me-1"></i>
+                        Remove
+                      </button>
+                    }
+                  </div>
 
-            <!-- Row 10 & 11 -->
-            <div class="mb-3">
-              <label class="form-label form-label-black">
-                <span class="fw-600">System Version</span> <span class="fw-400">(Optional)</span>
-                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="System version information">
-                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                </button>
-              </label>
-              <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
+                  <!-- Object class search field -->
+                  <div class="form-control d-flex align-items-center object-class-field mb-2">
+                    <i class="fa-solid fa-magnifying-glass me-2 object-class-search-icon"></i>
+                    <input type="text"
+                           class="border-0 flex-fill object-class-text-input"
+                           placeholder="Select object class to configure"
+                           [ngModel]="entry.objectClass"
+                           (ngModelChange)="updateObjectClass(i, $event)"
+                           [name]="'objectClass' + i">
+                    <i class="fa-solid fa-sort-down position-absolute top-50 end-0 me-2 dropdown-arrow"></i>
+                  </div>
+
+                  <!-- Capabilities for this object class -->
+                  <div class="position-relative">
+                    <div class="form-control d-flex flex-wrap align-items-center gap-2 capability-dropdown-trigger"
+                        [class.capability-dropdown-disabled]="!entry.objectClass"
+                        (click)="toggleSpecificCapabilitiesDropdown(i)">
+                      @if (!entry.objectClass) {
+                        <span class="capability-placeholder capability-placeholder-disabled">Disabled until object class is selected</span>
+                      } @else if (entry.capabilities.length === 0) {
+                        <span class="capability-placeholder">At least one capability must be selected</span>
+                      } @else {
+                        @for (cap of entry.capabilities; track cap) {
+                          <span class="badge d-inline-flex align-items-center capability-badge">
+                            {{ formatCapabilityName(cap) }}
+                            <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center btn-remove-capability" (click)="removeSpecificCapability(i, cap, $event)" aria-label="Remove">
+                              <i class="fa-solid fa-circle-xmark remove-icon"></i>
+                            </button>
+                          </span>
+                        }
+                      }
+                      <i class="fa-solid fa-sort-down position-absolute top-50 end-0 me-2 dropdown-arrow"></i>
+                    </div>
+
+                    @if (entry.isCapabilitiesDropdownOpen) {
+                      <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu overflow-auto">
+                        @if (isLoadingCapabilities()) {
+                          <div class="p-4 text-center text-muted">
+                            <span>Loading capabilities...</span>
+                          </div>
+                        } @else if (availableCapabilities().length === 0) {
+                          <div class="p-4 text-center text-muted">
+                            <span>No capabilities available</span>
+                          </div>
+                        } @else {
+                          <div class="p-4 capability-grid">
+                            @for (capability of availableCapabilities(); track capability) {
+                              <label class="d-flex align-items-center capability-label">
+                                <input type="checkbox"
+                                      [id]="'specific-cap-' + i + '-' + capability.toLowerCase()"
+                                      (change)="onSpecificCapabilityChange($event, i, capability)"
+                                      [checked]="entry.capabilities.includes(capability)"
+                                      class="capability-checkbox">
+                                <span class="capability-label-text">{{ formatCapabilityName(capability) }}</span>
+                              </label>
+                            }
+                          </div>
+                        }
+                        <div class="dropdown-separator"></div>
+                        <div class="p-3"></div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <button type="button" class="btn btn-add-object-class" (click)="addObjectClassEntry()">
+                <i class="fa-solid fa-plus me-1"></i>
+                Add other object class
+              </button>
             </div>
+            }
 
             </div>
             <!-- Row 12 -->

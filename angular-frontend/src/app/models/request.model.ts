@@ -22,10 +22,13 @@ export interface CreateRequest {
  */
 export interface IntegrationRequest {
   integrationApplicationName: string;
+  integrationMethod: string;
   deploymentType: string;
   capabilities: string[];
   description: string;
   systemVersion: string;
+  contactEmail: string;
+  openToCollaborate: boolean;
   requester: string | null;
 }
 
