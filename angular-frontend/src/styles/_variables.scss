@@ -15,6 +15,7 @@ $color-black: #000000;
 $color-white: #ffffff;
 $midpoint-special-color: color.mix($color-light-blue, $color-dark-blue, 50%);
 $midpoint-special-color-20: color.mix($color-mid-blue, $color-black, 80%);
+$midpoint-special-color-10: color.mix($color-darker-blue, $color-black, 90%);
 
 // Button Colors
 $btn-download-color: #ffffff;
