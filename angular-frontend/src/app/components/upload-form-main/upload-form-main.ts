@@ -1,12 +1,14 @@
-import { Component, signal, Output, EventEmitter, Input, computed, OnInit, ViewChild } from '@angular/core';
+import { Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationFormData, UploadFileItem } from '../../models/request.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
+import { AuthService } from '../../services/auth.service';
 import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
 
 @Component({
@@ -17,12 +19,7 @@ import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
   styleUrls: ['./upload-form-main.scss']
 })
 export class UploadFormMain implements OnInit {
-  @Input() isOpen = signal<boolean>(false);
-  @Input() applications = signal<Application[]>([]);
-  @Output() modalClosed = new EventEmitter<void>();
-  @Output() uploadCompleted = new EventEmitter<void>();
-
-  @ViewChild(UploadFormImpl) uploadFormImpl!: UploadFormImpl;
+  protected readonly applications = signal<Application[]>([]);
 
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
@@ -195,10 +192,21 @@ export class UploadFormMain implements OnInit {
 
   constructor(
     private countryService: CountryService,
-    private applicationService: ApplicationService
+    private applicationService: ApplicationService,
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/applications']);
+      return;
+    }
+
+    this.applicationService.getAll().subscribe({
+      next: (data) => this.applications.set(data)
+    });
+
     // Fetch all countries from REST Countries API
     this.countryService.getAllCountries().subscribe({
       next: (countries) => {
@@ -214,8 +222,7 @@ export class UploadFormMain implements OnInit {
   }
 
   protected closeModal(): void {
-    this.modalClosed.emit();
-    this.resetForm();
+    this.router.navigate(['/applications']);
   }
 
   protected closePublishSuccessToast(): void {
@@ -505,15 +512,7 @@ export class UploadFormMain implements OnInit {
   }
 
   protected handleImplementationAction(): void {
-    const formData = this.implementationFormData();
-
-    // If selecting an existing implementation (isNewVersion = true and not editing yet)
-    if (formData?.isNewVersion === true && formData?.selectedImplementation && !formData?.isEditingVersion && this.uploadFormImpl) {
-      this.uploadFormImpl.confirmImplementationSelection();
-    } else {
-      // Handle publish action for new implementation or editing existing
-      this.publishToCatalog();
-    }
+    this.publishToCatalog();
   }
 
   private publishToCatalog(): void {
@@ -609,10 +608,8 @@ export class UploadFormMain implements OnInit {
           this.uploadLogoIfPresent(applicationId);
         }
 
-        this.closeModal();
         this.showPublishSuccess.set(true);
-        this.uploadCompleted.emit();
-        setTimeout(() => this.showPublishSuccess.set(false), 5000);
+        setTimeout(() => this.router.navigate(['/applications']), 3000);
       },
       error: (error: HttpErrorResponse) => {
         alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
@@ -727,18 +724,6 @@ export class UploadFormMain implements OnInit {
           content: uploadedFile.data
         }]
       };
-    }
-  }
-
-  protected handleBackFromImplementation(): void {
-    const formData = this.implementationFormData();
-
-    // If in editing mode, go back to implementation selection
-    if (formData?.isEditingVersion && this.uploadFormImpl) {
-      this.uploadFormImpl.cancelEditing();
-    } else {
-      // Otherwise, go back to previous step
-      this.previousStep();
     }
   }
 

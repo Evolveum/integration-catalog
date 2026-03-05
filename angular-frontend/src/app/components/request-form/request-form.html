@@ -279,14 +279,12 @@
 
                   <!-- Object class search field -->
                   <div class="form-control d-flex align-items-center object-class-field mb-2">
-                    <i class="fa-solid fa-magnifying-glass me-2 object-class-search-icon"></i>
                     <input type="text"
                            class="border-0 flex-fill object-class-text-input"
                            placeholder="Select object class to configure"
                            [ngModel]="entry.objectClass"
                            (ngModelChange)="updateObjectClass(i, $event)"
                            [name]="'objectClass' + i">
-                    <i class="fa-solid fa-sort-down position-absolute top-50 end-0 me-2 dropdown-arrow"></i>
                   </div>
 
                   <!-- Capabilities for this object class -->

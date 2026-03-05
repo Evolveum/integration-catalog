@@ -44,6 +44,29 @@
   border-color: $midpoint-special-color;
 }
 
+/* 2-column implementations grid */
+.implementations-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* See more / Show less link */
+.btn-see-more {
+  background: none;
+  border: none;
+  color: $midpoint-special-color;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
 /* Implementation cards list */
 .implementation-card {
   border: 2px solid $color-border-light;

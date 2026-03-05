@@ -38,21 +38,19 @@
   </div>
 }
 
-@if (isOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
-  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-upload">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <!-- Modal Header -->
-        <div class="modal-header modal-header-upload d-flex align-items-center position-relative">
-          <button type="button" class="btn p-0 d-flex align-items-center btn-back-catalog" (click)="closeModal()">
-            <i class="fa-solid fa-arrow-left me-2"></i>
-            Back to Integration catalog
-          </button>
-          <h5 class="modal-title mb-0 modal-title-center">Publish new connector</h5>
-        </div>
+<div class="publish-page">
+  <!-- Full-width header background, content constrained to 1080px -->
+  <div class="modal-header modal-header-upload publish-header">
+    <div class="publish-header-inner d-flex align-items-center position-relative">
+      <button type="button" class="btn p-0 d-flex align-items-center btn-back-catalog" (click)="closeModal()">
+        <i class="fa-solid fa-arrow-left me-2"></i>
+        Back to Integration catalog
+      </button>
+      <h5 class="modal-title mb-0 modal-title-center">Publish new connector</h5>
+    </div>
+  </div>
 
-
+  <div class="publish-content">
         <!-- Main area: scrollable content + footer on left, recently-used sidebar on right -->
         <div class="modal-main">
 
@@ -305,26 +303,23 @@
                       </div>
                     </div>
 
-                    <!-- Selected Application Card (shown after selection, before form) -->
+                    <!-- Selected Application Card (always below search) -->
                     @if (selectedApplication() && !showDetailsForm()) {
-                      <div class="card mb-4 app-card">
-                        <div class="card-body d-flex align-items-center app-card-body">
-                          <div class="flex-shrink-0 me-3">
-                            <div class="app-avatar d-flex align-items-center justify-content-center">
+                      <div class="selected-app-card mb-4 d-flex align-items-center">
+                        <div class="flex-grow-1 min-width-0">
+                          @if (getAppLogoUrl(selectedApplication()!)) {
+                            <img [src]="getAppLogoUrl(selectedApplication()!)" [alt]="selectedApplication()!.displayName" class="selected-app-logo mb-2">
+                          } @else {
+                            <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
                               {{ selectedApplication()!.displayName.charAt(0) }}
                             </div>
-                          </div>
-                          <div class="flex-grow-1">
-                            <h6 class="mb-2 app-title">{{ selectedApplication()!.displayName }}</h6>
-                            <p class="mb-0 text-muted app-description">{{ selectedApplication()!.description }}</p>
-                          </div>
-                          <div class="d-flex align-items-stretch ms-3">
-                            <div class="card-separator"></div>
-                            <button type="button" class="btn btn-link p-0 ms-3 text-muted" (click)="removeSelectedApplication()">
-                              <i class="fa-solid fa-trash trash-icon"></i>
-                            </button>
-                          </div>
+                          }
+                          <h6 class="mb-1 app-title">{{ selectedApplication()!.displayName }}</h6>
+                          <p class="mb-0 text-muted app-description selected-app-description">{{ selectedApplication()!.description }}</p>
                         </div>
+                        <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
+                          <i class="fa-regular fa-trash-can"></i>
+                        </button>
                       </div>
                     }
 
@@ -418,7 +413,7 @@
                     <!-- Show upload area when no logo -->
                     @else {
                       <div class="logo-upload-area text-center">
-                        <i class="fa-solid fa-image mb-3 logo-icon"></i>
+                        <i class="fa-regular fa-image mb-3 logo-icon"></i>
                         <h6 class="mb-2 upload-title">Upload a logo</h6>
                         <p class="text-muted mb-3 upload-text">Accepted formats: PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
                         <input #logoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml,image/webp">
@@ -559,13 +554,10 @@
         <!-- Modal Footer -->
         <div class="modal-footer d-flex justify-content-between modal-footer-upload">
           @if (currentStep() === 1 && !showImplementationForm() && !selectedApplication()) {
-            <button type="button" class="btn btn-back" (click)="closeModal()">Cancel</button>
+            <div></div>
           }
           @if (currentStep() === 1 && !showImplementationForm() && selectedApplication()) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="removeSelectedApplication()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back to search
-            </button>
+            <div></div>   
           }
           @if (currentStep() === 1 && showImplementationForm() && !isDefineNewMode()) {
             <button type="button" class="btn d-flex align-items-center btn-back" (click)="showDetailsForm.set(false); clearApplicationDetailsFields()">
@@ -582,13 +574,13 @@
           @if (currentStep() === 2) {
             <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
                   <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back: Define Target Application
+                  Back
             </button>
           }
           @if (currentStep() === 3) {
             <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
                   <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back: Select Integration Method
+                  Back
             </button>
           }
           @if (currentStep() === 4) {
@@ -598,9 +590,9 @@
             </button>
           }
           @if (currentStep() === 5) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="handleBackFromImplementation()">
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
                   <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  {{ implementationFormData()?.isEditingVersion ? 'Back to implementation selection' : 'Back: Select Connector Type' }}
+                  Back
             </button>
           }
           <div>
@@ -630,13 +622,13 @@
             }
             @if (currentStep() === 4) {
               <button type="button" class="btn btn-primary btn-next" (click)="nextStep()">
-                Next: Define Implementation
+                Continue
                 <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
             }
             @if (currentStep() === 5) {
               <button type="button" class="btn btn-primary btn-next" [disabled]="!isImplementationFormValid()" (click)="handleImplementationAction()">
-                {{ implementationFormData()?.isNewVersion === false || implementationFormData()?.isEditingVersion ? 'Publish to catalog' : 'Select' }}
+                Publish to catalog
               </button>
             }
           </div>
@@ -644,8 +636,8 @@
 
           </div><!-- end modal-main-left -->
 
-          <!-- Recently Used Sidebar (step 1, search state only) -->
-          @if (currentStep() === 1 && !showImplementationForm() && !selectedApplication()) {
+          <!-- Recently Used Sidebar (step 1) -->
+          @if (currentStep() === 1 && !showImplementationForm()) {
             <div class="recently-used-sidebar">
               <h6 class="recently-used-heading">Recently used applications</h6>
               <hr class="recently-used-separator">
@@ -669,7 +661,5 @@
           }
 
         </div><!-- end modal-main -->
-      </div>
-    </div>
-  </div>
-}
+  </div><!-- end publish-content -->
+</div>

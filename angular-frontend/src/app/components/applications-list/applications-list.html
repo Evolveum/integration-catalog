@@ -555,9 +555,6 @@
     <!-- Login Modal Component -->
     <app-login-modal [isOpen]="isLoginModalOpen" (modalClosed)="closeLoginModal()"></app-login-modal>
 
-    <!-- Upload Form Main Component -->
-    <app-upload-form-main [isOpen]="isUploadModalOpen" [applications]="applications" (modalClosed)="closeUploadModal()" (uploadCompleted)="reloadApplications()"></app-upload-form-main>
-
     <!-- Filter Modal Component -->
     <app-filter-modal [isOpen]="isFilterModalOpen" [currentFilterState]="filterState" (modalClosed)="closeFilterModal()" (filterApplied)="applyFilter($event)"></app-filter-modal>
 
