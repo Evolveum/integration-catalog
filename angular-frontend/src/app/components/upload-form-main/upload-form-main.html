@@ -91,7 +91,7 @@
               <!-- Display Name -->
               <div class="mb-4">
                 <label class="form-label d-flex align-items-center form-label-upload">
-                  Display Name
+                  Display Name*
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
                     <span class="info-tooltip">The display name for this integration in the catalog.</span>
@@ -610,18 +610,18 @@
             }
             @if (currentStep() === 2) {
               <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedIntegrationMethod()">
-                Next
+                Continue
                 <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
             }
             @if (currentStep() === 3) {
-              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()">
+              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName()">
                 Continue
                 <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
             }
             @if (currentStep() === 4) {
-              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()">
+              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedConnectorType()">
                 Continue
                 <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
