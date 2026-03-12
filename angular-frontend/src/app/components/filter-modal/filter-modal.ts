@@ -14,6 +14,9 @@ export interface FilterState {
   categories: string[];
   capabilities: string[];
   appStatus: string[];
+  midpointVersions: string[];
+  integrationMethods: string[];
+  maintainers: string[];
 }
 
 interface CategoryCount {
@@ -27,7 +30,7 @@ interface CategoryCount {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './filter-modal.html',
-  styleUrls: ['./filter-modal.css']
+  styleUrls: ['./filter-modal.scss']
 })
 export class FilterModal implements OnInit {
   @Input() isOpen = signal<boolean>(false);
@@ -35,7 +38,10 @@ export class FilterModal implements OnInit {
     trending: false,
     categories: [],
     capabilities: [],
-    appStatus: []
+    appStatus: [],
+    midpointVersions: [],
+    integrationMethods: [],
+    maintainers: []
   });
   @Output() modalClosed = new EventEmitter<void>();
   @Output() filterApplied = new EventEmitter<FilterState>();
@@ -47,9 +53,13 @@ export class FilterModal implements OnInit {
   protected selectedCategories = signal<Set<string>>(new Set());
   protected selectedCapabilities = signal<Set<string>>(new Set());
   protected selectedAppStatus = signal<Set<string>>(new Set());
+  protected selectedMidpointVersions = signal<Set<string>>(new Set());
+  protected selectedIntegrationMethods = signal<Set<string>>(new Set());
+  protected selectedMaintainers = signal<Set<string>>(new Set());
 
   // Data for filters
   protected readonly categories = signal<CategoryCount[]>([]);
+  protected readonly midpointVersions = signal<string[]>([]);
   protected readonly capabilities: string[] = [
     'CREATE',
     'GET',
@@ -76,6 +86,17 @@ export class FilterModal implements OnInit {
     { name: 'REQUESTED', displayName: 'Requested' },
     { name: 'WITH_ERROR', displayName: 'With error' }
   ];
+  protected readonly integrationMethods: string[] = [
+    'SCIM',
+    'openLDAP',
+    'REST API',
+    'CSV file import'
+  ];
+  protected readonly maintainers: string[] = [
+    'Evolveum',
+    'Community',
+    'Partner'
+  ];
 
   constructor(private applicationService: ApplicationService) {
     // Sync internal state when currentFilterState changes
@@ -85,11 +106,15 @@ export class FilterModal implements OnInit {
       this.selectedCategories.set(new Set(filterState.categories));
       this.selectedCapabilities.set(new Set(filterState.capabilities));
       this.selectedAppStatus.set(new Set(filterState.appStatus));
+      this.selectedMidpointVersions.set(new Set(filterState.midpointVersions));
+      this.selectedIntegrationMethods.set(new Set(filterState.integrationMethods));
+      this.selectedMaintainers.set(new Set(filterState.maintainers));
     });
   }
 
   ngOnInit(): void {
     this.loadCategories();
+    this.loadMidpointVersions();
   }
 
   protected selectSection(section: string): void {
@@ -142,6 +167,48 @@ export class FilterModal implements OnInit {
     return this.selectedAppStatus().has(status);
   }
 
+  protected toggleMidpointVersion(version: string): void {
+    const current = new Set(this.selectedMidpointVersions());
+    if (current.has(version)) {
+      current.delete(version);
+    } else {
+      current.add(version);
+    }
+    this.selectedMidpointVersions.set(current);
+  }
+
+  protected isMidpointVersionSelected(version: string): boolean {
+    return this.selectedMidpointVersions().has(version);
+  }
+
+  protected toggleIntegrationMethod(method: string): void {
+    const current = new Set(this.selectedIntegrationMethods());
+    if (current.has(method)) {
+      current.delete(method);
+    } else {
+      current.add(method);
+    }
+    this.selectedIntegrationMethods.set(current);
+  }
+
+  protected isIntegrationMethodSelected(method: string): boolean {
+    return this.selectedIntegrationMethods().has(method);
+  }
+
+  protected toggleMaintainer(maintainer: string): void {
+    const current = new Set(this.selectedMaintainers());
+    if (current.has(maintainer)) {
+      current.delete(maintainer);
+    } else {
+      current.add(maintainer);
+    }
+    this.selectedMaintainers.set(current);
+  }
+
+  protected isMaintainerSelected(maintainer: string): boolean {
+    return this.selectedMaintainers().has(maintainer);
+  }
+
   protected formatCapability(capability: string): string {
     return capability
       .split('_')
@@ -155,7 +222,10 @@ export class FilterModal implements OnInit {
       trending: this.trending(),
       categories: Array.from(this.selectedCategories()),
       capabilities: Array.from(this.selectedCapabilities()),
-      appStatus: Array.from(this.selectedAppStatus())
+      appStatus: Array.from(this.selectedAppStatus()),
+      midpointVersions: Array.from(this.selectedMidpointVersions()),
+      integrationMethods: Array.from(this.selectedIntegrationMethods()),
+      maintainers: Array.from(this.selectedMaintainers())
     };
     this.filterApplied.emit(filterState);
     this.modalClosed.emit();
@@ -189,6 +259,25 @@ export class FilterModal implements OnInit {
       },
       error: (err) => {
         console.error('Error loading categories:', err);
+      }
+    });
+  }
+
+  private loadMidpointVersions(): void {
+    // Load unique midpoint versions from all applications
+    this.applicationService.getAll().subscribe({
+      next: (apps) => {
+        const versionsSet = new Set<string>();
+        apps.forEach(app => {
+          if (app.midpointVersions) {
+            app.midpointVersions.forEach(version => versionsSet.add(version));
+          }
+        });
+        const sortedVersions = Array.from(versionsSet).sort();
+        this.midpointVersions.set(sortedVersions);
+      },
+      error: (err) => {
+        console.error('Error loading midpoint versions:', err);
       }
     });
   }

@@ -99,7 +99,7 @@ class ControllerTest {
         testConnectorBundle.setId(1);
         testConnectorBundle.setBundleName("com.evolveum.polygon.connector.test");
         testConnectorBundle.setMaintainer("Test Maintainer");
-        testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.CONNID);
+        testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.JAVA_BASED);
         testConnectorBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
 
         // Setup test Implementation
@@ -563,7 +563,11 @@ class ControllerTest {
                 "Test Application",
                 "Test Description",
                 null,
+                null,
+                null,
+                null,
                 "ACTIVE",
+                null,
                 null,
                 null,
                 null,
@@ -656,5 +660,44 @@ class ControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+    }
+
+    // ===== GET /api/connectors/active =====
+
+    @Test
+    void getActiveConnectorsShouldReturnList() throws Exception {
+        ActiveConnectorDto dto = new ActiveConnectorDto(
+                testAppId,
+                "Test Application",
+                "Test Description",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        List<ActiveConnectorDto> connectors = Collections.singletonList(dto);
+        when(applicationService.listActiveConnectors()).thenReturn(connectors);
+
+        mockMvc.perform(get("/api/connectors/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(testAppId.toString()))
+                .andExpect(jsonPath("$[0].displayName").value("Test Application"));
+
+        verify(applicationService).listActiveConnectors();
+    }
+
+    @Test
+    void getActiveConnectorsShouldReturnEmptyListWhenNoActiveConnectors() throws Exception {
+        when(applicationService.listActiveConnectors()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/api/connectors/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(applicationService).listActiveConnectors();
     }
 }

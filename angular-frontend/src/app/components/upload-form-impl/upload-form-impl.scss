@@ -1,0 +1,264 @@
+/* Upload Form Implementation Styles */
+@use 'variables' as *;
+
+/* Radio button styling */
+.form-check-input[type="radio"] {
+  accent-color: $midpoint-special-color !important;
+}
+
+/* Bootstrap radio button checked state */
+.form-check-input[type="radio"]:checked {
+  background-color: $midpoint-special-color !important;
+  border-color: $midpoint-special-color !important;
+}
+
+/* Toggle buttons (segmented control) */
+.toggle-container {
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  padding: 0.25rem;
+  display: inline-block;
+  width: 100%;
+}
+
+.toggle-btn {
+  padding: 0.2rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: $color-text-dark;
+  background-color: $color-white;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.toggle-btn:hover {
+  background-color: $color-bg-light;
+}
+
+.toggle-btn.active {
+  background-color: $midpoint-special-color;
+  color: $color-white;
+  border-color: $midpoint-special-color;
+}
+
+/* 2-column implementations grid */
+.implementations-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* See more / Show less link */
+.btn-see-more {
+  background: none;
+  border: none;
+  color: $midpoint-special-color;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+/* Implementation cards list */
+.implementation-card {
+  border: 2px solid $color-border-light;
+  border-radius: 8px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: $color-white;
+}
+
+.implementation-card:hover {
+  border-color: $midpoint-special-color;
+  box-shadow: 0 2px 8px $shadow-teal;
+}
+
+.implementation-card.selected {
+  border-color: $midpoint-special-color;
+  background-color: $color-bg-light;
+}
+
+/* Info icon tooltip styles */
+.info-icon-wrapper {
+  vertical-align: middle;
+}
+
+.info-icon-wrapper .info-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  width: 250px;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1000;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.info-icon-wrapper .info-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: $color-text-dark;
+}
+
+.info-icon-wrapper:hover .info-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-icon-wrapper svg {
+  transition: transform 0.2s ease;
+}
+
+.info-icon-wrapper:hover svg {
+  transform: scale(1.1);
+}
+
+/* Section Headers */
+.section-header-lg {
+  font-size: 1rem;
+  font-weight: 500;
+  color: $color-text-dark;
+}
+
+.section-header-sm {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-gray-secondary;
+  letter-spacing: 0.5px;
+}
+
+.section-header-md {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+/* Implementation List Item Styles */
+.impl-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.impl-description {
+  font-size: 0.875rem;
+  color: $color-gray-secondary;
+  line-height: 1.5;
+}
+
+.impl-date {
+  font-size: 0.8125rem;
+  color: $color-text-light;
+}
+
+/* Form Labels */
+.form-label-impl {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Input Styling */
+.input-width-sm {
+  max-width: 300px;
+}
+
+.input-disabled {
+  background-color: $color-bg-disabled;
+  color: $color-gray-secondary;
+}
+
+.radio-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+/* Info Icon */
+.info-icon {
+  font-size: 14px;
+  color: $text-publishing-blue;
+}
+
+/* Character Counter */
+.char-counter {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* File Upload Area */
+.file-upload-area {
+  border: 2px dashed $color-border-light;
+  border-radius: 8px;
+  background-color: $color-bg-light;
+}
+
+.upload-icon {
+  font-size: 40px;
+  color: $color-gray-secondary;
+}
+
+.upload-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: $color-text-dark;
+}
+
+.upload-text {
+  font-size: 0.8125rem;
+}
+
+.upload-success-text {
+  font-size: 0.875rem;
+}
+
+.btn-upload-icon {
+  font-size: 12px;
+}
+
+/* Link Icons */
+.link-icon {
+  font-size: 14px;
+}
+
+/* Alert/Note Box */
+.alert-info-note {
+  background-color: $color-info-bg;
+  border: 1px solid $color-info-border;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+}
+
+.alert-icon {
+  font-size: 16px;
+  color: $text-publishing-blue;
+  margin-top: 2px;
+}
+
+.alert-text {
+  color: $color-info-text;
+  font-size: 0.875rem;
+}

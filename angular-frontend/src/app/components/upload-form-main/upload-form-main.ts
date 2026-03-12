@@ -1,10 +1,14 @@
-import { Component, signal, Output, EventEmitter, Input, computed, OnInit, ViewChild } from '@angular/core';
+import { Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
+import { ImplementationFormData, UploadFileItem } from '../../models/request.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
+import { AuthService } from '../../services/auth.service';
 import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
 
 @Component({
@@ -12,14 +16,10 @@ import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
   standalone: true,
   imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl],
   templateUrl: './upload-form-main.html',
-  styleUrls: ['./upload-form-main.css']
+  styleUrls: ['./upload-form-main.scss']
 })
 export class UploadFormMain implements OnInit {
-  @Input() isOpen = signal<boolean>(false);
-  @Input() applications = signal<Application[]>([]);
-  @Output() modalClosed = new EventEmitter<void>();
-
-  @ViewChild(UploadFormImpl) uploadFormImpl!: UploadFormImpl;
+  protected readonly applications = signal<Application[]>([]);
 
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
@@ -32,6 +32,7 @@ export class UploadFormMain implements OnInit {
   protected readonly displayName = signal<string>('');
   protected readonly description = signal<string>('');
   protected readonly logoFile = signal<File | null>(null);
+  protected readonly logoPreviewUrl = signal<string | null>(null);
   protected readonly origins = signal<string[]>([]);
   protected readonly loadedOrigins = signal<string[]>([]); // Track origins loaded from selected app
   protected readonly category = signal<string>('');
@@ -43,7 +44,7 @@ export class UploadFormMain implements OnInit {
   protected readonly isLoadingCountries = signal<boolean>(true);
 
   // Step 3 - Implementation form data
-  protected readonly implementationFormData = signal<any>(null);
+  protected readonly implementationFormData = signal<ImplementationFormData | null>(null);
   protected readonly isImplementationFormValid = signal<boolean>(false);
 
   // Toast notifications
@@ -51,25 +52,28 @@ export class UploadFormMain implements OnInit {
   protected readonly showVersionExistsWarning = signal<boolean>(false);
   protected readonly existingVersion = signal<string>('');
 
+  protected recentApps = computed(() => {
+    return this.applications().slice(0, 6);
+  });
+
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) {
       return [];
     }
 
-    const connectorType = this.selectedConnectorType();
-    const targetFramework = connectorType === 'java-based' ? 'CONNID' : 'SCIM_REST';
+    // In step 1 (define target app), connector type not yet selected — show all matching apps
+    if (this.currentStep() === 1) {
+      return this.applications().filter(app =>
+        app.displayName.toLowerCase().includes(query) ||
+        app.description.toLowerCase().includes(query)
+      );
+    }
 
-    // Debug: log all apps and their frameworks
-    console.log('All applications:', this.applications().map(a => ({
-      name: a.displayName,
-      lifecycleState: a.lifecycleState,
-      frameworks: a.frameworks
-    })));
-    console.log('Target framework:', targetFramework);
+    const connectorType = this.selectedConnectorType();
+    const targetFramework = connectorType === 'java-based' ? 'JAVA_BASED' : 'LOW_CODE';
 
     return this.applications().filter(app => {
-      // First filter by search query
       const matchesQuery = app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query);
 
@@ -77,13 +81,10 @@ export class UploadFormMain implements OnInit {
         return false;
       }
 
-      // Always show REQUESTED apps (they have no implementations yet)
       if (app.lifecycleState === 'REQUESTED') {
         return true;
       }
 
-      // For other apps, check if they have the matching framework
-      // If no frameworks (empty or null), don't show the app
       if (!app.frameworks || app.frameworks.length === 0) {
         return false;
       }
@@ -158,21 +159,61 @@ export class UploadFormMain implements OnInit {
   });
 
   protected readonly showOriginDropdown = signal<boolean>(false);
+  protected readonly selectedIntegrationMethod = signal<string>('');
+
+  protected readonly integrationMethods = [
+    { value: 'scim-generic', title: 'SCIM generic',    description: 'generic',                               wide: true,
+      formDescription: 'SCIM generic integrations use a standard SCIM protocol for provisioning. This form registers the integration configuration in the catalog.' },
+    { value: 'scim',         title: 'SCIM',             description: 'nongeneric (java-based or low code)',    wide: true,
+      formDescription: 'SCIM integrations use a non-generic SCIM protocol, java-based or low code. This form registers the integration configuration in the catalog.' },
+    { value: 'rest-api',     title: 'REST API',         description: 'Custom REST-based connector',           wide: true,
+      formDescription: 'REST API integrations use a custom REST-based connector. This form only registers the integration configuration in the catalog.' },
+    { value: 'openldap',     title: 'openLDAP',         description: 'Integration with an existing LDAP directory.', wide: false,
+      formDescription: 'OpenLDAP integrations use an external LDAP directory. This form only registers the integration configuration in the catalog – the actual LDAP connector is installed and managed in your environment, it is not uploaded here.' },
+    { value: 'manual',       title: 'Manual Connector', description: 'lorem ipsum',                           wide: false,
+      formDescription: 'Manual connector integrations require manual configuration. This form registers the integration configuration in the catalog.' },
+    { value: 'database',     title: 'Database',         description: 'lorem ipsum',                           wide: false,
+      formDescription: 'Database integrations connect to an external database. This form only registers the integration configuration in the catalog.' },
+    { value: 'csv',          title: 'CSV',              description: 'lorem ipsum',                           wide: false,
+      formDescription: 'CSV integrations use CSV files for data exchange. This form registers the integration configuration in the catalog.' },
+  ];
+
+  protected readonly selectedMethodInfo = computed(() =>
+    this.integrationMethods.find(m => m.value === this.selectedIntegrationMethod()) ?? null
+  );
+
+  // Step 3 – method-specific form fields
+  protected readonly methodFormDisplayName  = signal<string>('');
+  protected readonly methodFormDescription  = signal<string>('');
+  protected readonly methodFormSampleLink   = signal<string>('');
+  protected readonly methodFormSystemVersion = signal<string>('');
+  protected readonly methodFormFromDate     = signal<string>('');
+  protected readonly methodFormToDate       = signal<string>('');
 
   constructor(
     private countryService: CountryService,
-    private applicationService: ApplicationService
+    private applicationService: ApplicationService,
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/applications']);
+      return;
+    }
+
+    this.applicationService.getAll().subscribe({
+      next: (data) => this.applications.set(data)
+    });
+
     // Fetch all countries from REST Countries API
     this.countryService.getAllCountries().subscribe({
       next: (countries) => {
         this.allCountries.set(countries);
         this.isLoadingCountries.set(false);
       },
-      error: (error) => {
-        console.error('Failed to fetch countries from REST API:', error);
+      error: () => {
         this.isLoadingCountries.set(false);
         // Fallback to empty array if API fails
         this.allCountries.set([]);
@@ -181,8 +222,7 @@ export class UploadFormMain implements OnInit {
   }
 
   protected closeModal(): void {
-    this.modalClosed.emit();
-    this.resetForm();
+    this.router.navigate(['/applications']);
   }
 
   protected closePublishSuccessToast(): void {
@@ -190,8 +230,23 @@ export class UploadFormMain implements OnInit {
   }
 
   protected nextStep(): void {
-    if (this.currentStep() < 3) {
+    if (this.currentStep() < 5) {
       this.currentStep.update(step => step + 1);
+    }
+  }
+
+  protected selectIntegrationMethod(value: string): void {
+    this.selectedIntegrationMethod.set(value);
+  }
+
+  protected clearSampleLink(): void {
+    this.methodFormSampleLink.set('');
+  }
+
+  protected onMethodFormDescriptionChange(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    if (value.length <= 350) {
+      this.methodFormDescription.set(value);
     }
   }
 
@@ -323,7 +378,7 @@ export class UploadFormMain implements OnInit {
   protected clearApplicationDetailsFields(): void {
     this.displayName.set('');
     this.description.set('');
-    this.logoFile.set(null);
+    this.clearLogo(); // Clear logo file and preview
     this.origins.set([]);
     this.loadedOrigins.set([]);
     this.selectedCountriesModel.set([]);
@@ -350,8 +405,53 @@ export class UploadFormMain implements OnInit {
   protected onLogoUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.logoFile.set(input.files[0]);
+      const file = input.files[0];
+
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Invalid file type. Please upload PNG, JPEG, GIF, SVG, or WebP images.');
+        return;
+      }
+
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert('File too large. Maximum size is 5MB.');
+        return;
+      }
+
+      this.logoFile.set(file);
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      this.logoPreviewUrl.set(previewUrl);
     }
+  }
+
+  protected clearLogo(): void {
+    // Revoke the old preview URL to prevent memory leaks
+    const oldUrl = this.logoPreviewUrl();
+    if (oldUrl) {
+      URL.revokeObjectURL(oldUrl);
+    }
+    this.logoFile.set(null);
+    this.logoPreviewUrl.set(null);
+  }
+
+  protected getLogoUrl(): string | null {
+    const app = this.selectedApplication();
+    if (app && (app.logoPath || app.logo)) {
+      return this.applicationService.getLogoUrl(app.id);
+    }
+    return null;
+  }
+
+  protected getAppLogoUrl(app: Application): string | null {
+    if (app.logoPath || app.logo) {
+      return this.applicationService.getLogoUrl(app.id);
+    }
+    return null;
   }
 
   protected toggleOriginDropdown(): void {
@@ -403,7 +503,7 @@ export class UploadFormMain implements OnInit {
   }
 
   // Handle implementation form events
-  protected onImplementationFormDataChange(data: any): void {
+  protected onImplementationFormDataChange(data: ImplementationFormData): void {
     this.implementationFormData.set(data);
   }
 
@@ -412,28 +512,11 @@ export class UploadFormMain implements OnInit {
   }
 
   protected handleImplementationAction(): void {
-    console.log('handleImplementationAction called');
-    const formData = this.implementationFormData();
-    console.log('formData:', formData);
-    console.log('isNewVersion:', formData?.isNewVersion);
-    console.log('isEditingVersion:', formData?.isEditingVersion);
-    console.log('selectedImplementation:', formData?.selectedImplementation);
-
-    // If selecting an existing implementation (isNewVersion = true and not editing yet)
-    if (formData?.isNewVersion === true && formData?.selectedImplementation && !formData?.isEditingVersion && this.uploadFormImpl) {
-      console.log('Calling confirmImplementationSelection');
-      this.uploadFormImpl.confirmImplementationSelection();
-    } else {
-      // Handle publish action for new implementation or editing existing
-      console.log('Calling publishToCatalog');
-      this.publishToCatalog();
-    }
+    this.publishToCatalog();
   }
 
   private publishToCatalog(): void {
-    console.log('publishToCatalog called');
     const formData = this.implementationFormData();
-    console.log('Form data:', formData);
 
     if (!formData) {
       alert('Form data is missing. Please fill out all required fields.');
@@ -450,9 +533,6 @@ export class UploadFormMain implements OnInit {
     const connectorVersion = connectorVersionFromUrl || parsedFile.connectorVersion || null;
     const bundleName = parsedFile.bundleName || null;
 
-    console.log('Final connectorVersion:', connectorVersion);
-    console.log('Final bundleName:', bundleName);
-
     // Check if version already exists before publishing
     if (connectorVersion) {
       this.applicationService.checkVersionExists(connectorVersion).subscribe({
@@ -466,8 +546,7 @@ export class UploadFormMain implements OnInit {
             this.doPublish(formData, connectorVersion, bundleName, parsedFile.files);
           }
         },
-        error: (error: any) => {
-          console.error('Version check failed:', error);
+        error: () => {
           // On error, proceed with upload anyway (let backend handle it)
           this.doPublish(formData, connectorVersion, bundleName, parsedFile.files);
         }
@@ -483,7 +562,7 @@ export class UploadFormMain implements OnInit {
     this.existingVersion.set('');
   }
 
-  private doPublish(formData: any, connectorVersion: string | null, bundleName: string | null, files: any[]): void {
+  private doPublish(formData: ImplementationFormData, connectorVersion: string | null, bundleName: string | null, files: UploadFileItem[]): void {
     // Build the payload - must match backend UploadImplementationDto structure
     const payload = {
       application: {
@@ -495,8 +574,8 @@ export class UploadFormMain implements OnInit {
         origins: this.origins(),
         // Send tags as simple array of tag names with types
         tags: [
-          ...(this.category() ? [{ name: this.category(), tagType: 'CATEGORY' }] : []),
-          ...(this.deploymentType() ? [{ name: this.deploymentType(), tagType: 'DEPLOYMENT' }] : [])
+          ...(this.category() ? [{ name: this.category(), tagType: 'CATEGORY' as const }] : []),
+          ...(this.deploymentType() ? [{ name: this.deploymentType(), tagType: 'DEPLOYMENT' as const }] : [])
         ]
       },
       implementation: {
@@ -520,30 +599,37 @@ export class UploadFormMain implements OnInit {
       files: files
     };
 
-    console.log('Publishing payload:', payload);
-    // console.log('Publishing payload (JSON):', JSON.stringify(payload, null, 2));
-
     this.applicationService.uploadConnector(payload).subscribe({
       next: (response: string) => {
-        console.log('Upload successful:', response);
-        this.closeModal();
+        // Upload logo if present - try to extract application ID from response
+        // Response might be application ID or a message containing it
+        const applicationId = this.selectedApplication()?.id || this.extractApplicationIdFromResponse(response);
+        if (applicationId) {
+          this.uploadLogoIfPresent(applicationId);
+        }
+
         this.showPublishSuccess.set(true);
-        setTimeout(() => this.showPublishSuccess.set(false), 5000);
+        setTimeout(() => this.router.navigate(['/applications']), 3000);
       },
-      error: (error: any) => {
-        console.error('Upload failed:', error);
+      error: (error: HttpErrorResponse) => {
         alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
       }
     });
   }
 
+  private extractApplicationIdFromResponse(response: string): string | null {
+    // Try to extract UUID from response string
+    const uuidMatch = response.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    return uuidMatch ? uuidMatch[0] : null;
+  }
+
   private mapConnectorTypeToFramework(connectorType: string): string {
     const mapping: Record<string, string> = {
-      'java-based': 'CONNID',
-      'own-repo': 'SCIM_REST',
-      'evolveum-hosted': 'SCIM_REST'
+      'java-based': 'JAVA_BASED',
+      'own-repo': 'LOW_CODE',
+      'evolveum-hosted': 'LOW_CODE'
     };
-    return mapping[connectorType] || 'CONNID';
+    return mapping[connectorType] || 'JAVA_BASED';
   }
 
   private extractVersionFromBrowseLink(browseLink: string | null): string | null {
@@ -572,7 +658,6 @@ export class UploadFormMain implements OnInit {
 
     // Only parse JSON files
     if (!uploadedFile.name.toLowerCase().endsWith('.json')) {
-      console.log('Uploaded file is not a JSON file, skipping parse:', uploadedFile.name);
       // Backend expects ItemFile with 'path' and 'content' fields
       return {
         files: [{
@@ -585,15 +670,10 @@ export class UploadFormMain implements OnInit {
     try {
       // Decode base64 data to string
       const jsonString = atob(uploadedFile.data);
-      console.log('=== DEBUG: Parsing JSON file ===');
-      console.log('File name:', uploadedFile.name);
-      console.log('Decoded JSON string (first 500 chars):', jsonString.substring(0, 500));
       const parsedJson = JSON.parse(jsonString);
-      console.log('Parsed JSON:', parsedJson);
 
       // If the JSON has a "files" wrapper, extract files and version info
       if (parsedJson.files && Array.isArray(parsedJson.files)) {
-        console.log('Extracted files array from wrapper');
 
         // Try to extract version from connector.manifest.json or MANIFEST.MF
         let connectorVersion: string | undefined;
@@ -605,14 +685,12 @@ export class UploadFormMain implements OnInit {
               const manifest = JSON.parse(file.content);
               if (manifest.connector?.version) {
                 connectorVersion = manifest.connector.version;
-                console.log('Extracted connectorVersion from connector.manifest.json:', connectorVersion);
               }
               if (manifest.connector?.artifactId) {
                 bundleName = manifest.connector.artifactId;
-                console.log('Extracted bundleName from connector.manifest.json:', bundleName);
               }
-            } catch (e) {
-              console.log('Could not parse connector.manifest.json content');
+            } catch {
+              // Could not parse connector.manifest.json content
             }
           }
 
@@ -621,12 +699,10 @@ export class UploadFormMain implements OnInit {
             const versionMatch = file.content.match(/ConnectorBundle-Version:\s*(.+)/);
             if (versionMatch) {
               connectorVersion = versionMatch[1].trim();
-              console.log('Extracted connectorVersion from MANIFEST.MF:', connectorVersion);
             }
             const nameMatch = file.content.match(/ConnectorBundle-Name:\s*(.+)/);
             if (nameMatch && !bundleName) {
               bundleName = nameMatch[1].trim();
-              console.log('Extracted bundleName from MANIFEST.MF:', bundleName);
             }
           }
         }
@@ -639,9 +715,7 @@ export class UploadFormMain implements OnInit {
       }
 
       return parsedJson;
-    } catch (e) {
-      console.error('Failed to parse uploaded JSON file:', e);
-      console.error('Sending raw file as base64 instead');
+    } catch {
       // If parsing fails, send the raw file data
       // Backend expects ItemFile with 'path' and 'content' fields
       return {
@@ -653,33 +727,42 @@ export class UploadFormMain implements OnInit {
     }
   }
 
-  protected handleBackFromImplementation(): void {
-    const formData = this.implementationFormData();
-
-    // If in editing mode, go back to implementation selection
-    if (formData?.isEditingVersion && this.uploadFormImpl) {
-      this.uploadFormImpl.cancelEditing();
-    } else {
-      // Otherwise, go back to previous step
-      this.previousStep();
-    }
-  }
-
   private resetForm(): void {
     this.currentStep.set(1);
     this.selectedConnectorType.set('evolveum-hosted');
+    this.selectedIntegrationMethod.set('');
+    this.methodFormDisplayName.set('');
+    this.methodFormDescription.set('');
+    this.methodFormSampleLink.set('');
+    this.methodFormSystemVersion.set('');
+    this.methodFormFromDate.set('');
+    this.methodFormToDate.set('');
     this.searchQuery.set('');
     this.selectedApplication.set(null);
     this.isDefineNewMode.set(false);
     this.showDetailsForm.set(false);
     this.displayName.set('');
     this.description.set('');
-    this.logoFile.set(null);
+    this.clearLogo(); // Clear logo file and preview
     this.origins.set([]);
     this.loadedOrigins.set([]);
     this.selectedCountriesModel.set([]);
     this.category.set('');
     this.deploymentType.set('on-premise');
     this.showOriginDropdown.set(false);
+  }
+
+  /**
+   * Upload logo for an application after it's created/updated
+   */
+  private uploadLogoIfPresent(applicationId: string): void {
+    const logoFile = this.logoFile();
+    if (logoFile && applicationId) {
+      this.applicationService.uploadLogo(applicationId, logoFile).subscribe({
+        error: () => {
+          // Don't block the main flow, logo upload is secondary
+        }
+      });
+    }
   }
 }

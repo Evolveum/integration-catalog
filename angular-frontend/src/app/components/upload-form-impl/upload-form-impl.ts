@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, signal, computed, Output, EventEmitter, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
@@ -16,7 +16,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './upload-form-impl.html',
-  styleUrls: ['./upload-form-impl.css']
+  styleUrls: ['./upload-form-impl.scss']
 })
 export class UploadFormImpl implements OnChanges {
   // Input from parent
@@ -27,23 +27,23 @@ export class UploadFormImpl implements OnChanges {
   @Output() formValid = new EventEmitter<boolean>();
   @Output() formDataChanged = new EventEmitter<any>();
 
-  // Step 3a: Choose between new version or new implementation
-  protected readonly isNewVersion = signal<boolean | null>(true); // Preselect "Yes"
+  // Yes / No toggle
+  protected readonly isNewVersion = signal<boolean | null>(true);
 
-  // Step 3b: If new version, select existing implementation
+  // Selected existing implementation (Yes case)
   protected readonly selectedImplementation = signal<ImplementationListItem | null>(null);
 
-  // Track if user is in editing mode (after selecting implementation and clicking Select)
-  protected readonly isEditingVersion = signal<boolean>(false);
+  // Show all implementations or just first 4
+  protected readonly showAllImplementations = signal<boolean>(false);
 
-  // Step 3c: If new implementation, form fields
+  // Form fields
   protected readonly displayName = signal<string>('');
   protected readonly maintainer = signal<string>('');
   protected readonly licenseType = signal<string>('');
   protected readonly implementationDescription = signal<string>('');
   protected readonly browseLink = signal<string>('');
   protected readonly ticketingLink = signal<string>('');
-  protected readonly buildFramework = signal<string>('Maven'); // Default to Maven
+  protected readonly buildFramework = signal<string>('Maven');
   protected readonly checkoutLink = signal<string>('');
   protected readonly pathToProjectDirectory = signal<string>('');
   protected readonly className = signal<string>('');
@@ -60,11 +60,16 @@ export class UploadFormImpl implements OnChanges {
   protected readonly existingImplementations = signal<ImplementationListItem[]>([]);
   protected readonly isLoadingImplementations = signal<boolean>(false);
 
+  // Show up to 4 implementations, or all if expanded
+  protected readonly displayedImplementations = computed(() => {
+    const all = this.existingImplementations();
+    return this.showAllImplementations() ? all : all.slice(0, 4);
+  });
+
   constructor(
     private applicationService: ApplicationService,
     private authService: AuthService
   ) {
-    // Initialize maintainer options with current user
     const currentUser = this.authService.currentUser();
     if (currentUser) {
       this.maintainerOptions = [currentUser];
@@ -73,16 +78,13 @@ export class UploadFormImpl implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Load implementations when applicationId changes
     if (changes['applicationId'] && this.applicationId) {
       this.loadImplementations();
     }
   }
 
   private loadImplementations(): void {
-    if (!this.applicationId) {
-      return;
-    }
+    if (!this.applicationId) return;
 
     this.isLoadingImplementations.set(true);
     this.applicationService.getImplementationsByApplicationId(this.applicationId).subscribe({
@@ -90,8 +92,7 @@ export class UploadFormImpl implements OnChanges {
         this.existingImplementations.set(implementations);
         this.isLoadingImplementations.set(false);
       },
-      error: (error) => {
-        console.error('Failed to load implementations:', error);
+      error: () => {
         this.existingImplementations.set([]);
         this.isLoadingImplementations.set(false);
       }
@@ -106,85 +107,68 @@ export class UploadFormImpl implements OnChanges {
   protected selectNewImplementation(): void {
     this.isNewVersion.set(false);
     this.selectedImplementation.set(null);
+    this.clearFormFields();
     this.updateFormValidity();
   }
 
   protected selectImplementation(impl: ImplementationListItem): void {
     this.selectedImplementation.set(impl);
-    this.updateFormValidity();
-  }
 
-  public confirmImplementationSelection(): void {
-    const impl = this.selectedImplementation();
-    if (!impl) return;
-
-    // Enter editing mode and populate form fields
-    this.isEditingVersion.set(true);
-
-    // Populate all fields from the selected implementation
+    // Auto-populate form fields from the selected implementation
     this.displayName.set(impl.displayName);
-    this.maintainer.set(impl.maintainer);
 
-    // Add maintainer to options if not already present
     if (impl.maintainer && !this.maintainerOptions.includes(impl.maintainer)) {
       this.maintainerOptions.push(impl.maintainer);
     }
+    this.maintainer.set(impl.maintainer || this.authService.currentUser() || '');
 
-    this.licenseType.set(impl.licenseType);
-    this.implementationDescription.set(impl.implementationDescription);
-    this.browseLink.set(impl.browseLink);
-    this.ticketingLink.set(impl.ticketingLink);
+    this.licenseType.set(impl.licenseType || '');
+    this.implementationDescription.set(impl.implementationDescription || '');
+    this.ticketingLink.set(impl.ticketingLink || '');
 
-    // Transform build framework from uppercase (MAVEN/GRADLE) to capitalized (Maven/Gradle)
-    const buildFramework = impl.buildFramework ?
-      impl.buildFramework.charAt(0).toUpperCase() + impl.buildFramework.slice(1).toLowerCase()
-      : '';
+    const buildFramework = impl.buildFramework
+      ? impl.buildFramework.charAt(0).toUpperCase() + impl.buildFramework.slice(1).toLowerCase()
+      : 'Maven';
     this.buildFramework.set(buildFramework);
 
-    this.checkoutLink.set(impl.checkoutLink);
-    this.pathToProjectDirectory.set(impl.pathToProjectDirectory);
-    this.className.set(impl.className);
+    this.pathToProjectDirectory.set(impl.pathToProjectDirectory || '');
+    this.className.set(impl.className || '');
+
+    // browseLink and checkoutLink are intentionally left empty for new versions
+    this.browseLink.set('');
+    this.checkoutLink.set('');
 
     this.updateFormValidity();
   }
 
-  public cancelEditing(): void {
-    // Exit editing mode and go back to implementation selection
-    this.isEditingVersion.set(false);
+  protected toggleShowAll(): void {
+    this.showAllImplementations.update(v => !v);
+  }
 
-    // Clear form fields (reset maintainer to current user)
+  private clearFormFields(): void {
     this.displayName.set('');
     this.maintainer.set(this.authService.currentUser() || '');
     this.licenseType.set('');
     this.implementationDescription.set('');
     this.browseLink.set('');
     this.ticketingLink.set('');
-    this.buildFramework.set('');
+    this.buildFramework.set('Maven');
     this.checkoutLink.set('');
     this.pathToProjectDirectory.set('');
     this.className.set('');
     this.uploadedFile.set(null);
     this.uploadedFileName.set('');
-
-    this.updateFormValidity();
   }
 
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
-
-      // Read file as base64
       const reader = new FileReader();
       reader.onload = () => {
         const base64String = reader.result as string;
-        // Remove the data URL prefix (e.g., "data:application/zip;base64,")
         const base64Data = base64String.split(',')[1];
-
-        this.uploadedFile.set({
-          name: file.name,
-          data: base64Data
-        } as any);
+        this.uploadedFile.set({ name: file.name, data: base64Data });
         this.uploadedFileName.set(file.name);
         this.updateFormValidity();
       };
@@ -194,42 +178,36 @@ export class UploadFormImpl implements OnChanges {
 
   protected triggerFileInput(): void {
     const fileInput = document.getElementById('fileUpload') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.click();
-    }
+    if (fileInput) fileInput.click();
   }
 
   private updateFormValidity(): void {
     let isValid = false;
     const isEvolveumHosted = this.connectorType() === 'evolveum-hosted';
-    const isOwnRepo = this.connectorType() === 'own-repo';
     const isJavaBased = this.connectorType() === 'java-based';
 
-    if (this.isEditingVersion()) {
-      // Editing a version - validate required editable fields
-      if (isEvolveumHosted) {
-        // For evolveum-hosted: Implementation Description and File are REQUIRED
-        isValid = this.implementationDescription().trim() !== '' &&
-                  this.uploadedFile() !== null;
-      } else if (isJavaBased) {
-        // For java-based: Implementation Description, Build Framework, Browse Link, Checkout Link are REQUIRED
-        isValid = this.implementationDescription().trim() !== '' &&
-                  this.buildFramework().trim() !== '' &&
-                  this.browseLink().trim() !== '' &&
-                  this.checkoutLink().trim() !== '';
-      } else {
-        // For own-repo: Only Implementation Description is REQUIRED (build framework not shown)
-        isValid = this.implementationDescription().trim() !== '';
+    if (this.isNewVersion() === true) {
+      // Adding a new version: implementation must be selected + form fields valid
+      if (this.selectedImplementation() !== null) {
+        if (isEvolveumHosted) {
+          isValid = this.implementationDescription().trim() !== '' &&
+                    this.uploadedFile() !== null;
+        } else if (isJavaBased) {
+          isValid = this.implementationDescription().trim() !== '' &&
+                    this.buildFramework().trim() !== '' &&
+                    this.browseLink().trim() !== '' &&
+                    this.checkoutLink().trim() !== '';
+        } else {
+          isValid = this.implementationDescription().trim() !== '';
+        }
       }
     } else if (this.isNewVersion() === false) {
-      // Creating new implementation - validate required fields
+      // Creating a new implementation
       if (isEvolveumHosted) {
-        // For evolveum-hosted: Display Name, Implementation Description, File are REQUIRED
         isValid = this.displayName().trim() !== '' &&
                   this.implementationDescription().trim() !== '' &&
                   this.uploadedFile() !== null;
       } else if (isJavaBased) {
-        // For java-based: Display Name, License Type, Implementation Description, Build Framework, Browse Link, Checkout Link are REQUIRED
         isValid = this.displayName().trim() !== '' &&
                   this.licenseType().trim() !== '' &&
                   this.implementationDescription().trim() !== '' &&
@@ -237,19 +215,15 @@ export class UploadFormImpl implements OnChanges {
                   this.browseLink().trim() !== '' &&
                   this.checkoutLink().trim() !== '';
       } else {
-        // For own-repo: Display Name, License Type, Implementation Description are REQUIRED (build framework not shown)
         isValid = this.displayName().trim() !== '' &&
                   this.licenseType().trim() !== '' &&
                   this.implementationDescription().trim() !== '';
       }
-    } else if (this.isNewVersion() === true && this.selectedImplementation() !== null && !this.isEditingVersion()) {
-      // Adding new version - valid when implementation selected
-      isValid = true;
     }
 
     const formData = {
       isNewVersion: this.isNewVersion(),
-      isEditingVersion: this.isEditingVersion(),
+      isEditingVersion: this.isNewVersion() === true && this.selectedImplementation() !== null,
       selectedImplementation: this.selectedImplementation(),
       displayName: this.displayName(),
       maintainer: this.maintainer(),

@@ -1,0 +1,559 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.form-check {
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.form-check-input {
+  display: none;
+}
+
+/* Radio buttons in modal - show the circle */
+.modal .form-check-input[type="radio"] {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  appearance: auto;
+  accent-color: $midpoint-special-color !important;
+}
+
+/* Bootstrap radio button checked state */
+.modal .form-check-input[type="radio"]:checked {
+  background-color: $midpoint-special-color !important;
+  border-color: $midpoint-special-color !important;
+}
+
+.modal .form-check-input[type="radio"]:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.modal .form-check-label {
+  display: inline;
+  padding: 0;
+  cursor: pointer;
+  background-color: transparent !important;
+}
+
+.modal .form-check-input[type="radio"]:checked + .form-check-label {
+  background-color: transparent !important;
+}
+
+.modal .form-check-input[type="radio"]:checked + .form-check-label::before {
+  display: none;
+}
+
+/* Remove focus shadow on form controls and buttons in modal */
+.modal .form-control:focus,
+.modal .form-select:focus,
+.modal .btn:focus {
+  box-shadow: none;
+}
+
+.form-check-label {
+  font-size: 0.95rem;
+  color: $color-text-secondary;
+  cursor: pointer;
+  display: block;
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  position: relative;
+}
+
+.form-check-input:checked + .form-check-label {
+  background-color: $color-bg-hover;
+}
+
+.form-check-input:checked + .form-check-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: $color-primary;
+}
+
+.form-label {
+  font-weight: 500;
+  color: $color-text-secondary;
+  margin-bottom: 0.5rem;
+}
+
+.form-control, .form-select {
+  border: 1px solid $color-border-input;
+  border-radius: 4px;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: $color-primary;
+  box-shadow: 0 0 0 0.2rem $shadow-primary;
+}
+
+.btn {
+  padding: 0.5rem 1.5rem;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.btn-primary {
+  background-color: $color-primary;
+  border-color: $color-primary;
+}
+
+.btn-primary:hover {
+  background-color: $color-primary-hover;
+  border-color: $color-primary-active;
+}
+
+.btn-secondary {
+  background-color: $color-secondary;
+  border-color: $color-secondary;
+}
+
+.btn-secondary:hover {
+  background-color: $color-secondary-hover;
+  border-color: $color-secondary-active;
+}
+
+/* Toast Notification */
+.toast-container {
+  z-index: 2000;
+}
+
+.toast-box {
+  box-shadow: 0 4px 6px $shadow-card;
+  min-width: 350px;
+}
+
+.toast-header-success {
+  background-color: $color-success;
+  color: $color-white;
+}
+
+.toast-body-success {
+  background-color: $color-success-bg;
+  color: $color-black;
+}
+
+.toast-icon {
+  font-size: 18px;
+}
+
+/* Modal Styles */
+.modal-backdrop-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.modal-container {
+  z-index: 1050;
+}
+
+.modal-dialog-request {
+  max-width: 800px;
+  margin: 1.75rem auto;
+}
+
+.modal-header-request {
+  border-bottom: 1px solid $color-border-light;
+  padding: 1rem 1.5rem;
+}
+
+.modal-title-request {
+  color: $color-text-muted;
+}
+
+.btn-close-icon {
+  border: none;
+  background: none;
+}
+
+.close-icon {
+  font-size: 14px;
+  color: $color-gray-secondary;
+}
+
+.modal-body-request {
+  padding: 0;
+}
+
+/* Form Headings */
+.form-heading {
+  font-weight: 400;
+  font-size: 20px;
+  color: $color-black;
+  padding: 1.5rem 1.5rem 0 1.5rem;
+  margin: 0;
+}
+
+.form-heading-bottom {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+  text-align: center;
+}
+
+.form-content-padding {
+  padding: 0 1.5rem;
+}
+
+/* Form Labels */
+.form-label-black {
+  color: $color-black;
+}
+
+.form-label-bold {
+  color: $color-black;
+  font-weight: 600;
+}
+
+.input-width-md {
+  width: 356px;
+}
+
+/* Info Icon Button */
+.btn-info-icon {
+  border: none;
+  position: relative;
+  top: -3px;
+}
+
+.info-icon-sm {
+  font-size: 12px;
+  color: $text-publishing-blue;
+}
+
+/* Capability Dropdown */
+.capability-dropdown-trigger {
+  min-height: 41px;
+  cursor: pointer;
+  padding: 6px 2.25rem 6px 6px;
+}
+
+.capability-placeholder {
+  color: $color-gray-secondary;
+  padding-left: 6px;
+}
+
+.capability-badge {
+  background-color: $color-accent-purple-light;
+  color: $color-black;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.btn-remove-capability {
+  border: none;
+  background: none;
+}
+
+.remove-icon {
+  font-size: 12px;
+  color: $color-text-secondary;
+}
+
+.dropdown-arrow {
+  font-size: 12px;
+  color: $color-icon-dark;
+  transform: translateY(-50%);
+  pointer-events: none;
+  margin-top: -3px;
+}
+
+/* Integration Method Dropdown */
+.integration-method-trigger {
+  min-height: 41px;
+  cursor: pointer;
+  padding: 6px 2.25rem 6px 12px;
+}
+
+.dropdown-arrow-sm {
+  font-size: 10px;
+  color: $color-icon-dark;
+  pointer-events: none;
+}
+
+.integration-method-dropdown {
+  z-index: 1000;
+  border: 1px solid $color-border-input;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px $shadow-dropdown;
+  overflow: hidden;
+}
+
+.integration-method-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  margin: 0;
+  border-bottom: 1px solid $color-border-light;
+  font-size: 14px;
+  color: $color-black;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.integration-method-option-selected {
+  background-color: rgba($color-light-blue, 0.08);
+  color: $midpoint-special-color-20;
+}
+
+.integration-method-radio {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: $color-primary;
+}
+
+.integration-method-view-more {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: $color-primary;
+  font-size: 14px;
+  font-weight: 500;
+  border-top: 1px solid $color-border-light;
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.view-more-icon {
+  font-size: 10px;
+}
+
+/* Dropdown Menu */
+.capability-dropdown-menu {
+  z-index: 1000;
+  max-height: 350px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px $shadow-dropdown;
+}
+
+.capability-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 2rem;
+}
+
+.capability-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 12px;
+  border-radius: 4px;
+  border: 2px solid $color-border-input;
+  accent-color: $color-accent-purple;
+}
+
+.capability-label-text {
+  color: $color-black;
+  font-size: 14px;
+  font-weight: 400;
+  background-color: $color-accent-purple-light;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.dropdown-separator {
+  border-top: 1px solid $color-separator;
+  margin: 0 1rem;
+}
+
+/* Form Separator */
+.form-separator {
+  border: 0;
+  border-top: 1px solid $color-text-light;
+  margin: 0;
+}
+
+.form-footer-padding {
+  padding: 1.5rem;
+}
+
+/* Form Buttons */
+.btn-cancel {
+  background-color: $color-white;
+  border: none;
+  padding-left: 0;
+}
+
+.btn-cancel-text {
+  color: $color-dark-blue;
+}
+
+.btn-submit {
+  color: $btn-download-color;
+  background-color: $midpoint-special-color;
+  font-weight: 600;
+}
+
+.capability-label {
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+/* Capabilities Scope Radio List */
+.capabilities-scope-list {
+  border: 1px solid $color-border-input;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.capabilities-scope-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  margin: 0;
+  border-bottom: 1px solid $color-border-light;
+  font-size: 14px;
+  color: $color-black;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.capabilities-scope-option-selected {
+  background-color: rgba($color-light-blue, 0.08);
+  color: $midpoint-special-color-20;
+}
+
+/* Collaborate Checkbox */
+.collaborate-label {
+  cursor: pointer;
+  margin-bottom: 0;
+  gap: 10px;
+}
+
+.collaborate-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  appearance: none;
+  border: 1px solid $color-border-input;
+  border-radius: 4px;
+  background-color: $color-white;
+
+  &:checked {
+    background-color: $color-primary;
+    border-color: $color-primary;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+  }
+}
+
+.fw-600 {
+  font-weight: 600;
+}
+
+.fw-400 {
+  font-weight: 400;
+}
+
+/* Specific Object Class Cards */
+.object-class-card {
+  border: 1px solid $color-border-input;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.object-class-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.object-class-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $color-black;
+}
+
+.object-class-card-subtitle {
+  font-size: 14px;
+  color: $color-text-muted;
+  margin-top: 2px;
+}
+
+.btn-remove-object-class {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text-secondary;
+
+  &:hover {
+    color: #BB2D3B;
+  }
+}
+
+.object-class-field {
+  cursor: text;
+  position: relative;
+}
+
+.object-class-search-icon {
+  font-size: 13px;
+  color: $color-black;
+  flex-shrink: 0;
+}
+
+.object-class-text-input {
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: $color-black;
+  border: none;
+
+  &::placeholder {
+    color: $color-gray-secondary;
+  }
+}
+
+.capability-dropdown-disabled {
+  background-color: $color-bg-muted;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.capability-placeholder-disabled {
+  color: $color-text-muted;
+}
+
+.btn-add-object-class {
+  color: $color-dark-blue;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
