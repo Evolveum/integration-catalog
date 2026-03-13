@@ -13,17 +13,15 @@
         <div class="d-flex" style="min-height: 500px;">
           <!-- Left Sidebar -->
           <div class="filter-sidebar" style="width: 250px; min-width: 250px; flex-shrink: 0; background-color: #f8f9fa; border-right: 1px solid #dee2e6; border-radius: 12px 0 0 12px; padding: 1.5rem 0;">
-            <div
+            <!-- <div
               class="filter-option"
               [class.active]="selectedSection() === 'trending'"
               (click)="selectSection('trending')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'trending' ? '#e9ecef' : 'transparent'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07"/>
-              </svg>
+              <i class="fa-solid fa-chart-line" style="font-size: 14px;"></i>
               <span>Trending</span>
-            </div>
+            </div> -->
 
             <div
               class="filter-option"
@@ -31,10 +29,8 @@
               (click)="selectSection('categories')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'categories' ? '#e9ecef' : 'transparent'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder" viewBox="0 0 16 16">
-                <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a2 2 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139q.323-.119.684-.12h5.396z"/>
-              </svg>
-              <span>Categories</span>
+              <i class="fa-regular fa-folder-open" [style.color]="selectedSection() === 'categories' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
+              <span style="font-weight: 600;">Categories</span>
             </div>
 
             <div
@@ -43,23 +39,18 @@
               (click)="selectSection('capabilities')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'capabilities' ? '#e9ecef' : 'transparent'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tag" viewBox="0 0 16 16">
-                <path d="M6 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m-1 0a.5.5 0 1 0-1 0 .5.5 0 0 0 1 0"/>
-                <path d="M2 1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 1 6.586V2a1 1 0 0 1 1-1m0 5.586 7 7L13.586 9l-7-7H2z"/>
-              </svg>
-              <span>Capabilities</span>
+              <i class="fa-solid fa-puzzle-piece" [style.color]="selectedSection() === 'capabilities' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
+              <span style="font-weight: 600;">Capabilities</span>
             </div>
 
             <div
               class="filter-option"
               [class.active]="selectedSection() === 'midpoint'"
               (click)="selectSection('midpoint')"
-              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; opacity: 0.5;"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'midpoint' ? '#e9ecef' : 'transparent'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box" viewBox="0 0 16 16">
-                <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/>
-              </svg>
-              <span>Midpoint version</span>
+              <i class="fa-solid fa-code-branch" [style.color]="selectedSection() === 'midpoint' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
+              <span style="font-weight: 600;">MidPoint version</span>
             </div>
 
             <div
@@ -68,17 +59,25 @@
               (click)="selectSection('appstatus')"
               style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
               [style.background-color]="selectedSection() === 'appstatus' ? '#e9ecef' : 'transparent'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-circle-fill" viewBox="0 0 16 16">
-                <circle cx="8" cy="8" r="8"/>
-              </svg>
-              <span>App status</span>
+              <i class="fa-solid fa-tag" [style.color]="selectedSection() === 'appstatus' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
+              <span style="font-weight: 600;">App status</span>
+            </div>
+
+            <div
+              class="filter-option"
+              [class.active]="selectedSection() === 'integration'"
+              (click)="selectSection('integration')"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
+              [style.background-color]="selectedSection() === 'integration' ? '#e9ecef' : 'transparent'">
+              <i class="fa-solid fa-plug" [style.color]="selectedSection() === 'integration' ? '#0d6efd' : '#6c757d'" style="font-size: 18px;"></i>
+              <span style="font-weight: 600;">Integration method</span>
             </div>
           </div>
 
           <!-- Right Content -->
           <div class="filter-content flex-grow-1" style="padding: 2rem;">
             <!-- Trending -->
-            @if (selectedSection() === 'trending') {
+            <!-- @if (selectedSection() === 'trending') {
               <div>
                 <h5 class="mb-4">Trending</h5>
                 <div>
@@ -94,7 +93,7 @@
                   </span>
                 </div>
               </div>
-            }
+            } -->
 
             <!-- Categories -->
             @if (selectedSection() === 'categories') {
@@ -126,9 +125,12 @@
                       [class.selected]="isCapabilitySelected(capability)"
                       (click)="toggleCapability(capability)"
                       style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
-                      [style.border]="isCapabilitySelected(capability) ? '1px solid #2722c7' : '1px solid #a6a6a6'"
+                      [style.border]="'1px solid ' + (isCapabilitySelected(capability) ? '#206f9d' : '#ced4da')"
+                      [ngStyle]="{
+                        boxShadow: isCapabilitySelected(capability) ? '0 0 0 1px #206f9d' : 'none'
+                      }"
                       [style.background-color]="isCapabilitySelected(capability) ? '#f2f2f2' : 'white'"
-                      [style.color]="isCapabilitySelected(capability) ? '#2722c7' : '#212529'">
+                      [style.color]="isCapabilitySelected(capability) ? '#206f9d' : '#212529'">
                       {{ formatCapability(capability) }}
                     </span>
                   }
@@ -136,11 +138,29 @@
               </div>
             }
 
-            <!-- Midpoint Version (placeholder) -->
+            <!-- MidPoint Version -->
             @if (selectedSection() === 'midpoint') {
               <div>
-                <h5 class="mb-4">Midpoint version</h5>
-                <p class="text-muted">Coming soon...</p>
+                <h5 class="mb-4">MidPoint version</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (version of midpointVersions(); track version) {
+                    <span
+                      class="badge version-badge"
+                      [class.selected]="isMidpointVersionSelected(version)"
+                      (click)="toggleMidpointVersion(version)"
+                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                      [[style.border]="'1px solid ' + (isMidpointVersionSelected(version) ? '#206f9d' : '#ced4da')"
+                      [ngStyle]="{
+                        boxShadow: isMidpointVersionSelected(version) ? '0 0 0 1px #206f9d' : 'none'
+                      }"
+                      [style.background-color]="isMidpointVersionSelected(version) ? '#f2f2f2' : 'white'"
+                      [style.color]="isMidpointVersionSelected(version) ? '#206f9d' : '#212529'">
+                      {{ version }}
+                    </span>
+                  } @empty {
+                    <p class="text-muted">No MidPoint versions available</p>
+                  }
+                </div>
               </div>
             }
 
@@ -148,15 +168,45 @@
             @if (selectedSection() === 'appstatus') {
               <div>
                 <h5 class="mb-4">App status</h5>
-                <div class="status-list">
+                <div class="d-flex flex-wrap gap-2">
                   @for (status of appStatuses; track status.name) {
-                    <div
-                      class="status-item d-flex justify-content-between align-items-center py-2 px-3"
+                    <span
+                      class="badge status-badge"
+                      [class.selected]="isAppStatusSelected(status.name)"
                       (click)="toggleAppStatus(status.name)"
-                      style="cursor: pointer; border-radius: 4px; margin-bottom: 0.5rem;"
-                      [style.background-color]="isAppStatusSelected(status.name) ? '#dee2e6' : 'transparent'">
-                      <span>{{ status.displayName }}</span>
-                    </div>
+                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                      [style.border]="'1px solid ' + (isAppStatusSelected(status.name) ? '#206f9d' : '#ced4da')"
+                      [ngStyle]="{
+                        boxShadow: isAppStatusSelected(status.name) ? '0 0 0 1px #206f9d' : 'none'
+                      }"
+                      [style.background-color]="isAppStatusSelected(status.name) ? '#f2f2f2' : 'white'"
+                      [style.color]="isAppStatusSelected(status.name) ? '#206f9d' : '#212529'">
+                      {{ status.displayName }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Integration Method -->
+            @if (selectedSection() === 'integration') {
+              <div>
+                <h5 class="mb-4">Integration method</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (method of integrationMethods; track method) {
+                    <span
+                      class="badge integration-badge"
+                      [class.selected]="isIntegrationMethodSelected(method)"
+                      (click)="toggleIntegrationMethod(method)"
+                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                      [style.border]="'1px solid ' + (isIntegrationMethodSelected(method) ? '#206f9d' : '#ced4da')"
+                      [ngStyle]="{
+                        boxShadow: isIntegrationMethodSelected(method) ? '0 0 0 1px #206f9d' : 'none'
+                      }"
+                      [style.background-color]="isIntegrationMethodSelected(method) ? '#f2f2f2' : 'white'"
+                      [style.color]="isIntegrationMethodSelected(method) ? '#206f9d' : '#212529'">
+                      {{ method }}
+                    </span>
                   }
                 </div>
               </div>

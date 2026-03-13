@@ -18,6 +18,7 @@ export class UploadFormMain implements OnInit {
   @Input() isOpen = signal<boolean>(false);
   @Input() applications = signal<Application[]>([]);
   @Output() modalClosed = new EventEmitter<void>();
+  @Output() uploadCompleted = new EventEmitter<void>();
 
   @ViewChild(UploadFormImpl) uploadFormImpl!: UploadFormImpl;
 
@@ -528,6 +529,7 @@ export class UploadFormMain implements OnInit {
         console.log('Upload successful:', response);
         this.closeModal();
         this.showPublishSuccess.set(true);
+        this.uploadCompleted.emit();
         setTimeout(() => this.showPublishSuccess.set(false), 5000);
       },
       error: (error: any) => {

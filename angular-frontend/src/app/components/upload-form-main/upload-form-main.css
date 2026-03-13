@@ -1,17 +1,39 @@
 /* Upload Form Main Modal Styles */
 
 .connector-option:hover {
-  border-color: #0d6efd !important;
-  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+  border-color: var(--midpoint-special-color) !important;
+  box-shadow: 0 2px 8px rgba(0, 129, 132, 0.15);
 }
 
 .connector-option.selected {
-  border-color: #0d6efd !important;
-  background-color: #e7f3ff !important;
+  border-color: var(--midpoint-special-color) !important;
+  background-color: rgba(27, 94, 133, 0.05) !important;
+}
+
+/* Radio button styling for connector options */
+.connector-option .form-check-input:checked {
+  background-color: var(--midpoint-special-color);
+  border-color: var(--midpoint-special-color);
+}
+
+.connector-option .form-check-input:focus {
+  border-color: var(--midpoint-special-color);
+  box-shadow: 0 0 0 0.25rem rgba(0, 129, 132, 0.25);
+}
+
+.connector-option .form-check-input[type="radio"],
+.form-check-input[type="radio"] {
+  accent-color: var(--midpoint-special-color) !important;
+}
+
+/* Bootstrap radio button checked state */
+.form-check-input[type="radio"]:checked {
+  background-color: var(--midpoint-special-color) !important;
+  border-color: var(--midpoint-special-color) !important;
 }
 
 .step-item.active .step-number {
-  background-color: #0d6efd !important;
+  background-color: var(--midpoint-special-color) !important;
 }
 
 .step-item .step-number {
@@ -23,8 +45,8 @@
 }
 
 .search-results .card:hover {
-  border-color: #0d6efd !important;
-  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+  border-color: var(--midpoint-special-color) !important;
+  box-shadow: 0 2px 8px rgba(0, 129, 132, 0.15);
   transform: translateY(-2px);
 }
 
