@@ -329,43 +329,55 @@
                            [disabled]="selectedApplication() !== null">
                   </div>
 
-                  <!-- Upload Logo - DISABLED FOR NOW
+                  <!-- Upload Logo -->
                   <div class="mb-4">
-                    @if (selectedApplication() && selectedApplication()!.logo) {
-                      <div class="mb-3">
-                        <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
-                          App logo
-                          <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                            <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
-                            <span class="info-tooltip">This will appear in Presentation pages and in your project dashboard.</span>
-                          </span>
-                        </label>
-                        <div class="border rounded p-2 d-inline-block" style="background-color: #f8f9fa;">
-                          <img [src]="selectedApplication()!.logo" alt="App logo" style="width: 80px; height: 80px; object-fit: contain;">
+                    <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
+                      App logo
+                      <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
+                        <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
+                        <span class="info-tooltip">This will appear in the catalog and application details. Supported formats: PNG, JPEG, GIF, SVG, WebP. Max size: 5MB.</span>
+                      </span>
+                    </label>
+
+                    <!-- Show existing logo from selected app -->
+                    @if (selectedApplication() && getLogoUrl()) {
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="border rounded p-2" style="background-color: #f8f9fa;">
+                          <img [src]="getLogoUrl()" alt="App logo" style="width: 80px; height: 80px; object-fit: contain;">
                         </div>
                       </div>
-                    } @else {
-                      <label class="form-label d-flex align-items-center" style="font-weight: 600; font-size: 0.875rem;">
-                        App logo
-                        <span class="info-icon-wrapper position-relative ms-2" style="cursor: pointer;">
-                          <i class="fa-solid fa-circle-info" style="font-size: 14px; color: var(--text-publishing-blue);"></i>
-                          <span class="info-tooltip">This will appear in Presentation pages and in your project dashboard.</span>
-                        </span>
-                      </label>
+                    }
+
+                    <!-- Show preview of newly uploaded logo -->
+                    @else if (logoPreviewUrl()) {
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="border rounded p-2" style="background-color: #f8f9fa;">
+                          <img [src]="logoPreviewUrl()" alt="Logo preview" style="width: 80px; height: 80px; object-fit: contain;">
+                        </div>
+                        <div>
+                          <div class="text-muted mb-1" style="font-size: 0.8125rem;">{{ logoFile()?.name }}</div>
+                          <button type="button" class="btn btn-outline-danger btn-sm" (click)="clearLogo()">
+                            <i class="fa-solid fa-trash me-1" style="font-size: 12px;"></i>
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Show upload area when no logo -->
+                    @else {
                       <div class="logo-upload-area" style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 2rem; background-color: #f8f9fa; text-align: center;">
                         <i class="fa-solid fa-image mb-3" style="font-size: 40px; color: #6c757d;"></i>
                         <h6 class="mb-2" style="font-size: 0.9375rem; font-weight: 600;">Upload a logo</h6>
-                        <p class="text-muted mb-3" style="font-size: 0.8125rem;">Accepted type files: lorem ipsum lorem ipsum</p>
-                        <input type="file" id="logoUpload" class="d-none" (change)="onLogoUpload($event)" accept="image/*">
+                        <p class="text-muted mb-3" style="font-size: 0.8125rem;">Accepted formats: PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
+                        <input #logoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml,image/webp">
                         <button type="button" class="btn btn-outline-secondary btn-sm" (click)="logoUpload.click()">
                           <i class="fa-solid fa-upload me-2" style="font-size: 12px;"></i>
                           Upload
                         </button>
-                        <input #logoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/*">
                       </div>
                     }
                   </div>
-                  END Upload Logo - DISABLED FOR NOW -->
 
                   <!-- Description -->
                   <div class="mb-4">

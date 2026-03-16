@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
-import { Application } from '../../models/application.model';
+import { Application, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
 import { LoginModal } from '../login-modal/login-modal';
@@ -797,5 +797,38 @@ export class ApplicationsList implements OnInit, AfterViewInit {
         console.error('Error loading total downloads count:', err);
       }
     });
+  }
+
+  // ==================== Logo Methods ====================
+
+  // Track logo load errors per application
+  protected logoLoadErrors = new Set<string>();
+
+  /**
+   * Check if an application has a logo
+   */
+  protected appHasLogo(app: Application): boolean {
+    return hasLogo(app);
+  }
+
+  /**
+   * Get the logo URL for an application
+   */
+  protected getAppLogoUrl(app: Application): string {
+    return this.applicationService.getLogoUrl(app.id);
+  }
+
+  /**
+   * Handle logo load error - marks the app to show fallback
+   */
+  protected onAppLogoError(appId: string): void {
+    this.logoLoadErrors.add(appId);
+  }
+
+  /**
+   * Check if should show letter avatar for an app
+   */
+  protected shouldShowAppLetterAvatar(app: Application): boolean {
+    return !this.appHasLogo(app) || this.logoLoadErrors.has(app.id);
   }
 }

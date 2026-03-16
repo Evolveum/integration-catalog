@@ -4,52 +4,32 @@
 
 # --- Stage 1: Build Angular frontend ---
 FROM node:22-alpine AS frontend-build
-WORKDIR /app
-
-# Copy only package.json first to avoid reinstalling deps unnecessarily
+WORKDIR /integration-catalog/angular-frontend
 COPY angular-frontend/package*.json ./
 RUN npm install
-
-# Copy full source AFTER install (improves caching & performance)
 COPY angular-frontend/ ./
-
-# Cache-buster to force rebuild when frontend changes
-ARG FRONTEND_CACHEBUST=1
-RUN echo "Cachebust=$FRONTEND_CACHEBUST"
-
 RUN npm run build --prod
 
-
-# --- Stage 2: Build Spring Boot backend ---
+# --- Stage 2: Build Maven + Spring Boot backend ---
 FROM maven:3.9.4-eclipse-temurin-21 AS backend-build
-WORKDIR /app
-
-COPY pom.xml ./
-RUN mvn -q dependency:go-offline
-
+WORKDIR /integration-catalog/backend
+COPY pom.xml .
 COPY src ./src
+RUN mkdir -p src/main/resources/static
+COPY --from=frontend-build /integration-catalog/angular-frontend/dist/ic-frontend-ngmodule/browser/. ./src/main/resources/static/
 
-# Copy frontend build output (cleaner and faster)
-COPY --from=frontend-build /app/dist/ic-frontend-ngmodule/browser/ ./src/main/resources/static/
+RUN mvn clean package -DskipTests
 
-ARG BACKEND_CACHEBUST=1
-RUN echo "Cachebust=$BACKEND_CACHEBUST"
-
-RUN mvn -q clean package -DskipTests
-
-
-# --- Stage 3: Runtime ---
+# --- Stage 3: Runtime image ---
 FROM eclipse-temurin:21-jre-alpine
-
 WORKDIR /integration-catalog
-
-COPY --from=backend-build /app/target/integration-catalog-*.jar integration-catalog.jar
+COPY --from=backend-build /integration-catalog/backend/target/integration-catalog-*.jar integration-catalog.jar
 
 # Copy entrypoint script to handle secrets
-COPY docker/entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+COPY docker/entrypoint.sh /integration-catalog/entrypoint.sh
+RUN chmod +x /integration-catalog/entrypoint.sh
 
 EXPOSE 8080
 
 # Start application using entrypoint script
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/integration-catalog/entrypoint.sh"]
