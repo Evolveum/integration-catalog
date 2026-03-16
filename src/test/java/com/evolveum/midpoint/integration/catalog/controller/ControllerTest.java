@@ -99,7 +99,7 @@ class ControllerTest {
         testConnectorBundle.setId(1);
         testConnectorBundle.setBundleName("com.evolveum.polygon.connector.test");
         testConnectorBundle.setMaintainer("Test Maintainer");
-        testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.CONNID);
+        testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.JAVA_BASED);
         testConnectorBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
 
         // Setup test Implementation

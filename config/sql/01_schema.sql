@@ -19,8 +19,8 @@ CREATE TYPE ApplicationTagType AS ENUM (
 );
 
 CREATE TYPE FrameworkType AS ENUM (
-	'CONNID',
-	'SCIM_REST'
+	'JAVA_BASED',
+	'LOW_CODE'
 );
 
 CREATE TYPE LicenseType AS ENUM (

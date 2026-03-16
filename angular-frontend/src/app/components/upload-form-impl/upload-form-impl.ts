@@ -184,7 +184,7 @@ export class UploadFormImpl implements OnChanges {
         this.uploadedFile.set({
           name: file.name,
           data: base64Data
-        } as any);
+        });
         this.uploadedFileName.set(file.name);
         this.updateFormValidity();
       };

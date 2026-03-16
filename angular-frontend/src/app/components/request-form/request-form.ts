@@ -7,6 +7,7 @@
 import { Component, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -50,7 +51,7 @@ export class RequestForm {
         this.availableCapabilities.set(capabilities);
         this.isLoadingCapabilities.set(false);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         console.error('Error loading capabilities:', err);
         this.isLoadingCapabilities.set(false);
         // Optionally set a fallback or show an error message
@@ -100,7 +101,7 @@ export class RequestForm {
           this.submitSuccess.set(false);
         }, 5000);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
         this.submitError.set('Failed to submit request. Please try again.');
         console.error('Error submitting request:', err);

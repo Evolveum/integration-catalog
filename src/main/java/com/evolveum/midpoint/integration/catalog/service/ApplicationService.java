@@ -18,7 +18,6 @@ import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,70 +39,27 @@ import java.util.UUID;
 @Service
 public class ApplicationService {
 
-    @Autowired
     private final ApplicationRepository applicationRepository;
-
-    @Autowired
     private final ApplicationTagRepository applicationTagRepository;
-
-    @Autowired
     private final CountryOfOriginRepository countryOfOriginRepository;
-
-    @Autowired
     private final ImplementationRepository implementationRepository;
-
-    @Autowired
     private final ImplementationVersionRepository implementationVersionRepository;
-
-    @Autowired
     private final ConnidVersionRepository connidVersionRepository;
-
-    @Autowired
     private final GithubProperties githubProperties;
-
-    @Autowired
     private final JenkinsProperties jenkinsProperties;
-
-    @Autowired
     private final DownloadRepository downloadRepository;
-
-    @Autowired
     private final RequestRepository requestRepository;
-
-    @Autowired
     private final VoteRepository voteRepository;
-
-    @Autowired
     private final ApplicationReadPort applicationReadPort;
-
-    @Autowired
     private final ApplicationMapper applicationMapper;
-
-    @Autowired
     private final BundleVersionRepository bundleVersionRepository;
-
-    @Autowired
     private final ConnectorBundleRepository connectorBundleRepository;
-
-    @Autowired
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
-
-    @Autowired
     private final ApplicationTagService applicationTagService;
-
-    @Autowired
     private final BundleMergeService bundleMergeService;
-
-    @Autowired
     private final RequestVotingService requestVotingService;
-
-    @Autowired
     private final ConnectorDownloadService connectorDownloadService;
-
-    @Autowired
     private final BuildCallbackService buildCallbackService;
-
-    @Autowired
     private final ConnectorUploadService connectorUploadService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
