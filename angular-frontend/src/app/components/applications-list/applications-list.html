@@ -4,33 +4,32 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<div class="container-fluid p-0 position-relative" style="background-color: #e9ecef;">
+<div class="container-fluid p-0 position-relative page-bg">
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
-    <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
-      <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); min-width: 350px;">
+    <div class="position-fixed top-0 end-0 p-3 toast-container">
+      <div class="toast-box rounded-2 overflow-hidden">
         <!-- Warning header row -->
-        <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #ffc107; color: #212529;">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
           <div class="d-flex align-items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px;"></i>
+            <i class="fa-solid fa-triangle-exclamation icon-xxl"></i>
             <strong>Login Required</strong>
           </div>
           <button type="button" class="btn-close" (click)="closeLoginRequiredMessage()" aria-label="Close"></button>
         </div>
         <!-- Light yellow message row -->
-        <div class="px-3 py-2" style="background-color: #fff3cd; color: #212529;">
+        <div class="px-3 py-2 toast-body-warning">
           You need to log in to submit a request. Please log in and try again.
         </div>
       </div>
     </div>
   }
 
-  <div class="container-fluid p-0" style="background-color: #e9ecef;">
+  <div class="container-fluid p-0 page-bg">
     <!-- Hero Banner -->
-    <div class="bg-primary text-white py-5"
-      style="background: linear-gradient(270deg, #223558 0%, #36538B 52.88%, #2C4471 85.58%);">
+    <div class="bg-primary text-white py-5 hero-gradient">
       <!-- Login/Logout Button (Top Right) -->
-      <div class="position-absolute top-0 end-0 p-3" style="z-index: 10;">
+      <div class="position-absolute top-0 end-0 p-3 z-index-10">
         @if (currentUser()) {
           <div class="d-flex align-items-center gap-2">
             <span class="text-white">{{ currentUser() }}</span>
@@ -45,14 +44,14 @@
         <!-- title -->
         <div class="row">
           <div class="col-12 text-center">
-            <h1 class="display-6 fw-bold mb-3" style="font-size: 48px;">Integration Catalog</h1>
+            <h1 class="display-6 fw-bold mb-3 hero-title">Integration Catalog</h1>
           </div>
         </div>
 
         <!-- subtitle -->
         <div class="row">
           <div class="col-12 text-center">
-            <p class="lead mb-4" style="font-size: 28px;">
+            <p class="lead mb-4 hero-subtitle">
               Easily connect any application or system to midPoint.
             </p>
           </div>
@@ -63,12 +62,12 @@
           <div class="col-lg-6 d-flex justify-content-center">
             <div class="d-flex gap-5">
               <div class="text-center">
-                <div class="display-4 fw-bold mb-2" style="color: #A3CDCC;">{{ activeIntegrationsCount() }}</div>
-                <div style="font-size: 0.9rem; opacity: 0.9; color: #A3CDCC;">Active integrations</div>
+                <div class="display-4 fw-bold mb-2 hero-stat-value">{{ activeIntegrationsCount() }}</div>
+                <div class="hero-stat-label">Active integrations</div>
               </div>
               <div class="text-center">
-                <div class="display-4 fw-bold mb-2" style="color: #A3CDCC;">{{ totalDownloadsCount() }}</div>
-                <div style="font-size: 0.9rem; opacity: 0.9; color: #A3CDCC;">Apps downloaded</div>
+                <div class="display-4 fw-bold mb-2 hero-stat-value">{{ totalDownloadsCount() }}</div>
+                <div class="hero-stat-label">Apps downloaded</div>
               </div>
             </div>
           </div>
@@ -78,24 +77,18 @@
     </div>
 
     <!-- Overlay image across blue + gray -->
-    <div class="d-none d-md-block"
-        style="
-          position: absolute;
-          right: 28%;
-          top: 150px;     /* tweak this to match head.jpg */
-          z-index: 5;">
+    <div class="d-none d-md-block overlay-image-container">
       <img
         src="installation-nobg.png"
         alt="Integration illustration"
-        class="img-fluid"
-        style="max-width: 450px; height: auto;" />
+        class="img-fluid overlay-image" />
     </div>
 
     <!-- Description + filter section (gray background) -->
     <div class="pt-5 pb-4">
-      <div class="row mb-3 mx-auto" style="width: 1080px;">
+      <div class="row mb-3 mx-auto content-width">
         <div class="col-lg-6">
-          <p class="mb-0" style="color: #303030;">
+          <p class="mb-0 description-text">
             Explore available integrations to jump-start your workflow, build your own with AI-guided assistance,
             or upload an existing configuration to get started in just minutes. The process is fast, flexible, and
             user-friendly.
@@ -107,29 +100,27 @@
 
 
     <!-- Description / filter section -->
-    <div class="py-4" style="background-color: #e9ecef;">
-    <div class="row mb-3 mx-auto" style="width: 1080px;">
+    <div class="py-4 page-bg">
+    <div class="row mb-3 mx-auto content-width">
       <div class="col-12">
         <div class="d-flex gap-2 align-items-center">
           <div class="input-group flex-grow-1">
-            <span class="input-group-text bg-white border-end-0" style="border-radius: 50px 0 0 50px; border-color: #dee2e6;">
-              <i class="fa-solid fa-magnifying-glass" style="font-size: 18px; color: #6c757d;"></i>
+            <span class="input-group-text bg-white border-end-0 search-icon-container">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
             </span>
             <input
               type="text"
-              class="form-control border-start-0"
+              class="form-control border-start-0 search-input"
               placeholder="Filter by name or version..."
               [value]="searchQuery()"
               (input)="onSearchChange($event)"
-              style="border-radius: 0 50px 50px 0; border-color: #dee2e6; box-shadow: none; outline: none;"
             />
           </div>
-          <button class="btn d-flex align-items-center gap-2" type="button" title="Filter" style="background-color: white; border: 1px solid #ced4da; color: #212529; padding: 0.5rem 1.5rem; border-radius: 50px;" (click)="openFilterModal()">
-            <i class="fa-solid fa-filter" style="font-size: 18px;"></i>
-            <!-- <i class="fa-regular fa-bars-filter" style="font-size: 18px;"></i> -->
+          <button class="btn btn-filter-main d-flex align-items-center gap-2" type="button" title="Filter" (click)="openFilterModal()">
+            <i class="fa-solid fa-filter icon-xl"></i>
             Filter
           </button>
-          <button class="btn" type="button" style="background-color: transparent; border: none; color: #6c757d; padding: 0.5rem 1rem; white-space: nowrap;" (click)="resetFilter()">
+          <button class="btn btn-reset-filter" type="button" (click)="resetFilter()">
             Reset filter
           </button>
         </div>
@@ -137,100 +128,105 @@
     </div>
 
     <!-- Active Filters Row -->
-    @if (filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0) {
-      <div class="row mb-4 mx-auto" style="width: 1080px;">
+    @if (filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0 || filterState().maintainers.length > 0) {
+      <div class="row mb-4 mx-auto content-width">
         <div class="col-12">
           <div class="d-flex align-items-center justify-content-between gap-3">
-            <div class="filter-chips-container flex-grow-1" style="overflow-x: auto; overflow-y: visible; white-space: nowrap; -webkit-overflow-scrolling: touch;">
-              <div class="d-inline-flex gap-2 align-items-center" style="padding: 0.25rem 0 3rem 0;">
-
-              <!-- Trending Filter Chip -->
-              <!-- @if (filterState().trending) {
-                <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
-                  <span>Trending</span>
-                  <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">1</span>
-                  <button type="button" (click)="clearTrendingFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-xmark" style="font-size: 12px;"></i>
-                  </button>
-                </div>
-              } -->
+            <div class="filter-chips-container filter-chips-scroll flex-grow-1">
+              <div class="d-inline-flex gap-2 align-items-center filter-chips-inner">
 
               <!-- Categories Filter Chip -->
               @if (filterState().categories.length > 0) {
-                <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Category</span>
-                  <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().categories.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
+                  <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearCategoriesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+                  <button type="button" (click)="clearCategoriesFilter()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- Capabilities Filter Chip -->
               @if (filterState().capabilities.length > 0) {
-                <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Capability</span>
-                  <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().capabilities.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
+                  <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearCapabilitiesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+                  <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- App Status Filter Chip -->
               @if (filterState().appStatus.length > 0) {
-                <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>App status</span>
-                  <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().appStatus.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
+                  <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearAppStatusFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+                  <button type="button" (click)="clearAppStatusFilter()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- MidPoint Version Filter Chip -->
               @if (filterState().midpointVersions.length > 0) {
-                <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>MidPoint version</span>
-                  <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().midpointVersions.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
+                  <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearMidpointVersionsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+                  <button type="button" (click)="clearMidpointVersionsFilter()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- Integration Method Filter Chip -->
               @if (filterState().integrationMethods.length > 0) {
-                <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Integration method</span>
-                  <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
                     {{ filterState().integrationMethods.length }}
                   </span>
-                  <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-chevron-down" style="font-size: 14px;"></i>
+                  <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearIntegrationMethodsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                    <i class="fa-solid fa-xmark" style="font-size: 14px;"></i>
+                  <button type="button" (click)="clearIntegrationMethodsFilter()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-xmark icon-md"></i>
+                  </button>
+                </div>
+              }
+
+              <!-- Maintainer Filter Chip -->
+              @if (filterState().maintainers.length > 0) {
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
+                  <span>Maintainer</span>
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
+                    {{ filterState().maintainers.length }}
+                  </span>
+                  <button type="button" (click)="toggleDropdown('maintainers', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-chevron-down icon-md"></i>
+                  </button>
+                  <button type="button" (click)="clearMaintainersFilter()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
@@ -260,87 +256,91 @@
     @if (!loading() && !error() && featuredApplications().length > 0) {
       <h2 class="h3 mb-4 text-center">Featured integration apps</h2>
 
-      <div class="position-relative mb-5 mx-auto" style="width: 1080px;">
-        <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center"
-                style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 1px solid #dee2e6; transition: opacity 0.3s ease;"
+      <div class="position-relative mb-5 mx-auto content-width">
+        <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center scroll-btn"
                 [style.opacity]="canScrollLeft() ? '1' : '0'"
                 (click)="scrollLeft()"
                 [disabled]="!canScrollLeft()">
-          <i class="fa-solid fa-chevron-left" style="font-size: 16px;"></i>
+          <i class="fa-solid fa-chevron-left icon-lg"></i>
         </button>
 
-        <div class="scroll-container" #scrollContainer (scroll)="onScroll()" style="overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth;">
+        <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
           <div class="d-flex gap-4 pe-5">
             @for (app of featuredApplications(); track app.id) {
-              <div #featuredCard class="card position-relative" style="width: 252px; min-width: 252px; height: 380px; transition: opacity 0.3s ease;">
+              <div #featuredCard class="card position-relative app-card">
                 <!-- Status indicators at top right -->
                 <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                   @if (isPopular(app)) {
-                    <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #ffdd8c; color: #7A510B;">
-                      <i class="fa-solid fa-fire-flame-curved" style="font-size: 12px;"></i>
+                    <span class="badge badge-popular-card d-inline-flex align-items-center gap-1">
+                      <i class="fa-solid fa-fire-flame-curved icon-sm"></i>
                       Popular
                     </span>
                   }
                   @if (app.lifecycleState === 'REQUESTED') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: #e2e3e5; color: #2b2e31;">
+                    <span class="badge badge-requested-card">
                       Requested
                     </span>
                   }
                   @if (app.lifecycleState === 'WITH_ERROR') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: rgba(220, 53, 69, 0.15); color: #DC3545;">
+                    <span class="badge badge-error-card">
                       Error
                     </span>
                   }
                   @if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                    <span class="badge" style="font-size: 0.7rem; background-color: rgba(23, 162, 184, 0.15); color: var(--text-publishing-color);">
+                    <span class="badge badge-publishing-card">
                       Publishing...
                     </span>
                   }
                 </div>
                 <div class="p-3">
                   @if (!shouldShowAppLetterAvatar(app)) {
-                    <div style="width: 60px; height: 60px; border-radius: 4px; background-color: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <div class="logo-container-sm d-flex align-items-center justify-content-center overflow-hidden">
                       <img [src]="getAppLogoUrl(app)"
                            [alt]="app.displayName"
                            (error)="onAppLogoError(app.id)"
-                           style="width: 100%; height: 100%; object-fit: contain;" />
+                           class="logo-image" />
                     </div>
                   } @else {
-                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+                    <div class="letter-avatar-sm d-flex align-items-center justify-content-center">
                       {{ app.displayName.charAt(0) }}
                     </div>
                   }
                 </div>
                 <div class="card-body d-flex flex-column">
-                  <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
-                  <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
-                  <a class="text-decoration-none" style="color: var(--btn-more-details-color); cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
-                    <u>See App Details</u>
-                  </a>
+                  <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
+                  <p class="card-text text-muted small card-description">{{ app.description }}</p>
                   <!-- Bottom section based on lifecycle state -->
                   @if (app.lifecycleState === 'REQUESTED') {
-                    <button class="btn btn-sm mt-auto"
-                            style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
-                            [disabled]="!currentUser()"
-                            [style.opacity]="currentUser() ? '1' : '0.6'"
-                            [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
-                            (click)="voteForRequest(app)">
-                      <i class="fa-solid fa-thumbs-up me-1" style="font-size: 16px;"></i>
-                      <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
-                    </button>
+                    <div class="d-flex flex-column gap-2 mt-auto">
+                      <button class="btn btn-sm btn-vote"
+                              [disabled]="!currentUser()"
+                              [style.opacity]="currentUser() ? '1' : '0.6'"
+                              [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
+                              (click)="voteForRequest(app)">
+                        <i class="fa-regular fa-thumbs-up me-1 icon-lg"></i>
+                        <span class="fw-600">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                      </button>
+                      <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
+                        <span class="btn-continue-text">See details</span>
+                      </button>
+                    </div>
                   } @else if (app.lifecycleState === 'WITH_ERROR') {
-                    <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
-                      <u>See error details</u>
+                    <a class="text-decoration-none text-center mt-auto link-error" (click)="navigateToDetail(app.id)">
+                      <u>Error details</u>
                     </a>
                   } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                    <div class="text-center mt-auto">
-                      <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                      <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
+                    <div class="d-flex flex-column gap-2 mt-auto">
+                      <div class="text-center">
+                        <p class="text-muted small mb-2">Importing... This may take a moment.</p>
+                        <i class="fa-solid fa-gears blink-animation publishing-icon"></i>
+                      </div>
+                      <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
+                        <span class="btn-continue-text">See details</span>
+                      </button>
                     </div>
                   } @else {
-                    <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
-                      <span style="font-weight: 600; color: #353a41;">Continue to download&nbsp;&nbsp;</span>
-                      <i class="fa-solid fa-arrow-right" style="font-size: 14px;"></i>                      
+                    <button class="btn btn-sm mt-auto btn-continue" (click)="navigateToDetail(app.id)">
+                      <span class="btn-continue-text">See details</span>
                     </button>
                   }
                 </div>
@@ -349,20 +349,19 @@
           </div>
         </div>
 
-        <button class="btn rounded-circle position-absolute top-50 end-0 translate-middle-y d-flex align-items-center justify-content-center"
-                style="z-index: 10; width: 40px; height: 40px; padding: 0; background-color: white; border: 1px solid #dee2e6; transition: opacity 0.3s ease;"
+        <button class="btn rounded-circle position-absolute top-50 end-0 translate-middle-y d-flex align-items-center justify-content-center scroll-btn"
                 [style.opacity]="canScrollRight() ? '1' : '0'"
                 (click)="scrollRight()"
                 [disabled]="!canScrollRight()">
-          <i class="fa-solid fa-chevron-right" style="font-size: 16px;"></i>
+          <i class="fa-solid fa-chevron-right icon-lg"></i>
         </button>
       </div>
     }
 
     @if (!loading() && !error()) {
-      <div class="mb-4 mx-auto" style="width: 1080px;">
+      <div class="mb-4 mx-auto content-width">
         <!-- First row: More apps heading and See All link (hidden when filters are active) -->
-        @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0)) {
+        @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0 || filterState().maintainers.length > 0)) {
           <div class="position-relative mb-5">
             <div class="text-center">
               <h2 class="h3 mb-0">More apps</h2>
@@ -375,89 +374,97 @@
               <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations.</p>
             </div>
             <div class="position-absolute top-0 end-0 d-flex align-items-baseline gap-2">
-              <label class="mb-0 text-muted text-nowrap" style="color: #353a41; size: 16px;">Sort by</label>
-              <select class="form-select form-select-sm" [value]="sortBy()" (change)="onSortChange($event)" style="width: 145px; height: 44px;">
-                <option value="alphabetical" style="font-size: 24px;">Alphabetical</option>
-                <option value="popularity" style="font-size: 24px;">Popularity</option>
-                <option value="activity" style="font-size: 24px;">Activity</option>
-              </select>
+              <label class="mb-0 text-muted text-nowrap description-text">Sort by</label>
+              <div class="sort-select-wrapper position-relative d-inline-block">
+                <select class="form-select form-select-sm sort-select" [value]="sortBy()" (change)="onSortChange($event)">
+                  <option value="alphabetical">&nbsp;Alphabetical</option>
+                  <option value="popularity">&nbsp;Popularity</option>
+                  <option value="activity">&nbsp;Activity</option>
+                </select>
+                <i class="fa-solid fa-sort-down sort-select-icon"></i>
+              </div>
             </div>
           </div>
         }
       </div>
 
-      <div class="d-flex flex-wrap gap-4 mb-4 mx-auto" style="width: 1080px;">
+      <div class="d-flex flex-wrap gap-4 mb-4 mx-auto content-width">
         @for (app of moreApplications(); track app.id) {
           <div>
-            <div class="card shadow-sm position-relative" style="width: 252px; min-width: 252px; height: 380px;">
+            <div class="card shadow-sm position-relative app-card">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
-                  <span class="badge d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; background-color: #ffdd8c; color: #7A510B;">
-                    <i class="fa-solid fa-fire-flame-curved" style="font-size: 12px;"></i>
+                  <span class="badge badge-popular-card d-inline-flex align-items-center gap-1">
+                    <i class="fa-solid fa-fire-flame-curved icon-sm"></i>
                     Popular
                   </span>
                 }
                 @if (app.lifecycleState === 'REQUESTED') {
-                  <span class="badge" style="font-size: 0.7rem; background-color: #e2e3e5; color: #2b2e31;">
+                  <span class="badge badge-requested-card">
                     Requested
                   </span>
                 }
                 @if (app.lifecycleState === 'WITH_ERROR') {
-                  <span class="badge" style="font-size: 0.7rem; background-color: rgba(220, 53, 69, 0.15);; color: #DC3545;">
+                  <span class="badge badge-error-card">
                     Error
                   </span>
                 }
                 @if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                  <span class="badge" style="font-size: 0.7rem; background-color: rgba(23, 162, 184, 0.15); color: var(--text-publishing-color);">
+                  <span class="badge badge-publishing-card">
                     Publishing...
                   </span>
                 }
               </div>
               <div class="p-3">
                 @if (!shouldShowAppLetterAvatar(app)) {
-                  <div style="width: 60px; height: 60px; border-radius: 4px; background-color: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                  <div class="logo-container-sm d-flex align-items-center justify-content-center overflow-hidden">
                     <img [src]="getAppLogoUrl(app)"
                          [alt]="app.displayName"
                          (error)="onAppLogoError(app.id)"
-                         style="width: 100%; height: 100%; object-fit: contain;" />
+                         class="logo-image" />
                   </div>
                 } @else {
-                  <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+                  <div class="letter-avatar-sm d-flex align-items-center justify-content-center">
                     {{ app.displayName.charAt(0) }}
                   </div>
                 }
               </div>
               <div class="card-body d-flex flex-column">
-                <h5 class="card-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ app.displayName }}</h5>
-                <p class="card-text text-muted small" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; min-height: calc(1.4em * 4);">{{ app.description }}</p>
-                <a class="text-decoration-none" style="color: var(--btn-more-details-color); cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
-                  <u>See App Details</u>
-                </a>
+                <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
+                <p class="card-text text-muted small card-description">{{ app.description }}</p>
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
-                  <button class="btn btn-sm mt-auto"
-                          style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529;"
-                          [disabled]="!currentUser()"
-                          [style.opacity]="currentUser() ? '1' : '0.6'"
-                          [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
-                          (click)="voteForRequest(app)">
-                    <i class="fa-solid fa-thumbs-up me-1" style="font-size: 16px;"></i>
-                    <span style="font-weight: 600;">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
-                  </button>
+                  <div class="d-flex flex-column gap-2 mt-auto">
+                    <button class="btn btn-sm btn-vote"
+                            [disabled]="!currentUser()"
+                            [style.opacity]="currentUser() ? '1' : '0.6'"
+                            [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
+                            (click)="voteForRequest(app)">
+                      <i class="fa-regular fa-thumbs-up me-1 icon-lg"></i>
+                      <span class="fw-600">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
+                    </button>
+                    <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
+                      <span class="btn-continue-text">See details</span>
+                    </button>
+                  </div>
                 } @else if (app.lifecycleState === 'WITH_ERROR') {
-                  <a class="text-decoration-none text-center mt-auto" style="color: #dc3545; cursor: pointer; font-size: 0.875rem; font-weight: 600;" (click)="navigateToDetail(app.id)">
-                    <u>See error details</u>
+                  <a class="text-decoration-none text-center mt-auto link-error" (click)="navigateToDetail(app.id)">
+                    <u>Error details</u>
                   </a>
                 } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                  <div class="text-center mt-auto">
-                    <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                    <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
+                  <div class="d-flex flex-column gap-2 mt-auto">
+                    <div class="text-center">
+                      <p class="text-muted small mb-2">Importing... This may take a moment.</p>
+                      <i class="fa-solid fa-gears blink-animation publishing-icon"></i>
+                    </div>
+                    <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
+                      <span class="btn-continue-text">See details</span>
+                    </button>
                   </div>
                 } @else {
-                  <button class="btn btn-sm mt-auto" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; height: 38px;" (click)="navigateToDetail(app.id)">
-                    <span style="font-weight: 600; color: #353a41;">Continue to download&nbsp;&nbsp;</span>
-                    <i class="fa-solid fa-arrow-right" style="font-size: 14px;"></i>
+                  <button class="btn btn-sm mt-auto btn-continue" (click)="navigateToDetail(app.id)">
+                    <span class="btn-continue-text">See details</span>
                   </button>
                 }
               </div>
@@ -466,55 +473,54 @@
         }
       </div>
 
-      <nav aria-label="Page navigation" class="mx-auto" style="width: 1080px;">
+      <nav aria-label="Page navigation" class="mx-auto content-width">
         <ul class="pagination justify-content-end">
           <li class="page-item" [class.disabled]="currentPage() === 0">
-            <button class="page-link" style="background-color: white; color: black; font-weight: 600;" (click)="previousPage()" [disabled]="currentPage() === 0">
-              <i class="fa-solid fa-arrow-left me-1" style="font-size: 14px;"></i>
+            <button class="page-link page-link-default" (click)="previousPage()" [disabled]="currentPage() === 0">
+              <i class="fa-solid fa-arrow-left me-1 icon-md"></i>
               Previous
             </button>
           </li>
 
           @for (page of [].constructor(totalPages()); track $index) {
             <li class="page-item" [class.active]="currentPage() === $index">
-              <button class="page-link" style="font-weight: 600;" [style.background-color]="currentPage() === $index ? '#206F9D' : 'white'" [style.color]="currentPage() === $index ? 'white' : 'black'" (click)="goToPage($index)" >
+              <button class="page-link" [class.page-link-active]="currentPage() === $index" [class.page-link-default]="currentPage() !== $index" (click)="goToPage($index)">
                 {{ $index + 1 }}
               </button>
             </li>
           }
 
           <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
-            <button class="page-link" style="background-color: white; color: black; font-weight: 600;" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+            <button class="page-link page-link-default" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
               Next
-              <i class="fa-solid fa-arrow-right ms-1" style="font-size: 14px;"></i>
+              <i class="fa-solid fa-arrow-right ms-1 icon-md"></i>
             </button>
           </li>
         </ul>
       </nav>
 
-      <hr style="border: 0; border-top: 1px solid #6c757d; margin: 3rem 0; width: 1080px; margin-left: auto; margin-right: auto;">
+      <hr class="divider-line">
 
       <!-- Advanced Options Section -->
-      <div class="py-5 mt-5 mx-auto" style="width: 1080px;">
-        <div class="mx-auto" style="max-width: 800px;">
+      <div class="py-5 mt-5 mx-auto content-width">
+        <div class="mx-auto max-w-800">
           <h3 class="h4 mb-2 text-dark text-center">Need More Flexibility? Extend Your Integration</h3>
-          <p class="mb-4 text-center" style="color: #303030;">Choose from advanced options to tailor your midPoint setup, - whether you're uploading <br> your own configuration, requesting a custom solution, or bringing your own connector.</p>
+          <p class="mb-4 text-center description-text">Choose from advanced options to tailor your midPoint setup, - whether you're uploading <br> your own configuration, requesting a custom solution, or bringing your own connector.</p>
         </div>
 
         <!-- Upload Configuration -->
-        <div class="d-flex align-items-stretch mb-3" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; height: 148px;">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #e6e6fa; aspect-ratio: 1/1; width: 137px;">
-            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 40px; color: #6c757d;"></i>
+        <div class="d-flex align-items-stretch mb-3 options-box overflow-hidden">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-purple">
+            <i class="fa-solid fa-cloud-arrow-up options-icon"></i>
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
-              <h5 class="mb-1" style="font-weight: 600;">Upload Configuration</h5>
+              <h5 class="mb-1 fw-600">Upload Configuration</h5>
               <p class="text mb-0">Upload an existing connector configuration to quickly set up your<br>integration catalog.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
-              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600; height: 44px;" (click)="openUploadModal()">
-                <!-- <i class="fa-solid fa-upload me-1" style="font-size: 14px;"></i> -->
-                <i class="fa-solid fa-arrow-up-from-bracket" style="font-size: 18px;"></i>
+              <button class="btn btn-option" (click)="openUploadModal()">
+                <i class="fa-solid fa-arrow-up-from-bracket icon-xl"></i>
                 Upload Configuration
               </button>
             </div>
@@ -522,9 +528,9 @@
         </div>
 
         <!-- Request Tailored Solution -->
-        <div class="d-flex align-items-stretch" style="background-color: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; height: 148px;">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0" style="background-color: #fff0e6; aspect-ratio: 1/1; width: 137px;">
-            <i class="fa-solid fa-code-pull-request" style="font-size: 40px; color: #6c757d;"></i>
+        <div class="d-flex align-items-stretch options-box overflow-hidden">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-orange">
+            <i class="fa-solid fa-code-pull-request options-icon"></i>
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
@@ -532,8 +538,8 @@
               <p class="text mb-0">Need a specific integration or customization? Reach out to the Evolveum team or<br>partners to build a solution that fits your exact use case and infrastructure.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
-              <button class="btn" style="background-color: #e9ecef; border: 1px solid #ced4da; color: #212529; font-weight: 600; height: 44px;" (click)="openRequestModal()">
-                <i class="fa-solid fa-code-pull-request me-1" style="font-size: 18px;"></i>
+              <button class="btn btn-option" (click)="openRequestModal()">
+                <i class="fa-solid fa-code-pull-request me-1 icon-xl"></i>
                 Request Tailored Solution
               </button>
             </div>
@@ -557,98 +563,116 @@
 
     <!-- Fixed Position Filter Dropdowns -->
     @if (openDropdown() === 'categories' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (category of getAllAvailableCategories(); track category.name) {
-          <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCategoryInFilter(category.name); $event.stopPropagation()">
-            <div [style.background-color]="isCategorySelected(category.name) ? '#0d6efd' : 'transparent'" [style.border-color]="isCategorySelected(category.name) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCategoryInFilter(category.name); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCategorySelected(category.name)" [class.checkbox-unchecked]="!isCategorySelected(category.name)">
               @if (isCategorySelected(category.name)) {
-                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
+                <i class="fa-solid fa-check icon-xs text-white"></i>
               }
             </div>
             <span>{{ category.displayName }}</span>
           </div>
         }
         <div class="border-top pt-2 mt-2">
-          <a href="javascript:void(0)" (click)="clearCategoriesFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+          <a href="javascript:void(0)" (click)="clearCategoriesFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
         </div>
       </div>
     }
 
     @if (openDropdown() === 'capabilities' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (capability of allCapabilities; track capability) {
-          <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCapabilityInFilter(capability); $event.stopPropagation()">
-            <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCapabilityInFilter(capability); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
               @if (isCapabilitySelected(capability)) {
-                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
+                <i class="fa-solid fa-check icon-xs text-white"></i>
               }
             </div>
             <span>{{ formatCapability(capability) }}</span>
           </div>
         }
         <div class="border-top pt-2 mt-2">
-          <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+          <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
         </div>
       </div>
     }
 
     @if (openDropdown() === 'appStatus' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (status of allAppStatuses; track status) {
-          <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleAppStatusInFilter(status); $event.stopPropagation()">
-            <div [style.background-color]="isAppStatusSelected(status) ? '#0d6efd' : 'transparent'" [style.border-color]="isAppStatusSelected(status) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleAppStatusInFilter(status); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isAppStatusSelected(status)" [class.checkbox-unchecked]="!isAppStatusSelected(status)">
               @if (isAppStatusSelected(status)) {
-                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
+                <i class="fa-solid fa-check icon-xs text-white"></i>
               }
             </div>
             <span>{{ formatAppStatus(status) }}</span>
           </div>
         }
         <div class="border-top pt-2 mt-2">
-          <a href="javascript:void(0)" (click)="clearAppStatusFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+          <a href="javascript:void(0)" (click)="clearAppStatusFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
         </div>
       </div>
     }
 
     @if (openDropdown() === 'midpointVersions' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (version of allMidpointVersions(); track version) {
-          <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleMidpointVersionInFilter(version); $event.stopPropagation()">
-            <div [style.background-color]="isMidpointVersionSelected(version) ? '#0d6efd' : 'transparent'" [style.border-color]="isMidpointVersionSelected(version) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionInFilter(version); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
               @if (isMidpointVersionSelected(version)) {
-                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
+                <i class="fa-solid fa-check icon-xs text-white"></i>
               }
             </div>
             <span>{{ version }}</span>
           </div>
         }
         <div class="border-top pt-2 mt-2">
-          <a href="javascript:void(0)" (click)="clearMidpointVersionsFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+          <a href="javascript:void(0)" (click)="clearMidpointVersionsFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
         </div>
       </div>
     }
 
     @if (openDropdown() === 'integrationMethods' && dropdownPosition()) {
-      <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
         @for (method of allIntegrationMethods; track method) {
-          <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleIntegrationMethodInFilter(method); $event.stopPropagation()">
-            <div [style.background-color]="isIntegrationMethodSelected(method) ? '#0d6efd' : 'transparent'" [style.border-color]="isIntegrationMethodSelected(method) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleIntegrationMethodInFilter(method); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isIntegrationMethodSelected(method)" [class.checkbox-unchecked]="!isIntegrationMethodSelected(method)">
               @if (isIntegrationMethodSelected(method)) {
-                <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
+                <i class="fa-solid fa-check icon-xs text-white"></i>
               }
             </div>
             <span>{{ method }}</span>
           </div>
         }
         <div class="border-top pt-2 mt-2">
-          <a href="javascript:void(0)" (click)="clearIntegrationMethodsFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+          <a href="javascript:void(0)" (click)="clearIntegrationMethodsFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
+        </div>
+      </div>
+    }
+
+    @if (openDropdown() === 'maintainers' && dropdownPosition()) {
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+        @for (maintainer of allMaintainers; track maintainer) {
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMaintainerInFilter(maintainer); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMaintainerSelected(maintainer)" [class.checkbox-unchecked]="!isMaintainerSelected(maintainer)">
+              @if (isMaintainerSelected(maintainer)) {
+                <i class="fa-solid fa-check icon-xs text-white"></i>
+              }
+            </div>
+            <span>{{ maintainer }}</span>
+          </div>
+        }
+        <div class="border-top pt-2 mt-2">
+          <a href="javascript:void(0)" (click)="clearMaintainersFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
         </div>
       </div>
     }
 
     <!-- Backdrop to close dropdown when clicking outside -->
     @if (openDropdown()) {
-      <div (click)="closeDropdown()" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9998;"></div>
+      <div (click)="closeDropdown()" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
     }
   </div>
 </div>

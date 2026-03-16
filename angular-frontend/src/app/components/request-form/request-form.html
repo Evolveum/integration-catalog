@@ -6,18 +6,18 @@
 
 <!-- Success Toast Notification -->
 @if (submitSuccess()) {
-  <div class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
-    <div style="border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); min-width: 350px;">
+  <div class="position-fixed top-0 end-0 p-3 toast-container">
+    <div class="toast-box rounded-2 overflow-hidden">
       <!-- Green header row -->
-      <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background-color: #198754; color: white;">
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-success">
         <div class="d-flex align-items-center gap-2">
-          <i class="fa-solid fa-circle-check" style="font-size: 18px;"></i>
+          <i class="fa-solid fa-circle-check toast-icon"></i>
           <strong>Request Successful!</strong>
         </div>
         <button type="button" class="btn-close btn-close-white" (click)="closeSuccessMessage()" aria-label="Close"></button>
       </div>
       <!-- Light green message row -->
-      <div class="px-3 py-2" style="background-color: #d1e7dd; color: black;">
+      <div class="px-3 py-2 toast-body-success">
         Your request has been submitted. Our team will review it and get back to you.
       </div>
     </div>
@@ -26,96 +26,93 @@
 
 <!-- Request Tailored Solution Modal -->
 @if (isRequestModalOpen()) {
-  <div class="modal-backdrop" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;" (click)="closeRequestModal()"></div>
-    <div class="modal" style="display: block; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow: auto;">
-      <div class="modal-dialog modal-dialog-centered" style="max-width: 800px; max-height: 753px; margin: auto;">
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeRequestModal()"></div>
+    <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-request">
         <div class="modal-content" (click)="$event.stopPropagation()">
-          <div class="modal-header" style="border-bottom: 1px solid #dee2e6; padding: 1rem 1.5rem;">
-            <h6 class="modal-title mb-0" style="color: #5b656f;">Request Tailored Solution</h6>
-            <button type="button" class="btn p-0 ms-auto" style="border: none; background: none;" (click)="closeRequestModal()" aria-label="Close">
-              <i class="fa-solid fa-xmark" style="font-size: 14px; color: #6c757d;"></i>
+          <div class="modal-header modal-header-request">
+            <h6 class="modal-title mb-0 modal-title-request">Request Tailored Solution</h6>
+            <button type="button" class="btn p-0 ms-auto btn-close-icon" (click)="closeRequestModal()" aria-label="Close">
+              <i class="fa-solid fa-xmark close-icon"></i>
             </button>
           </div>
-          <div class="modal-body" style="padding: 0;">
+          <div class="modal-body modal-body-request">
             <!-- Row 1 -->
-            <h4 style="font-weight: 400; font-size: 20px; color: #000000; text-align: center; padding: 1.5rem 1.5rem 0 1.5rem; margin: 0;">Didn't find the integration you need?</h4>
+            <h4 class="form-heading text-center">Didn't find the integration you need?</h4>
 
             <!-- Row 2 -->
-            <h4 style="font-weight: 400; font-size: 20px; color: #000000; text-align: center; padding: 0 1.5rem 1.5rem 1.5rem; margin: 0;">Tell us what you're looking for and we'll help you connect it.</h4>
+            <h4 class="form-heading form-heading-bottom">Tell us what you're looking for and we'll help you connect it.</h4>
 
-            <div style="padding: 0 1.5rem;">
+            <div class="form-content-padding">
             <!-- Row 3 & 4 -->
             <div class="mb-3">
-              <label class="form-label" style="color: #000000;">
+              <label class="form-label form-label-black">
                 Integration Application Name*
-                <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Application name information">
-                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+                <button type="button" class="btn btn-link p-0 btn-info-icon" title="Application name information">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
               </label>
-              <input type="text" class="form-control" style="width: 356px;" [(ngModel)]="formData.integrationApplicationName" required>
+              <input type="text" class="form-control input-width-md" [(ngModel)]="formData.integrationApplicationName" required>
             </div>
 
             <!-- Row 5 -->
             <div class="mb-3">
-              <label class="form-label" style="color: #000000; font-weight: 600;">
+              <label class="form-label form-label-bold">
                 Deployment Type
-                <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Deployment type information">
-                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+                <button type="button" class="btn btn-link p-0 btn-info-icon" title="Deployment type information">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
               </label>
               <div class="d-flex gap-4">
                 <div class="form-check">
                   <input class="form-check-input" type="radio" name="deploymentType" id="deploymentOnPremise" value="on-premise" [(ngModel)]="formData.deploymentType" required>
-                  <label class="form-check-label" for="deploymentOnPremise" style="color: #000000;">On-premise</label>
+                  <label class="form-check-label form-label-black" for="deploymentOnPremise">On-premise</label>
                 </div>
                 <div class="form-check">
                   <input class="form-check-input" type="radio" name="deploymentType" id="deploymentCloudBased" value="cloud-based" [(ngModel)]="formData.deploymentType" required>
-                  <label class="form-check-label" for="deploymentCloudBased" style="color: #000000;">Cloud-based</label>
+                  <label class="form-check-label form-label-black" for="deploymentCloudBased">Cloud-based</label>
                 </div>
                 <div class="form-check">
                   <input class="form-check-input" type="radio" name="deploymentType" id="deploymentBoth" value="both" [(ngModel)]="formData.deploymentType" required>
-                  <label class="form-check-label" for="deploymentBoth" style="color: #000000;">Both</label>
+                  <label class="form-check-label form-label-black" for="deploymentBoth">Both</label>
                 </div>
               </div>
             </div>
 
             <!-- Row 6 & 7 -->
             <div class="mb-3">
-              <label class="form-label" style="color: #000000; font-weight: 600;">
+              <label class="form-label form-label-bold">
                 Requested Capabilities
-                <button type="button" class="btn btn-link p-0" style="border: none; position: relative; top: -3px;" title="Capabilities information">
-                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+                <button type="button" class="btn btn-link p-0 btn-info-icon" title="Capabilities information">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
               </label>
 
               <!-- Custom dropdown field -->
               <div class="position-relative">
-                <div class="form-control d-flex flex-wrap align-items-center gap-2"
-                    (click)="toggleCapabilitiesDropdown()"
-                    style="min-height: 41px; cursor: pointer; padding: 6px 2.25rem 6px 6px;">
+                <div class="form-control d-flex flex-wrap align-items-center gap-2 capability-dropdown-trigger"
+                    (click)="toggleCapabilitiesDropdown()">
 
                   @if (selectedCapabilities().length === 0) {
-                    <span style="color: #6c757d; padding-left: 6px;">Select</span>
+                    <span class="capability-placeholder">Select</span>
                   } @else {
                     @for (capability of selectedCapabilities(); track capability) {
-                      <span class="badge d-inline-flex align-items-center" style="background-color: rgba(96, 92, 171, 0.1); color: black; font-size: 14px; font-weight: 400; padding: 6px 10px; border-radius: 4px;">
+                      <span class="badge d-inline-flex align-items-center capability-badge">
                         {{ formatCapabilityName(capability) }}
-                        <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center" style="border: none; background: none;" (click)="removeCapability(capability, $event)" aria-label="Remove">
-                          <i class="fa-solid fa-circle-xmark" style="font-size: 12px; color: #495057;"></i>
+                        <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center btn-remove-capability" (click)="removeCapability(capability, $event)" aria-label="Remove">
+                          <i class="fa-solid fa-circle-xmark remove-icon"></i>
                         </button>
                       </span>
                     }
                   }
 
                   <!-- Dropdown arrow -->
-                  <i class="fa-solid fa-sort-down position-absolute top-50 end-0 me-2"
-                      style="font-size: 12px; color: #353A41; transform: translateY(-50%); pointer-events: none; margin-top: -3px;" ></i>
+                  <i class="fa-solid fa-sort-down position-absolute top-50 end-0 me-2 dropdown-arrow"></i>
                 </div>
 
                 <!-- Dropdown menu with checkboxes -->
                 @if (isCapabilitiesDropdownOpen()) {
-                  <div class="position-absolute w-100 bg-white mt-1"
-                      style="z-index: 1000; max-height: 350px; overflow-y: auto; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);">
+                  <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu overflow-auto">
                     @if (isLoadingCapabilities()) {
                       <div class="p-4 text-center text-muted">
                         <span>Loading capabilities...</span>
@@ -125,22 +122,22 @@
                         <span>No capabilities available</span>
                       </div>
                     } @else {
-                      <div class="p-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2rem;">
+                      <div class="p-4 capability-grid">
                         @for (capability of availableCapabilities(); track capability) {
-                          <label class="d-flex align-items-center" style="cursor: pointer; margin-bottom: 0;">
+                          <label class="d-flex align-items-center capability-label">
                             <input type="checkbox"
                                   [id]="'capability-' + capability.toLowerCase()"
                                   (change)="onCapabilityChange($event, capability)"
                                   [checked]="selectedCapabilities().includes(capability)"
-                                  style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; margin-right: 12px; border-radius: 4px; border: 2px solid #d0d5dd; accent-color: #605cab;">
-                            <span style="color: #000000; font-size: 14px; font-weight: 400; background-color: rgba(96, 92, 168, 0.1); padding: 4px 8px; border-radius: 4px;">{{ formatCapabilityName(capability) }}</span>
+                                  class="capability-checkbox">
+                            <span class="capability-label-text">{{ formatCapabilityName(capability) }}</span>
                           </label>
                         }
                       </div>
                     }
 
                     <!-- Bottom separator -->
-                    <div style="border-top: 1px solid #e4e7ec; margin: 0 1rem;"></div>
+                    <div class="dropdown-separator"></div>
                     <div class="p-3"></div>
                   </div>
                 }
@@ -149,16 +146,16 @@
 
             <!-- Row 8 & 9 -->
             <div class="mb-3">
-              <label class="form-label" style="color: #000000; font-weight: 600;">Short description*</label>
+              <label class="form-label form-label-bold">Short description*</label>
               <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the integration you need and your use case." required></textarea>
             </div>
 
             <!-- Row 10 & 11 -->
             <div class="mb-3">
-              <label class="form-label" style="color: #000000;">
-                <span style="font-weight: 600;">System Version</span> <span style="font-weight: 400;">(Optional)</span>
-                <button type="button" class="btn btn-link p-0 ms-1" style="border: none; position: relative; top: -3px;" title="System version information">
-                  <i class="fa-solid fa-circle-info" style="font-size: 12px; color: var(--text-publishing-blue);"></i>
+              <label class="form-label form-label-black">
+                <span class="fw-600">System Version</span> <span class="fw-400">(Optional)</span>
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="System version information">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
               </label>
               <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
@@ -166,8 +163,8 @@
 
             </div>
             <!-- Row 12 -->
-            <hr style="border: 0; border-top: 1px solid #adb5bd; margin: 0;">
-            <div style="padding: 1.5rem;">
+            <hr class="form-separator">
+            <div class="form-footer-padding">
             <!-- Error Message -->
             @if (submitError()) {
               <div class="alert alert-danger mb-3" role="alert">
@@ -177,10 +174,10 @@
 
             <!-- Row 13 -->
             <div class="d-flex justify-content-between">
-              <button type="button" class="btn" style="background-color: #fff; border: none; padding-left: 0;" (click)="closeRequestModal()" [disabled]="isSubmitting()">
-                <span style="color: #206F9D;">Cancel</span>
+              <button type="button" class="btn btn-cancel" (click)="closeRequestModal()" [disabled]="isSubmitting()">
+                <span class="btn-cancel-text">Cancel</span>
               </button>
-              <button type="button" class="btn" style="color: var(--btn-download-color); background-color: var(--midpoint-special-color); font-weight: 600;" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description">
+              <button type="button" class="btn btn-submit" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description">
                 {{ isSubmitting() ? 'Submitting...' : 'Submit request' }}
               </button>
             </div>

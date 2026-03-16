@@ -12,7 +12,7 @@ import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
   standalone: true,
   imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl],
   templateUrl: './upload-form-main.html',
-  styleUrls: ['./upload-form-main.css']
+  styleUrls: ['./upload-form-main.scss']
 })
 export class UploadFormMain implements OnInit {
   @Input() isOpen = signal<boolean>(false);

@@ -15,7 +15,7 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './request-form.html',
-  styleUrls: ['./request-form.css']
+  styleUrls: ['./request-form.scss']
 })
 export class RequestForm {
   @Input() isRequestModalOpen = signal<boolean>(false);

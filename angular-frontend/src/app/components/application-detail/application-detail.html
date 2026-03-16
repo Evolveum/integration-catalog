@@ -4,29 +4,10 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<div class="container-fluid p-0" style="background-color: #ffffff; min-height: 100vh;">
-  <!-- Back Button at Top -->
-  @if (!loading() && !error() && application()) {
-    <div style="background-color: #d9e3ec; padding: 0.75rem 0;">
-      <div class="container">
-        <button class="btn d-flex align-items-center" (click)="goBack()" style="border: none; padding: 0; background: none; color: #2c5282;">
-          <i class="fa-solid fa-arrow-left" style="font-size: 14px; margin-right: 0.5rem;"></i>
-          Back to Integration Catalog
-        </button>
-      </div>
-    </div>
-  }
-
-  <!-- Header Bar -->
-  <div style="background-color: #d9e3ec; padding: 1rem 0;">
-    <div class="container">
-      <div class="text-center text-muted" style="font-size: 0.875rem;"></div>
-    </div>
-  </div>
-
+<div class="container-fluid p-0 page-container">
   @if (loading()) {
     <div class="container py-5">
-      <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+      <div class="d-flex justify-content-center align-items-center loading-container">
         <div class="spinner-border text-primary" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
@@ -49,20 +30,20 @@
 
   @if (!loading() && !error() && application()) {
     <!-- Header Section -->
-    <div style="background-color: #e8eef3; padding: 2rem 0;">
+    <div class="header-section">
       <div class="container">
         <div class="d-flex align-items-start gap-4">
         <!-- Logo -->
         <div class="flex-shrink-0">
           @if (!shouldShowLetterAvatar()) {
-            <div style="width: 70px; height: 70px; border-radius: 4px; background-color: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <div class="logo-container d-flex align-items-center justify-content-center overflow-hidden">
               <img [src]="getLogoUrl()"
                    [alt]="application()!.displayName"
                    (error)="onLogoError()"
-                   style="width: 100%; height: 100%; object-fit: contain;" />
+                   class="logo-image" />
             </div>
           } @else {
-            <div style="width: 70px; height: 70px; background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: 600;">
+            <div class="letter-avatar d-flex align-items-center justify-content-center">
               {{ application()!.displayName.charAt(0) }}
             </div>
           }
@@ -70,13 +51,13 @@
 
         <!-- Title and Info -->
         <div class="flex-grow-1">
-          <h1 class="h2 mb-2" style="color: #1a202c; font-weight: 600;">
+          <h1 class="h2 mb-2 text-title">
             {{ application()!.displayName }}
             @if (application()!.tags && application()!.tags!.length > 0) {
               @for (tag of application()!.tags!; track tag.id) {
                 @if (tag.name === 'popular') {
-                  <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffc107; color: #000; font-size: 0.75rem; font-weight: 600; vertical-align: middle; padding: 0.35rem 0.65rem;">
-                    <i class="fa-solid fa-fire" style="font-size: 12px;"></i>
+                  <span class="badge badge-popular d-inline-flex align-items-center gap-1">
+                    <i class="fa-solid fa-fire icon-sm"></i>
                     {{ tag.displayName }}
                   </span>
                 }
@@ -86,30 +67,30 @@
           @if (application()!.tags && application()!.tags!.length > 0) {
             @for (tag of application()!.tags!; track tag.id) {
               @if (tag.tagType === 'COMMON' && (tag.name === 'evolveum-creation' || tag.name === 'community-creation' || tag.name === 'partner-creation')) {
-                <p class="mb-3" style="color: #718096; font-size: 0.95rem;">{{ tag.displayName }}</p>
+                <p class="mb-3 text-muted-custom text-md">{{ tag.displayName }}</p>
               }
             }
           }
-          <p class="mb-4" style="color: #4a5568;">{{ application()!.description }}</p>
+          <p class="mb-4 text-body">{{ application()!.description }}</p>
 
           <!-- Stats Row -->
-          <div class="d-flex align-items-center gap-4" style="color: #4a5568; font-size: 0.875rem;">
+          <div class="d-flex align-items-center gap-4 text-body text-sm">
             <!-- Star Rating (Placeholder) -->
             <div class="d-flex align-items-center gap-1">
-              <i class="fa-solid fa-star" style="font-size: 14px; color: #f59e0b;"></i>
-              <span style="font-weight: 500;"><b>"4.4</b> (404 reviews)"</span>
+              <i class="fa-solid fa-star star-icon"></i>
+              <span class="font-weight-medium"><b>"4.4</b> (404 reviews)"</span>
             </div>
 
             <!-- Installations (Placeholder) -->
             <div class="d-flex align-items-center gap-1">
-              <i class="fa-solid fa-download" style="font-size: 14px;"></i>
-              <span style="font-weight: 500;">{{ applicationDownloadsCount() }} download(s)</span>
+              <i class="fa-solid fa-download icon-md"></i>
+              <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
             </div>
 
             <!-- Updated Date -->
             <div class="d-flex align-items-center gap-1">
-              <i class="fa-regular fa-clock" style="font-size: 14px;"></i>
-              <span style="font-weight: 500;">{{ getTimeSinceLastUpdate(application()!.lastModified) }}</span>
+              <i class="fa-regular fa-clock icon-md"></i>
+              <span class="font-weight-medium">{{ getTimeSinceLastUpdate(application()!.lastModified) }}</span>
             </div>
           </div>
         </div>
@@ -117,15 +98,22 @@
     </div>
   </div>
 
-  <div class="container py-5">
+  <div class="container pt-3 pb-5">
+    <p class="breadcrumb-text mb-4">
+          <button class="breadcrumb-link" (click)="goBack()">Integration catalog</button>
+          <span> / {{ application()!.displayName }} connector</span>
+        </p>
     <div class="row">
       <!-- Left Panel - Main Content -->
       <div class="col-lg-8">
+        <!-- Breadcrumb -->
+        
+
         <div class="bg-white p-4 rounded mb-4">
           <!-- Description Section -->
           <div class="mb-4">
             <h2 class="h5 mb-3">Description</h2>
-            <p class="text-muted">{{ application()!.description }}</p>
+            <p>{{ application()!.description }}</p>
           </div>
 
             <!-- REQUESTED Application Info -->
@@ -144,7 +132,7 @@
                       <h3 class="h6 mb-2">Requested Capabilities:</h3>
                       <div class="d-flex flex-wrap gap-2">
                         @for (capability of application()!.capabilities!; track capability) {
-                          <span class="badge" style="background-color: #cfe2ff; color: #084298; font-size: 0.875rem; padding: 0.5rem 0.75rem;">
+                          <span class="badge badge-requested">
                             {{ capability }}
                           </span>
                         }
@@ -175,112 +163,190 @@
               <div class="row mt-4">
                 <div class="col-12">
                   <!-- Tabs Navigation -->
-                  <div style="background-color: #dfe3e7; padding: 0.25rem; border-radius: 8px; display: inline-flex; gap: 0.25rem; margin-bottom: 1.5rem;">
+                  <!-- <div class="tabs-container">
                     <button
                       (click)="setActiveTab('main')"
-                      [style.background-color]="activeTab() === 'main' ? '#ffffff' : 'transparent'"
-                      [style.color]="activeTab() === 'main' ? '#1a202c' : '#4a5568'"
-                      [style.font-weight]="activeTab() === 'main' ? '600' : '400'"
-                      style="border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">
+                      class="btn-tab"
+                      [class.btn-tab-active]="activeTab() === 'main'"
+                      [class.btn-tab-inactive]="activeTab() !== 'main'">
                       Main version(s)
                     </button>
                     <button
                       (click)="setActiveTab('other')"
-                      [style.background-color]="activeTab() === 'other' ? '#ffffff' : 'transparent'"
-                      [style.color]="activeTab() === 'other' ? '#1a202c' : '#4a5568'"
-                      [style.font-weight]="activeTab() === 'other' ? '600' : '400'"
-                      style="border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">
+                      class="btn-tab"
+                      [class.btn-tab-active]="activeTab() === 'other'"
+                      [class.btn-tab-inactive]="activeTab() !== 'other'">
                       Other versions ({{ getTotalVersionsCount() }})
                     </button>
-                  </div>
+                  </div><br> -->
 
-                  <!-- Filter Section -->
-                  <div class="d-flex align-items-center justify-content-between mb-4" style="gap: 1rem;">
-                    <!-- Left: Filter Chips -->
-                    <div class="d-flex align-items-center gap-2 flex-wrap" style="flex: 1;">
-                      @if (hasActiveFilters()) {
-                        <!-- Capabilities Filter Chip -->
-                        @if (filterState().capabilities.length > 0) {
-                          <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
-                            <span>Capability</span>
-                            <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
-                              {{ filterState().capabilities.length }}
-                            </span>
-                            <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
-                            </button>
-                            <button type="button" (click)="clearCapabilitiesFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <i class="fa-solid fa-xmark" style="font-size: 12px;"></i>
-                            </button>
-                          </div>
-                        }
+                  <!-- Choose Integration Method Section -->
+                  @if (!isContinuePressed()) {
+                    <!-- Expanded View -->
+                    <h5 class="mb-2">Choose an integration method</h5>
+                    <p class="text-sm mb-3">This selection defines how {{ application()?.displayName }} will be integrated and filters available connector versions.</p>
 
-                        <!-- ConnId Version Filter Chip -->
-                        @if (filterState().midpointVersions.length > 0) {
-                          <div class="filter-chip position-relative" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid #dee2e6; border-radius: 50px; font-size: 0.875rem;">
-                            <span>ConnId Version</span>
-                            <span class="badge rounded-circle" style="background-color: #0d6efd; color: white; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">
-                              {{ filterState().midpointVersions.length }}
-                            </span>
-                            <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i>
-                            </button>
-                            <button type="button" (click)="clearVersionsFilter()" style="background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: #6c757d;">
-                              <i class="fa-solid fa-xmark" style="font-size: 12px;"></i>
-                            </button>
+                    <div class="integration-methods-grid gap-3 mb-3">
+                      @for (method of integrationMethods; track method.id) {
+                        <div
+                          class="integration-method-card"
+                          [class.selected]="selectedIntegrationMethod() === method.id"
+                          (click)="selectIntegrationMethod(method.id)">
+                          <div class="d-flex align-items-center gap-3">
+                            <input
+                              type="radio"
+                              name="integrationMethod"
+                              [id]="'method-' + method.id"
+                              [value]="method.id"
+                              [checked]="selectedIntegrationMethod() === method.id"
+                              (change)="selectIntegrationMethod(method.id)"
+                              class="integration-method-radio" />
+                            <div>
+                              <div class="integration-method-title">{{ method.name }}</div>
+                              <div class="integration-method-description">{{ method.description }}</div>
+                            </div>
                           </div>
-                        }
+                        </div>
                       }
                     </div>
 
-                    <!-- Right: Filter Buttons -->
+                    <!-- Note -->
+                    @if (isIntegrationNoteVisible()) {
+                      <div class="integration-note mb-4 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                          <i class="fa-solid fa-circle-exclamation note-icon me-2"></i>
+                          <span class="text-sm"><strong>Note</strong> Select an integration method to see available connector versions</span>
+                        </div>
+                        <button type="button" class="btn-close-note d-flex align-items-center justify-content-center" (click)="hideIntegrationNote()">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                    }
+
+                    <!-- Continue Button -->
+                    <div class="mb-4 d-flex justify-content-end">
+                      <button
+                        class="btn btn-continue"
+                        [disabled]="!selectedIntegrationMethod()"
+                        (click)="onContinueClick()">
+                        Continue
+                      </button>
+                    </div>
+                  } @else {
+                    <!-- Collapsed View -->
+                    <h5 class="mb-3">Integration method</h5>
+                    <div class="selected-method-container mb-4 d-inline-flex align-items-center gap-3 rounded-pill">
+                      <span class="selected-method-name">{{ getSelectedMethodName() }}</span>
+                      <button type="button" class="btn-change-method d-inline-flex align-items-center" (click)="onChangeMethodClick()">
+                        <i class="fa-solid fa-pen-to-square me-1"></i>
+                        Change
+                      </button>
+                    </div>
+                  }
+
+                  <!-- Search Connector Versions Section -->
+                  <h5 class="mb-3">Search connector versions</h5>
+
+                  <!-- Search and Filter Row -->
+                  <div class="d-flex align-items-center gap-3 mb-4">
+                    <!-- Search Input -->
+                    <div class="input-group flex-grow-1">
+                      <span class="input-group-text border-end-0" [class.bg-white]="isContinuePressed()" [class.search-disabled]="!isContinuePressed()">
+                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                      </span>
+                      <input
+                        type="text"
+                        class="form-control border-start-0"
+                        [class.search-disabled]="!isContinuePressed()"
+                        [placeholder]="isContinuePressed() ? 'Filter by name or version...' : 'Select an integration method first'"
+                        [value]="versionSearchQuery()"
+                        (input)="onVersionSearchChange($event)"
+                        [disabled]="!isContinuePressed()"
+                      />
+                    </div>
+
+                    <!-- Filter Buttons -->
                     <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                      <button type="button" (click)="toggleFilterModal()" class="btn btn-sm d-flex align-items-center gap-2" style="background-color: white; border: 1px solid #cbd5e0; color: #000000; padding: 0.4rem 0.75rem; border-radius: 50px; white-space: nowrap;">
-                        <i class="fa-solid fa-filter" style="font-size: 18px;"></i>
+                      <button type="button" (click)="toggleFilterModal()" class="btn btn-sm btn-filter d-flex align-items-center gap-2" [disabled]="!isContinuePressed()">
+                        <i class="fa-solid fa-filter icon-xl"></i>
                         Filter
                       </button>
-                      <button type="button" (click)="resetFilters()" class="btn btn-sm" style="background-color: transparent; border: none; color: #6c757d; padding: 0.4rem 0.75rem; white-space: nowrap;">
+                      <button type="button" (click)="resetFilters()" class="btn btn-sm btn-reset" [disabled]="!isContinuePressed()">
                         Reset filter
                       </button>
                     </div>
                   </div>
 
+                  <!-- Active Filter Chips -->
+                  @if (hasActiveFilters()) {
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
+                      <!-- Capabilities Filter Chip -->
+                      @if (filterState().capabilities.length > 0) {
+                        <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
+                          <span>Capability</span>
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
+                            {{ filterState().capabilities.length }}
+                          </span>
+                          <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-chevron-down icon-xs"></i>
+                          </button>
+                          <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-xmark icon-sm"></i>
+                          </button>
+                        </div>
+                      }
+
+                      <!-- ConnId Version Filter Chip -->
+                      @if (filterState().midpointVersions.length > 0) {
+                        <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
+                          <span>ConnId Version</span>
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
+                            {{ filterState().midpointVersions.length }}
+                          </span>
+                          <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-chevron-down icon-xs"></i>
+                          </button>
+                          <button type="button" (click)="clearVersionsFilter()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-xmark icon-sm"></i>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+
                   <!-- Filter Modal -->
                   @if (isFilterModalOpen()) {
-                    <div class="position-fixed top-0 start-0 w-100 h-100" style="background-color: rgba(0, 0, 0, 0.5); z-index: 1050;" (click)="toggleFilterModal()">
-                      <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg" style="width: 90%; max-width: 800px; max-height: 80vh; overflow: hidden; z-index: 1051;" (click)="$event.stopPropagation()">
+                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" (click)="toggleFilterModal()">
+                      <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
                         <div class="d-flex flex-column h-100">
                           <!-- Two-panel layout -->
-                          <div class="d-flex flex-grow-1" style="overflow: hidden;">
+                          <div class="d-flex flex-grow-1 overflow-hidden">
                             <!-- Left Sidebar -->
-                            <div class="border-end" style="width: 250px; overflow-y: auto;">
+                            <div class="border-end modal-sidebar overflow-auto">
                               <div class="d-flex flex-column">
                                 <!-- Capabilities Section -->
-                                <button type="button" (click)="selectFilterSection('capabilities')" [style.background-color]="selectedFilterSection() === 'capabilities' ? '#f8f9fa' : 'transparent'" [style.border-left]="selectedFilterSection() === 'capabilities' ? '3px solid #0d6efd' : '3px solid transparent'" style="text-align: left; border: none; border-left: 3px solid transparent; padding: 1rem 1.5rem; cursor: pointer; transition: all 0.2s;">
-                                  <span style="font-weight: 500;">Capabilities</span>
+                                <button type="button" (click)="selectFilterSection('capabilities')" class="modal-section-btn" [class.modal-section-btn-active]="selectedFilterSection() === 'capabilities'">
+                                  <span class="font-weight-medium">Capabilities</span>
                                 </button>
 
                                 <!-- Midpoint Version Section -->
-                                <button type="button" (click)="selectFilterSection('versions')" [style.background-color]="selectedFilterSection() === 'versions' ? '#f8f9fa' : 'transparent'" [style.border-left]="selectedFilterSection() === 'versions' ? '3px solid #0d6efd' : '3px solid transparent'" style="text-align: left; border: none; border-left: 3px solid transparent; padding: 1rem 1.5rem; cursor: pointer; transition: all 0.2s;">
-                                  <span style="font-weight: 500;">Midpoint Version</span>
+                                <button type="button" (click)="selectFilterSection('versions')" class="modal-section-btn" [class.modal-section-btn-active]="selectedFilterSection() === 'versions'">
+                                  <span class="font-weight-medium">Midpoint Version</span>
                                 </button>
                               </div>
                             </div>
 
                             <!-- Right Content Area -->
-                            <div class="p-4" style="width: 550px; overflow-y: auto;">
+                            <div class="p-4 modal-main overflow-auto">
                               <!-- Capabilities Content -->
                               @if (selectedFilterSection() === 'capabilities') {
                                 <div class="d-flex flex-wrap gap-2">
                                   @for (capability of allCapabilities; track capability) {
                                     <span
-                                      class="badge capability-badge"
-                                      [class.selected]="isCapabilitySelected(capability)"
-                                      (click)="toggleCapabilityFilter(capability)"
-                                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
-                                      [style.border]="isCapabilitySelected(capability) ? '1px solid #2722c7' : '1px solid #a6a6a6'"
-                                      [style.background-color]="isCapabilitySelected(capability) ? '#f2f2f2' : 'white'"
-                                      [style.color]="isCapabilitySelected(capability) ? '#2722c7' : '#212529'">
+                                      class="badge badge-selectable"
+                                      [class.badge-selectable-active]="isCapabilitySelected(capability)"
+                                      [class.badge-selectable-inactive]="!isCapabilitySelected(capability)"
+                                      (click)="toggleCapabilityFilter(capability)">
                                       {{ formatCapabilityText(capability) }}
                                     </span>
                                   }
@@ -292,13 +358,10 @@
                                 <div class="d-flex flex-wrap gap-2">
                                   @for (version of getAllMidpointVersions(); track version) {
                                     <span
-                                      class="badge version-badge"
-                                      [class.selected]="isMidpointVersionSelected(version)"
-                                      (click)="toggleMidpointVersionFilter(version)"
-                                      style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
-                                      [style.border]="isMidpointVersionSelected(version) ? '1px solid #2722c7' : '1px solid #a6a6a6'"
-                                      [style.background-color]="isMidpointVersionSelected(version) ? '#f2f2f2' : 'white'"
-                                      [style.color]="isMidpointVersionSelected(version) ? '#2722c7' : '#212529'">
+                                      class="badge badge-selectable"
+                                      [class.badge-selectable-active]="isMidpointVersionSelected(version)"
+                                      [class.badge-selectable-inactive]="!isMidpointVersionSelected(version)"
+                                      (click)="toggleMidpointVersionFilter(version)">
                                       {{ version }}
                                     </span>
                                   } @empty {
@@ -313,513 +376,156 @@
                     </div>
                   }
 
-                  <!-- Tab Content -->
-                  @if (activeTab() === 'main') {
-                    @if (activeEvolvumVersions().length > 0) {
-                      <h2 class="h6 mb-3 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Best Version By Evolveum</h2>
-                    @for (version of activeEvolvumVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
-                        <!-- Version Header -->
-                        <div class="d-flex align-items-start justify-content-between mb-3">
-                          <div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                              <h3 class="h5 mb-0">
-                                @if (version.connectorVersion) {
-                                  Version {{ version.connectorVersion }}
-                                } @else {
-                                  Version {{ $index + 1 }}
+                  <!-- Versions Content -->
+                  @if (!isContinuePressed()) {
+                    <!-- Placeholder when Continue not pressed -->
+                    <div class="versions-placeholder text-center">
+                      <p class="mb-2">Select an integration method to see available connector versions.</p>
+                      <p class="text-muted">We will show only versions that support chosen method.</p>
+                    </div>
+                  } @else {
+                    <!-- All Versions List -->
+                    @for (version of allVersions(); track $index) {
+                      <div class="mb-4">
+                        <div class="border p-4 rounded position-relative version-card">
+                          <!-- Version Header -->
+                          <div class="d-flex align-items-start justify-content-between mb-3">
+                            <div>
+                              <div class="d-flex align-items-center gap-2 mb-2">
+                                <h3 class="h5 mb-0">
+                                  @if (version.connectorVersion) {
+                                    Version {{ version.connectorVersion }}
+                                  } @else {
+                                    Version {{ $index + 1 }}
+                                  }
+                                </h3>
+                                @if (version.systemVersion) {
+                                  <span class="badge bg-secondary">{{ version.systemVersion }}</span>
                                 }
-                              </h3>
-                              @if (version.systemVersion) {
-                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
-                              }
-                            </div>
+                              </div>
 
-                            <!-- Creator and Meta Info -->
-                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
-                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
-                                  <span>AI Generated</span>
-                                </div>
-                              }
-                              @if (version.author) {
+                              <!-- Creator and Meta Info -->
+                              <div class="d-flex align-items-center gap-3 text-muted text-sm">
+                                @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
+                                  <div class="d-flex align-items-center gap-1 fw-bold text-ai">
+                                    <i class="fa-solid fa-wand-magic-sparkles icon-xs"></i>
+                                    <span>AI Generated</span>
+                                  </div>
+                                }
+                                @if (version.author) {
+                                  <div class="d-flex align-items-center gap-1">
+                                    <i class="fa-solid fa-user icon-sm"></i>
+                                    <span>Created by [{{ version.author }}]</span>
+                                  </div>
+                                }
+                              </div>
+
+                              <!-- Connector Type, Published Date, Downloads -->
+                              <div class="d-flex align-items-center gap-3 text-muted mt-2 text-sm">
+                                <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
+                                @if (version.releasedDate) {
+                                  <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
+                                }
                                 <div class="d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
-                                  <span>Created by [{{ version.author }}]</span>
+                                  <i class="fa-solid fa-download icon-sm"></i>
+                                  <span>{{ version.downloadCount || 0 }} Downloads</span>
                                 </div>
-                              }
-                            </div>
-
-                            <!-- Connector Type, Published Date, Downloads -->
-                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
-                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
-                              @if (version.releasedDate) {
-                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                              }
-                              <div class="d-flex align-items-center gap-1">
-                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
-                                <span>{{ version.downloadCount || 0 }} Downloads</span>
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        <!-- Description -->
-                        @if (version.description) {
-                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
-                        } @else {
-                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
-                        }
-                        <!-- Capabilities -->
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mb-3">
-                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
-                            <div class="d-flex flex-wrap gap-2">
-                              @let allCapabilities = filterInstalledCapability(version.capabilities);
-                              @let isVersionExpanded = isExpanded($index);
-                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                              @let remainingCount = allCapabilities.length - 10;
+                          <!-- Description -->
+                          @if (version.description) {
+                            <p class="mb-3 text-black">{{ version.description }}</p>
+                          } @else {
+                            <p class="fst-italic mb-3 text-black">No description available</p>
+                          }
 
-                              @for (item of visibleCapabilities; track $index) {
-                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
-                              }
+                          <!-- Capabilities -->
+                          @if (hasNonInstalledCapabilities(version.capabilities)) {
+                            <div class="mb-3">
+                              <p class="text-muted small mb-2 fw-normal">Capabilities:</p>
+                              <div class="d-flex flex-wrap gap-2">
+                                @let versionCapabilities = filterInstalledCapability(version.capabilities);
+                                @let isVersionExpanded = isExpanded($index);
+                                @let visibleCapabilities = isVersionExpanded ? versionCapabilities : versionCapabilities.slice(0, 10);
+                                @let remainingCount = versionCapabilities.length - 10;
 
-                              @if (remainingCount > 0) {
-                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
-                                  @if (isVersionExpanded) {
-                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
-                                  } @else {
-                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
-                                  }
-                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                </span>
-                              }
-                            </div>
-                          </div>
-                        }
-
-                        <!-- Action Buttons or Error Banner -->
-                        @if (version.errorMessage) {
-                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
-                            <div class="d-flex align-items-center gap-2">
-                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
-                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
-                                Retry Publish
-                              </button>
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
-                                Edit
-                              </button>
-                            </div>
-                          </div>
-                        } @else {
-                          <div class="d-flex justify-content-end gap-2 mt-3">
-                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
-                              Edit
-                            </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
-                              Download
-                            </button>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                    }
-                    }
-
-                    @if (activeCommunityVersions().length > 0) {
-                      <h2 class="h6 mb-3 mt-5 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Best Version By Community</h2>
-                    @for (version of activeCommunityVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
-                        <!-- Version Header -->
-                        <div class="d-flex align-items-start justify-content-between mb-3">
-                          <div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                              <h3 class="h5 mb-0">
-                                @if (version.connectorVersion) {
-                                  Version {{ version.connectorVersion }}
-                                } @else {
-                                  Version {{ $index + 1 }}
+                                @for (item of visibleCapabilities; track $index) {
+                                  <span class="badge badge-capability">{{ formatCapabilityText(item) }}</span>
                                 }
-                              </h3>
-                              @if (version.systemVersion) {
-                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
-                              }
-                            </div>
 
-                            <!-- Creator and Meta Info -->
-                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
-                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
-                                  <span>AI Generated</span>
-                                </div>
-                              }
-                              @if (version.author) {
-                                <div class="d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
-                                  <span>Created by [{{ version.author }}]</span>
-                                </div>
-                              }
-                            </div>
-
-                            <!-- Connector Type, Published Date, Downloads -->
-                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
-                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
-                              @if (version.releasedDate) {
-                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                              }
-                              <div class="d-flex align-items-center gap-1">
-                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
-                                <span>{{ version.downloadCount || 0 }} Downloads</span>
+                                @if (remainingCount > 0) {
+                                  <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleCapabilities($index)">
+                                    @if (isVersionExpanded) {
+                                      <i class="fa-solid fa-eye-slash icon-sm"></i>
+                                    } @else {
+                                      <i class="fa-solid fa-eye icon-sm"></i>
+                                    }
+                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
+                                  </span>
+                                }
                               </div>
                             </div>
-                          </div>
-                        </div>
+                          }
 
-                        <!-- Description -->
-                        @if (version.description) {
-                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
-                        } @else {
-                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
-                        }
-                        <!-- Capabilities -->
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mb-3">
-                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
-                            <div class="d-flex flex-wrap gap-2">
-                              @let allCapabilities = filterInstalledCapability(version.capabilities);
-                              @let isVersionExpanded = isExpanded($index);
-                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                              @let remainingCount = allCapabilities.length - 10;
-
-                              @for (item of visibleCapabilities; track $index) {
-                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
-                              }
-
-                              @if (remainingCount > 0) {
-                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
-                                  @if (isVersionExpanded) {
-                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
-                                  } @else {
-                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
-                                  }
-                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                </span>
-                              }
+                          <!-- Action Buttons or Error Banner or Publishing State -->
+                          @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                            <div class="text-center mt-3 py-3">
+                              <p class="text-muted mb-3">Importing... This may take a moment.</p>
+                              <i class="fa-solid fa-gears blink-animation icon-xxl publishing-icon"></i>
                             </div>
-                          </div>
-                        }
-
-                        <!-- Action Buttons or Error Banner -->
-                        @if (version.errorMessage) {
-                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
-                            <div class="d-flex align-items-center gap-2">
-                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
-                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
-                                Retry Publish
-                              </button>
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
-                                Edit
-                              </button>
-                            </div>
-                          </div>
-                        } @else {
-                          <div class="d-flex justify-content-end gap-2 mt-3">
-                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
-                              Edit
-                            </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
-                              Download
-                            </button>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                    }
-                    }
-
-                    @if (activeEvolvumVersions().length === 0 && activeCommunityVersions().length === 0) {
-                      <p class="text-muted fst-italic">No active versions available</p>
-                    }
-                  }
-
-                  @if (activeTab() === 'other') {
-                    @if (otherEvolvumVersions().length > 0) {
-                      <h2 class="h6 mb-3 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Created By Evolveum Or Evolveum Partner</h2>
-                    @for (version of otherEvolvumVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
-                        <!-- Version Header -->
-                        <div class="d-flex align-items-start justify-content-between mb-3">
-                          <div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                              <h3 class="h5 mb-0">
-                                @if (version.connectorVersion) {
-                                  Version {{ version.connectorVersion }}
-                                } @else {
-                                  Version {{ $index + 1 }}
-                                }
-                              </h3>
-                              @if (version.systemVersion) {
-                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
-                              }
-                            </div>
-
-                            <!-- Creator and Meta Info -->
-                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
-                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
-                                  <span>AI Generated</span>
-                                </div>
-                              }
-                              @if (version.author) {
-                                <div class="d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
-                                  <span>Created by [{{ version.author }}]</span>
-                                </div>
-                              }
-                            </div>
-
-                            <!-- Connector Type, Published Date, Downloads -->
-                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
-                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
-                              @if (version.releasedDate) {
-                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                              }
-                              <div class="d-flex align-items-center gap-1">
-                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
-                                <span>{{ version.downloadCount || 0 }} Downloads</span>
+                          } @else if (version.errorMessage) {
+                            <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded error-banner">
+                              <div class="d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation icon-lg text-error"></i>
+                                <span class="text-error text-sm">{{ version.errorMessage }}</span>
+                              </div>
+                              <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-retry d-flex align-items-center gap-1">
+                                  <i class="fa-solid fa-rotate-right icon-sm"></i>
+                                  Retry Publish
+                                </button>
+                                <button class="btn btn-sm btn-edit-error d-flex align-items-center gap-1">
+                                  <i class="fa-solid fa-pen-to-square icon-sm"></i>
+                                  Edit
+                                </button>
                               </div>
                             </div>
-                          </div>
-                        </div>
-
-                        <!-- Description -->
-                        @if (version.description) {
-                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
-                        } @else {
-                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
-                        }
-                        <!-- Capabilities -->
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mb-3">
-                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
-                            <div class="d-flex flex-wrap gap-2">
-                              @let allCapabilities = filterInstalledCapability(version.capabilities);
-                              @let isVersionExpanded = isExpanded($index);
-                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                              @let remainingCount = allCapabilities.length - 10;
-
-                              @for (item of visibleCapabilities; track $index) {
-                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
-                              }
-
-                              @if (remainingCount > 0) {
-                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
-                                  @if (isVersionExpanded) {
-                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
-                                  } @else {
-                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
-                                  }
-                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                </span>
-                              }
-                            </div>
-                          </div>
-                        }
-
-                        <!-- Action Buttons or Error Banner or Publishing State -->
-                        @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                          <div class="text-center mt-3 py-3">
-                            <p class="text-muted mb-3">Importing... This may take a moment.</p>
-                            <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
-                          </div>
-                        } @else if (version.errorMessage) {
-                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
-                            <div class="d-flex align-items-center gap-2">
-                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
-                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
-                                Retry Publish
-                              </button>
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
+                          } @else {
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                              <button class="btn btn-edit">
                                 Edit
                               </button>
+                              <button (click)="downloadVersion(version.id)" class="btn text-sm btn-download" [disabled]="!version.id">
+                                <i class="fa-solid fa-download me-1 icon-sm"></i>
+                                Download
+                              </button>
                             </div>
-                          </div>
-                        } @else {
-                          <div class="d-flex justify-content-end gap-2 mt-3">
-                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
-                              Edit
-                            </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
-                              Download
-                            </button>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                    }
-                    }
-
-                    @if (otherCommunityVersions().length > 0) {
-                      <h2 class="h6 mb-3 mt-5 text-muted" style="text-transform: uppercase; font-size: 0.75rem;">Created By Community</h2>
-                    @for (version of otherCommunityVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-4 rounded position-relative" style="background-color: #ffffff;">
-                        <!-- Version Header -->
-                        <div class="d-flex align-items-start justify-content-between mb-3">
-                          <div>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                              <h3 class="h5 mb-0">
-                                @if (version.connectorVersion) {
-                                  Version {{ version.connectorVersion }}
-                                } @else {
-                                  Version {{ $index + 1 }}
-                                }
-                              </h3>
-                              @if (version.systemVersion) {
-                                <span class="badge bg-secondary">{{ version.systemVersion }}</span>
-                              }
-                            </div>
-
-                            <!-- Creator and Meta Info -->
-                            <div class="d-flex align-items-center gap-3 text-muted" style="font-size: 0.875rem;">
-                              @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                                <div class="d-flex align-items-center gap-1 fw-bold" style="color: #502afa;">
-                                  <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 10px;"></i>
-                                  <span>AI Generated</span>
-                                </div>
-                              }
-                              @if (version.author) {
-                                <div class="d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-user" style="font-size: 12px;"></i>
-                                  <span>Created by [{{ version.author }}]</span>
-                                </div>
-                              }
-                            </div>
-
-                            <!-- Connector Type, Published Date, Downloads -->
-                            <div class="d-flex align-items-center gap-3 text-muted mt-2" style="font-size: 0.875rem;">
-                              <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
-                              @if (version.releasedDate) {
-                                <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                              }
-                              <div class="d-flex align-items-center gap-1">
-                                <i class="fa-solid fa-download" style="font-size: 12px;"></i>
-                                <span>{{ version.downloadCount || 0 }} Downloads</span>
-                              </div>
-                            </div>
-                          </div>
+                          }
                         </div>
-
-                        <!-- Description -->
-                        @if (version.description) {
-                          <p class="mb-3" style="color: #000000;">{{ version.description }}</p>
-                        } @else {
-                          <p class="fst-italic mb-3" style="color: #000000;">No description available</p>
-                        }
-                        <!-- Capabilities -->
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mb-3">
-                            <p class="text-muted small mb-2" style="font-weight: 400;">Capabilities:</p>
-                            <div class="d-flex flex-wrap gap-2">
-                              @let allCapabilities = filterInstalledCapability(version.capabilities);
-                              @let isVersionExpanded = isExpanded($index);
-                              @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                              @let remainingCount = allCapabilities.length - 10;
-
-                              @for (item of visibleCapabilities; track $index) {
-                                <span class="badge" style="background-color: #e8eef5; color: #000000; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;">{{ formatCapabilityText(item) }}</span>
-                              }
-
-                              @if (remainingCount > 0) {
-                                <span class="badge d-inline-flex align-items-center gap-1" style="background-color: #ffffff; color: #000000; border: 1px solid #cbd5e0; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.6rem; font-weight: 400;" (click)="toggleCapabilities($index)">
-                                  @if (isVersionExpanded) {
-                                    <i class="fa-solid fa-eye-slash" style="font-size: 12px;"></i>
-                                  } @else {
-                                    <i class="fa-solid fa-eye" style="font-size: 12px;"></i>
-                                  }
-                                  {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                </span>
-                              }
-                            </div>
-                          </div>
-                        }
-
-                        <!-- Action Buttons or Error Banner or Publishing State -->
-                        @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
-                          <div class="text-center mt-3 py-3">
-                            <p class="text-muted mb-3">Importing... This may take a moment.</p>
-                            <i class="fa-solid fa-gears blink-animation" style="font-size: 36px; color: var(--midpoint-special-color);"></i>
-                          </div>
-                        } @else if (version.errorMessage) {
-                          <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded" style="background-color: #f8d7da; border: 1px solid #f5c2c7;">
-                            <div class="d-flex align-items-center gap-2">
-                              <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; color: #842029;"></i>
-                              <span style="color: #842029; font-size: 0.875rem;">{{ version.errorMessage }}</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background: none; border: none; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-rotate-right" style="font-size: 12px;"></i>
-                                Retry Publish
-                              </button>
-                              <button class="btn btn-sm d-flex align-items-center gap-1" style="background-color: #ffffff; border: 1px solid #dee2e6; color: #000000; font-size: 0.875rem; cursor: pointer;">
-                                <i class="fa-solid fa-pen-to-square" style="font-size: 12px;"></i>
-                                Edit
-                              </button>
-                            </div>
-                          </div>
-                        } @else {
-                          <div class="d-flex justify-content-end gap-2 mt-3">
-                            <button class="btn" style="font-size: 0.875rem; border: none; color: #367FAA; font-weight: 600;">
-                              Edit
-                            </button>
-                            <button (click)="downloadVersion(version.id)" class="btn" [disabled]="!version.id" style="background-color: var(--midpoint-special-color); color: var(--btn-download-color); font-size: 0.875rem; border: none;">
-                              <i class="fa-solid fa-download me-1" style="font-size: 12px;"></i>
-                              Download
-                            </button>
-                          </div>
-                        }
                       </div>
-                    </div>
-                    }
-                    }
-
-                    @if (otherEvolvumVersions().length === 0 && otherCommunityVersions().length === 0) {
-                      <p class="text-muted fst-italic">No other versions available</p>
+                    } @empty {
+                      <p class="text-muted fst-italic">No versions available</p>
                     }
                   }
                 </div>
               </div>
             }
         </div>
+
+        <!-- Back Button -->
+        <div class="mt-4 ps-4">
+          <button class="btn btn-back d-flex align-items-center" (click)="goBack()">
+            <i class="fa-solid fa-arrow-left icon-md me-2"></i>
+            Back to Integration Catalog
+          </button>
+        </div>
       </div>
 
       <!-- Right Panel - Sidebar -->
       <div class="col-lg-4">
-        <div class="p-4 rounded shadow-sm" style="background-color: #f8f8ff;">
+        <div class="p-4 rounded shadow-sm sidebar-panel">
           <!-- Tags Section -->
           <div class="mb-4">
             <h6 class="text-muted small mb-2">Tags</h6>
@@ -828,19 +534,19 @@
                 @for (tag of application()!.tags!; track tag.id) {
                   @if (tag.name !== 'popular' && tag.tagType !== 'CATEGORY' && tag.tagType !== 'COMMON') {
                     @if (tag.tagType === 'DEPLOYMENT') {
-                      <span class="badge" style="background-color: #cfe2ff; color: #084298; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
+                      <span class="badge badge-deployment">{{ tag.displayName }}</span>
                     }
                     @if (tag.tagType === 'LOCALITY') {
-                      <span class="badge" style="background-color: #d1ecf1; color: #0c5460; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
+                      <span class="badge badge-locality">{{ tag.displayName }}</span>
                     }
                     @if (tag.tagType === 'COMMON') {
-                      <span class="badge" style="background-color: #e2e3e5; color: #2b2e31; font-size: 0.875rem; padding: 0.5rem 0.75rem; width: fit-content;">{{ tag.displayName }}</span>
+                      <span class="badge badge-common">{{ tag.displayName }}</span>
                     }
                   }
                 }
               </div>
             } @else {
-              <p class="mb-0 text-muted" style="font-size: 0.875rem;">No tags available</p>
+              <p class="mb-0 text-muted text-sm">No tags available</p>
             }
           </div>
 
@@ -856,7 +562,7 @@
                 }
               </div>
             } @else {
-              <p class="mb-0 text-muted" style="font-size: 0.875rem;">Not available</p>
+              <p class="mb-0 text-muted text-sm">Not available</p>
             }
           </div>
 
@@ -866,7 +572,7 @@
             @if (application()!.lastModified) {
               <p class="mb-0">{{ application()!.lastModified | date: 'MMM d, yyyy' }}</p>
             } @else {
-              <p class="mb-0 text-muted" style="font-size: 0.875rem;">Not available</p>
+              <p class="mb-0 text-muted text-sm">Not available</p>
             }
           </div>
 
@@ -875,17 +581,17 @@
             <h6 class="text-muted small mb-1">Maintainer Location</h6>
             @if (application()!.origins && application()!.origins!.length > 0) {
               @for (origin of application()!.origins!; track origin.id) {
-                <p class="mb-0 fw-bold" style="color: #5B656F;">{{ origin.displayName }}</p>
+                <p class="mb-0 fw-bold text-body">{{ origin.displayName }}</p>
               }
             } @else {
-              <p class="mb-0 text-muted" style="font-size: 0.875rem;">Not available</p>
+              <p class="mb-0 text-muted text-sm">Not available</p>
             }
           </div>
 
           <!-- Installations -->
           <div class="mb-5">
             <h6 class="text-muted small mb-1">Installations</h6>
-            <p class="mb-0 fw-bold" style="font-size: 1.3rem; font-weight: 600; color: #5B656F;">0</p>
+            <p class="mb-0 fw-bold text-body stat-value">0</p>
           </div>
         </div>
       </div>
@@ -894,44 +600,44 @@
 
   <!-- Fixed Position Filter Dropdowns -->
   @if (openDropdown() === 'capabilities' && dropdownPosition()) {
-    <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+    <div class="filter-dropdown overflow-auto rounded-2" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
       @for (capability of allCapabilities; track capability) {
-        <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
-          <div [style.background-color]="isCapabilitySelected(capability) ? '#0d6efd' : 'transparent'" [style.border-color]="isCapabilitySelected(capability) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+        <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
+          <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
             @if (isCapabilitySelected(capability)) {
-              <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
+              <i class="fa-solid fa-check icon-xs text-white"></i>
             }
           </div>
           <span>{{ formatCapabilityText(capability) }}</span>
         </div>
       }
       <div class="border-top pt-2 mt-2">
-        <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+        <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" class="text-primary text-sm text-decoration-none">Clear filter</a>
       </div>
     </div>
   }
 
   @if (openDropdown() === 'versions' && dropdownPosition()) {
-    <div class="filter-dropdown" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left" style="background: white; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 0.75rem; min-width: 200px; max-width: 300px; max-height: 300px; overflow-y: auto; z-index: 9999;">
+    <div class="filter-dropdown overflow-auto rounded-2" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
       @for (version of getAllMidpointVersions(); track version) {
-        <div class="d-flex align-items-center gap-2 mb-2" style="cursor: pointer;" (click)="toggleMidpointVersionFilter(version); $event.stopPropagation()">
-          <div [style.background-color]="isMidpointVersionSelected(version) ? '#0d6efd' : 'transparent'" [style.border-color]="isMidpointVersionSelected(version) ? '#0d6efd' : '#dee2e6'" style="width: 16px; height: 16px; border: 1px solid; border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s ease;">
+        <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionFilter(version); $event.stopPropagation()">
+          <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
             @if (isMidpointVersionSelected(version)) {
-              <i class="fa-solid fa-check" style="font-size: 10px; color: white;"></i>
+              <i class="fa-solid fa-check icon-xs text-white"></i>
             }
           </div>
           <span>{{ version }}</span>
         </div>
       }
       <div class="border-top pt-2 mt-2">
-        <a href="javascript:void(0)" (click)="clearVersionsFilter(); $event.stopPropagation()" style="color: #0d6efd; font-size: 0.875rem; text-decoration: none;">Clear filter</a>
+        <a href="javascript:void(0)" (click)="clearVersionsFilter(); $event.stopPropagation()" class="text-primary text-sm text-decoration-none">Clear filter</a>
       </div>
     </div>
   }
 
   <!-- Backdrop to close dropdown when clicking outside -->
   @if (openDropdown()) {
-    <div (click)="closeDropdown()" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9998;"></div>
+    <div (click)="closeDropdown()" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
   }
   }
 </div>

@@ -16,7 +16,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './upload-form-impl.html',
-  styleUrls: ['./upload-form-impl.css']
+  styleUrls: ['./upload-form-impl.scss']
 })
 export class UploadFormImpl implements OnChanges {
   // Input from parent
