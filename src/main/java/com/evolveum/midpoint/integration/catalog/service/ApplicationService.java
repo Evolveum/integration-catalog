@@ -342,6 +342,17 @@ public class ApplicationService {
     }
 
     /**
+     * Returns all active connectors mapped to ActiveConnectorDto.
+     */
+    public List<ActiveConnectorDto> listActiveConnectors() {
+        List<Application> activeApps = applicationReadPort.findByLifecycleState(
+                Application.ApplicationLifecycleType.ACTIVE);
+        return activeApps.stream()
+                .map(applicationMapper::toActiveConnectorDto)
+                .toList();
+    }
+
+    /**
      * Verify validity of the implementation version based on the data produced by the Jenkins pipeline.
      * Delegates to BundleMergeService.
      *

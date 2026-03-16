@@ -7,9 +7,11 @@
 import { Routes } from '@angular/router';
 import { ApplicationsList } from './components/applications-list/applications-list';
 import { ApplicationDetail } from './components/application-detail/application-detail';
+import { UploadFormMain } from './components/upload-form-main/upload-form-main';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
   { path: 'applications', component: ApplicationsList },
-  { path: 'applications/:id', component: ApplicationDetail }
+  { path: 'applications/:id', component: ApplicationDetail },
+  { path: 'publish', component: UploadFormMain }
 ];

@@ -38,87 +38,150 @@
   </div>
 }
 
-@if (isOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
-  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-upload">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <!-- Modal Header -->
-        <div class="modal-header modal-header-upload">
-          <h5 class="modal-title mb-0">Upload App to Integration Catalog</h5>
-          <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
-        </div>
+<div class="publish-page">
+  <!-- Full-width header background, content constrained to 1080px -->
+  <div class="modal-header modal-header-upload publish-header">
+    <div class="publish-header-inner d-flex align-items-center position-relative">
+      <button type="button" class="btn p-0 d-flex align-items-center btn-back-catalog" (click)="closeModal()">
+        <i class="fa-solid fa-arrow-left me-2"></i>
+        Back to Integration catalog
+      </button>
+      <h5 class="modal-title mb-0 modal-title-center">Publish new connector</h5>
+    </div>
+  </div>
 
-        <!-- Step Navigation -->
-        <div class="steps-container steps-container-padding">
-          <div class="d-flex justify-content-between position-relative steps-padding-bottom">
-            <!-- Step 1 -->
-            <div class="step-item flex-fill text-center position-relative" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
-              <div class="d-flex align-items-center">
-                <div class="step-number-wrapper d-flex align-items-center">
-                  <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
-                        [class.step-number-completed]="currentStep() > 1"
-                        [class.step-number-active]="currentStep() === 1"
-                        [class.step-number-inactive]="currentStep() < 1">
-                    @if (currentStep() > 1) {
-                      <i class="fa-solid fa-check step-check-icon"></i>
-                    } @else {
-                      1
-                    }
-                  </span>
-                  <span class="step-label ms-2 step-label-text"
-                        [class.step-label-active]="currentStep() === 1"
-                        [class.step-label-inactive]="currentStep() !== 1">Select Connector type</span>
-                </div>
-              </div>
-            </div>
+  <div class="publish-content">
+        <!-- Main area: scrollable content + footer on left, recently-used sidebar on right -->
+        <div class="modal-main">
 
-            <!-- Step 2 -->
-            <div class="step-item flex-fill text-center position-relative" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
-              <div class="d-flex align-items-center justify-content-center">
-                <div class="step-number-wrapper d-flex align-items-center">
-                  <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
-                        [class.step-number-completed]="currentStep() > 2"
-                        [class.step-number-active]="currentStep() === 2"
-                        [class.step-number-inactive]="currentStep() < 2">
-                    @if (currentStep() > 2) {
-                      <i class="fa-solid fa-check step-check-icon"></i>
-                    } @else {
-                      2
-                    }
-                  </span>
-                  <span class="step-label ms-2 step-label-text text-start"
-                        [class.step-label-active]="currentStep() === 2"
-                        [class.step-label-inactive]="currentStep() !== 2">Define Target App</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Step 3 -->
-            <div class="step-item flex-fill text-center position-relative" [class.active]="currentStep() === 3">
-              <div class="d-flex align-items-center justify-content-end">
-                <div class="step-number-wrapper d-flex align-items-center">
-                  <span class="step-number rounded-circle d-flex align-items-center justify-content-center"
-                        [class.step-number-active]="currentStep() === 3"
-                        [class.step-number-inactive]="currentStep() !== 3">3</span>
-                  <span class="step-label ms-2 step-label-text text-start"
-                        [class.step-label-active]="currentStep() === 3"
-                        [class.step-label-inactive]="currentStep() !== 3">Define Implementation</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- Progress Bar -->
-          <div class="position-relative progress-bar-container">
-            <div class="progress-bar-fill position-absolute"
-                 [style.left]="currentStep() === 1 ? '0%' : (currentStep() === 2 ? '33.33%' : '66.66%')"></div>
-          </div>
-        </div>
+          <!-- Left: body + footer stacked -->
+          <div class="modal-main-left">
 
         <!-- Modal Body -->
         <div class="modal-body modal-body-upload" (click)="showOriginDropdown.set(false)">
-          <!-- Step 1: Select Connector Type -->
-          @if (currentStep() === 1) {
+          <!-- Step 2: Select Integration Method -->
+          @if (currentStep() === 2) {
+            <div class="step-content">
+              <h6 class="mb-4 step-heading-light">Select integration method</h6>
+              <div class="row g-3">
+                @for (method of integrationMethods; track method.value) {
+                  <div [class]="method.wide ? 'col-4' : 'col-3'">
+                    <div class="im-card" [class.im-card-selected]="selectedIntegrationMethod() === method.value" (click)="selectIntegrationMethod(method.value)">
+                      <div class="d-flex align-items-start">
+                        <input type="radio" name="integrationMethod" class="im-radio flex-shrink-0 me-2"
+                               [checked]="selectedIntegrationMethod() === method.value">
+                        <div>
+                          <div class="im-title">{{ method.title }}</div>
+                          <div class="im-desc">{{ method.description }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Step 3: Fill Method Form -->
+          @if (currentStep() === 3) {
+            <div class="step-content">
+              <h5 class="mb-2 method-form-heading">Fill the {{ selectedMethodInfo()?.title }} form</h5>
+              <p class="mb-4 method-form-subtitle">{{ selectedMethodInfo()?.formDescription }}</p>
+
+              <!-- Display Name -->
+              <div class="mb-4">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  Display Name*
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">The display name for this integration in the catalog.</span>
+                  </span>
+                </label>
+                <input type="text" class="form-control input-width-sm" [(ngModel)]="methodFormDisplayName" placeholder="TypeName...">
+              </div>
+
+              <!-- Description -->
+              <div class="mb-4">
+                <label class="form-label form-label-upload">Description</label>
+                <div class="position-relative">
+                  <textarea class="form-control" [value]="methodFormDescription()" (input)="onMethodFormDescriptionChange($event)"
+                            placeholder="Type description of application..." rows="4" maxlength="350"></textarea>
+                  <div class="text-end text-muted char-counter">{{ methodFormDescription().length }}/350 characters</div>
+                </div>
+              </div>
+
+              <!-- Sample Link -->
+              <div class="mb-4">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  Sample Link
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">A link to a sample or reference implementation (e.g. GitHub repository).</span>
+                  </span>
+                </label>
+                <div class="method-link-wrapper d-flex align-items-center">
+                  <span class="method-link-icon d-flex align-items-center px-3">
+                    <i class="fa-solid fa-link method-link-icon-i"></i>
+                  </span>
+                  <input type="url" class="method-link-input flex-grow-1" [(ngModel)]="methodFormSampleLink"
+                         placeholder="https://github.com/example/repo">
+                  @if (methodFormSampleLink()) {
+                    <button type="button" class="method-link-clear d-flex align-items-center px-3" (click)="clearSampleLink()">
+                      <i class="fa-solid fa-xmark clear-icon"></i>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- System Version -->
+              <div class="mb-4">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  System version
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">The version of the target system this connector is compatible with.</span>
+                  </span>
+                </label>
+                <select class="form-select input-width-sm" [(ngModel)]="methodFormSystemVersion">
+                  <option value="">Select version...</option>
+                  <option value="1.0">1.0</option>
+                  <option value="1.1">1.1</option>
+                  <option value="1.2">1.2</option>
+                  <option value="1.3">1.3</option>
+                  <option value="2.0">2.0</option>
+                  <option value="2.1">2.1</option>
+                  <option value="2.2">2.2</option>
+                  <option value="3.0">3.0</option>
+                </select>
+              </div>
+
+              <!-- From / To date range -->
+              <div class="d-flex align-items-end gap-4 mb-4">
+                <div>
+                  <label class="form-label form-label-upload">From</label>
+                  <div class="method-date-wrapper d-flex align-items-center">
+                    <span class="method-date-icon d-flex align-items-center px-3">
+                      <i class="fa-regular fa-calendar method-date-icon-i"></i>
+                    </span>
+                    <input type="date" class="method-date-input" [(ngModel)]="methodFormFromDate">
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label form-label-upload">To</label>
+                  <div class="method-date-wrapper d-flex align-items-center">
+                    <span class="method-date-icon d-flex align-items-center px-3">
+                      <i class="fa-regular fa-calendar method-date-icon-i"></i>
+                    </span>
+                    <input type="date" class="method-date-input" [(ngModel)]="methodFormToDate">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          }
+
+          <!-- Step 4: Select Connector Type -->
+          @if (currentStep() === 4) {
             <div class="step-content">
               <h6 class="mb-4 text-center step-heading">Select the Type of Connector You Want to Upload</h6>
 
@@ -211,94 +274,92 @@
             </div>
           }
 
-          <!-- Step 2: Define Target App & Implementation -->
-          @if (currentStep() === 2) {
+          <!-- Step 1: Define Target App & Implementation -->
+          @if (currentStep() === 1) {
             <div class="step-content">
               @if (!showImplementationForm()) {
-                <h6 class="mb-4 text-center step-heading-light">Search or define a new application to continue.</h6>
+                  <h5 class="define-app-heading">Define Target application</h5>
+                  <p class="define-app-subtitle">Search or define a new application to continue.</p>
 
-                <!-- Search Input -->
-                <div class="position-relative mb-4">
-                  <div class="search-input-wrapper">
-                    <div class="d-flex align-items-center">
-                      <span class="search-icon-wrapper d-flex align-items-center">
-                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                      </span>
-                      <input
-                        type="text"
-                        class="search-input flex-grow-1"
-                        [value]="searchQuery()"
-                        (input)="onSearchChange($event)"
-                        placeholder="Search applications...">
-                      @if (searchQuery()) {
-                        <button class="clear-search-btn d-flex align-items-center" type="button" (click)="clearSearch()">
-                          <i class="fa-solid fa-xmark clear-icon"></i>
-                        </button>
-                      }
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Selected Application Card (shown after selection, before form) -->
-                @if (selectedApplication() && !showDetailsForm()) {
-                  <div class="card mb-4 app-card">
-                    <div class="card-body d-flex align-items-center app-card-body">
-                      <div class="flex-shrink-0 me-3">
-                        <div class="app-avatar d-flex align-items-center justify-content-center">
-                          {{ selectedApplication()!.displayName.charAt(0) }}
+                    <!-- Search Input -->
+                    <div class="position-relative mb-4">
+                      <div class="search-input-wrapper">
+                        <div class="d-flex align-items-center">
+                          <span class="search-icon-wrapper d-flex align-items-center">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                          </span>
+                          <input
+                            type="text"
+                            class="search-input flex-grow-1"
+                            [value]="searchQuery()"
+                            (input)="onSearchChange($event)"
+                            placeholder="Search applications...">
+                          @if (searchQuery()) {
+                            <button class="clear-search-btn d-flex align-items-center" type="button" (click)="clearSearch()">
+                              <i class="fa-solid fa-xmark clear-icon"></i>
+                            </button>
+                          }
                         </div>
                       </div>
-                      <div class="flex-grow-1">
-                        <h6 class="mb-2 app-title">{{ selectedApplication()!.displayName }}</h6>
-                        <p class="mb-0 text-muted app-description">{{ selectedApplication()!.description }}</p>
-                      </div>
-                      <div class="d-flex align-items-stretch ms-3">
-                        <div class="card-separator"></div>
-                        <button type="button" class="btn btn-link p-0 ms-3 text-muted" (click)="removeSelectedApplication()">
-                          <i class="fa-solid fa-trash trash-icon"></i>
-                        </button>
-                      </div>
                     </div>
-                  </div>
-                }
 
-                <!-- Search Results -->
-                @if (!selectedApplication() && searchQuery() && filteredApplications().length > 0) {
-                  <div class="search-results mb-4">
-                    @for (app of filteredApplications(); track app.id) {
-                      <div class="card mb-3 app-card" (click)="selectApplication(app)">
-                        <div class="card-body d-flex align-items-start app-card-body">
-                          <div class="flex-shrink-0 me-3">
-                            <div class="app-avatar d-flex align-items-center justify-content-center">
-                              {{ app.displayName.charAt(0) }}
+                    <!-- Selected Application Card (always below search) -->
+                    @if (selectedApplication() && !showDetailsForm()) {
+                      <div class="selected-app-card mb-4 d-flex align-items-center">
+                        <div class="flex-grow-1 min-width-0">
+                          @if (getAppLogoUrl(selectedApplication()!)) {
+                            <img [src]="getAppLogoUrl(selectedApplication()!)" [alt]="selectedApplication()!.displayName" class="selected-app-logo mb-2">
+                          } @else {
+                            <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
+                              {{ selectedApplication()!.displayName.charAt(0) }}
                             </div>
-                          </div>
-                          <div class="flex-grow-1">
-                            <h6 class="mb-2 app-title">{{ app.displayName }}</h6>
-                            <p class="mb-0 text-muted app-description">{{ app.description }}</p>
-                          </div>
+                          }
+                          <h6 class="mb-1 app-title">{{ selectedApplication()!.displayName }}</h6>
+                          <p class="mb-0 text-muted app-description selected-app-description">{{ selectedApplication()!.description }}</p>
                         </div>
+                        <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
+                          <i class="fa-regular fa-trash-can"></i>
+                        </button>
                       </div>
                     }
-                  </div>
-                }
 
-                <!-- Empty State / Define New -->
-                @if (!selectedApplication() && (!searchQuery() || filteredApplications().length === 0)) {
-                  <div class="text-center py-5">
-                    <p class="text-muted mb-3">Didn't find your app in the database? Add a new one!</p>
-                    <button type="button" class="btn d-inline-flex align-items-center btn-define-new" (click)="enterDefineNewMode()">
-                      <i class="fa-solid fa-circle-plus me-2 trash-icon"></i>
-                      Define new
-                    </button>
-                  </div>
-                }
+                    <!-- Search Results -->
+                    @if (!selectedApplication() && searchQuery() && filteredApplications().length > 0) {
+                      <div class="search-results mb-4">
+                        @for (app of filteredApplications(); track app.id) {
+                          <div class="card mb-3 app-card" (click)="selectApplication(app)">
+                            <div class="card-body d-flex align-items-start app-card-body">
+                              <div class="flex-shrink-0 me-3">
+                                <div class="app-avatar d-flex align-items-center justify-content-center">
+                                  {{ app.displayName.charAt(0) }}
+                                </div>
+                              </div>
+                              <div class="flex-grow-1">
+                                <h6 class="mb-2 app-title">{{ app.displayName }}</h6>
+                                <p class="mb-0 text-muted app-description">{{ app.description }}</p>
+                              </div>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    <!-- Empty State / Define New -->
+                    @if (!selectedApplication() && (!searchQuery() || filteredApplications().length === 0)) {
+                      <div class="text-center py-4">
+                        <p class="text-muted mb-3">Didn't find your app in the database? Add a new one!</p>
+                        <button type="button" class="btn d-inline-flex align-items-center btn-define-new" (click)="enterDefineNewMode()">
+                          <i class="fa-solid fa-circle-plus me-2 trash-icon"></i>
+                          Define new
+                        </button>
+                      </div>
+                    }
               }
 
               <!-- Implementation Form (shown when app selected or Define New clicked) -->
               @if (showImplementationForm()) {
                 <div>
-                  <h6 class="mb-4 text-center step-heading-light">Provide details for the implementation.</h6>
+                  <h6 class="mb-4 text-start step-heading-light">Provide details for the connector</h6>
 
                   <!-- Display Name -->
                   <div class="mb-4">
@@ -352,7 +413,7 @@
                     <!-- Show upload area when no logo -->
                     @else {
                       <div class="logo-upload-area text-center">
-                        <i class="fa-solid fa-image mb-3 logo-icon"></i>
+                        <i class="fa-regular fa-image mb-3 logo-icon"></i>
                         <h6 class="mb-2 upload-title">Upload a logo</h6>
                         <p class="text-muted mb-3 upload-text">Accepted formats: PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
                         <input #logoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml,image/webp">
@@ -382,71 +443,76 @@
                     </div>
                   </div>
 
-                  <!-- Origin(s) -->
-                  <div class="mb-4">
-                    <label class="form-label d-flex align-items-center form-label-upload">
-                      Origin(s)
-                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                        <i class="fa-solid fa-circle-info info-icon"></i>
-                        <span class="info-tooltip">Select one or more countries where the connector or system originates from.</span>
-                      </span>
-                    </label>
+                  <!-- Origin(s) + Category in one row -->
+                  <div class="d-flex gap-3 mb-4">
 
-                    <!-- ng-select component -->
-                    @if (isLoadingCountries()) {
-                      <div class="text-muted" style="padding: 0.5rem;">
-                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Loading countries...
-                      </div>
-                    } @else {
-                      <ng-select
-                        [items]="allCountries()"
-                        [multiple]="true"
-                        [closeOnSelect]="false"
-                        [searchable]="true"
-                        [clearable]="false"
-                        bindLabel="name"
-                        placeholder="Search and select countries..."
-                        [ngModel]="selectedCountriesModel()"
-                        (ngModelChange)="onCountriesChange($event)"
-                        notFoundText="No countries found">
-                        <ng-template ng-option-tmp let-item="item">
-                          {{ item.name }}
-                        </ng-template>
-                        <ng-template ng-multi-label-tmp let-items="items" let-clear="clear">
-                          @for (item of items; track item.name) {
-                            <span class="badge d-inline-flex align-items-center me-2 mb-1"
-                                  [style.background-color]="isOriginDismissible(item.name) ? 'color-mix(in srgb, var(--color-darker-blue) 10%, transparent)' : 'var(--midpoint-special-color)'"
-                                  [style.color]="isOriginDismissible(item.name) ? 'black' : 'white'"
-                                  style="padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 500; border-radius: 4px; height: 28px; line-height: 1;">
-                              <span style="white-space: nowrap;">{{ item.name }}</span>
-                              @if (isOriginDismissible(item.name)) {
-                                <i class="fa-solid fa-x ms-2" (click)="clear(item)" style="font-size: 0.5rem; cursor: pointer; color: #575757;"></i>
-                              }
-                            </span>
-                          }
-                        </ng-template>
-                      </ng-select>
-                    }
-                  </div>
+                    <!-- Origin(s) -->
+                    <div style="flex: 1 1 0; min-width: 0;">
+                      <label class="form-label d-flex align-items-center form-label-upload">
+                        Origin(s)
+                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                          <i class="fa-solid fa-circle-info info-icon"></i>
+                          <span class="info-tooltip">Select one or more countries where the connector or system originates from.</span>
+                        </span>
+                      </label>
 
-                  <!-- Category -->
-                  <div class="mb-4">
-                    <label class="form-label d-flex align-items-center form-label-upload">
-                      Category*
-                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                        <i class="fa-solid fa-circle-info info-icon"></i>
-                        <span class="info-tooltip">Select the primary category this application belongs to.</span>
-                      </span>
-                    </label>
-                    <select class="form-select input-width-md" [(ngModel)]="category"
-                            [class.input-disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'"
-                            [disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'">
-                      <option value="">Select category...</option>
-                      @for (cat of availableCategories(); track cat.name) {
-                        <option [value]="cat.name">{{ cat.displayName }}</option>
+                      <!-- ng-select component -->
+                      @if (isLoadingCountries()) {
+                        <div class="text-muted" style="padding: 0.5rem;">
+                          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Loading countries...
+                        </div>
+                      } @else {
+                        <ng-select
+                          [items]="allCountries()"
+                          [multiple]="true"
+                          [closeOnSelect]="false"
+                          [searchable]="true"
+                          [clearable]="false"
+                          bindLabel="name"
+                          placeholder="Search and select countries..."
+                          [ngModel]="selectedCountriesModel()"
+                          (ngModelChange)="onCountriesChange($event)"
+                          notFoundText="No countries found">
+                          <ng-template ng-option-tmp let-item="item">
+                            {{ item.name }}
+                          </ng-template>
+                          <ng-template ng-multi-label-tmp let-items="items" let-clear="clear">
+                            @for (item of items; track item.name) {
+                              <span class="badge d-inline-flex align-items-center me-2 mb-1 origin-badge"
+                                    [class.origin-badge-loaded]="!isOriginDismissible(item.name)"
+                                    [class.origin-badge-added]="isOriginDismissible(item.name)"
+                                    style="padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 500; border-radius: 4px; height: 28px; line-height: 1;">
+                                <span style="white-space: nowrap;">{{ item.name }}</span>
+                                @if (isOriginDismissible(item.name)) {
+                                  <i class="fa-solid fa-x ms-2" (click)="clear(item)" style="font-size: 0.5rem; cursor: pointer; color: #575757;"></i>
+                                }
+                              </span>
+                            }
+                          </ng-template>
+                        </ng-select>
                       }
-                    </select>
+                    </div>
+
+                    <!-- Category -->
+                    <div style="flex: 1 1 0; min-width: 0;">
+                      <label class="form-label d-flex align-items-center form-label-upload">
+                        Category*
+                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                          <i class="fa-solid fa-circle-info info-icon"></i>
+                          <span class="info-tooltip">Select the primary category this application belongs to.</span>
+                        </span>
+                      </label>
+                      <select class="form-select" [(ngModel)]="category"
+                              [class.input-disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'"
+                              [disabled]="selectedApplication() !== null && selectedApplication()?.lifecycleState !== 'REQUESTED'">
+                        <option value="">Select category...</option>
+                        @for (cat of availableCategories(); track cat.name) {
+                          <option [value]="cat.name">{{ cat.displayName }}</option>
+                        }
+                      </select>
+                    </div>
+
                   </div>
 
                   <!-- Deployment Type -->
@@ -474,8 +540,8 @@
             </div>
           }
 
-          <!-- Step 3: Define Implementation -->
-          @if (currentStep() === 3) {
+          <!-- Step 5: Define Implementation -->
+          @if (currentStep() === 5) {
             <app-upload-form-impl
               [connectorType]="selectedConnectorType"
               [applicationId]="selectedApplication()?.id ?? null"
@@ -487,63 +553,113 @@
 
         <!-- Modal Footer -->
         <div class="modal-footer d-flex justify-content-between modal-footer-upload">
-          @if (currentStep() === 1) {
-            <button type="button" class="btn btn-back" (click)="closeModal()">Cancel</button>
+          @if (currentStep() === 1 && !showImplementationForm() && !selectedApplication()) {
+            <div></div>
           }
-          @if (currentStep() === 2 && !showImplementationForm() && !selectedApplication()) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back: Select Connector type
-            </button>
+          @if (currentStep() === 1 && !showImplementationForm() && selectedApplication()) {
+            <div></div>   
           }
-          @if (currentStep() === 2 && !showImplementationForm() && selectedApplication()) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="removeSelectedApplication()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back to search app
-            </button>
-          }
-          @if (currentStep() === 2 && showImplementationForm() && !isDefineNewMode()) {
+          @if (currentStep() === 1 && showImplementationForm() && !isDefineNewMode()) {
             <button type="button" class="btn d-flex align-items-center btn-back" (click)="showDetailsForm.set(false); clearApplicationDetailsFields()">
                   <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back to selected app
+                  Back
             </button>
           }
-          @if (currentStep() === 2 && showImplementationForm() && isDefineNewMode()) {
+          @if (currentStep() === 1 && showImplementationForm() && isDefineNewMode()) {
             <button type="button" class="btn d-flex align-items-center btn-back" (click)="removeSelectedApplication(); isDefineNewMode.set(false)">
                   <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back to search app
+                  Back to search
+            </button>
+          }
+          @if (currentStep() === 2) {
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
+                  Back
             </button>
           }
           @if (currentStep() === 3) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="handleBackFromImplementation()">
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
                   <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  {{ implementationFormData()?.isEditingVersion ? 'Back to implementation selection' : 'Back: Define Target Application' }}
+                  Back
+            </button>
+          }
+          @if (currentStep() === 4) {
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
+                  Back
+            </button>
+          }
+          @if (currentStep() === 5) {
+            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
+                  Back
             </button>
           }
           <div>
-            @if (currentStep() === 1) {
-              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()">Next: Define Target Application</button>
-            }
-            @if (currentStep() === 2 && canContinueWithSelection()) {
-              <button type="button" class="btn btn-primary btn-next" (click)="continueWithSelectedApp()">
+            @if (currentStep() === 1 && !showImplementationForm()) {
+              <button type="button" class="btn btn-primary btn-next" (click)="continueWithSelectedApp()" [disabled]="!canContinueWithSelection()">
                 Continue
                 <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
             }
-            @if (currentStep() === 2 && showImplementationForm()) {
+            @if (currentStep() === 1 && showImplementationForm()) {
               <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!canSubmitForm()">
-                Next: Define Implementation
+                Continue
+                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+              </button>
+            }
+            @if (currentStep() === 2) {
+              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedIntegrationMethod()">
+                Continue
                 <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
               </button>
             }
             @if (currentStep() === 3) {
+              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName()">
+                Continue
+                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+              </button>
+            }
+            @if (currentStep() === 4) {
+              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedConnectorType()">
+                Continue
+                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+              </button>
+            }
+            @if (currentStep() === 5) {
               <button type="button" class="btn btn-primary btn-next" [disabled]="!isImplementationFormValid()" (click)="handleImplementationAction()">
-                {{ implementationFormData()?.isNewVersion === false || implementationFormData()?.isEditingVersion ? 'Publish to catalog' : 'Select' }}
+                Publish to catalog
               </button>
             }
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-}
+
+          </div><!-- end modal-main-left -->
+
+          <!-- Recently Used Sidebar (step 1) -->
+          @if (currentStep() === 1 && !showImplementationForm()) {
+            <div class="recently-used-sidebar">
+              <h6 class="recently-used-heading">Recently used applications</h6>
+              <hr class="recently-used-separator">
+              <div class="recently-used-grid">
+                @for (app of recentApps(); track app.id) {
+                  <div class="recent-app-item" (click)="selectApplication(app)">
+                    <div class="recent-app-icon-wrapper">
+                      @if (getAppLogoUrl(app)) {
+                        <img [src]="getAppLogoUrl(app)" [alt]="app.displayName" class="recent-app-logo">
+                      } @else {
+                        <div class="recent-app-initial d-flex align-items-center justify-content-center w-100 h-100">
+                          {{ app.displayName.charAt(0) }}
+                        </div>
+                      }
+                    </div>
+                    <span class="recent-app-name">{{ app.displayName }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+        </div><!-- end modal-main -->
+  </div><!-- end publish-content -->
+</div>

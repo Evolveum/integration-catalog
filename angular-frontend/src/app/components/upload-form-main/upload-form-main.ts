@@ -1,12 +1,14 @@
-import { Component, signal, Output, EventEmitter, Input, computed, OnInit, ViewChild } from '@angular/core';
+import { Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationFormData, UploadFileItem } from '../../models/request.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
+import { AuthService } from '../../services/auth.service';
 import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
 
 @Component({
@@ -17,12 +19,7 @@ import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
   styleUrls: ['./upload-form-main.scss']
 })
 export class UploadFormMain implements OnInit {
-  @Input() isOpen = signal<boolean>(false);
-  @Input() applications = signal<Application[]>([]);
-  @Output() modalClosed = new EventEmitter<void>();
-  @Output() uploadCompleted = new EventEmitter<void>();
-
-  @ViewChild(UploadFormImpl) uploadFormImpl!: UploadFormImpl;
+  protected readonly applications = signal<Application[]>([]);
 
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
@@ -55,17 +52,28 @@ export class UploadFormMain implements OnInit {
   protected readonly showVersionExistsWarning = signal<boolean>(false);
   protected readonly existingVersion = signal<string>('');
 
+  protected recentApps = computed(() => {
+    return this.applications().slice(0, 6);
+  });
+
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) {
       return [];
     }
 
+    // In step 1 (define target app), connector type not yet selected — show all matching apps
+    if (this.currentStep() === 1) {
+      return this.applications().filter(app =>
+        app.displayName.toLowerCase().includes(query) ||
+        app.description.toLowerCase().includes(query)
+      );
+    }
+
     const connectorType = this.selectedConnectorType();
     const targetFramework = connectorType === 'java-based' ? 'JAVA_BASED' : 'LOW_CODE';
 
     return this.applications().filter(app => {
-      // First filter by search query
       const matchesQuery = app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query);
 
@@ -73,13 +81,10 @@ export class UploadFormMain implements OnInit {
         return false;
       }
 
-      // Always show REQUESTED apps (they have no implementations yet)
       if (app.lifecycleState === 'REQUESTED') {
         return true;
       }
 
-      // For other apps, check if they have the matching framework
-      // If no frameworks (empty or null), don't show the app
       if (!app.frameworks || app.frameworks.length === 0) {
         return false;
       }
@@ -154,13 +159,54 @@ export class UploadFormMain implements OnInit {
   });
 
   protected readonly showOriginDropdown = signal<boolean>(false);
+  protected readonly selectedIntegrationMethod = signal<string>('');
+
+  protected readonly integrationMethods = [
+    { value: 'scim-generic', title: 'SCIM generic',    description: 'generic',                               wide: true,
+      formDescription: 'SCIM generic integrations use a standard SCIM protocol for provisioning. This form registers the integration configuration in the catalog.' },
+    { value: 'scim',         title: 'SCIM',             description: 'nongeneric (java-based or low code)',    wide: true,
+      formDescription: 'SCIM integrations use a non-generic SCIM protocol, java-based or low code. This form registers the integration configuration in the catalog.' },
+    { value: 'rest-api',     title: 'REST API',         description: 'Custom REST-based connector',           wide: true,
+      formDescription: 'REST API integrations use a custom REST-based connector. This form only registers the integration configuration in the catalog.' },
+    { value: 'openldap',     title: 'openLDAP',         description: 'Integration with an existing LDAP directory.', wide: false,
+      formDescription: 'OpenLDAP integrations use an external LDAP directory. This form only registers the integration configuration in the catalog – the actual LDAP connector is installed and managed in your environment, it is not uploaded here.' },
+    { value: 'manual',       title: 'Manual Connector', description: 'lorem ipsum',                           wide: false,
+      formDescription: 'Manual connector integrations require manual configuration. This form registers the integration configuration in the catalog.' },
+    { value: 'database',     title: 'Database',         description: 'lorem ipsum',                           wide: false,
+      formDescription: 'Database integrations connect to an external database. This form only registers the integration configuration in the catalog.' },
+    { value: 'csv',          title: 'CSV',              description: 'lorem ipsum',                           wide: false,
+      formDescription: 'CSV integrations use CSV files for data exchange. This form registers the integration configuration in the catalog.' },
+  ];
+
+  protected readonly selectedMethodInfo = computed(() =>
+    this.integrationMethods.find(m => m.value === this.selectedIntegrationMethod()) ?? null
+  );
+
+  // Step 3 – method-specific form fields
+  protected readonly methodFormDisplayName  = signal<string>('');
+  protected readonly methodFormDescription  = signal<string>('');
+  protected readonly methodFormSampleLink   = signal<string>('');
+  protected readonly methodFormSystemVersion = signal<string>('');
+  protected readonly methodFormFromDate     = signal<string>('');
+  protected readonly methodFormToDate       = signal<string>('');
 
   constructor(
     private countryService: CountryService,
-    private applicationService: ApplicationService
+    private applicationService: ApplicationService,
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/applications']);
+      return;
+    }
+
+    this.applicationService.getAll().subscribe({
+      next: (data) => this.applications.set(data)
+    });
+
     // Fetch all countries from REST Countries API
     this.countryService.getAllCountries().subscribe({
       next: (countries) => {
@@ -176,8 +222,7 @@ export class UploadFormMain implements OnInit {
   }
 
   protected closeModal(): void {
-    this.modalClosed.emit();
-    this.resetForm();
+    this.router.navigate(['/applications']);
   }
 
   protected closePublishSuccessToast(): void {
@@ -185,8 +230,23 @@ export class UploadFormMain implements OnInit {
   }
 
   protected nextStep(): void {
-    if (this.currentStep() < 3) {
+    if (this.currentStep() < 5) {
       this.currentStep.update(step => step + 1);
+    }
+  }
+
+  protected selectIntegrationMethod(value: string): void {
+    this.selectedIntegrationMethod.set(value);
+  }
+
+  protected clearSampleLink(): void {
+    this.methodFormSampleLink.set('');
+  }
+
+  protected onMethodFormDescriptionChange(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    if (value.length <= 350) {
+      this.methodFormDescription.set(value);
     }
   }
 
@@ -387,6 +447,13 @@ export class UploadFormMain implements OnInit {
     return null;
   }
 
+  protected getAppLogoUrl(app: Application): string | null {
+    if (app.logoPath || app.logo) {
+      return this.applicationService.getLogoUrl(app.id);
+    }
+    return null;
+  }
+
   protected toggleOriginDropdown(): void {
     this.showOriginDropdown.update(show => !show);
   }
@@ -445,15 +512,7 @@ export class UploadFormMain implements OnInit {
   }
 
   protected handleImplementationAction(): void {
-    const formData = this.implementationFormData();
-
-    // If selecting an existing implementation (isNewVersion = true and not editing yet)
-    if (formData?.isNewVersion === true && formData?.selectedImplementation && !formData?.isEditingVersion && this.uploadFormImpl) {
-      this.uploadFormImpl.confirmImplementationSelection();
-    } else {
-      // Handle publish action for new implementation or editing existing
-      this.publishToCatalog();
-    }
+    this.publishToCatalog();
   }
 
   private publishToCatalog(): void {
@@ -549,10 +608,8 @@ export class UploadFormMain implements OnInit {
           this.uploadLogoIfPresent(applicationId);
         }
 
-        this.closeModal();
         this.showPublishSuccess.set(true);
-        this.uploadCompleted.emit();
-        setTimeout(() => this.showPublishSuccess.set(false), 5000);
+        setTimeout(() => this.router.navigate(['/applications']), 3000);
       },
       error: (error: HttpErrorResponse) => {
         alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
@@ -670,21 +727,16 @@ export class UploadFormMain implements OnInit {
     }
   }
 
-  protected handleBackFromImplementation(): void {
-    const formData = this.implementationFormData();
-
-    // If in editing mode, go back to implementation selection
-    if (formData?.isEditingVersion && this.uploadFormImpl) {
-      this.uploadFormImpl.cancelEditing();
-    } else {
-      // Otherwise, go back to previous step
-      this.previousStep();
-    }
-  }
-
   private resetForm(): void {
     this.currentStep.set(1);
     this.selectedConnectorType.set('evolveum-hosted');
+    this.selectedIntegrationMethod.set('');
+    this.methodFormDisplayName.set('');
+    this.methodFormDescription.set('');
+    this.methodFormSampleLink.set('');
+    this.methodFormSystemVersion.set('');
+    this.methodFormFromDate.set('');
+    this.methodFormToDate.set('');
     this.searchQuery.set('');
     this.selectedApplication.set(null);
     this.isDefineNewMode.set(false);

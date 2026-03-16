@@ -358,6 +358,16 @@ public class Controller {
         return ResponseEntity.ok(page.getContent());
     }
 
+    @Operation(summary = "Get all active connectors",
+            description = "Returns a list of all connectors with ACTIVE lifecycle state")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Active connectors retrieved successfully")
+    })
+    @GetMapping("/connectors/active")
+    public ResponseEntity<List<ActiveConnectorDto>> getActiveConnectors() {
+        return ResponseEntity.ok(applicationService.listActiveConnectors());
+    }
+
     @Operation(summary = "Get available capabilities",
             description = "Returns a list of all available capability types that can be used in requests")
     @ApiResponses(value = {

@@ -13,14 +13,13 @@ import { Application, ApplicationTag, hasLogo } from '../../models/application.m
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
 import { LoginModal } from '../login-modal/login-modal';
-import { UploadFormMain } from '../upload-form-main/upload-form-main';
 import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, LoginModal, UploadFormMain, FilterModal],
+  imports: [CommonModule, FormsModule, RequestForm, LoginModal, FilterModal],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })
@@ -71,7 +70,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly activeTab = signal<string>('all');
   protected isRequestModalOpen = signal<boolean>(false);
   protected isLoginModalOpen = signal<boolean>(false);
-  protected isUploadModalOpen = signal<boolean>(false);
   protected isFilterModalOpen = signal<boolean>(false);
   protected openDropdown = signal<string | null>(null);
   protected showLoginRequiredMessage = signal<boolean>(false);
@@ -673,11 +671,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       this.isLoginModalOpen.set(true);
       return;
     }
-    this.isUploadModalOpen.set(true);
-  }
-
-  protected closeUploadModal(): void {
-    this.isUploadModalOpen.set(false);
+    this.router.navigate(['/publish']);
   }
 
   protected reloadApplications(): void {

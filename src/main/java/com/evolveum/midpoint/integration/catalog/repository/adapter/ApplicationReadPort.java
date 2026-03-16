@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.repository.adapter;
 
 import com.evolveum.midpoint.integration.catalog.object.Application;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
@@ -16,4 +17,5 @@ public interface ApplicationReadPort {
     Page<Application> findFeatured(Pageable pageable);
     Page<Application> searchByName(String q, Pageable pageable);
     Application getById(UUID id);
+    List<Application> findByLifecycleState(Application.ApplicationLifecycleType lifecycleState);
 }

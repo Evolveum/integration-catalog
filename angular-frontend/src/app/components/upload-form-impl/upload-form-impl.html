@@ -1,145 +1,137 @@
 <div class="step-content">
-  <!-- Show this header when editing a version -->
-  @if (isEditingVersion() && selectedImplementation()) {
-    <h6 class="mb-4 text-center section-header-lg">
-      You are editing a new version of {{ selectedImplementation()!.displayName }}
-    </h6>
-  }
+  <!-- Question: always visible -->
+  <h6 class="mb-4 section-header-lg">
+    Are you adding a new version of the connector?
+  </h6>
 
-  <!-- Show question and segmented control only when NOT editing -->
-  @if (!isEditingVersion()) {
-    <!-- Question: New version or new implementation? -->
-    <h6 class="mb-4 section-header-lg">
-      Are you adding a new version of an existing implementation?
-    </h6>
-
-    <!-- Segmented control with outer border -->
-    <div class="toggle-container mb-4">
-      <div class="d-grid" style="grid-template-columns: 1fr 1fr;">
-        <button
-          type="button"
-          class="toggle-btn"
-          [class.active]="isNewVersion() === true"
-          (click)="selectNewVersion()">
-          Yes
-        </button>
-        <button
-          type="button"
-          class="toggle-btn"
-          [class.active]="isNewVersion() === false"
-          (click)="selectNewImplementation()">
-          No → I'm creating a new implementation
-        </button>
-      </div>
+  <!-- Segmented control -->
+  <div class="toggle-container mb-4">
+    <div class="d-grid" style="grid-template-columns: 1fr 1fr;">
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="isNewVersion() === true"
+        (click)="selectNewVersion()">
+        Yes
+      </button>
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="isNewVersion() === false"
+        (click)="selectNewImplementation()">
+        No
+      </button>
     </div>
-  }
+  </div>
 
-  <!-- Show existing implementations list when "Yes" is selected and NOT editing -->
-  @if (isNewVersion() === true && !isEditingVersion()) {
-    <div>
-      <h6 class="mb-3 text-center section-header-sm">
-        CHOOSE FROM EXISTING IMPLEMENTATIONS
-      </h6>
+  <!-- YES: implementations grid -->
+  @if (isNewVersion() === true) {
+    <h6 class="mb-3 section-header-sm">CHOOSE FROM EXISTING IMPLEMENTATIONS</h6>
 
-      <!-- List of existing implementations -->
-      <div class="implementations-list d-flex flex-column gap-3">
-        @for (impl of existingImplementations(); track impl.id) {
-          <div
-            class="implementation-card"
-            [class.selected]="selectedImplementation()?.id === impl.id"
-            (click)="selectImplementation(impl)">
-            <div class="d-flex align-items-center">
-              <!-- Radio button -->
-              <div class="form-check me-3">
-                <input
-                  class="form-check-input radio-input"
-                  type="radio"
-                  name="implementation"
-                  [checked]="selectedImplementation()?.id === impl.id"
-                  [id]="'impl-' + impl.id">
-              </div>
-
-              <!-- Content -->
-              <div class="flex-grow-1">
-                <h6 class="mb-2 impl-title">
-                  {{ impl.name }}
-                </h6>
-                <p class="mb-2 impl-description">
-                  {{ impl.description }}
-                </p>
-                <p class="mb-0 impl-date">
-                  Published: {{ impl.publishedDate }}
-                </p>
-              </div>
+    <div class="implementations-grid mb-2">
+      @for (impl of displayedImplementations(); track impl.id) {
+        <div
+          class="implementation-card"
+          [class.selected]="selectedImplementation()?.id === impl.id"
+          (click)="selectImplementation(impl)">
+          <div class="d-flex align-items-start">
+            <div class="form-check me-3 flex-shrink-0">
+              <input
+                class="form-check-input radio-input"
+                type="radio"
+                name="implementation"
+                [checked]="selectedImplementation()?.id === impl.id"
+                [id]="'impl-' + impl.id">
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1 impl-title">{{ impl.displayName }}</h6>
+              <p class="mb-1 impl-description">{{ impl.description }}</p>
+              <p class="mb-0 impl-date">Published: {{ impl.publishedDate }}</p>
             </div>
           </div>
+        </div>
+      }
+    </div>
+
+    @if (existingImplementations().length > 4) {
+      <button type="button" class="btn-see-more mb-4" (click)="toggleShowAll()">
+        @if (!showAllImplementations()) {
+          See {{ existingImplementations().length - 4 }} more..
+        } @else {
+          Show less
         }
+      </button>
+    }
+  }
+
+  <!-- Note alert (shown when any choice is made) -->
+  @if (isNewVersion() !== null) {
+    <div class="alert d-flex align-items-start alert-info-note mb-4">
+      <i class="fa-solid fa-circle-info me-2 flex-shrink-0 alert-icon"></i>
+      <div class="alert-text">
+        <strong>Note</strong> After upload, automated validation will run before the application appears in the catalog.
       </div>
     </div>
   }
 
-  <!-- Show form when creating new implementation OR editing a version -->
-  @if (isNewVersion() === false || isEditingVersion()) {
+  <!-- Form: shown when any choice is made -->
+  @if (isNewVersion() !== null) {
     <div class="new-implementation-form">
-      <!-- Display Name -->
-      <div class="mb-3">
-        <label class="form-label d-flex align-items-center form-label-impl">
-          Display Name*
-          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-            <i class="fa-solid fa-circle-info info-icon"></i>
-            <span class="info-tooltip">Display name for the implementation.</span>
-          </span>
-        </label>
-        <input type="text" class="form-control input-width-sm" [(ngModel)]="displayName" (ngModelChange)="onFieldChange()" placeholder=""
-               [class.input-disabled]="isEditingVersion()"
-               [disabled]="isEditingVersion()">
-      </div>
 
-      <!-- Maintainer -->
-      <div class="mb-3">
-        <label class="form-label d-flex align-items-center form-label-impl">
-          Maintainer
-          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-            <i class="fa-solid fa-circle-info info-icon"></i>
-            <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
-          </span>
-        </label>
-        <select class="form-select input-width-sm" [(ngModel)]="maintainer" (ngModelChange)="onFieldChange()"
-                [class.input-disabled]="isEditingVersion()"
-                [disabled]="isEditingVersion()">
-          <option value="">Select maintainer...</option>
-          @for (option of maintainerOptions; track option) {
-            <option [value]="option">{{ option }}</option>
-          }
-        </select>
-      </div>
-
-      <!-- License Type (not shown for evolveum-hosted) -->
-      @if (connectorType() !== 'evolveum-hosted') {
-        <div class="mb-3">
+      <!-- Display Name + Maintainer + License Type in one row -->
+      <div class="d-flex gap-3 mb-3">
+        <!-- Display Name -->
+        <div style="flex: 1 1 0; min-width: 0;">
           <label class="form-label d-flex align-items-center form-label-impl">
-            License Type*
+            Display Name*
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">Select the license under which the connector is distributed.</span>
+              <span class="info-tooltip">Display name for the implementation.</span>
             </span>
           </label>
-          <select class="form-select input-width-sm" [(ngModel)]="licenseType" (ngModelChange)="onFieldChange()"
-                  [class.input-disabled]="isEditingVersion()"
-                  [disabled]="isEditingVersion()">
-            <option value="">Select license...</option>
-            @for (option of licenseOptions; track option) {
+          <input type="text" class="form-control" [(ngModel)]="displayName" (ngModelChange)="onFieldChange()" placeholder="">
+        </div>
+
+        <!-- Maintainer -->
+        <div style="flex: 1 1 0; min-width: 0;">
+          <label class="form-label d-flex align-items-center form-label-impl">
+            Maintainer
+            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+              <i class="fa-solid fa-circle-info info-icon"></i>
+              <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
+            </span>
+          </label>
+          <select class="form-select" [(ngModel)]="maintainer" (ngModelChange)="onFieldChange()">
+            <option value="">Select maintainer...</option>
+            @for (option of maintainerOptions; track option) {
               <option [value]="option">{{ option }}</option>
             }
           </select>
         </div>
-      }
 
-      <!-- Row 3: Implementation Description -->
+        <!-- License Type (not shown for evolveum-hosted) -->
+        @if (connectorType() !== 'evolveum-hosted') {
+          <div style="flex: 1 1 0; min-width: 0;">
+            <label class="form-label d-flex align-items-center form-label-impl">
+              License Type*
+              <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                <i class="fa-solid fa-circle-info info-icon"></i>
+                <span class="info-tooltip">Select the license under which the connector is distributed.</span>
+              </span>
+            </label>
+            <select class="form-select" [(ngModel)]="licenseType" (ngModelChange)="onFieldChange()">
+              <option value="">Select license...</option>
+              @for (option of licenseOptions; track option) {
+                <option [value]="option">{{ option }}</option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+
+      <!-- Implementation Description -->
       <div class="mb-4">
-        <label class="form-label form-label-impl">
-          Implementation description*
-        </label>
+        <label class="form-label form-label-impl">Implementation description*</label>
         <textarea class="form-control" [(ngModel)]="implementationDescription" (ngModelChange)="onFieldChange()" rows="4" maxlength="350" placeholder="Type description..."></textarea>
         <div class="text-end text-muted char-counter">
           {{ implementationDescription().length }}/350 characters
@@ -168,10 +160,8 @@
       <!-- Metadata Section (not shown for evolveum-hosted) -->
       @if (connectorType() !== 'evolveum-hosted') {
         <h6 class="mb-3 section-header-md">Metadata</h6>
-      }
 
-      <!-- Browse Link (not shown for evolveum-hosted) -->
-      @if (connectorType() !== 'evolveum-hosted') {
+        <!-- Browse Link -->
         <div class="mb-3">
           <label class="form-label d-flex align-items-center form-label-impl">
             Browse Link*
@@ -187,10 +177,10 @@
         </div>
       }
 
-      <!-- Link on Ticketing System -->
+      <!-- Ticketing System Link -->
       <div class="mb-4">
         <label class="form-label d-flex align-items-center form-label-impl">
-          Link on Ticketing System
+          Ticketing system link
           <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
             <i class="fa-solid fa-circle-info info-icon"></i>
             <span class="info-tooltip">URL to the issue or task in your ticketing system related to this connector.</span>
@@ -198,53 +188,51 @@
         </label>
         <div class="input-group">
           <span class="input-group-text"><i class="fa-solid fa-link link-icon"></i></span>
-          <input type="url" class="form-control" [(ngModel)]="ticketingLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here..."
-                 [class.input-disabled]="isEditingVersion()"
-                 [disabled]="isEditingVersion()">
+          <input type="url" class="form-control" [(ngModel)]="ticketingLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
         </div>
       </div>
 
-      <!-- Build metadata Section (not shown for evolveum-hosted) -->
+      <!-- Build Metadata Section (not shown for evolveum-hosted) -->
       @if (connectorType() !== 'evolveum-hosted') {
         <h6 class="mb-3 section-header-md">Build metadata</h6>
 
         <!-- Build Framework Selection (only for java-based) -->
         @if (connectorType() === 'java-based') {
           <div class="mb-3">
-          <label class="form-label d-flex align-items-center form-label-impl">
-            Build Framework Selection*
-            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-              <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">Choose the tool used to build the connector project (e.g. Maven, Gradle).</span>
-            </span>
-          </label>
-          <div class="d-flex gap-3">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="buildFramework" id="maven" value="Maven" [(ngModel)]="buildFramework" (ngModelChange)="onFieldChange()">
-              <label class="form-check-label" for="maven">Maven</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="buildFramework" id="gradle" value="Gradle" [(ngModel)]="buildFramework" (ngModelChange)="onFieldChange()">
-              <label class="form-check-label" for="gradle">Gradle</label>
+            <label class="form-label d-flex align-items-center form-label-impl">
+              Build Framework Selection*
+              <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                <i class="fa-solid fa-circle-info info-icon"></i>
+                <span class="info-tooltip">Choose the tool used to build the connector project (e.g. Maven, Gradle).</span>
+              </span>
+            </label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="buildFramework" id="maven" value="Maven" [(ngModel)]="buildFramework" (ngModelChange)="onFieldChange()">
+                <label class="form-check-label" for="maven">Maven</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="buildFramework" id="gradle" value="Gradle" [(ngModel)]="buildFramework" (ngModelChange)="onFieldChange()">
+                <label class="form-check-label" for="gradle">Gradle</label>
+              </div>
             </div>
           </div>
-        </div>
         }
 
-      <!-- Checkout Link -->
-      <div class="mb-3">
-        <label class="form-label d-flex align-items-center form-label-impl">
-          Checkout Link*
-          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-            <i class="fa-solid fa-circle-info info-icon"></i>
-            <span class="info-tooltip">Local file system path where the connector project is stored.</span>
-          </span>
-        </label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="fa-solid fa-link link-icon"></i></span>
-          <input type="text" class="form-control" [(ngModel)]="checkoutLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
+        <!-- Checkout Link -->
+        <div class="mb-3">
+          <label class="form-label d-flex align-items-center form-label-impl">
+            Checkout Link*
+            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+              <i class="fa-solid fa-circle-info info-icon"></i>
+              <span class="info-tooltip">Local file system path where the connector project is stored.</span>
+            </span>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-link link-icon"></i></span>
+            <input type="text" class="form-control" [(ngModel)]="checkoutLink" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
+          </div>
         </div>
-      </div>
 
         <!-- Path to Project Directory -->
         <div class="mb-4">
@@ -261,30 +249,21 @@
           </div>
         </div>
 
-      <div class="mb-4">
-        <label class="form-label d-flex align-items-center form-label-impl">
-          Class name
-          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+        <div class="mb-4">
+          <label class="form-label d-flex align-items-center form-label-impl">
+            Class name
+            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Class name.</span>
             </span>
-        </label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="fa-solid fa-link link-icon"></i></span>
-          <input type="text" class="form-control" [(ngModel)]="className" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
-        </div>
-      </div>
-      }
-
-      <!-- Note (only for evolveum-hosted) -->
-      @if (connectorType() === 'evolveum-hosted') {
-        <div class="alert d-flex align-items-start alert-info-note">
-          <i class="fa-solid fa-circle-info me-2 flex-shrink-0 alert-icon"></i>
-          <div class="alert-text">
-            <strong>Note:</strong> After upload, automated validation will run before the app appears in the catalog.
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-link link-icon"></i></span>
+            <input type="text" class="form-control" [(ngModel)]="className" (ngModelChange)="onFieldChange()" placeholder="Add a link here...">
           </div>
         </div>
       }
+
     </div>
   }
 </div>
