@@ -324,7 +324,7 @@
                     }
 
                     <!-- Search Results -->
-                    @if (!selectedApplication() && searchQuery() && filteredApplications().length > 0) {
+                    @if (searchQuery() && filteredApplications().length > 0) {
                       <div class="search-results mb-4">
                         @for (app of filteredApplications(); track app.id) {
                           <div class="card mb-3 app-card" (click)="selectApplication(app)">

@@ -9,10 +9,12 @@
    ======================================== */
 .page-bg {
   background-color: #e9ecef;
+  min-width: 1080px;
 }
 
 .content-width {
-  width: 1080px;
+  max-width: 1080px;
+  width: 100%;
 }
 
 /* ========================================
@@ -67,13 +69,14 @@
    ======================================== */
 .overlay-image-container {
   position: absolute;
-  right: 28%;
+  right: 21%;
   top: 150px;
   z-index: 5;
 }
 
 .overlay-image {
   max-width: 450px;
+  width: min(450px, 35vw);
   height: auto;
 }
 
@@ -233,6 +236,20 @@
   min-width: 252px;
   height: 380px;
   transition: opacity 0.3s ease;
+}
+
+/* ========================================
+   MORE APPS RESPONSIVE GRID
+   ======================================== */
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(252px, 1fr));
+  gap: 1.5rem;
+}
+
+.apps-grid .app-card {
+  width: 100%;
+  min-width: unset;
 }
 
 /* ========================================
@@ -410,7 +427,8 @@
   border: 0;
   border-top: 1px solid #6c757d;
   margin: 3rem auto;
-  width: 1080px;
+  max-width: 1080px;
+  width: 100%;
 }
 
 /* ========================================
