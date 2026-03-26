@@ -5,6 +5,10 @@
  -->
 
 <div class="container-fluid p-0 page-container">
+  <!-- Header -->
+  <div class="w-100 text-white text-center py-2 page-header">
+    (HEADER)
+  </div>
   @if (loading()) {
     <div class="container py-5">
       <div class="d-flex justify-content-center align-items-center loading-container">
@@ -514,13 +518,6 @@
             }
         </div>
 
-        <!-- Back Button -->
-        <div class="mt-4 ps-4">
-          <button class="btn btn-back d-flex align-items-center" (click)="goBack()">
-            <i class="fa-solid fa-arrow-left icon-md me-2"></i>
-            Back to Integration Catalog
-          </button>
-        </div>
       </div>
 
       <!-- Right Panel - Sidebar -->
@@ -595,6 +592,14 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4 ps-4">
+      <button class="btn btn-back d-flex align-items-center" (click)="goBack()">
+        <i class="fa-solid fa-arrow-left icon-md me-2"></i>
+        Back to Integration Catalog
+      </button>
     </div>
   </div>
 

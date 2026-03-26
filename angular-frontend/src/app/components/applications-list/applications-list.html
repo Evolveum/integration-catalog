@@ -5,6 +5,10 @@
  -->
 
 <div class="container-fluid p-0 position-relative page-bg">
+  <!-- Header -->
+  <div class="w-100 text-white text-center py-2 page-header">
+    (HEADER)
+  </div>
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
     <div class="position-fixed top-0 end-0 p-3 toast-container">
@@ -27,7 +31,7 @@
 
   <div class="container-fluid p-0 page-bg">
     <!-- Hero Banner -->
-    <div class="bg-primary text-white py-5 hero-gradient">
+    <div class="bg-primary text-white py-5 hero-gradient position-relative">
       <!-- Login/Logout Button (Top Right) -->
       <div class="position-absolute top-0 end-0 p-3 z-index-10">
         @if (currentUser()) {
@@ -40,7 +44,7 @@
         }
       </div>
 
-      <div class="container">
+      <div class="mx-auto content-width position-relative">
         <!-- title -->
         <div class="row">
           <div class="col-12 text-center">
@@ -57,9 +61,9 @@
           </div>
         </div>
 
-        <!-- Row 3: 2 columns (left numbers, right image) -->
+        <!-- Row 3: 2 columns (left numbers, right image overlapping into gray below) -->
         <div class="row mt-4">
-          <div class="col-lg-6 d-flex justify-content-center">
+          <div class="col-6 d-flex justify-content-center">
             <div class="d-flex gap-5">
               <div class="text-center">
                 <div class="display-4 fw-bold mb-2 hero-stat-value">{{ activeIntegrationsCount() }}</div>
@@ -71,30 +75,29 @@
               </div>
             </div>
           </div>
-          <div class="col-lg-6"><!-- empty, reserved for overlay image alignment --></div>
+          <div class="col-6 position-relative">
+            <div class="overlay-image-container">
+              <img
+                src="installation-nobg.png"
+                alt="Integration illustration"
+                class="overlay-image" />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- Overlay image across blue + gray -->
-    <div class="d-none d-xl-block overlay-image-container">
-      <img
-        src="installation-nobg.png"
-        alt="Integration illustration"
-        class="img-fluid overlay-image" />
     </div>
 
     <!-- Description + filter section (gray background) -->
     <div class="pt-5 pb-4">
       <div class="row mb-3 mx-auto content-width">
-        <div class="col-lg-6">
+        <div class="col-6">
           <p class="mb-0 description-text">
             Explore available integrations to jump-start your workflow, build your own with AI-guided assistance,
             or upload an existing configuration to get started in just minutes. The process is fast, flexible, and
             user-friendly.
           </p>
         </div>
-        <div class="col-lg-6"></div>
+        <div class="col-6"></div>
       </div>
     </div>
 
@@ -254,7 +257,7 @@
     }
 
     @if (!loading() && !error() && featuredApplications().length > 0) {
-      <h2 class="h3 mb-4 text-center">Featured integration apps</h2>
+      <h2 class="h3 mb-4 text-center section-title">Featured integration apps</h2>
 
       <div class="position-relative mb-5 mx-auto content-width">
         <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center scroll-btn"
@@ -364,7 +367,7 @@
         @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0 || filterState().maintainers.length > 0)) {
           <div class="position-relative mb-5">
             <div class="text-center">
-              <h2 class="h3 mb-0">More apps</h2>
+              <h2 class="h3 mb-0 section-title">More apps</h2>
             </div>
           </div>
 

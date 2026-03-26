@@ -34,6 +34,7 @@
 
 .hero-stat-value {
   color: #A3CDCC;
+  font-size: 3.5rem;
 }
 
 .hero-stat-label {
@@ -69,15 +70,22 @@
    ======================================== */
 .overlay-image-container {
   position: absolute;
-  right: 21%;
-  top: 150px;
+  top: -35px;
+  left: 45%;
+  transform: translateX(-50%);
   z-index: 5;
 }
 
 .overlay-image {
-  max-width: 450px;
-  width: min(450px, 35vw);
+  width: 450px;
   height: auto;
+}
+
+/* ========================================
+   SECTION TITLES
+   ======================================== */
+.section-title {
+  font-size: 1.75rem;
 }
 
 /* ========================================

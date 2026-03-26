@@ -6,6 +6,13 @@
 @use 'styles/variables' as *;
 @import '@fortawesome/fontawesome-free/css/all.css';
 
+/* ========================================
+   SHARED HEADER
+   ======================================== */
+.page-header {
+  background-color: #36538B;
+}
+
 /* Global radio button styling */
 input[type="radio"] {
   accent-color: $midpoint-special-color !important;
