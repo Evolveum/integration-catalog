@@ -198,7 +198,7 @@ export class UploadFormMain implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    if (!this.authService.isLoggedIn()) {
+    if (!this.authService.canUpload()) {
       this.router.navigate(['/applications']);
       return;
     }

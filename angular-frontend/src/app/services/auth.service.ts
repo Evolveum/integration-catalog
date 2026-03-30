@@ -6,6 +6,22 @@
 
 import { Injectable, signal } from '@angular/core';
 
+export enum UserRole {
+  Unauthenticated = 'Unauthenticated user',
+  ReadOnly = 'Read only',
+  IndividualContributor = 'Individual contributor',
+  OrganizationContributor = 'Organization contributor',
+  Superuser = 'Superuser'
+}
+
+const userRoleMap: Record<string, UserRole> = {
+  u1: UserRole.Unauthenticated,
+  u2: UserRole.ReadOnly,
+  u3: UserRole.IndividualContributor,
+  u4: UserRole.OrganizationContributor,
+  u5: UserRole.Superuser
+};
+
 @Injectable({
   providedIn: 'root'
 })
@@ -43,5 +59,29 @@ export class AuthService {
 
   isLoggedIn(): boolean {
     return this._currentUser() !== null;
+  }
+
+  currentRole(): UserRole | null {
+    const user = this._currentUser();
+    return user ? (userRoleMap[user] ?? null) : null;
+  }
+
+  canVote(): boolean {
+    const role = this.currentRole();
+    return role === UserRole.ReadOnly ||
+           role === UserRole.IndividualContributor ||
+           role === UserRole.OrganizationContributor ||
+           role === UserRole.Superuser;
+  }
+
+  canRequest(): boolean {
+    return this.canVote();
+  }
+
+  canUpload(): boolean {
+    const role = this.currentRole();
+    return role === UserRole.IndividualContributor ||
+           role === UserRole.OrganizationContributor ||
+           role === UserRole.Superuser;
   }
 }
