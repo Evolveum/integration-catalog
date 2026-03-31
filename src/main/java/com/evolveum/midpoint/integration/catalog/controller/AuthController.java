@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Auth", description = "Authentication endpoints")
@@ -39,5 +41,11 @@ public class AuthController {
         return authService.login(request.username(), request.password())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    @Operation(summary = "Get organization members", description = "Returns all usernames in the same organization as the given user")
+    @GetMapping("/organization/members")
+    public ResponseEntity<List<String>> getOrganizationMembers(@RequestParam String username) {
+        return ResponseEntity.ok(authService.getOrganizationMembers(username));
     }
 }

@@ -72,8 +72,20 @@ export class UploadFormImpl implements OnChanges {
   ) {
     const currentUser = this.authService.currentUser();
     if (currentUser) {
-      this.maintainerOptions = [currentUser];
       this.maintainer.set(currentUser);
+
+      if (this.authService.currentOrganizationId() != null) {
+        this.authService.getOrganizationMembers(currentUser).subscribe({
+          next: (members) => {
+            this.maintainerOptions = members;
+          },
+          error: () => {
+            this.maintainerOptions = [currentUser];
+          }
+        });
+      } else {
+        this.maintainerOptions = [currentUser];
+      }
     }
   }
 

@@ -30,17 +30,22 @@ interface LoginResponse {
 export class AuthService {
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
+  private readonly _currentOrganizationId = signal<number | null>(null);
 
   readonly currentUser = this._currentUser.asReadonly();
 
   constructor(private http: HttpClient) {
     const storedUser = localStorage.getItem('currentUser');
     const storedRole = localStorage.getItem('currentRole');
+    const storedOrgId = localStorage.getItem('currentOrganizationId');
     if (storedUser) {
       this._currentUser.set(storedUser);
     }
     if (storedRole) {
       this._currentRole.set(UserRole[storedRole as keyof typeof UserRole] ?? null);
+    }
+    if (storedOrgId) {
+      this._currentOrganizationId.set(Number(storedOrgId));
     }
   }
 
@@ -50,9 +55,13 @@ export class AuthService {
         const role = UserRole[response.role as keyof typeof UserRole] ?? null;
         this._currentUser.set(response.username);
         this._currentRole.set(role);
+        this._currentOrganizationId.set(response.organizationId);
         localStorage.setItem('currentUser', response.username);
         if (role) {
           localStorage.setItem('currentRole', response.role);
+        }
+        if (response.organizationId != null) {
+          localStorage.setItem('currentOrganizationId', String(response.organizationId));
         }
         return true;
       }),
@@ -63,8 +72,20 @@ export class AuthService {
   logout(): void {
     this._currentUser.set(null);
     this._currentRole.set(null);
+    this._currentOrganizationId.set(null);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('currentRole');
+    localStorage.removeItem('currentOrganizationId');
+  }
+
+  currentOrganizationId(): number | null {
+    return this._currentOrganizationId();
+  }
+
+  getOrganizationMembers(username: string): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/auth/organization/members`, {
+      params: { username }
+    });
   }
 
   isLoggedIn(): boolean {

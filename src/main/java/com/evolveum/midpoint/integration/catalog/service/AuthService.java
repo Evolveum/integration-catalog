@@ -13,7 +13,9 @@ import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepositor
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -44,5 +46,20 @@ public class AuthService {
                 org != null ? org.getId() : null,
                 org != null ? org.getName() : null
         ));
+    }
+
+    public List<String> getOrganizationMembers(String username) {
+        return catalogUserRepository.findByUsername(username)
+                .map(user -> {
+                    if (user.getOrganization() == null) {
+                        return List.of(username);
+                    }
+                    return catalogUserRepository
+                            .findByOrganizationId(user.getOrganization().getId())
+                            .stream()
+                            .map(CatalogUser::getUsername)
+                            .collect(Collectors.toList());
+                })
+                .orElse(List.of(username));
     }
 }
