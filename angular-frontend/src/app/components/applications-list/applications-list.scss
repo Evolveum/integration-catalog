@@ -9,10 +9,12 @@
    ======================================== */
 .page-bg {
   background-color: #e9ecef;
+  min-width: 1080px;
 }
 
 .content-width {
-  width: 1080px;
+  max-width: 1080px;
+  width: 100%;
 }
 
 /* ========================================
@@ -32,6 +34,7 @@
 
 .hero-stat-value {
   color: #A3CDCC;
+  font-size: 3.5rem;
 }
 
 .hero-stat-label {
@@ -67,14 +70,22 @@
    ======================================== */
 .overlay-image-container {
   position: absolute;
-  right: 28%;
-  top: 150px;
+  top: -35px;
+  left: 45%;
+  transform: translateX(-50%);
   z-index: 5;
 }
 
 .overlay-image {
-  max-width: 450px;
+  width: 450px;
   height: auto;
+}
+
+/* ========================================
+   SECTION TITLES
+   ======================================== */
+.section-title {
+  font-size: 1.75rem;
 }
 
 /* ========================================
@@ -233,6 +244,20 @@
   min-width: 252px;
   height: 380px;
   transition: opacity 0.3s ease;
+}
+
+/* ========================================
+   MORE APPS RESPONSIVE GRID
+   ======================================== */
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(252px, 1fr));
+  gap: 1.5rem;
+}
+
+.apps-grid .app-card {
+  width: 100%;
+  min-width: unset;
 }
 
 /* ========================================
@@ -410,7 +435,8 @@
   border: 0;
   border-top: 1px solid #6c757d;
   margin: 3rem auto;
-  width: 1080px;
+  max-width: 1080px;
+  width: 100%;
 }
 
 /* ========================================

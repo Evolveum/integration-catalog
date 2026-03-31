@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, signal, computed, ViewChild, ViewChildren, ElementRef, AfterViewInit, QueryList } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ViewChildren, ElementRef, AfterViewInit, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -23,7 +23,7 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })
-export class ApplicationsList implements OnInit, AfterViewInit {
+export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('scrollContainerMore') scrollContainerMore!: ElementRef<HTMLDivElement>;
   @ViewChildren('featuredCard') featuredCards!: QueryList<ElementRef<HTMLDivElement>>;
@@ -74,6 +74,9 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected openDropdown = signal<string | null>(null);
   protected showLoginRequiredMessage = signal<boolean>(false);
   protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
+
+  private activeChipElement: HTMLElement | null = null;
+  private scrollListener: (() => void) | null = null;
 
   protected filterState = signal<FilterState>({
     trending: false,
@@ -255,17 +258,15 @@ export class ApplicationsList implements OnInit, AfterViewInit {
 
   protected toggleDropdown(filterType: string, event: MouseEvent): void {
     if (this.openDropdown() === filterType) {
-      this.openDropdown.set(null);
-      this.dropdownPosition.set(null);
+      this.closeDropdown();
     } else {
       const target = event.currentTarget as HTMLElement;
-      const rect = target.closest('.filter-chip')?.getBoundingClientRect();
+      const chip = target.closest('.filter-chip') as HTMLElement | null;
 
-      if (rect) {
-        this.dropdownPosition.set({
-          top: rect.bottom + 8,
-          left: rect.left
-        });
+      if (chip) {
+        this.activeChipElement = chip;
+        this.updateDropdownPosition();
+        this.attachScrollListener();
       }
       this.openDropdown.set(filterType);
     }
@@ -274,6 +275,34 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected closeDropdown(): void {
     this.openDropdown.set(null);
     this.dropdownPosition.set(null);
+    this.activeChipElement = null;
+    this.detachScrollListener();
+  }
+
+  private updateDropdownPosition(): void {
+    if (!this.activeChipElement) return;
+    const rect = this.activeChipElement.getBoundingClientRect();
+    this.dropdownPosition.set({
+      top: rect.bottom + 8,
+      left: rect.left
+    });
+  }
+
+  private attachScrollListener(): void {
+    this.detachScrollListener();
+    this.scrollListener = () => this.updateDropdownPosition();
+    window.addEventListener('scroll', this.scrollListener, true);
+  }
+
+  private detachScrollListener(): void {
+    if (this.scrollListener) {
+      window.removeEventListener('scroll', this.scrollListener, true);
+      this.scrollListener = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.detachScrollListener();
   }
 
   protected clearTrendingFilter(): void {

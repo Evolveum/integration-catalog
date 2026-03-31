@@ -123,6 +123,7 @@ export class FilterModal implements OnInit {
 
   protected toggleTrending(): void {
     this.trending.set(!this.trending());
+    this.closeModal();
   }
 
   protected toggleCategory(categoryName: string): void {
@@ -133,6 +134,7 @@ export class FilterModal implements OnInit {
       current.add(categoryName);
     }
     this.selectedCategories.set(current);
+    this.closeModal();
   }
 
   protected toggleCapability(capability: string): void {
@@ -143,6 +145,7 @@ export class FilterModal implements OnInit {
       current.add(capability);
     }
     this.selectedCapabilities.set(current);
+    this.closeModal();
   }
 
   protected toggleAppStatus(status: string): void {
@@ -153,6 +156,7 @@ export class FilterModal implements OnInit {
       current.add(status);
     }
     this.selectedAppStatus.set(current);
+    this.closeModal();
   }
 
   protected isCategorySelected(categoryName: string): boolean {
@@ -175,6 +179,7 @@ export class FilterModal implements OnInit {
       current.add(version);
     }
     this.selectedMidpointVersions.set(current);
+    this.closeModal();
   }
 
   protected isMidpointVersionSelected(version: string): boolean {
@@ -189,6 +194,7 @@ export class FilterModal implements OnInit {
       current.add(method);
     }
     this.selectedIntegrationMethods.set(current);
+    this.closeModal();
   }
 
   protected isIntegrationMethodSelected(method: string): boolean {
@@ -203,6 +209,7 @@ export class FilterModal implements OnInit {
       current.add(maintainer);
     }
     this.selectedMaintainers.set(current);
+    this.closeModal();
   }
 
   protected isMaintainerSelected(maintainer: string): boolean {
