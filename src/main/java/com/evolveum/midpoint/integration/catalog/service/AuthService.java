@@ -10,9 +10,11 @@ import com.evolveum.midpoint.integration.catalog.dto.LoginResponseDto;
 import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
+import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,10 +23,12 @@ import java.util.stream.Collectors;
 public class AuthService {
 
     private final CatalogUserRepository catalogUserRepository;
+    private final OrganizationRepository organizationRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public AuthService(CatalogUserRepository catalogUserRepository) {
+    public AuthService(CatalogUserRepository catalogUserRepository, OrganizationRepository organizationRepository) {
         this.catalogUserRepository = catalogUserRepository;
+        this.organizationRepository = organizationRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -46,6 +50,17 @@ public class AuthService {
                 org != null ? org.getId() : null,
                 org != null ? org.getName() : null
         ));
+    }
+
+    public List<String> getAllMaintainers() {
+        List<String> result = new ArrayList<>();
+        catalogUserRepository.findAll().stream()
+                .map(CatalogUser::getUsername)
+                .forEach(result::add);
+        organizationRepository.findAll().stream()
+                .map(Organization::getName)
+                .forEach(result::add);
+        return result;
     }
 
     public List<String> getOrganizationMembers(String username) {

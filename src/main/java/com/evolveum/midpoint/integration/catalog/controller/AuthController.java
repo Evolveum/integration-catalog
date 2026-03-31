@@ -48,4 +48,10 @@ public class AuthController {
     public ResponseEntity<List<String>> getOrganizationMembers(@RequestParam String username) {
         return ResponseEntity.ok(authService.getOrganizationMembers(username));
     }
+
+    @Operation(summary = "Get all maintainers", description = "Returns all usernames and organization names — for superuser use")
+    @GetMapping("/all-maintainers")
+    public ResponseEntity<List<String>> getAllMaintainers() {
+        return ResponseEntity.ok(authService.getAllMaintainers());
+    }
 }

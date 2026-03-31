@@ -97,6 +97,10 @@ export class AuthService {
     return this._currentOrganizationName();
   }
 
+  getAllMaintainers(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/auth/all-maintainers`);
+  }
+
   isLoggedIn(): boolean {
     return this._currentUser() !== null;
   }
