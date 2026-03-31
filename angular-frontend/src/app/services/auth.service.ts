@@ -31,6 +31,7 @@ export class AuthService {
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
   private readonly _currentOrganizationId = signal<number | null>(null);
+  private readonly _currentOrganizationName = signal<string | null>(null);
 
   readonly currentUser = this._currentUser.asReadonly();
 
@@ -38,6 +39,7 @@ export class AuthService {
     const storedUser = localStorage.getItem('currentUser');
     const storedRole = localStorage.getItem('currentRole');
     const storedOrgId = localStorage.getItem('currentOrganizationId');
+    const storedOrgName = localStorage.getItem('currentOrganizationName');
     if (storedUser) {
       this._currentUser.set(storedUser);
     }
@@ -46,6 +48,9 @@ export class AuthService {
     }
     if (storedOrgId) {
       this._currentOrganizationId.set(Number(storedOrgId));
+    }
+    if (storedOrgName) {
+      this._currentOrganizationName.set(storedOrgName);
     }
   }
 
@@ -56,12 +61,16 @@ export class AuthService {
         this._currentUser.set(response.username);
         this._currentRole.set(role);
         this._currentOrganizationId.set(response.organizationId);
+        this._currentOrganizationName.set(response.organizationName);
         localStorage.setItem('currentUser', response.username);
         if (role) {
           localStorage.setItem('currentRole', response.role);
         }
         if (response.organizationId != null) {
           localStorage.setItem('currentOrganizationId', String(response.organizationId));
+        }
+        if (response.organizationName != null) {
+          localStorage.setItem('currentOrganizationName', response.organizationName);
         }
         return true;
       }),
@@ -73,19 +82,19 @@ export class AuthService {
     this._currentUser.set(null);
     this._currentRole.set(null);
     this._currentOrganizationId.set(null);
+    this._currentOrganizationName.set(null);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('currentRole');
     localStorage.removeItem('currentOrganizationId');
+    localStorage.removeItem('currentOrganizationName');
   }
 
   currentOrganizationId(): number | null {
     return this._currentOrganizationId();
   }
 
-  getOrganizationMembers(username: string): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiUrl}/auth/organization/members`, {
-      params: { username }
-    });
+  currentOrganizationName(): string | null {
+    return this._currentOrganizationName();
   }
 
   isLoggedIn(): boolean {

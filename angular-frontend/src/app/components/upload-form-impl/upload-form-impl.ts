@@ -8,7 +8,7 @@ import { Component, signal, computed, Output, EventEmitter, Input, OnChanges, Si
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 
 @Component({
@@ -71,21 +71,17 @@ export class UploadFormImpl implements OnChanges {
     private authService: AuthService
   ) {
     const currentUser = this.authService.currentUser();
-    if (currentUser) {
-      this.maintainer.set(currentUser);
+    if (!currentUser) return;
 
-      if (this.authService.currentOrganizationId() != null) {
-        this.authService.getOrganizationMembers(currentUser).subscribe({
-          next: (members) => {
-            this.maintainerOptions = members;
-          },
-          error: () => {
-            this.maintainerOptions = [currentUser];
-          }
-        });
-      } else {
-        this.maintainerOptions = [currentUser];
-      }
+    const isOrgContributor = this.authService.currentRole() === UserRole.OrganizationContributor;
+    const orgName = this.authService.currentOrganizationName();
+
+    if (isOrgContributor && orgName) {
+      this.maintainerOptions = [orgName];
+      this.maintainer.set(orgName);
+    } else {
+      this.maintainerOptions = [currentUser];
+      this.maintainer.set(currentUser);
     }
   }
 
