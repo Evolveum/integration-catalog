@@ -39,13 +39,13 @@ export class LoginModal {
       return;
     }
 
-    const success = this.authService.login(this.username, this.password);
-
-    if (success) {
-      this.closeModal();
-    } else {
-      this.errorMessage.set('Invalid username or password');
-    }
+    this.authService.login(this.username, this.password).subscribe(success => {
+      if (success) {
+        this.closeModal();
+      } else {
+        this.errorMessage.set('Invalid username or password');
+      }
+    });
   }
 
   private resetForm(): void {
