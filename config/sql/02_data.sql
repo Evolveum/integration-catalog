@@ -203,12 +203,12 @@ INSERT INTO organizations (id, name, description) VALUES
  (1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
  (2, 'Evolveum', 'Evolveum — application administrators');
 
-INSERT INTO catalog_users (username, password, organization_id) VALUES
- ('u1', crypt('u1', gen_salt('bf', 10)), 1),
- ('u2', crypt('u2', gen_salt('bf', 10)), NULL),
- ('u3', crypt('u3', gen_salt('bf', 10)), NULL),
- ('u4', crypt('u4', gen_salt('bf', 10)), 1),
- ('u5', crypt('u5', gen_salt('bf', 10)), 2);
+INSERT INTO catalog_users (username, password, role, organization_id) VALUES
+ ('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
+ ('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
+ ('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
+ ('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
+ ('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
 
 SELECT pg_catalog.setval('application_application_tag_id_seq', 30, true);
 SELECT pg_catalog.setval('application_origin_id_seq', 8, true);

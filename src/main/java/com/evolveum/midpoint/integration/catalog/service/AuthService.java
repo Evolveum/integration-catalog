@@ -40,6 +40,7 @@ public class AuthService {
         Organization org = user.getOrganization();
         return Optional.of(new LoginResponseDto(
                 user.getUsername(),
+                user.getRole(),
                 org != null ? org.getId() : null,
                 org != null ? org.getName() : null
         ));

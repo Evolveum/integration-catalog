@@ -17,16 +17,9 @@ export enum UserRole {
   Superuser = 'Superuser'
 }
 
-const userRoleMap: Record<string, UserRole> = {
-  u1: UserRole.OrganizationContributor,
-  u2: UserRole.ReadOnly,
-  u3: UserRole.IndividualContributor,
-  u4: UserRole.IndividualContributor,
-  u5: UserRole.Superuser
-};
-
 interface LoginResponse {
   username: string;
+  role: string;
   organizationId: number | null;
   organizationName: string | null;
 }
@@ -36,23 +29,31 @@ interface LoginResponse {
 })
 export class AuthService {
   private readonly _currentUser = signal<string | null>(null);
+  private readonly _currentRole = signal<UserRole | null>(null);
 
-  // Expose as a readonly signal property instead of a method
   readonly currentUser = this._currentUser.asReadonly();
 
   constructor(private http: HttpClient) {
-    // Restore session from localStorage
     const storedUser = localStorage.getItem('currentUser');
+    const storedRole = localStorage.getItem('currentRole');
     if (storedUser) {
       this._currentUser.set(storedUser);
+    }
+    if (storedRole) {
+      this._currentRole.set(UserRole[storedRole as keyof typeof UserRole] ?? null);
     }
   }
 
   login(username: string, password: string): Observable<boolean> {
     return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, { username, password }).pipe(
       map(response => {
+        const role = UserRole[response.role as keyof typeof UserRole] ?? null;
         this._currentUser.set(response.username);
+        this._currentRole.set(role);
         localStorage.setItem('currentUser', response.username);
+        if (role) {
+          localStorage.setItem('currentRole', response.role);
+        }
         return true;
       }),
       catchError(() => of(false))
@@ -61,7 +62,9 @@ export class AuthService {
 
   logout(): void {
     this._currentUser.set(null);
+    this._currentRole.set(null);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentRole');
   }
 
   isLoggedIn(): boolean {
@@ -69,8 +72,7 @@ export class AuthService {
   }
 
   currentRole(): UserRole | null {
-    const user = this._currentUser();
-    return user ? (userRoleMap[user] ?? null) : null;
+    return this._currentRole();
   }
 
   canVote(): boolean {

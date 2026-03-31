@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.dto;
 
 public record LoginResponseDto(
         String username,
+        String role,
         Integer organizationId,
         String organizationName
 ) {}
