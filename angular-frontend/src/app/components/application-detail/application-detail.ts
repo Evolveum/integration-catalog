@@ -9,10 +9,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail } from '../../models/application-detail.model';
+import { PageHeader } from '../page-header/page-header';
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule],
+  imports: [CommonModule, PageHeader],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']

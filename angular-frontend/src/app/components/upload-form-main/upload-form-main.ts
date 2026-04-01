@@ -10,11 +10,12 @@ import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
+import { PageHeader } from '../page-header/page-header';
 
 @Component({
   selector: 'app-upload-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl],
+  imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl, PageHeader],
   templateUrl: './upload-form-main.html',
   styleUrls: ['./upload-form-main.scss']
 })

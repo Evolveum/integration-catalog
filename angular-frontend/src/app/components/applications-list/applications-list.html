@@ -5,10 +5,7 @@
  -->
 
 <div class="container-fluid p-0 position-relative page-bg">
-  <!-- Header -->
-  <div class="w-100 text-white text-center py-2 page-header">
-    (HEADER)
-  </div>
+  <app-page-header></app-page-header>
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
     <div class="position-fixed top-0 end-0 p-3 toast-container">
@@ -48,19 +45,7 @@
   <div class="container-fluid p-0 page-bg">
     <!-- Hero Banner -->
     <div class="bg-primary text-white py-5 hero-gradient position-relative">
-      <!-- Login/Logout Button (Top Right) -->
-      <div class="position-absolute top-0 end-0 p-3 z-index-10">
-        @if (currentUser()) {
-          <div class="d-flex align-items-center gap-2">
-            <span class="text-white">{{ currentUser() }}</span>
-            <button class="btn btn-sm btn-light" (click)="logout()">Logout</button>
-          </div>
-        } @else {
-          <button class="btn btn-sm btn-light" (click)="openLoginModal()">Login</button>
-        }
-      </div>
-
-      <div class="mx-auto content-width position-relative">
+<div class="mx-auto content-width position-relative">
         <!-- title -->
         <div class="row">
           <div class="col-12 text-center">
@@ -571,8 +556,6 @@
     <!-- Request Form Modal Component -->
     <app-request-form [isRequestModalOpen]="isRequestModalOpen" (modalClosed)="closeRequestModal()" (requestSubmitted)="reloadApplications()"></app-request-form>
 
-    <!-- Login Modal Component -->
-    <app-login-modal [isOpen]="isLoginModalOpen" (modalClosed)="closeLoginModal()"></app-login-modal>
 
     <!-- Filter Modal Component -->
     <app-filter-modal [isOpen]="isFilterModalOpen" [currentFilterState]="filterState" (modalClosed)="closeFilterModal()" (filterApplied)="applyFilter($event)"></app-filter-modal>

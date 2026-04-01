@@ -12,14 +12,14 @@ import { ApplicationService } from '../../services/application.service';
 import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
-import { LoginModal } from '../login-modal/login-modal';
 import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
+import { PageHeader } from '../page-header/page-header';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, LoginModal, FilterModal],
+  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })
@@ -69,7 +69,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
   protected readonly activeTab = signal<string>('all');
   protected isRequestModalOpen = signal<boolean>(false);
-  protected isLoginModalOpen = signal<boolean>(false);
+
   protected isFilterModalOpen = signal<boolean>(false);
   protected openDropdown = signal<string | null>(null);
   protected showLoginRequiredMessage = signal<boolean>(false);
@@ -675,7 +675,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     if (!this.authService.canRequest()) {
       this.showLoginRequiredMessage.set(true);
       setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-      this.isLoginModalOpen.set(true);
+      this.authService.openLoginModal();
       return;
     }
     this.isRequestModalOpen.set(true);
@@ -693,20 +693,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     this.isRequestModalOpen.set(false);
   }
 
-  protected openLoginModal(): void {
-    this.isLoginModalOpen.set(true);
-  }
-
-  protected closeLoginModal(): void {
-    this.isLoginModalOpen.set(false);
-  }
-
   protected openUploadModal(): void {
     if (!this.authService.canUpload()) {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);
         setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-        this.isLoginModalOpen.set(true);
+        this.authService.openLoginModal();
       } else {
         this.showPermissionDeniedMessage.set(true);
         setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
@@ -732,10 +724,6 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected applyFilter(filterState: FilterState): void {
     this.filterState.set(filterState);
     this.currentPage.set(0);
-  }
-
-  protected logout(): void {
-    this.authService.logout();
   }
 
   protected voteForRequest(app: Application): void {
