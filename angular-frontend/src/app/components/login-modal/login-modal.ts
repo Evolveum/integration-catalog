@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, Signal, Output, EventEmitter, Input } from '@angular/core';
+import { Component, signal, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
@@ -17,7 +17,7 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./login-modal.scss']
 })
 export class LoginModal {
-  @Input() isOpen: Signal<boolean> = signal<boolean>(false);
+  @Input() isOpen: boolean = false;
   @Output() modalClosed = new EventEmitter<void>();
 
   protected username = '';

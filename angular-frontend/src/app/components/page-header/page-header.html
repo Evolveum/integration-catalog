@@ -1,4 +1,4 @@
-<div class="page-header d-flex align-items-center px-4">
+<div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb">
   <!-- Left: logo + title -->
   <div class="d-flex align-items-center gap-2 header-brand">
     <i class="fa-solid fa-globe header-globe-icon"></i>
@@ -31,4 +31,10 @@
   </div>
 </div>
 
-<app-login-modal [isOpen]="loginModalOpen" (modalClosed)="closeLoginModal()"></app-login-modal>
+@if (breadcrumb) {
+  <div class="page-header-breadcrumb px-4">
+    <ng-content select="[breadcrumb]"></ng-content>
+  </div>
+}
+
+<app-login-modal [isOpen]="loginModalOpen()" (modalClosed)="closeLoginModal()"></app-login-modal>

@@ -2,7 +2,48 @@
 
 .page-header {
   background-color: #36538B;
-  height: 56px;
+  height: 86px;
+  border-bottom: 30px solid rgba(255, 255, 255, 1);
+
+  &.page-header-no-border {
+    border-bottom: none;
+    height: 56px;
+  }
+}
+
+.page-header-breadcrumb {
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.page-header-breadcrumb-text {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.breadcrumb-link {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  text-decoration: none;
+
+  &:hover {
+    color: #374151;
+    text-decoration: underline;
+  }
+}
+
+.breadcrumb-sep {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.breadcrumb-app-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
 }
 
 .header-globe-icon {

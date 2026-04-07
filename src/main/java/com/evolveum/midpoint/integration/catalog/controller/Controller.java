@@ -547,4 +547,29 @@ public class Controller {
                     "Failed to delete logo: " + ex.getMessage(), ex);
         }
     }
+
+    // ==================== Recently Used Applications ====================
+
+    @Operation(summary = "Get recently used applications",
+            description = "Returns a global list of recently used applications across all users")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Recently used applications retrieved successfully")
+    })
+    @GetMapping("/recently-used")
+    public ResponseEntity<List<ApplicationDto>> getRecentlyUsed() {
+        return ResponseEntity.ok(applicationService.getRecentlyUsedApplications());
+    }
+
+    @Operation(summary = "Record recently used application",
+            description = "Records that an application was used, updating the global recently used list")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Recorded successfully")
+    })
+    @PostMapping("/recently-used/{applicationId}")
+    public ResponseEntity<Void> recordRecentlyUsed(
+            @PathVariable UUID applicationId,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        applicationService.recordRecentlyUsed(applicationId, username);
+        return ResponseEntity.noContent().build();
+    }
 }

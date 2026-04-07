@@ -112,4 +112,18 @@ export class ApplicationService {
       `${environment.apiUrl}/applications/${applicationId}/logo`
     );
   }
+
+  // ==================== Recently Used ====================
+
+  getRecentlyUsed(): Observable<Application[]> {
+    return this.http.get<Application[]>(`${environment.apiUrl}/recently-used`);
+  }
+
+  recordRecentlyUsed(applicationId: string, username: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/recently-used/${applicationId}`,
+      {},
+      { headers: { 'X-User-Name': username } }
+    );
+  }
 }

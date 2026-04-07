@@ -1,8 +1,9 @@
-import { Component, signal, computed, OnInit } from '@angular/core';
+import { Component, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
+import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationFormData, UploadFileItem } from '../../models/request.model';
@@ -15,12 +16,14 @@ import { PageHeader } from '../page-header/page-header';
 @Component({
   selector: 'app-upload-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl, PageHeader],
+  imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl, PageHeader, RouterLink],
   templateUrl: './upload-form-main.html',
   styleUrls: ['./upload-form-main.scss']
 })
-export class UploadFormMain implements OnInit {
+export class UploadFormMain implements OnInit, OnDestroy {
+  private easyMde: EasyMDE | null = null;
   protected readonly applications = signal<Application[]>([]);
+  protected readonly recentlyUsedApps = signal<Application[]>([]);
 
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
@@ -53,9 +56,7 @@ export class UploadFormMain implements OnInit {
   protected readonly showVersionExistsWarning = signal<boolean>(false);
   protected readonly existingVersion = signal<string>('');
 
-  protected recentApps = computed(() => {
-    return this.applications().slice(0, 6);
-  });
+  protected recentApps = computed(() => this.recentlyUsedApps());
 
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -159,44 +160,155 @@ export class UploadFormMain implements OnInit {
     ];
   });
 
+  protected readonly showDefineNewModal = signal<boolean>(false);
   protected readonly showOriginDropdown = signal<boolean>(false);
-  protected readonly selectedIntegrationMethod = signal<string>('');
+  protected readonly selectedIntegrationMethod = signal<string[]>([]);
+
+  protected readonly wizardSteps = [
+    { label: 'Select target application' },
+    { label: 'Select integration method type' },
+    { label: 'Define integration method' },
+    { label: 'Select connector type' },
+    { label: 'Add connector' },
+    { label: 'Review' },
+  ];
 
   protected readonly integrationMethods = [
-    { value: 'scim-generic', title: 'SCIM generic',    description: 'generic',                               wide: true,
-      formDescription: 'SCIM generic integrations use a standard SCIM protocol for provisioning. This form registers the integration configuration in the catalog.' },
-    { value: 'scim',         title: 'SCIM',             description: 'nongeneric (java-based or low code)',    wide: true,
-      formDescription: 'SCIM integrations use a non-generic SCIM protocol, java-based or low code. This form registers the integration configuration in the catalog.' },
-    { value: 'rest-api',     title: 'REST API',         description: 'Custom REST-based connector',           wide: true,
-      formDescription: 'REST API integrations use a custom REST-based connector. This form only registers the integration configuration in the catalog.' },
-    { value: 'openldap',     title: 'openLDAP',         description: 'Integration with an existing LDAP directory.', wide: false,
-      formDescription: 'OpenLDAP integrations use an external LDAP directory. This form only registers the integration configuration in the catalog – the actual LDAP connector is installed and managed in your environment, it is not uploaded here.' },
-    { value: 'manual',       title: 'Manual Connector', description: 'lorem ipsum',                           wide: false,
-      formDescription: 'Manual connector integrations require manual configuration. This form registers the integration configuration in the catalog.' },
-    { value: 'database',     title: 'Database',         description: 'lorem ipsum',                           wide: false,
-      formDescription: 'Database integrations connect to an external database. This form only registers the integration configuration in the catalog.' },
-    { value: 'csv',          title: 'CSV',              description: 'lorem ipsum',                           wide: false,
-      formDescription: 'CSV integrations use CSV files for data exchange. This form registers the integration configuration in the catalog.' },
+    { value: 'scim',         title: 'SCIM',          description: 'nongeneric (java-based or low code)',       formDescription: 'SCIM integrations use a non-generic SCIM protocol, java-based or low code. This form registers the integration configuration in the catalog.' },
+    { value: 'rest-api',     title: 'REST API',      description: 'Custom REST-based connector',               formDescription: 'REST API integrations use a custom REST-based connector. This form only registers the integration configuration in the catalog.' },
+    { value: 'openldap',     title: 'open LDAP',     description: 'Integration with an existing LDAP',         formDescription: 'OpenLDAP integrations use an external LDAP directory. This form only registers the integration configuration in the catalog.' },
+    { value: 'manual-itsm',  title: 'Manual ITSM',   description: 'Mighty manual',                              formDescription: 'Manual ITSM integrations require manual configuration. This form registers the integration configuration in the catalog.' },
+    { value: 'database',     title: 'Database',      description: 'The one and only',                              formDescription: 'Database integrations connect to an external database. This form only registers the integration configuration in the catalog.' },
+    { value: 'csv',          title: 'CSV',           description: 'What ever this is',                              formDescription: 'CSV integrations use CSV files for data exchange. This form registers the integration configuration in the catalog.' },
   ];
 
   protected readonly selectedMethodInfo = computed(() =>
-    this.integrationMethods.find(m => m.value === this.selectedIntegrationMethod()) ?? null
+    this.integrationMethods.find(m => this.selectedIntegrationMethod().includes(m.value)) ?? null
   );
 
+  protected isMethodSelected(value: string): boolean {
+    return this.selectedIntegrationMethod().includes(value);
+  }
+
+  protected toggleIntegrationMethod(value: string): void {
+    const current = this.selectedIntegrationMethod();
+    if (current.includes(value)) {
+      this.selectedIntegrationMethod.set(current.filter(v => v !== value));
+    } else {
+      this.selectedIntegrationMethod.set([...current, value]);
+    }
+  }
+
   // Step 3 – method-specific form fields
-  protected readonly methodFormDisplayName  = signal<string>('');
-  protected readonly methodFormDescription  = signal<string>('');
-  protected readonly methodFormSampleLink   = signal<string>('');
-  protected readonly methodFormSystemVersion = signal<string>('');
-  protected readonly methodFormFromDate     = signal<string>('');
-  protected readonly methodFormToDate       = signal<string>('');
+  protected readonly methodFormDisplayName = signal<string>('');
+  protected readonly methodFormVersion     = signal<string>('');
+  protected readonly methodFormDescription = signal<string>('');
+  protected readonly methodFormTutorial    = signal<string>('');
+  protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
+  protected readonly tutorialDragOver      = signal<boolean>(false);
+  protected readonly tutorialWordCount     = computed(() =>
+    this.methodFormTutorial().trim() === '' ? 0 : this.methodFormTutorial().trim().split(/\s+/).length
+  );
+
+  protected readonly selectedMethodsLabel = computed(() => {
+    const titles = this.integrationMethods
+      .filter(m => this.selectedIntegrationMethod().includes(m.value))
+      .map(m => m.title);
+    const lines: string[] = [];
+    for (let i = 0; i < titles.length; i += 2) {
+      lines.push(titles.slice(i, i + 2).join(' + '));
+    }
+    return lines.join('\n');
+  });
 
   constructor(
     private countryService: CountryService,
     private applicationService: ApplicationService,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) {
+    effect(() => {
+      if (this.currentStep() === 3) {
+        setTimeout(() => this.initEasyMDE(), 0);
+      } else {
+        this.destroyEasyMDE();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroyEasyMDE();
+  }
+
+  private initEasyMDE(): void {
+    if (this.easyMde) return;
+    const el = document.getElementById('tutorial-editor') as HTMLTextAreaElement | null;
+    if (!el) return;
+    this.easyMde = new EasyMDE({
+      element: el,
+      initialValue: this.methodFormTutorial(),
+      spellChecker: false,
+      status: ['lines', 'words'],
+      toolbar: [
+        'bold', 'italic', 'strikethrough', '|',
+        'heading', 'heading-smaller', 'heading-bigger', '|',
+        'quote', 'unordered-list', 'ordered-list', '|',
+        'link', '|',
+        'preview', 'side-by-side', 'fullscreen', '|',
+        {
+          name: 'upload',
+          action: () => this.tutorialUpload(),
+          className: 'fa fa-upload',
+          title: 'Upload file content',
+        },
+        {
+          name: 'download',
+          action: () => this.tutorialDownload(),
+          className: 'fa fa-download',
+          title: 'Download as Markdown',
+        },
+      ],
+    });
+    this.easyMde.codemirror.on('change', () => {
+      this.methodFormTutorial.set(this.easyMde!.value());
+    });
+  }
+
+  private tutorialUpload(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,.txt';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = reader.result as string;
+        this.easyMde!.value(content);
+        this.methodFormTutorial.set(content);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  private tutorialDownload(): void {
+    const content = this.easyMde?.value() ?? '';
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tutorial.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private destroyEasyMDE(): void {
+    if (this.easyMde) {
+      this.easyMde.toTextArea();
+      this.easyMde = null;
+    }
+  }
 
   ngOnInit(): void {
     if (!this.authService.canUpload()) {
@@ -206,6 +318,10 @@ export class UploadFormMain implements OnInit {
 
     this.applicationService.getAll().subscribe({
       next: (data) => this.applications.set(data)
+    });
+
+    this.applicationService.getRecentlyUsed().subscribe({
+      next: (data) => this.recentlyUsedApps.set(data)
     });
 
     // Fetch all countries from REST Countries API
@@ -236,13 +352,12 @@ export class UploadFormMain implements OnInit {
     }
   }
 
-  protected selectIntegrationMethod(value: string): void {
-    this.selectedIntegrationMethod.set(value);
+  protected goToStep(step: number): void {
+    if (step < this.currentStep()) {
+      this.currentStep.set(step);
+    }
   }
 
-  protected clearSampleLink(): void {
-    this.methodFormSampleLink.set('');
-  }
 
   protected onMethodFormDescriptionChange(event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
@@ -251,11 +366,52 @@ export class UploadFormMain implements OnInit {
     }
   }
 
+  protected onTutorialChange(event: Event): void {
+    this.methodFormTutorial.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected onTutorialFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.tutorialDragOver.set(false);
+    const files = event.dataTransfer?.files;
+    if (files) {
+      Array.from(files).forEach(file => this.addTutorialFile(file));
+    }
+  }
+
+  protected onTutorialFileSelect(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files) {
+      Array.from(input.files).forEach(file => this.addTutorialFile(file));
+    }
+    input.value = '';
+  }
+
+  private addTutorialFile(file: File): void {
+    // Avoid duplicates by name
+    if (this.tutorialFiles().some(f => f.name === file.name)) return;
+    this.tutorialFiles.update(files => [...files, { name: file.name, file, isNew: true }]);
+  }
+
+  protected removeTutorialFile(index: number): void {
+    this.tutorialFiles.update(files => files.filter((_, i) => i !== index));
+  }
+
   protected enterDefineNewMode(): void {
+    this.clearApplicationDetailsFields();
+    this.showDefineNewModal.set(true);
+  }
+
+  protected cancelDefineNewModal(): void {
+    this.showDefineNewModal.set(false);
+    this.clearApplicationDetailsFields();
+  }
+
+  protected confirmDefineNew(): void {
+    this.showDefineNewModal.set(false);
     this.isDefineNewMode.set(true);
     this.selectedApplication.set(null);
     this.showDetailsForm.set(true);
-    this.clearApplicationDetailsFields();
   }
 
   private populateApplicationDetails(): void {
@@ -360,6 +516,13 @@ export class UploadFormMain implements OnInit {
     this.searchQuery.set('');
     this.isDefineNewMode.set(false);
     this.showDetailsForm.set(false);
+    this.populateApplicationDetails();
+    const username = this.authService.currentUser() ?? 'anonymous';
+    this.applicationService.recordRecentlyUsed(app.id, username).subscribe({
+      next: () => this.applicationService.getRecentlyUsed().subscribe({
+        next: (data) => this.recentlyUsedApps.set(data)
+      })
+    });
   }
 
   protected continueWithSelectedApp(): void {
@@ -390,6 +553,12 @@ export class UploadFormMain implements OnInit {
 
   protected showImplementationForm(): boolean {
     return this.showDetailsForm();
+  }
+
+  protected canContinueStep1(): boolean {
+    if (this.selectedApplication() !== null) return true;
+    if (this.isDefineNewMode()) return this.canSubmitForm();
+    return false;
   }
 
   protected canContinueWithSelection(): boolean {
@@ -731,13 +900,12 @@ export class UploadFormMain implements OnInit {
   private resetForm(): void {
     this.currentStep.set(1);
     this.selectedConnectorType.set('evolveum-hosted');
-    this.selectedIntegrationMethod.set('');
+    this.selectedIntegrationMethod.set([]);
     this.methodFormDisplayName.set('');
+    this.methodFormVersion.set('');
     this.methodFormDescription.set('');
-    this.methodFormSampleLink.set('');
-    this.methodFormSystemVersion.set('');
-    this.methodFormFromDate.set('');
-    this.methodFormToDate.set('');
+    this.methodFormTutorial.set('');
+    this.tutorialFiles.set([]);
     this.searchQuery.set('');
     this.selectedApplication.set(null);
     this.isDefineNewMode.set(false);
