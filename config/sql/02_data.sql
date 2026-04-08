@@ -20,7 +20,8 @@ INSERT INTO application_tag (id, name, display_name, tag_type) VALUES
   (11, 'internal_applications',            'Internal Applications',            'CATEGORY'),
   (12, 'evolveum-creation',                'Profesional By Evolveum',          'COMMON'),
   (13, 'community-creation',               'Created by Community',             'COMMON'),
-  (14, 'partner-creation',                 'Created by Evolveum Partners',     'COMMON');
+  (14, 'partner-creation',                 'Created by Evolveum Partners',     'COMMON'),
+  (15, 'generic_application',              'Generic Application',              'COMMON');
 
 INSERT INTO country_of_origin (id, name, display_name) VALUES
   (1, 'austria',  'Austria'),
@@ -31,12 +32,12 @@ INSERT INTO country_of_origin (id, name, display_name) VALUES
 
 INSERT INTO connid_version (version, midpoint_version) VALUES
   ('1.1.0.0', '4.1.0,4.1.1'),
-    ('1.2.0.0', '4.2.0,4.2.1'),
-    ('1.3.0.0', '4.3.0,4.3.1'),
-    ('1.4.0.0', '4.4.0,4.4.1'),
-    ('1.5.2.0', '4.4.0,4.4.1'),
-    ('1.5.3.0-M3', '4.4.0,4.4.1'),
-    ('1.5.0.0', '4.5.0,4.5.1');
+  ('1.2.0.0', '4.2.0,4.2.1'),
+  ('1.3.0.0', '4.3.0,4.3.1'),
+  ('1.4.0.0', '4.4.0,4.4.1'),
+  ('1.5.2.0', '4.4.0,4.4.1'),
+  ('1.5.3.0-M3', '4.4.0,4.4.1'),
+  ('1.5.0.0', '4.5.0,4.5.1');
 
 INSERT INTO application
 (id, name, display_name, description, lifecycle_state, created_at, last_modified, logo_path, logo_content_type, logo_original_name, logo_size_bytes) VALUES
@@ -197,7 +198,7 @@ INSERT INTO implementation_tag (id, name, display_name) VALUES
   (14, 'big_filler',        'BIG FILLER');
 
 INSERT INTO implementation_implementation_tag (id, implementation_id, tag_id) VALUES
- (3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
+(3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
 
 INSERT INTO organizations (id, name, description) VALUES
  (1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
@@ -212,13 +213,47 @@ INSERT INTO catalog_users (username, password, role, organization_id) VALUES
 
 SELECT pg_catalog.setval('application_application_tag_id_seq', 30, true);
 SELECT pg_catalog.setval('application_origin_id_seq', 8, true);
-SELECT pg_catalog.setval('application_tag_id_seq', 20, true);
+SELECT pg_catalog.setval('application_tag_id_seq', 15, true);
 SELECT pg_catalog.setval('country_of_origin_id_seq', 5, true);
 SELECT pg_catalog.setval('implementation_implementation_tag_id_seq', 21, true);
 SELECT pg_catalog.setval('implementation_tag_id_seq', 14, true);
 SELECT pg_catalog.setval('request_id_seq', 8, true);
 SELECT pg_catalog.setval('connector_bundle_id_seq', 5, true);
-SELECT pg_catalog.setval('bundle_version_id_seq', 7, true);
+SELECT pg_catalog.setval('bundle_version_id_seq', 8, true);
 SELECT pg_catalog.setval('organizations_id_seq', 2, true);
+
+INSERT INTO recently_used_applications (user_id, application_id) VALUES
+ ('u1', '54dfdf0e-4528-4b03-967d-4af33e49a0ab'),
+ ('u2', 'e5c2e9d6-4d28-4a08-8374-998c5373a35c'),
+ ('u3', '4a3c7f04-4106-4934-add1-f329f6333ad0');
+
+INSERT INTO integration_kind (identifier, display_name, description, generic_application_id, custom_connectors) VALUES
+('SCIM',             'SCIM',             'SCIM protocol based integration',          NULL,                                          true),
+('REST',             'REST',             'REST API based integration',               NULL,                                          true),
+('LDAP',             'LDAP',             'LDAP directory integration',               'e5c2e9d6-4d28-4a08-8374-998c5373a35c',        true),
+('CSV',              'CSV',              'CSV file based integration',               '54dfdf0e-4528-4b03-967d-4af33e49a0ab',        true),
+('MANUAL_CONNECTOR', 'Manual Connector', 'Manually configured connector integration', NULL,                                         true),
+('DATABASE',         'Database',         'Database table integration',               '9ed6e4fb-5f06-4081-845c-df023274e4db',        true);
+
+INSERT INTO integration
+(id, kind_id, description, documentation_link, link_sample, system_version) VALUES
+('a1a1a1a1-1111-4aaa-aaaa-aaaaaaaaaaaa', 'LDAP',     'OpenLDAP integration for user provisioning',     'https://docs.evolveum.com/connectors/ldap/',      ARRAY['https://github.com/Evolveum/connector-ldap/tree/master/samples'], 'OpenLDAP 2.6'),
+('b2b2b2b2-2222-4bbb-bbbb-bbbbbbbbbbbb', 'CSV',      'CSV import for bulk user onboarding',            'https://docs.evolveum.com/connectors/csv/',       ARRAY['https://github.com/Evolveum/connector-csv/tree/master/samples'],  NULL),
+('c3c3c3c3-3333-4ccc-cccc-cccccccccccc', 'DATABASE', 'PostgreSQL HR database sync',                    'https://docs.evolveum.com/connectors/dbtable/',   NULL,                                                                    'PostgreSQL 16'),
+('d4d4d4d4-4444-4ddd-dddd-dddddddddddd', 'SCIM',     'SCIM provisioning for cloud services',          'https://docs.evolveum.com/connectors/scim/',      ARRAY['https://example.com/scim/sample1', 'https://example.com/scim/sample2'], 'SCIM 2.0'),
+('e5e5e5e5-5555-4eee-eeee-eeeeeeeeeeee', 'REST',     'REST connector for custom API',                 'https://docs.evolveum.com/connectors/rest/',      NULL,                                                                    'API v2');
+
+INSERT INTO integration_implementation (integration_id, implementation_id) VALUES
+('a1a1a1a1-1111-4aaa-aaaa-aaaaaaaaaaaa', 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'),
+('b2b2b2b2-2222-4bbb-bbbb-bbbbbbbbbbbb', 'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b'),
+('c3c3c3c3-3333-4ccc-cccc-cccccccccccc', 'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a');
+
+INSERT INTO integration_object_class_capability (integration_id, object_class, capabilities) VALUES
+('a1a1a1a1-1111-4aaa-aaaa-aaaaaaaaaaaa', 'inetOrgPerson',    ARRAY['CREATE','GET','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),
+('a1a1a1a1-1111-4aaa-aaaa-aaaaaaaaaaaa', 'groupOfNames',     ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[]),
+('b2b2b2b2-2222-4bbb-bbbb-bbbbbbbbbbbb', 'AccountObjectClass', ARRAY['CREATE','GET','DELETE']::"CapabilityType"[]),
+('c3c3c3c3-3333-4ccc-cccc-cccccccccccc', 'AccountObjectClass', ARRAY['CREATE','GET','UPDATE','DELETE']::"CapabilityType"[]),
+('d4d4d4d4-4444-4ddd-dddd-dddddddddddd', 'User',             ARRAY['CREATE','GET','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),
+('d4d4d4d4-4444-4ddd-dddd-dddddddddddd', 'Group',            ARRAY['CREATE','GET','UPDATE']::"CapabilityType"[]);
 
 COMMIT;
