@@ -28,6 +28,22 @@
       </div>
     </div>
   }
+  @if (showPermissionDeniedMessage()) {
+    <div class="position-fixed top-0 end-0 p-3 toast-container">
+      <div class="toast-box rounded-2 overflow-hidden">
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation icon-xxl"></i>
+            <strong>Permission Denied</strong>
+          </div>
+          <button type="button" class="btn-close" (click)="closePermissionDeniedMessage()" aria-label="Close"></button>
+        </div>
+        <div class="px-3 py-2 toast-body-warning">
+          You don't have permission for this action.
+        </div>
+      </div>
+    </div>
+  }
 
   <div class="container-fluid p-0 page-bg">
     <!-- Hero Banner -->
@@ -316,9 +332,9 @@
                   @if (app.lifecycleState === 'REQUESTED') {
                     <div class="d-flex flex-column gap-2 mt-auto">
                       <button class="btn btn-sm btn-vote"
-                              [disabled]="!currentUser()"
-                              [style.opacity]="currentUser() ? '1' : '0.6'"
-                              [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
+                              [disabled]="!canVote()"
+                              [style.opacity]="canVote() ? '1' : '0.6'"
+                              [style.cursor]="canVote() ? 'pointer' : 'not-allowed'"
                               (click)="voteForRequest(app)">
                         <i class="fa-regular fa-thumbs-up me-1 icon-lg"></i>
                         <span class="fw-600">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }

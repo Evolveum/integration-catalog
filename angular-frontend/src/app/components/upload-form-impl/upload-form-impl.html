@@ -101,12 +101,23 @@
               <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
             </span>
           </label>
-          <select class="form-select" [(ngModel)]="maintainer" (ngModelChange)="onFieldChange()">
-            <option value="">Select maintainer...</option>
-            @for (option of maintainerOptions; track option) {
-              <option [value]="option">{{ option }}</option>
+          <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
+            <input type="text" class="form-select"
+                   [value]="isMaintainerDropdownOpen() ? maintainerSearch() : maintainer()"
+                   (input)="onMaintainerInput($event)"
+                   (focus)="onMaintainerFocus()"
+                   (blur)="onMaintainerBlur()"
+                   placeholder="Select maintainer...">
+            @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
+              <div class="maintainer-dropdown">
+                @for (option of filteredMaintainerOptions(); track option) {
+                  <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">
+                    {{ option }}
+                  </div>
+                }
+              </div>
             }
-          </select>
+          </div>
         </div>
 
         <!-- License Type (not shown for evolveum-hosted) -->

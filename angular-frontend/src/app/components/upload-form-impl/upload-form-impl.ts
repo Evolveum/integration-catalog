@@ -8,7 +8,7 @@ import { Component, signal, computed, Output, EventEmitter, Input, OnChanges, Si
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 
 @Component({
@@ -54,7 +54,16 @@ export class UploadFormImpl implements OnChanges {
 
   // Available options for dropdowns (from backend enum LicenseType)
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
-  protected maintainerOptions: string[] = [];
+  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly maintainerSearch = signal<string>('');
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => o.toLowerCase().includes(search));
+  });
+  protected isSuperuser = false;
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
 
   // Existing implementations loaded from backend
   protected readonly existingImplementations = signal<ImplementationListItem[]>([]);
@@ -71,8 +80,23 @@ export class UploadFormImpl implements OnChanges {
     private authService: AuthService
   ) {
     const currentUser = this.authService.currentUser();
-    if (currentUser) {
-      this.maintainerOptions = [currentUser];
+    if (!currentUser) return;
+
+    const role = this.authService.currentRole();
+    const orgName = this.authService.currentOrganizationName();
+
+    if (role === UserRole.Superuser) {
+      this.isSuperuser = true;
+      this.maintainer.set(currentUser);
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        error: () => this.maintainerOptions.set([currentUser])
+      });
+    } else if (role === UserRole.OrganizationContributor && orgName) {
+      this.maintainerOptions.set([orgName]);
+      this.maintainer.set(orgName);
+    } else {
+      this.maintainerOptions.set([currentUser]);
       this.maintainer.set(currentUser);
     }
   }
@@ -117,8 +141,8 @@ export class UploadFormImpl implements OnChanges {
     // Auto-populate form fields from the selected implementation
     this.displayName.set(impl.displayName);
 
-    if (impl.maintainer && !this.maintainerOptions.includes(impl.maintainer)) {
-      this.maintainerOptions.push(impl.maintainer);
+    if (impl.maintainer && !this.maintainerOptions().includes(impl.maintainer)) {
+      this.maintainerOptions.update(opts => [...opts, impl.maintainer!]);
     }
     this.maintainer.set(impl.maintainer || this.authService.currentUser() || '');
 
@@ -143,6 +167,27 @@ export class UploadFormImpl implements OnChanges {
 
   protected toggleShowAll(): void {
     this.showAllImplementations.update(v => !v);
+  }
+
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: string): void {
+    this.maintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
+    this.onFieldChange();
   }
 
   private clearFormFields(): void {

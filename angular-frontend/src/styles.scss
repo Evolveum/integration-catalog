@@ -23,3 +23,12 @@ input[type="radio"] {
   background-color: $midpoint-special-color !important;
   border-color: $midpoint-special-color !important;
 }
+
+/* Remove Bootstrap blue focus highlight from all form elements */
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: #dee2e6;
+  box-shadow: none;
+  outline: 0;
+}

@@ -31,25 +31,21 @@ INSERT INTO country_of_origin (id, name, display_name) VALUES
 
 INSERT INTO connid_version (version, midpoint_version) VALUES
   ('1.1.0.0', '4.1.0,4.1.1'),
-  ('1.2.0.0', '4.2.0,4.2.1'),
-  ('1.3.0.0', '4.3.0,4.3.1'),
-  ('1.4.0.0', '4.4.0,4.4.1'),
-  ('1.5.0.0', '4.5.0,4.5.1');
+    ('1.2.0.0', '4.2.0,4.2.1'),
+    ('1.3.0.0', '4.3.0,4.3.1'),
+    ('1.4.0.0', '4.4.0,4.4.1'),
+    ('1.5.2.0', '4.4.0,4.4.1'),
+    ('1.5.3.0-M3', '4.4.0,4.4.1'),
+    ('1.5.0.0', '4.5.0,4.5.1');
 
 INSERT INTO application
 (id, name, display_name, description, lifecycle_state, created_at, last_modified, logo_path, logo_content_type, logo_original_name, logo_size_bytes) VALUES
 ('54dfdf0e-4528-4b03-967d-4af33e49a0ab','csv-connector','CSV Connector',
  'Near day goal question effect third many. Attack direction future show he lose morning hit. Crime single heavy surface shake admit matter. Expert look instead.',
- 'ACTIVE','2025-06-29 05:51:48','2025-06-29 05:51:48','Square-emblem.png','image/png','Square-emblem.png','12345'),
-('e5c2e9d6-4d28-4a08-8374-998c5373a35a','salesforce-connector','Salesforce Connector',
- 'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.','ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23'
- , NULL, NULL, NULL, NULL),
- 'Near day goal question effect third many. Attack direction future show he lose morning hit. Crime single heavy surface shake admit matter. Expert look instead.',
- '\xa961c4a91369fcde892dad2cbfaac913a9d3475499526077963b8a5bfd155f944aecc98becdf1f239b2a17cd09ef83e8635fa28227dc3a37666fe26990255bf2a989bc1f40354a4914bca0370e92444ba113745c95a40c19e388f965c27e6ca80c80767c',
  'ACTIVE','2025-06-29 05:51:48','2025-06-29 05:51:48', NULL, NULL, NULL, NULL),
 ('e5c2e9d6-4d28-4a08-8374-998c5373a35a','sap-connector','SAP Connector',
  'Former serve beautiful make international ever. Available brother writer example fact. Election character risk subject inside stay.',
- NULL,'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23', NULL, NULL, NULL, NULL),
+ 'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23', NULL, NULL, NULL, NULL),
 ('e5c2e9d6-4d28-4a08-8374-998c5373a35b','night-connector','Night Connector',
  'Before according scene include arrive measure themselves. Early on more.',
  'ACTIVE','2025-05-12 14:52:23','2025-05-12 14:52:23', NULL, NULL, NULL, NULL),
@@ -68,14 +64,8 @@ INSERT INTO application
 ('9ed6e4fb-5f06-4081-845c-df023274e4db','databasetable-connector','DatabaseTable Connector',
  'Career name these thank word explain. Past care over whom. Another moment sometimes camera every. While fly game wind data debate myself.',
  'WITH_ERROR','2025-01-20 08:29:41','2025-01-20 08:29:41', NULL, NULL, NULL, NULL),
-('4a3c7f04-4106-4934-add1-f329f6333ad0','sap-integration','SAP Integration',
- 'Success green news can hot. Assume lay system tend message recognize however. Customer sign sing research. Against ready right high. Rise style rock tough.',
- 'ACTIVE','2025-03-12 18:54:19','2025-03-12 18:54:19','94b3bb33-f35e-43e2-a168-70a1d3c4ee90.jpg','image/jpeg','inte-catal.jpg','24476'),
- '\x34d87c4cb5324cb11182d876130e944cc385e0debfd7ea28165ec5a65b932bcf7bd35c1101614a6e204090baf734d551f560e1c02bbab81ff4d9470c178bb7a682f12eb694505a15ef2c38cd825aebf14d04c869de66ebb7a2692646b36ea37b09311504',
- 'WITH_ERROR','2025-01-20 08:29:41','2025-01-20 08:29:41', NULL, NULL, NULL, NULL),
 ('4a3c7f04-4106-4934-add1-f329f6333ad0','open-project-integration','Open Project Integration',
  'Success green news can hot. Assume lay system tend message recognize however. Customer sign sing research. Against ready right high. Rise style rock tough.',
- '\x33353af1f318a9c95c213338529ccadb0d0d9708a725a8574ee71f21bd29841000ec416ad2287128248df40539fdbe01dd782cb8077b5e27eb03af688666d8c595c82b55ff646af97ecbede8646138e846fd111804c11b32b11cdbe0d35294cc5c70dfcf',
  'ACTIVE','2025-03-12 18:54:19','2025-03-12 18:54:19', NULL, NULL, NULL, NULL),
 ('4a3c7f04-4106-4934-add1-f329f6333ad1','siebel-integration','Siebel Connector',
  'Oracle Siebel Connector for midPoint is community developed connector that manages user accounts in Siebel user management. Customer sign sing research. Against ready right high. Rise style rock tough.',
@@ -207,7 +197,18 @@ INSERT INTO implementation_tag (id, name, display_name) VALUES
   (14, 'big_filler',        'BIG FILLER');
 
 INSERT INTO implementation_implementation_tag (id, implementation_id, tag_id) VALUES
-(3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
+ (3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
+
+INSERT INTO organizations (id, name, description) VALUES
+ (1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
+ (2, 'Evolveum', 'Evolveum — application administrators');
+
+INSERT INTO catalog_users (username, password, role, organization_id) VALUES
+ ('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
+ ('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
+ ('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
+ ('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
+ ('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
 
 SELECT pg_catalog.setval('application_application_tag_id_seq', 30, true);
 SELECT pg_catalog.setval('application_origin_id_seq', 8, true);
@@ -218,5 +219,6 @@ SELECT pg_catalog.setval('implementation_tag_id_seq', 14, true);
 SELECT pg_catalog.setval('request_id_seq', 8, true);
 SELECT pg_catalog.setval('connector_bundle_id_seq', 5, true);
 SELECT pg_catalog.setval('bundle_version_id_seq', 7, true);
+SELECT pg_catalog.setval('organizations_id_seq', 2, true);
 
 COMMIT;

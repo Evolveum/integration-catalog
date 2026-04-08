@@ -47,7 +47,8 @@
    TOAST NOTIFICATION
    ======================================== */
 .toast-container {
-  z-index: 2000;
+  z-index: 99999;
+  pointer-events: auto;
 }
 
 .toast-box {

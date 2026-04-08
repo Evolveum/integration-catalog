@@ -73,6 +73,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected isFilterModalOpen = signal<boolean>(false);
   protected openDropdown = signal<string | null>(null);
   protected showLoginRequiredMessage = signal<boolean>(false);
+  protected showPermissionDeniedMessage = signal<boolean>(false);
   protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
 
   private activeChipElement: HTMLElement | null = null;
@@ -89,6 +90,9 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
+  protected readonly canVote = () => this.authService.canVote();
+  protected readonly canRequest = () => this.authService.canRequest();
+  protected readonly canUpload = () => this.authService.canUpload();
 
   protected readonly featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -668,7 +672,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openRequestModal(): void {
-    if (!this.authService.isLoggedIn()) {
+    if (!this.authService.canRequest()) {
       this.showLoginRequiredMessage.set(true);
       setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
       this.isLoginModalOpen.set(true);
@@ -679,6 +683,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   protected closeLoginRequiredMessage(): void {
     this.showLoginRequiredMessage.set(false);
+  }
+
+  protected closePermissionDeniedMessage(): void {
+    this.showPermissionDeniedMessage.set(false);
   }
 
   protected closeRequestModal(): void {
@@ -694,10 +702,15 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openUploadModal(): void {
-    if (!this.authService.isLoggedIn()) {
-      this.showLoginRequiredMessage.set(true);
-      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-      this.isLoginModalOpen.set(true);
+    if (!this.authService.canUpload()) {
+      if (!this.authService.isLoggedIn()) {
+        this.showLoginRequiredMessage.set(true);
+        setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+        this.isLoginModalOpen.set(true);
+      } else {
+        this.showPermissionDeniedMessage.set(true);
+        setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
+      }
       return;
     }
     this.router.navigate(['/publish']);
@@ -728,7 +741,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected voteForRequest(app: Application): void {
     const currentUser = this.currentUser();
 
-    if (!currentUser) {
+    if (!currentUser || !this.authService.canVote()) {
       alert('Please log in to vote');
       return;
     }
