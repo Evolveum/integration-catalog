@@ -32,8 +32,13 @@ export class AuthService {
   private readonly _currentRole = signal<UserRole | null>(null);
   private readonly _currentOrganizationId = signal<number | null>(null);
   private readonly _currentOrganizationName = signal<string | null>(null);
+  private readonly _loginModalOpen = signal<boolean>(false);
 
   readonly currentUser = this._currentUser.asReadonly();
+  readonly loginModalOpen = this._loginModalOpen.asReadonly();
+
+  openLoginModal(): void { this._loginModalOpen.set(true); }
+  closeLoginModal(): void { this._loginModalOpen.set(false); }
 
   constructor(private http: HttpClient) {
     const storedUser = localStorage.getItem('currentUser');

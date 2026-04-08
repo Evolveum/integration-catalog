@@ -1,0 +1,34 @@
+<div class="page-header d-flex align-items-center px-4">
+  <!-- Left: logo + title -->
+  <div class="d-flex align-items-center gap-2 header-brand">
+    <i class="fa-solid fa-globe header-globe-icon"></i>
+    <div class="d-flex flex-column">
+      <span class="header-title">Integration catalog</span>
+      <span class="header-subtitle">by Evolveum</span>
+    </div>
+  </div>
+
+  <!-- Right: user info or login -->
+  <div class="ms-auto d-flex align-items-center gap-3">
+    @if (currentUser()) {
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-circle-user header-user-icon"></i>
+        <div class="d-flex flex-column">
+          <span class="header-username">{{ currentUser() }}</span>
+          <span class="header-role">({{ authService.currentRole() }})</span>
+        </div>
+      </div>
+      <div class="header-divider"></div>
+      <button class="header-btn-logout" (click)="logout()" title="Logout">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
+    } @else {
+      <button class="header-btn-login d-flex align-items-center gap-2" (click)="openLoginModal()">
+        <i class="fa-solid fa-circle-user header-user-icon"></i>
+        <span>Login</span>
+      </button>
+    }
+  </div>
+</div>
+
+<app-login-modal [isOpen]="loginModalOpen" (modalClosed)="closeLoginModal()"></app-login-modal>
