@@ -292,8 +292,7 @@
                   <div class="im-card" [class.im-card-selected]="isMethodSelected(method.value)" (click)="toggleIntegrationMethod(method.value)">
                     <div class="d-flex align-items-center">
                       <input type="checkbox" class="im-checkbox flex-shrink-0 me-2"
-                             [checked]="isMethodSelected(method.value)"
-                             (click)="$event.stopPropagation()">
+                             [checked]="isMethodSelected(method.value)">
                       <div>
                         <div class="im-title">{{ method.title }}</div>
                         <div class="im-desc">{{ method.description }}</div>
@@ -579,7 +578,7 @@
         <!-- Modal Footer -->
         <div class="modal-footer d-flex justify-content-between modal-footer-upload">
           @if (currentStep() === 1) {
-            <button type="button" class="btn btn-link define-new-cancel-btn" (click)="closeModal()">Cancel</button>
+            <button type="button" class="btn btn-link define-new-cancel-btn" (click)="closeModal()"></button>
           }
           @if (currentStep() === 2) {
             <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
@@ -672,3 +671,21 @@
 
   </div><!-- end publish-content -->
 </div>
+
+<!-- Side-by-Side Modal -->
+@if (showSideBySideModal()) {
+  <div class="sbs-overlay">
+    <div class="sbs-modal-header">
+      <span class="sbs-modal-title">Integration Tutorial – Side by Side</span>
+      <button type="button" class="sbs-close-btn" (click)="closeSideBySideModal()">
+        <i class="fa-solid fa-xmark me-1"></i> Close
+      </button>
+    </div>
+    <div class="sbs-modal-body">
+      <div class="sbs-editor-pane">
+        <textarea id="sbs-editor"></textarea>
+      </div>
+      <div class="sbs-preview-pane editor-preview" [innerHTML]="sbsPreviewHtml()"></div>
+    </div>
+  </div>
+}

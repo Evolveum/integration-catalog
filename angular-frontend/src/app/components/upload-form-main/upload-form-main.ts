@@ -22,6 +22,9 @@ import { PageHeader } from '../page-header/page-header';
 })
 export class UploadFormMain implements OnInit, OnDestroy {
   private easyMde: EasyMDE | null = null;
+  private modalEasyMde: EasyMDE | null = null;
+  protected readonly showSideBySideModal = signal<boolean>(false);
+  protected readonly sbsPreviewHtml = signal<string>('');
   protected readonly applications = signal<Application[]>([]);
   protected readonly recentlyUsedApps = signal<Application[]>([]);
 
@@ -234,6 +237,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
         this.destroyEasyMDE();
       }
     });
+
   }
 
   ngOnDestroy(): void {
@@ -254,7 +258,14 @@ export class UploadFormMain implements OnInit, OnDestroy {
         'heading', 'heading-smaller', 'heading-bigger', '|',
         'quote', 'unordered-list', 'ordered-list', '|',
         'link', '|',
-        'preview', 'side-by-side', 'fullscreen', '|',
+        'preview', '|',
+        {
+          name: 'side-by-side',
+          action: () => this.openSideBySideModal(),
+          className: 'fa fa-columns no-disable no-mobile',
+          title: 'Side by Side',
+        },
+        '|',
         {
           name: 'upload',
           action: () => this.tutorialUpload(),
@@ -272,6 +283,56 @@ export class UploadFormMain implements OnInit, OnDestroy {
     this.easyMde.codemirror.on('change', () => {
       this.methodFormTutorial.set(this.easyMde!.value());
     });
+  }
+
+  protected openSideBySideModal(): void {
+    this.showSideBySideModal.set(true);
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => this.initModalEasyMDE(), 0);
+  }
+
+  private initModalEasyMDE(): void {
+    const el = document.getElementById('sbs-editor') as HTMLTextAreaElement | null;
+    if (!el) return;
+    this.modalEasyMde = new EasyMDE({
+      element: el,
+      initialValue: this.methodFormTutorial(),
+      spellChecker: false,
+      status: ['lines', 'words'],
+      toolbar: [
+        'bold', 'italic', 'strikethrough', '|',
+        'heading', 'heading-smaller', 'heading-bigger', '|',
+        'quote', 'unordered-list', 'ordered-list', '|',
+        'link',
+      ],
+    });
+    this.modalEasyMde.codemirror.on('change', () => {
+      const content = this.modalEasyMde!.value();
+      this.methodFormTutorial.set(content);
+      this.sbsPreviewHtml.set(this.renderMarkdown(content));
+    });
+    this.sbsPreviewHtml.set(this.renderMarkdown(this.methodFormTutorial()));
+  }
+
+  private renderMarkdown(text: string): string {
+    // Use EasyMDE's own markdown renderer if available
+    if (this.easyMde && typeof (this.easyMde as any).markdown === 'function') {
+      return (this.easyMde as any).markdown(text);
+    }
+    // Fallback: basic HTML escaping with newlines as <br>
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+  }
+
+  protected closeSideBySideModal(): void {
+    if (this.modalEasyMde) {
+      const content = this.modalEasyMde.value();
+      this.methodFormTutorial.set(content);
+      this.easyMde?.value(content);
+      this.modalEasyMde.toTextArea();
+      this.modalEasyMde = null;
+    }
+    this.showSideBySideModal.set(false);
+    document.body.style.overflow = '';
   }
 
   private tutorialUpload(): void {
@@ -304,6 +365,11 @@ export class UploadFormMain implements OnInit, OnDestroy {
   }
 
   private destroyEasyMDE(): void {
+    if (this.modalEasyMde) {
+      this.modalEasyMde.toTextArea();
+      this.modalEasyMde = null;
+    }
+    this.showSideBySideModal.set(false);
     if (this.easyMde) {
       this.easyMde.toTextArea();
       this.easyMde = null;

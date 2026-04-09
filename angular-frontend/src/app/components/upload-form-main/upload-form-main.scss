@@ -173,6 +173,83 @@
   background: #fff;
 }
 
+/* Side-by-Side Modal */
+.sbs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: $color-white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sbs-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1.5rem;
+  border-bottom: 1px solid $color-border-light;
+  flex-shrink: 0;
+}
+
+.sbs-modal-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.sbs-close-btn {
+  background: none;
+  border: 1px solid $color-border-input;
+  border-radius: 4px;
+  padding: 4px 14px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: $color-text-dark;
+
+  &:hover {
+    background: $color-bg-hover;
+  }
+}
+
+.sbs-modal-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sbs-editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid $color-border-light;
+
+  ::ng-deep .EasyMDEContainer {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+
+    .CodeMirror {
+      flex: 1;
+      height: 100%;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.sbs-preview-pane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: $color-text-dark;
+}
+
+
 
 .publish-content {
   display: flex;
@@ -603,7 +680,8 @@
 .step-sidebar {
   width: 220px;
   flex-shrink: 0;
-  padding: 2rem 1rem 2rem 1.5rem;
+  padding: 2rem 0 2rem 1.5rem;
+  margin-right: 50px;
   display: flex;
   flex-direction: column;
 }
@@ -662,7 +740,7 @@
   padding: 1.25rem 1.5rem 1.5rem 1.5rem;
   max-width: 1080px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0 auto 1.5rem auto;
 }
 
 .recently-used-heading {
@@ -865,7 +943,7 @@
 .im-checkbox {
   width: 16px;
   height: 16px;
-  cursor: pointer;
+  pointer-events: none;
   accent-color: $midpoint-special-color;
   flex-shrink: 0;
 }
