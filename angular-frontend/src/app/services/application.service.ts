@@ -113,6 +113,12 @@ export class ApplicationService {
     );
   }
 
+  deleteImplementationVersion(versionId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/implementations/versions/${versionId}`
+    );
+  }
+
   // ==================== Recently Used ====================
 
   getRecentlyUsed(): Observable<Application[]> {

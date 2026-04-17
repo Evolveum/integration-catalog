@@ -387,6 +387,7 @@
                   } @else {
                     <!-- All Versions List -->
                     @for (version of allVersions(); track $index) {
+                      @if (!cancelledVersionIds().includes(version.id)) {
                       <div class="mb-4">
                         <div class="border p-4 rounded position-relative version-card">
                           <!-- Version Header -->
@@ -433,6 +434,11 @@
                                 </div>
                               </div>
                             </div>
+                            @if (version.lifecycleState === 'IN_REVIEW') {
+                              <button type="button" class="btn btn-sm btn-version-cancel" (click)="cancelVersion(version.id)">
+                                Cancel
+                              </button>
+                            }
                           </div>
 
                           <!-- Description -->
@@ -471,9 +477,9 @@
                           }
 
                           <!-- Action Buttons or Error Banner or Publishing State -->
-                          @if (version.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                          @if (version.lifecycleState === 'IN_REVIEW') {
                             <div class="text-center mt-3 py-3">
-                              <p class="text-muted mb-3">Importing... This may take a moment.</p>
+                              <p class="text-muted mb-3">In review... This may take a moment.</p>
                               <i class="fa-solid fa-gears blink-animation icon-xxl publishing-icon"></i>
                             </div>
                           } @else if (version.errorMessage) {
@@ -506,6 +512,7 @@
                           }
                         </div>
                       </div>
+                      }<!-- end @if (!cancelledVersionIds()...) -->
                     } @empty {
                       <p class="text-muted fst-italic">No versions available</p>
                     }

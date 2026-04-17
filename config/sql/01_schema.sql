@@ -6,10 +6,9 @@
  
 CREATE TYPE ApplicationLifecycleType AS ENUM (
 	'REQUESTED',
-	'IN_PUBLISH_PROCESS',
+	'IN_REVIEW',
 	'ACTIVE',
-	'WITH_ERROR',
-	'IN_REVIEW'
+	'WITH_ERROR'
 );
 
 CREATE TYPE ApplicationTagType AS ENUM (
@@ -32,7 +31,7 @@ CREATE TYPE LicenseType AS ENUM (
 );
 
 CREATE TYPE ImplementationVersionLifecycleType AS ENUM (
-	'IN_PUBLISH_PROCESS',
+	'IN_REVIEW',
 	'ACTIVE',
 	'DEPRECATED',
 	'ARCHIVED',
@@ -320,7 +319,7 @@ CREATE TABLE integration_kind (
     display_name character varying(255) NOT NULL,
     description character varying(255),
     generic_application_id uuid,
-    custom_connectors boolean NOT NULL DEFAULT false
+    custom_connectors IntegrationMethodType[] DEFAULT '{}'::IntegrationMethodType[]
 );
 
 CREATE TABLE integration (

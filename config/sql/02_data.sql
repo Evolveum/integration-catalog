@@ -70,10 +70,10 @@ INSERT INTO application
  'ACTIVE','2025-03-12 18:54:19','2025-03-12 18:54:19', NULL, NULL, NULL, NULL),
 ('4a3c7f04-4106-4934-add1-f329f6333ad1','siebel-integration','Siebel Connector',
  'Oracle Siebel Connector for midPoint is community developed connector that manages user accounts in Siebel user management. Customer sign sing research. Against ready right high. Rise style rock tough.',
- 'IN_PUBLISH_PROCESS','2025-03-12 18:54:19','2025-03-12 18:54:19', NULL, NULL, NULL, NULL),
+ 'IN_REVIEW','2025-03-12 18:54:19','2025-03-12 18:54:19', NULL, NULL, NULL, NULL),
 ('5f0ba262-a08b-44fc-b830-f4942e3efeb1','workday-adapter','Workday Adapter',
  'Before according scene include arrive measure themselves. Long during media last son record history. Early on more.',
- 'IN_PUBLISH_PROCESS','2025-09-27 04:02:54','2025-09-27 04:02:54', NULL, NULL, NULL, NULL),
+ 'IN_REVIEW','2025-09-27 04:02:54','2025-09-27 04:02:54', NULL, NULL, NULL, NULL),
 ('5f0ba262-a08b-44fc-b830-f4942e3efeb4','crowd-connector-adapter','Crowd Connector Adapter',
  'Election character risk subject inside stay. Former serve beautiful make international ever. Election character risk subject inside stay',
  'WITH_ERROR','2025-09-27 04:02:54','2025-09-27 04:02:54', NULL, NULL, NULL, NULL),
@@ -112,12 +112,12 @@ INSERT INTO implementation_version
  'Hit something action building majority body. Newspaper sell business write political tough not.
 Shake sing part picture person.',
  ARRAY['CREATE','GET','DELETE','SCRIPT_ON_CONNECTOR','SCRIPT_ON_RESOURCE','AUTHENTICATION','SEARCH']::"CapabilityType"[],
- 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_PUBLISH_PROCESS',8,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL,NULL),
+ 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_REVIEW',8,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL,NULL),
  ('e87a6b1b-38c5-4834-96de-2418dbda9f1a',
  'Hit something action building majority body. Newspaper sell business write political tough not.
 Shake sing part picture person.',
  ARRAY['CREATE','GET','DELETE','SCRIPT_ON_CONNECTOR','SCRIPT_ON_RESOURCE','AUTHENTICATION','SEARCH']::"CapabilityType"[],
- 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_PUBLISH_PROCESS',1,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL,NULL),
+ 'System 1.5','tuckerjames@example.org','2025-09-25 09:55:02','IN_REVIEW',1,'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',NULL,NULL),
 ('5616cdc5-2b90-42ac-b347-78928126de08',
  'CSV connector',
  ARRAY['CREATE','GET','DELETE']::"CapabilityType"[],
@@ -228,12 +228,12 @@ INSERT INTO recently_used_applications (user_id, application_id) VALUES
  ('u3', '4a3c7f04-4106-4934-add1-f329f6333ad0');
 
 INSERT INTO integration_kind (identifier, display_name, description, generic_application_id, custom_connectors) VALUES
-('SCIM',             'SCIM',             'SCIM protocol based integration',          NULL,                                          true),
-('REST',             'REST',             'REST API based integration',               NULL,                                          true),
-('LDAP',             'LDAP',             'LDAP directory integration',               'e5c2e9d6-4d28-4a08-8374-998c5373a35c',        true),
-('CSV',              'CSV',              'CSV file based integration',               '54dfdf0e-4528-4b03-967d-4af33e49a0ab',        true),
-('MANUAL_CONNECTOR', 'Manual Connector', 'Manually configured connector integration', NULL,                                         true),
-('DATABASE',         'Database',         'Database table integration',               '9ed6e4fb-5f06-4081-845c-df023274e4db',        true);
+('SCIM',             'SCIM',             'SCIM protocol based integration',           NULL,                                          ARRAY['SCIM']::IntegrationMethodType[]),
+('REST',             'REST',             'REST API based integration',                NULL,                                          ARRAY['REST_API']::IntegrationMethodType[]),
+('LDAP',             'LDAP',             'LDAP directory integration',                'e5c2e9d6-4d28-4a08-8374-998c5373a35c',        ARRAY['OPEN_LDAP']::IntegrationMethodType[]),
+('CSV',              'CSV',              'CSV file based integration',                '54dfdf0e-4528-4b03-967d-4af33e49a0ab',        ARRAY['CSV']::IntegrationMethodType[]),
+('MANUAL_CONNECTOR', 'Manual Connector', 'Manually configured connector integration', NULL,                                          ARRAY['MANUAL_ITSM']::IntegrationMethodType[]),
+('DATABASE',         'Database',         'Database table integration',                '9ed6e4fb-5f06-4081-845c-df023274e4db',        ARRAY['DATABASE']::IntegrationMethodType[]);
 
 INSERT INTO integration
 (id, kind_id, description, documentation_link, link_sample, system_version) VALUES

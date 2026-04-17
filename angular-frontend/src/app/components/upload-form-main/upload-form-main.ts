@@ -7,16 +7,16 @@ import { Router, RouterLink } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationFormData, UploadFileItem } from '../../models/request.model';
+import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
-import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 
 @Component({
   selector: 'app-upload-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl, PageHeader, RouterLink],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, RouterLink],
   templateUrl: './upload-form-main.html',
   styleUrls: ['./upload-form-main.scss']
 })
@@ -40,6 +40,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
   protected readonly description = signal<string>('');
   protected readonly logoFile = signal<File | null>(null);
   protected readonly logoPreviewUrl = signal<string | null>(null);
+  protected readonly logoDragOver = signal<boolean>(false);
   protected readonly origins = signal<string[]>([]);
   protected readonly loadedOrigins = signal<string[]>([]); // Track origins loaded from selected app
   protected readonly category = signal<string>('');
@@ -50,9 +51,76 @@ export class UploadFormMain implements OnInit, OnDestroy {
   protected readonly selectedCountriesModel = signal<Country[]>([]);
   protected readonly isLoadingCountries = signal<boolean>(true);
 
-  // Step 3 - Implementation form data
+  // Step 3 - Implementation form data (legacy, kept for compatibility)
   protected readonly implementationFormData = signal<ImplementationFormData | null>(null);
   protected readonly isImplementationFormValid = signal<boolean>(false);
+
+  // Step 5 - Add connector
+  protected readonly basicInfoExpanded    = signal<boolean>(false);
+  protected readonly devBuildExpanded     = signal<boolean>(false);
+  protected readonly connectorName        = signal<string>('');
+  protected readonly connectorVersion     = signal<string>('');
+  protected readonly connectorMaintainer      = signal<string>('');
+  protected readonly maintainerOptions        = signal<string[]>([]);
+  protected readonly maintainerSearch         = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => o.toLowerCase().includes(search));
+  });
+  protected readonly connectorLicense     = signal<string>('');
+  protected readonly connectorDescription = signal<string>('');
+  protected readonly capabilitiesScope    = signal<'global' | 'specific'>('global');
+  protected readonly globalCapabilities   = signal<string[]>([]);
+  protected readonly isGlobalCapDropdownOpen = signal<boolean>(false);
+  protected readonly objectClassEntries   = signal<{ objectClass: string; capabilities: string[]; isCapabilitiesDropdownOpen: boolean }[]>(
+    [{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]
+  );
+  protected readonly availableCapabilities   = signal<string[]>([]);
+  protected readonly isLoadingCapabilities   = signal<boolean>(false);
+  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
+
+  // Step 6 - Review & publish
+  protected readonly isPublishing    = signal<boolean>(false);
+  protected readonly publishComplete = signal<boolean>(false);
+  protected readonly publishCreatedOn = signal<Date | null>(null);
+  protected readonly emailCopied     = signal<boolean>(false);
+  protected readonly connectorTypeLabel = computed(() => {
+    if (this.isExistingConnector()) return this.selectedCatalogConnector()?.displayName ?? 'Existing connector';
+    const buildSuffix = this.devBuildTool() === 'maven' ? ' (Maven)' : this.devBuildTool() === 'gradle' ? ' (Gradle)' : '';
+    const labels: Record<string, string> = {
+      'java-based':       `Java Automation${buildSuffix}`,
+      'own-repo':         'Low-code — own repository',
+      'evolveum-hosted':  'Low-code — Evolveum-hosted'
+    };
+    return labels[this.selectedConnectorType()] ?? this.selectedConnectorType();
+  });
+
+  // Step 5 - Dev & Build panel
+  protected readonly devProjectHomepage   = signal<string>('');
+  protected readonly devSupportPortal     = signal<string>('');
+  protected readonly devBuildTool         = signal<'maven' | 'gradle' | ''>('');
+  protected readonly devGitCloneUrl       = signal<string>('');
+  protected readonly devCommitTag         = signal<string>('');
+  protected readonly devProjectFolderPath = signal<string>('');
+  protected readonly devClassName         = signal<string>('');
+  protected readonly devRepoOwnership     = signal<'evolveum' | 'own'>('evolveum');
+  protected readonly devGithubApiKey      = signal<string>('');
+  protected readonly showGithubApiKey     = signal<boolean>(false);
+  protected readonly isExistingConnector  = computed(() => !!this.selectedCatalogConnector());
+
+  protected readonly isStep5Valid = computed(() => {
+    if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
+    if (this.isExistingConnector()) return true;
+    const type = this.selectedConnectorType();
+    if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
+    if (type === 'java-based') {
+      if (!this.devBuildTool() || !this.devClassName().trim()) return false;
+    }
+    return true;
+  });
 
   // Toast notifications
   protected readonly showPublishSuccess = signal<boolean>(false);
@@ -165,6 +233,22 @@ export class UploadFormMain implements OnInit, OnDestroy {
 
   protected readonly showDefineNewModal = signal<boolean>(false);
   protected readonly showOriginDropdown = signal<boolean>(false);
+
+  // Connector catalog modal (step 4)
+  protected readonly showConnectorCatalogModal = signal<boolean>(false);
+  protected readonly catalogConnectors = signal<ImplementationListItem[]>([]);
+  protected readonly isCatalogLoading = signal<boolean>(false);
+  protected readonly connectorCatalogSearch = signal<string>('');
+  protected readonly selectedCatalogConnector = signal<ImplementationListItem | null>(null);
+
+  protected readonly filteredCatalogConnectors = computed(() => {
+    const query = this.connectorCatalogSearch().toLowerCase().trim();
+    if (!query) return this.catalogConnectors();
+    return this.catalogConnectors().filter(c =>
+      c.displayName.toLowerCase().includes(query) ||
+      c.description?.toLowerCase().includes(query)
+    );
+  });
   protected readonly selectedIntegrationMethod = signal<string[]>([]);
 
   protected readonly wizardSteps = [
@@ -211,6 +295,12 @@ export class UploadFormMain implements OnInit, OnDestroy {
   protected readonly tutorialDragOver      = signal<boolean>(false);
   protected readonly tutorialWordCount     = computed(() =>
     this.methodFormTutorial().trim() === '' ? 0 : this.methodFormTutorial().trim().split(/\s+/).length
+  );
+
+  protected readonly selectedMethodTitles = computed(() =>
+    this.integrationMethods
+      .filter(m => this.selectedIntegrationMethod().includes(m.value))
+      .map(m => m.title)
   );
 
   protected readonly selectedMethodsLabel = computed(() => {
@@ -264,19 +354,6 @@ export class UploadFormMain implements OnInit, OnDestroy {
           action: () => this.openSideBySideModal(),
           className: 'fa fa-columns no-disable no-mobile',
           title: 'Side by Side',
-        },
-        '|',
-        {
-          name: 'upload',
-          action: () => this.tutorialUpload(),
-          className: 'fa fa-upload',
-          title: 'Upload file content',
-        },
-        {
-          name: 'download',
-          action: () => this.tutorialDownload(),
-          className: 'fa fa-download',
-          title: 'Download as Markdown',
         },
       ],
     });
@@ -386,6 +463,21 @@ export class UploadFormMain implements OnInit, OnDestroy {
       next: (data) => this.applications.set(data)
     });
 
+    // Initialise maintainer options for step 5 combobox
+    const currentUser = this.authService.currentUser();
+    const role = this.authService.currentRole();
+    const orgName = this.authService.currentOrganizationName();
+    if (role === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+      });
+    } else if (role === UserRole.OrganizationContributor && orgName) {
+      this.maintainerOptions.set([orgName]);
+    } else if (currentUser) {
+      this.maintainerOptions.set([currentUser]);
+    }
+
     this.applicationService.getRecentlyUsed().subscribe({
       next: (data) => this.recentlyUsedApps.set(data)
     });
@@ -413,8 +505,14 @@ export class UploadFormMain implements OnInit, OnDestroy {
   }
 
   protected nextStep(): void {
-    if (this.currentStep() < 5) {
+    if (this.currentStep() < 6) {
       this.currentStep.update(step => step + 1);
+    }
+    if (this.currentStep() === 5 && this.availableCapabilities().length === 0) {
+      this.loadCapabilities();
+    }
+    if (this.currentStep() === 5 && !this.connectorMaintainer()) {
+      this.connectorMaintainer.set(this.authService.currentUser() ?? '');
     }
   }
 
@@ -566,6 +664,156 @@ export class UploadFormMain implements OnInit, OnDestroy {
 
   protected selectConnectorType(type: string): void {
     this.selectedConnectorType.set(type);
+    this.selectedCatalogConnector.set(null);
+    this.connectorName.set('');
+    this.connectorVersion.set('1.0');
+    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorLicense.set('');
+    this.connectorDescription.set('');
+    // Clear Dev & Build fields
+    this.devProjectHomepage.set('');
+    this.devSupportPortal.set('');
+    this.devBuildTool.set('');
+    this.devGitCloneUrl.set('');
+    this.devCommitTag.set('');
+    this.devProjectFolderPath.set('');
+    this.devClassName.set('');
+    this.devRepoOwnership.set('evolveum');
+    this.devGithubApiKey.set('');
+    this.showGithubApiKey.set(false);
+  }
+
+  private loadCapabilities(): void {
+    this.isLoadingCapabilities.set(true);
+    this.applicationService.getCapabilities().subscribe({
+      next: (caps) => { this.availableCapabilities.set(caps); this.isLoadingCapabilities.set(false); },
+      error: () => this.isLoadingCapabilities.set(false)
+    });
+  }
+
+  protected formatCapabilityName(cap: string): string {
+    return cap.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  protected addObjectClassEntry(): void {
+    this.objectClassEntries.update(e => [...e, { objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
+  }
+
+  protected removeObjectClassEntry(i: number): void {
+    this.objectClassEntries.update(e => e.filter((_, idx) => idx !== i));
+  }
+
+  protected updateObjectClass(i: number, value: string): void {
+    this.objectClassEntries.update(e => e.map((entry, idx) => idx !== i ? entry : {
+      ...entry, objectClass: value,
+      isCapabilitiesDropdownOpen: value ? entry.isCapabilitiesDropdownOpen : false
+    }));
+  }
+
+  protected toggleSpecificCapDropdown(i: number): void {
+    if (!this.objectClassEntries()[i]?.objectClass) return;
+    this.objectClassEntries.update(e => e.map((entry, idx) =>
+      idx === i ? { ...entry, isCapabilitiesDropdownOpen: !entry.isCapabilitiesDropdownOpen } : entry
+    ));
+  }
+
+  protected onSpecificCapChange(event: Event, i: number, cap: string): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.objectClassEntries.update(e => e.map((entry, idx) => {
+      if (idx !== i) return entry;
+      const capabilities = checked ? [...entry.capabilities, cap] : entry.capabilities.filter(c => c !== cap);
+      return { ...entry, capabilities };
+    }));
+  }
+
+  protected removeSpecificCap(i: number, cap: string, event?: Event): void {
+    event?.stopPropagation();
+    this.objectClassEntries.update(e => e.map((entry, idx) =>
+      idx !== i ? entry : { ...entry, capabilities: entry.capabilities.filter(c => c !== cap) }
+    ));
+  }
+
+  protected onGlobalCapChange(event: Event, cap: string): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.globalCapabilities.update(caps =>
+      checked ? [...caps, cap] : caps.filter(c => c !== cap)
+    );
+  }
+
+  protected removeGlobalCap(cap: string, event?: Event): void {
+    event?.stopPropagation();
+    this.globalCapabilities.update(caps => caps.filter(c => c !== cap));
+  }
+
+  protected openConnectorCatalogModal(): void {
+    this.showConnectorCatalogModal.set(true);
+    this.connectorCatalogSearch.set('');
+    this.catalogConnectors.set([]);
+    const appId = this.selectedApplication()?.id;
+    if (!appId) return;
+    this.isCatalogLoading.set(true);
+    this.applicationService.getImplementationsByApplicationId(appId).subscribe({
+      next: (items) => {
+        this.catalogConnectors.set(items);
+        this.isCatalogLoading.set(false);
+      },
+      error: () => this.isCatalogLoading.set(false)
+    });
+  }
+
+  protected closeConnectorCatalogModal(): void {
+    this.showConnectorCatalogModal.set(false);
+    this.connectorCatalogSearch.set('');
+  }
+
+  protected confirmCatalogSelection(): void {
+    const connector = this.selectedCatalogConnector();
+    this.showConnectorCatalogModal.set(false);
+    this.connectorCatalogSearch.set('');
+    // Always reset all Dev & Build fields first so nothing from a previous type selection lingers
+    this.devSupportPortal.set('');
+    this.devCommitTag.set('');
+    this.devRepoOwnership.set('evolveum');
+    this.devGithubApiKey.set('');
+    this.showGithubApiKey.set(false);
+    if (connector) {
+      this.connectorName.set(connector.displayName ?? '');
+      this.connectorVersion.set(connector.version ?? '');
+      this.connectorMaintainer.set(connector.maintainer ?? this.authService.currentUser() ?? '');
+      this.connectorLicense.set(connector.licenseType ?? '');
+      this.connectorDescription.set(connector.implementationDescription ?? connector.description ?? '');
+      // Pre-fill Dev & Build fields from catalog data
+      this.devProjectHomepage.set(connector.browseLink ?? '');
+      this.devGitCloneUrl.set(connector.checkoutLink ?? '');
+      this.devProjectFolderPath.set(connector.pathToProjectDirectory ?? '');
+      this.devClassName.set(connector.className ?? '');
+      const bf = (connector.buildFramework ?? '').toLowerCase();
+      this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
+    }
+    if (this.availableCapabilities().length === 0) {
+      this.loadCapabilities();
+    }
+    this.currentStep.set(5);
+  }
+
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: string): void {
+    this.connectorMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
   }
 
   protected onSearchChange(event: Event): void {
@@ -641,28 +889,32 @@ export class UploadFormMain implements OnInit, OnDestroy {
   protected onLogoUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-
-      // Validate file type
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Invalid file type. Please upload PNG, JPEG, GIF, SVG, or WebP images.');
-        return;
-      }
-
-      // Validate file size (5MB max)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        alert('File too large. Maximum size is 5MB.');
-        return;
-      }
-
-      this.logoFile.set(file);
-
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      this.logoPreviewUrl.set(previewUrl);
+      this.processLogoFile(input.files[0]);
     }
+  }
+
+  protected onLogoDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.logoDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.processLogoFile(file);
+  }
+
+  private processLogoFile(file: File): void {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Please upload PNG, JPEG, GIF, SVG, or WebP images.');
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    this.logoFile.set(file);
+    this.logoPreviewUrl.set(URL.createObjectURL(file));
   }
 
   protected clearLogo(): void {
@@ -796,6 +1048,80 @@ export class UploadFormMain implements OnInit, OnDestroy {
   protected closeVersionExistsWarning(): void {
     this.showVersionExistsWarning.set(false);
     this.existingVersion.set('');
+  }
+
+  protected publishIntegrationMethod(): void {
+    const version = this.connectorVersion() || null;
+    if (version) {
+      this.applicationService.checkVersionExists(version).subscribe({
+        next: (exists) => exists ? (this.existingVersion.set(version), this.showVersionExistsWarning.set(true)) : this.doPublishFromStep6(),
+        error: () => this.doPublishFromStep6()
+      });
+    } else {
+      this.doPublishFromStep6();
+    }
+  }
+
+  private doPublishFromStep6(): void {
+    const payload = {
+      application: {
+        id: this.selectedApplication()?.id || null,
+        displayName: this.displayName(),
+        description: this.description(),
+        logo: null,
+        origins: this.origins(),
+        tags: [
+          ...(this.category() ? [{ name: this.category(), tagType: 'CATEGORY' as const }] : []),
+          ...(this.deploymentType() ? [{ name: this.deploymentType(), tagType: 'DEPLOYMENT' as const }] : [])
+        ]
+      },
+      implementation: {
+        implementationId: this.isExistingConnector() ? (this.selectedCatalogConnector()?.id ?? null) : null,
+        displayName: this.connectorName(),
+        description: this.connectorDescription(),
+        maintainer: this.connectorMaintainer(),
+        framework: this.isExistingConnector() ? 'JAVA_BASED' : this.mapConnectorTypeToFramework(this.selectedConnectorType()),
+        license: this.connectorLicense() || null,
+        ticketingSystemLink: null,
+        browseLink: this.devProjectHomepage() || null,
+        checkoutLink: this.devGitCloneUrl() || null,
+        buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
+        pathToProject: this.devProjectFolderPath() || null,
+        className: this.devClassName() || null,
+        bundleName: null,
+        connectorVersion: this.connectorVersion() || null,
+        downloadLink: null,
+        connidVersion: null
+      },
+      files: []
+    };
+
+    this.isPublishing.set(true);
+    this.applicationService.uploadConnector(payload).subscribe({
+      next: (response: string) => {
+        this.isPublishing.set(false);
+        const applicationId = this.selectedApplication()?.id || this.extractApplicationIdFromResponse(response);
+        if (applicationId) this.uploadLogoIfPresent(applicationId);
+        this.publishCreatedOn.set(new Date());
+        this.publishComplete.set(true);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.isPublishing.set(false);
+        alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
+      }
+    });
+  }
+
+  protected copyEmailToClipboard(): void {
+    navigator.clipboard.writeText('help@evolveum.com').then(() => {
+      this.emailCopied.set(true);
+      setTimeout(() => this.emailCopied.set(false), 3000);
+    });
+  }
+
+  protected navigateToAppDetail(): void {
+    const id = this.selectedApplication()?.id;
+    if (id) this.router.navigate(['/applications', id]);
   }
 
   private doPublish(formData: ImplementationFormData, connectorVersion: string | null, bundleName: string | null, files: UploadFileItem[]): void {

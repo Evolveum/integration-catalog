@@ -121,6 +121,13 @@ public class ApplicationService {
         return implementationVersionRepository.getReferenceById(uuid);
     }
 
+    public void deleteImplementationVersion(UUID id) {
+        if (!implementationVersionRepository.existsById(id)) {
+            throw new RuntimeException("Implementation version not found with id: " + id);
+        }
+        implementationVersionRepository.deleteById(id);
+    }
+
     public ConnidVersion getConnectorVersion(UUID id) {
         ImplementationVersion implVersion = this.implementationVersionRepository.getReferenceById(id);
         if (implVersion.getBundleVersion() != null && implVersion.getBundleVersion().getConnidVersion() != null) {

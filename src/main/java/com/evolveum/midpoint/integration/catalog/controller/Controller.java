@@ -527,6 +527,26 @@ public class Controller {
         return new ResponseEntity<>(logoBytes, headers, HttpStatus.OK);
     }
 
+    @Operation(summary = "Delete implementation version",
+            description = "Permanently removes an implementation version from the catalog")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Implementation version deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Implementation version not found")
+    })
+    @DeleteMapping("/implementations/versions/{id}")
+    public ResponseEntity<Void> deleteImplementationVersion(@PathVariable UUID id) {
+        try {
+            applicationService.deleteImplementationVersion(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to delete implementation version: " + ex.getMessage(), ex);
+        }
+    }
+
     @Operation(summary = "Delete application logo",
             description = "Removes the logo file and clears metadata from the application")
     @ApiResponses(value = {

@@ -89,7 +89,7 @@ public class ImplementationVersion {
     }
 
     public enum ImplementationVersionLifecycleType {
-        IN_PUBLISH_PROCESS,
+        IN_REVIEW,
         ACTIVE,
         DEPRECATED,
         ARCHIVED,

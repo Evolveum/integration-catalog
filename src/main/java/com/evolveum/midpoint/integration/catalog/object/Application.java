@@ -33,7 +33,7 @@ public class Application {
 
     public enum ApplicationLifecycleType {
         REQUESTED,
-        IN_PUBLISH_PROCESS,
+        IN_REVIEW,
         ACTIVE,
         WITH_ERROR
     }

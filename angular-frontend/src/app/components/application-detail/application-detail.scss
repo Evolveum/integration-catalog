@@ -692,3 +692,20 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.btn-version-cancel {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.75rem;
+  color: $color-text-secondary;
+  border: 1px solid $color-border-input;
+  background: transparent;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: $color-text-dark;
+  }
+}
+
