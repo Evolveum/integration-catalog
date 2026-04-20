@@ -20,7 +20,7 @@
 
 <!-- Version Exists Warning Toast Notification -->
 @if (showVersionExistsWarning()) {
-  <div class="position-fixed top-0 end-0 p-3 toast-container">
+  <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 1090;">
     <div class="toast-box rounded-2 overflow-hidden">
       <!-- Yellow/Orange header row -->
       <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
@@ -277,7 +277,7 @@
                 }
               </td>
               <td>
-                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="navigateToAppDetail()">Cancel</button>
+                <button type="button" class="btn publish-app-detail-btn btn-sm" (click)="cancelPublish()">Cancel</button>
               </td>
             </tr>
           </tbody>

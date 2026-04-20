@@ -86,6 +86,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
   protected readonly isPublishing    = signal<boolean>(false);
   protected readonly publishComplete = signal<boolean>(false);
   protected readonly publishCreatedOn = signal<Date | null>(null);
+  protected readonly publishedVersionId = signal<string | null>(null);
   protected readonly emailCopied     = signal<boolean>(false);
   protected readonly connectorTypeLabel = computed(() => {
     if (this.isExistingConnector()) return this.selectedCatalogConnector()?.displayName ?? 'Existing connector';
@@ -1029,6 +1030,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
             // Show warning and don't proceed
             this.existingVersion.set(connectorVersion);
             this.showVersionExistsWarning.set(true);
+            setTimeout(() => this.closeVersionExistsWarning(), 5000);
           } else {
             // Version doesn't exist, proceed with upload
             this.doPublish(formData, connectorVersion, bundleName, parsedFile.files);
@@ -1054,7 +1056,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
     const version = this.connectorVersion() || null;
     if (version) {
       this.applicationService.checkVersionExists(version).subscribe({
-        next: (exists) => exists ? (this.existingVersion.set(version), this.showVersionExistsWarning.set(true)) : this.doPublishFromStep6(),
+        next: (exists) => exists ? (this.existingVersion.set(version), this.showVersionExistsWarning.set(true), setTimeout(() => this.closeVersionExistsWarning(), 5000)) : this.doPublishFromStep6(),
         error: () => this.doPublishFromStep6()
       });
     } else {
@@ -1102,6 +1104,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
         this.isPublishing.set(false);
         const applicationId = this.selectedApplication()?.id || this.extractApplicationIdFromResponse(response);
         if (applicationId) this.uploadLogoIfPresent(applicationId);
+        this.publishedVersionId.set(this.extractVersionIdFromResponse(response));
         this.publishCreatedOn.set(new Date());
         this.publishComplete.set(true);
       },
@@ -1122,6 +1125,19 @@ export class UploadFormMain implements OnInit, OnDestroy {
   protected navigateToAppDetail(): void {
     const id = this.selectedApplication()?.id;
     if (id) this.router.navigate(['/applications', id]);
+  }
+
+  protected cancelPublish(): void {
+    const versionId = this.publishedVersionId();
+    const navigate = () => this.router.navigate(['/applications']);
+    if (versionId) {
+      this.applicationService.deleteImplementationVersion(versionId).subscribe({
+        next: navigate,
+        error: navigate
+      });
+    } else {
+      navigate();
+    }
   }
 
   private doPublish(formData: ImplementationFormData, connectorVersion: string | null, bundleName: string | null, files: UploadFileItem[]): void {
@@ -1180,9 +1196,15 @@ export class UploadFormMain implements OnInit, OnDestroy {
   }
 
   private extractApplicationIdFromResponse(response: string): string | null {
-    // Try to extract UUID from response string
+    // New format: "applicationId|versionId"
+    if (response.includes('|')) return response.split('|')[0] ?? null;
     const uuidMatch = response.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     return uuidMatch ? uuidMatch[0] : null;
+  }
+
+  private extractVersionIdFromResponse(response: string): string | null {
+    if (response.includes('|')) return response.split('|')[1] ?? null;
+    return null;
   }
 
   private mapConnectorTypeToFramework(connectorType: string): string {

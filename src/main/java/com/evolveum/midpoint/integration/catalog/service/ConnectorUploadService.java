@@ -93,7 +93,8 @@ public class ConnectorUploadService {
 
         // 5. Persist and trigger pipeline
         persistEntities(appRes, implRes, bundleVersion, implVersion);
-        return triggerJenkinsPipeline(implVersion, implRes.implementation(), dto.implementation());
+        triggerJenkinsPipeline(implVersion, implRes.implementation(), dto.implementation());
+        return appRes.application().getId() + "|" + implVersion.getId();
     }
 
     // ==================== Resolution Methods ====================

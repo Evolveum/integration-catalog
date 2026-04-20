@@ -122,10 +122,15 @@ public class ApplicationService {
     }
 
     public void deleteImplementationVersion(UUID id) {
-        if (!implementationVersionRepository.existsById(id)) {
-            throw new RuntimeException("Implementation version not found with id: " + id);
+        ImplementationVersion version = implementationVersionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Implementation version not found with id: " + id));
+        BundleVersion bundleVersion = version.getBundleVersion();
+        if (bundleVersion != null) {
+            // Deleting BundleVersion cascades (orphanRemoval) to ImplementationVersion
+            bundleVersionRepository.delete(bundleVersion);
+        } else {
+            implementationVersionRepository.delete(version);
         }
-        implementationVersionRepository.deleteById(id);
     }
 
     public ConnidVersion getConnectorVersion(UUID id) {

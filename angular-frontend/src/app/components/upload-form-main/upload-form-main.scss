@@ -1669,6 +1669,7 @@
 .btn-publish {
   background-color: $midpoint-special-color;
   border-color: $midpoint-special-color;
+  color: #fff;
   font-weight: 500;
   padding: 0.5rem 1.25rem;
 }
@@ -1758,6 +1759,7 @@
   gap: 0.5rem;
   color: $midpoint-special-color;
   border-color: $midpoint-special-color;
+  font-weight: 500;
 
   &:hover {
     color: $midpoint-special-color;
