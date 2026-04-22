@@ -8,7 +8,8 @@ CREATE TYPE ApplicationLifecycleType AS ENUM (
 	'REQUESTED',
 	'IN_REVIEW',
 	'ACTIVE',
-	'WITH_ERROR'
+	'WITH_ERROR',
+	'IN_REVIEW'
 );
 
 CREATE TYPE ApplicationTagType AS ENUM (
@@ -63,6 +64,7 @@ CREATE TYPE "CapabilityType" AS ENUM (
 	'COMPLEX_UPDATE_DELTA',
 	'UPDATE_DELTA'
 );
+
 CREATE TYPE IntegrationMethodType AS ENUM (
     'SCIM',
     'REST_API',

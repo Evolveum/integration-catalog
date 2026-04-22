@@ -7,37 +7,37 @@
 BEGIN;
 
 INSERT INTO application_tag (id, name, display_name, tag_type) VALUES
-  (1,  'directory_systems',                'Directory Systems',                'CATEGORY'),
-  (2,  'hr_systems',                       'HR Systems',                       'CATEGORY'),
-  (3,  'office_and_email_systems',         'Office and Email Systems',         'CATEGORY'),
-  (4,  'security_and_access_control_systems','Security and Access Control Systems','CATEGORY'),
-  (5,  'cloud-based',                      'Cloud based',                      'DEPLOYMENT'),
-  (6,  'on-premise',                       'On premise',                       'DEPLOYMENT'),
-  (7,  'eu-based',                         'EU based',                         'LOCALITY'),
-  (8,  'popular',                          'Popular',                          'COMMON'),
-  (9,  'us',                               'USA based',                        'LOCALITY'),
-  (10, 'uk',                               'UK',                               'LOCALITY'),
-  (11, 'internal_applications',            'Internal Applications',            'CATEGORY'),
-  (12, 'evolveum-creation',                'Profesional By Evolveum',          'COMMON'),
-  (13, 'community-creation',               'Created by Community',             'COMMON'),
-  (14, 'partner-creation',                 'Created by Evolveum Partners',     'COMMON'),
-  (15, 'generic_application',              'Generic Application',              'COMMON');
+(1,  'directory_systems',                'Directory Systems',                'CATEGORY'),
+(2,  'hr_systems',                       'HR Systems',                       'CATEGORY'),
+(3,  'office_and_email_systems',         'Office and Email Systems',         'CATEGORY'),
+(4,  'security_and_access_control_systems','Security and Access Control Systems','CATEGORY'),
+(5,  'cloud-based',                      'Cloud based',                      'DEPLOYMENT'),
+(6,  'on-premise',                       'On premise',                       'DEPLOYMENT'),
+(7,  'eu-based',                         'EU based',                         'LOCALITY'),
+(8,  'popular',                          'Popular',                          'COMMON'),
+(9,  'us',                               'USA based',                        'LOCALITY'),
+(10, 'uk',                               'UK',                               'LOCALITY'),
+(11, 'internal_applications',            'Internal Applications',            'CATEGORY'),
+(12, 'evolveum-creation',                'Profesional By Evolveum',          'COMMON'),
+(13, 'community-creation',               'Created by Community',             'COMMON'),
+(14, 'partner-creation',                 'Created by Evolveum Partners',     'COMMON'),
+(15, 'generic_application',              'Generic Application',              'COMMON');
 
 INSERT INTO country_of_origin (id, name, display_name) VALUES
-  (1, 'austria',  'Austria'),
-  (2, 'france',   'France'),
-  (3, 'cambodia', 'Cambodia'),
-  (4, 'croatia',  'Croatia'),
-  (5, 'usa', 'USA');
+(1, 'austria',  'Austria'),
+(2, 'france',   'France'),
+(3, 'cambodia', 'Cambodia'),
+(4, 'croatia',  'Croatia'),
+(5, 'usa', 'USA');
 
 INSERT INTO connid_version (version, midpoint_version) VALUES
-  ('1.1.0.0', '4.1.0,4.1.1'),
-  ('1.2.0.0', '4.2.0,4.2.1'),
-  ('1.3.0.0', '4.3.0,4.3.1'),
-  ('1.4.0.0', '4.4.0,4.4.1'),
-  ('1.5.2.0', '4.4.0,4.4.1'),
-  ('1.5.3.0-M3', '4.4.0,4.4.1'),
-  ('1.5.0.0', '4.5.0,4.5.1');
+('1.1.0.0', '4.1.0,4.1.1'),
+('1.2.0.0', '4.2.0,4.2.1'),
+('1.3.0.0', '4.3.0,4.3.1'),
+('1.4.0.0', '4.4.0,4.4.1'),
+('1.5.2.0', '4.4.0,4.4.1'),
+('1.5.3.0-M3', '4.4.0,4.4.1'),
+('1.5.0.0', '4.5.0,4.5.1');
 
 INSERT INTO application
 (id, name, display_name, description, lifecycle_state, created_at, last_modified, logo_path, logo_content_type, logo_original_name, logo_size_bytes) VALUES
@@ -185,31 +185,31 @@ INSERT INTO application_origin (id, application_id, country_id) VALUES
 (3,'5f0ba262-a08b-44fc-b830-f4942e3efeb4',3);
 
 INSERT INTO implementation_tag (id, name, display_name) VALUES
-  (1,  'ai_generated',      'AI Generated'),
-  (5,  'custom',            'CUSTOM'),
-  (6,  'paged_search',      'Paged search'),
-  (7,  'live_sync',         'Live sync'),
-  (8,  'script',            'Script'),
-  (9,  'password',          'Password'),
-  (10, 'credentials',       'Credentials'),
-  (11, 'test_connection',   'Test connection'),
-  (12, 'lot_of_text',       'Lot of text'),
-  (13, 'small_filler',      'Small filler'),
-  (14, 'big_filler',        'BIG FILLER');
+(1,  'ai_generated',      'AI Generated'),
+(5,  'custom',            'CUSTOM'),
+(6,  'paged_search',      'Paged search'),
+(7,  'live_sync',         'Live sync'),
+(8,  'script',            'Script'),
+(9,  'password',          'Password'),
+(10, 'credentials',       'Credentials'),
+(11, 'test_connection',   'Test connection'),
+(12, 'lot_of_text',       'Lot of text'),
+(13, 'small_filler',      'Small filler'),
+(14, 'big_filler',        'BIG FILLER');
 
 INSERT INTO implementation_implementation_tag (id, implementation_id, tag_id) VALUES
 (3,'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',1);
 
 INSERT INTO organizations (id, name, description) VALUES
- (1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
- (2, 'Evolveum', 'Evolveum — application administrators');
+(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
+(2, 'Evolveum', 'Evolveum — application administrators');
 
 INSERT INTO catalog_users (username, password, role, organization_id) VALUES
- ('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
- ('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
- ('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
- ('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
- ('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
+('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
+('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
+('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
+('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
+('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
 
 SELECT pg_catalog.setval('application_application_tag_id_seq', 30, true);
 SELECT pg_catalog.setval('application_origin_id_seq', 8, true);
