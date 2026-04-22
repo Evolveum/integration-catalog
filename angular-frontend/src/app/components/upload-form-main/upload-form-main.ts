@@ -1,26 +1,32 @@
-import { Component, signal, computed, OnInit } from '@angular/core';
+import { Component, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
+import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationFormData, UploadFileItem } from '../../models/request.model';
+import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
-import { UploadFormImpl } from '../upload-form-impl/upload-form-impl';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 
 @Component({
   selector: 'app-upload-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, UploadFormImpl, PageHeader],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, RouterLink],
   templateUrl: './upload-form-main.html',
   styleUrls: ['./upload-form-main.scss']
 })
-export class UploadFormMain implements OnInit {
+export class UploadFormMain implements OnInit, OnDestroy {
+  private easyMde: EasyMDE | null = null;
+  private modalEasyMde: EasyMDE | null = null;
+  protected readonly showSideBySideModal = signal<boolean>(false);
+  protected readonly sbsPreviewHtml = signal<string>('');
   protected readonly applications = signal<Application[]>([]);
+  protected readonly recentlyUsedApps = signal<Application[]>([]);
 
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
@@ -34,6 +40,7 @@ export class UploadFormMain implements OnInit {
   protected readonly description = signal<string>('');
   protected readonly logoFile = signal<File | null>(null);
   protected readonly logoPreviewUrl = signal<string | null>(null);
+  protected readonly logoDragOver = signal<boolean>(false);
   protected readonly origins = signal<string[]>([]);
   protected readonly loadedOrigins = signal<string[]>([]); // Track origins loaded from selected app
   protected readonly category = signal<string>('');
@@ -44,18 +51,84 @@ export class UploadFormMain implements OnInit {
   protected readonly selectedCountriesModel = signal<Country[]>([]);
   protected readonly isLoadingCountries = signal<boolean>(true);
 
-  // Step 3 - Implementation form data
+  // Step 3 - Implementation form data (legacy, kept for compatibility)
   protected readonly implementationFormData = signal<ImplementationFormData | null>(null);
   protected readonly isImplementationFormValid = signal<boolean>(false);
+
+  // Step 5 - Add connector
+  protected readonly basicInfoExpanded    = signal<boolean>(false);
+  protected readonly devBuildExpanded     = signal<boolean>(false);
+  protected readonly connectorName        = signal<string>('');
+  protected readonly connectorVersion     = signal<string>('');
+  protected readonly connectorMaintainer      = signal<string>('');
+  protected readonly maintainerOptions        = signal<string[]>([]);
+  protected readonly maintainerSearch         = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => o.toLowerCase().includes(search));
+  });
+  protected readonly connectorLicense     = signal<string>('');
+  protected readonly connectorDescription = signal<string>('');
+  protected readonly capabilitiesScope    = signal<'global' | 'specific'>('global');
+  protected readonly globalCapabilities   = signal<string[]>([]);
+  protected readonly isGlobalCapDropdownOpen = signal<boolean>(false);
+  protected readonly objectClassEntries   = signal<{ objectClass: string; capabilities: string[]; isCapabilitiesDropdownOpen: boolean }[]>(
+    [{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]
+  );
+  protected readonly availableCapabilities   = signal<string[]>([]);
+  protected readonly isLoadingCapabilities   = signal<boolean>(false);
+  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
+
+  // Step 6 - Review & publish
+  protected readonly isPublishing    = signal<boolean>(false);
+  protected readonly publishComplete = signal<boolean>(false);
+  protected readonly publishCreatedOn = signal<Date | null>(null);
+  protected readonly publishedVersionId = signal<string | null>(null);
+  protected readonly emailCopied     = signal<boolean>(false);
+  protected readonly connectorTypeLabel = computed(() => {
+    if (this.isExistingConnector()) return this.selectedCatalogConnector()?.displayName ?? 'Existing connector';
+    const buildSuffix = this.devBuildTool() === 'maven' ? ' (Maven)' : this.devBuildTool() === 'gradle' ? ' (Gradle)' : '';
+    const labels: Record<string, string> = {
+      'java-based':       `Java Automation${buildSuffix}`,
+      'own-repo':         'Low-code — own repository',
+      'evolveum-hosted':  'Low-code — Evolveum-hosted'
+    };
+    return labels[this.selectedConnectorType()] ?? this.selectedConnectorType();
+  });
+
+  // Step 5 - Dev & Build panel
+  protected readonly devProjectHomepage   = signal<string>('');
+  protected readonly devSupportPortal     = signal<string>('');
+  protected readonly devBuildTool         = signal<'maven' | 'gradle' | ''>('');
+  protected readonly devGitCloneUrl       = signal<string>('');
+  protected readonly devCommitTag         = signal<string>('');
+  protected readonly devProjectFolderPath = signal<string>('');
+  protected readonly devClassName         = signal<string>('');
+  protected readonly devRepoOwnership     = signal<'evolveum' | 'own'>('evolveum');
+  protected readonly devGithubApiKey      = signal<string>('');
+  protected readonly showGithubApiKey     = signal<boolean>(false);
+  protected readonly isExistingConnector  = computed(() => !!this.selectedCatalogConnector());
+
+  protected readonly isStep5Valid = computed(() => {
+    if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
+    if (this.isExistingConnector()) return true;
+    const type = this.selectedConnectorType();
+    if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
+    if (type === 'java-based') {
+      if (!this.devBuildTool() || !this.devClassName().trim()) return false;
+    }
+    return true;
+  });
 
   // Toast notifications
   protected readonly showPublishSuccess = signal<boolean>(false);
   protected readonly showVersionExistsWarning = signal<boolean>(false);
   protected readonly existingVersion = signal<string>('');
 
-  protected recentApps = computed(() => {
-    return this.applications().slice(0, 6);
-  });
+  protected recentApps = computed(() => this.recentlyUsedApps());
 
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -159,44 +232,227 @@ export class UploadFormMain implements OnInit {
     ];
   });
 
+  protected readonly showDefineNewModal = signal<boolean>(false);
   protected readonly showOriginDropdown = signal<boolean>(false);
-  protected readonly selectedIntegrationMethod = signal<string>('');
+
+  // Connector catalog modal (step 4)
+  protected readonly showConnectorCatalogModal = signal<boolean>(false);
+  protected readonly catalogConnectors = signal<ImplementationListItem[]>([]);
+  protected readonly isCatalogLoading = signal<boolean>(false);
+  protected readonly connectorCatalogSearch = signal<string>('');
+  protected readonly selectedCatalogConnector = signal<ImplementationListItem | null>(null);
+
+  protected readonly filteredCatalogConnectors = computed(() => {
+    const query = this.connectorCatalogSearch().toLowerCase().trim();
+    if (!query) return this.catalogConnectors();
+    return this.catalogConnectors().filter(c =>
+      c.displayName.toLowerCase().includes(query) ||
+      c.description?.toLowerCase().includes(query)
+    );
+  });
+  protected readonly selectedIntegrationMethod = signal<string[]>([]);
+
+  protected readonly wizardSteps = [
+    { label: 'Select target application' },
+    { label: 'Select integration method type' },
+    { label: 'Define integration method' },
+    { label: 'Select connector type' },
+    { label: 'Add connector' },
+    { label: 'Review' },
+  ];
 
   protected readonly integrationMethods = [
-    { value: 'scim-generic', title: 'SCIM generic',    description: 'generic',                               wide: true,
-      formDescription: 'SCIM generic integrations use a standard SCIM protocol for provisioning. This form registers the integration configuration in the catalog.' },
-    { value: 'scim',         title: 'SCIM',             description: 'nongeneric (java-based or low code)',    wide: true,
-      formDescription: 'SCIM integrations use a non-generic SCIM protocol, java-based or low code. This form registers the integration configuration in the catalog.' },
-    { value: 'rest-api',     title: 'REST API',         description: 'Custom REST-based connector',           wide: true,
-      formDescription: 'REST API integrations use a custom REST-based connector. This form only registers the integration configuration in the catalog.' },
-    { value: 'openldap',     title: 'openLDAP',         description: 'Integration with an existing LDAP directory.', wide: false,
-      formDescription: 'OpenLDAP integrations use an external LDAP directory. This form only registers the integration configuration in the catalog – the actual LDAP connector is installed and managed in your environment, it is not uploaded here.' },
-    { value: 'manual',       title: 'Manual Connector', description: 'lorem ipsum',                           wide: false,
-      formDescription: 'Manual connector integrations require manual configuration. This form registers the integration configuration in the catalog.' },
-    { value: 'database',     title: 'Database',         description: 'lorem ipsum',                           wide: false,
-      formDescription: 'Database integrations connect to an external database. This form only registers the integration configuration in the catalog.' },
-    { value: 'csv',          title: 'CSV',              description: 'lorem ipsum',                           wide: false,
-      formDescription: 'CSV integrations use CSV files for data exchange. This form registers the integration configuration in the catalog.' },
+    { value: 'scim',         title: 'SCIM',          description: 'nongeneric (java-based or low code)',       formDescription: 'SCIM integrations use a non-generic SCIM protocol, java-based or low code. This form registers the integration configuration in the catalog.' },
+    { value: 'rest-api',     title: 'REST API',      description: 'Custom REST-based connector',               formDescription: 'REST API integrations use a custom REST-based connector. This form only registers the integration configuration in the catalog.' },
+    { value: 'openldap',     title: 'open LDAP',     description: 'Integration with an existing LDAP',         formDescription: 'OpenLDAP integrations use an external LDAP directory. This form only registers the integration configuration in the catalog.' },
+    { value: 'manual-itsm',  title: 'Manual ITSM',   description: 'Mighty manual',                              formDescription: 'Manual ITSM integrations require manual configuration. This form registers the integration configuration in the catalog.' },
+    { value: 'database',     title: 'Database',      description: 'The one and only',                              formDescription: 'Database integrations connect to an external database. This form only registers the integration configuration in the catalog.' },
+    { value: 'csv',          title: 'CSV',           description: 'What ever this is',                              formDescription: 'CSV integrations use CSV files for data exchange. This form registers the integration configuration in the catalog.' },
   ];
 
   protected readonly selectedMethodInfo = computed(() =>
-    this.integrationMethods.find(m => m.value === this.selectedIntegrationMethod()) ?? null
+    this.integrationMethods.find(m => this.selectedIntegrationMethod().includes(m.value)) ?? null
   );
 
+  protected isMethodSelected(value: string): boolean {
+    return this.selectedIntegrationMethod().includes(value);
+  }
+
+  protected toggleIntegrationMethod(value: string): void {
+    const current = this.selectedIntegrationMethod();
+    if (current.includes(value)) {
+      this.selectedIntegrationMethod.set(current.filter(v => v !== value));
+    } else {
+      this.selectedIntegrationMethod.set([...current, value]);
+    }
+  }
+
   // Step 3 – method-specific form fields
-  protected readonly methodFormDisplayName  = signal<string>('');
-  protected readonly methodFormDescription  = signal<string>('');
-  protected readonly methodFormSampleLink   = signal<string>('');
-  protected readonly methodFormSystemVersion = signal<string>('');
-  protected readonly methodFormFromDate     = signal<string>('');
-  protected readonly methodFormToDate       = signal<string>('');
+  protected readonly methodFormDisplayName = signal<string>('');
+  protected readonly methodFormVersion     = signal<string>('');
+  protected readonly methodFormDescription = signal<string>('');
+  protected readonly methodFormTutorial    = signal<string>('');
+  protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
+  protected readonly tutorialDragOver      = signal<boolean>(false);
+  protected readonly tutorialWordCount     = computed(() =>
+    this.methodFormTutorial().trim() === '' ? 0 : this.methodFormTutorial().trim().split(/\s+/).length
+  );
+
+  protected readonly selectedMethodTitles = computed(() =>
+    this.integrationMethods
+      .filter(m => this.selectedIntegrationMethod().includes(m.value))
+      .map(m => m.title)
+  );
+
+  protected readonly selectedMethodsLabel = computed(() => {
+    const titles = this.integrationMethods
+      .filter(m => this.selectedIntegrationMethod().includes(m.value))
+      .map(m => m.title);
+    const lines: string[] = [];
+    for (let i = 0; i < titles.length; i += 2) {
+      lines.push(titles.slice(i, i + 2).join(' + '));
+    }
+    return lines.join('\n');
+  });
 
   constructor(
     private countryService: CountryService,
     private applicationService: ApplicationService,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) {
+    effect(() => {
+      if (this.currentStep() === 3) {
+        setTimeout(() => this.initEasyMDE(), 0);
+      } else {
+        this.destroyEasyMDE();
+      }
+    });
+
+  }
+
+  ngOnDestroy(): void {
+    this.destroyEasyMDE();
+  }
+
+  private initEasyMDE(): void {
+    if (this.easyMde) return;
+    const el = document.getElementById('tutorial-editor') as HTMLTextAreaElement | null;
+    if (!el) return;
+    this.easyMde = new EasyMDE({
+      element: el,
+      initialValue: this.methodFormTutorial(),
+      spellChecker: false,
+      status: ['lines', 'words'],
+      toolbar: [
+        'bold', 'italic', 'strikethrough', '|',
+        'heading', 'heading-smaller', 'heading-bigger', '|',
+        'quote', 'unordered-list', 'ordered-list', '|',
+        'link', '|',
+        'preview', '|',
+        {
+          name: 'side-by-side',
+          action: () => this.openSideBySideModal(),
+          className: 'fa fa-columns no-disable no-mobile',
+          title: 'Side by Side',
+        },
+      ],
+    });
+    this.easyMde.codemirror.on('change', () => {
+      this.methodFormTutorial.set(this.easyMde!.value());
+    });
+  }
+
+  protected openSideBySideModal(): void {
+    this.showSideBySideModal.set(true);
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => this.initModalEasyMDE(), 0);
+  }
+
+  private initModalEasyMDE(): void {
+    const el = document.getElementById('sbs-editor') as HTMLTextAreaElement | null;
+    if (!el) return;
+    this.modalEasyMde = new EasyMDE({
+      element: el,
+      initialValue: this.methodFormTutorial(),
+      spellChecker: false,
+      status: ['lines', 'words'],
+      toolbar: [
+        'bold', 'italic', 'strikethrough', '|',
+        'heading', 'heading-smaller', 'heading-bigger', '|',
+        'quote', 'unordered-list', 'ordered-list', '|',
+        'link',
+      ],
+    });
+    this.modalEasyMde.codemirror.on('change', () => {
+      const content = this.modalEasyMde!.value();
+      this.methodFormTutorial.set(content);
+      this.sbsPreviewHtml.set(this.renderMarkdown(content));
+    });
+    this.sbsPreviewHtml.set(this.renderMarkdown(this.methodFormTutorial()));
+  }
+
+  private renderMarkdown(text: string): string {
+    // Use EasyMDE's own markdown renderer if available
+    if (this.easyMde && typeof (this.easyMde as any).markdown === 'function') {
+      return (this.easyMde as any).markdown(text);
+    }
+    // Fallback: basic HTML escaping with newlines as <br>
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+  }
+
+  protected closeSideBySideModal(): void {
+    if (this.modalEasyMde) {
+      const content = this.modalEasyMde.value();
+      this.methodFormTutorial.set(content);
+      this.easyMde?.value(content);
+      this.modalEasyMde.toTextArea();
+      this.modalEasyMde = null;
+    }
+    this.showSideBySideModal.set(false);
+    document.body.style.overflow = '';
+  }
+
+  private tutorialUpload(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,.txt';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const content = reader.result as string;
+        this.easyMde!.value(content);
+        this.methodFormTutorial.set(content);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  private tutorialDownload(): void {
+    const content = this.easyMde?.value() ?? '';
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tutorial.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private destroyEasyMDE(): void {
+    if (this.modalEasyMde) {
+      this.modalEasyMde.toTextArea();
+      this.modalEasyMde = null;
+    }
+    this.showSideBySideModal.set(false);
+    if (this.easyMde) {
+      this.easyMde.toTextArea();
+      this.easyMde = null;
+    }
+  }
 
   ngOnInit(): void {
     if (!this.authService.canUpload()) {
@@ -206,6 +462,25 @@ export class UploadFormMain implements OnInit {
 
     this.applicationService.getAll().subscribe({
       next: (data) => this.applications.set(data)
+    });
+
+    // Initialise maintainer options for step 5 combobox
+    const currentUser = this.authService.currentUser();
+    const role = this.authService.currentRole();
+    const orgName = this.authService.currentOrganizationName();
+    if (role === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+      });
+    } else if (role === UserRole.OrganizationContributor && orgName) {
+      this.maintainerOptions.set([orgName]);
+    } else if (currentUser) {
+      this.maintainerOptions.set([currentUser]);
+    }
+
+    this.applicationService.getRecentlyUsed().subscribe({
+      next: (data) => this.recentlyUsedApps.set(data)
     });
 
     // Fetch all countries from REST Countries API
@@ -231,18 +506,23 @@ export class UploadFormMain implements OnInit {
   }
 
   protected nextStep(): void {
-    if (this.currentStep() < 5) {
+    if (this.currentStep() < 6) {
       this.currentStep.update(step => step + 1);
+    }
+    if (this.currentStep() === 5 && this.availableCapabilities().length === 0) {
+      this.loadCapabilities();
+    }
+    if (this.currentStep() === 5 && !this.connectorMaintainer()) {
+      this.connectorMaintainer.set(this.authService.currentUser() ?? '');
     }
   }
 
-  protected selectIntegrationMethod(value: string): void {
-    this.selectedIntegrationMethod.set(value);
+  protected goToStep(step: number): void {
+    if (step < this.currentStep()) {
+      this.currentStep.set(step);
+    }
   }
 
-  protected clearSampleLink(): void {
-    this.methodFormSampleLink.set('');
-  }
 
   protected onMethodFormDescriptionChange(event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
@@ -251,11 +531,52 @@ export class UploadFormMain implements OnInit {
     }
   }
 
+  protected onTutorialChange(event: Event): void {
+    this.methodFormTutorial.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected onTutorialFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.tutorialDragOver.set(false);
+    const files = event.dataTransfer?.files;
+    if (files) {
+      Array.from(files).forEach(file => this.addTutorialFile(file));
+    }
+  }
+
+  protected onTutorialFileSelect(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files) {
+      Array.from(input.files).forEach(file => this.addTutorialFile(file));
+    }
+    input.value = '';
+  }
+
+  private addTutorialFile(file: File): void {
+    // Avoid duplicates by name
+    if (this.tutorialFiles().some(f => f.name === file.name)) return;
+    this.tutorialFiles.update(files => [...files, { name: file.name, file, isNew: true }]);
+  }
+
+  protected removeTutorialFile(index: number): void {
+    this.tutorialFiles.update(files => files.filter((_, i) => i !== index));
+  }
+
   protected enterDefineNewMode(): void {
+    this.clearApplicationDetailsFields();
+    this.showDefineNewModal.set(true);
+  }
+
+  protected cancelDefineNewModal(): void {
+    this.showDefineNewModal.set(false);
+    this.clearApplicationDetailsFields();
+  }
+
+  protected confirmDefineNew(): void {
+    this.showDefineNewModal.set(false);
     this.isDefineNewMode.set(true);
     this.selectedApplication.set(null);
     this.showDetailsForm.set(true);
-    this.clearApplicationDetailsFields();
   }
 
   private populateApplicationDetails(): void {
@@ -344,6 +665,156 @@ export class UploadFormMain implements OnInit {
 
   protected selectConnectorType(type: string): void {
     this.selectedConnectorType.set(type);
+    this.selectedCatalogConnector.set(null);
+    this.connectorName.set('');
+    this.connectorVersion.set('1.0');
+    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorLicense.set('');
+    this.connectorDescription.set('');
+    // Clear Dev & Build fields
+    this.devProjectHomepage.set('');
+    this.devSupportPortal.set('');
+    this.devBuildTool.set('');
+    this.devGitCloneUrl.set('');
+    this.devCommitTag.set('');
+    this.devProjectFolderPath.set('');
+    this.devClassName.set('');
+    this.devRepoOwnership.set('evolveum');
+    this.devGithubApiKey.set('');
+    this.showGithubApiKey.set(false);
+  }
+
+  private loadCapabilities(): void {
+    this.isLoadingCapabilities.set(true);
+    this.applicationService.getCapabilities().subscribe({
+      next: (caps) => { this.availableCapabilities.set(caps); this.isLoadingCapabilities.set(false); },
+      error: () => this.isLoadingCapabilities.set(false)
+    });
+  }
+
+  protected formatCapabilityName(cap: string): string {
+    return cap.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  protected addObjectClassEntry(): void {
+    this.objectClassEntries.update(e => [...e, { objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
+  }
+
+  protected removeObjectClassEntry(i: number): void {
+    this.objectClassEntries.update(e => e.filter((_, idx) => idx !== i));
+  }
+
+  protected updateObjectClass(i: number, value: string): void {
+    this.objectClassEntries.update(e => e.map((entry, idx) => idx !== i ? entry : {
+      ...entry, objectClass: value,
+      isCapabilitiesDropdownOpen: value ? entry.isCapabilitiesDropdownOpen : false
+    }));
+  }
+
+  protected toggleSpecificCapDropdown(i: number): void {
+    if (!this.objectClassEntries()[i]?.objectClass) return;
+    this.objectClassEntries.update(e => e.map((entry, idx) =>
+      idx === i ? { ...entry, isCapabilitiesDropdownOpen: !entry.isCapabilitiesDropdownOpen } : entry
+    ));
+  }
+
+  protected onSpecificCapChange(event: Event, i: number, cap: string): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.objectClassEntries.update(e => e.map((entry, idx) => {
+      if (idx !== i) return entry;
+      const capabilities = checked ? [...entry.capabilities, cap] : entry.capabilities.filter(c => c !== cap);
+      return { ...entry, capabilities };
+    }));
+  }
+
+  protected removeSpecificCap(i: number, cap: string, event?: Event): void {
+    event?.stopPropagation();
+    this.objectClassEntries.update(e => e.map((entry, idx) =>
+      idx !== i ? entry : { ...entry, capabilities: entry.capabilities.filter(c => c !== cap) }
+    ));
+  }
+
+  protected onGlobalCapChange(event: Event, cap: string): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.globalCapabilities.update(caps =>
+      checked ? [...caps, cap] : caps.filter(c => c !== cap)
+    );
+  }
+
+  protected removeGlobalCap(cap: string, event?: Event): void {
+    event?.stopPropagation();
+    this.globalCapabilities.update(caps => caps.filter(c => c !== cap));
+  }
+
+  protected openConnectorCatalogModal(): void {
+    this.showConnectorCatalogModal.set(true);
+    this.connectorCatalogSearch.set('');
+    this.catalogConnectors.set([]);
+    const appId = this.selectedApplication()?.id;
+    if (!appId) return;
+    this.isCatalogLoading.set(true);
+    this.applicationService.getImplementationsByApplicationId(appId).subscribe({
+      next: (items) => {
+        this.catalogConnectors.set(items);
+        this.isCatalogLoading.set(false);
+      },
+      error: () => this.isCatalogLoading.set(false)
+    });
+  }
+
+  protected closeConnectorCatalogModal(): void {
+    this.showConnectorCatalogModal.set(false);
+    this.connectorCatalogSearch.set('');
+  }
+
+  protected confirmCatalogSelection(): void {
+    const connector = this.selectedCatalogConnector();
+    this.showConnectorCatalogModal.set(false);
+    this.connectorCatalogSearch.set('');
+    // Always reset all Dev & Build fields first so nothing from a previous type selection lingers
+    this.devSupportPortal.set('');
+    this.devCommitTag.set('');
+    this.devRepoOwnership.set('evolveum');
+    this.devGithubApiKey.set('');
+    this.showGithubApiKey.set(false);
+    if (connector) {
+      this.connectorName.set(connector.displayName ?? '');
+      this.connectorVersion.set(connector.version ?? '');
+      this.connectorMaintainer.set(connector.maintainer ?? this.authService.currentUser() ?? '');
+      this.connectorLicense.set(connector.licenseType ?? '');
+      this.connectorDescription.set(connector.implementationDescription ?? connector.description ?? '');
+      // Pre-fill Dev & Build fields from catalog data
+      this.devProjectHomepage.set(connector.browseLink ?? '');
+      this.devGitCloneUrl.set(connector.checkoutLink ?? '');
+      this.devProjectFolderPath.set(connector.pathToProjectDirectory ?? '');
+      this.devClassName.set(connector.className ?? '');
+      const bf = (connector.buildFramework ?? '').toLowerCase();
+      this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
+    }
+    if (this.availableCapabilities().length === 0) {
+      this.loadCapabilities();
+    }
+    this.currentStep.set(5);
+  }
+
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: string): void {
+    this.connectorMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
   }
 
   protected onSearchChange(event: Event): void {
@@ -360,6 +831,13 @@ export class UploadFormMain implements OnInit {
     this.searchQuery.set('');
     this.isDefineNewMode.set(false);
     this.showDetailsForm.set(false);
+    this.populateApplicationDetails();
+    const username = this.authService.currentUser() ?? 'anonymous';
+    this.applicationService.recordRecentlyUsed(app.id, username).subscribe({
+      next: () => this.applicationService.getRecentlyUsed().subscribe({
+        next: (data) => this.recentlyUsedApps.set(data)
+      })
+    });
   }
 
   protected continueWithSelectedApp(): void {
@@ -392,6 +870,12 @@ export class UploadFormMain implements OnInit {
     return this.showDetailsForm();
   }
 
+  protected canContinueStep1(): boolean {
+    if (this.selectedApplication() !== null) return true;
+    if (this.isDefineNewMode()) return this.canSubmitForm();
+    return false;
+  }
+
   protected canContinueWithSelection(): boolean {
     return this.selectedApplication() !== null && !this.showDetailsForm();
   }
@@ -406,28 +890,32 @@ export class UploadFormMain implements OnInit {
   protected onLogoUpload(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-
-      // Validate file type
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Invalid file type. Please upload PNG, JPEG, GIF, SVG, or WebP images.');
-        return;
-      }
-
-      // Validate file size (5MB max)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        alert('File too large. Maximum size is 5MB.');
-        return;
-      }
-
-      this.logoFile.set(file);
-
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      this.logoPreviewUrl.set(previewUrl);
+      this.processLogoFile(input.files[0]);
     }
+  }
+
+  protected onLogoDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.logoDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.processLogoFile(file);
+  }
+
+  private processLogoFile(file: File): void {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/svg+xml', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Please upload PNG, JPEG, GIF, SVG, or WebP images.');
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    this.logoFile.set(file);
+    this.logoPreviewUrl.set(URL.createObjectURL(file));
   }
 
   protected clearLogo(): void {
@@ -542,6 +1030,7 @@ export class UploadFormMain implements OnInit {
             // Show warning and don't proceed
             this.existingVersion.set(connectorVersion);
             this.showVersionExistsWarning.set(true);
+            setTimeout(() => this.closeVersionExistsWarning(), 5000);
           } else {
             // Version doesn't exist, proceed with upload
             this.doPublish(formData, connectorVersion, bundleName, parsedFile.files);
@@ -561,6 +1050,94 @@ export class UploadFormMain implements OnInit {
   protected closeVersionExistsWarning(): void {
     this.showVersionExistsWarning.set(false);
     this.existingVersion.set('');
+  }
+
+  protected publishIntegrationMethod(): void {
+    const version = this.connectorVersion() || null;
+    if (version) {
+      this.applicationService.checkVersionExists(version).subscribe({
+        next: (exists) => exists ? (this.existingVersion.set(version), this.showVersionExistsWarning.set(true), setTimeout(() => this.closeVersionExistsWarning(), 5000)) : this.doPublishFromStep6(),
+        error: () => this.doPublishFromStep6()
+      });
+    } else {
+      this.doPublishFromStep6();
+    }
+  }
+
+  private doPublishFromStep6(): void {
+    const payload = {
+      application: {
+        id: this.selectedApplication()?.id || null,
+        displayName: this.displayName(),
+        description: this.description(),
+        logo: null,
+        origins: this.origins(),
+        tags: [
+          ...(this.category() ? [{ name: this.category(), tagType: 'CATEGORY' as const }] : []),
+          ...(this.deploymentType() ? [{ name: this.deploymentType(), tagType: 'DEPLOYMENT' as const }] : [])
+        ]
+      },
+      implementation: {
+        implementationId: this.isExistingConnector() ? (this.selectedCatalogConnector()?.id ?? null) : null,
+        displayName: this.connectorName(),
+        description: this.connectorDescription(),
+        maintainer: this.connectorMaintainer(),
+        framework: this.isExistingConnector() ? 'JAVA_BASED' : this.mapConnectorTypeToFramework(this.selectedConnectorType()),
+        license: this.connectorLicense() || null,
+        ticketingSystemLink: null,
+        browseLink: this.devProjectHomepage() || null,
+        checkoutLink: this.devGitCloneUrl() || null,
+        buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
+        pathToProject: this.devProjectFolderPath() || null,
+        className: this.devClassName() || null,
+        bundleName: null,
+        connectorVersion: this.connectorVersion() || null,
+        downloadLink: null,
+        connidVersion: null
+      },
+      files: []
+    };
+
+    this.isPublishing.set(true);
+    this.applicationService.uploadConnector(payload).subscribe({
+      next: (response: string) => {
+        this.isPublishing.set(false);
+        const applicationId = this.selectedApplication()?.id || this.extractApplicationIdFromResponse(response);
+        if (applicationId) this.uploadLogoIfPresent(applicationId);
+        this.publishedVersionId.set(this.extractVersionIdFromResponse(response));
+        this.publishCreatedOn.set(new Date());
+        this.publishComplete.set(true);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.isPublishing.set(false);
+        alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
+      }
+    });
+  }
+
+  protected copyEmailToClipboard(): void {
+    navigator.clipboard.writeText('help@evolveum.com').then(() => {
+      this.emailCopied.set(true);
+      setTimeout(() => this.emailCopied.set(false), 3000);
+    });
+  }
+
+  protected navigateToAppDetail(): void {
+    const id = this.selectedApplication()?.id;
+    if (id) this.router.navigate(['/applications', id]);
+  }
+
+  protected cancelPublish(): void {
+    const versionId = this.publishedVersionId();
+    const navigate = () => this.router.navigate(['/applications']);
+    if (versionId) {
+      this.applicationService.deleteImplementationVersion(versionId).subscribe({
+        next: navigate,
+        error: navigate
+      });
+    } else {
+      navigate();
+    }
   }
 
   private doPublish(formData: ImplementationFormData, connectorVersion: string | null, bundleName: string | null, files: UploadFileItem[]): void {
@@ -619,9 +1196,15 @@ export class UploadFormMain implements OnInit {
   }
 
   private extractApplicationIdFromResponse(response: string): string | null {
-    // Try to extract UUID from response string
+    // New format: "applicationId|versionId"
+    if (response.includes('|')) return response.split('|')[0] ?? null;
     const uuidMatch = response.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
     return uuidMatch ? uuidMatch[0] : null;
+  }
+
+  private extractVersionIdFromResponse(response: string): string | null {
+    if (response.includes('|')) return response.split('|')[1] ?? null;
+    return null;
   }
 
   private mapConnectorTypeToFramework(connectorType: string): string {
@@ -731,13 +1314,12 @@ export class UploadFormMain implements OnInit {
   private resetForm(): void {
     this.currentStep.set(1);
     this.selectedConnectorType.set('evolveum-hosted');
-    this.selectedIntegrationMethod.set('');
+    this.selectedIntegrationMethod.set([]);
     this.methodFormDisplayName.set('');
+    this.methodFormVersion.set('');
     this.methodFormDescription.set('');
-    this.methodFormSampleLink.set('');
-    this.methodFormSystemVersion.set('');
-    this.methodFormFromDate.set('');
-    this.methodFormToDate.set('');
+    this.methodFormTutorial.set('');
+    this.tutorialFiles.set([]);
     this.searchQuery.set('');
     this.selectedApplication.set(null);
     this.isDefineNewMode.set(false);

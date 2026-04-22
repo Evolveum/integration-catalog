@@ -290,7 +290,7 @@
                       Error
                     </span>
                   }
-                  @if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                  @if (app.lifecycleState === 'IN_REVIEW') {
                     <span class="badge badge-publishing-card">
                       Publishing...
                     </span>
@@ -332,7 +332,7 @@
                     <a class="text-decoration-none text-center mt-auto link-error" (click)="navigateToDetail(app.id)">
                       <u>Error details</u>
                     </a>
-                  } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                  } @else if (app.lifecycleState === 'IN_REVIEW') {
                     <div class="d-flex flex-column gap-2 mt-auto">
                       <div class="text-center">
                         <p class="text-muted small mb-2">Importing... This may take a moment.</p>
@@ -414,7 +414,7 @@
                     Error
                   </span>
                 }
-                @if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                @if (app.lifecycleState === 'IN_REVIEW') {
                   <span class="badge badge-publishing-card">
                     Publishing...
                   </span>
@@ -456,7 +456,7 @@
                   <a class="text-decoration-none text-center mt-auto link-error" (click)="navigateToDetail(app.id)">
                     <u>Error details</u>
                   </a>
-                } @else if (app.lifecycleState === 'IN_PUBLISH_PROCESS') {
+                } @else if (app.lifecycleState === 'IN_REVIEW') {
                   <div class="d-flex flex-column gap-2 mt-auto">
                     <div class="text-center">
                       <p class="text-muted small mb-2">Importing... This may take a moment.</p>

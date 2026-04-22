@@ -81,7 +81,7 @@ export class FilterModal implements OnInit {
     'UPDATE_DELTA'
   ];
   protected readonly appStatuses = [
-    { name: 'IN_PUBLISH_PROCESS', displayName: 'In publish process' },
+    { name: 'IN_REVIEW', displayName: 'In review' },
     { name: 'ACTIVE', displayName: 'Active' },
     { name: 'REQUESTED', displayName: 'Requested' },
     { name: 'WITH_ERROR', displayName: 'With error' }

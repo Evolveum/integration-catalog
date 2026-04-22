@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { LoginModal } from '../login-modal/login-modal';
@@ -18,6 +18,8 @@ import { LoginModal } from '../login-modal/login-modal';
   host: { style: 'display: block; position: sticky; top: 0; z-index: 1000;' }
 })
 export class PageHeader {
+  @Input() breadcrumb: boolean = false;
+
   protected readonly authService = inject(AuthService);
 
   protected readonly currentUser = this.authService.currentUser;

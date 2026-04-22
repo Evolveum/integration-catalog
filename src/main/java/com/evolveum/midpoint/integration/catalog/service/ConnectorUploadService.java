@@ -93,7 +93,8 @@ public class ConnectorUploadService {
 
         // 5. Persist and trigger pipeline
         persistEntities(appRes, implRes, bundleVersion, implVersion);
-        return triggerJenkinsPipeline(implVersion, implRes.implementation(), dto.implementation());
+        triggerJenkinsPipeline(implVersion, implRes.implementation(), dto.implementation());
+        return appRes.application().getId() + "|" + implVersion.getId();
     }
 
     // ==================== Resolution Methods ====================
@@ -225,12 +226,12 @@ public class ConnectorUploadService {
                              ImplementationVersion implVersion, Implementation implementation) {
         // Application defaults
         if (application.getLifecycleState() == null) {
-            application.setLifecycleState(Application.ApplicationLifecycleType.IN_PUBLISH_PROCESS);
+            application.setLifecycleState(Application.ApplicationLifecycleType.IN_REVIEW);
         }
 
         // ImplementationVersion defaults
         if (implVersion.getLifecycleState() == null) {
-            implVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.IN_PUBLISH_PROCESS);
+            implVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.IN_REVIEW);
         }
         if (implVersion.getPublishDate() == null) {
             implVersion.setPublishDate(OffsetDateTime.now());

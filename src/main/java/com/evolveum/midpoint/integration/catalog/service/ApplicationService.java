@@ -56,6 +56,7 @@ public class ApplicationService {
     private final ConnectorBundleRepository connectorBundleRepository;
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
     private final ApplicationTagService applicationTagService;
+    private final RecentlyUsedApplicationRepository recentlyUsedApplicationRepository;
     private final BundleMergeService bundleMergeService;
     private final RequestVotingService requestVotingService;
     private final ConnectorDownloadService connectorDownloadService;
@@ -83,7 +84,8 @@ public class ApplicationService {
                               RequestVotingService requestVotingService,
                               ConnectorDownloadService connectorDownloadService,
                               BuildCallbackService buildCallbackService,
-                              ConnectorUploadService connectorUploadService
+                              ConnectorUploadService connectorUploadService,
+                              RecentlyUsedApplicationRepository recentlyUsedApplicationRepository
     ) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -107,6 +109,7 @@ public class ApplicationService {
         this.connectorDownloadService = connectorDownloadService;
         this.buildCallbackService = buildCallbackService;
         this.connectorUploadService = connectorUploadService;
+        this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -116,6 +119,18 @@ public class ApplicationService {
 
     public ImplementationVersion getImplementationVersion(UUID uuid) {
         return implementationVersionRepository.getReferenceById(uuid);
+    }
+
+    public void deleteImplementationVersion(UUID id) {
+        ImplementationVersion version = implementationVersionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Implementation version not found with id: " + id));
+        BundleVersion bundleVersion = version.getBundleVersion();
+        if (bundleVersion != null) {
+            // Deleting BundleVersion cascades (orphanRemoval) to ImplementationVersion
+            bundleVersionRepository.delete(bundleVersion);
+        } else {
+            implementationVersionRepository.delete(version);
+        }
     }
 
     public ConnidVersion getConnectorVersion(UUID id) {
@@ -388,5 +403,32 @@ public class ApplicationService {
                 })
                 .filter(dto -> dto != null)
                 .toList();
+    }
+
+    /**
+     * Returns a global list of recently used applications (across all users), ordered by recency.
+     */
+    public List<ApplicationDto> getRecentlyUsedApplications() {
+        return recentlyUsedApplicationRepository.findAllByOrderByIdDesc().stream()
+                .map(r -> r.getApplicationId())
+                .distinct()
+                .limit(9)
+                .map(id -> applicationRepository.findById(id).orElse(null))
+                .filter(app -> app != null)
+                .map(app -> applicationMapper.mapToApplicationDto(app, null, null, null, null))
+                .toList();
+    }
+
+    /**
+     * Records that an application was used by a user (delete-and-reinsert for recency ordering).
+     */
+    @Transactional
+    public void recordRecentlyUsed(UUID applicationId, String userId) {
+        recentlyUsedApplicationRepository.deleteByUserIdAndApplicationId(userId, applicationId);
+        recentlyUsedApplicationRepository.flush();
+        RecentlyUsedApplication entry = new RecentlyUsedApplication()
+                .setUserId(userId)
+                .setApplicationId(applicationId);
+        recentlyUsedApplicationRepository.save(entry);
     }
 }

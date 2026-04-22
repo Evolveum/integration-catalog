@@ -527,6 +527,26 @@ public class Controller {
         return new ResponseEntity<>(logoBytes, headers, HttpStatus.OK);
     }
 
+    @Operation(summary = "Delete implementation version",
+            description = "Permanently removes an implementation version from the catalog")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Implementation version deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Implementation version not found")
+    })
+    @DeleteMapping("/implementations/versions/{id}")
+    public ResponseEntity<Void> deleteImplementationVersion(@PathVariable UUID id) {
+        try {
+            applicationService.deleteImplementationVersion(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to delete implementation version: " + ex.getMessage(), ex);
+        }
+    }
+
     @Operation(summary = "Delete application logo",
             description = "Removes the logo file and clears metadata from the application")
     @ApiResponses(value = {
@@ -546,5 +566,30 @@ public class Controller {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to delete logo: " + ex.getMessage(), ex);
         }
+    }
+
+    // ==================== Recently Used Applications ====================
+
+    @Operation(summary = "Get recently used applications",
+            description = "Returns a global list of recently used applications across all users")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Recently used applications retrieved successfully")
+    })
+    @GetMapping("/recently-used")
+    public ResponseEntity<List<ApplicationDto>> getRecentlyUsed() {
+        return ResponseEntity.ok(applicationService.getRecentlyUsedApplications());
+    }
+
+    @Operation(summary = "Record recently used application",
+            description = "Records that an application was used, updating the global recently used list")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Recorded successfully")
+    })
+    @PostMapping("/recently-used/{applicationId}")
+    public ResponseEntity<Void> recordRecentlyUsed(
+            @PathVariable UUID applicationId,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        applicationService.recordRecentlyUsed(applicationId, username);
+        return ResponseEntity.noContent().build();
     }
 }

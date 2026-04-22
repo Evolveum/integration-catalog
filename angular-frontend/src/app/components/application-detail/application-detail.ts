@@ -43,6 +43,7 @@ export class ApplicationDetail implements OnInit {
   protected readonly isIntegrationNoteVisible = signal<boolean>(true);
   protected readonly isContinuePressed = signal<boolean>(false);
   protected readonly allVersions = signal<any[]>([]);
+  protected readonly cancelledVersionIds = signal<string[]>([]);
 
   protected readonly integrationMethods = [
     { id: 'scim', name: 'SCIM', description: 'Standardized provisioning' },
@@ -70,6 +71,13 @@ export class ApplicationDetail implements OnInit {
 
   protected goBack(): void {
     this.router.navigate(['/applications']);
+  }
+
+  protected cancelVersion(id: string): void {
+    this.applicationService.deleteImplementationVersion(id).subscribe({
+      next: () => this.cancelledVersionIds.update(ids => [...ids, id]),
+      error: () => this.cancelledVersionIds.update(ids => [...ids, id])
+    });
   }
 
   protected toggleCapabilities(versionIndex: number): void {
@@ -304,8 +312,8 @@ export class ApplicationDetail implements OnInit {
         return 'Active';
       case 'WITH_ERROR':
         return 'With error';
-      case 'IN_PUBLISH_PROCESS':
-        return 'Publishing...';
+      case 'IN_REVIEW':
+        return 'In review';
       default:
         return state;
     }

@@ -57,7 +57,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     'ACTIVE',
     'REQUESTED',
     'WITH_ERROR',
-    'IN_PUBLISH_PROCESS'
+    'IN_REVIEW'
   ];
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
@@ -771,8 +771,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
         return 'Active';
       case 'WITH_ERROR':
         return 'With error';
-      case 'IN_PUBLISH_PROCESS':
-        return 'Publishing...';
+      case 'IN_REVIEW':
+        return 'In review';
       default:
         return state;
     }
