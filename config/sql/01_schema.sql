@@ -8,8 +8,7 @@ CREATE TYPE ApplicationLifecycleType AS ENUM (
 	'REQUESTED',
 	'IN_REVIEW',
 	'ACTIVE',
-	'WITH_ERROR',
-	'IN_REVIEW'
+	'WITH_ERROR'
 );
 
 CREATE TYPE ApplicationTagType AS ENUM (

@@ -271,7 +271,7 @@
         <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
           <div class="d-flex gap-4 pe-5">
             @for (app of featuredApplications(); track app.id) {
-              <div #featuredCard class="card position-relative app-card">
+              <div #featuredCard class="card position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
                 <!-- Status indicators at top right -->
                 <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                   @if (isPopular(app)) {
@@ -291,8 +291,9 @@
                     </span>
                   }
                   @if (app.lifecycleState === 'IN_REVIEW') {
-                    <span class="badge badge-publishing-card">
-                      Publishing...
+                    <span class="badge badge-publishing-card d-inline-flex align-items-center gap-1">
+                      <i class="fa-solid fa-magnifying-glass" style="font-size: 10px; width: 10px; height: 10px;"></i>
+                      In review
                     </span>
                   }
                 </div>
@@ -312,40 +313,26 @@
                 </div>
                 <div class="card-body d-flex flex-column">
                   <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
-                  <p class="card-text text-muted small card-description">{{ app.description }}</p>
+                  <p class="card-text text-muted small card-description" [class.card-description-single]="app.lifecycleState === 'IN_REVIEW'">{{ app.description }}</p>
                   <!-- Bottom section based on lifecycle state -->
                   @if (app.lifecycleState === 'REQUESTED') {
-                    <div class="d-flex flex-column gap-2 mt-auto">
-                      <button class="btn btn-sm btn-vote"
+                    <div class="mt-auto">
+                      <button class="btn btn-sm btn-vote w-100"
                               [disabled]="!canVote()"
                               [style.opacity]="canVote() ? '1' : '0.6'"
                               [style.cursor]="canVote() ? 'pointer' : 'not-allowed'"
-                              (click)="voteForRequest(app)">
+                              (click)="voteForRequest(app); $event.stopPropagation()">
                         <i class="fa-regular fa-thumbs-up me-1 icon-lg"></i>
                         <span class="fw-600">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                       </button>
-                      <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
-                        <span class="btn-continue-text">See details</span>
-                      </button>
                     </div>
                   } @else if (app.lifecycleState === 'WITH_ERROR') {
-                    <a class="text-decoration-none text-center mt-auto link-error" (click)="navigateToDetail(app.id)">
-                      <u>Error details</u>
-                    </a>
+                    <p class="text-center mt-auto mb-0 link-error">Error details</p>
                   } @else if (app.lifecycleState === 'IN_REVIEW') {
-                    <div class="d-flex flex-column gap-2 mt-auto">
-                      <div class="text-center">
-                        <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                        <i class="fa-solid fa-gears blink-animation publishing-icon"></i>
-                      </div>
-                      <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
-                        <span class="btn-continue-text">See details</span>
-                      </button>
+                    <div class="in-review-info-box mt-auto d-flex align-items-center gap-2">
+                      <i class="fa-solid fa-circle-exclamation flex-shrink-0" style="color: #6c757d;"></i>
+                      <span>This connector is currently awaiting manual review. If you'd like to expedite the process, contact us at <a href="mailto:support@evolveum.com" class="text-decoration-none" style="color: #6c757d;" (click)="$event.stopPropagation()"><strong>support&#64;evolveum.com</strong></a> — priority review is available upon request.</span>
                     </div>
-                  } @else {
-                    <button class="btn btn-sm mt-auto btn-continue" (click)="navigateToDetail(app.id)">
-                      <span class="btn-continue-text">See details</span>
-                    </button>
                   }
                 </div>
               </div>
@@ -395,7 +382,7 @@
       <div class="apps-grid mb-4 mx-auto content-width">
         @for (app of moreApplications(); track app.id) {
           <div>
-            <div class="card shadow-sm position-relative app-card">
+            <div class="card shadow-sm position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
@@ -415,8 +402,9 @@
                   </span>
                 }
                 @if (app.lifecycleState === 'IN_REVIEW') {
-                  <span class="badge badge-publishing-card">
-                    Publishing...
+                  <span class="badge badge-publishing-card d-inline-flex align-items-center gap-1">
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 10px; width: 10px; height: 10px;"></i>
+                    In review
                   </span>
                 }
               </div>
@@ -436,40 +424,26 @@
               </div>
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
-                <p class="card-text text-muted small card-description">{{ app.description }}</p>
+                <p class="card-text text-muted small card-description" [class.card-description-single]="app.lifecycleState === 'IN_REVIEW'">{{ app.description }}</p>
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
-                  <div class="d-flex flex-column gap-2 mt-auto">
-                    <button class="btn btn-sm btn-vote"
+                  <div class="mt-auto">
+                    <button class="btn btn-sm btn-vote w-100"
                             [disabled]="!currentUser()"
                             [style.opacity]="currentUser() ? '1' : '0.6'"
                             [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
-                            (click)="voteForRequest(app)">
+                            (click)="voteForRequest(app); $event.stopPropagation()">
                       <i class="fa-regular fa-thumbs-up me-1 icon-lg"></i>
                       <span class="fw-600">Vote</span> @if (app.voteCount !== undefined && app.voteCount !== null) { ({{ app.voteCount }}) }
                     </button>
-                    <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
-                      <span class="btn-continue-text">See details</span>
-                    </button>
                   </div>
                 } @else if (app.lifecycleState === 'WITH_ERROR') {
-                  <a class="text-decoration-none text-center mt-auto link-error" (click)="navigateToDetail(app.id)">
-                    <u>Error details</u>
-                  </a>
+                  <p class="text-center mt-auto mb-0 link-error">Error details</p>
                 } @else if (app.lifecycleState === 'IN_REVIEW') {
-                  <div class="d-flex flex-column gap-2 mt-auto">
-                    <div class="text-center">
-                      <p class="text-muted small mb-2">Importing... This may take a moment.</p>
-                      <i class="fa-solid fa-gears blink-animation publishing-icon"></i>
-                    </div>
-                    <button class="btn btn-sm btn-continue" (click)="navigateToDetail(app.id)">
-                      <span class="btn-continue-text">See details</span>
-                    </button>
+                  <div class="in-review-info-box mt-auto d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation flex-shrink-0" style="color: #6c757d;"></i>
+                    <span>This connector is currently awaiting manual review. If you'd like to expedite the process, contact us at <a href="mailto:support@evolveum.com" class="text-decoration-none" style="color: #6c757d;" (click)="$event.stopPropagation()"><strong>support&#64;evolveum.com</strong></a> — priority review is available upon request.</span>
                   </div>
-                } @else {
-                  <button class="btn btn-sm mt-auto btn-continue" (click)="navigateToDetail(app.id)">
-                    <span class="btn-continue-text">See details</span>
-                  </button>
                 }
               </div>
             </div>
