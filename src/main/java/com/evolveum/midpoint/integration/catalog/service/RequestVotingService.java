@@ -8,10 +8,12 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
+import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
+import com.evolveum.midpoint.integration.catalog.object.ObjectClassCapabilities;
 import com.evolveum.midpoint.integration.catalog.object.Request;
 import com.evolveum.midpoint.integration.catalog.object.Vote;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
+import com.evolveum.midpoint.integration.catalog.repository.ObjectClassCapabilitiesRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 
@@ -37,6 +39,7 @@ public class RequestVotingService {
     private final VoteRepository voteRepository;
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagService applicationTagService;
+    private final ObjectClassCapabilitiesRepository objectClassCapabilitiesRepository;
 
     // ==================== Request Methods ====================
 
@@ -65,66 +68,74 @@ public class RequestVotingService {
      * Creates a new Application and Request from the request form submission.
      * The Application will be created with lifecycle state REQUESTED.
      *
-     * @param dto RequestFormDto containing integrationApplicationName, deploymentType, description, capabilities, and systemVersion
+     * @param dto RequestFormDto containing form data including structured capabilities per object class
      * @return The created Request entity
      */
     @Transactional
     public Request createRequestFromForm(RequestFormDto dto) {
         String integrationApplicationName = dto.integrationApplicationName();
         String description = dto.description();
-        List<String> capabilities = dto.capabilities();
         String deploymentType = dto.deploymentType();
         String requester = dto.requester();
 
-        // Generate abbreviated name: lowercase, spaces replaced with underscores, remove special characters
         String abbreviatedName = integrationApplicationName.toLowerCase()
                 .replaceAll("[^a-z0-9_]", "_")
                 .replaceAll("_+", "_")
                 .replaceAll("^_|_$", "");
 
-        // Check if application with this name already exists
         Optional<Application> existingApp = applicationRepository.findByName(abbreviatedName);
         if (existingApp.isPresent()) {
-            // Append timestamp to make it unique
             abbreviatedName = abbreviatedName + "_" + System.currentTimeMillis();
         }
 
         try {
-            // Create the application
             Application application = new Application();
             application.setName(abbreviatedName);
             application.setDisplayName(integrationApplicationName);
             application.setDescription(description != null ? description : "");
             application.setLifecycleState(Application.ApplicationLifecycleType.REQUESTED);
 
-            // Save the application (UUID is auto-generated, timestamps are auto-set)
             application = applicationRepository.save(application);
 
-            // Save deployment type tags to application_application_tag
             if (deploymentType != null && !deploymentType.isEmpty()) {
                 applicationTagService.saveDeploymentTags(application, deploymentType);
             }
 
-            // Check if a request already exists for this application
             if (requestRepository.existsByApplicationId(application.getId())) {
                 throw new IllegalStateException("A request already exists for application: " + application.getDisplayName());
             }
 
-            // Convert capabilities list to enum array
-            ImplementationVersion.CapabilitiesType[] capabilitiesArray = null;
-            if (capabilities != null && !capabilities.isEmpty()) {
-                capabilitiesArray = capabilities.stream()
-                        .map(cap -> ImplementationVersion.CapabilitiesType.valueOf(cap))
-                        .toArray(ImplementationVersion.CapabilitiesType[]::new);
-            }
-
-            // Create the Request entity
             Request request = new Request();
             request.setApplication(application);
-            request.setCapabilities(capabilitiesArray);
             request.setRequester(requester);
+            request.setMail(dto.contactEmail());
+            request.setCollab(dto.openToCollaborate() != null && dto.openToCollaborate());
+            request.setSystemVersion(dto.systemVersion());
 
-            return requestRepository.save(request);
+            request = requestRepository.save(request);
+
+            if (dto.capabilities() != null) {
+                for (RequestFormDto.ObjectClassCapabilityEntry entry : dto.capabilities()) {
+                    if (entry.objectName() == null || entry.objectName().isBlank()) {
+                        continue;
+                    }
+                    List<String> caps = entry.capabilities();
+                    if (caps == null || caps.isEmpty()) {
+                        continue;
+                    }
+                    CapabilitiesType[] capArray = caps.stream()
+                            .map(CapabilitiesType::valueOf)
+                            .toArray(CapabilitiesType[]::new);
+
+                    ObjectClassCapabilities occ = new ObjectClassCapabilities();
+                    occ.setRequest(request);
+                    occ.setObjectName(entry.objectName());
+                    occ.setCapabilities(capArray);
+                    objectClassCapabilitiesRepository.save(occ);
+                }
+            }
+
+            return request;
         } catch (IllegalStateException e) {
             log.warn("Duplicate request attempt: {}", e.getMessage());
             throw e;
@@ -156,7 +167,6 @@ public class RequestVotingService {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
 
-        // Check if user already voted
         if (voteRepository.existsByRequestIdAndVoter(requestId, voter)) {
             throw new IllegalArgumentException("User has already voted for this request");
         }

@@ -17,8 +17,15 @@ import java.util.List;
 public record RequestFormDto(
         @NotBlank String integrationApplicationName,
         String deploymentType,
-        List<String> capabilities,
         @NotBlank String description,
         String systemVersion,
-        String requester
-) {}
+        String contactEmail,
+        Boolean openToCollaborate,
+        String requester,
+        List<ObjectClassCapabilityEntry> capabilities
+) {
+    public record ObjectClassCapabilityEntry(
+            String objectName,
+            List<String> capabilities
+    ) {}
+}

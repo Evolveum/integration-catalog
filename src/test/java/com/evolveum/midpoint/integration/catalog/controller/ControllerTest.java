@@ -66,6 +66,9 @@ class ControllerTest {
     private com.evolveum.midpoint.integration.catalog.repository.VoteRepository voteRepository;
 
     @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.service.LogoStorageService logoStorageService;
+
+    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
 
     private UUID testAppId;
@@ -137,10 +140,6 @@ class ControllerTest {
         testRequest = new Request();
         testRequest.setId(1L);
         testRequest.setApplication(testApplication);
-        testRequest.setCapabilities(new ImplementationVersion.CapabilitiesType[]{
-                ImplementationVersion.CapabilitiesType.GET,
-                ImplementationVersion.CapabilitiesType.SEARCH
-        });
         testRequest.setRequester("test@example.com");
 
         // Setup test Vote
@@ -431,11 +430,13 @@ class ControllerTest {
     void createRequestShouldReturnCreatedWhenValid() throws Exception {
         RequestFormDto dto = new RequestFormDto(
                 "Slack",
-                "https://slack.com",
-                Arrays.asList("Read_Access", "Paged_Search"),
+                "cloud-based",
                 "Slack integration for team communication",
                 "1.0",
-                "Test User"
+                "test@example.com",
+                false,
+                "Test User",
+                List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("GET", "SEARCH")))
         );
 
         when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
@@ -455,8 +456,10 @@ class ControllerTest {
         RequestFormDto dto = new RequestFormDto(
                 "", // Empty name - invalid
                 null,
-                null,
                 "", // Empty description - invalid
+                null,
+                null,
+                null,
                 null,
                 null
         );

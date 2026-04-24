@@ -17,6 +17,11 @@ export interface CreateRequest {
   requester: string;
 }
 
+export interface ObjectClassCapabilityEntry {
+  objectName: string;
+  capabilities: string[];
+}
+
 /**
  * Request payload for submitting an integration request
  */
@@ -24,7 +29,7 @@ export interface IntegrationRequest {
   integrationApplicationName: string;
   integrationMethod: string;
   deploymentType: string;
-  capabilities: string[];
+  capabilities: ObjectClassCapabilityEntry[];
   description: string;
   systemVersion: string;
   contactEmail: string;
