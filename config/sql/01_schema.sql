@@ -276,7 +276,6 @@ ALTER TABLE bundle_version_object_class_capability ALTER COLUMN id ADD GENERATED
 CREATE TABLE request (
     id integer NOT NULL,
     application_id uuid NOT NULL,
-    capabilities "CapabilityType"[] DEFAULT '{}'::"CapabilityType"[] NOT NULL,
     requester character varying(255),
     mail character varying(50),
     collab boolean NOT NULL,
@@ -454,7 +453,6 @@ CREATE INDEX idx_req_app ON request USING btree (application_id);
 
 CREATE INDEX IF NOT EXISTS ix_implver_capabilities_gin ON implementation_version USING gin (capabilities);
 
-CREATE INDEX IF NOT EXISTS ix_request_capabilities_gin ON request USING gin (capabilities);
 
 CREATE INDEX idx_impl_bundle ON implementation USING btree (connector_bundle_id);
 

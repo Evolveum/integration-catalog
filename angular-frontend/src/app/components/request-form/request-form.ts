@@ -98,11 +98,24 @@ export class RequestForm {
     this.isSubmitting.set(true);
     this.submitError.set(null);
 
+    const capabilities: { objectName: string; capabilities: string[] }[] = [];
+    if (this.formData.capabilitiesScope === 'global') {
+      if (this.selectedCapabilities().length > 0) {
+        capabilities.push({ objectName: 'global', capabilities: this.selectedCapabilities() });
+      }
+    } else {
+      for (const entry of this.specificObjectClassEntries()) {
+        if (entry.objectClass && entry.capabilities.length > 0) {
+          capabilities.push({ objectName: entry.objectClass, capabilities: entry.capabilities });
+        }
+      }
+    }
+
     const request = {
       integrationApplicationName: this.formData.integrationApplicationName,
       integrationMethod: this.formData.integrationMethod,
       deploymentType: this.formData.deploymentType,
-      capabilities: this.selectedCapabilities(),
+      capabilities,
       description: this.formData.description,
       systemVersion: this.formData.systemVersion,
       contactEmail: this.formData.contactEmail,

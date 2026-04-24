@@ -202,7 +202,12 @@ public class ApplicationMapper {
             Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
             if (requestOpt.isPresent()) {
                 Request request = requestOpt.get();
-                capabilities = convertCapabilitiesToList(request.getCapabilities());
+                capabilities = request.getObjectClassCapabilities().stream()
+                        .filter(occ -> occ.getCapabilities() != null)
+                        .flatMap(occ -> Arrays.stream(occ.getCapabilities()))
+                        .map(Enum::name)
+                        .distinct()
+                        .collect(java.util.stream.Collectors.toList());
                 requester = request.getRequester();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(requestId);
@@ -328,12 +333,12 @@ public class ApplicationMapper {
                 Request request = requestOpt.get();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(request.getId());
-                // Get capabilities from request
-                if (request.getCapabilities() != null) {
-                    capabilities.addAll(Arrays.stream(request.getCapabilities())
-                            .map(Enum::name)
-                            .toList());
-                }
+                // Get capabilities from request object class entries
+                request.getObjectClassCapabilities().stream()
+                        .filter(occ -> occ.getCapabilities() != null)
+                        .flatMap(occ -> Arrays.stream(occ.getCapabilities()))
+                        .map(Enum::name)
+                        .forEach(capabilities::add);
             }
         }
 
