@@ -19,6 +19,7 @@ import { LoginModal } from '../login-modal/login-modal';
 })
 export class PageHeader {
   @Input() breadcrumb: boolean = false;
+  @Input() hideBorder: boolean = false;
 
   protected readonly authService = inject(AuthService);
 

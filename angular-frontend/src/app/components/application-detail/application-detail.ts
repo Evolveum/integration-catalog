@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
@@ -18,7 +18,7 @@ import { PageHeader } from '../page-header/page-header';
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
 })
-export class ApplicationDetail implements OnInit {
+export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly application = signal<ApplicationDetailModel | null>(null);
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
@@ -35,21 +35,33 @@ export class ApplicationDetail implements OnInit {
   });
   protected readonly openDropdown = signal<string | null>(null);
   protected readonly dropdownPosition = signal<{ top: number; left: number } | null>(null);
+  private activeChipElement: HTMLElement | null = null;
+  private scrollListener: (() => void) | null = null;
   protected readonly selectedFilterSection = signal<string>('capabilities');
   protected readonly applicationDownloadsCount = signal<number>(0);
   protected readonly logoLoadError = signal<boolean>(false);
   protected readonly versionSearchQuery = signal<string>('');
-  protected readonly selectedIntegrationMethod = signal<string | null>(null);
-  protected readonly isIntegrationNoteVisible = signal<boolean>(true);
-  protected readonly isContinuePressed = signal<boolean>(false);
+  protected readonly isContinuePressed = signal<boolean>(true);
   protected readonly allVersions = signal<any[]>([]);
   protected readonly cancelledVersionIds = signal<string[]>([]);
+  protected readonly currentPage = signal<number>(0);
+  protected readonly itemsPerPage = 1;
+  protected readonly totalPages = computed(() => Math.ceil(this.allVersions().length / this.itemsPerPage));
+  protected readonly pagedVersions = computed(() => {
+    const start = this.currentPage() * this.itemsPerPage;
+    return this.allVersions().slice(start, start + this.itemsPerPage);
+  });
+
+  protected readonly methodTypeFilter = signal<string>('all');
+  protected readonly methodSearchQuery = signal<string>('');
 
   protected readonly integrationMethods = [
-    { id: 'scim', name: 'SCIM', description: 'Standardized provisioning' },
-    { id: 'csv', name: 'CSV import', description: 'Batch CSV file import' },
-    { id: 'ldap', name: 'openLDAP', description: 'Existing LDAP directory' },
-    { id: 'rest', name: 'REST API', description: 'Custom REST connector' }
+    { id: 'scim',        name: 'SCIM',         description: 'Standardized provisioning' },
+    { id: 'rest-api',    name: 'REST API',      description: 'Custom REST-based connector' },
+    { id: 'openldap',    name: 'open LDAP',     description: 'Integration with an existing LDAP' },
+    { id: 'manual-itsm', name: 'Manual ITSM',   description: 'Mighty manual' },
+    { id: 'database',    name: 'Database',      description: 'The one and only' },
+    { id: 'csv',         name: 'CSV',           description: 'What ever this is' },
   ];
 
   constructor(
@@ -114,28 +126,24 @@ export class ApplicationDetail implements OnInit {
     this.activeTab.set(tab);
   }
 
-  protected selectIntegrationMethod(methodId: string): void {
-    this.selectedIntegrationMethod.set(methodId);
-    // Reset continue state when method changes
-    this.isContinuePressed.set(false);
+  protected onMethodTypeChange(event: Event): void {
+    this.methodTypeFilter.set((event.target as HTMLSelectElement).value);
   }
 
-  protected onContinueClick(): void {
-    this.isContinuePressed.set(true);
+  protected onMethodSearchChange(event: Event): void {
+    this.methodSearchQuery.set((event.target as HTMLInputElement).value);
   }
 
-  protected onChangeMethodClick(): void {
-    this.isContinuePressed.set(false);
+  protected resetMethodFilter(): void {
+    this.methodTypeFilter.set('all');
+    this.methodSearchQuery.set('');
   }
 
-  protected getSelectedMethodName(): string {
-    const selectedId = this.selectedIntegrationMethod();
-    const method = this.integrationMethods.find(m => m.id === selectedId);
-    return method ? method.name : '';
-  }
-
-  protected hideIntegrationNote(): void {
-    this.isIntegrationNoteVisible.set(false);
+  protected navigateToPublish(): void {
+    const appId = this.application()?.id;
+    if (appId) {
+      this.router.navigate(['/publish'], { queryParams: { appId } });
+    }
   }
 
   protected toggleFilterModal(): void {
@@ -148,17 +156,15 @@ export class ApplicationDetail implements OnInit {
 
   protected toggleDropdown(filterType: string, event: MouseEvent): void {
     if (this.openDropdown() === filterType) {
-      this.openDropdown.set(null);
-      this.dropdownPosition.set(null);
+      this.closeDropdown();
     } else {
       const target = event.currentTarget as HTMLElement;
-      const rect = target.closest('.filter-chip')?.getBoundingClientRect();
+      const chip = target.closest('.filter-chip') as HTMLElement | null;
 
-      if (rect) {
-        this.dropdownPosition.set({
-          top: rect.bottom + 8,
-          left: rect.left
-        });
+      if (chip) {
+        this.activeChipElement = chip;
+        this.updateDropdownPosition();
+        this.attachScrollListener();
       }
       this.openDropdown.set(filterType);
     }
@@ -167,6 +173,52 @@ export class ApplicationDetail implements OnInit {
   protected closeDropdown(): void {
     this.openDropdown.set(null);
     this.dropdownPosition.set(null);
+    this.activeChipElement = null;
+    this.detachScrollListener();
+  }
+
+  private updateDropdownPosition(): void {
+    if (!this.activeChipElement) return;
+    const rect = this.activeChipElement.getBoundingClientRect();
+    const header = document.querySelector('app-page-header');
+    const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+    if (rect.top < headerBottom) {
+      this.closeDropdown();
+      return;
+    }
+    this.dropdownPosition.set({
+      top: rect.bottom + 8,
+      left: rect.left
+    });
+  }
+
+  private attachScrollListener(): void {
+    this.detachScrollListener();
+    this.scrollListener = () => this.updateDropdownPosition();
+    window.addEventListener('scroll', this.scrollListener, true);
+  }
+
+  private detachScrollListener(): void {
+    if (this.scrollListener) {
+      window.removeEventListener('scroll', this.scrollListener, true);
+      this.scrollListener = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.detachScrollListener();
+  }
+
+  protected previousPage(): void {
+    if (this.currentPage() > 0) this.currentPage.update(p => p - 1);
+  }
+
+  protected nextPage(): void {
+    if (this.currentPage() < this.totalPages() - 1) this.currentPage.update(p => p + 1);
+  }
+
+  protected goToPage(page: number): void {
+    this.currentPage.set(page);
   }
 
   protected resetFilters(): void {
@@ -292,6 +344,7 @@ export class ApplicationDetail implements OnInit {
   }
 
   private applyFilters(): void {
+    this.currentPage.set(0);
     const app = this.application();
     if (app && app.implementationVersions) {
       this.groupVersionsByLifecycleState(app.implementationVersions);
@@ -397,6 +450,18 @@ export class ApplicationDetail implements OnInit {
    */
   protected shouldShowLetterAvatar(): boolean {
     return !this.hasLogo() || this.logoLoadError();
+  }
+
+  protected getAvatarGradient(name: string): string {
+    const gradients = [
+      'linear-gradient(135deg, #0078d4 0%, #50e6ff 100%)',
+      'linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)',
+      'linear-gradient(135deg, #0d9488 0%, #5eead4 100%)',
+      'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)',
+      'linear-gradient(135deg, #be185d 0%, #f472b6 100%)',
+    ];
+    const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % gradients.length;
+    return gradients[index];
   }
 
   private loadApplication(id: string): void {

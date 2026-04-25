@@ -5,7 +5,7 @@
  -->
 
 <div class="container-fluid p-0 position-relative page-bg">
-  <app-page-header></app-page-header>
+  <app-page-header [hideBorder]="true"></app-page-header>
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
     <div class="position-fixed top-0 end-0 p-3 toast-container">
@@ -306,7 +306,7 @@
                            class="logo-image" />
                     </div>
                   } @else {
-                    <div class="letter-avatar-sm d-flex align-items-center justify-content-center">
+                    <div class="letter-avatar-sm d-flex align-items-center justify-content-center" [style.background]="getAvatarGradient(app.displayName)">
                       {{ app.displayName.charAt(0) }}
                     </div>
                   }
@@ -350,30 +350,28 @@
     }
 
     @if (!loading() && !error()) {
-      <div class="mb-4 mx-auto content-width">
-        <!-- First row: More apps heading and See All link (hidden when filters are active) -->
+      <div class="mx-auto content-width">
         @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0 || filterState().maintainers.length > 0)) {
-          <div class="position-relative mb-5">
-            <div class="text-center">
-              <h2 class="h3 mb-0 section-title">More apps</h2>
-            </div>
+          <!-- Row 1: More apps heading -->
+          <div class="text-center mb-3">
+            <h2 class="h3 mb-0 section-title">More apps</h2>
           </div>
 
-          <!-- Second row: Showing count (only when no filters) -->
-          <div class="position-relative mb-4">
-            <div class="text-center">
-              <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations.</p>
-            </div>
-            <div class="position-absolute top-0 end-0 d-flex align-items-baseline gap-2">
-              <label class="mb-0 text-muted text-nowrap description-text">Sort by</label>
-              <div class="sort-select-wrapper position-relative d-inline-block">
-                <select class="form-select form-select-sm sort-select" [value]="sortBy()" (change)="onSortChange($event)">
-                  <option value="alphabetical">&nbsp;Alphabetical</option>
-                  <option value="popularity">&nbsp;Popularity</option>
-                  <option value="activity">&nbsp;Activity</option>
-                </select>
-                <i class="fa-solid fa-sort-down sort-select-icon"></i>
-              </div>
+          <!-- Row 2: Showing count -->
+          <div class="text-center mb-3">
+            <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations.</p>
+          </div>
+
+          <!-- Row 3: Sort by -->
+          <div class="d-flex justify-content-end align-items-center gap-2" style="margin-bottom: 36px;">
+            <label class="mb-0 text-muted text-nowrap description-text">Sort by</label>
+            <div class="sort-select-wrapper position-relative d-inline-block">
+              <select class="form-select form-select-sm sort-select" [value]="sortBy()" (change)="onSortChange($event)">
+                <option value="alphabetical">&nbsp;Alphabetical</option>
+                <option value="popularity">&nbsp;Popularity</option>
+                <option value="activity">&nbsp;Activity</option>
+              </select>
+              <i class="fa-solid fa-sort-down sort-select-icon"></i>
             </div>
           </div>
         }
@@ -417,7 +415,7 @@
                          class="logo-image" />
                   </div>
                 } @else {
-                  <div class="letter-avatar-sm d-flex align-items-center justify-content-center">
+                  <div class="letter-avatar-sm d-flex align-items-center justify-content-center" [style.background]="getAvatarGradient(app.displayName)">
                     {{ app.displayName.charAt(0) }}
                   </div>
                 }

@@ -3,7 +3,7 @@ import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationFormData, UploadFileItem } from '../../models/request.model';
@@ -319,7 +319,8 @@ export class UploadFormMain implements OnInit, OnDestroy {
     private countryService: CountryService,
     private applicationService: ApplicationService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     effect(() => {
       if (this.currentStep() === 3) {
@@ -461,7 +462,17 @@ export class UploadFormMain implements OnInit, OnDestroy {
     }
 
     this.applicationService.getAll().subscribe({
-      next: (data) => this.applications.set(data)
+      next: (data) => {
+        this.applications.set(data);
+        const appId = this.route.snapshot.queryParamMap.get('appId');
+        if (appId) {
+          const app = data.find(a => a.id === appId);
+          if (app) {
+            this.selectApplication(app);
+            this.nextStep();
+          }
+        }
+      }
     });
 
     // Initialise maintainer options for step 5 combobox

@@ -321,7 +321,6 @@
 .letter-avatar-sm {
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
   border-radius: 4px;
   color: white;
   font-size: 28px;
@@ -377,6 +376,8 @@
 }
 
 .btn-vote {
+  position: relative;
+  z-index: 1;
   background-color: #FFFFFF;
   border: 1px solid #ced4da;
   color: #212529;
@@ -527,6 +528,7 @@
 .filter-dropdown {
   background: white;
   border: 1px solid #dee2e6;
+  border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   min-width: 200px;
@@ -545,8 +547,8 @@
 }
 
 .checkbox-checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: $color-dark-blue;
+  border-color: $color-dark-blue;
 }
 
 .checkbox-unchecked {
@@ -555,7 +557,7 @@
 }
 
 .link-clear-filter {
-  color: #0d6efd;
+  color: $color-dark-blue;
   font-size: 0.875rem;
   text-decoration: none;
 }

@@ -54,7 +54,6 @@
 .letter-avatar {
   width: 70px;
   height: 70px;
-  background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
   border-radius: 4px;
   color: white;
   font-size: 28px;
@@ -147,10 +146,9 @@
    BADGES
    ======================================== */
 .badge-popular {
-  background-color: #ffc107;
-  color: #000;
-  font-size: 0.75rem;
-  font-weight: 600;
+  background-color: #ffdd8c;
+  color: #7A510B;
+  font-size: 0.7rem;
   vertical-align: middle;
   padding: 0.35rem 0.65rem;
 }
@@ -205,7 +203,7 @@
 }
 
 .badge-counter {
-  background-color: #0d6efd;
+  background-color: $color-dark-blue;
   color: white;
   width: 20px;
   height: 20px;
@@ -215,12 +213,6 @@
 /* ========================================
    BUTTONS
    ======================================== */
-.btn-back {
-  border: none;
-  padding: 0;
-  background: none;
-  color: #2c5282;
-}
 
 .btn-tab {
   border: none;
@@ -274,6 +266,10 @@
   color: #6c757d;
 }
 
+.filter-chip .btn-icon .fa-chevron-down {
+  color: #000000;
+}
+
 .btn-retry {
   background: none;
   border: none;
@@ -320,8 +316,9 @@
 .filter-chip {
   padding: 0.5rem 0.75rem;
   background-color: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid $color-dark-blue;
   font-size: 0.875rem;
+  font-weight: 600;
 }
 
 /* ========================================
@@ -335,6 +332,7 @@
 .modal-content-box {
   width: 90%;
   max-width: 800px;
+  height: 500px;
   max-height: 80vh;
   overflow: hidden;
   z-index: 1051;
@@ -406,6 +404,7 @@
 .filter-dropdown {
   background: white;
   border: 1px solid #dee2e6;
+  border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   min-width: 200px;
@@ -424,13 +423,41 @@
 }
 
 .checkbox-checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: $color-dark-blue;
+  border-color: $color-dark-blue;
 }
 
 .checkbox-unchecked {
   background-color: transparent;
   border-color: #dee2e6;
+}
+
+.link-clear-filter {
+  color: $color-dark-blue;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+/* ========================================
+   PAGINATION
+   ======================================== */
+.page-link-default {
+  background-color: white;
+  color: black;
+  font-weight: 600;
+}
+
+.page-link-active {
+  background-color: #206F9D;
+  color: white;
+  font-weight: 600;
+}
+
+.pagination .page-link {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ========================================
@@ -548,124 +575,154 @@
 /* ========================================
    INTEGRATION METHOD CARDS
    ======================================== */
-.integration-methods-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.integration-method-card {
-  border: 2px solid $color-border-light;
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
+.method-type-select {
+  width: auto;
+  min-width: 90px;
+  border-radius: 50px;
+  border-color: $color-dark-blue;
+  height: 38px;
+  padding-left: 1rem;
+  padding-right: 2rem;
+  appearance: none;
+  -webkit-appearance: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: $color-white;
-}
-
-.integration-method-card:hover {
-  border-color: $midpoint-special-color;
-}
-
-.integration-method-card.selected {
-  border-color: $midpoint-special-color;
-  background-color: $color-bg-light;
-}
-
-.integration-method-radio {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: $midpoint-special-color;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.integration-method-title {
   font-weight: 600;
-  font-size: 0.9375rem;
-  color: $color-text-dark;
-  margin-bottom: 0.25rem;
+  color: #000000;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%23212529' d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
 }
 
-.integration-method-description {
+.btn-method-filter {
+  background-color: white;
+  border: 1px solid #ced4da;
+  border-radius: 50px;
+  color: #212529;
+  padding: 0.4rem 1rem;
+  white-space: nowrap;
   font-size: 0.875rem;
-  color: $color-gray-secondary;
 }
 
-.integration-note {
-  padding: 0.75rem 1rem;
-  background-color: $color-bg-light;
-  border: 1px solid $color-bg-muted;
-  border-radius: 4px;
-}
-
-.note-icon {
-  color: $color-gray-secondary;
-}
-
-.btn-close-note {
+.btn-method-reset {
   background: none;
   border: none;
-  padding: 0;
-  cursor: pointer;
-  color: $color-border-input;
-  width: 16px;
-  height: 16px;
-  font-size: 10px;
-}
-
-.btn-close-note:hover {
   color: $color-gray-secondary;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 0;
 }
 
-.btn-continue {
-  background-color: $midpoint-special-color;
-  color: $color-white;
-  border: none;
+.method-divider {
+  border: 0;
+  border-top: 1px solid #8d8d8d;
+  margin: 0 0 1.5rem 0;
+}
+
+.method-empty-state {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.btn-create-method {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  color: #212529;
   padding: 0.5rem 1.5rem;
-  font-weight: 500;
   border-radius: 4px;
+  font-size: 0.875rem;
 }
 
-.btn-continue:hover:not(:disabled) {
-  background-color: $color-dark-blue;
-  color: $color-white;
-}
-
-.btn-continue:disabled {
-  background-color: $color-light-blue;
-  color: $color-white;
-  cursor: not-allowed;
-  opacity: 0.65;
+.btn-create-method:hover {
+  background-color: #f8f9fa;
+  border-color: #adb5bd;
+  color: #212529;
 }
 
 /* ========================================
-   COLLAPSED METHOD VIEW
+   INTEGRATION METHOD CARDS
    ======================================== */
-.selected-method-container {
-  padding: 0.5rem 1rem;
-  background-color: $color-white;
-  border: 1px solid $color-border-light;
-}
-
-.selected-method-name {
+.im-card {
   font-size: 0.875rem;
-  font-weight: 500;
-  color: $color-text-dark;
 }
 
-.btn-change-method {
+.im-badge-awaiting {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.im-method-tag {
+  font-size: 0.8rem;
+  color: #495057;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+}
+
+.im-method-sep {
+  color: #adb5bd;
+  font-size: 0.8rem;
+}
+
+.btn-cancel-request {
   background: none;
   border: none;
   padding: 0;
   font-size: 0.875rem;
-  font-weight: 500;
+  color: #dc3545;
+  cursor: pointer;
+}
+
+.btn-cancel-request:hover {
+  color: #b02a37;
+}
+
+.btn-upgrade-version {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
   color: $midpoint-special-color;
   cursor: pointer;
 }
 
-.btn-change-method:hover {
+.btn-upgrade-version:hover {
   color: $color-dark-blue;
+}
+
+.btn-im-edit {
+  background-color: white;
+  border: 1px solid $midpoint-special-color;
+  color: $midpoint-special-color;
+  font-size: 0.8rem;
+}
+
+.btn-im-edit:hover {
+  background-color: #f8f9fa;
+  color: $midpoint-special-color;
+}
+
+.btn-im-download {
+  background-color: $midpoint-special-color;
+  border: 1px solid $midpoint-special-color;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.btn-im-download:hover:not(:disabled) {
+  background-color: $color-dark-blue;
+  border-color: $color-dark-blue;
+  color: white;
+}
+
+.btn-im-download:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ========================================
