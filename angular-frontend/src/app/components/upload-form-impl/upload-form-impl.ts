@@ -4,169 +4,435 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, computed, Output, EventEmitter, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, signal, computed, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 
+export interface ReviewSummary {
+  applicationId: string | null;
+  applicationName: string;
+  applicationLogoUrl: string | null;
+  applicationLogoPreviewUrl: string | null;
+  methodTitles: string[];
+  methodName: string;
+  methodVersion: string;
+  methodDescription: string;
+  applicationDescription: string;
+  origins: string[];
+  category: string;
+  deploymentType: string;
+  logoFile: File | null;
+}
+
+export interface Step5FormData {
+  connectorName: string;
+  connectorVersion: string;
+  connectorMaintainer: string;
+  connectorLicense: string;
+  connectorDescription: string;
+  capabilitiesScope: 'global' | 'specific';
+  globalCapabilities: string[];
+  objectClassEntries: { objectClass: string; capabilities: string[] }[];
+  devProjectHomepage: string;
+  devSupportPortal: string;
+  devBuildTool: 'maven' | 'gradle' | '';
+  devGitCloneUrl: string;
+  devCommitTag: string;
+  devProjectFolderPath: string;
+  devClassName: string;
+  devRepoOwnership: 'evolveum' | 'own';
+  devGithubApiKey: string;
+}
+
 @Component({
   selector: 'app-upload-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './upload-form-impl.html',
   styleUrls: ['./upload-form-impl.scss']
 })
-export class UploadFormImpl implements OnChanges {
-  // Input from parent
-  @Input() connectorType = signal<string>('');
-  @Input() applicationId: string | null = null;
+export class UploadFormImpl implements OnInit, OnChanges {
+  @Input() connectorType = '';
+  @Input() selectedCatalogConnector: ImplementationListItem | null = null;
+  @Input() reviewSummary: ReviewSummary | null = null;
 
-  // Outputs to parent
   @Output() formValid = new EventEmitter<boolean>();
-  @Output() formDataChanged = new EventEmitter<any>();
+  @Output() formDataChanged = new EventEmitter<Step5FormData>();
+  @Output() goToParentStep = new EventEmitter<number>();
+  @Output() internalStepChange = new EventEmitter<number>();
 
-  // Yes / No toggle
-  protected readonly isNewVersion = signal<boolean | null>(true);
+  // Internal step: 5 = Add connector, 6 = Review
+  protected readonly internalStep = signal<5 | 6>(5);
 
-  // Selected existing implementation (Yes case)
-  protected readonly selectedImplementation = signal<ImplementationListItem | null>(null);
+  // Accordion state
+  protected readonly basicInfoExpanded = signal<boolean>(false);
+  protected readonly devBuildExpanded = signal<boolean>(false);
 
-  // Show all implementations or just first 4
-  protected readonly showAllImplementations = signal<boolean>(false);
-
-  // Form fields
-  protected readonly displayName = signal<string>('');
-  protected readonly maintainer = signal<string>('');
-  protected readonly licenseType = signal<string>('');
-  protected readonly implementationDescription = signal<string>('');
-  protected readonly browseLink = signal<string>('');
-  protected readonly ticketingLink = signal<string>('');
-  protected readonly buildFramework = signal<string>('Maven');
-  protected readonly checkoutLink = signal<string>('');
-  protected readonly pathToProjectDirectory = signal<string>('');
-  protected readonly className = signal<string>('');
-
-  // File upload for evolveum-hosted low-code connectors
-  protected readonly uploadedFile = signal<{name: string, data: string} | null>(null);
-  protected readonly uploadedFileName = signal<string>('');
-
-  // Available options for dropdowns (from backend enum LicenseType)
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
+  // Basic info
+  protected readonly connectorName = signal<string>('');
+  protected readonly connectorVersion = signal<string>('1.0');
+  protected readonly connectorMaintainer = signal<string>('');
   protected readonly maintainerOptions = signal<string[]>([]);
   protected readonly maintainerSearch = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
     return options.filter(o => o.toLowerCase().includes(search));
   });
-  protected isSuperuser = false;
-  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly connectorLicense = signal<string>('');
+  protected readonly isLicenseDropdownOpen = signal<boolean>(false);
+  protected readonly connectorDescription = signal<string>('');
+  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
 
-  // Existing implementations loaded from backend
-  protected readonly existingImplementations = signal<ImplementationListItem[]>([]);
-  protected readonly isLoadingImplementations = signal<boolean>(false);
+  // Capabilities
+  protected readonly capabilitiesScope = signal<'global' | 'specific'>('global');
+  protected readonly globalCapabilities = signal<string[]>([]);
+  protected readonly isGlobalCapDropdownOpen = signal<boolean>(false);
+  protected readonly objectClassEntries = signal<{ objectClass: string; capabilities: string[]; isCapabilitiesDropdownOpen: boolean }[]>(
+    [{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]
+  );
+  protected readonly availableCapabilities = signal<string[]>([]);
+  protected readonly isLoadingCapabilities = signal<boolean>(false);
 
-  // Show up to 4 implementations, or all if expanded
-  protected readonly displayedImplementations = computed(() => {
-    const all = this.existingImplementations();
-    return this.showAllImplementations() ? all : all.slice(0, 4);
-  });
+  // Dev & Build
+  protected readonly devProjectHomepage = signal<string>('');
+  protected readonly devSupportPortal = signal<string>('');
+  protected readonly devBuildTool = signal<'maven' | 'gradle' | ''>('');
+  protected readonly devGitCloneUrl = signal<string>('');
+  protected readonly devCommitTag = signal<string>('');
+  protected readonly devProjectFolderPath = signal<string>('');
+  protected readonly devClassName = signal<string>('');
+  protected readonly devRepoOwnership = signal<'evolveum' | 'own'>('evolveum');
+  protected readonly devGithubApiKey = signal<string>('');
+  protected readonly showGithubApiKey = signal<boolean>(false);
+
+  // Publish state
+  protected readonly isPublishing = signal<boolean>(false);
+  protected readonly publishComplete = signal<boolean>(false);
+  protected readonly publishCreatedOn = signal<Date | null>(null);
+  protected readonly publishedVersionId = signal<string | null>(null);
+  protected readonly publishedApplicationId = signal<string | null>(null);
+  protected readonly emailCopied = signal<boolean>(false);
+  protected readonly showVersionExistsWarning = signal<boolean>(false);
+  protected readonly existingVersion = signal<string>('');
+
+  protected get isExistingConnector(): boolean {
+    return !!this.selectedCatalogConnector;
+  }
+
+  protected get isStep5Valid(): boolean {
+    if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
+    if (this.isExistingConnector) return true;
+    if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
+    if (this.connectorType === 'java-based') {
+      if (!this.devBuildTool() || !this.devClassName().trim()) return false;
+    }
+    return true;
+  }
+
+  protected get connectorTypeLabel(): string {
+    if (this.isExistingConnector) return this.selectedCatalogConnector?.displayName ?? 'Existing connector';
+    const buildSuffix = this.devBuildTool() === 'maven' ? ' (Maven)' : this.devBuildTool() === 'gradle' ? ' (Gradle)' : '';
+    const labels: Record<string, string> = {
+      'java-based': `Java Automation${buildSuffix}`,
+      'own-repo': 'Low-code — own repository',
+      'evolveum-hosted': 'Low-code — Evolveum-hosted'
+    };
+    return labels[this.connectorType] ?? this.connectorType;
+  }
 
   constructor(
     private applicationService: ApplicationService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {
     const currentUser = this.authService.currentUser();
-    if (!currentUser) return;
-
     const role = this.authService.currentRole();
     const orgName = this.authService.currentOrganizationName();
 
     if (role === UserRole.Superuser) {
-      this.isSuperuser = true;
-      this.maintainer.set(currentUser);
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set([currentUser])
+        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
       });
     } else if (role === UserRole.OrganizationContributor && orgName) {
       this.maintainerOptions.set([orgName]);
-      this.maintainer.set(orgName);
-    } else {
+    } else if (currentUser) {
       this.maintainerOptions.set([currentUser]);
-      this.maintainer.set(currentUser);
+    }
+  }
+
+  ngOnInit(): void {
+    if (this.availableCapabilities().length === 0) this.loadCapabilities();
+    if (!this.connectorMaintainer()) {
+      this.connectorMaintainer.set(this.authService.currentUser() ?? '');
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['applicationId'] && this.applicationId) {
-      this.loadImplementations();
+    if (changes['connectorType'] && !changes['connectorType'].firstChange) {
+      this.resetFields();
+      this.internalStep.set(5);
+    }
+    if (changes['selectedCatalogConnector']) {
+      const connector = changes['selectedCatalogConnector'].currentValue as ImplementationListItem | null;
+      if (connector) {
+        this.populateFromCatalogConnector(connector);
+        if (this.availableCapabilities().length === 0) this.loadCapabilities();
+      }
+    }
+    this.emitChange();
+  }
+
+  loadCapabilities(): void {
+    this.isLoadingCapabilities.set(true);
+    this.applicationService.getCapabilities().subscribe({
+      next: (caps) => { this.availableCapabilities.set(caps); this.isLoadingCapabilities.set(false); },
+      error: () => this.isLoadingCapabilities.set(false)
+    });
+  }
+
+  protected nextInternalStep(): void {
+    if (this.internalStep() === 5) {
+      this.internalStep.set(6);
+      this.internalStepChange.emit(6);
     }
   }
 
-  private loadImplementations(): void {
-    if (!this.applicationId) return;
+  protected previousInternalStep(): void {
+    if (this.internalStep() === 6) {
+      this.internalStep.set(5);
+      this.internalStepChange.emit(5);
+    } else {
+      this.goToParentStep.emit(4);
+    }
+  }
 
-    this.isLoadingImplementations.set(true);
-    this.applicationService.getImplementationsByApplicationId(this.applicationId).subscribe({
-      next: (implementations) => {
-        this.existingImplementations.set(implementations);
-        this.isLoadingImplementations.set(false);
+  private resetFields(): void {
+    this.connectorName.set('');
+    this.connectorVersion.set('1.0');
+    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorLicense.set('');
+    this.connectorDescription.set('');
+    this.capabilitiesScope.set('global');
+    this.globalCapabilities.set([]);
+    this.objectClassEntries.set([{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
+    this.devProjectHomepage.set('');
+    this.devSupportPortal.set('');
+    this.devBuildTool.set('');
+    this.devGitCloneUrl.set('');
+    this.devCommitTag.set('');
+    this.devProjectFolderPath.set('');
+    this.devClassName.set('');
+    this.devRepoOwnership.set('evolveum');
+    this.devGithubApiKey.set('');
+    this.showGithubApiKey.set(false);
+    this.publishComplete.set(false);
+    this.publishCreatedOn.set(null);
+    this.publishedVersionId.set(null);
+    this.publishedApplicationId.set(null);
+  }
+
+  private populateFromCatalogConnector(connector: ImplementationListItem): void {
+    this.connectorName.set(connector.displayName ?? '');
+    this.connectorVersion.set(connector.version ?? '');
+    this.connectorMaintainer.set(connector.maintainer ?? this.authService.currentUser() ?? '');
+    this.connectorLicense.set(connector.licenseType ?? '');
+    this.connectorDescription.set(connector.implementationDescription ?? connector.description ?? '');
+    this.devProjectHomepage.set(connector.browseLink ?? '');
+    this.devGitCloneUrl.set(connector.checkoutLink ?? '');
+    this.devProjectFolderPath.set(connector.pathToProjectDirectory ?? '');
+    this.devClassName.set(connector.className ?? '');
+    const bf = (connector.buildFramework ?? '').toLowerCase();
+    this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
+    this.devSupportPortal.set('');
+    this.devCommitTag.set('');
+    this.devRepoOwnership.set('evolveum');
+    this.devGithubApiKey.set('');
+    this.showGithubApiKey.set(false);
+  }
+
+  protected publishIntegrationMethod(): void {
+    const version = this.connectorVersion() || null;
+    if (version) {
+      this.applicationService.checkVersionExists(version).subscribe({
+        next: (exists) => {
+          if (exists) {
+            this.existingVersion.set(version);
+            this.showVersionExistsWarning.set(true);
+            setTimeout(() => this.closeVersionExistsWarning(), 5000);
+          } else {
+            this.doPublish();
+          }
+        },
+        error: () => this.doPublish()
+      });
+    } else {
+      this.doPublish();
+    }
+  }
+
+  private doPublish(): void {
+    const summary = this.reviewSummary;
+    const payload = {
+      application: {
+        id: summary?.applicationId || null,
+        displayName: summary?.applicationName || '',
+        description: summary?.applicationDescription || '',
+        logo: null,
+        origins: summary?.origins || [],
+        tags: [
+          ...(summary?.category ? [{ name: summary.category, tagType: 'CATEGORY' as const }] : []),
+          ...(summary?.deploymentType ? [{ name: summary.deploymentType, tagType: 'DEPLOYMENT' as const }] : [])
+        ]
       },
-      error: () => {
-        this.existingImplementations.set([]);
-        this.isLoadingImplementations.set(false);
+      implementation: {
+        implementationId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
+        displayName: this.connectorName(),
+        description: this.connectorDescription(),
+        maintainer: this.connectorMaintainer(),
+        framework: this.mapConnectorTypeToFramework(this.connectorType),
+        license: this.connectorLicense() || null,
+        ticketingSystemLink: null,
+        browseLink: this.devProjectHomepage() || null,
+        checkoutLink: this.devGitCloneUrl() || null,
+        buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
+        pathToProject: this.devProjectFolderPath() || null,
+        className: this.devClassName() || null,
+        bundleName: null,
+        connectorVersion: this.connectorVersion() || null,
+        downloadLink: null,
+        connidVersion: null
+      },
+      files: []
+    };
+
+    this.isPublishing.set(true);
+    this.applicationService.uploadConnector(payload).subscribe({
+      next: (response: string) => {
+        this.isPublishing.set(false);
+        const applicationId = summary?.applicationId || this.extractApplicationIdFromResponse(response);
+        if (applicationId && summary?.logoFile) {
+          this.applicationService.uploadLogo(applicationId, summary.logoFile).subscribe({ error: () => {} });
+        }
+        this.publishedApplicationId.set(applicationId);
+        this.publishedVersionId.set(this.extractVersionIdFromResponse(response));
+        this.publishCreatedOn.set(new Date());
+        this.publishComplete.set(true);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.isPublishing.set(false);
+        alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
       }
     });
   }
 
-  protected selectNewVersion(): void {
-    this.isNewVersion.set(true);
-    this.updateFormValidity();
+  protected closeVersionExistsWarning(): void {
+    this.showVersionExistsWarning.set(false);
+    this.existingVersion.set('');
   }
 
-  protected selectNewImplementation(): void {
-    this.isNewVersion.set(false);
-    this.selectedImplementation.set(null);
-    this.clearFormFields();
-    this.updateFormValidity();
+  protected copyEmailToClipboard(): void {
+    navigator.clipboard.writeText('help@evolveum.com').then(() => {
+      this.emailCopied.set(true);
+      setTimeout(() => this.emailCopied.set(false), 3000);
+    });
   }
 
-  protected selectImplementation(impl: ImplementationListItem): void {
-    this.selectedImplementation.set(impl);
+  protected navigateToAppDetail(): void {
+    const id = this.publishedApplicationId() || this.reviewSummary?.applicationId;
+    if (id) this.router.navigate(['/applications', id], { state: { showVersions: true } });
+  }
 
-    // Auto-populate form fields from the selected implementation
-    this.displayName.set(impl.displayName);
-
-    if (impl.maintainer && !this.maintainerOptions().includes(impl.maintainer)) {
-      this.maintainerOptions.update(opts => [...opts, impl.maintainer!]);
+  protected cancelPublish(): void {
+    const versionId = this.publishedVersionId();
+    const navigate = () => this.router.navigate(['/applications']);
+    if (versionId) {
+      this.applicationService.deleteImplementationVersion(versionId).subscribe({ next: navigate, error: navigate });
+    } else {
+      navigate();
     }
-    this.maintainer.set(impl.maintainer || this.authService.currentUser() || '');
-
-    this.licenseType.set(impl.licenseType || '');
-    this.implementationDescription.set(impl.implementationDescription || '');
-    this.ticketingLink.set(impl.ticketingLink || '');
-
-    const buildFramework = impl.buildFramework
-      ? impl.buildFramework.charAt(0).toUpperCase() + impl.buildFramework.slice(1).toLowerCase()
-      : 'Maven';
-    this.buildFramework.set(buildFramework);
-
-    this.pathToProjectDirectory.set(impl.pathToProjectDirectory || '');
-    this.className.set(impl.className || '');
-
-    // browseLink and checkoutLink are intentionally left empty for new versions
-    this.browseLink.set('');
-    this.checkoutLink.set('');
-
-    this.updateFormValidity();
   }
 
-  protected toggleShowAll(): void {
-    this.showAllImplementations.update(v => !v);
+  private extractApplicationIdFromResponse(response: string): string | null {
+    if (response.includes('|')) return response.split('|')[0] ?? null;
+    const match = response.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    return match ? match[0] : null;
+  }
+
+  private extractVersionIdFromResponse(response: string): string | null {
+    if (response.includes('|')) return response.split('|')[1] ?? null;
+    return null;
+  }
+
+  private mapConnectorTypeToFramework(type: string): string {
+    const mapping: Record<string, string> = { 'java-based': 'JAVA_BASED', 'own-repo': 'LOW_CODE', 'evolveum-hosted': 'LOW_CODE' };
+    return mapping[type] || 'JAVA_BASED';
+  }
+
+  protected formatCapabilityName(cap: string): string {
+    return cap.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  protected addObjectClassEntry(): void {
+    this.objectClassEntries.update(e => [...e, { objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
+  }
+
+  protected removeObjectClassEntry(i: number): void {
+    this.objectClassEntries.update(e => e.filter((_, idx) => idx !== i));
+    this.emitChange();
+  }
+
+  protected updateObjectClass(i: number, value: string): void {
+    this.objectClassEntries.update(e => e.map((entry, idx) => idx !== i ? entry : {
+      ...entry, objectClass: value,
+      isCapabilitiesDropdownOpen: value ? entry.isCapabilitiesDropdownOpen : false
+    }));
+    this.emitChange();
+  }
+
+  protected toggleSpecificCapDropdown(i: number): void {
+    if (!this.objectClassEntries()[i]?.objectClass) return;
+    this.objectClassEntries.update(e => e.map((entry, idx) =>
+      idx === i ? { ...entry, isCapabilitiesDropdownOpen: !entry.isCapabilitiesDropdownOpen } : entry
+    ));
+  }
+
+  protected onSpecificCapChange(event: Event, i: number, cap: string): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.objectClassEntries.update(e => e.map((entry, idx) => {
+      if (idx !== i) return entry;
+      const capabilities = checked ? [...entry.capabilities, cap] : entry.capabilities.filter(c => c !== cap);
+      return { ...entry, capabilities };
+    }));
+    this.emitChange();
+  }
+
+  protected removeSpecificCap(i: number, cap: string, event?: Event): void {
+    event?.stopPropagation();
+    this.objectClassEntries.update(e => e.map((entry, idx) =>
+      idx !== i ? entry : { ...entry, capabilities: entry.capabilities.filter(c => c !== cap) }
+    ));
+    this.emitChange();
+  }
+
+  protected onGlobalCapChange(event: Event, cap: string): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.globalCapabilities.update(caps => checked ? [...caps, cap] : caps.filter(c => c !== cap));
+    this.emitChange();
+  }
+
+  protected removeGlobalCap(cap: string, event?: Event): void {
+    event?.stopPropagation();
+    this.globalCapabilities.update(caps => caps.filter(c => c !== cap));
+    this.emitChange();
   }
 
   protected onMaintainerInput(event: Event): void {
@@ -184,110 +450,46 @@ export class UploadFormImpl implements OnChanges {
   }
 
   protected selectMaintainerOption(option: string): void {
-    this.maintainer.set(option);
+    this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
-    this.onFieldChange();
+    this.emitChange();
   }
 
-  private clearFormFields(): void {
-    this.displayName.set('');
-    this.maintainer.set(this.authService.currentUser() || '');
-    this.licenseType.set('');
-    this.implementationDescription.set('');
-    this.browseLink.set('');
-    this.ticketingLink.set('');
-    this.buildFramework.set('Maven');
-    this.checkoutLink.set('');
-    this.pathToProjectDirectory.set('');
-    this.className.set('');
-    this.uploadedFile.set(null);
-    this.uploadedFileName.set('');
+  protected onLicenseBlur(): void {
+    setTimeout(() => this.isLicenseDropdownOpen.set(false), 150);
   }
 
-  protected onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64String = reader.result as string;
-        const base64Data = base64String.split(',')[1];
-        this.uploadedFile.set({ name: file.name, data: base64Data });
-        this.uploadedFileName.set(file.name);
-        this.updateFormValidity();
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  protected triggerFileInput(): void {
-    const fileInput = document.getElementById('fileUpload') as HTMLInputElement;
-    if (fileInput) fileInput.click();
-  }
-
-  private updateFormValidity(): void {
-    let isValid = false;
-    const isEvolveumHosted = this.connectorType() === 'evolveum-hosted';
-    const isJavaBased = this.connectorType() === 'java-based';
-
-    if (this.isNewVersion() === true) {
-      // Adding a new version: implementation must be selected + form fields valid
-      if (this.selectedImplementation() !== null) {
-        if (isEvolveumHosted) {
-          isValid = this.implementationDescription().trim() !== '' &&
-                    this.uploadedFile() !== null;
-        } else if (isJavaBased) {
-          isValid = this.implementationDescription().trim() !== '' &&
-                    this.buildFramework().trim() !== '' &&
-                    this.browseLink().trim() !== '' &&
-                    this.checkoutLink().trim() !== '';
-        } else {
-          isValid = this.implementationDescription().trim() !== '';
-        }
-      }
-    } else if (this.isNewVersion() === false) {
-      // Creating a new implementation
-      if (isEvolveumHosted) {
-        isValid = this.displayName().trim() !== '' &&
-                  this.implementationDescription().trim() !== '' &&
-                  this.uploadedFile() !== null;
-      } else if (isJavaBased) {
-        isValid = this.displayName().trim() !== '' &&
-                  this.licenseType().trim() !== '' &&
-                  this.implementationDescription().trim() !== '' &&
-                  this.buildFramework().trim() !== '' &&
-                  this.browseLink().trim() !== '' &&
-                  this.checkoutLink().trim() !== '';
-      } else {
-        isValid = this.displayName().trim() !== '' &&
-                  this.licenseType().trim() !== '' &&
-                  this.implementationDescription().trim() !== '';
-      }
-    }
-
-    const formData = {
-      isNewVersion: this.isNewVersion(),
-      isEditingVersion: this.isNewVersion() === true && this.selectedImplementation() !== null,
-      selectedImplementation: this.selectedImplementation(),
-      displayName: this.displayName(),
-      maintainer: this.maintainer(),
-      licenseType: this.licenseType(),
-      implementationDescription: this.implementationDescription(),
-      browseLink: this.browseLink(),
-      ticketingLink: this.ticketingLink(),
-      buildFramework: this.buildFramework(),
-      checkoutLink: this.checkoutLink(),
-      pathToProjectDirectory: this.pathToProjectDirectory(),
-      className: this.className(),
-      uploadedFile: this.uploadedFile()
-    };
-
-    this.formDataChanged.emit(formData);
-    this.formValid.emit(isValid);
+  protected selectLicenseOption(opt: string): void {
+    this.connectorLicense.set(opt);
+    this.isLicenseDropdownOpen.set(false);
+    this.emitChange();
   }
 
   protected onFieldChange(): void {
-    this.updateFormValidity();
+    this.emitChange();
+  }
+
+  private emitChange(): void {
+    this.formValid.emit(this.isStep5Valid);
+    this.formDataChanged.emit({
+      connectorName: this.connectorName(),
+      connectorVersion: this.connectorVersion(),
+      connectorMaintainer: this.connectorMaintainer(),
+      connectorLicense: this.connectorLicense(),
+      connectorDescription: this.connectorDescription(),
+      capabilitiesScope: this.capabilitiesScope(),
+      globalCapabilities: this.globalCapabilities(),
+      objectClassEntries: this.objectClassEntries().map(e => ({ objectClass: e.objectClass, capabilities: e.capabilities })),
+      devProjectHomepage: this.devProjectHomepage(),
+      devSupportPortal: this.devSupportPortal(),
+      devBuildTool: this.devBuildTool(),
+      devGitCloneUrl: this.devGitCloneUrl(),
+      devCommitTag: this.devCommitTag(),
+      devProjectFolderPath: this.devProjectFolderPath(),
+      devClassName: this.devClassName(),
+      devRepoOwnership: this.devRepoOwnership(),
+      devGithubApiKey: this.devGithubApiKey()
+    });
   }
 }

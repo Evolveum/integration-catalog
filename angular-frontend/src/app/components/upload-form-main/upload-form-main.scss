@@ -23,20 +23,6 @@
   border-color: $midpoint-special-color !important;
 }
 
-.step-item.active .step-number {
-  background-color: $midpoint-special-color !important;
-}
-
-.step-item .step-number {
-  transition: all 0.3s ease;
-}
-
-.search-results .card:hover {
-  border-color: $midpoint-special-color !important;
-  box-shadow: 0 2px 8px $shadow-teal;
-  transform: translateY(-2px);
-}
-
 /* Info icon tooltip styles */
 .info-icon-wrapper {
   vertical-align: middle;
@@ -99,7 +85,7 @@
 
 .search-input-wrapper:focus-within {
   border-width: 2px;
-  border-color: $color-text-secondary;
+  border-color: $color-dark-blue;
 }
 
 .search-icon-wrapper {
@@ -129,40 +115,6 @@
 
 .clear-search-btn:hover {
   opacity: 0.7;
-}
-
-/* Toast Notifications */
-.toast-container {
-  z-index: 2000;
-}
-
-.toast-box {
-  box-shadow: 0 4px 6px $shadow-card;
-  min-width: 350px;
-}
-
-.toast-header-success {
-  background-color: $color-success;
-  color: $color-white;
-}
-
-.toast-body-success {
-  background-color: $color-success-bg;
-  color: $color-black;
-}
-
-.toast-header-warning {
-  background-color: $color-warning;
-  color: $color-black;
-}
-
-.toast-body-warning {
-  background-color: $color-warning-bg;
-  color: $color-black;
-}
-
-.toast-icon {
-  font-size: 18px;
 }
 
 /* Page Styles */
@@ -249,13 +201,10 @@
   color: $color-text-dark;
 }
 
-
-
 .publish-content {
   display: block;
   min-width: 1080px;
 }
-
 
 .modal-body-upload {
   padding: 2rem 1.5rem;
@@ -268,15 +217,6 @@
   bottom: 0;
   background: #fff;
   z-index: 10;
-}
-
-/* Steps Container */
-.steps-container-padding {
-  padding: 1.5rem 1.5rem 0 1.5rem;
-}
-
-.steps-padding-bottom {
-  padding-bottom: 1rem;
 }
 
 /* Step Number */
@@ -356,51 +296,6 @@
   line-height: 1.5;
 }
 
-/* Progress Bar */
-.progress-bar-container {
-  height: 3px;
-  background-color: $color-border-light;
-  margin-top: 0;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  width: 33.33%;
-  background-color: $midpoint-special-color;
-  transition: left 0.3s ease;
-}
-
-/* Step Content */
-.step-heading {
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.step-heading-light {
-  font-size: 1rem;
-  font-weight: 400;
-}
-
-/* Alert Info Note */
-.alert-info-note {
-  background-color: $color-info-bg;
-  border: 1px solid $color-info-border;
-  border-radius: 4px;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.alert-icon {
-  font-size: 16px;
-  color: $text-publishing-blue;
-  margin-top: 2px;
-}
-
-.alert-text {
-  color: $color-info-text;
-  font-size: 0.875rem;
-}
-
 /* Form Labels */
 .form-label-upload {
   font-weight: 600;
@@ -440,18 +335,6 @@
 }
 
 .connector-description {
-  color: $color-black;
-  font-size: 0.875rem;
-}
-
-/* Help Text */
-.help-icon {
-  font-size: 14px;
-  margin-top: 2px;
-  color: $midpoint-special-color;
-}
-
-.help-text {
   color: $color-black;
   font-size: 0.875rem;
 }
@@ -521,10 +404,10 @@
   font-size: 0.875rem;
 }
 
-.card-separator {
-  width: 1px;
-  background-color: $color-border-light;
-  margin: -1.5rem 0;
+.search-results .card:hover {
+  border-color: $midpoint-special-color !important;
+  box-shadow: 0 2px 8px $shadow-teal;
+  transform: translateY(-2px);
 }
 
 .trash-icon {
@@ -534,15 +417,6 @@
 /* Input Widths */
 .input-width-sm {
   max-width: 240px;
-}
-
-.input-width-md {
-  max-width: 280px;
-}
-
-.input-disabled {
-  background-color: $color-bg-disabled;
-  color: $color-gray-secondary;
 }
 
 /* Logo Upload */
@@ -616,8 +490,6 @@
   font-size: 12px;
 }
 
-
-
 /* Define New Modal Overlay */
 .define-new-overlay {
   position: fixed;
@@ -667,53 +539,6 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid $color-border-light;
   flex-shrink: 0;
-}
-
-/* Accordion panels (step 5) */
-.accordion-panel {
-  border: 1px solid $color-border-light;
-  border-radius: 8px;
-  overflow: visible;
-}
-
-.accordion-panel-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1.25rem;
-  cursor: pointer;
-  user-select: none;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.accordion-chevron {
-  font-size: 0.75rem;
-  color: $color-text-secondary;
-  width: 12px;
-}
-
-.accordion-panel-title {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: $color-text-dark;
-}
-
-.accordion-panel-body {
-  padding: 1.25rem 1.5rem 1.5rem 1.5rem;
-  border-top: 1px solid $color-border-light;
-  background-color: #f8f9fa;
-  border-radius: 0 0 8px 8px;
-
-  .form-control,
-  .form-select,
-  .method-link-wrapper,
-  .method-link-input,
-  .maintainer-combobox input {
-    background-color: #fff;
-  }
 }
 
 .define-new-cancel-btn {
@@ -876,7 +701,7 @@
   margin: 15px 0 15px 9px;
 }
 
-/* Modal main area: left content only (no sidebar) */
+/* Modal main area */
 .modal-main {
   display: flex;
   flex: 1;
@@ -905,7 +730,7 @@
   margin-bottom: 1.25rem;
 }
 
-/* Recently Used Section (bottom, full width) */
+/* Recently Used Section */
 .recently-used-section {
   border: 1px solid $color-border-light;
   border-radius: 8px;
@@ -981,99 +806,10 @@
   line-height: 1.2;
 }
 
-/* Origin Badges */
-.origin-badge-loaded {
-  background-color: $color-dark-blue;
-  color: $color-white;
-}
-
+/* Origin Badge */
 .origin-badge-added {
   background-color: rgba($color-darker-blue, 0.1);
   color: $color-black;
-}
-
-/* Method Form (Step 3) */
-.method-form-heading {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: $color-text-dark;
-}
-
-.method-form-subtitle {
-  font-size: 0.875rem;
-  color: $color-text-secondary;
-}
-
-.method-link-wrapper {
-  border-radius: 4px;
-  overflow: hidden;
-  height: calc(1.5em + 0.75rem + 2px);
-  border: 1px solid $color-border-input;
-  padding: 0;
-}
-
-.method-link-icon {
-  border-right: 1px solid $color-border-input;
-  height: 100%;
-  color: $color-gray-secondary;
-}
-
-.method-link-icon-i {
-  font-size: 13px;
-}
-
-.method-link-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 0.375rem 0.75rem;
-  font-size: 1rem;
-
-  &::placeholder {
-    color: $color-gray-secondary;
-  }
-}
-
-.method-link-clear {
-  background: none;
-  border: none;
-  border-left: 1px solid $color-border-input;
-  height: 100%;
-  cursor: pointer;
-  opacity: 0.6;
-
-  &:hover {
-    opacity: 1;
-  }
-}
-
-.method-date-wrapper {
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid $color-border-input;
-  padding: 0;
-  width: 200px;
-  height: calc(1.5em + 0.75rem + 2px);
-}
-
-.method-date-icon {
-  border-right: 1px solid $color-border-input;
-  height: 100%;
-  color: $color-gray-secondary;
-}
-
-.method-date-icon-i {
-  font-size: 13px;
-}
-
-.method-date-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.9375rem;
-  flex: 1;
-  min-width: 0;
 }
 
 /* Integration Method Cards (Step 2) */
@@ -1102,14 +838,7 @@
 
 .im-card-selected {
   border: 2px solid $midpoint-special-color;
-}
-
-.im-radio {
-  width: 16px;
-  height: 16px;
-  margin-top: 2px;
-  cursor: pointer;
-  accent-color: $midpoint-special-color;
+  background-color: $color-bg-selected;
 }
 
 .im-checkbox {
@@ -1184,7 +913,6 @@
   align-items: center;
   text-align: center;
   padding: 1.5rem;
-  text-align: center;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s;
 
@@ -1217,7 +945,7 @@
   color: $color-gray-secondary;
 }
 
-/* Step 3 – Tutorial file list (below dropzone) */
+/* Step 3 – Tutorial file list */
 .tutorial-file-list {
   margin-top: 0.5rem;
   display: flex;
@@ -1311,465 +1039,4 @@
   background-color: $color-bg-muted;
   border: 1px solid $color-border-input;
   color: $color-text-dark;
-}
-
-/* Maintainer combobox */
-.maintainer-combobox {
-  position: relative;
-
-  &.open input.form-select {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-}
-
-.maintainer-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1050;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-  max-height: calc(8 * 2.375rem);
-  overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.maintainer-option {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #e9ecef;
-  }
-}
-
-/* ── Step 5 capability / object-class styles ─────────────────────────── */
-.integration-method-radio {
-  width: 18px;
-  height: 18px;
-  margin-right: 12px;
-  flex-shrink: 0;
-  accent-color: $midpoint-special-color;
-}
-
-.capabilities-scope-list {
-  border: 1px solid $color-border-input;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.capabilities-scope-option {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px;
-  cursor: pointer;
-  margin: 0;
-  border-bottom: 1px solid $color-border-light;
-  font-size: 14px;
-  color: $color-black;
-
-  &:last-child { border-bottom: none; }
-  &:hover { background-color: $color-bg-hover; }
-}
-
-.capabilities-scope-option-selected {
-  background-color: rgba($color-light-blue, 0.08);
-  color: $midpoint-special-color;
-}
-
-.capability-dropdown-trigger {
-  min-height: 41px;
-  cursor: pointer;
-  padding: 6px 12px;
-}
-
-.capability-placeholder {
-  color: $color-gray-secondary;
-  padding-left: 6px;
-}
-
-.capability-placeholder-disabled { color: $color-text-secondary; }
-
-.capability-dropdown-disabled {
-  background-color: $color-bg-muted;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.capability-badge {
-  background-color: #ede9f7;
-  color: $color-black;
-  font-size: 13px;
-  font-weight: 400;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.btn-remove-capability {
-  border: none;
-  background: none;
-}
-
-.remove-icon {
-  font-size: 12px;
-  color: $color-text-secondary;
-}
-
-.capability-dropdown-menu {
-  z-index: 1000;
-  max-height: 300px;
-  border: 1px solid $color-border-light;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.capability-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem 2rem;
-}
-
-.capability-checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin-right: 10px;
-  accent-color: $midpoint-special-color;
-}
-
-.capability-label {
-  cursor: pointer;
-  margin-bottom: 0;
-}
-
-.capability-label-text {
-  font-size: 13px;
-  color: $color-black;
-}
-
-.object-class-card {
-  border: 1px solid $color-border-input;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.object-class-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.object-class-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: $color-black;
-}
-
-.object-class-card-subtitle {
-  font-size: 13px;
-  color: $color-text-secondary;
-  margin-top: 2px;
-}
-
-.btn-remove-object-class {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: $color-text-secondary;
-  &:hover { color: #bb2d3b; }
-}
-
-.object-class-field {
-  cursor: text;
-  position: relative;
-}
-
-.object-class-text-input {
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  color: $color-black;
-  border: none;
-  &::placeholder { color: $color-gray-secondary; }
-}
-
-.btn-add-object-class {
-  color: $midpoint-special-color;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 500;
-  &:hover { text-decoration: underline; }
-}
-
-/* Step 5 – Dev & Build section headings */
-.dev-section-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: $color-text-dark;
-  margin-bottom: 0.75rem;
-}
-
-/* Step 6 – Review cards */
-.review-card {
-  position: relative;
-  border: 1px solid $color-border-light;
-  border-radius: 8px;
-  overflow: hidden;
-  padding-right: 2.5rem;
-}
-
-.review-card-header {
-  padding: 0.875rem 1.25rem 0 1.25rem;
-  background: $color-white;
-}
-
-.review-card-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: $color-text-dark;
-}
-
-.review-edit-btn {
-  position: absolute;
-  top: 50%;
-  right: 1rem;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 0.25rem 0.375rem;
-  cursor: pointer;
-  color: $midpoint-special-color;
-  font-size: 0.8125rem;
-  line-height: 1;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: rgba($midpoint-special-color, 0.08);
-  }
-}
-
-.review-card-body {
-  padding: 0.75rem 1.25rem 1rem 1.25rem;
-  background: $color-white;
-}
-
-.review-app-logo {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.review-app-avatar {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, $color-light-blue 0%, #50e6ff 100%);
-  border-radius: 4px;
-  color: $color-white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.review-app-name {
-  font-size: 0.9375rem;
-  font-weight: 400;
-  color: $color-text-dark;
-}
-
-.review-method-badge {
-  display: inline-block;
-  background-color: $color-white;
-  color: $color-text-dark;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid $color-border-input;
-}
-
-.review-method-separator {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: $color-text-secondary;
-  line-height: 1;
-}
-
-.review-detail-name {
-  font-size: 0.9375rem;
-  font-weight: 400;
-  color: $color-text-dark;
-}
-
-.review-version-badge {
-  display: inline-block;
-  background-color: $color-white;
-  color: $color-text-dark;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid $color-border-input;
-}
-
-.review-description {
-  font-size: 0.9375rem;
-  color: $color-text-secondary;
-  line-height: 1.5;
-}
-
-.review-type-icon {
-  font-size: 1rem;
-  color: $color-text-secondary;
-}
-
-.review-type-label {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: $color-text-dark;
-}
-
-.review-detail-row {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 0.5rem;
-  padding: 0.375rem 0;
-  font-size: 0.875rem;
-}
-
-.review-detail-label {
-  font-weight: 600;
-  color: $color-text-dark;
-  flex-shrink: 0;
-}
-
-.review-detail-value {
-  color: $color-text-secondary;
-  word-break: break-all;
-}
-
-.review-link-icon {
-  font-size: 0.75rem;
-  color: $color-text-secondary;
-}
-
-.btn-publish {
-  background-color: $midpoint-special-color;
-  border-color: $midpoint-special-color;
-  color: #fff;
-  font-weight: 500;
-  padding: 0.5rem 1.25rem;
-}
-
-// ── Publish confirmation page ─────────────────────────────────────────────────
-
-.publish-complete-wrap {
-  max-width: 860px;
-  margin: 3rem auto;
-  padding: 0 1.5rem;
-}
-
-.publish-complete-clock {
-  font-size: 3rem;
-  color: $color-gray-secondary;
-  display: block;
-  margin-bottom: 1rem;
-}
-
-.publish-complete-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: $color-text-dark;
-  margin-bottom: 0.75rem;
-}
-
-.publish-complete-subtitle {
-  font-size: 0.9375rem;
-  color: $color-text-secondary;
-  margin-bottom: 2rem;
-}
-
-.publish-email-link {
-  color: $midpoint-special-color;
-  text-decoration: none;
-  &:hover { text-decoration: underline; }
-}
-
-.publish-complete-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-  margin-bottom: 2rem;
-
-  thead tr {
-    border-bottom: 1px solid $color-border-light;
-  }
-
-  th {
-    font-weight: 600;
-    color: $color-text-dark;
-    padding: 0.5rem 0.75rem;
-    text-align: left;
-  }
-
-  tbody tr {
-    border-bottom: 1px solid $color-border-light;
-  }
-
-  td {
-    padding: 0.75rem;
-    color: $color-text-secondary;
-    vertical-align: middle;
-  }
-}
-
-.publish-status-badge {
-  display: inline-block;
-  font-size: 0.8125rem;
-  color: $color-text-secondary;
-}
-
-.publish-link-icon {
-  font-size: 0.75rem;
-  color: $color-text-secondary;
-}
-
-.publish-complete-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.publish-app-detail-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: $midpoint-special-color;
-  border-color: $midpoint-special-color;
-  font-weight: 500;
-
-  &:hover {
-    color: $midpoint-special-color;
-    border-color: $midpoint-special-color;
-    background-color: rgba($midpoint-special-color, 0.06);
-  }
-}
-
-.publish-app-detail-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
 }
