@@ -29,7 +29,8 @@ public record ApplicationDto(
         List<ImplementationVersionDto> implementationVersions,
         Long requestId,
         Long voteCount,
-        List<String> frameworks
+        List<String> frameworks,
+        List<ObjectClassCapabilityDto> objectClassCapabilities
 ) {
     public static Builder builder() {
         return new Builder();
@@ -55,6 +56,7 @@ public record ApplicationDto(
         private Long requestId;
         private Long voteCount;
         private List<String> frameworks;
+        private List<ObjectClassCapabilityDto> objectClassCapabilities;
 
         public Builder id(UUID id) {
             this.id = id;
@@ -151,6 +153,11 @@ public record ApplicationDto(
             return this;
         }
 
+        public Builder objectClassCapabilities(List<ObjectClassCapabilityDto> objectClassCapabilities) {
+            this.objectClassCapabilities = objectClassCapabilities;
+            return this;
+        }
+
         public ApplicationDto build() {
             return new ApplicationDto(
                     id,
@@ -171,7 +178,8 @@ public record ApplicationDto(
                     implementationVersions,
                     requestId,
                     voteCount,
-                    frameworks
+                    frameworks,
+                    objectClassCapabilities
             );
         }
     }

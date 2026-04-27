@@ -488,6 +488,13 @@
   text-decoration: none;
 }
 
+.breadcrumb-app-icon {
+  height: 1em;
+  width: auto;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
 .breadcrumb-link:hover {
   color: $color-dark-blue;
 }

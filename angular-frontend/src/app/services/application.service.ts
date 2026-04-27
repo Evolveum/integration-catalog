@@ -119,6 +119,10 @@ export class ApplicationService {
     );
   }
 
+  cancelRequest(requestId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/requests/${requestId}`);
+  }
+
   // ==================== Recently Used ====================
 
   getRecentlyUsed(): Observable<Application[]> {

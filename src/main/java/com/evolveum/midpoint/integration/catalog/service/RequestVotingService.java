@@ -145,6 +145,18 @@ public class RequestVotingService {
         }
     }
 
+    /**
+     * Cancels a request and deletes its associated application.
+     */
+    @Transactional
+    public void cancelRequest(Long requestId) {
+        Request request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
+        Application application = request.getApplication();
+        requestRepository.delete(request);
+        applicationRepository.delete(application);
+    }
+
     // ==================== Voting Methods ====================
 
     /**

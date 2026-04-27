@@ -34,6 +34,11 @@ export interface ImplementationVersion {
   midpointVersion: string | null;
 }
 
+export interface ObjectClassCapability {
+  objectName: string;
+  capabilities: string[];
+}
+
 export interface ApplicationDetail {
   id: string;
   displayName: string;
@@ -52,6 +57,8 @@ export interface ApplicationDetail {
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
   implementationVersions: ImplementationVersion[] | null;
+  requestId: number | null;
+  objectClassCapabilities: ObjectClassCapability[] | null;
 }
 
 /**
