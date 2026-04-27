@@ -80,6 +80,12 @@ export class UploadFormMain implements OnInit, OnDestroy {
 
   protected readonly showDefineNewModal = signal<boolean>(false);
   protected readonly showOriginDropdown = signal<boolean>(false);
+  protected readonly isCategoryDropdownOpen = signal<boolean>(false);
+
+  protected readonly selectedCategoryLabel = computed(() => {
+    const cat = this.availableCategories().find(c => c.name === this.category());
+    return cat?.displayName ?? '';
+  });
 
   // Step 4 - Connector catalog modal
   protected readonly showConnectorCatalogModal = signal<boolean>(false);
@@ -106,9 +112,9 @@ export class UploadFormMain implements OnInit, OnDestroy {
     const catalog = this.selectedCatalogConnector();
     if (catalog) return catalog.displayName;
     const labels: Record<string, string> = {
-      'java-based': 'Java Automation',
+      'java-based': 'Java-based connector',
       'own-repo': 'Low-code — own repository',
-      'evolveum-hosted': 'Low-code — Evolveum-hosted'
+      'evolveum-hosted': 'Low-code — no repository'
     };
     return labels[this.selectedConnectorType()] ?? '';
   });
@@ -463,6 +469,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
     this.isDefineNewMode.set(true);
     this.selectedApplication.set(null);
     this.showDetailsForm.set(true);
+    this.nextStep();
   }
 
   private populateApplicationDetails(): void {
@@ -696,6 +703,15 @@ export class UploadFormMain implements OnInit, OnDestroy {
 
   protected isOriginDismissible(origin: string): boolean {
     return !this.loadedOrigins().includes(origin);
+  }
+
+  protected onCategoryBlur(): void {
+    setTimeout(() => this.isCategoryDropdownOpen.set(false), 150);
+  }
+
+  protected selectCategoryOption(name: string): void {
+    this.category.set(name);
+    this.isCategoryDropdownOpen.set(false);
   }
 
   protected onDescriptionChange(event: Event): void {

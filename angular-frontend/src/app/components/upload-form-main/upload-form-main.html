@@ -62,7 +62,7 @@
         <!-- Description -->
         <div class="mb-4">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Description
+            Description <span class="text-danger">&nbsp;*</span>
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Provide a brief description of what this application does.</span>
@@ -124,12 +124,26 @@
               <span class="info-tooltip">Select the primary category this application belongs to.</span>
             </span>
           </label>
-          <select class="form-select" [(ngModel)]="category">
-            <option value="">Select category...</option>
-            @for (cat of availableCategories(); track cat.name) {
-              <option [value]="cat.name">{{ cat.displayName }}</option>
+          <div class="position-relative category-combobox" [class.open]="isCategoryDropdownOpen()">
+            <div class="form-select category-select-trigger"
+                 [class.category-placeholder]="!category()"
+                 tabindex="0"
+                 (click)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
+                 (blur)="onCategoryBlur()"
+                 (keydown.enter)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
+                 (keydown.space)="$event.preventDefault(); isCategoryDropdownOpen.set(!isCategoryDropdownOpen())">
+              {{ selectedCategoryLabel() || 'Select category...' }}
+            </div>
+            @if (isCategoryDropdownOpen()) {
+              <div class="category-dropdown">
+                @for (cat of availableCategories(); track cat.name) {
+                  <div class="category-option"
+                       [class.category-option-selected]="category() === cat.name"
+                       (mousedown)="selectCategoryOption(cat.name)">{{ cat.displayName }}</div>
+                }
+              </div>
             }
-          </select>
+          </div>
         </div>
 
         <!-- Deployment Type -->
@@ -402,7 +416,7 @@
                     </div>
                   </div>
 
-                  <!-- Option 3: Low-code Evolveum-hosted -->
+                  <!-- Option 3: Low-code without repository -->
                   <div class="connector-option mb-3 connector-option-card"
                        [class.selected]="selectedConnectorType() === 'evolveum-hosted'"
                        (click)="selectConnectorType('evolveum-hosted')">
@@ -411,7 +425,7 @@
                              [checked]="selectedConnectorType() === 'evolveum-hosted'"
                              class="form-check-input me-3 flex-shrink-0 radio-input">
                       <div class="flex-grow-1">
-                        <div class="connector-title mb-1">Low-code connector Evolveum-hosted repository</div>
+                        <div class="connector-title mb-1">Low-code connector without repository</div>
                         <div class="connector-description">
                           Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
                         </div>

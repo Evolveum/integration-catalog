@@ -381,6 +381,9 @@ public class ConnectorUploadService {
     private void persistEntities(ApplicationResolution appRes, ImplementationResolution implRes,
                                   BundleVersion bundleVersion, ImplementationVersion implVersion) {
         if (implRes.isNewVersion()) {
+            if (appRes.isNew()) {
+                applicationRepository.save(appRes.application());
+            }
             bundleVersionRepository.save(bundleVersion);
             implementationVersionRepository.save(implVersion);
         } else {

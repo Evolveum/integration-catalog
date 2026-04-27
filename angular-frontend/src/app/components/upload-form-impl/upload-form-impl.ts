@@ -9,6 +9,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
+import { of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
@@ -141,9 +143,9 @@ export class UploadFormImpl implements OnInit, OnChanges {
     if (this.isExistingConnector) return this.selectedCatalogConnector?.displayName ?? 'Existing connector';
     const buildSuffix = this.devBuildTool() === 'maven' ? ' (Maven)' : this.devBuildTool() === 'gradle' ? ' (Gradle)' : '';
     const labels: Record<string, string> = {
-      'java-based': `Java Automation${buildSuffix}`,
+      'java-based': 'Java-based connector',
       'own-repo': 'Low-code — own repository',
-      'evolveum-hosted': 'Low-code — Evolveum-hosted'
+      'evolveum-hosted': 'Low-code — no repository'
     };
     return labels[this.connectorType] ?? this.connectorType;
   }
@@ -315,21 +317,34 @@ export class UploadFormImpl implements OnInit, OnChanges {
     };
 
     this.isPublishing.set(true);
-    this.applicationService.uploadConnector(payload).subscribe({
-      next: (response: string) => {
-        this.isPublishing.set(false);
+    this.applicationService.uploadConnector(payload).pipe(
+      switchMap((response: string) => {
         const applicationId = summary?.applicationId || this.extractApplicationIdFromResponse(response);
-        if (applicationId && summary?.logoFile) {
-          this.applicationService.uploadLogo(applicationId, summary.logoFile).subscribe({ error: () => {} });
-        }
         this.publishedApplicationId.set(applicationId);
         this.publishedVersionId.set(this.extractVersionIdFromResponse(response));
+        if (applicationId && summary?.logoFile) {
+          return this.applicationService.uploadLogo(applicationId, summary.logoFile).pipe(
+            switchMap(() => of(response))
+          );
+        }
+        return of(response);
+      })
+    ).subscribe({
+      next: () => {
+        this.isPublishing.set(false);
         this.publishCreatedOn.set(new Date());
         this.publishComplete.set(true);
       },
       error: (error: HttpErrorResponse) => {
         this.isPublishing.set(false);
-        alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
+        const isLogoError = !!this.publishedApplicationId();
+        if (isLogoError) {
+          this.publishCreatedOn.set(new Date());
+          this.publishComplete.set(true);
+          console.error('Logo upload failed:', error);
+        } else {
+          alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
+        }
       }
     });
   }
