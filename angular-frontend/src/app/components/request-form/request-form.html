@@ -47,7 +47,7 @@
             <!-- Row 3 & 4 -->
             <div class="mb-3">
               <label class="form-label form-label-black">
-                Integration Application Name*
+                Integration Application Name<span class="text-danger">&nbsp;*</span>
                 <button type="button" class="btn btn-link p-0 btn-info-icon" title="Application name information">
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
@@ -58,7 +58,7 @@
             <!-- Row 5 -->
             <div class="mb-3">
               <label class="form-label form-label-bold">
-                Integration method*
+                Integration method<span class="text-danger">&nbsp;*</span>
                 <button type="button" class="btn btn-link p-0 btn-info-icon" title="Integration method information">
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
@@ -108,7 +108,7 @@
 
             <!-- Row 8 & 9 -->
             <div class="mb-3">
-              <label class="form-label form-label-bold">Short description*</label>
+              <label class="form-label form-label-bold">Short description<span class="text-danger">&nbsp;*</span></label>
               <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the integration you need and your use case." required></textarea>
             </div>
 

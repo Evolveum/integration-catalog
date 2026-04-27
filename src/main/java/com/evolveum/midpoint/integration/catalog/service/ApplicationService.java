@@ -311,6 +311,13 @@ public class ApplicationService {
         return requestVotingService.hasUserVoted(requestId, voter);
     }
 
+    /**
+     * Cancel a request and delete its associated application. Delegates to RequestVotingService.
+     */
+    public void cancelRequest(Long requestId) {
+        requestVotingService.cancelRequest(requestId);
+    }
+
     public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
         return connectorDownloadService.downloadConnector(versionId, ip, userAgent);
     }

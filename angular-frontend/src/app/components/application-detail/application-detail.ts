@@ -23,6 +23,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
   protected readonly expandedVersions = new Set<number>();
+  protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
+  protected readonly globalCapabilitiesExpanded = signal<boolean>(false);
   protected readonly activeEvolvumVersions = signal<any[]>([]);
   protected readonly activeCommunityVersions = signal<any[]>([]);
   protected readonly otherEvolvumVersions = signal<any[]>([]);
@@ -93,6 +95,36 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       next: () => this.cancelledVersionIds.update(ids => [...ids, id]),
       error: () => this.cancelledVersionIds.update(ids => [...ids, id])
     });
+  }
+
+  protected cancelRequest(): void {
+    const requestId = this.application()?.requestId;
+    if (!requestId) return;
+    this.applicationService.cancelRequest(requestId).subscribe({
+      next: () => this.router.navigate(['/applications']),
+      error: (err) => console.error('Failed to cancel request', err)
+    });
+  }
+
+  protected isGlobalRequest(): boolean {
+    const caps = this.application()?.objectClassCapabilities;
+    return !!caps && caps.length > 0 && caps[0].objectName === 'global';
+  }
+
+  protected toggleObjectClass(name: string): void {
+    this.expandedObjectClasses.update(set => {
+      const next = new Set(set);
+      if (next.has(name)) { next.delete(name); } else { next.add(name); }
+      return next;
+    });
+  }
+
+  protected isObjectClassExpanded(name: string): boolean {
+    return this.expandedObjectClasses().has(name);
+  }
+
+  protected toggleGlobalCapabilities(): void {
+    this.globalCapabilitiesExpanded.update(v => !v);
   }
 
   protected toggleCapabilities(versionIndex: number): void {

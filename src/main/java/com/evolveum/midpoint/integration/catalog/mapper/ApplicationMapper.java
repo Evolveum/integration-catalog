@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto;
 import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
+import com.evolveum.midpoint.integration.catalog.dto.ObjectClassCapabilityDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationApplicationTag;
 import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
@@ -192,8 +193,8 @@ public class ApplicationMapper {
      * @return ApplicationDto
      */
     public ApplicationDto mapToApplicationDto(Application app) {
-        // Fetch Request data if application is REQUESTED
         List<String> capabilities = null;
+        List<ObjectClassCapabilityDto> objectClassCapabilities = null;
         String requester = null;
         Long requestId = null;
         Long voteCount = null;
@@ -202,10 +203,16 @@ public class ApplicationMapper {
             Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
             if (requestOpt.isPresent()) {
                 Request request = requestOpt.get();
-                capabilities = request.getObjectClassCapabilities().stream()
-                        .filter(occ -> occ.getCapabilities() != null)
-                        .flatMap(occ -> Arrays.stream(occ.getCapabilities()))
-                        .map(Enum::name)
+                objectClassCapabilities = request.getObjectClassCapabilities().stream()
+                        .filter(occ -> occ.getCapabilities() != null && occ.getCapabilities().length > 0)
+                        .map(occ -> new ObjectClassCapabilityDto(
+                                occ.getObjectName(),
+                                Arrays.stream(occ.getCapabilities()).map(Enum::name).toList()
+                        ))
+                        .toList();
+                // kept for backward-compat consumers that still read the flat list
+                capabilities = objectClassCapabilities.stream()
+                        .flatMap(occ -> occ.capabilities().stream())
                         .distinct()
                         .collect(java.util.stream.Collectors.toList());
                 requester = request.getRequester();
@@ -214,7 +221,7 @@ public class ApplicationMapper {
             }
         }
 
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount);
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, objectClassCapabilities);
     }
 
     /**
@@ -231,6 +238,15 @@ public class ApplicationMapper {
                                                String requester,
                                                Long requestId,
                                                Long voteCount) {
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null);
+    }
+
+    public ApplicationDto mapToApplicationDto(Application app,
+                                               List<String> capabilities,
+                                               String requester,
+                                               Long requestId,
+                                               Long voteCount,
+                                               List<ObjectClassCapabilityDto> objectClassCapabilities) {
         // Map origins
         List<CountryOfOriginDto> origins = null;
         if (app.getApplicationOrigins() != null) {
@@ -275,6 +291,7 @@ public class ApplicationMapper {
                 .requestId(requestId)
                 .voteCount(voteCount)
                 .frameworks(frameworks)
+                .objectClassCapabilities(objectClassCapabilities)
                 .build();
     }
 

@@ -296,6 +296,25 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Cancel request",
+            description = "Cancels a request and deletes its associated application")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Request cancelled successfully"),
+            @ApiResponse(responseCode = "404", description = "Request not found")
+    })
+    @DeleteMapping("/requests/{requestId}")
+    public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId) {
+        try {
+            applicationService.cancelRequest(requestId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to cancel request: " + ex.getMessage());
+        }
+    }
+
     @Operation(summary = "Submit vote for request",
             description = "Allows a logged-in user to vote for a request. Each user can only vote once per request.")
     @ApiResponses(value = {
