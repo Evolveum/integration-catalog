@@ -71,6 +71,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    if (history.state?.showVersions) {
+      this.isContinuePressed.set(true);
+    }
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.loadApplication(id);

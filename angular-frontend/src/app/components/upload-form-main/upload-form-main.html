@@ -1,43 +1,3 @@
-<!-- Publish Success Toast Notification -->
-@if (showPublishSuccess()) {
-  <div class="position-fixed top-0 end-0 p-3 toast-container">
-    <div class="toast-box rounded-2 overflow-hidden">
-      <!-- Green header row -->
-      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-success">
-        <div class="d-flex align-items-center gap-2">
-          <i class="fa-solid fa-circle-check toast-icon"></i>
-          <strong>Published Successfully!</strong>
-        </div>
-        <button type="button" class="btn-close btn-close-white" (click)="closePublishSuccessToast()" aria-label="Close"></button>
-      </div>
-      <!-- Light green message row -->
-      <div class="px-3 py-2 toast-body-success">
-        Your connector has been successfully published to the catalog.
-      </div>
-    </div>
-  </div>
-}
-
-<!-- Version Exists Warning Toast Notification -->
-@if (showVersionExistsWarning()) {
-  <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 1090;">
-    <div class="toast-box rounded-2 overflow-hidden">
-      <!-- Yellow/Orange header row -->
-      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
-        <div class="d-flex align-items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation toast-icon"></i>
-          <strong>Version Already Exists</strong>
-        </div>
-        <button type="button" class="btn-close" (click)="closeVersionExistsWarning()" aria-label="Close"></button>
-      </div>
-      <!-- Light yellow message row -->
-      <div class="px-3 py-2 toast-body-warning">
-        Version <strong>{{ existingVersion() }}</strong> already exists in the catalog. Please use a different version number.
-      </div>
-    </div>
-  </div>
-}
-
 <!-- Define New Application Modal -->
 @if (showDefineNewModal()) {
   <div class="define-new-overlay" (click)="cancelDefineNewModal()">
@@ -102,7 +62,7 @@
         <!-- Description -->
         <div class="mb-4">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Description
+            Description <span class="text-danger">&nbsp;*</span>
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Provide a brief description of what this application does.</span>
@@ -164,12 +124,26 @@
               <span class="info-tooltip">Select the primary category this application belongs to.</span>
             </span>
           </label>
-          <select class="form-select" [(ngModel)]="category">
-            <option value="">Select category...</option>
-            @for (cat of availableCategories(); track cat.name) {
-              <option [value]="cat.name">{{ cat.displayName }}</option>
+          <div class="position-relative category-combobox" [class.open]="isCategoryDropdownOpen()">
+            <div class="form-select category-select-trigger"
+                 [class.category-placeholder]="!category()"
+                 tabindex="0"
+                 (click)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
+                 (blur)="onCategoryBlur()"
+                 (keydown.enter)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
+                 (keydown.space)="$event.preventDefault(); isCategoryDropdownOpen.set(!isCategoryDropdownOpen())">
+              {{ selectedCategoryLabel() || 'Select category...' }}
+            </div>
+            @if (isCategoryDropdownOpen()) {
+              <div class="category-dropdown">
+                @for (cat of availableCategories(); track cat.name) {
+                  <div class="category-option"
+                       [class.category-option-selected]="category() === cat.name"
+                       (mousedown)="selectCategoryOption(cat.name)">{{ cat.displayName }}</div>
+                }
+              </div>
             }
-          </select>
+          </div>
         </div>
 
         <!-- Deployment Type -->
@@ -235,104 +209,44 @@
     </span>
   </app-page-header>
 
-  <!-- Email copied toast -->
-  @if (emailCopied()) {
-    <div class="position-fixed bottom-0 start-50 translate-middle-x pb-4" style="z-index:9999;">
-      <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 shadow-sm" style="background:#212529; color:#fff; font-size:0.875rem;">
-        <i class="fa-solid fa-check"></i> Email address copied to clipboard
-      </div>
-    </div>
-  }
-
-  <!-- Step 7: Publish confirmation -->
-  @if (publishComplete()) {
-    <div class="publish-content">
-      <div class="publish-complete-wrap">
-        <i class="fa-regular fa-clock publish-complete-clock"></i>
-        <h4 class="publish-complete-title">Your integration method is awaiting approval</h4>
-        <p class="publish-complete-subtitle">
-          Our team will process your integration method promptly and expects to get back to you
-          <strong>within 1-2 weeks</strong>. If you have questions, please contact us at
-          <a href="#" class="publish-email-link" (click)="$event.preventDefault(); copyEmailToClipboard()">help&#64;evolveum.com</a>.
-        </p>
-
-        <table class="publish-complete-table">
-          <thead>
-            <tr>
-              <th>Created on</th>
-              <th>Status</th>
-              <th>Support portal</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{{ publishCreatedOn() | date:'MMMM d, yyyy' }}</td>
-              <td><span class="publish-status-badge">Awaiting approval</span></td>
-              <td>
-                @if (devSupportPortal()) {
-                  <i class="fa-solid fa-link me-1 publish-link-icon"></i>{{ devSupportPortal() }}
-                } @else {
-                  <span class="text-muted">—</span>
-                }
-              </td>
-              <td>
-                <button type="button" class="btn publish-app-detail-btn btn-sm" (click)="cancelPublish()">Cancel</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="publish-complete-footer">
-          @if (selectedApplication()) {
-            <button type="button" class="btn btn-outline-secondary publish-app-detail-btn" (click)="navigateToAppDetail()">
-              @if (getAppLogoUrl(selectedApplication()!)) {
-                <img [src]="getAppLogoUrl(selectedApplication()!)" [alt]="selectedApplication()!.displayName" class="publish-app-detail-icon">
-              }
-              {{ selectedApplication()!.displayName }} application detail
-            </button>
-          }
-          <button type="button" class="btn btn-publish" routerLink="/">
-            Return to Integration catalog
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (!publishComplete()) {
   <div class="publish-content">
     <div class="publish-main-layout">
 
       <!-- Step sidebar -->
       <div class="step-sidebar">
         @for (step of wizardSteps; track $index) {
-          <div class="step-sidebar-item" [class.step-item-future]="currentStep() < $index + 1">
+          <div class="step-sidebar-item" [class.step-item-future]="effectiveStep() < $index + 1">
             <div class="step-number d-flex align-items-center justify-content-center"
-                 [class.step-number-active]="currentStep() === $index + 1"
-                 [class.step-number-completed]="currentStep() > $index + 1"
-                 [class.step-number-inactive]="currentStep() < $index + 1">
-              @if (currentStep() > $index + 1) {
+                 [class.step-number-active]="effectiveStep() === $index + 1"
+                 [class.step-number-completed]="effectiveStep() > $index + 1"
+                 [class.step-number-inactive]="effectiveStep() < $index + 1">
+              @if (effectiveStep() > $index + 1) {
                 <i class="fa-solid fa-check step-check-icon"></i>
-              } @else if (currentStep() < $index + 1) {
+              } @else if (effectiveStep() < $index + 1) {
                 {{ $index + 1 }}
               }
             </div>
             <div class="d-flex flex-column ms-2">
               <span class="step-label-text"
-                    [class.step-label-active]="currentStep() === $index + 1"
-                    [class.step-label-completed]="currentStep() > $index + 1"
-                    [class.step-label-inactive]="currentStep() < $index + 1">
+                    [class.step-label-active]="effectiveStep() === $index + 1"
+                    [class.step-label-completed]="effectiveStep() > $index + 1"
+                    [class.step-label-inactive]="effectiveStep() < $index + 1">
                 {{ step.label }}
               </span>
-              @if ($index === 0 && currentStep() > 1 && selectedApplication()) {
+              @if ($index === 0 && effectiveStep() > 1 && selectedApplication()) {
                 <span class="step-sublabel">{{ selectedApplication()!.displayName }}</span>
               }
-              @if ($index === 1 && currentStep() > 2 && selectedMethodsLabel()) {
+              @if ($index === 1 && effectiveStep() > 2 && selectedMethodsLabel()) {
                 <span class="step-sublabel">{{ selectedMethodsLabel() }}</span>
               }
-              @if ($index === 2 && currentStep() > 3 && methodFormDisplayName()) {
+              @if ($index === 2 && effectiveStep() > 3 && methodFormDisplayName()) {
                 <span class="step-sublabel">{{ methodFormDisplayName() }}{{ methodFormVersion() ? ' + ' + methodFormVersion() : '' }}</span>
+              }
+              @if ($index === 3 && effectiveStep() > 4 && connectorTypeLabel()) {
+                <span class="step-sublabel">{{ connectorTypeLabel() }}</span>
+              }
+              @if ($index === 4 && effectiveStep() > 5 && childConnectorName()) {
+                <span class="step-sublabel">{{ childConnectorName() }}</span>
               }
             </div>
           </div>
@@ -343,1051 +257,381 @@
       </div>
 
       <!-- Main area -->
-        <div class="modal-main">
+      <div class="modal-main">
+        <div class="modal-main-left">
 
-          <!-- Left: body + footer stacked -->
-          <div class="modal-main-left">
+          <!-- Steps 1–4: parent-managed body + footer -->
+          @if (currentStep() < 5) {
+            <div class="modal-body modal-body-upload" (click)="showOriginDropdown.set(false)">
 
-        <!-- Modal Body -->
-        <div class="modal-body modal-body-upload" (click)="showOriginDropdown.set(false)">
-          <!-- Step 2: Select Integration Method Type -->
-          @if (currentStep() === 2) {
-            <div class="step-content">
-              <h5 class="step-title">Select integration method type</h5>
-              <p class="step-subtitle">Choose one or more integration method types to best fit your environment. You can select multiple methods to create a hybrid integration tailored to your environment.</p>
-              <div class="im-grid">
-                @for (method of integrationMethods; track method.value) {
-                  <div class="im-card" [class.im-card-selected]="isMethodSelected(method.value)" (click)="toggleIntegrationMethod(method.value)">
-                    <div class="d-flex align-items-center">
-                      <input type="checkbox" class="im-checkbox flex-shrink-0 me-2"
-                             [checked]="isMethodSelected(method.value)">
-                      <div>
-                        <div class="im-title">{{ method.title }}</div>
-                        <div class="im-desc">{{ method.description }}</div>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Step 3: Define Integration Method -->
-          @if (currentStep() === 3) {
-            <div class="step-content">
-              <h5 class="step-title">Define integration method</h5>
-              <p class="step-subtitle">{{ selectedMethodInfo()?.formDescription }}</p>
-
-              <!-- Name + Version row -->
-              <div class="method-name-version-row mb-4">
-                <div>
-                  <label class="form-label d-flex align-items-center form-label-upload">
-                    Integration method name <span class="text-danger">&nbsp;*</span>
-                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                      <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">The display name for this integration in the catalog.</span>
-                    </span>
-                  </label>
-                  <input type="text" class="form-control" [(ngModel)]="methodFormDisplayName" placeholder="Type name...">
-                </div>
-                <div>
-                  <label class="form-label d-flex align-items-center form-label-upload">
-                    Integration method version <span class="text-danger">&nbsp;*</span>
-                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                      <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">The version of this integration method.</span>
-                    </span>
-                  </label>
-                  <input type="text" class="form-control" [(ngModel)]="methodFormVersion" placeholder="e.g. 4.0.0">
-                </div>
-              </div>
-
-              <!-- Description -->
-              <div class="mb-4">
-                <label class="form-label form-label-upload">Description</label>
-                <div class="position-relative">
-                  <textarea class="form-control" [value]="methodFormDescription()" (input)="onMethodFormDescriptionChange($event)"
-                            placeholder="Type description of application..." rows="4" maxlength="350"></textarea>
-                  <div class="text-end text-muted char-counter">{{ methodFormDescription().length }}/350 characters</div>
-                </div>
-              </div>
-
-              <!-- Integration Tutorial -->
-              <div class="mb-3">
-                <div class="tutorial-section-title">Integration Tutorial</div>
-                <p class="tutorial-section-subtitle">Help other administrators by providing a setup guide for this integration. You can either write it here or upload an existing document.</p>
-                <div class="tutorial-editor-wrapper">
-                  <textarea id="tutorial-editor"></textarea>
-                </div>
-              </div>
-
-              <!-- Tutorial file import -->
-              <div class="mb-4">
-                <p class="tutorial-import-label">Click to import a tutorial file.</p>
-                <div class="tutorial-dropzone"
-                     [class.tutorial-dropzone-over]="tutorialDragOver()"
-                     (dragover)="$event.preventDefault(); tutorialDragOver.set(true)"
-                     (dragleave)="tutorialDragOver.set(false)"
-                     (drop)="onTutorialFileDrop($event)"
-                     (click)="tutorialFileInput.click()">
-                  <input #tutorialFileInput type="file" class="d-none" multiple
-                         accept=".txt,.jar,.crt,.xml" (change)="onTutorialFileSelect($event)">
-                  <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
-                  <div class="tutorial-dropzone-text">
-                    <span class="tutorial-dropzone-link">Click to import</span> or drag and drop
-                  </div>
-                  <div class="tutorial-dropzone-hint">the files in the accepted format (e.g. txt, jar, crt)</div>
-                </div>
-                @if (tutorialFiles().length > 0) {
-                  <div class="tutorial-file-list">
-                    @for (entry of tutorialFiles(); track entry.name; let i = $index) {
-                      <div class="tutorial-file-item">
-                        <i class="fa-regular fa-file tutorial-file-icon"></i>
-                        <div class="tutorial-file-name-group">
-                          <span class="tutorial-file-name">{{ entry.name }}</span>
-                          @if (entry.isNew) {
-                            <span class="tutorial-file-new-badge">NEW</span>
-                          }
+              <!-- Step 2: Select Integration Method Type -->
+              @if (currentStep() === 2) {
+                <div class="step-content">
+                  <h5 class="step-title">Select integration method type</h5>
+                  <p class="step-subtitle">Choose one or more integration method types to best fit your environment. You can select multiple methods to create a hybrid integration tailored to your environment.</p>
+                  <div class="im-grid">
+                    @for (method of integrationMethods; track method.value) {
+                      <div class="im-card" [class.im-card-selected]="isMethodSelected(method.value)" (click)="toggleIntegrationMethod(method.value)">
+                        <div class="d-flex align-items-center">
+                          <input type="checkbox" class="im-checkbox flex-shrink-0 me-2"
+                                 [checked]="isMethodSelected(method.value)">
+                          <div>
+                            <div class="im-title">{{ method.title }}</div>
+                            <div class="im-desc">{{ method.description }}</div>
+                          </div>
                         </div>
-                        <button type="button" class="tutorial-file-delete" (click)="removeTutorialFile(i)" aria-label="Remove file">
-                          <i class="fa-solid fa-trash-can"></i>
-                        </button>
                       </div>
                     }
                   </div>
-                }
-              </div>
-
-            </div>
-          }
-
-          <!-- Step 4: Select Connector Type -->
-          @if (currentStep() === 4) {
-            <div class="step-content">
-              <h5 class="step-title">Select connector type</h5>
-
-              <!-- Option 1: Java-based Connector -->
-              <div class="connector-option mb-3 connector-option-card"
-                   [class.selected]="selectedConnectorType() === 'java-based'"
-                   (click)="selectConnectorType('java-based')">
-                <div class="d-flex align-items-center">
-                  <input type="radio"
-                         name="connectorType"
-                         [checked]="selectedConnectorType() === 'java-based'"
-                         class="form-check-input me-3 flex-shrink-0 radio-input">
-                  <div class="flex-grow-1">
-                    <div class="connector-title mb-1">Java-based connector</div>
-                    <div class="connector-description">
-                      Typically deployed in the same environment as midPoint.<br>
-                      Requires uploading a .jar file.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Option 2: Low-code Connector with Own Repository -->
-              <div class="connector-option mb-3 connector-option-card"
-                   [class.selected]="selectedConnectorType() === 'own-repo'"
-                   (click)="selectConnectorType('own-repo')">
-                <div class="d-flex align-items-center">
-                  <input type="radio"
-                         name="connectorType"
-                         [checked]="selectedConnectorType() === 'own-repo'"
-                         class="form-check-input me-3 flex-shrink-0 radio-input">
-                  <div class="flex-grow-1">
-                    <div class="connector-title mb-1">Low-code connector with its own repository</div>
-                    <div class="connector-description">
-                      Connector is maintained in your own version-controlled repository (e.g., GitHub, GitLab).<br>
-                      Requires entering repository URL.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Option 3: Low-code connector Evolveum-hosted repository -->
-              <div class="connector-option mb-3 connector-option-card"
-                   [class.selected]="selectedConnectorType() === 'evolveum-hosted'"
-                   (click)="selectConnectorType('evolveum-hosted')">
-                <div class="d-flex align-items-center">
-                  <input type="radio"
-                         name="connectorType"
-                         [checked]="selectedConnectorType() === 'evolveum-hosted'"
-                         class="form-check-input me-3 flex-shrink-0 radio-input">
-                  <div class="flex-grow-1">
-                    <div class="connector-title mb-1">Low-code connector Evolveum-hosted repository</div>
-                    <div class="connector-description">
-                      Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Choose from existing connectors link -->
-              <div class="connector-existing-link">
-                Do you want already existing connector?
-                <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openConnectorCatalogModal()">
-                  Select one from the catalog <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
-                </button>
-              </div>
-            </div>
-          }
-
-          <!-- Step 1: Select Target Application -->
-          @if (currentStep() === 1) {
-            <div class="step-content">
-              <h5 class="define-app-heading">Select target application</h5>
-              <p class="define-app-subtitle">Search or define a new application to continue.</p>
-
-              <!-- Search Input -->
-              <div class="position-relative mb-4">
-                <div class="search-input-wrapper">
-                  <div class="d-flex align-items-center">
-                    <span class="search-icon-wrapper d-flex align-items-center">
-                      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    </span>
-                    <input
-                      type="text"
-                      class="search-input flex-grow-1"
-                      [value]="searchQuery()"
-                      (input)="onSearchChange($event)"
-                      placeholder="Search applications...">
-                    @if (searchQuery()) {
-                      <button class="clear-search-btn d-flex align-items-center" type="button" (click)="clearSearch()">
-                        <i class="fa-solid fa-xmark clear-icon"></i>
-                      </button>
-                    }
-                  </div>
-                </div>
-              </div>
-
-              <!-- Selected Application Card -->
-              @if (selectedApplication() && !searchQuery()) {
-                <div class="selected-app-card mb-4 d-flex align-items-center">
-                  <div class="flex-grow-1 min-width-0">
-                    @if (getAppLogoUrl(selectedApplication()!)) {
-                      <img [src]="getAppLogoUrl(selectedApplication()!)" [alt]="selectedApplication()!.displayName" class="selected-app-logo mb-2">
-                    } @else {
-                      <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
-                        {{ selectedApplication()!.displayName.charAt(0) }}
-                      </div>
-                    }
-                    <h6 class="mb-1 app-title">{{ selectedApplication()!.displayName }}</h6>
-                    <p class="mb-0 text-muted app-description selected-app-description">{{ selectedApplication()!.description }}</p>
-                  </div>
-                  <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
-                    <i class="fa-regular fa-trash-can"></i>
-                  </button>
                 </div>
               }
 
-              <!-- Defined New App confirmation card -->
-              @if (isDefineNewMode() && !selectedApplication()) {
-                <div class="selected-app-card mb-4 d-flex align-items-center">
-                  <div class="flex-grow-1 min-width-0">
-                    @if (logoPreviewUrl()) {
-                      <img [src]="logoPreviewUrl()" alt="Logo preview" class="selected-app-logo mb-2">
-                    } @else {
-                      <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
-                        {{ displayName().charAt(0) || 'N' }}
-                      </div>
-                    }
-                    <h6 class="mb-1 app-title">{{ displayName() || 'New application' }}</h6>
-                    <p class="mb-0 text-muted app-description selected-app-description">{{ description() }}</p>
-                  </div>
-                  <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
-                    <i class="fa-regular fa-trash-can"></i>
-                  </button>
-                </div>
-              }
+              <!-- Step 3: Define Integration Method -->
+              @if (currentStep() === 3) {
+                <div class="step-content">
+                  <h5 class="step-title">Define integration method</h5>
+                  <p class="step-subtitle">{{ selectedMethodInfo()?.formDescription }}</p>
 
-              <!-- Search Results -->
-              @if (searchQuery() && filteredApplications().length > 0) {
-                <div class="search-results mb-4">
-                  @for (app of filteredApplications(); track app.id) {
-                    <div class="card mb-3 app-card" (click)="selectApplication(app)">
-                      <div class="card-body d-flex align-items-start app-card-body">
-                        <div class="flex-shrink-0 me-3">
-                          <div class="app-avatar d-flex align-items-center justify-content-center">
-                            {{ app.displayName.charAt(0) }}
-                          </div>
-                        </div>
-                        <div class="flex-grow-1">
-                          <h6 class="mb-2 app-title">{{ app.displayName }}</h6>
-                          <p class="mb-0 text-muted app-description">{{ app.description }}</p>
-                        </div>
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-
-              <!-- Define New CTA (shown when search returns nothing and no app/define-new is active) -->
-              @if (!selectedApplication() && !isDefineNewMode() && (!searchQuery() || filteredApplications().length === 0)) {
-                <div class="text-center py-4">
-                  <p class="text-muted mb-3">Didn't find your app in the database? Add a new one!</p>
-                  <button type="button" class="btn d-inline-flex align-items-center btn-define-new" (click)="enterDefineNewMode()">
-                    <i class="fa-solid fa-circle-plus me-2 trash-icon"></i>
-                    Define new
-                  </button>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- Step 5: Add Connector -->
-          @if (currentStep() === 5) {
-            <div class="step-content">
-              <h5 class="step-title">Add connector</h5>
-
-              <!-- Accordion: Basic Information & Capabilities -->
-              <div class="accordion-panel mb-3">
-                <div class="accordion-panel-header" (click)="basicInfoExpanded.set(!basicInfoExpanded())">
-                  <i class="fa-solid accordion-chevron"
-                     [class.fa-chevron-right]="!basicInfoExpanded()"
-                     [class.fa-chevron-down]="basicInfoExpanded()"></i>
-                  <span class="accordion-panel-title">Basic information &amp; capabilities</span>
-                </div>
-                @if (basicInfoExpanded()) {
-                  <div class="accordion-panel-body">
-
-                    <!-- Connector name + version row -->
-                    <div class="row g-3 mb-3">
-                      <div class="col-8">
-                        <label class="form-label form-label-upload">
-                          Connector name <span class="text-danger">*</span>
-                          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                            <i class="fa-solid fa-circle-info info-icon"></i>
-                            <span class="info-tooltip">The display name of this connector in the catalog.</span>
-                          </span>
-                        </label>
-                        <input type="text" class="form-control"
-                               [value]="connectorName()"
-                               (input)="connectorName.set($any($event.target).value)"
-                               placeholder="Enter connector name">
-                      </div>
-                      <div class="col-4">
-                        <label class="form-label form-label-upload">
-                          Connector version
-                          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                            <i class="fa-solid fa-circle-info info-icon"></i>
-                            <span class="info-tooltip">Version is auto-detected from the uploaded artifact when available.</span>
-                          </span>
-                        </label>
-                        <input type="text" [class]="isExistingConnector() ? 'form-control input-disabled' : 'form-control'"
-                               [value]="connectorVersion()"
-                               [readonly]="isExistingConnector()"
-                               (input)="!isExistingConnector() && connectorVersion.set($any($event.target).value)"
-                               placeholder="e.g. 1.0">
-                      </div>
-                    </div>
-
-                    <!-- Maintainer -->
-                    <div class="mb-3">
-                      <label class="form-label form-label-upload">
-                        Maintainer <span class="text-danger">*</span>
-                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                          <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
-                        </span>
-                      </label>
-                      <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
-                        <input type="text" class="form-select"
-                               [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
-                               (input)="onMaintainerInput($event)"
-                               (focus)="onMaintainerFocus()"
-                               (blur)="onMaintainerBlur()"
-                               placeholder="Select maintainer...">
-                        @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
-                          <div class="maintainer-dropdown">
-                            @for (option of filteredMaintainerOptions(); track option) {
-                              <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">
-                                {{ option }}
-                              </div>
-                            }
-                          </div>
-                        }
-                      </div>
-                    </div>
-
-                    <!-- License type -->
-                    <div class="mb-3">
-                      <label class="form-label form-label-upload">
-                        License type <span class="text-danger">*</span>
-                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                          <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">The open-source license under which this connector is distributed.</span>
-                        </span>
-                      </label>
-                      <select class="form-select"
-                              [value]="connectorLicense()"
-                              (change)="connectorLicense.set($any($event.target).value)">
-                        <option value="" disabled>Select license</option>
-                        @for (opt of licenseOptions; track opt) {
-                          <option [value]="opt">{{ opt }}</option>
-                        }
-                      </select>
-                    </div>
-
-                    <!-- Connector description -->
-                    <div class="mb-4">
-                      <label class="form-label form-label-upload">Connector description</label>
-                      <textarea class="form-control"
-                                rows="4"
-                                maxlength="350"
-                                placeholder="Type description..."
-                                [value]="connectorDescription()"
-                                (input)="connectorDescription.set($any($event.target).value)"></textarea>
-                      <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
-                    </div>
-
-                    <!-- Capabilities scope -->
-                    <div class="mb-3">
-                      <label class="form-label form-label-upload">Define connector capabilities for:</label>
-                      <div class="capabilities-scope-list">
-                        <label class="d-flex align-items-center capabilities-scope-option"
-                               [class.capabilities-scope-option-selected]="capabilitiesScope() === 'global'"
-                               (click)="capabilitiesScope.set('global')">
-                          <input type="radio" name="capabilitiesScope5" value="global"
-                                 [checked]="capabilitiesScope() === 'global'"
-                                 class="integration-method-radio" style="pointer-events:none;">
-                          <span>All object classes (Global)</span>
-                        </label>
-                        <label class="d-flex align-items-center capabilities-scope-option"
-                               [class.capabilities-scope-option-selected]="capabilitiesScope() === 'specific'"
-                               (click)="capabilitiesScope.set('specific')">
-                          <input type="radio" name="capabilitiesScope5" value="specific"
-                                 [checked]="capabilitiesScope() === 'specific'"
-                                 class="integration-method-radio" style="pointer-events:none;">
-                          <span>Specific object classes</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <!-- Global capabilities dropdown -->
-                    @if (capabilitiesScope() === 'global') {
-                      <div class="mb-3">
-                        <label class="form-label form-label-upload">Global capabilities</label>
-                        <div class="position-relative">
-                          <div class="form-control d-flex flex-wrap align-items-center gap-2 capability-dropdown-trigger"
-                               (click)="isGlobalCapDropdownOpen.set(!isGlobalCapDropdownOpen())">
-                            @if (globalCapabilities().length === 0) {
-                              <span class="capability-placeholder">Select capabilities</span>
-                            } @else {
-                              @for (cap of globalCapabilities(); track cap) {
-                                <span class="badge d-inline-flex align-items-center capability-badge">
-                                  {{ formatCapabilityName(cap) }}
-                                  <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center btn-remove-capability"
-                                          (click)="removeGlobalCap(cap, $event)" aria-label="Remove">
-                                    <i class="fa-solid fa-circle-xmark remove-icon"></i>
-                                  </button>
-                                </span>
-                              }
-                            }
-                          </div>
-                          @if (isGlobalCapDropdownOpen()) {
-                            <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu overflow-auto">
-                              @if (isLoadingCapabilities()) {
-                                <div class="p-4 text-center text-muted">Loading capabilities…</div>
-                              } @else if (availableCapabilities().length === 0) {
-                                <div class="p-4 text-center text-muted">No capabilities available</div>
-                              } @else {
-                                <div class="p-4 capability-grid">
-                                  @for (cap of availableCapabilities(); track cap) {
-                                    <label class="d-flex align-items-center capability-label">
-                                      <input type="checkbox"
-                                             (change)="onGlobalCapChange($event, cap)"
-                                             [checked]="globalCapabilities().includes(cap)"
-                                             class="capability-checkbox">
-                                      <span class="capability-label-text">{{ formatCapabilityName(cap) }}</span>
-                                    </label>
-                                  }
-                                </div>
-                              }
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    }
-
-                    <!-- Specific object classes -->
-                    @if (capabilitiesScope() === 'specific') {
-                      <div class="mb-3">
-                        @for (entry of objectClassEntries(); track $index; let i = $index) {
-                          <div class="object-class-card">
-                            <div class="object-class-card-header">
-                              <div>
-                                <div class="object-class-card-title">{{ entry.objectClass || 'New object class' }}</div>
-                                @if (entry.objectClass) {
-                                  <div class="object-class-card-subtitle">Object class</div>
-                                }
-                              </div>
-                              @if (i > 0) {
-                                <button type="button" class="btn btn-remove-object-class" (click)="removeObjectClassEntry(i)">
-                                  <i class="fa-solid fa-trash-can me-1"></i>Remove
-                                </button>
-                              }
-                            </div>
-                            <div class="form-control d-flex align-items-center object-class-field mb-2">
-                              <input type="text"
-                                     class="border-0 flex-fill object-class-text-input"
-                                     placeholder="Type object class to configure"
-                                     [value]="entry.objectClass"
-                                     (input)="updateObjectClass(i, $any($event.target).value)"
-                                     [name]="'oc5-' + i">
-                            </div>
-                            <div class="position-relative">
-                              <div class="form-control d-flex flex-wrap align-items-center gap-2 capability-dropdown-trigger"
-                                   [class.capability-dropdown-disabled]="!entry.objectClass"
-                                   (click)="toggleSpecificCapDropdown(i)">
-                                @if (!entry.objectClass) {
-                                  <span class="capability-placeholder capability-placeholder-disabled">Disabled until object class is selected</span>
-                                } @else if (entry.capabilities.length === 0) {
-                                  <span class="capability-placeholder">At least one capability must be selected</span>
-                                } @else {
-                                  @for (cap of entry.capabilities; track cap) {
-                                    <span class="badge d-inline-flex align-items-center capability-badge">
-                                      {{ formatCapabilityName(cap) }}
-                                      <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center btn-remove-capability"
-                                              (click)="removeSpecificCap(i, cap, $event)" aria-label="Remove">
-                                        <i class="fa-solid fa-circle-xmark remove-icon"></i>
-                                      </button>
-                                    </span>
-                                  }
-                                }
-                              </div>
-                              @if (entry.isCapabilitiesDropdownOpen) {
-                                <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu overflow-auto">
-                                  @if (isLoadingCapabilities()) {
-                                    <div class="p-4 text-center text-muted">Loading capabilities…</div>
-                                  } @else if (availableCapabilities().length === 0) {
-                                    <div class="p-4 text-center text-muted">No capabilities available</div>
-                                  } @else {
-                                    <div class="p-4 capability-grid">
-                                      @for (cap of availableCapabilities(); track cap) {
-                                        <label class="d-flex align-items-center capability-label">
-                                          <input type="checkbox"
-                                                 (change)="onSpecificCapChange($event, i, cap)"
-                                                 [checked]="entry.capabilities.includes(cap)"
-                                                 class="capability-checkbox">
-                                          <span class="capability-label-text">{{ formatCapabilityName(cap) }}</span>
-                                        </label>
-                                      }
-                                    </div>
-                                  }
-                                </div>
-                              }
-                            </div>
-                          </div>
-                        }
-                        <button type="button" class="btn btn-add-object-class" (click)="addObjectClassEntry()">
-                          <i class="fa-solid fa-plus me-1"></i>Add another object class
-                        </button>
-                      </div>
-                    }
-
-                  </div>
-                }
-              </div>
-
-              <!-- Accordion: Development & Build -->
-              <div class="accordion-panel mb-3">
-                <div class="accordion-panel-header" (click)="devBuildExpanded.set(!devBuildExpanded())">
-                  <i class="fa-solid accordion-chevron"
-                     [class.fa-chevron-right]="!devBuildExpanded()"
-                     [class.fa-chevron-down]="devBuildExpanded()"></i>
-                  <span class="accordion-panel-title">Development &amp; build</span>
-                </div>
-                @if (devBuildExpanded()) {
-                  <div class="accordion-panel-body">
-
-                    <!-- Repository & Documentation -->
-                    <h6 class="dev-section-title">Repository &amp; Documentation</h6>
-
-                    <!-- Project homepage -->
-                    <div class="mb-3">
+                  <!-- Name + Version row -->
+                  <div class="method-name-version-row mb-4">
+                    <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
-                        Project homepage
+                        Integration method name <span class="text-danger">&nbsp;*</span>
                         <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                           <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Link to the project's public homepage or documentation.</span>
+                          <span class="info-tooltip">The display name for this integration in the catalog.</span>
                         </span>
                       </label>
-                      <div class="method-link-wrapper d-flex align-items-center">
-                        <span class="method-link-icon d-flex align-items-center px-2">
-                          <i class="fa-solid fa-link method-link-icon-i"></i>
-                        </span>
-                        <input type="url" class="method-link-input flex-grow-1"
-                               [value]="devProjectHomepage()"
-                               (input)="devProjectHomepage.set($any($event.target).value)"
-                               [disabled]="isExistingConnector()"
-                               placeholder="e.g. https://github.com/Evolveum/connector-ldap">
-                      </div>
+                      <input type="text" class="form-control" [(ngModel)]="methodFormDisplayName" placeholder="Type name...">
                     </div>
-
-                    <!-- Support portal -->
-                    <div class="mb-3">
+                    <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
-                        Support portal
+                        Integration method version <span class="text-danger">&nbsp;*</span>
                         <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                           <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Link to the support portal or issue tracker.</span>
+                          <span class="info-tooltip">The version of this integration method.</span>
                         </span>
                       </label>
-                      <div class="method-link-wrapper d-flex align-items-center">
-                        <span class="method-link-icon d-flex align-items-center px-2">
-                          <i class="fa-solid fa-link method-link-icon-i"></i>
-                        </span>
-                        <input type="url" class="method-link-input flex-grow-1"
-                               [value]="devSupportPortal()"
-                               (input)="devSupportPortal.set($any($event.target).value)"
-                               [disabled]="isExistingConnector()"
-                               placeholder="e.g. https://support.evolveum.com">
-                      </div>
-                      <div class="form-text">Ensure the link is accessible to the intended audience.</div>
+                      <input type="text" class="form-control" [(ngModel)]="methodFormVersion" placeholder="e.g. 4.0.0">
                     </div>
+                  </div>
 
-                    <!-- Evolveum-hosted: repository ownership + GitHub API key -->
-                    @if (selectedConnectorType() === 'evolveum-hosted' && !isExistingConnector()) {
-                      <div class="mb-3">
-                        <label class="form-label form-label-upload">Where should we create the repository?</label>
-                        <div style="display: flex; flex-wrap: nowrap; gap: 2rem;">
-                          <div class="form-check" style="white-space: nowrap;">
-                            <input class="form-check-input" type="radio" name="devRepoOwnership" id="repo-evolveum"
-                                   [checked]="devRepoOwnership() === 'evolveum'"
-                                   (change)="devRepoOwnership.set('evolveum')">
-                            <label class="form-check-label" for="repo-evolveum">Use Evolveum's GitHub account (default)</label>
-                          </div>
-                          <div class="form-check" style="white-space: nowrap;">
-                            <input class="form-check-input" type="radio" name="devRepoOwnership" id="repo-own"
-                                   [checked]="devRepoOwnership() === 'own'"
-                                   (change)="devRepoOwnership.set('own')">
-                            <label class="form-check-label" for="repo-own">Use your own GitHub account</label>
-                          </div>
-                        </div>
+                  <!-- Description -->
+                  <div class="mb-4">
+                    <label class="form-label form-label-upload">Description</label>
+                    <div class="position-relative">
+                      <textarea class="form-control" [value]="methodFormDescription()" (input)="onMethodFormDescriptionChange($event)"
+                                placeholder="Type description of application..." rows="4" maxlength="350"></textarea>
+                      <div class="text-end text-muted char-counter">{{ methodFormDescription().length }}/350 characters</div>
+                    </div>
+                  </div>
+
+                  <!-- Integration Tutorial -->
+                  <div class="mb-3">
+                    <div class="tutorial-section-title">Integration Tutorial</div>
+                    <p class="tutorial-section-subtitle">Help other administrators by providing a setup guide for this integration. You can either write it here or upload an existing document.</p>
+                    <div class="tutorial-editor-wrapper">
+                      <textarea id="tutorial-editor"></textarea>
+                    </div>
+                  </div>
+
+                  <!-- Tutorial file import -->
+                  <div class="mb-4">
+                    <p class="tutorial-import-label">Click to import a tutorial file.</p>
+                    <div class="tutorial-dropzone"
+                         [class.tutorial-dropzone-over]="tutorialDragOver()"
+                         (dragover)="$event.preventDefault(); tutorialDragOver.set(true)"
+                         (dragleave)="tutorialDragOver.set(false)"
+                         (drop)="onTutorialFileDrop($event)"
+                         (click)="tutorialFileInput.click()">
+                      <input #tutorialFileInput type="file" class="d-none" multiple
+                             accept=".txt,.jar,.crt,.xml" (change)="onTutorialFileSelect($event)">
+                      <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
+                      <div class="tutorial-dropzone-text">
+                        <span class="tutorial-dropzone-link">Click to import</span> or drag and drop
                       </div>
-
-                      @if (devRepoOwnership() === 'own') {
-                        <div class="mb-3">
-                          <label class="form-label form-label-upload">GitHub API Key</label>
-                          <div class="method-link-wrapper d-flex align-items-center">
-                            <input [type]="showGithubApiKey() ? 'text' : 'password'"
-                                   class="method-link-input flex-grow-1"
-                                   [value]="devGithubApiKey()"
-                                   (input)="devGithubApiKey.set($any($event.target).value)"
-                                   placeholder="••••••••••••••••••••••••••••••••••••••••••••••">
-                            <button type="button" class="method-link-clear d-flex align-items-center px-2"
-                                    (click)="showGithubApiKey.set(!showGithubApiKey())">
-                              <i class="fa-solid" [class.fa-eye]="!showGithubApiKey()" [class.fa-eye-slash]="showGithubApiKey()"></i>
+                      <div class="tutorial-dropzone-hint">the files in the accepted format (e.g. txt, jar, crt)</div>
+                    </div>
+                    @if (tutorialFiles().length > 0) {
+                      <div class="tutorial-file-list">
+                        @for (entry of tutorialFiles(); track entry.name; let i = $index) {
+                          <div class="tutorial-file-item">
+                            <i class="fa-regular fa-file tutorial-file-icon"></i>
+                            <div class="tutorial-file-name-group">
+                              <span class="tutorial-file-name">{{ entry.name }}</span>
+                              @if (entry.isNew) {
+                                <span class="tutorial-file-new-badge">NEW</span>
+                              }
+                            </div>
+                            <button type="button" class="tutorial-file-delete" (click)="removeTutorialFile(i)" aria-label="Remove file">
+                              <i class="fa-solid fa-trash-can"></i>
                             </button>
                           </div>
-                          <div class="form-text mt-1">
-                            <i class="fa-solid fa-location-crosshairs me-1"></i>
-                            We'll use this API key once to create a repository in your GitHub account. The key is not stored.
-                          </div>
-                          <div class="form-text">
-                            Need help creating a GitHub API key? See GitHub's guide on personal access tokens?
-                            <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token"
-                               target="_blank" rel="noopener noreferrer">
-                              How to create Github API Key <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem;"></i>
-                            </a>
-                          </div>
-                        </div>
-                      }
-                    }
-
-                    <!-- Framework setting (java-based + existing connector) -->
-                    @if (selectedConnectorType() === 'java-based' || isExistingConnector()) {
-                      <h6 class="dev-section-title mt-3">Framework setting</h6>
-                      <div class="mb-3">
-                        <label class="form-label d-flex align-items-center form-label-upload">
-                          Build tool@if (!isExistingConnector()) {<span class="text-danger">&nbsp;*</span>}
-                          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                            <i class="fa-solid fa-circle-info info-icon"></i>
-                            <span class="info-tooltip">The build system used to compile this connector.</span>
-                          </span>
-                        </label>
-                        <div class="d-flex gap-4">
-                          <div class="form-check">
-                            <input class="form-check-input" type="radio" name="devBuildTool" id="build-maven"
-                                   [checked]="devBuildTool() === 'maven'"
-                                   (change)="devBuildTool.set('maven')"
-                                   [disabled]="isExistingConnector()">
-                            <label class="form-check-label" for="build-maven">Maven</label>
-                          </div>
-                          <div class="form-check">
-                            <input class="form-check-input" type="radio" name="devBuildTool" id="build-gradle"
-                                   [checked]="devBuildTool() === 'gradle'"
-                                   (change)="devBuildTool.set('gradle')"
-                                   [disabled]="isExistingConnector()">
-                            <label class="form-check-label" for="build-gradle">Gradle</label>
-                          </div>
-                        </div>
-                      </div>
-                    }
-
-                    <!-- Source code access (all types) -->
-                    <h6 class="dev-section-title mt-3">Source code access</h6>
-
-                    <!-- Git clone URL -->
-                    <div class="mb-3">
-                      <label class="form-label d-flex align-items-center form-label-upload">
-                        Git clone URL@if (!isExistingConnector()) {<span class="text-danger">&nbsp;*</span>}
-                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                          <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">The Git URL used to clone the repository.</span>
-                        </span>
-                      </label>
-                      <div class="method-link-wrapper d-flex align-items-center">
-                        <span class="method-link-icon d-flex align-items-center px-2">
-                          <i class="fa-solid fa-link method-link-icon-i"></i>
-                        </span>
-                        <input type="url" class="method-link-input flex-grow-1"
-                               [value]="devGitCloneUrl()"
-                               (input)="devGitCloneUrl.set($any($event.target).value)"
-                               [disabled]="isExistingConnector()"
-                               placeholder="e.g. https://github.com/Evolveum/connector-ldap.git">
-                      </div>
-                      <div class="form-text">Ensure the link is accessible to the intended audience.</div>
-                    </div>
-
-                    <!-- Commit tag -->
-                    <div class="mb-3">
-                      <label class="form-label d-flex align-items-center form-label-upload">
-                        Commit tag@if (!isExistingConnector()) {<span class="text-danger">&nbsp;*</span>}
-                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                          <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">The specific commit tag or release version to use.</span>
-                        </span>
-                      </label>
-                      <div class="method-link-wrapper d-flex align-items-center">
-                        <span class="method-link-icon d-flex align-items-center px-2">
-                          <i class="fa-solid fa-tag method-link-icon-i"></i>
-                        </span>
-                        <input type="text" class="method-link-input flex-grow-1"
-                               [value]="devCommitTag()"
-                               (input)="devCommitTag.set($any($event.target).value)"
-                               [disabled]="isExistingConnector()"
-                               placeholder="e.g. 1.0.4">
-                      </div>
-                    </div>
-
-                    <!-- Implementation details (all types) -->
-                    <h6 class="dev-section-title mt-3">Implementation details</h6>
-
-                    <!-- Project folder path -->
-                    <div class="mb-3">
-                      <label class="form-label d-flex align-items-center form-label-upload">
-                        Project folder path@if (!isExistingConnector()) {<span class="text-danger">&nbsp;*</span>}
-                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                          <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Path to the directory containing the build file (e.g. pom.xml).</span>
-                        </span>
-                      </label>
-                      <div class="method-link-wrapper d-flex align-items-center">
-                        <span class="method-link-icon d-flex align-items-center px-2">
-                          <i class="fa-regular fa-folder method-link-icon-i"></i>
-                        </span>
-                        <input type="text" class="method-link-input flex-grow-1"
-                               [value]="devProjectFolderPath()"
-                               (input)="devProjectFolderPath.set($any($event.target).value)"
-                               [disabled]="isExistingConnector()"
-                               placeholder="e.g. /connectors/my-ldap-connector">
-                      </div>
-                      <div class="form-text">Specific directory containing the build file (e.g. pom.xml). Leave empty if the project is in the repository root.</div>
-                    </div>
-
-                    <!-- Class name / Connector entry class (java-based + existing) -->
-                    @if (selectedConnectorType() === 'java-based' || isExistingConnector()) {
-                      <div class="mb-0">
-                        <label class="form-label d-flex align-items-center form-label-upload">
-                          {{ isExistingConnector() ? 'Connector entry class' : 'Class name' }}@if (!isExistingConnector()) {<span class="text-danger">&nbsp;*</span>}
-                          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                            <i class="fa-solid fa-circle-info info-icon"></i>
-                            <span class="info-tooltip">Fully-qualified class name of the connector entry point.</span>
-                          </span>
-                        </label>
-                        <div class="method-link-wrapper d-flex align-items-center">
-                          <span class="method-link-icon d-flex align-items-center px-2">
-                            <i class="fa-solid fa-link method-link-icon-i"></i>
-                          </span>
-                          <input type="text" class="method-link-input flex-grow-1"
-                                 [value]="devClassName()"
-                                 (input)="devClassName.set($any($event.target).value)"
-                                 [disabled]="isExistingConnector()"
-                                 placeholder="e.g. org.identityconnectors.ldap.LdapConnector">
-                        </div>
-                      </div>
-                    }
-
-                  </div>
-                }
-              </div>
-
-              <!-- Note alert -->
-              <div class="alert-info-note d-flex gap-2 align-items-start mt-2">
-                <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
-                <span class="alert-text">
-                  @if (isExistingConnector()) {
-                    <strong>Note</strong> &nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
-                  } @else {
-                    <strong>Note</strong> &nbsp;Once published, this integration method will appear in the public catalog and be visible to other users.
-                  }
-                </span>
-              </div>
-
-            </div>
-          }
-
-          <!-- Step 6: Review -->
-          @if (currentStep() === 6) {
-            <div class="step-content">
-              <h5 class="step-title">Review your setup</h5>
-
-              <!-- Card 1: Target application -->
-              <div class="review-card mb-3">
-                <div class="review-card-header">
-                  <span class="review-card-title">Target application</span>
-                  <button type="button" class="review-edit-btn" (click)="goToStep(1)">
-                    <i class="fa-solid fa-pen"></i>
-                  </button>
-                </div>
-                <div class="review-card-body">
-                  <div class="d-flex align-items-center gap-2">
-                    @if (selectedApplication() && getAppLogoUrl(selectedApplication()!)) {
-                      <img [src]="getAppLogoUrl(selectedApplication()!)" [alt]="selectedApplication()!.displayName" class="review-app-logo">
-                    } @else if (logoPreviewUrl()) {
-                      <img [src]="logoPreviewUrl()!" alt="App logo" class="review-app-logo">
-                    } @else {
-                      <div class="review-app-avatar d-flex align-items-center justify-content-center">
-                        {{ (selectedApplication()?.displayName || displayName()).charAt(0) || '?' }}
-                      </div>
-                    }
-                    <span class="review-app-name">{{ selectedApplication()?.displayName || displayName() }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Card 2: Integration method -->
-              <div class="review-card mb-3">
-                <div class="review-card-header">
-                  <span class="review-card-title">Integration method</span>
-                  <button type="button" class="review-edit-btn" (click)="goToStep(2)">
-                    <i class="fa-solid fa-pen"></i>
-                  </button>
-                </div>
-                <div class="review-card-body">
-                  <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
-                    @for (title of selectedMethodTitles(); track title; let last = $last) {
-                      <span class="review-method-badge">{{ title }}</span>
-                      @if (!last) {
-                        <span class="review-method-separator">+</span>
-                      }
-                    }
-                  </div>
-                  <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="review-detail-name">{{ methodFormDisplayName() }}</span>
-                    @if (methodFormVersion()) {
-                      <span class="review-version-badge">{{ methodFormVersion() }}</span>
-                    }
-                  </div>
-                  <p class="review-description mb-0">
-                    Integration method description: {{ methodFormDescription() }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Card 3: Connector type -->
-              <div class="review-card mb-3">
-                <div class="review-card-header">
-                  <span class="review-card-title">Connector type</span>
-                  <button type="button" class="review-edit-btn" (click)="goToStep(4)">
-                    <i class="fa-solid fa-pen"></i>
-                  </button>
-                </div>
-                <div class="review-card-body">
-                  <span class="review-method-badge d-inline-flex align-items-center gap-2">
-                    <i class="fa-solid fa-screwdriver-wrench review-type-icon"></i>
-                    {{ connectorTypeLabel() }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Card 4: Connector details -->
-              <div class="review-card mb-3">
-                <div class="review-card-header">
-                  <span class="review-card-title">Connector details</span>
-                  <button type="button" class="review-edit-btn" (click)="goToStep(5)">
-                    <i class="fa-solid fa-pen"></i>
-                  </button>
-                </div>
-                <div class="review-card-body">
-                  <div class="review-detail-row">
-                    <span class="review-detail-label">Connector name:</span>
-                    <span class="review-detail-value d-flex align-items-center gap-2">
-                      {{ connectorName() }}
-                      @if (connectorVersion()) {
-                        <span class="review-version-badge">{{ connectorVersion() }}</span>
-                      }
-                    </span>
-                  </div>
-                  @if (devProjectHomepage()) {
-                    <div class="review-detail-row">
-                      <span class="review-detail-label">Project homepage:</span>
-                      <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devProjectHomepage() }}</span>
-                    </div>
-                  }
-                  @if (devSupportPortal()) {
-                    <div class="review-detail-row">
-                      <span class="review-detail-label">Support portal:</span>
-                      <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devSupportPortal() }}</span>
-                    </div>
-                  }
-                  @if (devGitCloneUrl()) {
-                    <div class="review-detail-row">
-                      <span class="review-detail-label">Git clone URL:</span>
-                      <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devGitCloneUrl() }}</span>
-                    </div>
-                  }
-                  @if (devCommitTag()) {
-                    <div class="review-detail-row">
-                      <span class="review-detail-label">Commit tag:</span>
-                      <span class="review-detail-value"><i class="fa-solid fa-tag review-link-icon me-1"></i>{{ devCommitTag() }}</span>
-                    </div>
-                  }
-                  @if (devProjectFolderPath()) {
-                    <div class="review-detail-row">
-                      <span class="review-detail-label">Project folder path:</span>
-                      <span class="review-detail-value">{{ devProjectFolderPath() }}</span>
-                    </div>
-                  }
-                  @if (devClassName() && (selectedConnectorType() === 'java-based' || isExistingConnector())) {
-                    <div class="review-detail-row">
-                      <span class="review-detail-label">{{ isExistingConnector() ? 'Connector entry class:' : 'Class name:' }}</span>
-                      <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devClassName() }}</span>
-                    </div>
-                  }
-                </div>
-              </div>
-
-            </div>
-          }
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="modal-footer d-flex justify-content-between modal-footer-upload">
-          @if (currentStep() === 1) {
-            <button type="button" class="btn btn-link define-new-cancel-btn" (click)="closeModal()"></button>
-          }
-          @if (currentStep() === 2) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back
-            </button>
-          }
-          @if (currentStep() === 3) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back
-            </button>
-          }
-          @if (currentStep() === 4) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back
-            </button>
-          }
-          @if (currentStep() === 5) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back
-            </button>
-          }
-          @if (currentStep() === 6) {
-            <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
-                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
-                  Back
-            </button>
-          }
-          <div>
-            @if (currentStep() === 1) {
-              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!canContinueStep1()">
-                Continue
-                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
-              </button>
-            }
-            @if (currentStep() === 2) {
-              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="selectedIntegrationMethod().length === 0">
-                Next
-                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
-              </button>
-            }
-            @if (currentStep() === 3) {
-              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion()">
-                Next
-                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
-              </button>
-            }
-            @if (currentStep() === 4) {
-              <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedConnectorType()">
-                Continue
-                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
-              </button>
-            }
-            @if (currentStep() === 5) {
-              <button type="button" class="btn btn-primary btn-next" [disabled]="!isStep5Valid()" (click)="nextStep()">
-                Continue
-                <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
-              </button>
-            }
-            @if (currentStep() === 6) {
-              <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing()" (click)="publishIntegrationMethod()">
-                @if (isPublishing()) {
-                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Publishing...
-                } @else {
-                  Publish integration method
-                  <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
-                }
-              </button>
-            }
-          </div>
-        </div>
-
-          </div><!-- end modal-main-left -->
-
-        </div><!-- end modal-main -->
-
-      </div><!-- end publish-main-layout -->
-
-        <!-- Recently Used Section (step 1 only, below footer) -->
-        @if (currentStep() === 1) {
-          <div class="recently-used-section">
-            <h6 class="recently-used-heading">Recently used applications</h6>
-            @if (recentApps().length === 0) {
-              <p class="text-muted recently-used-empty">No recently used applications yet.</p>
-            }
-            <div class="recently-used-grid">
-              @for (app of recentApps(); track app.id) {
-                <div class="recent-app-item" (click)="selectApplication(app)">
-                  <div class="recent-app-icon-wrapper">
-                    @if (getAppLogoUrl(app)) {
-                      <img [src]="getAppLogoUrl(app)" [alt]="app.displayName" class="recent-app-logo">
-                    } @else {
-                      <div class="recent-app-initial d-flex align-items-center justify-content-center w-100 h-100">
-                        {{ app.displayName.charAt(0) }}
+                        }
                       </div>
                     }
                   </div>
-                  <span class="recent-app-name">{{ app.displayName }}</span>
+
                 </div>
               }
-            </div>
-          </div>
+
+              <!-- Step 4: Select Connector Type -->
+              @if (currentStep() === 4) {
+                <div class="step-content">
+                  <h5 class="step-title">Select connector type</h5>
+
+                  <!-- Option 1: Java-based Connector -->
+                  <div class="connector-option mb-3 connector-option-card"
+                       [class.selected]="selectedConnectorType() === 'java-based'"
+                       (click)="selectConnectorType('java-based')">
+                    <div class="d-flex align-items-center">
+                      <input type="radio" name="connectorType"
+                             [checked]="selectedConnectorType() === 'java-based'"
+                             class="form-check-input me-3 flex-shrink-0 radio-input">
+                      <div class="flex-grow-1">
+                        <div class="connector-title mb-1">Java-based connector</div>
+                        <div class="connector-description">
+                          Typically deployed in the same environment as midPoint.<br>
+                          Requires uploading a .jar file.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Option 2: Low-code with Own Repository -->
+                  <div class="connector-option mb-3 connector-option-card"
+                       [class.selected]="selectedConnectorType() === 'own-repo'"
+                       (click)="selectConnectorType('own-repo')">
+                    <div class="d-flex align-items-center">
+                      <input type="radio" name="connectorType"
+                             [checked]="selectedConnectorType() === 'own-repo'"
+                             class="form-check-input me-3 flex-shrink-0 radio-input">
+                      <div class="flex-grow-1">
+                        <div class="connector-title mb-1">Low-code connector with its own repository</div>
+                        <div class="connector-description">
+                          Connector is maintained in your own version-controlled repository (e.g., GitHub, GitLab).<br>
+                          Requires entering repository URL.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Option 3: Low-code without repository -->
+                  <div class="connector-option mb-3 connector-option-card"
+                       [class.selected]="selectedConnectorType() === 'evolveum-hosted'"
+                       (click)="selectConnectorType('evolveum-hosted')">
+                    <div class="d-flex align-items-center">
+                      <input type="radio" name="connectorType"
+                             [checked]="selectedConnectorType() === 'evolveum-hosted'"
+                             class="form-check-input me-3 flex-shrink-0 radio-input">
+                      <div class="flex-grow-1">
+                        <div class="connector-title mb-1">Low-code connector without repository</div>
+                        <div class="connector-description">
+                          Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Choose from existing connectors -->
+                  <div class="connector-existing-link">
+                    Do you want already existing connector?
+                    <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openConnectorCatalogModal()">
+                      Select one from the catalog <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Step 1: Select Target Application -->
+              @if (currentStep() === 1) {
+                <div class="step-content">
+                  <h5 class="define-app-heading">Select target application</h5>
+                  <p class="define-app-subtitle">Search or define a new application to continue.</p>
+
+                  <!-- Search Input -->
+                  <div class="position-relative mb-4">
+                    <div class="search-input-wrapper">
+                      <div class="d-flex align-items-center">
+                        <span class="search-icon-wrapper d-flex align-items-center">
+                          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        </span>
+                        <input
+                          type="text"
+                          class="search-input flex-grow-1"
+                          [value]="searchQuery()"
+                          (input)="onSearchChange($event)"
+                          placeholder="Search applications...">
+                        @if (searchQuery()) {
+                          <button class="clear-search-btn d-flex align-items-center" type="button" (click)="clearSearch()">
+                            <i class="fa-solid fa-xmark clear-icon"></i>
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Selected Application Card -->
+                  @if (selectedApplication() && !searchQuery()) {
+                    <div class="selected-app-card mb-4 d-flex align-items-center">
+                      <div class="flex-grow-1 min-width-0">
+                        @if (getAppLogoUrl(selectedApplication()!)) {
+                          <img [src]="getAppLogoUrl(selectedApplication()!)" [alt]="selectedApplication()!.displayName" class="selected-app-logo mb-2">
+                        } @else {
+                          <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
+                            {{ selectedApplication()!.displayName.charAt(0) }}
+                          </div>
+                        }
+                        <h6 class="mb-1 app-title">{{ selectedApplication()!.displayName }}</h6>
+                        <p class="mb-0 text-muted app-description selected-app-description">{{ selectedApplication()!.description }}</p>
+                      </div>
+                      <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
+                        <i class="fa-regular fa-trash-can"></i>
+                      </button>
+                    </div>
+                  }
+
+                  <!-- Defined New App confirmation card -->
+                  @if (isDefineNewMode() && !selectedApplication()) {
+                    <div class="selected-app-card mb-4 d-flex align-items-center">
+                      <div class="flex-grow-1 min-width-0">
+                        @if (logoPreviewUrl()) {
+                          <img [src]="logoPreviewUrl()" alt="Logo preview" class="selected-app-logo mb-2">
+                        } @else {
+                          <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
+                            {{ displayName().charAt(0) || 'N' }}
+                          </div>
+                        }
+                        <h6 class="mb-1 app-title">{{ displayName() || 'New application' }}</h6>
+                        <p class="mb-0 text-muted app-description selected-app-description">{{ description() }}</p>
+                      </div>
+                      <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
+                        <i class="fa-regular fa-trash-can"></i>
+                      </button>
+                    </div>
+                  }
+
+                  <!-- Search Results -->
+                  @if (searchQuery() && filteredApplications().length > 0) {
+                    <div class="search-results mb-4">
+                      @for (app of filteredApplications(); track app.id) {
+                        <div class="card mb-3 app-card" (click)="selectApplication(app)">
+                          <div class="card-body d-flex align-items-start app-card-body">
+                            <div class="flex-shrink-0 me-3">
+                              <div class="app-avatar d-flex align-items-center justify-content-center">
+                                {{ app.displayName.charAt(0) }}
+                              </div>
+                            </div>
+                            <div class="flex-grow-1">
+                              <h6 class="mb-2 app-title">{{ app.displayName }}</h6>
+                              <p class="mb-0 text-muted app-description">{{ app.description }}</p>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Define New CTA -->
+                  @if (!selectedApplication() && !isDefineNewMode() && (!searchQuery() || filteredApplications().length === 0)) {
+                    <div class="text-center py-4">
+                      <p class="text-muted mb-3">Didn't find your app in the database? Add a new one!</p>
+                      <button type="button" class="btn d-inline-flex align-items-center btn-define-new" (click)="enterDefineNewMode()">
+                        <i class="fa-solid fa-circle-plus me-2 trash-icon"></i>
+                        Define new
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
+            </div><!-- end modal-body -->
+
+            <!-- Footer for steps 1–4 -->
+            <div class="modal-footer d-flex justify-content-between modal-footer-upload">
+              @if (currentStep() === 1) {
+                <button type="button" class="btn btn-link define-new-cancel-btn" (click)="closeModal()"></button>
+              }
+              @if (currentStep() >= 2 && currentStep() <= 4) {
+                <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousStep()">
+                  <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>
+                  Back
+                </button>
+              }
+              <div>
+                @if (currentStep() === 1) {
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!canContinueStep1()">
+                    Continue
+                    <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+                  </button>
+                }
+                @if (currentStep() === 2) {
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="selectedIntegrationMethod().length === 0">
+                    Continue
+                    <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+                  </button>
+                }
+                @if (currentStep() === 3) {
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion()">
+                    Continue
+                    <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+                  </button>
+                }
+                @if (currentStep() === 4) {
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedConnectorType()">
+                    Continue
+                    <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+                  </button>
+                }
+              </div>
+            </div><!-- end footer -->
+          }<!-- end @if (currentStep() < 5) -->
+
+          <!-- Steps 5–7: delegated to child component -->
+          @if (currentStep() >= 5) {
+            <app-upload-form-impl
+              [connectorType]="selectedConnectorType()"
+              [selectedCatalogConnector]="selectedCatalogConnector()"
+              [reviewSummary]="reviewSummary()"
+              (goToParentStep)="handleGoToParentStep($event)"
+              (internalStepChange)="handleChildInternalStepChange($event)"
+              (formDataChanged)="handleFormDataChanged($event)">
+            </app-upload-form-impl>
+          }
+
+        </div><!-- end modal-main-left -->
+      </div><!-- end modal-main -->
+
+    </div><!-- end publish-main-layout -->
+
+    <!-- Recently Used Section (step 1 only) -->
+    @if (currentStep() === 1) {
+      <div class="recently-used-section">
+        <h6 class="recently-used-heading">Recently used applications</h6>
+        @if (recentApps().length === 0) {
+          <p class="text-muted recently-used-empty">No recently used applications yet.</p>
         }
+        <div class="recently-used-grid">
+          @for (app of recentApps(); track app.id) {
+            <div class="recent-app-item" (click)="selectApplication(app)">
+              <div class="recent-app-icon-wrapper">
+                @if (getAppLogoUrl(app)) {
+                  <img [src]="getAppLogoUrl(app)" [alt]="app.displayName" class="recent-app-logo">
+                } @else {
+                  <div class="recent-app-initial d-flex align-items-center justify-content-center w-100 h-100">
+                    {{ app.displayName.charAt(0) }}
+                  </div>
+                }
+              </div>
+              <span class="recent-app-name">{{ app.displayName }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
 
   </div><!-- end publish-content -->
-  }<!-- end @if (!publishComplete()) -->
-</div>
+</div><!-- end publish-page -->
 
 <!-- Connector Catalog Modal -->
 @if (showConnectorCatalogModal()) {
