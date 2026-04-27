@@ -2,7 +2,7 @@ import { Component, signal, computed, effect, OnInit, OnDestroy } from '@angular
 import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
@@ -15,7 +15,7 @@ import { UploadFormImpl, ReviewSummary, Step5FormData } from '../upload-form-imp
 @Component({
   selector: 'app-upload-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, RouterLink, UploadFormImpl],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, UploadFormImpl],
   templateUrl: './upload-form-main.html',
   styleUrls: ['./upload-form-main.scss']
 })

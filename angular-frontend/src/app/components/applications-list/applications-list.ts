@@ -185,17 +185,19 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     if (filters.categories.length > 0) {
       filtered = filtered.filter(app => {
         const allTags = [...(app.categories || []), ...(app.tags || [])];
-        return allTags.some(tag =>
-          filters.categories.includes(tag.name) &&
-          (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
+        return filters.categories.every(selectedCat =>
+          allTags.some(tag =>
+            tag.name === selectedCat &&
+            (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
+          )
         );
       });
     }
 
     if (filters.capabilities.length > 0) {
       filtered = filtered.filter(app =>
-        app.capabilities?.some((capability: string) =>
-          filters.capabilities.includes(capability)
+        filters.capabilities.every((capability: string) =>
+          app.capabilities?.includes(capability)
         )
       );
     }
@@ -208,8 +210,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     if (filters.midpointVersions.length > 0) {
       filtered = filtered.filter(app =>
-        app.midpointVersions?.some((version: string) =>
-          filters.midpointVersions.includes(version)
+        filters.midpointVersions.every((version: string) =>
+          app.midpointVersions?.includes(version)
         )
       );
     }
@@ -286,6 +288,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   private updateDropdownPosition(): void {
     if (!this.activeChipElement) return;
     const rect = this.activeChipElement.getBoundingClientRect();
+    const header = document.querySelector('app-page-header');
+    const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+    if (rect.top < headerBottom) {
+      this.closeDropdown();
+      return;
+    }
     this.dropdownPosition.set({
       top: rect.bottom + 8,
       left: rect.left
@@ -507,6 +515,18 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   protected formatAppStatus(status: string): string {
     return this.formatLifecycleState(status);
+  }
+
+  protected getAvatarGradient(name: string): string {
+    const gradients = [
+      'linear-gradient(135deg, #0078d4 0%, #50e6ff 100%)',
+      'linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)',
+      'linear-gradient(135deg, #0d9488 0%, #5eead4 100%)',
+      'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)',
+      'linear-gradient(135deg, #be185d 0%, #f472b6 100%)',
+    ];
+    const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % gradients.length;
+    return gradients[index];
   }
 
   protected getCategoryDisplayName(categoryName: string): string {

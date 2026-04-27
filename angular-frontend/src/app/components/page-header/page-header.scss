@@ -28,6 +28,11 @@
   color: #6b7280;
   text-decoration: none;
 
+  &:link,
+  &:visited {
+    color: #6b7280;
+  }
+
   &:hover {
     color: #374151;
     text-decoration: underline;
@@ -44,6 +49,17 @@
   height: 16px;
   object-fit: contain;
   border-radius: 3px;
+}
+
+.breadcrumb-letter-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .header-globe-icon {
