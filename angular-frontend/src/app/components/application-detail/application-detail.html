@@ -5,7 +5,20 @@
  -->
 
 <div class="container-fluid p-0 page-container">
-  <app-page-header></app-page-header>
+  <app-page-header [breadcrumb]="true">
+    <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
+      <a class="breadcrumb-link" (click)="goBack()" style="cursor:pointer;">Integration catalog</a>
+      @if (application()) {
+        <span class="breadcrumb-sep">›</span>
+        <span class="d-flex align-items-center gap-1">
+          @if (!shouldShowLetterAvatar()) {
+            <img [src]="getLogoUrl()" [alt]="application()!.displayName" class="breadcrumb-app-icon">
+          }
+          {{ application()!.displayName }} connector
+        </span>
+      }
+    </span>
+  </app-page-header>
   @if (loading()) {
     <div class="container py-5">
       <div class="d-flex justify-content-center align-items-center loading-container">
@@ -44,7 +57,7 @@
                    class="logo-image" />
             </div>
           } @else {
-            <div class="letter-avatar d-flex align-items-center justify-content-center">
+            <div class="letter-avatar d-flex align-items-center justify-content-center" [style.background]="getAvatarGradient(application()!.displayName)">
               {{ application()!.displayName.charAt(0) }}
             </div>
           }
@@ -58,7 +71,7 @@
               @for (tag of application()!.tags!; track tag.id) {
                 @if (tag.name === 'popular') {
                   <span class="badge badge-popular d-inline-flex align-items-center gap-1">
-                    <i class="fa-solid fa-fire icon-sm"></i>
+                    <i class="fa-solid fa-fire-flame-curved icon-sm"></i>
                     {{ tag.displayName }}
                   </span>
                 }
@@ -100,15 +113,9 @@
   </div>
 
   <div class="container pt-3 pb-5">
-    <p class="breadcrumb-text mb-4">
-          <button class="breadcrumb-link" (click)="goBack()">Integration catalog</button>
-          <span> / {{ application()!.displayName }} connector</span>
-        </p>
     <div class="row">
       <!-- Left Panel - Main Content -->
       <div class="col-lg-8">
-        <!-- Breadcrumb -->
-        
 
         <div class="bg-white p-4 rounded mb-4">
           <!-- Description Section -->
@@ -181,113 +188,42 @@
                     </button>
                   </div><br> -->
 
-                  <!-- Choose Integration Method Section -->
-                  @if (!isContinuePressed()) {
-                    <!-- Expanded View -->
-                    <h5 class="mb-2">Choose an integration method</h5>
-                    <p class="text-sm mb-3">This selection defines how {{ application()?.displayName }} will be integrated and filters available connector versions.</p>
+                  <!-- Search Integration Methods Section -->
+                  <h5 class="mb-3">Search integration methods</h5>
 
-                    <div class="integration-methods-grid gap-3 mb-3">
+                  <!-- Toolbar -->
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <select class="form-select method-type-select" [value]="methodTypeFilter()" (change)="onMethodTypeChange($event)">
+                      <option value="all">All</option>
                       @for (method of integrationMethods; track method.id) {
-                        <div
-                          class="integration-method-card"
-                          [class.selected]="selectedIntegrationMethod() === method.id"
-                          (click)="selectIntegrationMethod(method.id)">
-                          <div class="d-flex align-items-center gap-3">
-                            <input
-                              type="radio"
-                              name="integrationMethod"
-                              [id]="'method-' + method.id"
-                              [value]="method.id"
-                              [checked]="selectedIntegrationMethod() === method.id"
-                              (change)="selectIntegrationMethod(method.id)"
-                              class="integration-method-radio" />
-                            <div>
-                              <div class="integration-method-title">{{ method.name }}</div>
-                              <div class="integration-method-description">{{ method.description }}</div>
-                            </div>
-                          </div>
-                        </div>
+                        <option [value]="method.id">{{ method.name }}</option>
                       }
-                    </div>
-
-                    <!-- Note -->
-                    @if (isIntegrationNoteVisible()) {
-                      <div class="integration-note mb-4 d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                          <i class="fa-solid fa-circle-exclamation note-icon me-2"></i>
-                          <span class="text-sm"><strong>Note</strong> Select an integration method to see available connector versions</span>
-                        </div>
-                        <button type="button" class="btn-close-note d-flex align-items-center justify-content-center" (click)="hideIntegrationNote()">
-                          <i class="fa-solid fa-xmark"></i>
-                        </button>
-                      </div>
-                    }
-
-                    <!-- Continue Button -->
-                    <div class="mb-4 d-flex justify-content-end">
-                      <button
-                        class="btn btn-continue"
-                        [disabled]="!selectedIntegrationMethod()"
-                        (click)="onContinueClick()">
-                        Continue
-                      </button>
-                    </div>
-                  } @else {
-                    <!-- Collapsed View -->
-                    <h5 class="mb-3">Integration method</h5>
-                    <div class="selected-method-container mb-4 d-inline-flex align-items-center gap-3 rounded-pill">
-                      <span class="selected-method-name">{{ getSelectedMethodName() }}</span>
-                      <button type="button" class="btn-change-method d-inline-flex align-items-center" (click)="onChangeMethodClick()">
-                        <i class="fa-solid fa-pen-to-square me-1"></i>
-                        Change
-                      </button>
-                    </div>
-                  }
-
-                  <!-- Search Connector Versions Section -->
-                  <h5 class="mb-3">Search connector versions</h5>
-
-                  <!-- Search and Filter Row -->
-                  <div class="d-flex align-items-center gap-3 mb-4">
-                    <!-- Search Input -->
+                    </select>
                     <div class="input-group flex-grow-1">
-                      <span class="input-group-text border-end-0" [class.bg-white]="isContinuePressed()" [class.search-disabled]="!isContinuePressed()">
+                      <span class="input-group-text bg-white border-0">
                         <i class="fa-solid fa-magnifying-glass text-muted"></i>
                       </span>
-                      <input
-                        type="text"
-                        class="form-control border-start-0"
-                        [class.search-disabled]="!isContinuePressed()"
-                        [placeholder]="isContinuePressed() ? 'Filter by name or version...' : 'Select an integration method first'"
-                        [value]="versionSearchQuery()"
-                        (input)="onVersionSearchChange($event)"
-                        [disabled]="!isContinuePressed()"
-                      />
+                      <input type="text" class="form-control border-0" placeholder="Search"
+                             [value]="methodSearchQuery()" (input)="onMethodSearchChange($event)" />
                     </div>
-
-                    <!-- Filter Buttons -->
-                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                      <button type="button" (click)="toggleFilterModal()" class="btn btn-sm btn-filter d-flex align-items-center gap-2" [disabled]="!isContinuePressed()">
-                        <i class="fa-solid fa-filter icon-xl"></i>
-                        Filter
-                      </button>
-                      <button type="button" (click)="resetFilters()" class="btn btn-sm btn-reset" [disabled]="!isContinuePressed()">
-                        Reset filter
-                      </button>
-                    </div>
+                    <button type="button" (click)="toggleFilterModal()" class="btn btn-sm btn-filter d-flex align-items-center gap-2">
+                      <i class="fa-solid fa-filter icon-xl"></i>
+                      Filter
+                    </button>
+                    <button type="button" (click)="resetFilters()" class="btn btn-sm btn-reset">
+                      Reset filter
+                    </button>
                   </div>
+
+                  <hr class="method-divider">
 
                   <!-- Active Filter Chips -->
                   @if (hasActiveFilters()) {
-                    <div class="d-flex align-items-center gap-2 flex-wrap mb-4">
-                      <!-- Capabilities Filter Chip -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
                       @if (filterState().capabilities.length > 0) {
                         <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                           <span>Capability</span>
-                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
-                            {{ filterState().capabilities.length }}
-                          </span>
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">{{ filterState().capabilities.length }}</span>
                           <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                             <i class="fa-solid fa-chevron-down icon-xs"></i>
                           </button>
@@ -296,14 +232,10 @@
                           </button>
                         </div>
                       }
-
-                      <!-- ConnId Version Filter Chip -->
                       @if (filterState().midpointVersions.length > 0) {
                         <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                           <span>ConnId Version</span>
-                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
-                            {{ filterState().midpointVersions.length }}
-                          </span>
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">{{ filterState().midpointVersions.length }}</span>
                           <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                             <i class="fa-solid fa-chevron-down icon-xs"></i>
                           </button>
@@ -320,50 +252,32 @@
                     <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" (click)="toggleFilterModal()">
                       <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
                         <div class="d-flex flex-column h-100">
-                          <!-- Two-panel layout -->
                           <div class="d-flex flex-grow-1 overflow-hidden">
-                            <!-- Left Sidebar -->
                             <div class="border-end modal-sidebar overflow-auto">
                               <div class="d-flex flex-column">
-                                <!-- Capabilities Section -->
                                 <button type="button" (click)="selectFilterSection('capabilities')" class="modal-section-btn" [class.modal-section-btn-active]="selectedFilterSection() === 'capabilities'">
                                   <span class="font-weight-medium">Capabilities</span>
                                 </button>
-
-                                <!-- Midpoint Version Section -->
                                 <button type="button" (click)="selectFilterSection('versions')" class="modal-section-btn" [class.modal-section-btn-active]="selectedFilterSection() === 'versions'">
                                   <span class="font-weight-medium">Midpoint Version</span>
                                 </button>
                               </div>
                             </div>
-
-                            <!-- Right Content Area -->
                             <div class="p-4 modal-main overflow-auto">
-                              <!-- Capabilities Content -->
                               @if (selectedFilterSection() === 'capabilities') {
                                 <div class="d-flex flex-wrap gap-2">
                                   @for (capability of allCapabilities; track capability) {
-                                    <span
-                                      class="badge badge-selectable"
-                                      [class.badge-selectable-active]="isCapabilitySelected(capability)"
-                                      [class.badge-selectable-inactive]="!isCapabilitySelected(capability)"
-                                      (click)="toggleCapabilityFilter(capability)">
+                                    <span class="badge badge-selectable" [class.badge-selectable-active]="isCapabilitySelected(capability)" [class.badge-selectable-inactive]="!isCapabilitySelected(capability)" (click)="toggleCapabilityFilter(capability)">
                                       {{ formatCapabilityText(capability) }}
                                     </span>
                                   }
                                 </div>
                               }
-
-                              <!-- Midpoint Version Content -->
                               @if (selectedFilterSection() === 'versions') {
                                 <div class="d-flex flex-wrap gap-2">
-                                  @for (version of getAllMidpointVersions(); track version) {
-                                    <span
-                                      class="badge badge-selectable"
-                                      [class.badge-selectable-active]="isMidpointVersionSelected(version)"
-                                      [class.badge-selectable-inactive]="!isMidpointVersionSelected(version)"
-                                      (click)="toggleMidpointVersionFilter(version)">
-                                      {{ version }}
+                                  @for (ver of getAllMidpointVersions(); track ver) {
+                                    <span class="badge badge-selectable" [class.badge-selectable-active]="isMidpointVersionSelected(ver)" [class.badge-selectable-inactive]="!isMidpointVersionSelected(ver)" (click)="toggleMidpointVersionFilter(ver)">
+                                      {{ ver }}
                                     </span>
                                   } @empty {
                                     <p class="text-muted">No MidPoint versions available</p>
@@ -377,98 +291,60 @@
                     </div>
                   }
 
-                  <!-- Versions Content -->
-                  @if (!isContinuePressed()) {
-                    <!-- Placeholder when Continue not pressed -->
-                    <div class="versions-placeholder text-center">
-                      <p class="mb-2">Select an integration method to see available connector versions.</p>
-                      <p class="text-muted">We will show only versions that support chosen method.</p>
+                  <!-- Results: empty state or version cards -->
+                  @if (allVersions().length === 0) {
+                    <div class="method-empty-state d-flex flex-column align-items-center justify-content-center">
+                      <p class="fw-semibold mb-2">No integration methods defined yet.</p>
+                      <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
+                      <button type="button" class="btn btn-create-method" (click)="navigateToPublish()">
+                        <i class="fa-solid fa-plus me-1"></i>Create integration method
+                      </button>
                     </div>
                   } @else {
-                    <!-- All Versions List -->
-                    @for (version of allVersions(); track $index) {
+                    @for (version of pagedVersions(); track $index) {
                       @if (!cancelledVersionIds().includes(version.id)) {
-                      <div class="mb-4">
-                        <div class="border p-4 rounded position-relative version-card">
-                          <!-- Version Header -->
-                          <div class="d-flex align-items-start justify-content-between mb-3">
-                            <div>
-                              <div class="d-flex align-items-center gap-2 mb-2">
-                                <h3 class="h5 mb-0">
-                                  @if (version.connectorVersion) {
-                                    Version {{ version.connectorVersion }}
-                                  } @else {
-                                    Version {{ $index + 1 }}
-                                  }
-                                </h3>
-                                @if (version.systemVersion) {
-                                  <span class="badge bg-secondary">{{ version.systemVersion }}</span>
-                                }
-                              </div>
-
-                              <!-- Creator and Meta Info -->
-                              <div class="d-flex align-items-center gap-3 text-muted text-sm">
-                                @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                                  <div class="d-flex align-items-center gap-1 fw-bold text-ai">
-                                    <i class="fa-solid fa-wand-magic-sparkles icon-xs"></i>
-                                    <span>AI Generated</span>
-                                  </div>
-                                }
-                                @if (version.author) {
-                                  <div class="d-flex align-items-center gap-1">
-                                    <i class="fa-solid fa-user icon-sm"></i>
-                                    <span>Created by [{{ version.author }}]</span>
-                                  </div>
-                                }
-                              </div>
-
-                              <!-- Connector Type, Published Date, Downloads -->
-                              <div class="d-flex align-items-center gap-3 text-muted mt-2 text-sm">
-                                <span>Connector type: {{ formatConnectorType(version.framework) }}</span>
-                                @if (version.releasedDate) {
-                                  <span>Published: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                                }
-                                <div class="d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-download icon-sm"></i>
-                                  <span>{{ version.downloadCount || 0 }} Downloads</span>
-                                </div>
-                              </div>
-                            </div>
+                        <div class="im-card border rounded bg-white mb-3 p-4">
+                          <!-- Title + status badge -->
+                          <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="fw-semibold">
+                              @if (version.connectorVersion) { Version {{ version.connectorVersion }} } @else { Integration method {{ $index + 1 }} }
+                            </span>
                             @if (version.lifecycleState === 'IN_REVIEW') {
-                              <button type="button" class="btn btn-sm btn-version-cancel" (click)="cancelVersion(version.id)">
-                                Cancel
-                              </button>
+                              <span class="badge im-badge-awaiting">Awaiting approval</span>
+                            }
+                          </div>
+
+                          <!-- Method type tags -->
+                          <div class="d-flex align-items-center gap-1 mb-3">
+                            @if (version.framework) {
+                              <span class="im-method-tag">{{ formatConnectorType(version.framework) }}</span>
+                            }
+                            @if (version.author) {
+                              <span class="im-method-sep">•</span>
+                              <span class="im-method-tag">{{ version.author }}</span>
                             }
                           </div>
 
                           <!-- Description -->
-                          @if (version.description) {
-                            <p class="mb-3 text-black">{{ version.description }}</p>
-                          } @else {
-                            <p class="fst-italic mb-3 text-black">No description available</p>
-                          }
+                          <p class="text-sm mb-3">
+                            @if (version.description) { {{ version.description }} } @else { <em class="text-muted">No description available</em> }
+                          </p>
 
                           <!-- Capabilities -->
                           @if (hasNonInstalledCapabilities(version.capabilities)) {
                             <div class="mb-3">
-                              <p class="text-muted small mb-2 fw-normal">Capabilities:</p>
+                              <p class="text-sm mb-2"><strong>Capabilities:</strong></p>
                               <div class="d-flex flex-wrap gap-2">
                                 @let versionCapabilities = filterInstalledCapability(version.capabilities);
                                 @let isVersionExpanded = isExpanded($index);
                                 @let visibleCapabilities = isVersionExpanded ? versionCapabilities : versionCapabilities.slice(0, 10);
                                 @let remainingCount = versionCapabilities.length - 10;
-
                                 @for (item of visibleCapabilities; track $index) {
                                   <span class="badge badge-capability">{{ formatCapabilityText(item) }}</span>
                                 }
-
                                 @if (remainingCount > 0) {
                                   <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleCapabilities($index)">
-                                    @if (isVersionExpanded) {
-                                      <i class="fa-solid fa-eye-slash icon-sm"></i>
-                                    } @else {
-                                      <i class="fa-solid fa-eye icon-sm"></i>
-                                    }
+                                    @if (isVersionExpanded) { <i class="fa-solid fa-eye-slash icon-sm"></i> } @else { <i class="fa-solid fa-eye icon-sm"></i> }
                                     {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
                                   </span>
                                 }
@@ -476,46 +352,75 @@
                             </div>
                           }
 
-                          <!-- Action Buttons or Error Banner or Publishing State -->
-                          @if (version.lifecycleState === 'IN_REVIEW') {
-                            <div class="text-center mt-3 py-3">
-                              <p class="text-muted mb-3">In review... This may take a moment.</p>
-                              <i class="fa-solid fa-gears blink-animation icon-xxl publishing-icon"></i>
-                            </div>
-                          } @else if (version.errorMessage) {
-                            <div class="d-flex align-items-center justify-content-between mt-3 p-3 rounded error-banner">
+                          <!-- Error banner -->
+                          @if (version.errorMessage) {
+                            <div class="d-flex align-items-center justify-content-between mt-2 p-3 rounded error-banner">
                               <div class="d-flex align-items-center gap-2">
                                 <i class="fa-solid fa-triangle-exclamation icon-lg text-error"></i>
                                 <span class="text-error text-sm">{{ version.errorMessage }}</span>
                               </div>
-                              <div class="d-flex align-items-center gap-2">
+                              <div class="d-flex gap-2">
                                 <button class="btn btn-sm btn-retry d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-rotate-right icon-sm"></i>
-                                  Retry Publish
+                                  <i class="fa-solid fa-rotate-right icon-sm"></i>Retry Publish
                                 </button>
                                 <button class="btn btn-sm btn-edit-error d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-pen-to-square icon-sm"></i>
-                                  Edit
+                                  <i class="fa-solid fa-pen-to-square icon-sm"></i>Edit
                                 </button>
                               </div>
                             </div>
-                          } @else {
-                            <div class="d-flex justify-content-end gap-2 mt-3">
-                              <button class="btn btn-edit">
-                                Edit
+                          }
+
+                          <!-- Footer actions -->
+                          <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                              @if (version.lifecycleState === 'IN_REVIEW') {
+                                <button type="button" class="btn-cancel-request d-flex align-items-center gap-2" (click)="cancelVersion(version.id)">
+                                  <i class="fa-solid fa-trash-can"></i>Cancel request
+                                </button>
+                              } @else {
+                                <button type="button" class="btn-upgrade-version d-flex align-items-center gap-2">
+                                  <i class="fa-solid fa-arrow-rotate-right"></i>Upgrade version
+                                </button>
+                              }
+                            </div>
+                            <div class="d-flex gap-2">
+                              <button class="btn btn-sm btn-im-edit d-flex align-items-center gap-1">
+                                <i class="fa-solid fa-pen-to-square"></i>Edit
                               </button>
-                              <button (click)="downloadVersion(version.id)" class="btn text-sm btn-download" [disabled]="!version.id">
-                                <i class="fa-solid fa-download me-1 icon-sm"></i>
-                                Download
+                              <button class="btn btn-sm btn-im-download d-flex align-items-center gap-1" (click)="downloadVersion(version.id)" [disabled]="!version.id">
+                                <i class="fa-solid fa-download"></i>Download
                               </button>
                             </div>
-                          }
+                          </div>
                         </div>
-                      </div>
-                      }<!-- end @if (!cancelledVersionIds()...) -->
+                      }
                     } @empty {
-                      <p class="text-muted fst-italic">No versions available</p>
+                      <p class="text-muted fst-italic">No connector versions found</p>
                     }
+                  }
+
+                  @if (totalPages() > 1) {
+                    <nav aria-label="Page navigation" class="mt-3">
+                      <ul class="pagination justify-content-end">
+                        <li class="page-item" [class.disabled]="currentPage() === 0">
+                          <button class="page-link page-link-default" (click)="previousPage()" [disabled]="currentPage() === 0">
+                            <i class="fa-solid fa-arrow-left me-1 icon-md"></i>Previous
+                          </button>
+                        </li>
+                        @for (page of [].constructor(totalPages()); track $index) {
+                          <li class="page-item" [class.active]="currentPage() === $index">
+                            <button class="page-link" [class.page-link-active]="currentPage() === $index" [class.page-link-default]="currentPage() !== $index" (click)="goToPage($index)">
+                              {{ $index + 1 }}
+                            </button>
+                          </li>
+                        }
+                        <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+                          <button class="page-link page-link-default" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+                            Next<i class="fa-solid fa-arrow-right ms-1 icon-md"></i>
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
                   }
                 </div>
               </div>
@@ -598,19 +503,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Back Button -->
-    <div class="mt-4 ps-4">
-      <button class="btn btn-back d-flex align-items-center" (click)="goBack()">
-        <i class="fa-solid fa-arrow-left icon-md me-2"></i>
-        Back to Integration Catalog
-      </button>
-    </div>
   </div>
 
   <!-- Fixed Position Filter Dropdowns -->
   @if (openDropdown() === 'capabilities' && dropdownPosition()) {
-    <div class="filter-dropdown overflow-auto rounded-2" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+    <div class="filter-dropdown overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
       @for (capability of allCapabilities; track capability) {
         <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
           <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
@@ -622,13 +519,13 @@
         </div>
       }
       <div class="border-top pt-2 mt-2">
-        <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" class="text-primary text-sm text-decoration-none">Clear filter</a>
+        <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
       </div>
     </div>
   }
 
   @if (openDropdown() === 'versions' && dropdownPosition()) {
-    <div class="filter-dropdown overflow-auto rounded-2" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+    <div class="filter-dropdown overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
       @for (version of getAllMidpointVersions(); track version) {
         <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionFilter(version); $event.stopPropagation()">
           <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
@@ -640,7 +537,7 @@
         </div>
       }
       <div class="border-top pt-2 mt-2">
-        <a href="javascript:void(0)" (click)="clearVersionsFilter(); $event.stopPropagation()" class="text-primary text-sm text-decoration-none">Clear filter</a>
+        <a href="javascript:void(0)" (click)="clearVersionsFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
       </div>
     </div>
   }

@@ -243,8 +243,22 @@
 .app-card {
   width: 252px;
   min-width: 252px;
-  height: 380px;
+  height: 262px;
   transition: opacity 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #62869A;
+
+    &::after {  
+      content: '';
+      position: absolute;
+      inset: 0;   
+      background-color: rgba(164, 234, 255, 0.1);
+      border-radius: inherit;                                                                                                                                                             
+      pointer-events: none;     
+    }
+  }
 }
 
 /* ========================================
@@ -284,16 +298,16 @@
 
 .badge-publishing-card {
   font-size: 0.7rem;
-  background-color: rgba(23, 162, 184, 0.15);
-  color: $text-publishing-color;
+  background-color: #1b5e85;
+  color: #ffffff;
 }
 
 /* ========================================
    LOGO CONTAINERS (CARDS)
    ======================================== */
 .logo-container-sm {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border-radius: 4px;
   background-color: #ffffff;
 }
@@ -305,9 +319,8 @@
 }
 
 .letter-avatar-sm {
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
+  width: 50px;
+  height: 50px;
   border-radius: 4px;
   color: white;
   font-size: 28px;
@@ -317,6 +330,19 @@
 /* ========================================
    CARD CONTENT
    ======================================== */
+.app-card > div:first-child {
+  padding-bottom: 0;
+}
+
+.app-card > .position-absolute {
+  z-index: 1;
+}
+
+.app-card .card-body {
+  padding-top: 0.25rem;
+}
+
+
 .card-title-truncate {
   white-space: nowrap;
   overflow: hidden;
@@ -325,11 +351,11 @@
 
 .card-description {
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.4;
-  min-height: calc(1.4em * 4);
+  min-height: calc(1.4em * 3);
 }
 
 /* ========================================
@@ -350,6 +376,8 @@
 }
 
 .btn-vote {
+  position: relative;
+  z-index: 1;
   background-color: #FFFFFF;
   border: 1px solid #ced4da;
   color: #212529;
@@ -374,6 +402,25 @@
 .publishing-icon {
   font-size: 36px;
   color: $midpoint-special-color;
+}
+
+.in-review-info-box {
+  position: relative;
+  z-index: 1;
+  background-color: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.72rem;
+  color: #6c757d;
+  line-height: 1.4;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+}
+
+.card-description.card-description-single {
+  -webkit-line-clamp: 1;
+  min-height: calc(1.4em * 1);
 }
 
 /* ========================================
@@ -481,6 +528,7 @@
 .filter-dropdown {
   background: white;
   border: 1px solid #dee2e6;
+  border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   min-width: 200px;
@@ -499,8 +547,8 @@
 }
 
 .checkbox-checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: $color-dark-blue;
+  border-color: $color-dark-blue;
 }
 
 .checkbox-unchecked {
@@ -509,7 +557,7 @@
 }
 
 .link-clear-filter {
-  color: #0d6efd;
+  color: $color-dark-blue;
   font-size: 0.875rem;
   text-decoration: none;
 }
