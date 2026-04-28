@@ -47,7 +47,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly allVersions = signal<any[]>([]);
   protected readonly cancelledVersionIds = signal<string[]>([]);
   protected readonly currentPage = signal<number>(0);
-  protected readonly itemsPerPage = 1;
+  protected readonly itemsPerPage = 5;
   protected readonly totalPages = computed(() => Math.ceil(this.allVersions().length / this.itemsPerPage));
   protected readonly pagedVersions = computed(() => {
     const start = this.currentPage() * this.itemsPerPage;
