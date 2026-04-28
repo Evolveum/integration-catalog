@@ -22,6 +22,7 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 import com.evolveum.midpoint.integration.catalog.object.Implementation;
 import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 import com.evolveum.midpoint.integration.catalog.object.Request;
+import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
@@ -42,11 +43,13 @@ public class ApplicationMapper {
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
+    private final CatalogUserRepository catalogUserRepository;
 
-    public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository, DownloadRepository downloadRepository) {
+    public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository, DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
+        this.catalogUserRepository = catalogUserRepository;
     }
 
     /**
@@ -136,6 +139,14 @@ public class ApplicationMapper {
                             // Get download count for this version
                             Long downloadCount = downloadRepository.countByImplementationVersionId(version.getId());
 
+                            // Resolve author's organization
+                            Integer organizationId = null;
+                            if (version.getAuthor() != null) {
+                                organizationId = catalogUserRepository.findByUsername(version.getAuthor())
+                                        .map(user -> user.getOrganization() != null ? user.getOrganization().getId() : null)
+                                        .orElse(null);
+                            }
+
                             return new ImplementationVersionDto(
                                     version.getId(),
                                     version.getDescription(),
@@ -145,6 +156,7 @@ public class ApplicationMapper {
                                     version.getSystemVersion(),
                                     releasedDate,
                                     version.getAuthor(),
+                                    organizationId,
                                     lifecycleState,
                                     downloadLink,
                                     framework,

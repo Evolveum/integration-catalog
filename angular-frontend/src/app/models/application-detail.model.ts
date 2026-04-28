@@ -26,6 +26,7 @@ export interface ImplementationVersion {
   systemVersion: string | null;
   releasedDate: string | null;
   author: string | null;
+  organizationId: number | null;
   lifecycleState: string | null;
   downloadLink: string | null;
   framework: string | null;

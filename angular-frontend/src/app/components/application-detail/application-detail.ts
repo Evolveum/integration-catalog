@@ -9,6 +9,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail } from '../../models/application-detail.model';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 
 @Component({
@@ -69,7 +70,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private applicationService: ApplicationService
+    private applicationService: ApplicationService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -535,9 +537,26 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       return;
     }
 
+    // Filter IN_REVIEW visibility: not logged in → hide all; Superuser → see all;
+    // OrganizationContributor → own + same org; others → own only
+    const currentUser = this.authService.currentUser();
+    const isLoggedIn = this.authService.isLoggedIn();
+    const role = this.authService.currentRole();
+    const isSuperuser = role === UserRole.Superuser;
+    const isOrgContributor = role === UserRole.OrganizationContributor;
+    const currentOrgId = this.authService.currentOrganizationId();
+
+    let filteredVersions = versions.filter(version => {
+      if (version.lifecycleState !== 'IN_REVIEW') return true;
+      if (!isLoggedIn) return false;
+      if (isSuperuser) return true;
+      if (version.author === currentUser) return true;
+      if (isOrgContributor && currentOrgId !== null && version.organizationId === currentOrgId) return true;
+      return false;
+    });
+
     // Apply filters
     const filters = this.filterState();
-    let filteredVersions = versions;
 
     if (filters.capabilities.length > 0) {
       filteredVersions = filteredVersions.filter(version =>

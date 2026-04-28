@@ -19,6 +19,7 @@ public record ImplementationVersionDto(
         String systemVersion,
         LocalDate releasedDate,
         String author,
+        Integer organizationId,
         String lifecycleState,
         String downloadLink,
         String framework,
