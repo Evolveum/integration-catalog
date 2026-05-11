@@ -210,8 +210,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     if (filters.midpointVersions.length > 0) {
       filtered = filtered.filter(app =>
-        filters.midpointVersions.every((version: string) =>
-          app.midpointVersions?.includes(version)
+        filters.midpointVersions.every((versionId: number) =>
+          app.midpointVersions?.includes(String(versionId))
         )
       );
     }
@@ -233,6 +233,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     this.loadApplications();
     this.loadCategories();
     this.loadTotalDownloadsCount();
+    this.applicationService.getMidpointVersions().subscribe({
+      next: (versions) => this.allMidpointVersions.set(versions),
+      error: (err) => console.error('Failed to load MidPoint versions', err)
+    });
   }
 
   ngAfterViewInit(): void {
@@ -383,10 +387,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     this.currentPage.set(0);
   }
 
-  protected removeMidpointVersionFilter(version: string): void {
+  protected removeMidpointVersionFilter(versionId: number): void {
     this.filterState.update(state => ({
       ...state,
-      midpointVersions: state.midpointVersions.filter(v => v !== version)
+      midpointVersions: state.midpointVersions.filter(v => v !== versionId)
     }));
     this.currentPage.set(0);
   }
@@ -430,14 +434,14 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  protected toggleMidpointVersionInFilter(version: string): void {
+  protected toggleMidpointVersionInFilter(versionId: number): void {
     const versions = this.filterState().midpointVersions;
-    if (versions.includes(version)) {
-      this.removeMidpointVersionFilter(version);
+    if (versions.includes(versionId)) {
+      this.removeMidpointVersionFilter(versionId);
     } else {
       this.filterState.update(state => ({
         ...state,
-        midpointVersions: [...state.midpointVersions, version]
+        midpointVersions: [...state.midpointVersions, versionId]
       }));
       this.currentPage.set(0);
     }
@@ -570,8 +574,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     return this.filterState().appStatus.includes(status);
   }
 
-  protected isMidpointVersionSelected(version: string): boolean {
-    return this.filterState().midpointVersions.includes(version);
+  protected isMidpointVersionSelected(versionId: number): boolean {
+    return this.filterState().midpointVersions.includes(versionId);
   }
 
   protected isIntegrationMethodSelected(method: string): boolean {
@@ -582,15 +586,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     return this.filterState().maintainers.includes(maintainer);
   }
 
-  protected allMidpointVersions = computed(() => {
-    const versionsSet = new Set<string>();
-    for (const app of this.applications()) {
-      if (app.midpointVersions) {
-        app.midpointVersions.forEach(v => versionsSet.add(v));
-      }
-    }
-    return Array.from(versionsSet).sort();
-  });
+  protected readonly allMidpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
 
   protected readonly allIntegrationMethods: string[] = [
     'SCIM',

@@ -6,7 +6,6 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.CapabilitiesArrayConverter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -35,5 +34,5 @@ public class ObjectClassCapabilities {
     @Convert(converter = CapabilitiesArrayConverter.class)
     @ColumnTransformer(write = "?::\"CapabilityType\"[]")
     @Column(name = "capabilities")
-    private CapabilitiesType[] capabilities;
+    private CapabilityType[] capabilities;
 }

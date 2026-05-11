@@ -21,11 +21,7 @@ export interface Application {
   id: string;
   displayName: string;
   description: string;
-  logo: string | null; // Legacy base64 field (deprecated)
   logoPath: string | null;
-  logoContentType: string | null;
-  logoOriginalName: string | null;
-  logoSizeBytes: number | null;
   lifecycleState: string | null;
   origins: CountryOfOrigin[] | null;
   categories: ApplicationTag[] | null;
@@ -38,16 +34,10 @@ export interface Application {
   midpointVersions?: string[] | null;
 }
 
-/**
- * Helper function to check if application has a logo
- */
 export function hasLogo(app: Application): boolean {
-  return !!(app.logoPath || (app.logo && app.logo.length > 0));
+  return !!app.logoPath;
 }
 
-/**
- * Get the logo URL for an application
- */
 export function getLogoUrl(appId: string, apiUrl: string): string {
   return `${apiUrl}/applications/${appId}/logo`;
 }

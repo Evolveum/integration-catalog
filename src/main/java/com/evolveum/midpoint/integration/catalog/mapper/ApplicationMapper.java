@@ -6,37 +6,17 @@
 
 package com.evolveum.midpoint.integration.catalog.mapper;
 
-import com.evolveum.midpoint.integration.catalog.dto.ActiveConnectorDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationCardDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationDto;
-import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
-import com.evolveum.midpoint.integration.catalog.dto.CountryOfOriginDto;
-import com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto;
-import com.evolveum.midpoint.integration.catalog.dto.ImplementationVersionDto;
-import com.evolveum.midpoint.integration.catalog.dto.ObjectClassCapabilityDto;
-import com.evolveum.midpoint.integration.catalog.object.Application;
-import com.evolveum.midpoint.integration.catalog.object.ApplicationApplicationTag;
-import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
-import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
-import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
-import com.evolveum.midpoint.integration.catalog.object.Implementation;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
-import com.evolveum.midpoint.integration.catalog.object.Request;
+import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
-/**
- * Mapper class for converting Application entities to DTOs
- */
 @Component
 public class ApplicationMapper {
 
@@ -45,165 +25,154 @@ public class ApplicationMapper {
     private final DownloadRepository downloadRepository;
     private final CatalogUserRepository catalogUserRepository;
 
-    public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository, DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository) {
+    public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
+                             DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
         this.catalogUserRepository = catalogUserRepository;
     }
 
-    /**
-     * Filters application tags by type and maps to DTOs
-     * @param app Application entity
-     * @param tagType Tag type to filter by
-     * @return List of ApplicationTagDto or null if no tags
-     */
+    // ── Tag helpers ───────────────────────────────────────────────────────────
+
     public List<ApplicationTagDto> filterTagsByType(Application app, ApplicationTag.ApplicationTagType tagType) {
-        if (app.getApplicationApplicationTags() == null) {
-            return null;
-        }
+        if (app.getApplicationApplicationTags() == null) return null;
         return app.getApplicationApplicationTags().stream()
-                .filter(appTag -> appTag.getApplicationTag().getTagType() == tagType)
+                .filter(aat -> aat.getApplicationTag().getTagType() == tagType)
                 .map(this::mapToApplicationTagDto)
                 .toList();
     }
 
-    /**
-     * Maps all application tags to DTOs
-     * @param app Application entity
-     * @return List of ApplicationTagDto or null if no tags
-     */
     public List<ApplicationTagDto> mapAllTags(Application app) {
-        if (app.getApplicationApplicationTags() == null) {
-            return null;
-        }
+        if (app.getApplicationApplicationTags() == null) return null;
         return app.getApplicationApplicationTags().stream()
                 .map(this::mapToApplicationTagDto)
                 .toList();
     }
 
-    /**
-     * Converts ApplicationApplicationTag to ApplicationTagDto
-     * @param appTag ApplicationApplicationTag entity
-     * @return ApplicationTagDto
-     */
     public ApplicationTagDto mapToApplicationTagDto(ApplicationApplicationTag appTag) {
         return new ApplicationTagDto(
                 appTag.getApplicationTag().getId(),
                 appTag.getApplicationTag().getName(),
                 appTag.getApplicationTag().getDisplayName(),
-                appTag.getApplicationTag().getTagType() != null ? appTag.getApplicationTag().getTagType().name() : null
+                appTag.getApplicationTag().getTagType() != null
+                        ? appTag.getApplicationTag().getTagType().name() : null
         );
     }
 
+    // ── Integration-method versions ───────────────────────────────────────────
+
     /**
-     * Maps implementation versions from Application to DTOs
-     * @param app Application entity
-     * @return List of ImplementationVersionDto or null if no implementations
+     * Maps integration methods to IntegrationMethodDto.
+     * Capabilities are collected from IntegrationMethodCapability → items → Capability.
      */
-    public List<ImplementationVersionDto> mapImplementationVersions(Application app) {
-        if (app.getImplementations() == null) {
-            return null;
-        }
-        return app.getImplementations().stream()
-                .flatMap(impl -> impl.getImplementationVersions() != null ?
-                        impl.getImplementationVersions().stream().map(version -> {
-                            List<String> implementationTags = null;
-                            if (impl.getImplementationImplementationTags() != null) {
-                                implementationTags = impl.getImplementationImplementationTags().stream()
-                                        .map(tag -> tag.getImplementationTag().getDisplayName())
-                                        .toList();
-                            }
-                            List<String> capabilities = convertCapabilitiesToList(version.getCapabilities());
-                            String lifecycleState = version.getLifecycleState() != null ? version.getLifecycleState().name() : null;
+    public List<IntegrationMethodDto> mapIntegrationMethods(Application app) {
+        if (app.getIntegrationMethods() == null) return null;
 
-                            // Get data from BundleVersion
-                            String connectorVersion = null;
-                            java.time.LocalDate releasedDate = null;
-                            String downloadLink = null;
-                            String framework = null;
-                            String midpointVersion = null;
-                            if (version.getBundleVersion() != null) {
-                                connectorVersion = version.getBundleVersion().getConnectorVersion();
-                                releasedDate = version.getBundleVersion().getReleasedDate();
-                                downloadLink = version.getBundleVersion().getDownloadLink();
-                                if (version.getBundleVersion().getConnectorBundle() != null
-                                        && version.getBundleVersion().getConnectorBundle().getFramework() != null) {
-                                    framework = version.getBundleVersion().getConnectorBundle().getFramework().name();
+        return app.getIntegrationMethods().stream()
+                .map(method -> {
+                    List<String> capabilities = collectCapabilities(method);
+                    String lifecycleState = method.getLifecycleState() != null
+                            ? method.getLifecycleState().name() : null;
+
+                    Integer organizationId = null;
+                    if (method.getAuthor() != null) {
+                        organizationId = catalogUserRepository.findByUsername(method.getAuthor())
+                                .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
+                                .orElse(null);
+                    }
+
+                    // Connector info from first linked connector
+                    String connectorVersion = null;
+                    String framework = null;
+                    String connectorDisplayName = null;
+                    String revision = null;
+                    if (!method.getConnectors().isEmpty()) {
+                        IntegrationMethodConnector link = method.getConnectors().get(0);
+                        if (link.getConnector() != null) {
+                            connectorDisplayName = link.getConnector().getDisplayName();
+                            ConnectorBundle bundle = link.getConnector().getConnectorBundle();
+                            if (bundle != null) {
+                                if (bundle.getFramework() != null) {
+                                    framework = bundle.getFramework().name();
                                 }
-                                if (version.getBundleVersion().getConnidVersionObject() != null) {
-                                    midpointVersion = version.getBundleVersion().getConnidVersionObject().getMidpointVersion();
-                                }
+                                revision = bundle.getRevision();
                             }
+                            connectorVersion = link.getConnector().getConnectorVersions().stream()
+                                    .filter(cv -> cv.getConnectorBundleVersion() != null
+                                            && cv.getConnectorBundleVersion().getBundleVersion() != null)
+                                    .map(cv -> cv.getConnectorBundleVersion().getBundleVersion())
+                                    .findFirst().orElse(null);
+                        }
+                    }
 
-                            // Get download count for this version
-                            Long downloadCount = downloadRepository.countByImplementationVersionId(version.getId());
+                    List<String> integMethodTypes = method.getIntegMethodTypes().stream()
+                            .map(IntegrationMethodType::getDisplayName)
+                            .toList();
 
-                            // Resolve author's organization
-                            Integer organizationId = null;
-                            if (version.getAuthor() != null) {
-                                organizationId = catalogUserRepository.findByUsername(version.getAuthor())
-                                        .map(user -> user.getOrganization() != null ? user.getOrganization().getId() : null)
-                                        .orElse(null);
-                            }
+                    List<ObjectClassCapabilityDto> objectClassCapabilities = method.getCapabilities().stream()
+                            .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
+                            .map(cap -> new ObjectClassCapabilityDto(
+                                    cap.getObjectClass(),
+                                    cap.getItems().stream()
+                                            .filter(item -> item.getCapability() != null
+                                                    && item.getCapability().getName() != null)
+                                            .map(item -> item.getCapability().getName())
+                                            .toList()
+                            ))
+                            .toList();
 
-                            return new ImplementationVersionDto(
-                                    version.getId(),
-                                    version.getDescription(),
-                                    implementationTags,
-                                    capabilities,
-                                    connectorVersion,
-                                    version.getSystemVersion(),
-                                    releasedDate,
-                                    version.getAuthor(),
-                                    organizationId,
-                                    lifecycleState,
-                                    downloadLink,
-                                    framework,
-                                    version.getErrorMessage(),
-                                    downloadCount,
-                                    midpointVersion
-                            );
-                        }) : Stream.empty())
+                    return new IntegrationMethodDto(
+                            method.getId(),
+                            method.getDescription(),
+                            null,           // implementationTags
+                            capabilities,
+                            objectClassCapabilities,
+                            connectorVersion,
+                            null,           // systemVersion
+                            null,           // releasedDate
+                            method.getAuthor(),
+                            organizationId,
+                            lifecycleState,
+                            null,           // downloadLink
+                            framework,
+                            null,           // errorMessage
+                            0L,             // downloadCount
+                            method.getMidpointMinVersionId(),
+                            method.getMidpointMaxVersionId(),
+                            connectorDisplayName,
+                            integMethodTypes,
+                            revision
+                    );
+                })
                 .toList();
     }
 
-    /**
-     * Converts capabilities enum array to list of strings
-     * @param capabilities CapabilitiesType array
-     * @return List of capability strings or null if empty
-     */
-    private List<String> convertCapabilitiesToList(ImplementationVersion.CapabilitiesType[] capabilities) {
-        if (capabilities == null || capabilities.length == 0) {
-            return null;
-        }
-        return Stream.of(capabilities)
-                .map(Enum::name)
-                .toList();
-    }
-
-    /**
-     * Extracts unique frameworks from application's implementations
-     * @param app Application entity
-     * @return List of unique framework names (e.g., "JAVA_BASED", "LOW_CODE") or null if no implementations
-     */
-    public List<String> extractFrameworks(Application app) {
-        if (app.getImplementations() == null || app.getImplementations().isEmpty()) {
-            return null;
-        }
-        return app.getImplementations().stream()
-                .map(Implementation::getConnectorBundle)
-                .filter(bundle -> bundle != null && bundle.getFramework() != null)
-                .map(bundle -> bundle.getFramework().name())
+    private List<String> collectCapabilities(IntegrationMethod method) {
+        if (method.getCapabilities() == null) return null;
+        return method.getCapabilities().stream()
+                .filter(cap -> cap.getItems() != null)
+                .flatMap(cap -> cap.getItems().stream())
+                .filter(item -> item.getCapability() != null && item.getCapability().getName() != null)
+                .map(item -> item.getCapability().getName())
                 .distinct()
                 .toList();
     }
 
-    /**
-     * Maps Application entity to ApplicationDto with request data fetched automatically
-     * @param app Application entity
-     * @return ApplicationDto
-     */
+    public List<String> extractFrameworks(Application app) {
+        if (app.getIntegrationMethods() == null || app.getIntegrationMethods().isEmpty()) return null;
+        return app.getIntegrationMethods().stream()
+                .flatMap(m -> m.getConnectors().stream())
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(c -> c != null && c.getConnectorBundle() != null
+                        && c.getConnectorBundle().getFramework() != null)
+                .map(c -> c.getConnectorBundle().getFramework().name())
+                .distinct()
+                .toList();
+    }
+
+    // ── ApplicationDto mapping ────────────────────────────────────────────────
+
     public ApplicationDto mapToApplicationDto(Application app) {
         List<String> capabilities = null;
         List<ObjectClassCapabilityDto> objectClassCapabilities = null;
@@ -222,7 +191,6 @@ public class ApplicationMapper {
                                 Arrays.stream(occ.getCapabilities()).map(Enum::name).toList()
                         ))
                         .toList();
-                // kept for backward-compat consumers that still read the flat list
                 capabilities = objectClassCapabilities.stream()
                         .flatMap(occ -> occ.capabilities().stream())
                         .distinct()
@@ -232,74 +200,38 @@ public class ApplicationMapper {
                 voteCount = voteRepository.countByRequestId(requestId);
             }
         }
-
         return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, objectClassCapabilities);
     }
 
-    /**
-     * Maps Application entity to ApplicationDto with all related data
-     * @param app Application entity
-     * @param capabilities Request capabilities (null for list view)
-     * @param requester Request requester (null for list view)
-     * @param requestId Request ID (null if not requested)
-     * @param voteCount Vote count (null if not requested)
-     * @return ApplicationDto
-     */
-    public ApplicationDto mapToApplicationDto(Application app,
-                                               List<String> capabilities,
-                                               String requester,
-                                               Long requestId,
-                                               Long voteCount) {
+    public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
+                                               Long requestId, Long voteCount) {
         return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null);
     }
 
-    public ApplicationDto mapToApplicationDto(Application app,
-                                               List<String> capabilities,
-                                               String requester,
-                                               Long requestId,
-                                               Long voteCount,
+    public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
+                                               Long requestId, Long voteCount,
                                                List<ObjectClassCapabilityDto> objectClassCapabilities) {
-        // Map origins
-        List<CountryOfOriginDto> origins = null;
-        if (app.getApplicationOrigins() != null) {
-            origins = app.getApplicationOrigins().stream()
-                    .map(appOrigin -> new CountryOfOriginDto(
-                            appOrigin.getCountryOfOrigin().getId(),
-                            appOrigin.getCountryOfOrigin().getName(),
-                            appOrigin.getCountryOfOrigin().getDisplayName()
-                    ))
-                    .toList();
-        }
-
-        // Map categories, tags, and implementation versions
+        List<CountryOfOriginDto> origins = mapOrigins(app);
         List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
         List<ApplicationTagDto> tags = mapAllTags(app);
-        List<ImplementationVersionDto> implementationVersions = mapImplementationVersions(app);
-
-        // Extract frameworks from implementations
+        List<IntegrationMethodDto> integrationMethods = mapIntegrationMethods(app);
         List<String> frameworks = extractFrameworks(app);
-
-        // Convert lifecycle state
         String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
 
-        // Build and return DTO
         return ApplicationDto.builder()
                 .id(app.getId())
                 .displayName(app.getDisplayName())
                 .description(app.getDescription())
                 .logoPath(app.getLogoPath())
-                .logoContentType(app.getLogoContentType())
-                .logoOriginalName(app.getLogoOriginalName())
-                .logoSizeBytes(app.getLogoSizeBytes())
                 .lifecycleState(lifecycleState)
-                .lastModified(app.getLastModified())
+                .updated(app.getUpdated())
                 .createdAt(app.getCreatedAt())
                 .capabilities(capabilities)
                 .requester(requester)
                 .origins(origins)
                 .categories(categories)
                 .tags(tags)
-                .implementationVersions(implementationVersions)
+                .integrationMethods(integrationMethods)
                 .requestId(requestId)
                 .voteCount(voteCount)
                 .frameworks(frameworks)
@@ -307,62 +239,39 @@ public class ApplicationMapper {
                 .build();
     }
 
-    /**
-     * Convert Application entity to ApplicationCardDto for list display
-     * @param app Application entity
-     * @return ApplicationCardDto
-     */
+    // ── ApplicationCardDto mapping ────────────────────────────────────────────
+
     public ApplicationCardDto toCardDto(Application app) {
         String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
+        List<CountryOfOriginDto> origins = mapOrigins(app);
 
-        // Convert origins from ApplicationOrigin join table
-        List<CountryOfOriginDto> origins = null;
-        if (app.getApplicationOrigins() != null) {
-            origins = app.getApplicationOrigins().stream()
-                    .map(appOrigin -> new CountryOfOriginDto(
-                            appOrigin.getCountryOfOrigin().getId(),
-                            appOrigin.getCountryOfOrigin().getName(),
-                            appOrigin.getCountryOfOrigin().getDisplayName()
-                    ))
-                    .toList();
-        }
-
-        // Convert categories and tags from ApplicationApplicationTag join table
         List<ApplicationTagDto> categories = null;
         List<ApplicationTagDto> tags = null;
         if (app.getApplicationApplicationTags() != null) {
             categories = app.getApplicationApplicationTags().stream()
                     .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(
-                            aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(),
-                            aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()
-                    ))
+                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()))
                     .toList();
-
             tags = app.getApplicationApplicationTags().stream()
                     .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(
-                            aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(),
-                            aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()
-                    ))
+                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()))
                     .toList();
         }
 
-        // Get request info and capabilities if lifecycle state is REQUESTED
         Long requestId = null;
         Long voteCount = null;
         List<String> capabilities = new ArrayList<>();
+
         if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
             Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
             if (requestOpt.isPresent()) {
                 Request request = requestOpt.get();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(request.getId());
-                // Get capabilities from request object class entries
                 request.getObjectClassCapabilities().stream()
                         .filter(occ -> occ.getCapabilities() != null)
                         .flatMap(occ -> Arrays.stream(occ.getCapabilities()))
@@ -371,47 +280,22 @@ public class ApplicationMapper {
             }
         }
 
-        // Aggregate capabilities from all implementations
-        if (app.getImplementations() != null) {
-            app.getImplementations().stream()
-                    .filter(impl -> impl.getImplementationVersions() != null)
-                    .flatMap(impl -> impl.getImplementationVersions().stream())
-                    .filter(version -> version.getCapabilities() != null)
-                    .flatMap(version -> Arrays.stream(version.getCapabilities()))
-                    .map(Enum::name)
-                    .distinct()
+        // Collect capabilities from integration methods
+        if (app.getIntegrationMethods() != null) {
+            app.getIntegrationMethods().stream()
+                    .flatMap(m -> collectCapabilities(m) != null ? collectCapabilities(m).stream() : Stream.empty())
+                    .filter(cap -> !capabilities.contains(cap))
                     .forEach(capabilities::add);
         }
 
-        // Deduplicate capabilities
-        capabilities = capabilities.stream().distinct().toList();
-
-        // Extract frameworks from implementations
         List<String> frameworks = extractFrameworks(app);
-
-        // Extract unique midpoint versions from all implementations
-        List<String> midpointVersions = new ArrayList<>();
-        if (app.getImplementations() != null) {
-            app.getImplementations().stream()
-                    .filter(impl -> impl.getImplementationVersions() != null)
-                    .flatMap(impl -> impl.getImplementationVersions().stream())
-                    .filter(version -> version.getBundleVersion() != null
-                            && version.getBundleVersion().getConnidVersionObject() != null
-                            && version.getBundleVersion().getConnidVersionObject().getMidpointVersion() != null)
-                    .map(version -> version.getBundleVersion().getConnidVersionObject().getMidpointVersion())
-                    .distinct()
-                    .sorted()
-                    .forEach(midpointVersions::add);
-        }
+        List<String> midpointVersions = new ArrayList<>(); // ConnidVersion removed; revisit if re-added
 
         return new ApplicationCardDto(
                 app.getId(),
                 app.getDisplayName(),
                 app.getDescription(),
                 app.getLogoPath(),
-                app.getLogoContentType(),
-                app.getLogoOriginalName(),
-                app.getLogoSizeBytes(),
                 lifecycleState,
                 origins,
                 categories,
@@ -424,79 +308,36 @@ public class ApplicationMapper {
         );
     }
 
-    /**
-     * Convert Application entity to ActiveConnectorDto for the active connectors endpoint.
-     * @param app Application entity
-     * @return ActiveConnectorDto
-     */
-    public ActiveConnectorDto toActiveConnectorDto(Application app) {
-        // Convert origins from ApplicationOrigin join table
-        List<CountryOfOriginDto> origins = null;
-        if (app.getApplicationOrigins() != null) {
-            origins = app.getApplicationOrigins().stream()
-                    .map(appOrigin -> new CountryOfOriginDto(
-                            appOrigin.getCountryOfOrigin().getId(),
-                            appOrigin.getCountryOfOrigin().getName(),
-                            appOrigin.getCountryOfOrigin().getDisplayName()
-                    ))
-                    .toList();
-        }
+    // ── ActiveConnectorDto mapping ────────────────────────────────────────────
 
-        // Convert categories and tags from ApplicationApplicationTag join table
+    public ActiveConnectorDto toActiveConnectorDto(Application app) {
+        List<CountryOfOriginDto> origins = mapOrigins(app);
         List<ApplicationTagDto> categories = null;
         List<ApplicationTagDto> tags = null;
         if (app.getApplicationApplicationTags() != null) {
             categories = app.getApplicationApplicationTags().stream()
                     .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(
-                            aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(),
-                            aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()
-                    ))
+                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()))
                     .toList();
-
             tags = app.getApplicationApplicationTags().stream()
                     .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(
-                            aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(),
-                            aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()
-                    ))
+                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
+                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
+                            aat.getApplicationTag().getTagType().name()))
                     .toList();
         }
 
-        // Aggregate capabilities from all implementations
         List<String> capabilities = new ArrayList<>();
-        if (app.getImplementations() != null) {
-            app.getImplementations().stream()
-                    .filter(impl -> impl.getImplementationVersions() != null)
-                    .flatMap(impl -> impl.getImplementationVersions().stream())
-                    .filter(version -> version.getCapabilities() != null)
-                    .flatMap(version -> Arrays.stream(version.getCapabilities()))
-                    .map(Enum::name)
+        if (app.getIntegrationMethods() != null) {
+            app.getIntegrationMethods().stream()
+                    .flatMap(m -> collectCapabilities(m) != null ? collectCapabilities(m).stream() : Stream.empty())
                     .distinct()
                     .forEach(capabilities::add);
         }
 
-        // Extract frameworks from implementations
         List<String> frameworks = extractFrameworks(app);
-
-        // Extract unique midpoint versions from all implementations
-        List<String> midpointVersions = new ArrayList<>();
-        if (app.getImplementations() != null) {
-            app.getImplementations().stream()
-                    .filter(impl -> impl.getImplementationVersions() != null)
-                    .flatMap(impl -> impl.getImplementationVersions().stream())
-                    .filter(version -> version.getBundleVersion() != null
-                            && version.getBundleVersion().getConnidVersionObject() != null
-                            && version.getBundleVersion().getConnidVersionObject().getMidpointVersion() != null)
-                    .map(version -> version.getBundleVersion().getConnidVersionObject().getMidpointVersion())
-                    .distinct()
-                    .sorted()
-                    .forEach(midpointVersions::add);
-        }
 
         return new ActiveConnectorDto(
                 app.getId(),
@@ -507,41 +348,86 @@ public class ApplicationMapper {
                 tags,
                 capabilities.isEmpty() ? null : capabilities,
                 frameworks,
-                midpointVersions.isEmpty() ? null : midpointVersions
+                null
         );
     }
 
-    /**
-     * Maps Implementation with its latest version to ImplementationListItemDto
-     * @param impl Implementation entity
-     * @param latestVersion Latest ImplementationVersion for this implementation
-     * @return ImplementationListItemDto
-     */
-    public ImplementationListItemDto mapToImplementationListItemDto(Implementation impl, ImplementationVersion latestVersion) {
-        ConnectorBundle bundle = impl.getConnectorBundle();
-        BundleVersion bundleVersion = latestVersion.getBundleVersion();
+    // ── IntegrationMethod list item ───────────────────────────────────────────
 
-        // Format publish date as DD.MM.YYYY
-        String publishedDate = latestVersion.getPublishDate() != null
-                ? latestVersion.getPublishDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-                : "";
+    public ImplementationListItemDto mapToIntegrationMethodListItemDto(IntegrationMethod method) {
+        if (method == null) return null;
+
+        String connectorVersion = null;
+        String browseLink = null;
+        String gitCloneUrl = null;
+        String buildFramework = null;
+        String pathToProject = null;
+        String className = null;
+        String maintainer = null;
+        String licenseType = null;
+        String ticketingLink = null;
+
+        if (!method.getConnectors().isEmpty()) {
+            IntegrationMethodConnector link = method.getConnectors().get(0);
+            Connector connector = link.getConnector();
+            if (connector != null) {
+                className = connector.getFullyQualifiedClassName();
+                ConnectorBundle bundle = connector.getConnectorBundle();
+                if (bundle != null) {
+                    maintainer = bundle.getMaintainer();
+                    licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
+                    ticketingLink = bundle.getTicketingLink();
+                }
+                connector.getConnectorVersions().stream()
+                        .filter(cv -> cv.getConnectorBundleVersion() != null)
+                        .findFirst()
+                        .ifPresent(cv -> {
+                            // field assignments inside lambda are not possible, done below
+                        });
+                // Get latest CBV
+                Optional<ConnectorBundleVersion> latestCbv = connector.getConnectorVersions().stream()
+                        .filter(cv -> cv.getConnectorBundleVersion() != null)
+                        .map(ConnectorVersion::getConnectorBundleVersion)
+                        .findFirst();
+                if (latestCbv.isPresent()) {
+                    ConnectorBundleVersion cbv = latestCbv.get();
+                    connectorVersion = cbv.getBundleVersion();
+                    browseLink = cbv.getBrowseLink();
+                    gitCloneUrl = cbv.getGitCloneUrl();
+                    buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;
+                    pathToProject = cbv.getPathToProject();
+                }
+            }
+        }
 
         return new ImplementationListItemDto(
-                impl.getId(),
-                impl.getDisplayName(),                                    // name (for list display)
-                latestVersion.getDescription(),                          // description (for list display)
-                publishedDate,                                           // publishedDate
-                bundleVersion.getConnectorVersion(),                     // version
-                impl.getDisplayName(),                                   // displayName
-                bundle.getMaintainer(),                                  // maintainer
-                bundle.getLicense().name(),                              // licenseType
-                latestVersion.getDescription(),                          // implementationDescription
-                bundleVersion.getBrowseLink(),                           // browseLink
-                bundle.getTicketingSystemLink(),                         // ticketingLink
-                bundleVersion.getBuildFramework().name(),                // buildFramework
-                bundleVersion.getCheckoutLink(),                         // checkoutLink
-                bundleVersion.getPathToProject(),                         // pathToProjectDirectory
-                latestVersion.getClassName()
+                method.getId(),
+                method.getDisplayName(),
+                method.getDescription(),
+                null,               // publishedDate (no direct field)
+                connectorVersion,
+                method.getDisplayName(),
+                maintainer,
+                licenseType,
+                method.getDescription(),
+                browseLink,
+                ticketingLink,
+                buildFramework,
+                gitCloneUrl,
+                pathToProject,
+                className
         );
+    }
+
+    // ── Shared helpers ────────────────────────────────────────────────────────
+
+    private List<CountryOfOriginDto> mapOrigins(Application app) {
+        if (app.getApplicationOrigins() == null) return null;
+        return app.getApplicationOrigins().stream()
+                .map(ao -> new CountryOfOriginDto(
+                        ao.getCountryOfOrigin().getId(),
+                        ao.getCountryOfOrigin().getName(),
+                        ao.getCountryOfOrigin().getDisplayName()))
+                .toList();
     }
 }

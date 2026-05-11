@@ -17,7 +17,7 @@ export interface ImplementationListItem {
   browseLink: string;
   ticketingLink: string;
   buildFramework: string;
-  checkoutLink: string;
+  gitCloneUrl: string;
   pathToProjectDirectory: string;
   className: string;
 }

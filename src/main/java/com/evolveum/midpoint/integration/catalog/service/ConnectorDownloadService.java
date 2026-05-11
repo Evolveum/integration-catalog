@@ -6,10 +6,13 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.Download;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnector;
+import com.evolveum.midpoint.integration.catalog.repository.ConnectorBundleVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
-import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.util.UserAgentParser;
 
 import lombok.RequiredArgsConstructor;
@@ -19,12 +22,11 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
-/**
- * Service for handling connector downloads and tracking download statistics.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -32,66 +34,68 @@ public class ConnectorDownloadService {
 
     private static final long DOWNLOAD_OFFSET_SECONDS = 10;
 
-    private final ImplementationVersionRepository implementationVersionRepository;
+    private final IntegrationMethodRepository integrationMethodRepository;
+    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final DownloadRepository downloadRepository;
 
     /**
-     * Downloads a connector by version ID and records the download.
-     *
-     * @param versionId the implementation version UUID
-     * @param ip the client IP address
-     * @param userAgent the client user agent string
-     * @return the connector file bytes
-     * @throws IOException if download fails
-     * @throws IllegalArgumentException if version not found or no download link available
+     * Downloads connector files for the latest active connector bundle version
+     * linked to the given integration method UUID.
      */
-    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
-        ImplementationVersion version = implementationVersionRepository.findById(versionId)
-                .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
+    public byte[] downloadConnector(UUID integMethodId, String ip, String userAgent) throws IOException {
+        List<IntegrationMethod> methods = integrationMethodRepository.findByApplicationId(integMethodId);
+        IntegrationMethod method = methods.stream()
+                .filter(m -> m.getId().equals(integMethodId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Integration method not found: " + integMethodId));
 
-        // Get download link from BundleVersion
-        String downloadLink = (version.getBundleVersion() != null) ?
-                version.getBundleVersion().getDownloadLink() : null;
-
-        if (downloadLink == null || downloadLink.isEmpty()) {
-            throw new IllegalArgumentException("No download link available for version: " + versionId);
+        ConnectorBundleVersion bundleVersion = resolveLatestBundleVersion(method);
+        if (bundleVersion == null || bundleVersion.getBrowseLink() == null) {
+            throw new IllegalArgumentException("No download link available for integration method: " + integMethodId);
         }
 
-        try (InputStream in = new URL(downloadLink).openStream()) {
+        try (InputStream in = new URL(bundleVersion.getBrowseLink()).openStream()) {
             byte[] fileBytes = in.readAllBytes();
-
-            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
-            recordDownloadIfNew(version, ip, userAgent, cutoff);
-
+            LocalDateTime cutoff = LocalDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
+            recordDownloadIfNew(bundleVersion, ip, userAgent, cutoff);
             return fileBytes;
         }
     }
 
-    /**
-     * Records a download if it's not a duplicate within the cutoff period.
-     * Parses the user agent to extract browser name and device type.
-     *
-     * @param version the implementation version being downloaded
-     * @param ip the client IP address
-     * @param userAgent the raw user agent string
-     * @param cutoff the time threshold for duplicate detection
-     */
-    public void recordDownloadIfNew(ImplementationVersion version, String ip, String userAgent, OffsetDateTime cutoff) {
+    public void recordDownloadIfNew(ConnectorBundleVersion bundleVersion, String ip, String userAgent,
+                                    LocalDateTime cutoff) {
         String browserName = UserAgentParser.parseBrowserName(userAgent);
         String deviceType = UserAgentParser.parseDeviceType(userAgent);
         String parsedUserAgent = browserName + "," + deviceType;
 
         boolean duplicate = downloadRepository
-                .existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(
-                        version, ip, parsedUserAgent, cutoff);
+                .existsByConnectorBundleVersionAndIpAddressAndUserAgentAndDownloadedAt(
+                        bundleVersion, ip, parsedUserAgent, cutoff);
 
         if (!duplicate) {
             Download dl = new Download();
-            dl.setImplementationVersion(version);
+            dl.setConnectorBundleVersion(bundleVersion);
             dl.setIpAddress(ip);
             dl.setUserAgent(parsedUserAgent);
-            dl.setDownloadedAt(OffsetDateTime.now());
+            dl.setDownloadedAt(LocalDateTime.now());
             downloadRepository.save(dl);
         }
+    }
+
+    private ConnectorBundleVersion resolveLatestBundleVersion(IntegrationMethod method) {
+        if (method.getConnectors() == null || method.getConnectors().isEmpty()) {
+            return null;
+        }
+        // Pick first connector link, then its connector's latest bundle version
+        IntegrationMethodConnector link = method.getConnectors().get(0);
+        if (link.getConnector() == null) {
+            return null;
+        }
+        return link.getConnector().getConnectorVersions().stream()
+                .filter(cv -> cv.getConnectorBundleVersion() != null)
+                .max(Comparator.comparing(cv -> cv.getConnectorBundleVersion().getUpdated(),
+                        Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(cv -> cv.getConnectorBundleVersion())
+                .orElse(null);
     }
 }

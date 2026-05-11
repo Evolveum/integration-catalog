@@ -10,16 +10,16 @@ import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
-import { UploadFormImpl, ReviewSummary, Step5FormData } from '../upload-form-impl/upload-form-impl';
+import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
 
 @Component({
-  selector: 'app-upload-form-main',
+  selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, UploadFormImpl],
-  templateUrl: './upload-form-main.html',
-  styleUrls: ['./upload-form-main.scss']
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl],
+  templateUrl: './publish-form-main.html',
+  styleUrls: ['./publish-form-main.scss']
 })
-export class UploadFormMain implements OnInit, OnDestroy {
+export class PublishFormMain implements OnInit, OnDestroy {
   private easyMde: EasyMDE | null = null;
   private modalEasyMde: EasyMDE | null = null;
   protected readonly showSideBySideModal = signal<boolean>(false);
@@ -62,15 +62,15 @@ export class UploadFormMain implements OnInit, OnDestroy {
   );
 
   protected readonly selectedMethodTitles = computed(() =>
-    this.integrationMethods
-      .filter(m => this.selectedIntegrationMethod().includes(m.value))
-      .map(m => m.title)
+    this.integrationMethodTypes()
+      .filter(m => this.selectedIntegrationMethod().includes(m.displayName))
+      .map(m => m.displayName)
   );
 
   protected readonly selectedMethodsLabel = computed(() => {
-    const titles = this.integrationMethods
-      .filter(m => this.selectedIntegrationMethod().includes(m.value))
-      .map(m => m.title);
+    const titles = this.integrationMethodTypes()
+      .filter(m => this.selectedIntegrationMethod().includes(m.displayName))
+      .map(m => m.displayName);
     const lines: string[] = [];
     for (let i = 0; i < titles.length; i += 2) {
       lines.push(titles.slice(i, i + 2).join(' + '));
@@ -128,17 +128,10 @@ export class UploadFormMain implements OnInit, OnDestroy {
     { label: 'Review' },
   ];
 
-  protected readonly integrationMethods = [
-    { value: 'scim',        title: 'SCIM',        description: 'nongeneric (java-based or low code)',  formDescription: 'SCIM integrations use a non-generic SCIM protocol, java-based or low code. This form registers the integration configuration in the catalog.' },
-    { value: 'rest-api',    title: 'REST API',     description: 'Custom REST-based connector',          formDescription: 'REST API integrations use a custom REST-based connector. This form only registers the integration configuration in the catalog.' },
-    { value: 'openldap',    title: 'open LDAP',    description: 'Integration with an existing LDAP',    formDescription: 'OpenLDAP integrations use an external LDAP directory. This form only registers the integration configuration in the catalog.' },
-    { value: 'manual-itsm', title: 'Manual ITSM',  description: 'Mighty manual',                        formDescription: 'Manual ITSM integrations require manual configuration. This form registers the integration configuration in the catalog.' },
-    { value: 'database',    title: 'Database',     description: 'The one and only',                     formDescription: 'Database integrations connect to an external database. This form only registers the integration configuration in the catalog.' },
-    { value: 'csv',         title: 'CSV',          description: 'What ever this is',                    formDescription: 'CSV integrations use CSV files for data exchange. This form registers the integration configuration in the catalog.' },
-  ];
+  protected readonly integrationMethodTypes = signal<{ id: number; displayName: string; description: string | null }[]>([]);
 
   protected readonly selectedMethodInfo = computed(() =>
-    this.integrationMethods.find(m => this.selectedIntegrationMethod().includes(m.value)) ?? null
+    this.integrationMethodTypes().find(m => this.selectedIntegrationMethod().includes(m.displayName)) ?? null
   );
 
   protected recentApps = computed(() => this.recentlyUsedApps());
@@ -221,7 +214,7 @@ export class UploadFormMain implements OnInit, OnDestroy {
     applicationName: this.selectedApplication()?.displayName ?? this.displayName(),
     applicationLogoUrl: (() => {
       const app = this.selectedApplication();
-      return app && (app.logoPath || app.logo) ? this.applicationService.getLogoUrl(app.id) : null;
+      return app && app.logoPath ? this.applicationService.getLogoUrl(app.id) : null;
     })(),
     applicationLogoPreviewUrl: this.logoPreviewUrl(),
     methodTitles: this.selectedMethodTitles(),
@@ -380,6 +373,8 @@ export class UploadFormMain implements OnInit, OnDestroy {
     this.applicationService.getAll().subscribe({ next: (data) => this.applications.set(data) });
 
     this.applicationService.getRecentlyUsed().subscribe({ next: (data) => this.recentlyUsedApps.set(data) });
+
+    this.applicationService.getIntegrationMethodTypes().subscribe({ next: (data) => this.integrationMethodTypes.set(data) });
 
     this.countryService.getAllCountries().subscribe({
       next: (countries) => { this.allCountries.set(countries); this.isLoadingCountries.set(false); },
@@ -658,14 +653,14 @@ export class UploadFormMain implements OnInit, OnDestroy {
 
   protected getLogoUrl(): string | null {
     const app = this.selectedApplication();
-    if (app && (app.logoPath || app.logo)) {
+    if (app && app.logoPath) {
       return this.applicationService.getLogoUrl(app.id);
     }
     return null;
   }
 
   protected getAppLogoUrl(app: Application): string | null {
-    if (app.logoPath || app.logo) {
+    if (app.logoPath) {
       return this.applicationService.getLogoUrl(app.id);
     }
     return null;

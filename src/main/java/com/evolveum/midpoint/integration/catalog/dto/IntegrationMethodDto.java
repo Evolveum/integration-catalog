@@ -10,11 +10,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-public record ImplementationVersionDto(
+public record IntegrationMethodDto(
         UUID id,
         String description,
         List<String> implementationTags,
         List<String> capabilities,
+        List<ObjectClassCapabilityDto> objectClassCapabilities,
         String connectorVersion,
         String systemVersion,
         LocalDate releasedDate,
@@ -25,5 +26,9 @@ public record ImplementationVersionDto(
         String framework,
         String errorMessage,
         Long downloadCount,
-        String midpointVersion
+        Integer midpointMinVersionId,
+        Integer midpointMaxVersionId,
+        String connectorDisplayName,
+        List<String> integMethodTypes,
+        String revision
 ) {}

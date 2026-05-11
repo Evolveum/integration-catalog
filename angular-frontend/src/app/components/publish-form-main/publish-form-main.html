@@ -205,7 +205,7 @@
         <a class="breadcrumb-link" (click)="goToStep(3)" style="cursor:pointer;">{{ wizardSteps[2].label }}</a>
       }
       <span class="breadcrumb-sep">›</span>
-      <span>{{ wizardSteps[currentStep() - 1].label }}</span>
+      <span class="breadcrumb-current">{{ wizardSteps[currentStep() - 1].label }}</span>
     </span>
   </app-page-header>
 
@@ -270,13 +270,13 @@
                   <h5 class="step-title">Select integration method type</h5>
                   <p class="step-subtitle">Choose one or more integration method types to best fit your environment. You can select multiple methods to create a hybrid integration tailored to your environment.</p>
                   <div class="im-grid">
-                    @for (method of integrationMethods; track method.value) {
-                      <div class="im-card" [class.im-card-selected]="isMethodSelected(method.value)" (click)="toggleIntegrationMethod(method.value)">
+                    @for (method of integrationMethodTypes(); track method.id) {
+                      <div class="im-card" [class.im-card-selected]="isMethodSelected(method.displayName)" (click)="toggleIntegrationMethod(method.displayName)">
                         <div class="d-flex align-items-center">
                           <input type="checkbox" class="im-checkbox flex-shrink-0 me-2"
-                                 [checked]="isMethodSelected(method.value)">
+                                 [checked]="isMethodSelected(method.displayName)">
                           <div>
-                            <div class="im-title">{{ method.title }}</div>
+                            <div class="im-title">{{ method.displayName }}</div>
                             <div class="im-desc">{{ method.description }}</div>
                           </div>
                         </div>
@@ -290,7 +290,7 @@
               @if (currentStep() === 3) {
                 <div class="step-content">
                   <h5 class="step-title">Define integration method</h5>
-                  <p class="step-subtitle">{{ selectedMethodInfo()?.formDescription }}</p>
+                  <p class="step-subtitle">{{ selectedMethodInfo()?.description }}</p>
 
                   <!-- Name + Version row -->
                   <div class="method-name-version-row mb-4">
@@ -589,14 +589,14 @@
 
           <!-- Steps 5–7: delegated to child component -->
           @if (currentStep() >= 5) {
-            <app-upload-form-impl
+            <app-publish-form-impl
               [connectorType]="selectedConnectorType()"
               [selectedCatalogConnector]="selectedCatalogConnector()"
               [reviewSummary]="reviewSummary()"
               (goToParentStep)="handleGoToParentStep($event)"
               (internalStepChange)="handleChildInternalStepChange($event)"
               (formDataChanged)="handleFormDataChanged($event)">
-            </app-upload-form-impl>
+            </app-publish-form-impl>
           }
 
         </div><!-- end modal-main-left -->

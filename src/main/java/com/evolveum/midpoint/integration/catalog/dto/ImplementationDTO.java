@@ -1,6 +1,6 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
-import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
+import com.evolveum.midpoint.integration.catalog.object.BuildFrameworkType;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 
 import java.util.UUID;
@@ -12,14 +12,12 @@ public record ImplementationDTO(
         String connectorVersion,
         String bundleName,
         ConnectorBundle.LicenseType license,
-        BundleVersion.BuildFrameworkType buildFramework,
+        BuildFrameworkType buildFramework,
         String description,
         String maintainer,
         String browseLink,
         String ticketingSystemLink,
-        String checkoutLink,
-        String downloadLink,
-        String connidVersion,
+        String gitCloneUrl,
         String className,
         String pathToProject
 ) {

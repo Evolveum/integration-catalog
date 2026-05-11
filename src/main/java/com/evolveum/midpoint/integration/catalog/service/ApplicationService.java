@@ -27,8 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,9 +42,10 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagRepository applicationTagRepository;
     private final CountryOfOriginRepository countryOfOriginRepository;
-    private final ImplementationRepository implementationRepository;
-    private final ImplementationVersionRepository implementationVersionRepository;
-    private final ConnidVersionRepository connidVersionRepository;
+    private final IntegrationMethodRepository integrationMethodRepository;
+    private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
+    private final MidpointVersionRepository midpointVersionRepository;
+    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final GithubProperties githubProperties;
     private final JenkinsProperties jenkinsProperties;
     private final DownloadRepository downloadRepository;
@@ -52,7 +53,6 @@ public class ApplicationService {
     private final VoteRepository voteRepository;
     private final ApplicationReadPort applicationReadPort;
     private final ApplicationMapper applicationMapper;
-    private final BundleVersionRepository bundleVersionRepository;
     private final ConnectorBundleRepository connectorBundleRepository;
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
     private final ApplicationTagService applicationTagService;
@@ -66,11 +66,11 @@ public class ApplicationService {
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
-                              ImplementationRepository implementationRepository,
-                              ImplementationVersionRepository implementationVersionRepository,
+                              IntegrationMethodRepository integrationMethodRepository,
+                              IntegrationMethodTypeRepository integrationMethodTypeRepository,
+                              MidpointVersionRepository midpointVersionRepository,
                               ConnectorBundleRepository connectorBundleRepository,
-                              BundleVersionRepository bundleVersionRepository,
-                              ConnidVersionRepository connidVersionRepository,
+                              ConnectorBundleVersionRepository connectorBundleVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
                               DownloadRepository downloadRepository,
@@ -85,14 +85,14 @@ public class ApplicationService {
                               ConnectorDownloadService connectorDownloadService,
                               BuildCallbackService buildCallbackService,
                               ConnectorUploadService connectorUploadService,
-                              RecentlyUsedApplicationRepository recentlyUsedApplicationRepository
-    ) {
+                              RecentlyUsedApplicationRepository recentlyUsedApplicationRepository) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
-        this.implementationRepository = implementationRepository;
-        this.implementationVersionRepository = implementationVersionRepository;
-        this.connidVersionRepository = connidVersionRepository;
+        this.integrationMethodRepository = integrationMethodRepository;
+        this.integrationMethodTypeRepository = integrationMethodTypeRepository;
+        this.midpointVersionRepository = midpointVersionRepository;
+        this.connectorBundleVersionRepository = connectorBundleVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
         this.downloadRepository = downloadRepository;
@@ -100,7 +100,6 @@ public class ApplicationService {
         this.voteRepository = voteRepository;
         this.applicationReadPort = applicationReadPort;
         this.applicationMapper = applicationMapper;
-        this.bundleVersionRepository = bundleVersionRepository;
         this.connectorBundleRepository = connectorBundleRepository;
         this.applicationApplicationTagRepository = applicationApplicationTagRepository;
         this.applicationTagService = applicationTagService;
@@ -117,74 +116,40 @@ public class ApplicationService {
                 .orElseThrow(() -> new RuntimeException("Application not found with id: " + uuid));
     }
 
-    public ImplementationVersion getImplementationVersion(UUID uuid) {
-        return implementationVersionRepository.getReferenceById(uuid);
-    }
-
-    public void deleteImplementationVersion(UUID id) {
-        ImplementationVersion version = implementationVersionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Implementation version not found with id: " + id));
-        BundleVersion bundleVersion = version.getBundleVersion();
-        if (bundleVersion != null) {
-            // Deleting BundleVersion cascades (orphanRemoval) to ImplementationVersion
-            bundleVersionRepository.delete(bundleVersion);
-        } else {
-            implementationVersionRepository.delete(version);
-        }
-    }
-
-    public ConnidVersion getConnectorVersion(UUID id) {
-        ImplementationVersion implVersion = this.implementationVersionRepository.getReferenceById(id);
-        if (implVersion.getBundleVersion() != null && implVersion.getBundleVersion().getConnidVersion() != null) {
-            return connidVersionRepository.getReferenceById(implVersion.getBundleVersion().getConnidVersion());
-        }
-        return null;
-    }
-
     public List<ApplicationTag> getApplicationTags() {
         return applicationTagRepository.findAll();
     }
 
-    public List<CategoryCountDto> getCategoryCounts() {
-        List<ApplicationTag> categoryTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.CATEGORY);
+    public List<IntegrationMethodType> getIntegrationMethodTypes() {
+        return integrationMethodTypeRepository.findAll();
+    }
 
-        List<CategoryCountDto> categoryCounts = categoryTags.stream()
+    public List<MidpointVersionDto> getMidpointVersions() {
+        return midpointVersionRepository.findAll().stream()
+                .map(v -> new MidpointVersionDto(v.getId(), v.getVersion(), v.getVersionName()))
+                .toList();
+    }
+
+    public List<CategoryCountDto> getCategoryCounts() {
+        return applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.CATEGORY).stream()
                 .map(tag -> new CategoryCountDto(
                         tag.getDisplayName(),
-                        (long) tag.getApplicationApplicationTags().size()
-                ))
+                        (long) tag.getApplicationApplicationTags().size()))
                 .toList();
-
-        return categoryCounts;
     }
 
     public List<CountryOfOrigin> getCountriesOfOrigin() {
         return countryOfOriginRepository.findAll();
     }
 
-    /**
-     * Check if a connector version already exists
-     * @param connectorVersion The version string to check
-     * @return true if the version already exists, false otherwise
-     */
-    public boolean checkVersionExists(String connectorVersion) {
-        if (connectorVersion == null || connectorVersion.isEmpty()) {
-            return false;
-        }
-        return bundleVersionRepository.existsByConnectorVersion(connectorVersion);
+    public boolean checkVersionExists(String bundleVersion) {
+        if (bundleVersion == null || bundleVersion.isEmpty()) return false;
+        return connectorBundleVersionRepository.existsByBundleVersion(bundleVersion);
     }
 
-    /**
-     * Uploads a connector to the integration catalog. Delegates to ConnectorUploadService.
-     */
     @Transactional
     public String uploadConnector(UploadImplementationDto dto, String username) {
         return connectorUploadService.uploadConnector(dto, username);
-    }
-
-    public String downloadConnector(String connectorVersion) {
-        // TODO move impl from controller
-        return null;
     }
 
     @Transactional
@@ -212,49 +177,33 @@ public class ApplicationService {
 
         if (searchForm.getLifecycleState() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("applicationLifecycleType"), searchForm.getLifecycleState()));
-        }
-
-        if (searchForm.getApplicationTag() != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("applicationTag"), searchForm.getApplicationTag()));
-        }
-
-        if (searchForm.getCountryOfOrigin() != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("countryOfOrigin"), searchForm.getCountryOfOrigin()));
+                    cb.equal(root.get("lifecycleState"), searchForm.getLifecycleState()));
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
         return applicationRepository.findAll(spec, pageable);
     }
 
-    public Page<ImplementationVersion> searchVersionsOfConnector(SearchForm searchForm, int page, int size
-    ) {
-        Specification<ImplementationVersion> spec = (root, query, cb) -> cb.conjunction();
+    public Page<IntegrationMethod> searchIntegrationMethods(SearchForm searchForm, int page, int size) {
+        Specification<IntegrationMethod> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchForm.getMaintainer() != null && !searchForm.getMaintainer().isBlank()) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer() + "%"));
+                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer().toLowerCase() + "%"));
         }
 
         if (searchForm.getLifecycleState() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("applicationLifecycleType"), searchForm.getLifecycleState()));
+                    cb.equal(root.get("lifecycleState"), searchForm.getLifecycleState()));
         }
 
         if (searchForm.getApplicationId() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("application_id"), searchForm.getApplicationId()));
-        }
-
-        if (searchForm.getSystemVersion() != null && !searchForm.getSystemVersion().isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("system_version")), "%" + searchForm.getSystemVersion() + "%"));
+                    cb.equal(root.get("application").get("id"), searchForm.getApplicationId()));
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
-        return implementationVersionRepository.findAll(spec, pageable);
+        return integrationMethodRepository.findAll(spec, pageable);
     }
 
     public List<Vote> getVotes() {
@@ -265,21 +214,9 @@ public class ApplicationService {
         return requestVotingService.getRequests();
     }
 
-    public void recordDownloadIfNew(ImplementationVersion version, String ip, String userAgent, OffsetDateTime cutoff) {
-        connectorDownloadService.recordDownloadIfNew(version, ip, userAgent, cutoff);
-    }
-
-    /**
-     * Creates a new Application and Request from the request form submission.
-     * Delegates to RequestVotingService.
-     */
     @Transactional
     public Request createRequestFromForm(RequestFormDto dto) {
         return requestVotingService.createRequestFromForm(dto);
-    }
-
-    public Optional<ImplementationVersion> findImplementationVersion(UUID id) {
-        return implementationVersionRepository.findById(id);
     }
 
     public Optional<Request> getRequest(Long id) {
@@ -290,42 +227,29 @@ public class ApplicationService {
         return requestVotingService.getRequestForApplication(appId);
     }
 
-    /**
-     * Submit a vote for a request. Delegates to RequestVotingService.
-     */
     public Vote submitVote(Long requestId, String voter) {
         return requestVotingService.submitVote(requestId, voter);
     }
 
-    /**
-     * Get the vote count for a specific request. Delegates to RequestVotingService.
-     */
     public long getVoteCount(Long requestId) {
         return requestVotingService.getVoteCount(requestId);
     }
 
-    /**
-     * Check if a user has voted for a specific request. Delegates to RequestVotingService.
-     */
     public boolean hasUserVoted(Long requestId, String voter) {
         return requestVotingService.hasUserVoted(requestId, voter);
     }
 
-    /**
-     * Cancel a request and delete its associated application. Delegates to RequestVotingService.
-     */
     public void cancelRequest(Long requestId) {
         requestVotingService.cancelRequest(requestId);
     }
 
-    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
-        return connectorDownloadService.downloadConnector(versionId, ip, userAgent);
+    public byte[] downloadConnector(UUID integMethodId, String ip, String userAgent) throws IOException {
+        return connectorDownloadService.downloadConnector(integMethodId, ip, userAgent);
     }
 
     public List<ApplicationDto> getAllApplications() {
         return applicationRepository.findAll().stream()
                 .map(app -> {
-                    // For REQUESTED apps, get requestId and vote count
                     Long requestId = null;
                     Long voteCount = null;
                     if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
@@ -335,23 +259,13 @@ public class ApplicationService {
                             voteCount = requestVotingService.getVoteCount(requestId);
                         }
                     }
-
-                    // Use mapper to build DTO (capabilities and requester are null for list view)
                     return applicationMapper.mapToApplicationDto(app, null, null, requestId, voteCount);
                 })
                 .toList();
     }
 
-    /**
-     * List applications with pagination and optional filtering
-     * @param pageable Pagination parameters
-     * @param q Optional search query by name
-     * @param featured Optional filter for featured applications
-     * @return Page of ApplicationCardDto
-     */
     public Page<ApplicationCardDto> list(Pageable pageable, String q, Boolean featured) {
         Page<Application> page;
-
         if (featured != null && featured) {
             page = applicationReadPort.findFeatured(pageable);
         } else if (q != null && !q.isBlank()) {
@@ -359,65 +273,30 @@ public class ApplicationService {
         } else {
             page = applicationReadPort.findAll(pageable);
         }
-
         return page.map(applicationMapper::toCardDto);
     }
 
-    /**
-     * Returns all active connectors mapped to ActiveConnectorDto.
-     */
     public List<ActiveConnectorDto> listActiveConnectors() {
-        List<Application> activeApps = applicationReadPort.findByLifecycleState(
-                Application.ApplicationLifecycleType.ACTIVE);
-        return activeApps.stream()
+        return applicationReadPort.findByLifecycleState(Application.ApplicationLifecycleType.ACTIVE).stream()
                 .map(applicationMapper::toActiveConnectorDto)
                 .toList();
     }
 
-    /**
-     * Verify validity of the implementation version based on the data produced by the Jenkins pipeline.
-     * Delegates to BundleMergeService.
-     *
-     * @param verifyPayload JSON form used to verify the validity of the implementation version
-     * @return true if the implementation version is valid and the Jenkins pipeline can proceed
-     */
     @Transactional
     public boolean verify(VerifyBundleInformationForm verifyPayload) {
         return bundleMergeService.verify(verifyPayload);
     }
 
-    /**
-     * Get implementations for a specific application.
-     * Fetches the latest implementation version for each implementation.
-     *
-     * @param applicationId the application UUID
-     * @return list of implementation DTOs with data from multiple tables
-     */
-    public List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto> getImplementationsByApplicationId(UUID applicationId) {
-        List<Implementation> implementations = implementationRepository.findByApplicationId(applicationId);
-
-        return implementations.stream()
-                .map(impl -> {
-                    if (impl.getImplementationVersions() == null || impl.getImplementationVersions().isEmpty()) {
-                        return null;
-                    }
-
-                    ImplementationVersion latestVersion = impl.getImplementationVersions().stream()
-                            .max(ImplementationVersion.latestByPublishDate)
-                            .orElse(null);
-
-                    return applicationMapper.mapToImplementationListItemDto(impl, latestVersion);
-                })
+    public List<ImplementationListItemDto> getIntegrationMethodsByApplicationId(UUID applicationId) {
+        return integrationMethodRepository.findByApplicationId(applicationId).stream()
+                .map(applicationMapper::mapToIntegrationMethodListItemDto)
                 .filter(dto -> dto != null)
                 .toList();
     }
 
-    /**
-     * Returns a global list of recently used applications (across all users), ordered by recency.
-     */
     public List<ApplicationDto> getRecentlyUsedApplications() {
         return recentlyUsedApplicationRepository.findAllByOrderByIdDesc().stream()
-                .map(r -> r.getApplicationId())
+                .map(RecentlyUsedApplication::getApplicationId)
                 .distinct()
                 .limit(9)
                 .map(id -> applicationRepository.findById(id).orElse(null))
@@ -426,9 +305,6 @@ public class ApplicationService {
                 .toList();
     }
 
-    /**
-     * Records that an application was used by a user (delete-and-reinsert for recency ordering).
-     */
     @Transactional
     public void recordRecentlyUsed(UUID applicationId, String userId) {
         recentlyUsedApplicationRepository.deleteByUserIdAndApplicationId(userId, applicationId);
@@ -437,5 +313,27 @@ public class ApplicationService {
                 .setUserId(userId)
                 .setApplicationId(applicationId);
         recentlyUsedApplicationRepository.save(entry);
+    }
+
+    public long getTotalDownloadsCount() {
+        return downloadRepository.count();
+    }
+
+    public long countDownloadsForApplication(UUID applicationId) {
+        return applicationRepository.findById(applicationId)
+                .map(app -> {
+                    if (app.getIntegrationMethods() == null) return 0L;
+                    return app.getIntegrationMethods().stream()
+                            .flatMap(m -> m.getConnectors().stream())
+                            .map(IntegrationMethodConnector::getConnector)
+                            .filter(Objects::nonNull)
+                            .flatMap(c -> c.getConnectorVersions().stream())
+                            .map(ConnectorVersion::getConnectorBundleVersion)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .mapToLong(downloadRepository::countByConnectorBundleVersion)
+                            .sum();
+                })
+                .orElse(0L);
     }
 }

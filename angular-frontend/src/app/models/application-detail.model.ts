@@ -4,6 +4,12 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+export interface MidpointVersion {
+  id: number;
+  version: string;
+  versionName: string;
+}
+
 export interface CountryOfOrigin {
   id: number;
   name: string;
@@ -17,7 +23,7 @@ export interface ApplicationTag {
   tagType: string | null;
 }
 
-export interface ImplementationVersion {
+export interface IntegrationMethod {
   id: string;
   description: string | null;
   implementationTags: string[] | null;
@@ -32,7 +38,12 @@ export interface ImplementationVersion {
   framework: string | null;
   errorMessage: string | null;
   downloadCount: number | null;
-  midpointVersion: string | null;
+  midpointMinVersionId: number | null;
+  midpointMaxVersionId: number | null;
+  connectorDisplayName: string | null;
+  integMethodTypes: string[] | null;
+  objectClassCapabilities: ObjectClassCapability[] | null;
+  revision: string | null;
 }
 
 export interface ObjectClassCapability {
@@ -44,27 +55,22 @@ export interface ApplicationDetail {
   id: string;
   displayName: string;
   description: string;
-  logo: string | null; // Legacy base64 field (deprecated)
   logoPath: string | null;
-  logoContentType: string | null;
-  logoOriginalName: string | null;
-  logoSizeBytes: number | null;
   lifecycleState: string;
-  lastModified: string;
+  updated: string | null;
   createdAt: string | null;
   capabilities: string[] | null;
   requester: string | null;
   origins: CountryOfOrigin[] | null;
   categories: ApplicationTag[] | null;
   tags: ApplicationTag[] | null;
-  implementationVersions: ImplementationVersion[] | null;
+  integrationMethods: IntegrationMethod[] | null;
   requestId: number | null;
+  voteCount: number | null;
+  frameworks: string[] | null;
   objectClassCapabilities: ObjectClassCapability[] | null;
 }
 
-/**
- * Helper function to check if application detail has a logo
- */
 export function hasLogoDetail(app: ApplicationDetail): boolean {
-  return !!(app.logoPath || (app.logo && app.logo.length > 0));
+  return !!app.logoPath;
 }

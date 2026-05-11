@@ -6,11 +6,10 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
-import com.evolveum.midpoint.integration.catalog.object.ConnidVersion;
-
+import com.evolveum.midpoint.integration.catalog.object.ConnectorConnectorTag;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface ConnidVersionRepository extends JpaRepository<ConnidVersion, String>,
-        JpaSpecificationExecutor<ConnidVersion> {
+public interface ConnectorConnectorTagRepository extends JpaRepository<ConnectorConnectorTag, Integer>,
+        JpaSpecificationExecutor<ConnectorConnectorTag> {
 }

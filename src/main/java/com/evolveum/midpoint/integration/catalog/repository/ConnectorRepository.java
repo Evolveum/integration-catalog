@@ -6,11 +6,14 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
-import com.evolveum.midpoint.integration.catalog.object.ImplementationTag;
-
+import com.evolveum.midpoint.integration.catalog.object.Connector;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface ImplementationTagRepository extends JpaRepository<ImplementationTag, Integer>,
-        JpaSpecificationExecutor<ImplementationTag> {
+import java.util.List;
+
+public interface ConnectorRepository extends JpaRepository<Connector, Integer>,
+        JpaSpecificationExecutor<Connector> {
+
+    List<Connector> findByConnectorBundleId(Integer connectorBundleId);
 }

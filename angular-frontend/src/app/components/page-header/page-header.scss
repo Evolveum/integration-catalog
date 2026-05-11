@@ -25,16 +25,16 @@
 
 .breadcrumb-link {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: $color-dark-blue;
   text-decoration: none;
 
   &:link,
   &:visited {
-    color: #6b7280;
+    color: $color-dark-blue;
   }
 
   &:hover {
-    color: #374151;
+    color: $color-dark-blue;
     text-decoration: underline;
   }
 }

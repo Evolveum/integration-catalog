@@ -8,7 +8,7 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail } from '../../models/application-detail.model';
+import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 
@@ -25,6 +25,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly error = signal<string | null>(null);
   protected readonly expandedVersions = new Set<number>();
   protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
+  protected readonly expandedGlobalCapabilities = signal<Set<string>>(new Set());
   protected readonly globalCapabilitiesExpanded = signal<boolean>(false);
   protected readonly activeEvolvumVersions = signal<any[]>([]);
   protected readonly activeCommunityVersions = signal<any[]>([]);
@@ -32,10 +33,11 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly otherCommunityVersions = signal<any[]>([]);
   protected readonly activeTab = signal<'main' | 'other'>('main');
   protected readonly isFilterModalOpen = signal<boolean>(false);
-  protected readonly filterState = signal<{capabilities: string[], midpointVersions: string[]}>({
+  protected readonly filterState = signal<{capabilities: string[], midpointVersions: number[]}>({
     capabilities: [],
     midpointVersions: []
   });
+  protected readonly midpointVersions = signal<MidpointVersion[]>([]);
   protected readonly openDropdown = signal<string | null>(null);
   protected readonly dropdownPosition = signal<{ top: number; left: number } | null>(null);
   private activeChipElement: HTMLElement | null = null;
@@ -57,15 +59,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected readonly methodTypeFilter = signal<string>('all');
   protected readonly methodSearchQuery = signal<string>('');
+  protected readonly methodDropdownOpen = signal<boolean>(false);
 
-  protected readonly integrationMethods = [
-    { id: 'scim',        name: 'SCIM',         description: 'Standardized provisioning' },
-    { id: 'rest-api',    name: 'REST API',      description: 'Custom REST-based connector' },
-    { id: 'openldap',    name: 'open LDAP',     description: 'Integration with an existing LDAP' },
-    { id: 'manual-itsm', name: 'Manual ITSM',   description: 'Mighty manual' },
-    { id: 'database',    name: 'Database',      description: 'The one and only' },
-    { id: 'csv',         name: 'CSV',           description: 'What ever this is' },
-  ];
+  protected readonly availableMethodTypes = signal<{ id: number; displayName: string }[]>([]);
 
   constructor(
     private route: ActivatedRoute,
@@ -86,6 +82,14 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       this.error.set('No application ID provided');
       this.loading.set(false);
     }
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.availableMethodTypes.set(types),
+      error: (err) => console.error('Failed to load integration method types', err)
+    });
+    this.applicationService.getMidpointVersions().subscribe({
+      next: (versions) => this.midpointVersions.set(versions),
+      error: (err) => console.error('Failed to load MidPoint versions', err)
+    });
   }
 
   protected goBack(): void {
@@ -93,10 +97,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   }
 
   protected cancelVersion(id: string): void {
-    this.applicationService.deleteImplementationVersion(id).subscribe({
-      next: () => this.cancelledVersionIds.update(ids => [...ids, id]),
-      error: () => this.cancelledVersionIds.update(ids => [...ids, id])
-    });
+    this.cancelledVersionIds.update(ids => [...ids, id]);
   }
 
   protected cancelRequest(): void {
@@ -110,7 +111,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected isGlobalRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
-    return !!caps && caps.length > 0 && caps[0].objectName === 'global';
+    return !!caps && caps.length > 0 && caps[0].objectName.toLowerCase() === 'global';
+  }
+
+  protected isGlobalMethod(version: IntegrationMethod): boolean {
+    return !!version.objectClassCapabilities &&
+      version.objectClassCapabilities.length === 1 &&
+      version.objectClassCapabilities[0].objectName.toLowerCase() === 'global';
   }
 
   protected toggleObjectClass(name: string): void {
@@ -127,6 +134,18 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected toggleGlobalCapabilities(): void {
     this.globalCapabilitiesExpanded.update(v => !v);
+  }
+
+  protected toggleMethodGlobalCapabilities(versionId: string): void {
+    this.expandedGlobalCapabilities.update(set => {
+      const next = new Set(set);
+      if (next.has(versionId)) { next.delete(versionId); } else { next.add(versionId); }
+      return next;
+    });
+  }
+
+  protected isMethodGlobalCapabilitiesExpanded(versionId: string): boolean {
+    return this.expandedGlobalCapabilities().has(versionId);
   }
 
   protected toggleCapabilities(versionIndex: number): void {
@@ -165,10 +184,28 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected onMethodTypeChange(event: Event): void {
     this.methodTypeFilter.set((event.target as HTMLSelectElement).value);
+    this.applyFilters();
+  }
+
+  protected toggleMethodDropdown(): void {
+    this.methodDropdownOpen.update(v => !v);
+  }
+
+  protected selectMethodType(value: string): void {
+    this.methodTypeFilter.set(value);
+    this.methodDropdownOpen.set(false);
+    this.applyFilters();
+  }
+
+  protected selectedMethodTypeLabel(): string {
+    const current = this.methodTypeFilter();
+    if (current === 'all') return 'All';
+    return current;
   }
 
   protected onMethodSearchChange(event: Event): void {
     this.methodSearchQuery.set((event.target as HTMLInputElement).value);
+    this.applyFilters();
   }
 
   protected resetMethodFilter(): void {
@@ -259,11 +296,11 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   }
 
   protected resetFilters(): void {
-    this.filterState.set({
-      capabilities: [],
-      midpointVersions: []
-    });
+    this.filterState.set({ capabilities: [], midpointVersions: [] });
+    this.methodTypeFilter.set('all');
+    this.methodDropdownOpen.set(false);
     this.versionSearchQuery.set('');
+    this.methodSearchQuery.set('');
     this.applyFilters();
   }
 
@@ -300,17 +337,17 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  protected toggleMidpointVersionFilter(version: string): void {
+  protected toggleMidpointVersionFilter(versionId: number): void {
     const current = this.filterState().midpointVersions;
-    if (current.includes(version)) {
+    if (current.includes(versionId)) {
       this.filterState.update(state => ({
         ...state,
-        midpointVersions: state.midpointVersions.filter(v => v !== version)
+        midpointVersions: state.midpointVersions.filter(v => v !== versionId)
       }));
     } else {
       this.filterState.update(state => ({
         ...state,
-        midpointVersions: [...state.midpointVersions, version]
+        midpointVersions: [...state.midpointVersions, versionId]
       }));
     }
     this.applyFilters();
@@ -324,10 +361,10 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  protected removeMidpointVersionFilter(version: string): void {
+  protected removeMidpointVersionFilter(versionId: number): void {
     this.filterState.update(state => ({
       ...state,
-      midpointVersions: state.midpointVersions.filter(v => v !== version)
+      midpointVersions: state.midpointVersions.filter(v => v !== versionId)
     }));
     this.applyFilters();
   }
@@ -353,26 +390,17 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     'UPDATE_DELTA'
   ];
 
-  protected getAllMidpointVersions(): string[] {
-    const app = this.application();
-    if (!app || !app.implementationVersions) return [];
-
-    const versionsSet = new Set<string>();
-    app.implementationVersions.forEach(version => {
-      if (version.midpointVersion) {
-        versionsSet.add(version.midpointVersion);
-      }
-    });
-
-    return Array.from(versionsSet).sort();
+  protected getMidpointVersionLabel(id: number): string {
+    const v = this.midpointVersions().find(v => v.id === id);
+    return v ? `${v.version} — ${v.versionName}` : String(id);
   }
 
   protected isCapabilitySelected(capability: string): boolean {
     return this.filterState().capabilities.includes(capability);
   }
 
-  protected isMidpointVersionSelected(version: string): boolean {
-    return this.filterState().midpointVersions.includes(version);
+  protected isMidpointVersionSelected(versionId: number): boolean {
+    return this.filterState().midpointVersions.includes(versionId);
   }
 
   protected hasActiveFilters(): boolean {
@@ -383,8 +411,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   private applyFilters(): void {
     this.currentPage.set(0);
     const app = this.application();
-    if (app && app.implementationVersions) {
-      this.groupVersionsByLifecycleState(app.implementationVersions);
+    if (app && app.integrationMethods) {
+      this.groupVersionsByLifecycleState(app.integrationMethods);
     }
   }
 
@@ -505,7 +533,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.applicationService.getById(id).subscribe({
       next: (data) => {
         this.application.set(data);
-        this.groupVersionsByLifecycleState(data.implementationVersions);
+        this.groupVersionsByLifecycleState(data.integrationMethods);
         this.loading.set(false);
       },
       error: (err) => {
@@ -567,8 +595,28 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
 
     if (filters.midpointVersions.length > 0) {
+      filteredVersions = filteredVersions.filter(method =>
+        filters.midpointVersions.some(selectedId => {
+          const min = method.midpointMinVersionId;
+          const max = method.midpointMaxVersionId;
+          return (min === null || min <= selectedId) && (max === null || max >= selectedId);
+        })
+      );
+    }
+
+    const methodType = this.methodTypeFilter();
+    if (methodType !== 'all') {
       filteredVersions = filteredVersions.filter(version =>
-        version.midpointVersion && filters.midpointVersions.includes(version.midpointVersion)
+        version.integMethodTypes && version.integMethodTypes.includes(methodType)
+      );
+    }
+
+    const searchQuery = this.methodSearchQuery().toLowerCase().trim();
+    if (searchQuery) {
+      filteredVersions = filteredVersions.filter(version =>
+        version.connectorDisplayName?.toLowerCase().includes(searchQuery) ||
+        version.integMethodTypes?.some((t: string) => t.toLowerCase().includes(searchQuery)) ||
+        version.description?.toLowerCase().includes(searchQuery)
       );
     }
 

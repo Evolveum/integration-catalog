@@ -481,11 +481,17 @@
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  color: $midpoint-special-color;
+  color: $color-dark-blue;
   cursor: pointer;
   text-decoration: none;
+}
+
+.breadcrumb-current {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #000;
 }
 
 .breadcrumb-app-icon {
@@ -497,6 +503,7 @@
 
 .breadcrumb-link:hover {
   color: $color-dark-blue;
+  text-decoration: underline;
 }
 
 /* ========================================
@@ -582,22 +589,59 @@
 /* ========================================
    INTEGRATION METHOD CARDS
    ======================================== */
+.method-type-dropdown {
+  position: relative;
+}
+
 .method-type-select {
   width: auto;
   min-width: 90px;
   border-radius: 50px;
-  border-color: $color-dark-blue;
+  border: 1px solid $color-dark-blue;
   height: 38px;
-  padding-left: 1rem;
-  padding-right: 2rem;
-  appearance: none;
-  -webkit-appearance: none;
+  padding: 0 1rem;
   cursor: pointer;
   font-weight: 600;
   color: #000000;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%23212529' d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
+  background: white;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba($color-dark-blue, 0.2);
+  }
+}
+
+.method-type-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 9999;
+  overflow: hidden;
+  padding: 0.25rem 0;
+}
+
+.method-type-option {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #212529;
+
+  &:hover {
+    background-color: #f8f9fa;
+  }
+
+  &.method-type-option-active {
+    font-weight: 600;
+    color: $color-dark-blue;
+  }
 }
 
 .btn-method-filter {
@@ -655,19 +699,68 @@
   font-size: 0.875rem;
 }
 
+.im-title {
+  font-size: 1rem;
+  color: #1a202c;
+}
+
+.im-revision-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #495057;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  background: white;
+}
+
+.im-view-details-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-dark-blue;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &:hover {
+    text-decoration: underline;
+    color: $color-dark-blue;
+  }
+}
+
 .im-badge-awaiting {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: #fff3cd;
+  color: #7a4f00;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.im-badge-published {
+  background-color: #d1e7dd;
+  color: #0a3622;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.im-divider {
+  border: 0;
+  border-top: 1px solid #7a7a7a;
+  margin: 0.75rem 0 1rem 0;
+}
+
+.im-capabilities-header {
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
 }
 
 .im-method-tag {
   font-size: 0.8rem;
   color: #495057;
-  background-color: #f0f0f0;
+  border: 1px solid #ced4da;
   border-radius: 4px;
   padding: 0.1rem 0.5rem;
+  background: white;
 }
 
 .im-method-sep {

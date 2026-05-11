@@ -11,11 +11,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
-import java.util.UUID;
 
 public interface ConnectorBundleRepository extends JpaRepository<ConnectorBundle, Integer>,
         JpaSpecificationExecutor<ConnectorBundle> {
 
     Optional<ConnectorBundle> findByBundleName(String bundleName);
-    Optional<ConnectorBundle> findByBundleVersions_ImplementationVersions_Id(UUID implementationVersionId);
 }

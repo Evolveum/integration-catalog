@@ -10,25 +10,20 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
-
-/**
- * Created by Dominik.
- */
 @Entity
-@Table(name = "implementation_implementation_tag")
+@Table(name = "connector_connector_tag")
 @Getter @Setter
-public class ImplementationImplementationTag {
+public class ConnectorConnectorTag {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "implementation_id", nullable = false)
-    private Implementation implementation;
+    @JoinColumn(name = "connector_id", nullable = false)
+    private Connector connector;
 
     @ManyToOne
     @JoinColumn(name = "tag_id", nullable = false)
-    private ImplementationTag implementationTag;
+    private ConnectorTag connectorTag;
 }

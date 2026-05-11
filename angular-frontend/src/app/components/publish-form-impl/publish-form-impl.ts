@@ -52,13 +52,13 @@ export interface Step5FormData {
 }
 
 @Component({
-  selector: 'app-upload-form-impl',
+  selector: 'app-publish-form-impl',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
-  templateUrl: './upload-form-impl.html',
-  styleUrls: ['./upload-form-impl.scss']
+  templateUrl: './publish-form-impl.html',
+  styleUrls: ['./publish-form-impl.scss']
 })
-export class UploadFormImpl implements OnInit, OnChanges {
+export class PublishFormImpl implements OnInit, OnChanges {
   @Input() connectorType = '';
   @Input() selectedCatalogConnector: ImplementationListItem | null = null;
   @Input() reviewSummary: ReviewSummary | null = null;
@@ -249,7 +249,7 @@ export class UploadFormImpl implements OnInit, OnChanges {
     this.connectorLicense.set(connector.licenseType ?? '');
     this.connectorDescription.set(connector.implementationDescription ?? connector.description ?? '');
     this.devProjectHomepage.set(connector.browseLink ?? '');
-    this.devGitCloneUrl.set(connector.checkoutLink ?? '');
+    this.devGitCloneUrl.set(connector.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(connector.pathToProjectDirectory ?? '');
     this.devClassName.set(connector.className ?? '');
     const bf = (connector.buildFramework ?? '').toLowerCase();
@@ -304,14 +304,12 @@ export class UploadFormImpl implements OnInit, OnChanges {
         license: this.connectorLicense() || null,
         ticketingSystemLink: null,
         browseLink: this.devProjectHomepage() || null,
-        checkoutLink: this.devGitCloneUrl() || null,
+        gitCloneUrl: this.devGitCloneUrl() || null,
         buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
         pathToProject: this.devProjectFolderPath() || null,
         className: this.devClassName() || null,
         bundleName: null,
-        connectorVersion: this.connectorVersion() || null,
-        downloadLink: null,
-        connidVersion: null
+        connectorVersion: this.connectorVersion() || null
       },
       files: []
     };
@@ -367,13 +365,7 @@ export class UploadFormImpl implements OnInit, OnChanges {
   }
 
   protected cancelPublish(): void {
-    const versionId = this.publishedVersionId();
-    const navigate = () => this.router.navigate(['/applications']);
-    if (versionId) {
-      this.applicationService.deleteImplementationVersion(versionId).subscribe({ next: navigate, error: navigate });
-    } else {
-      navigate();
-    }
+    this.router.navigate(['/applications']);
   }
 
   private extractApplicationIdFromResponse(response: string): string | null {

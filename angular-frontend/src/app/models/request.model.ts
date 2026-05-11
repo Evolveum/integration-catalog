@@ -69,14 +69,12 @@ export interface UploadImplementationData {
   license: string | null;
   ticketingSystemLink: string | null;
   browseLink: string | null;
-  checkoutLink: string | null;
+  gitCloneUrl: string | null;
   buildFramework: string | null;
   pathToProject: string | null;
   className: string | null;
   bundleName: string | null;
   connectorVersion: string | null;
-  downloadLink: string | null;
-  connidVersion: string | null;
 }
 
 /**
@@ -97,7 +95,7 @@ export interface UploadConnectorPayload {
 }
 
 /**
- * Form data emitted from UploadFormImpl component
+ * Form data emitted from PublishFormImpl component
  */
 export interface ImplementationFormData {
   isNewVersion: boolean | null;
@@ -110,7 +108,7 @@ export interface ImplementationFormData {
   browseLink: string;
   ticketingLink: string;
   buildFramework: string;
-  checkoutLink: string;
+  gitCloneUrl: string;
   pathToProjectDirectory: string;
   className: string;
   uploadedFile: UploadedFile | null;

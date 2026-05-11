@@ -8,10 +8,6 @@ package com.evolveum.midpoint.integration.catalog.dto;
 
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.object.Application;
-import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
-import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
-import com.evolveum.midpoint.integration.catalog.object.Implementation;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
 
 import java.util.List;
 
@@ -20,8 +16,6 @@ import java.util.List;
  */
 public record UploadImplementationDto(
         Application application,
-        ConnectorBundle connectorBundle,
-        BundleVersion bundleVersion,
         ImplementationDTO implementation,
         List<ItemFile> files
 ) {

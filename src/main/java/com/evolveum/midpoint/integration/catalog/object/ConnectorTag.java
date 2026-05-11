@@ -12,25 +12,21 @@ import lombok.Setter;
 
 import java.util.Set;
 
-/**
- * Created by Dominik.
- */
 @Entity
-@Table(name = "implementation_tag")
+@Table(name = "connector_tag")
 @Getter @Setter
-public class ImplementationTag {
+public class ConnectorTag {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private int id;
+    private Integer id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
     @Column(name = "display_name", nullable = false)
     private String displayName;
 
-    @OneToMany(mappedBy = "implementationTag", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ImplementationImplementationTag> implementationImplementationTags;
+    @OneToMany(mappedBy = "connectorTag", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ConnectorConnectorTag> connectorConnectorTags;
 }

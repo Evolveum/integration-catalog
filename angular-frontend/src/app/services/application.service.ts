@@ -70,6 +70,14 @@ export class ApplicationService {
     return this.http.get<ApplicationTag[]>(`${environment.apiUrl}/application-tags`);
   }
 
+  getIntegrationMethodTypes(): Observable<{ id: number; displayName: string; description: string | null }[]> {
+    return this.http.get<{ id: number; displayName: string; description: string | null }[]>(`${environment.apiUrl}/integration-method-types`);
+  }
+
+  getMidpointVersions(): Observable<{ id: number; version: string; versionName: string }[]> {
+    return this.http.get<{ id: number; version: string; versionName: string }[]>(`${environment.apiUrl}/midpoint-versions`);
+  }
+
   getTotalDownloadsCount(): Observable<number> {
     return this.http.get<number>(`${environment.apiUrl}/statistics/downloads-count`);
   }
@@ -110,12 +118,6 @@ export class ApplicationService {
   deleteLogo(applicationId: string): Observable<void> {
     return this.http.delete<void>(
       `${environment.apiUrl}/applications/${applicationId}/logo`
-    );
-  }
-
-  deleteImplementationVersion(versionId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${environment.apiUrl}/implementations/versions/${versionId}`
     );
   }
 
