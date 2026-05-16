@@ -1,15 +1,18 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
 package com.evolveum.midpoint.integration.catalog.dto;
 
 import com.evolveum.midpoint.integration.catalog.object.BuildFrameworkType;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 
-import java.util.UUID;
-
-public record ImplementationDTO(
-        UUID implementationId,
+public record UploadConnectorDto(
         String displayName,
         ConnectorBundle.FrameworkType framework,
-        String connectorVersion,
+        String version,
         String bundleName,
         ConnectorBundle.LicenseType license,
         BuildFrameworkType buildFramework,
@@ -19,6 +22,8 @@ public record ImplementationDTO(
         String ticketingSystemLink,
         String gitCloneUrl,
         String className,
-        String pathToProject
+        String pathToProject,
+        String commitTag,
+        String bundleDisplayName
 ) {
 }

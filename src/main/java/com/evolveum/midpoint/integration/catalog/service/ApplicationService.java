@@ -116,8 +116,15 @@ public class ApplicationService {
                 .orElseThrow(() -> new RuntimeException("Application not found with id: " + uuid));
     }
 
-    public List<ApplicationTag> getApplicationTags() {
-        return applicationTagRepository.findAll();
+    public List<ApplicationTagDto> getApplicationTags() {
+        return applicationTagRepository.findAll().stream()
+                .map(tag -> new ApplicationTagDto(
+                        tag.getId(),
+                        tag.getName(),
+                        tag.getDisplayName(),
+                        tag.getTagType() != null ? tag.getTagType().name() : null
+                ))
+                .toList();
     }
 
     public List<IntegrationMethodType> getIntegrationMethodTypes() {
@@ -287,6 +294,7 @@ public class ApplicationService {
         return bundleMergeService.verify(verifyPayload);
     }
 
+    @Transactional(readOnly = true)
     public List<ImplementationListItemDto> getIntegrationMethodsByApplicationId(UUID applicationId) {
         return integrationMethodRepository.findByApplicationId(applicationId).stream()
                 .map(applicationMapper::mapToIntegrationMethodListItemDto)

@@ -119,14 +119,12 @@
                     Connector version
                     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                       <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">Version is auto-detected from the uploaded artifact when available.</span>
+                      <span class="info-tooltip">Version is fixed at 1.0 for new connectors.</span>
                     </span>
                   </label>
-                  <input type="text" [class]="isExistingConnector ? 'form-control input-disabled' : 'form-control'"
+                  <input type="text" class="form-control input-disabled"
                          [value]="connectorVersion()"
-                         [readonly]="isExistingConnector"
-                         (input)="!isExistingConnector && connectorVersion.set($any($event.target).value); onFieldChange()"
-                         placeholder="e.g. 1.0">
+                         readonly>
                 </div>
               </div>
 
@@ -162,7 +160,7 @@
                   License type <span class="text-danger">*</span>
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">The open-source license under which this connector is distributed.</span>
+                    <span class="info-tooltip">Specifies the software licensing terms (e.g., Apache 2.0, EUPL 1.2). Used for compliance tracking and auditing purposes.</span>
                   </span>
                 </label>
                 <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
@@ -188,7 +186,7 @@
               </div>
 
               <!-- Description -->
-              <div class="mb-4">
+              <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
                 <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
                           [value]="connectorDescription()"
@@ -196,141 +194,28 @@
                 <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
               </div>
 
-              <!-- Capabilities scope -->
-              <div class="mb-3">
-                <label class="form-label form-label-upload">Define connector capabilities for:</label>
-                <div class="capabilities-scope-list">
-                  <label class="d-flex align-items-center capabilities-scope-option"
-                         [class.capabilities-scope-option-selected]="capabilitiesScope() === 'global'"
-                         (click)="capabilitiesScope.set('global'); onFieldChange()">
-                    <input type="radio" name="capabilitiesScope" value="global" [checked]="capabilitiesScope() === 'global'"
-                           class="integration-method-radio" style="pointer-events:none;">
-                    <span>All object classes (Global)</span>
-                  </label>
-                  <label class="d-flex align-items-center capabilities-scope-option"
-                         [class.capabilities-scope-option-selected]="capabilitiesScope() === 'specific'"
-                         (click)="capabilitiesScope.set('specific'); onFieldChange()">
-                    <input type="radio" name="capabilitiesScope" value="specific" [checked]="capabilitiesScope() === 'specific'"
-                           class="integration-method-radio" style="pointer-events:none;">
-                    <span>Specific object classes</span>
-                  </label>
-                </div>
+              <!-- Connector bundle name -->
+              <div class="mb-4">
+                <label class="form-label form-label-upload">
+                  Connector bundle name
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">Display name for the connector bundle grouping related connector versions.</span>
+                  </span>
+                </label>
+                <input type="text" class="form-control"
+                       [class.input-disabled]="isExistingConnector"
+                       [value]="connectorBundleName()"
+                       (input)="connectorBundleName.set($any($event.target).value); onFieldChange()"
+                       [disabled]="isExistingConnector"
+                       placeholder="Enter connector bundle name">
               </div>
 
-              <!-- Global capabilities -->
-              @if (capabilitiesScope() === 'global') {
-                <div class="mb-3">
-                  <label class="form-label form-label-upload">Global capabilities</label>
-                  <div class="position-relative">
-                    <div class="form-control d-flex flex-wrap align-items-center gap-2 capability-dropdown-trigger"
-                         (click)="isGlobalCapDropdownOpen.set(!isGlobalCapDropdownOpen())">
-                      @if (globalCapabilities().length === 0) {
-                        <span class="capability-placeholder">Select capabilities</span>
-                      } @else {
-                        @for (cap of globalCapabilities(); track cap) {
-                          <span class="badge d-inline-flex align-items-center capability-badge">
-                            {{ formatCapabilityName(cap) }}
-                            <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center btn-remove-capability"
-                                    (click)="removeGlobalCap(cap, $event)" aria-label="Remove">
-                              <i class="fa-solid fa-circle-xmark remove-icon"></i>
-                            </button>
-                          </span>
-                        }
-                      }
-                    </div>
-                    @if (isGlobalCapDropdownOpen()) {
-                      <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu overflow-auto">
-                        @if (isLoadingCapabilities()) {
-                          <div class="p-4 text-center text-muted">Loading capabilities…</div>
-                        } @else if (availableCapabilities().length === 0) {
-                          <div class="p-4 text-center text-muted">No capabilities available</div>
-                        } @else {
-                          <div class="p-4 capability-grid">
-                            @for (cap of availableCapabilities(); track cap) {
-                              <label class="d-flex align-items-center capability-label">
-                                <input type="checkbox" (change)="onGlobalCapChange($event, cap)"
-                                       [checked]="globalCapabilities().includes(cap)" class="capability-checkbox">
-                                <span class="capability-label-text">{{ formatCapabilityName(cap) }}</span>
-                              </label>
-                            }
-                          </div>
-                        }
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Specific object classes -->
-              @if (capabilitiesScope() === 'specific') {
-                <div class="mb-3">
-                  @for (entry of objectClassEntries(); track $index; let i = $index) {
-                    <div class="object-class-card">
-                      <div class="object-class-card-header">
-                        <div>
-                          <div class="object-class-card-title">{{ entry.objectClass || 'New object class' }}</div>
-                          @if (entry.objectClass) { <div class="object-class-card-subtitle">Object class</div> }
-                        </div>
-                        @if (i > 0) {
-                          <button type="button" class="btn btn-remove-object-class" (click)="removeObjectClassEntry(i)">
-                            <i class="fa-solid fa-trash-can me-1"></i>Remove
-                          </button>
-                        }
-                      </div>
-                      <div class="form-control d-flex align-items-center object-class-field mb-2">
-                        <input type="text" class="border-0 flex-fill object-class-text-input"
-                               placeholder="Type object class to configure"
-                               [value]="entry.objectClass"
-                               (input)="updateObjectClass(i, $any($event.target).value)"
-                               [name]="'oc-' + i">
-                      </div>
-                      <div class="position-relative">
-                        <div class="form-control d-flex flex-wrap align-items-center gap-2 capability-dropdown-trigger"
-                             [class.capability-dropdown-disabled]="!entry.objectClass"
-                             (click)="toggleSpecificCapDropdown(i)">
-                          @if (!entry.objectClass) {
-                            <span class="capability-placeholder capability-placeholder-disabled">Disabled until object class is selected</span>
-                          } @else if (entry.capabilities.length === 0) {
-                            <span class="capability-placeholder">At least one capability must be selected</span>
-                          } @else {
-                            @for (cap of entry.capabilities; track cap) {
-                              <span class="badge d-inline-flex align-items-center capability-badge">
-                                {{ formatCapabilityName(cap) }}
-                                <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center btn-remove-capability"
-                                        (click)="removeSpecificCap(i, cap, $event)" aria-label="Remove">
-                                  <i class="fa-solid fa-circle-xmark remove-icon"></i>
-                                </button>
-                              </span>
-                            }
-                          }
-                        </div>
-                        @if (entry.isCapabilitiesDropdownOpen) {
-                          <div class="position-absolute w-100 bg-white mt-1 capability-dropdown-menu overflow-auto">
-                            @if (isLoadingCapabilities()) {
-                              <div class="p-4 text-center text-muted">Loading capabilities…</div>
-                            } @else if (availableCapabilities().length === 0) {
-                              <div class="p-4 text-center text-muted">No capabilities available</div>
-                            } @else {
-                              <div class="p-4 capability-grid">
-                                @for (cap of availableCapabilities(); track cap) {
-                                  <label class="d-flex align-items-center capability-label">
-                                    <input type="checkbox" (change)="onSpecificCapChange($event, i, cap)"
-                                           [checked]="entry.capabilities.includes(cap)" class="capability-checkbox">
-                                    <span class="capability-label-text">{{ formatCapabilityName(cap) }}</span>
-                                  </label>
-                                }
-                              </div>
-                            }
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-                  <button type="button" class="btn btn-add-object-class" (click)="addObjectClassEntry()">
-                    <i class="fa-solid fa-plus me-1"></i>Add another object class
-                  </button>
-                </div>
-              }
+              <!-- Connector capabilities -->
+              <div class="mb-3">
+                <label class="form-label form-label-upload">Define capabilities for:</label>
+                <app-capability-picker (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
+              </div>
 
             </div>
           }
@@ -355,7 +240,7 @@
                   Project homepage
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Link to the project's public homepage or documentation.</span>
+                    <span class="info-tooltip"><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the Integration Catalog.</span>
                   </span>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
@@ -374,7 +259,7 @@
                   Support portal
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Link to the support portal or issue tracker.</span>
+                    <span class="info-tooltip"><strong>Link to the support portal</strong><br><br>Provide the URL to the dedicated support page for this connector. This allows users to submit service requests, report bugs, or access professional technical assistance provided by the maintainer.</span>
                   </span>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
@@ -475,10 +360,11 @@
                   Git clone URL@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">The Git URL used to clone the repository.</span>
+                    <span class="info-tooltip">The technical address used by the build system (Jenkins) to download the source code. Copy the 'Clone' URL from your repository.</span>
                   </span>
                 </label>
-                <div class="method-link-wrapper d-flex align-items-center">
+                <div class="method-link-wrapper d-flex align-items-center"
+                     [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid() && !isExistingConnector">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
                   <input type="url" class="method-link-input flex-grow-1"
                          [value]="devGitCloneUrl()"
@@ -486,7 +372,11 @@
                          [disabled]="isExistingConnector"
                          placeholder="e.g. https://github.com/Evolveum/connector-ldap.git">
                 </div>
-                <div class="form-text">Ensure the link is accessible to the intended audience.</div>
+                @if (isGitCloneUrlInvalid() && !isExistingConnector) {
+                  <div class="field-error">Invalid format. Please use a Git clone URL (e.g., ending in .git).</div>
+                } @else {
+                  <div class="form-text">Ensure the link is accessible to the intended audience.</div>
+                }
               </div>
 
               <!-- Commit tag -->
@@ -495,10 +385,11 @@
                   Commit tag@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">The specific commit tag or release version to use.</span>
+                    <span class="info-tooltip"><strong>Version identifier of the source code.</strong><br><br>Enter a specific release tag (e.g., 1.0.4) to build a stable version of the connector. If needed, you can also enter a development branch name to build from the latest code.</span>
                   </span>
                 </label>
-                <div class="method-link-wrapper d-flex align-items-center">
+                <div class="method-link-wrapper d-flex align-items-center"
+                     [class.method-link-wrapper--invalid]="isCommitTagInvalid() && !isExistingConnector">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-tag method-link-icon-i"></i></span>
                   <input type="text" class="method-link-input flex-grow-1"
                          [value]="devCommitTag()"
@@ -506,6 +397,9 @@
                          [disabled]="isExistingConnector"
                          placeholder="e.g. 1.0.4">
                 </div>
+                @if (isCommitTagInvalid() && !isExistingConnector) {
+                  <div class="field-error">Invalid format. Only numbers and dots are allowed (e.g., 1.0.4).</div>
+                }
               </div>
 
               <!-- Implementation details -->
@@ -517,7 +411,7 @@
                   Project folder path@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Path to the directory containing the build file (e.g. pom.xml).</span>
+                    <span class="info-tooltip"><strong>Location of the connector within the repository</strong><br><br>Specify the folder where the connector source code is located. Leave this field empty if the code is in the main (root) directory of the repository.</span>
                   </span>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
@@ -538,10 +432,11 @@
                     {{ isExistingConnector ? 'Connector entry class' : 'Class name' }}@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                       <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">Fully-qualified class name of the connector entry point.</span>
+                      <span class="info-tooltip"><strong>The main entry point of the connector logic.</strong><br><br>Specify the full Java class name that implements the connector. Unlike file paths, this uses dot notation to separate packages (e.g., com.example.MyConnector). This class tells midPoint which part of the code to execute.</span>
                     </span>
                   </label>
-                  <div class="method-link-wrapper d-flex align-items-center">
+                  <div class="method-link-wrapper d-flex align-items-center"
+                       [class.method-link-wrapper--invalid]="isClassNameInvalid() && !isExistingConnector">
                     <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
                     <input type="text" class="method-link-input flex-grow-1"
                            [value]="devClassName()"
@@ -549,6 +444,9 @@
                            [disabled]="isExistingConnector"
                            placeholder="e.g. org.identityconnectors.ldap.LdapConnector">
                   </div>
+                  @if (isClassNameInvalid() && !isExistingConnector) {
+                    <div class="field-error">Invalid format. Use a full Java class name with dots (e.g., com.project.ConnectorClass) and no spaces.</div>
+                  }
                 </div>
               }
 
@@ -570,8 +468,107 @@
       </div>
     }
 
-    <!-- Step 6: Review -->
+    <!-- Step 6: Compatibility settings -->
     @if (internalStep() === 6) {
+      <div class="step-content">
+        <h5 class="step-title">Compatibility settings</h5>
+        <p class="compat-step-desc">
+          Specify which versions of midPoint and connectors this integration method supports.
+          This helps users find Integration methods compatible with their environments.
+        </p>
+
+        <!-- Supported midPoint version -->
+        <div class="compat-section mb-4">
+          <h6 class="compat-section-title">Supported midPoint version</h6>
+          <p class="compat-section-desc">
+            Define the range of midPoint versions that have been successfully tested with this integration method.
+            This affects its discoverability in the catalog.
+          </p>
+          <div class="d-flex align-items-end gap-3 mb-2">
+            <div>
+              <label class="form-label form-label-upload">From version <span class="text-danger">*</span></label>
+              <select class="form-select compat-version-select"
+                      [value]="midpointMinVersionId() ?? ''"
+                      (change)="midpointMinVersionId.set($any($event.target).value ? +$any($event.target).value : null)">
+                <option value="">Select version</option>
+                @for (v of midpointVersions(); track v.id) {
+                  <option [value]="v.id">{{ v.version }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="form-label form-label-upload">To version</label>
+              <select class="form-select compat-version-select"
+                      [value]="midpointMaxVersionId() ?? ''"
+                      (change)="midpointMaxVersionId.set($any($event.target).value ? +$any($event.target).value : null)">
+                <option value="">Select version</option>
+                @for (v of midpointVersions(); track v.id) {
+                  <option [value]="v.id">{{ v.version }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          @if (isMidpointVersionRangeInvalid()) {
+            <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
+          } @else {
+            <div class="form-text">Only include versions you have actively tested. Untested versions can be added later.</div>
+          }
+        </div>
+
+        <!-- Connector version ranges -->
+        <div class="compat-section">
+          <h6 class="compat-section-title">Connector version ranges</h6>
+          <div class="compat-connector-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <div class="compat-connector-name">{{ connectorName() }}</div>
+                @if (connectorVersion()) {
+                  <div class="compat-connector-version">v{{ connectorVersion() }} — configured</div>
+                }
+              </div>
+              <span class="compat-badge">{{ isExistingConnector ? 'existing connector' : 'custom connector' }}</span>
+            </div>
+            <div class="compat-range-label">SUPPORTED VERSION RANGE</div>
+            <div class="d-flex gap-3 mb-2">
+              <div class="flex-grow-1">
+                <label class="form-label form-label-upload">
+                  From version <span class="text-danger">*</span>
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">The minimum connector version this integration method has been tested with.</span>
+                  </span>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="connectorVersionFrom()"
+                       (input)="connectorVersionFrom.set($any($event.target).value)"
+                       [placeholder]="connectorVersion() || '1.0.0'">
+              </div>
+              <div class="flex-grow-1">
+                <label class="form-label form-label-upload">
+                  To version
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">Leave empty if you expect the connector to be compatible with future releases.</span>
+                  </span>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="connectorVersionTo()"
+                       (input)="connectorVersionTo.set($any($event.target).value)"
+                       placeholder="e.g. 1.0.0">
+              </div>
+            </div>
+            <div class="form-text mb-3">Use three numbers separated by dots. This value is indexed and searchable — users can filter connectors by version range.</div>
+            <div class="compat-info-note d-flex gap-2 align-items-start">
+              <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0 mt-1"></i>
+              <span>Do not specify a "To version" if you expect the connector to be compatible with future releases.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Step 7: Review -->
+    @if (internalStep() === 7) {
       <div class="step-content">
         <h5 class="step-title">Review your setup</h5>
 
@@ -694,6 +691,36 @@
             }
           </div>
         </div>
+
+        <!-- Card 5: Compatibility setting -->
+        <div class="review-card mb-3">
+          <div class="review-card-header">
+            <span class="review-card-title">Compatibility setting</span>
+            <button type="button" class="review-edit-btn" (click)="internalStep.set(6)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <div class="review-card-body">
+            @if (midpointMinVersionId()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Supported midPoint version:</span>
+                <span class="review-detail-value">
+                  {{ getMidpointVersionLabel(midpointMinVersionId()) }}
+                  @if (midpointMaxVersionId()) { &nbsp;—&nbsp;{{ getMidpointVersionLabel(midpointMaxVersionId()) }} }
+                </span>
+              </div>
+            }
+            @if (connectorVersionFrom()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">{{ connectorName() }}:</span>
+                <span class="review-detail-value">
+                  {{ connectorVersionFrom() }}
+                  @if (connectorVersionTo()) { &nbsp;—&nbsp;{{ connectorVersionTo() }} }
+                </span>
+              </div>
+            }
+          </div>
+        </div>
       </div>
     }
 
@@ -711,6 +738,11 @@
         </button>
       }
       @if (internalStep() === 6) {
+        <button type="button" class="btn btn-primary btn-next" [disabled]="!isCompatibilityStepValid" (click)="nextInternalStep()">
+          Continue <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+        </button>
+      }
+      @if (internalStep() === 7) {
         <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing()" (click)="publishIntegrationMethod()">
           @if (isPublishing()) {
             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>

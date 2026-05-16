@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.object;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -14,6 +15,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -24,14 +26,25 @@ import java.util.List;
 @IdClass(ConnectorBundleVersionId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorBundleVersion {
+public class ConnectorBundleVersion implements Persistable<Integer> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "connector_bundle_version_seq")
+    @SequenceGenerator(name = "connector_bundle_version_seq", sequenceName = "connector_bundle_version_id_seq", allocationSize = 1)
     private Integer id;
 
     @Id
     private String revision;
+
+    @Transient
+    @Setter(AccessLevel.NONE)
+    private boolean isNew = true;
+
+    @PostPersist
+    @PostLoad
+    void markNotNew() {
+        this.isNew = false;
+    }
 
     private String author;
     private String maintainer;
@@ -75,4 +88,7 @@ public class ConnectorBundleVersion {
 
     @OneToMany(mappedBy = "connectorBundleVersion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnectorVersion> connectorVersions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "connectorBundleVersion", fetch = FetchType.LAZY)
+    private List<Download> downloads = new ArrayList<>();
 }

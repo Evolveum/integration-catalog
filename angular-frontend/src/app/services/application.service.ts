@@ -112,6 +112,15 @@ export class ApplicationService {
     );
   }
 
+  uploadTutorial(integrationMethodId: string, file: File): Observable<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<void>(
+      `${environment.apiUrl}/integration-methods/${integrationMethodId}/tutorial`,
+      formData
+    );
+  }
+
   /**
    * Delete a logo for an application
    */

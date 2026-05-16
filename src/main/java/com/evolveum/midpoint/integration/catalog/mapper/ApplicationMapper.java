@@ -122,6 +122,16 @@ public class ApplicationMapper {
                             ))
                             .toList();
 
+                    long downloadCount = method.getConnectors().stream()
+                            .map(IntegrationMethodConnector::getConnector)
+                            .filter(Objects::nonNull)
+                            .flatMap(c -> c.getConnectorVersions().stream())
+                            .map(ConnectorVersion::getConnectorBundleVersion)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .mapToLong(cbv -> cbv.getDownloads() != null ? cbv.getDownloads().size() : 0L)
+                            .sum();
+
                     return new IntegrationMethodDto(
                             method.getId(),
                             method.getDescription(),
@@ -137,7 +147,7 @@ public class ApplicationMapper {
                             null,           // downloadLink
                             framework,
                             null,           // errorMessage
-                            0L,             // downloadCount
+                            downloadCount,
                             method.getMidpointMinVersionId(),
                             method.getMidpointMaxVersionId(),
                             connectorDisplayName,

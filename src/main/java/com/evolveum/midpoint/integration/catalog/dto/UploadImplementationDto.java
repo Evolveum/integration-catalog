@@ -16,7 +16,10 @@ import java.util.List;
  */
 public record UploadImplementationDto(
         Application application,
-        ImplementationDTO implementation,
-        List<ItemFile> files
+        UploadIntegrationMethodDto integrationMethod,
+        UploadConnectorDto connector,
+        List<ItemFile> files,
+        List<IntegrationMethodCapabilityGroupDto> integrationMethodCapabilities,
+        List<IntegrationMethodCapabilityGroupDto> connectorCapabilities
 ) {
 }

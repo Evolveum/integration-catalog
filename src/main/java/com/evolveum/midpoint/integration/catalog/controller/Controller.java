@@ -14,6 +14,7 @@ import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.LogoStorageService;
+import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,15 +44,18 @@ public class Controller {
 
     private final ApplicationService applicationService;
     private final LogoStorageService logoStorageService;
+    private final TutorialStorageService tutorialStorageService;
     private final RequestRepository requestRepository;
     private final ApplicationMapper applicationMapper;
 
     public Controller(ApplicationService applicationService,
                       LogoStorageService logoStorageService,
+                      TutorialStorageService tutorialStorageService,
                       RequestRepository requestRepository,
                       ApplicationMapper applicationMapper) {
         this.applicationService = applicationService;
         this.logoStorageService = logoStorageService;
+        this.tutorialStorageService = tutorialStorageService;
         this.requestRepository = requestRepository;
         this.applicationMapper = applicationMapper;
     }
@@ -81,7 +85,7 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application tags not found")
     })
     @GetMapping("/application-tags")
-    public ResponseEntity<List<ApplicationTag>> getApplicationTags() {
+    public ResponseEntity<List<ApplicationTagDto>> getApplicationTags() {
         try {
             return ResponseEntity.ok(applicationService.getApplicationTags());
         } catch (RuntimeException ex) {
@@ -444,6 +448,35 @@ public class Controller {
         } catch (IOException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save logo file: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Operation(summary = "Upload tutorial file for an integration method",
+            description = "Uploads a tutorial document (PDF, XML, JSON, YAML, TXT) for an integration method. Stored on disk; path saved to integration_method.file_path.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tutorial uploaded successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid file (wrong type, too large, or empty)"),
+            @ApiResponse(responseCode = "404", description = "Integration method not found"),
+            @ApiResponse(responseCode = "500", description = "Failed to save tutorial file")
+    })
+    @PostMapping(value = "/integration-methods/{id}/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadTutorial(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            tutorialStorageService.saveTutorial(id, file);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to upload tutorial: " + ex.getMessage(), ex);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to save tutorial file: " + ex.getMessage(), ex);
         }
     }
 

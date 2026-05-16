@@ -58,10 +58,23 @@ export interface UploadApplicationData {
 }
 
 /**
- * Implementation data for upload payload
+ * Integration method data for upload payload
  */
-export interface UploadImplementationData {
-  implementationId: string | null;
+export interface UploadIntegrationMethodData {
+  id: string | null;
+  displayName: string;
+  revision: string;
+  description: string;
+  tutorial: string;
+  typeIds: number[];
+  midpointMinVersion: number | null;
+  midpointMaxVersion: number | null;
+}
+
+/**
+ * Connector data for upload payload
+ */
+export interface UploadConnectorData {
   displayName: string;
   description: string;
   maintainer: string;
@@ -74,7 +87,9 @@ export interface UploadImplementationData {
   pathToProject: string | null;
   className: string | null;
   bundleName: string | null;
-  connectorVersion: string | null;
+  version: string | null;
+  commitTag: string | null;
+  bundleDisplayName: string | null;
 }
 
 /**
@@ -86,12 +101,23 @@ export interface UploadFileItem {
 }
 
 /**
+ * Capability group (one object class with its selected capabilities)
+ */
+export interface IntegrationMethodCapabilityGroup {
+  objectClass: string;
+  capabilityNames: string[];
+}
+
+/**
  * Complete payload for uploading a connector
  */
 export interface UploadConnectorPayload {
   application: UploadApplicationData;
-  implementation: UploadImplementationData;
+  integrationMethod: UploadIntegrationMethodData;
+  connector: UploadConnectorData;
   files: UploadFileItem[];
+  integrationMethodCapabilities: IntegrationMethodCapabilityGroup[];
+  connectorCapabilities: IntegrationMethodCapabilityGroup[];
 }
 
 /**

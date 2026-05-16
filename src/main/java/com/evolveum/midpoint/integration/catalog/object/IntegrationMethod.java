@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.object;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -14,6 +15,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,7 +27,7 @@ import java.util.UUID;
 @IdClass(IntegrationMethodId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class IntegrationMethod {
+public class IntegrationMethod implements Persistable<UUID> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -34,11 +36,21 @@ public class IntegrationMethod {
     @Id
     private String revision;
 
+    @Transient
+    @Setter(AccessLevel.NONE)
+    private boolean isNew = true;
+
+    @PostPersist
+    @PostLoad
+    void markNotNew() {
+        this.isNew = false;
+    }
+
     @ManyToOne
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "int_method_int_method_type",
             joinColumns = {

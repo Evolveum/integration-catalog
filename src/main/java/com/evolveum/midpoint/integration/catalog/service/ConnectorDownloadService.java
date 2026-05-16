@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -54,7 +54,7 @@ public class ConnectorDownloadService {
             throw new IllegalArgumentException("No download link available for integration method: " + integMethodId);
         }
 
-        try (InputStream in = new URL(bundleVersion.getBrowseLink()).openStream()) {
+        try (InputStream in = URI.create(bundleVersion.getBrowseLink()).toURL().openStream()) {
             byte[] fileBytes = in.readAllBytes();
             LocalDateTime cutoff = LocalDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
             recordDownloadIfNew(bundleVersion, ip, userAgent, cutoff);

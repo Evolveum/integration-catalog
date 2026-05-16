@@ -11,11 +11,12 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
+import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, CapabilityPicker],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
 })
@@ -52,7 +53,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   // Step 3 – method-specific form fields
   protected readonly methodFormDisplayName = signal<string>('');
-  protected readonly methodFormVersion     = signal<string>('');
+  protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
   protected readonly methodFormTutorial    = signal<string>('');
   protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
@@ -60,6 +61,9 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly tutorialWordCount     = computed(() =>
     this.methodFormTutorial().trim() === '' ? 0 : this.methodFormTutorial().trim().split(/\s+/).length
   );
+
+  // Step 3 – integration method capabilities
+  protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
 
   protected readonly selectedMethodTitles = computed(() =>
     this.integrationMethodTypes()
@@ -125,6 +129,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
     { label: 'Define integration method' },
     { label: 'Select connector type' },
     { label: 'Add connector' },
+    { label: 'Compatibility settings' },
     { label: 'Review' },
   ];
 
@@ -160,15 +165,9 @@ export class PublishFormMain implements OnInit, OnDestroy {
     });
   });
 
-  protected availableCategories = computed(() => {
-    const categoriesMap = new Map<string, string>();
-    this.applications().forEach(app => {
-      if (app.categories) {
-        app.categories.forEach(cat => { categoriesMap.set(cat.name, cat.displayName); });
-      }
-    });
-    return Array.from(categoriesMap.entries()).map(([name, displayName]) => ({ name, displayName }));
-  });
+  protected readonly allCategories = signal<{ name: string; displayName: string }[]>([]);
+
+  protected availableCategories = computed(() => this.allCategories());
 
   protected availableCountries = computed(() => {
     const selectedOrigins = this.origins();
@@ -218,14 +217,20 @@ export class PublishFormMain implements OnInit, OnDestroy {
     })(),
     applicationLogoPreviewUrl: this.logoPreviewUrl(),
     methodTitles: this.selectedMethodTitles(),
+    methodTypeIds: this.integrationMethodTypes()
+      .filter(m => this.selectedIntegrationMethod().includes(m.displayName))
+      .map(m => m.id),
     methodName: this.methodFormDisplayName(),
     methodVersion: this.methodFormVersion(),
     methodDescription: this.methodFormDescription(),
+    methodTutorial: this.methodFormTutorial(),
     applicationDescription: this.description(),
     origins: this.origins(),
     category: this.category(),
     deploymentType: this.deploymentType(),
-    logoFile: this.logoFile()
+    logoFile: this.logoFile(),
+    tutorialFile: this.tutorialFiles()[0]?.file ?? null,
+    imCapabilities: this.imCapabilities()
   }));
 
   constructor(
@@ -376,6 +381,12 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
     this.applicationService.getIntegrationMethodTypes().subscribe({ next: (data) => this.integrationMethodTypes.set(data) });
 
+    this.applicationService.getAllTags().subscribe({
+      next: (tags) => this.allCategories.set(
+        tags.filter(t => t.tagType === 'CATEGORY').map(t => ({ name: t.name, displayName: t.displayName }))
+      )
+    });
+
     this.countryService.getAllCountries().subscribe({
       next: (countries) => { this.allCountries.set(countries); this.isLoadingCountries.set(false); },
       error: () => { this.isLoadingCountries.set(false); this.allCountries.set([]); }
@@ -427,22 +438,27 @@ export class PublishFormMain implements OnInit, OnDestroy {
     event.preventDefault();
     this.tutorialDragOver.set(false);
     const files = event.dataTransfer?.files;
-    if (files) {
-      Array.from(files).forEach(file => this.addTutorialFile(file));
+    if (files && files.length > 0) {
+      this.addTutorialFile(files[0]);
     }
   }
 
   protected onTutorialFileSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (input.files) {
-      Array.from(input.files).forEach(file => this.addTutorialFile(file));
+    if (input.files && input.files.length > 0) {
+      this.addTutorialFile(input.files[0]);
     }
     input.value = '';
   }
 
   private addTutorialFile(file: File): void {
-    if (this.tutorialFiles().some(f => f.name === file.name)) return;
-    this.tutorialFiles.update(files => [...files, { name: file.name, file, isNew: true }]);
+    const allowed = ['.pdf', '.xml', '.json', '.yaml', '.yml', '.txt'];
+    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!allowed.includes(ext)) {
+      alert('Invalid file type. Allowed formats: PDF, XML, JSON, YAML, TXT.');
+      return;
+    }
+    this.tutorialFiles.set([{ name: file.name, file, isNew: true }]);
   }
 
   protected removeTutorialFile(index: number): void {
@@ -714,6 +730,10 @@ export class PublishFormMain implements OnInit, OnDestroy {
     if (value.length <= 350) {
       this.description.set(value);
     }
+  }
+
+  protected onImCapabilitiesChange(groups: CapabilityGroup[]): void {
+    this.imCapabilities.set(groups);
   }
 
   protected openConnectorCatalogModal(): void {

@@ -69,7 +69,7 @@ public class ConnectorBundle {
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "framewok", columnDefinition = "FrameworkType", nullable = false)
+    @Column(name = "framework", columnDefinition = "FrameworkType", nullable = false)
     private FrameworkType framework;
 
     @Enumerated(EnumType.STRING)

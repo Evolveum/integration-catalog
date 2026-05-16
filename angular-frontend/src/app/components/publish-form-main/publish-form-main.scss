@@ -296,6 +296,25 @@
   line-height: 1.5;
 }
 
+/* Step 3 – method type badges */
+.method-type-badge {
+  display: inline-block;
+  background-color: $color-bg-light;
+  color: $color-text-dark;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid $color-border-input;
+}
+
+.method-type-separator {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
 /* Form Labels */
 .form-label-upload {
   font-weight: 600;
@@ -893,6 +912,13 @@
 .im-desc {
   font-size: 0.8125rem;
   color: $color-text-secondary;
+}
+
+/* Step 3 – disabled input */
+.input-disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: default;
 }
 
 /* Step 3 – name + version row */

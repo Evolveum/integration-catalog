@@ -119,7 +119,7 @@ INSERT INTO application_origin (application_id, country_id) VALUES
 -- ============================================================
 
 INSERT INTO connector_bundle (id, revision, author, maintainer, created_at, updated, lifecycle_state,
-    bundle_name, display_name, description, framewok, license, ticketing_link, build_framework)
+    bundle_name, display_name, description, framework, license, ticketing_link, build_framework)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5', 'Conn bun maintainer 1', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
      'ConnId LDAP connector for Active Directory and OpenLDAP', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN'),
@@ -204,21 +204,25 @@ VALUES
 -- unique constraint: one int method type link per (integ_method_id, integ_method_revision)
 -- ============================================================
 
-INSERT INTO int_method_int_method_type (id, integration_method_id, integration_method_revision, integration_method_type_id)
+INSERT INTO int_method_int_method_type (id, integration_method_id, integration_method_revision, integration_method_type_id) OVERRIDING SYSTEM VALUE
 VALUES
     (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 1),
 	(2, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 2),
 	(3, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 3);
+
+SELECT setval('int_method_int_method_type_id_seq', 3);
 	
 -- ============================================================
 -- INTEGRATION METHOD CAPABILITIES
 -- (no IDENTITY on id — explicit values required)
 -- ============================================================
 
-INSERT INTO integration_method_capability (id, integ_method_id, integ_method_revision, object_class) VALUES
+INSERT INTO integration_method_capability (id, integ_method_id, integ_method_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
     (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Account'),
     (2, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Group'),
     (3, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 'Global');
+
+SELECT setval('integration_method_capability_id_seq', 3);
 
 INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id) VALUES
     -- Account: CREATE GET UPDATE DELETE SEARCH LIVE_SYNC TEST SCHEMA
@@ -233,9 +237,11 @@ INSERT INTO integration_method_capability_item (integration_method_capability_id
 -- (no IDENTITY on id — explicit values required)
 -- ============================================================
 
-INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) VALUES
+INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
     (1, 1, '1.0', 'Account'),
     (2, 1, '1.0', 'Group');
+
+SELECT setval('conn_version_capability_id_seq', 2);
 
 INSERT INTO conn_version_capability_item (conn_version_capability_id, capability_id) VALUES
     -- LDAP Account

@@ -27,7 +27,7 @@
   font-size: 0.8125rem;
   font-weight: 400;
   white-space: normal;
-  width: 250px;
+  width: 400px;
   text-align: left;
   box-shadow: 0 2px 8px $shadow-card;
   z-index: 1100;
@@ -149,6 +149,10 @@
     background-color: #fff;
     border-color: $color-border-light;
   }
+
+  .form-control.input-disabled {
+    background-color: $color-bg-muted;
+  }
 }
 
 /* Maintainer combobox */
@@ -235,173 +239,6 @@
   }
 }
 
-/* Capabilities scope */
-.integration-method-radio {
-  width: 18px;
-  height: 18px;
-  margin-right: 12px;
-  flex-shrink: 0;
-  accent-color: $midpoint-special-color;
-}
-
-.capabilities-scope-list {
-  border: 1px solid $color-border-input;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.capabilities-scope-option {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px;
-  cursor: pointer;
-  margin: 0;
-  border-bottom: 1px solid $color-border-light;
-  font-size: 14px;
-  color: $color-black;
-
-  &:last-child { border-bottom: none; }
-  &:hover { background-color: $color-bg-hover; }
-}
-
-.capabilities-scope-option-selected {
-  background-color: rgba($color-light-blue, 0.08);
-  color: $midpoint-special-color;
-}
-
-/* Capability dropdown */
-.capability-dropdown-trigger {
-  min-height: 41px;
-  cursor: pointer;
-  padding: 6px 12px;
-}
-
-.capability-placeholder {
-  color: $color-gray-secondary;
-  padding-left: 6px;
-}
-
-.capability-placeholder-disabled { color: $color-text-secondary; }
-
-.capability-dropdown-disabled {
-  background-color: $color-bg-muted;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.capability-badge {
-  background-color: #ede9f7;
-  color: $color-black;
-  font-size: 13px;
-  font-weight: 400;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.btn-remove-capability {
-  border: none;
-  background: none;
-}
-
-.remove-icon {
-  font-size: 12px;
-  color: $color-text-secondary;
-}
-
-.capability-dropdown-menu {
-  z-index: 1000;
-  max-height: 300px;
-  border: 1px solid $color-border-light;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.capability-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem 2rem;
-}
-
-.capability-checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin-right: 10px;
-  accent-color: $midpoint-special-color;
-}
-
-.capability-label {
-  cursor: pointer;
-  margin-bottom: 0;
-}
-
-.capability-label-text {
-  font-size: 13px;
-  color: $color-black;
-}
-
-/* Object class cards */
-.object-class-card {
-  border: 1px solid $color-border-input;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-}
-
-.object-class-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.object-class-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: $color-black;
-}
-
-.object-class-card-subtitle {
-  font-size: 13px;
-  color: $color-text-secondary;
-  margin-top: 2px;
-}
-
-.btn-remove-object-class {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: $color-text-secondary;
-  &:hover { color: #bb2d3b; }
-}
-
-.object-class-field {
-  cursor: text;
-  position: relative;
-}
-
-.object-class-text-input {
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  color: $color-black;
-  border: none;
-  &::placeholder { color: $color-gray-secondary; }
-}
-
-.btn-add-object-class {
-  color: $midpoint-special-color;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 500;
-  &:hover { text-decoration: underline; }
-}
-
 /* Dev & Build section headings */
 .dev-section-title {
   font-size: 0.9375rem;
@@ -439,6 +276,16 @@
   &::placeholder {
     color: $color-gray-secondary;
   }
+}
+
+.method-link-wrapper--invalid {
+  border-color: #dc3545;
+}
+
+.field-error {
+  font-size: 0.875rem;
+  color: #dc3545;
+  margin-top: 0.25rem;
 }
 
 .method-link-clear {
@@ -774,4 +621,86 @@
   width: 18px;
   height: 18px;
   object-fit: contain;
+}
+
+/* Compatibility settings step */
+.compat-step-desc {
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  margin-bottom: 1.5rem;
+}
+
+.compat-section {
+  margin-bottom: 1.5rem;
+}
+
+.compat-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-bottom: 0.5rem;
+}
+
+.compat-section-desc {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  margin-bottom: 1rem;
+}
+
+.compat-version-select {
+  min-width: 140px;
+}
+
+.compat-connector-card {
+  border: 1px solid $color-border-light;
+  border-radius: 8px;
+  padding: 1.25rem;
+  background: $color-white;
+}
+
+.compat-connector-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.compat-connector-version {
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  margin-top: 2px;
+}
+
+.compat-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: $color-text-secondary;
+  background: $color-bg-muted;
+  border: 1px solid $color-border-light;
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+.compat-range-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $color-text-secondary;
+  margin-bottom: 0.75rem;
+}
+
+.compat-info-note {
+  background-color: $color-info-bg;
+  border: 1px solid $color-info-border;
+  border-radius: 4px;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  color: $color-info-text;
+}
+
+.compat-info-icon {
+  font-size: 14px;
+  color: $text-publishing-blue;
 }

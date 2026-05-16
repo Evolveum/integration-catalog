@@ -4,16 +4,18 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, computed, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, signal, computed, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
+import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -21,14 +23,18 @@ export interface ReviewSummary {
   applicationLogoUrl: string | null;
   applicationLogoPreviewUrl: string | null;
   methodTitles: string[];
+  methodTypeIds: number[];
   methodName: string;
   methodVersion: string;
   methodDescription: string;
+  methodTutorial: string;
   applicationDescription: string;
   origins: string[];
   category: string;
   deploymentType: string;
   logoFile: File | null;
+  tutorialFile: File | null;
+  imCapabilities: IntegrationMethodCapabilityGroup[];
 }
 
 export interface Step5FormData {
@@ -37,9 +43,8 @@ export interface Step5FormData {
   connectorMaintainer: string;
   connectorLicense: string;
   connectorDescription: string;
-  capabilitiesScope: 'global' | 'specific';
-  globalCapabilities: string[];
-  objectClassEntries: { objectClass: string; capabilities: string[] }[];
+  connectorBundleName: string;
+  connectorCapabilityGroups: CapabilityGroup[];
   devProjectHomepage: string;
   devSupportPortal: string;
   devBuildTool: 'maven' | 'gradle' | '';
@@ -54,7 +59,7 @@ export interface Step5FormData {
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CapabilityPicker],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })
@@ -63,13 +68,15 @@ export class PublishFormImpl implements OnInit, OnChanges {
   @Input() selectedCatalogConnector: ImplementationListItem | null = null;
   @Input() reviewSummary: ReviewSummary | null = null;
 
+  @ViewChild(CapabilityPicker) private capabilityPicker?: CapabilityPicker;
+
   @Output() formValid = new EventEmitter<boolean>();
   @Output() formDataChanged = new EventEmitter<Step5FormData>();
   @Output() goToParentStep = new EventEmitter<number>();
   @Output() internalStepChange = new EventEmitter<number>();
 
-  // Internal step: 5 = Add connector, 6 = Review
-  protected readonly internalStep = signal<5 | 6>(5);
+  // Internal step: 5 = Add connector, 6 = Compatibility settings, 7 = Review
+  protected readonly internalStep = signal<5 | 6 | 7>(5);
 
   // Accordion state
   protected readonly basicInfoExpanded = signal<boolean>(false);
@@ -77,7 +84,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   // Basic info
   protected readonly connectorName = signal<string>('');
-  protected readonly connectorVersion = signal<string>('1.0');
+  protected readonly connectorVersion = signal<string>('1.0.0');
   protected readonly connectorMaintainer = signal<string>('');
   protected readonly maintainerOptions = signal<string[]>([]);
   protected readonly maintainerSearch = signal<string>('');
@@ -91,17 +98,11 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly connectorLicense = signal<string>('');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
+  protected readonly connectorBundleName = signal<string>('');
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
 
-  // Capabilities
-  protected readonly capabilitiesScope = signal<'global' | 'specific'>('global');
-  protected readonly globalCapabilities = signal<string[]>([]);
-  protected readonly isGlobalCapDropdownOpen = signal<boolean>(false);
-  protected readonly objectClassEntries = signal<{ objectClass: string; capabilities: string[]; isCapabilitiesDropdownOpen: boolean }[]>(
-    [{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]
-  );
-  protected readonly availableCapabilities = signal<string[]>([]);
-  protected readonly isLoadingCapabilities = signal<boolean>(false);
+  // Connector capabilities (from CapabilityPicker child)
+  protected readonly connectorCapabilities = signal<CapabilityGroup[]>([]);
 
   // Dev & Build
   protected readonly devProjectHomepage = signal<string>('');
@@ -114,6 +115,13 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly devRepoOwnership = signal<'evolveum' | 'own'>('evolveum');
   protected readonly devGithubApiKey = signal<string>('');
   protected readonly showGithubApiKey = signal<boolean>(false);
+
+  // Compatibility step
+  protected readonly midpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
+  protected readonly midpointMinVersionId = signal<number | null>(null);
+  protected readonly midpointMaxVersionId = signal<number | null>(null);
+  protected readonly connectorVersionFrom = signal<string>('');
+  protected readonly connectorVersionTo = signal<string>('');
 
   // Publish state
   protected readonly isPublishing = signal<boolean>(false);
@@ -129,13 +137,51 @@ export class PublishFormImpl implements OnInit, OnChanges {
     return !!this.selectedCatalogConnector;
   }
 
+  protected get isCompatibilityStepValid(): boolean {
+    return this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid();
+  }
+
+  protected getMidpointVersionLabel(id: number | null): string {
+    if (id === null) return '';
+    return this.midpointVersions().find(v => v.id === id)?.version ?? '';
+  }
+
+  protected readonly isMidpointVersionRangeInvalid = computed(() => {
+    const minId = this.midpointMinVersionId();
+    const maxId = this.midpointMaxVersionId();
+    if (!minId || !maxId) return false;
+    const versions = this.midpointVersions();
+    const minIndex = versions.findIndex(v => v.id === minId);
+    const maxIndex = versions.findIndex(v => v.id === maxId);
+    return maxIndex < minIndex;
+  });
+
+  protected readonly isGitCloneUrlInvalid = computed(() => {
+    const url = this.devGitCloneUrl();
+    return !!url && !url.trim().endsWith('.git');
+  });
+
+  protected readonly isCommitTagInvalid = computed(() => {
+    const tag = this.devCommitTag().trim();
+    return !!tag && !/^[\d.]+$/.test(tag);
+  });
+
+  protected readonly isClassNameInvalid = computed(() => {
+    const name = this.devClassName().trim();
+    if (!name) return false;
+    return name.includes('/') || name.includes('\\') || name.includes(' ') || !name.includes('.');
+  });
+
   protected get isStep5Valid(): boolean {
     if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
     if (this.isExistingConnector) return true;
     if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
+    if (this.isGitCloneUrlInvalid()) return false;
+    if (this.isCommitTagInvalid()) return false;
     if (this.connectorType === 'java-based') {
       if (!this.devBuildTool() || !this.devClassName().trim()) return false;
     }
+    if (this.isClassNameInvalid()) return false;
     return true;
   }
 
@@ -172,10 +218,12 @@ export class PublishFormImpl implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
-    if (this.availableCapabilities().length === 0) this.loadCapabilities();
     if (!this.connectorMaintainer()) {
       this.connectorMaintainer.set(this.authService.currentUser() ?? '');
     }
+    this.applicationService.getMidpointVersions().subscribe({
+      next: (versions) => this.midpointVersions.set(versions)
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -187,29 +235,33 @@ export class PublishFormImpl implements OnInit, OnChanges {
       const connector = changes['selectedCatalogConnector'].currentValue as ImplementationListItem | null;
       if (connector) {
         this.populateFromCatalogConnector(connector);
-        if (this.availableCapabilities().length === 0) this.loadCapabilities();
+      } else if (!changes['selectedCatalogConnector'].firstChange) {
+        this.resetFields();
       }
     }
     this.emitChange();
   }
 
-  loadCapabilities(): void {
-    this.isLoadingCapabilities.set(true);
-    this.applicationService.getCapabilities().subscribe({
-      next: (caps) => { this.availableCapabilities.set(caps); this.isLoadingCapabilities.set(false); },
-      error: () => this.isLoadingCapabilities.set(false)
-    });
+  protected onConnectorCapabilitiesChange(groups: CapabilityGroup[]): void {
+    this.connectorCapabilities.set(groups);
+    this.emitChange();
   }
 
   protected nextInternalStep(): void {
     if (this.internalStep() === 5) {
       this.internalStep.set(6);
       this.internalStepChange.emit(6);
+    } else if (this.internalStep() === 6) {
+      this.internalStep.set(7);
+      this.internalStepChange.emit(7);
     }
   }
 
   protected previousInternalStep(): void {
-    if (this.internalStep() === 6) {
+    if (this.internalStep() === 7) {
+      this.internalStep.set(6);
+      this.internalStepChange.emit(6);
+    } else if (this.internalStep() === 6) {
       this.internalStep.set(5);
       this.internalStepChange.emit(5);
     } else {
@@ -219,13 +271,13 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   private resetFields(): void {
     this.connectorName.set('');
-    this.connectorVersion.set('1.0');
+    this.connectorVersion.set('1.0.0');
     this.connectorMaintainer.set(this.authService.currentUser() ?? '');
     this.connectorLicense.set('');
     this.connectorDescription.set('');
-    this.capabilitiesScope.set('global');
-    this.globalCapabilities.set([]);
-    this.objectClassEntries.set([{ objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
+    this.connectorBundleName.set('');
+    this.connectorCapabilities.set([]);
+    this.capabilityPicker?.reset();
     this.devProjectHomepage.set('');
     this.devSupportPortal.set('');
     this.devBuildTool.set('');
@@ -245,9 +297,11 @@ export class PublishFormImpl implements OnInit, OnChanges {
   private populateFromCatalogConnector(connector: ImplementationListItem): void {
     this.connectorName.set(connector.displayName ?? '');
     this.connectorVersion.set(connector.version ?? '');
+    this.connectorVersionFrom.set(connector.version ?? '');
     this.connectorMaintainer.set(connector.maintainer ?? this.authService.currentUser() ?? '');
     this.connectorLicense.set(connector.licenseType ?? '');
     this.connectorDescription.set(connector.implementationDescription ?? connector.description ?? '');
+    this.connectorBundleName.set('');
     this.devProjectHomepage.set(connector.browseLink ?? '');
     this.devGitCloneUrl.set(connector.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(connector.pathToProjectDirectory ?? '');
@@ -262,6 +316,11 @@ export class PublishFormImpl implements OnInit, OnChanges {
   }
 
   protected publishIntegrationMethod(): void {
+    if (this.isExistingConnector) {
+      this.doPublish(this.incrementVersion(this.connectorVersion()));
+      return;
+    }
+
     const version = this.connectorVersion() || null;
     if (version) {
       this.applicationService.checkVersionExists(version).subscribe({
@@ -281,7 +340,14 @@ export class PublishFormImpl implements OnInit, OnChanges {
     }
   }
 
-  private doPublish(): void {
+  private incrementVersion(version: string): string {
+    const parts = version.split('.');
+    const last = parseInt(parts[parts.length - 1], 10);
+    parts[parts.length - 1] = isNaN(last) ? '1' : String(last + 1);
+    return parts.join('.');
+  }
+
+  private doPublish(versionOverride?: string): void {
     const summary = this.reviewSummary;
     const payload = {
       application: {
@@ -295,37 +361,58 @@ export class PublishFormImpl implements OnInit, OnChanges {
           ...(summary?.deploymentType ? [{ name: summary.deploymentType, tagType: 'DEPLOYMENT' as const }] : [])
         ]
       },
-      implementation: {
-        implementationId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
+      integrationMethod: {
+        id: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
+        displayName: summary?.methodName ?? '',
+        revision: summary?.methodVersion ?? '',
+        description: summary?.methodDescription ?? '',
+        tutorial: summary?.methodTutorial ?? '',
+        typeIds: summary?.methodTypeIds ?? [],
+        midpointMinVersion: this.midpointMinVersionId(),
+        midpointMaxVersion: this.midpointMaxVersionId()
+      },
+      connector: {
         displayName: this.connectorName(),
         description: this.connectorDescription(),
         maintainer: this.connectorMaintainer(),
         framework: this.mapConnectorTypeToFramework(this.connectorType),
         license: this.connectorLicense() || null,
-        ticketingSystemLink: null,
+        ticketingSystemLink: this.devSupportPortal() || null,
         browseLink: this.devProjectHomepage() || null,
         gitCloneUrl: this.devGitCloneUrl() || null,
         buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
         pathToProject: this.devProjectFolderPath() || null,
         className: this.devClassName() || null,
         bundleName: null,
-        connectorVersion: this.connectorVersion() || null
+        version: versionOverride ?? this.connectorVersion() ?? null,
+        commitTag: this.devCommitTag() || null,
+        bundleDisplayName: this.connectorBundleName() || null
       },
-      files: []
+      files: [],
+      integrationMethodCapabilities: summary?.imCapabilities ?? [],
+      connectorCapabilities: this.connectorCapabilities()
     };
 
     this.isPublishing.set(true);
     this.applicationService.uploadConnector(payload).pipe(
       switchMap((response: string) => {
         const applicationId = summary?.applicationId || this.extractApplicationIdFromResponse(response);
+        const integrationMethodId = this.extractVersionIdFromResponse(response);
         this.publishedApplicationId.set(applicationId);
-        this.publishedVersionId.set(this.extractVersionIdFromResponse(response));
-        if (applicationId && summary?.logoFile) {
-          return this.applicationService.uploadLogo(applicationId, summary.logoFile).pipe(
-            switchMap(() => of(response))
-          );
-        }
-        return of(response);
+        this.publishedVersionId.set(integrationMethodId);
+
+        const logoUpload$: Observable<unknown> = (applicationId && summary?.logoFile)
+          ? this.applicationService.uploadLogo(applicationId, summary.logoFile)
+          : of(null);
+
+        const tutorialUpload$: Observable<unknown> = (integrationMethodId && summary?.tutorialFile)
+          ? this.applicationService.uploadTutorial(integrationMethodId, summary.tutorialFile)
+          : of(null);
+
+        return logoUpload$.pipe(
+          switchMap(() => tutorialUpload$),
+          switchMap(() => of(response))
+        );
       })
     ).subscribe({
       next: () => {
@@ -335,11 +422,11 @@ export class PublishFormImpl implements OnInit, OnChanges {
       },
       error: (error: HttpErrorResponse) => {
         this.isPublishing.set(false);
-        const isLogoError = !!this.publishedApplicationId();
-        if (isLogoError) {
+        const isPostPublishError = !!this.publishedApplicationId();
+        if (isPostPublishError) {
           this.publishCreatedOn.set(new Date());
           this.publishComplete.set(true);
-          console.error('Logo upload failed:', error);
+          console.error('Logo or tutorial upload failed:', error);
         } else {
           alert('Failed to publish: ' + (error.error || error.message || 'Unknown error'));
         }
@@ -382,64 +469,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
   private mapConnectorTypeToFramework(type: string): string {
     const mapping: Record<string, string> = { 'java-based': 'JAVA_BASED', 'own-repo': 'LOW_CODE', 'evolveum-hosted': 'LOW_CODE' };
     return mapping[type] || 'JAVA_BASED';
-  }
-
-  protected formatCapabilityName(cap: string): string {
-    return cap.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-  }
-
-  protected addObjectClassEntry(): void {
-    this.objectClassEntries.update(e => [...e, { objectClass: '', capabilities: [], isCapabilitiesDropdownOpen: false }]);
-  }
-
-  protected removeObjectClassEntry(i: number): void {
-    this.objectClassEntries.update(e => e.filter((_, idx) => idx !== i));
-    this.emitChange();
-  }
-
-  protected updateObjectClass(i: number, value: string): void {
-    this.objectClassEntries.update(e => e.map((entry, idx) => idx !== i ? entry : {
-      ...entry, objectClass: value,
-      isCapabilitiesDropdownOpen: value ? entry.isCapabilitiesDropdownOpen : false
-    }));
-    this.emitChange();
-  }
-
-  protected toggleSpecificCapDropdown(i: number): void {
-    if (!this.objectClassEntries()[i]?.objectClass) return;
-    this.objectClassEntries.update(e => e.map((entry, idx) =>
-      idx === i ? { ...entry, isCapabilitiesDropdownOpen: !entry.isCapabilitiesDropdownOpen } : entry
-    ));
-  }
-
-  protected onSpecificCapChange(event: Event, i: number, cap: string): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.objectClassEntries.update(e => e.map((entry, idx) => {
-      if (idx !== i) return entry;
-      const capabilities = checked ? [...entry.capabilities, cap] : entry.capabilities.filter(c => c !== cap);
-      return { ...entry, capabilities };
-    }));
-    this.emitChange();
-  }
-
-  protected removeSpecificCap(i: number, cap: string, event?: Event): void {
-    event?.stopPropagation();
-    this.objectClassEntries.update(e => e.map((entry, idx) =>
-      idx !== i ? entry : { ...entry, capabilities: entry.capabilities.filter(c => c !== cap) }
-    ));
-    this.emitChange();
-  }
-
-  protected onGlobalCapChange(event: Event, cap: string): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.globalCapabilities.update(caps => checked ? [...caps, cap] : caps.filter(c => c !== cap));
-    this.emitChange();
-  }
-
-  protected removeGlobalCap(cap: string, event?: Event): void {
-    event?.stopPropagation();
-    this.globalCapabilities.update(caps => caps.filter(c => c !== cap));
-    this.emitChange();
   }
 
   protected onMaintainerInput(event: Event): void {
@@ -485,9 +514,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
       connectorMaintainer: this.connectorMaintainer(),
       connectorLicense: this.connectorLicense(),
       connectorDescription: this.connectorDescription(),
-      capabilitiesScope: this.capabilitiesScope(),
-      globalCapabilities: this.globalCapabilities(),
-      objectClassEntries: this.objectClassEntries().map(e => ({ objectClass: e.objectClass, capabilities: e.capabilities })),
+      connectorBundleName: this.connectorBundleName(),
+      connectorCapabilityGroups: this.connectorCapabilities(),
       devProjectHomepage: this.devProjectHomepage(),
       devSupportPortal: this.devSupportPortal(),
       devBuildTool: this.devBuildTool(),

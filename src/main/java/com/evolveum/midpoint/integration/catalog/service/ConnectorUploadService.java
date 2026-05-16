@@ -10,12 +10,17 @@ import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
-import com.evolveum.midpoint.integration.catalog.dto.ImplementationDTO;
+import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
+import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
+import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
+import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapability;
+import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapabilityItem;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,11 +40,18 @@ public class ConnectorUploadService {
     private final ApplicationRepository applicationRepository;
     private final IntegrationMethodRepository integrationMethodRepository;
     private final ConnectorRepository connectorRepository;
+    private final ConnectorVersionRepository connectorVersionRepository;
     private final ConnectorBundleRepository connectorBundleRepository;
     private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final GithubProperties githubProperties;
     private final JenkinsProperties jenkinsProperties;
     private final ApplicationTagService applicationTagService;
+    private final CapabilityRepository capabilityRepository;
+    private final IntegrationMethodCapabilityRepository integrationMethodCapabilityRepository;
+    private final IntegrationMethodCapabilityItemRepository integrationMethodCapabilityItemRepository;
+    private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
+    private final ConnVersionCapabilityItemRepository connVersionCapabilityItemRepository;
+    private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
 
     private record ApplicationResolution(Application application, boolean isNew,
                                           List<String> originNames, List<ApplicationTagDto> tagDtos) {}
@@ -50,10 +62,16 @@ public class ConnectorUploadService {
     @Transactional
     public String uploadConnector(UploadImplementationDto dto, String username) {
         ApplicationResolution appRes = resolveApplication(dto);
-        UploadResolution uploadRes = resolveUpload(dto, appRes.application());
-        ConnectorBundleVersion bundleVersion = createBundleVersion(dto.implementation(), uploadRes.bundle());
+        UploadResolution uploadRes = resolveUpload(dto, appRes.application(), username);
+
+        if (!uploadRes.isNewVersion()) {
+            uploadRes.integrationMethod().setAuthor(username);
+            uploadRes.integrationMethod().setMaintainer(dto.connector().maintainer());
+        }
+
+        ConnectorBundleVersion bundleVersion = createBundleVersion(dto.connector(), uploadRes.bundle(), username);
         ConnectorVersion connectorVersion = createConnectorVersion(
-                dto.implementation(), uploadRes.connector(), bundleVersion, username);
+                dto.connector(), uploadRes.connector(), bundleVersion, username);
 
         applicationTagService.processOrigins(appRes.application(), appRes.originNames(), appRes.isNew());
         applicationTagService.processTags(appRes.application(), appRes.tagDtos(), appRes.isNew());
@@ -64,7 +82,9 @@ public class ConnectorUploadService {
         createGitHubRepositoryIfNeeded(uploadRes, bundleVersion, connectorVersion, dto.files());
 
         persistEntities(appRes, uploadRes, bundleVersion, connectorVersion);
-        triggerJenkinsPipeline(connectorVersion, uploadRes.integrationMethod(), uploadRes.bundle(), dto.implementation());
+        saveIntegrationMethodCapabilities(dto, uploadRes.integrationMethod());
+        saveConnectorVersionCapabilities(dto, connectorVersion);
+        triggerJenkinsPipeline(connectorVersion, uploadRes.integrationMethod(), uploadRes.bundle(), dto.connector());
 
         return appRes.application().getId() + "|" + uploadRes.integrationMethod().getId();
     }
@@ -92,44 +112,69 @@ public class ConnectorUploadService {
         return new ApplicationResolution(application, isNew, originNames, tagDtos);
     }
 
-    private UploadResolution resolveUpload(UploadImplementationDto dto, Application application) {
-        ImplementationDTO implDto = dto.implementation();
+    private UploadResolution resolveUpload(UploadImplementationDto dto, Application application, String username) {
+        UploadIntegrationMethodDto imDto = dto.integrationMethod();
+        UploadConnectorDto connDto = dto.connector();
         boolean isNewVersion = false;
 
         IntegrationMethod integrationMethod;
         Connector connector;
         ConnectorBundle bundle;
 
-        if (implDto.implementationId() != null) {
+        if (imDto.id() != null) {
             // Adding a new version to an existing integration method
             integrationMethod = integrationMethodRepository.findByApplicationId(application.getId()).stream()
-                    .filter(m -> m.getId().equals(implDto.implementationId()))
+                    .filter(m -> m.getId().equals(imDto.id()))
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Integration method not found: " + implDto.implementationId()));
+                    .orElseThrow(() -> new RuntimeException("Integration method not found: " + imDto.id()));
             isNewVersion = true;
             // Reuse existing connector link
             connector = integrationMethod.getConnectors().isEmpty() ? null
                     : integrationMethod.getConnectors().get(0).getConnector();
-            bundle = connector != null ? connector.getConnectorBundle() : createNewConnectorBundle(implDto);
+            bundle = connector != null ? connector.getConnectorBundle() : createNewConnectorBundle(connDto, username);
         } else {
             // Entirely new integration method
             integrationMethod = new IntegrationMethod();
-            integrationMethod.setDisplayName(implDto.displayName());
-            integrationMethod.setDescription(implDto.description());
             integrationMethod.setApplication(application);
             integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
 
-            bundle = createNewConnectorBundle(implDto);
+            bundle = createNewConnectorBundle(connDto, username);
             connector = new Connector();
-            connector.setDisplayName(implDto.displayName());
-            connector.setFullyQualifiedClassName(implDto.className());
+            connector.setDisplayName(connDto.displayName());
+            connector.setRevision("1.0.0");
+            connector.setAuthor(username);
+            connector.setMaintainer(connDto.maintainer());
+            connector.setDescription(connDto.description());
+            connector.setFullyQualifiedClassName(connDto.className());
             connector.setConnectorBundle(bundle);
+        }
+
+        integrationMethod.setMidpointMinVersionId(imDto.midpointMinVersion());
+        integrationMethod.setMidpointMaxVersionId(imDto.midpointMaxVersion());
+
+        if (!isNewVersion) {
+            if (imDto.displayName() != null) {
+                integrationMethod.setDisplayName(imDto.displayName());
+            }
+            if (imDto.revision() != null) {
+                integrationMethod.setRevision(imDto.revision());
+            }
+            if (imDto.description() != null) {
+                integrationMethod.setDescription(imDto.description());
+            }
+            if (imDto.tutorial() != null) {
+                integrationMethod.setTutorial(imDto.tutorial());
+            }
+            if (imDto.typeIds() != null && !imDto.typeIds().isEmpty()) {
+                List<IntegrationMethodType> types = integrationMethodTypeRepository.findAllById(imDto.typeIds());
+                integrationMethod.setIntegMethodTypes(types);
+            }
         }
 
         return new UploadResolution(integrationMethod, connector, bundle, isNewVersion);
     }
 
-    private ConnectorBundle createNewConnectorBundle(ImplementationDTO dto) {
+    private ConnectorBundle createNewConnectorBundle(UploadConnectorDto dto, String username) {
         ConnectorBundle.FrameworkType framework = dto.framework();
         if (framework == null && dto.buildFramework() != null) {
             framework = (dto.buildFramework() == BuildFrameworkType.MAVEN)
@@ -140,35 +185,52 @@ public class ConnectorUploadService {
             throw new IllegalArgumentException("Framework must be specified");
         }
 
+        BuildFrameworkType buildFramework = dto.buildFramework() != null ? dto.buildFramework() : BuildFrameworkType.MAVEN;
+
         ConnectorBundle bundle = new ConnectorBundle();
+        bundle.setRevision("1.0.0");
+        bundle.setAuthor(username);
         bundle.setFramework(framework);
+        bundle.setBuildFramework(buildFramework);
         bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
         bundle.setBundleName(dto.bundleName());
+        bundle.setDisplayName(dto.bundleDisplayName());
+        bundle.setDescription(dto.description());
         bundle.setMaintainer(dto.maintainer());
         bundle.setTicketingLink(dto.ticketingSystemLink());
+        bundle.setProjectHomepage(dto.browseLink());
+        bundle.setGitCloneUrl(dto.gitCloneUrl());
+        bundle.setPathToProject(dto.pathToProject());
         bundle.setLifecycleState(LifecycleType.IN_REVIEW);
         return bundle;
     }
 
-    private ConnectorBundleVersion createBundleVersion(ImplementationDTO dto, ConnectorBundle bundle) {
+    private ConnectorBundleVersion createBundleVersion(UploadConnectorDto dto, ConnectorBundle bundle, String username) {
+        String version = dto.version() != null ? dto.version() : "1.0.0";
         ConnectorBundleVersion cbv = new ConnectorBundleVersion();
-        cbv.setBundleVersion(dto.connectorVersion());
+        cbv.setRevision(version);
+        cbv.setAuthor(username);
+        cbv.setMaintainer(dto.maintainer());
+        cbv.setBundleVersion(version);
         cbv.setConnectorBundle(bundle);
         cbv.setBuildFramework(dto.buildFramework() != null ? dto.buildFramework() : BuildFrameworkType.MAVEN);
         cbv.setPathToProject(dto.pathToProject());
         cbv.setBrowseLink(dto.browseLink());
         cbv.setGitCloneUrl(dto.gitCloneUrl());
+        cbv.setCommitTag(dto.commitTag());
         cbv.setLifecycleState(LifecycleType.IN_REVIEW);
         return cbv;
     }
 
-    private ConnectorVersion createConnectorVersion(ImplementationDTO dto, Connector connector,
+    private ConnectorVersion createConnectorVersion(UploadConnectorDto dto, Connector connector,
                                                      ConnectorBundleVersion bundleVersion, String username) {
         ConnectorVersion cv = new ConnectorVersion();
         cv.setConnector(connector);
         cv.setConnectorBundleVersion(bundleVersion);
-        cv.setFullyQualifiedClassName(dto.className());
+        cv.setRevision(dto.version() != null ? dto.version() : "1.0.0");
         cv.setAuthor(username);
+        cv.setMaintainer(dto.maintainer());
+        cv.setFullyQualifiedClassName(dto.className());
         cv.setLifecycleState(LifecycleType.IN_REVIEW);
         return cv;
     }
@@ -246,7 +308,7 @@ public class ConnectorUploadService {
     }
 
     private String triggerJenkinsPipeline(ConnectorVersion connectorVersion, IntegrationMethod method,
-                                           ConnectorBundle bundle, ImplementationDTO dto) {
+                                           ConnectorBundle bundle, UploadConnectorDto dto) {
         try {
             ConnectorBundleVersion cbv = connectorVersion.getConnectorBundleVersion();
             String browseLink = cbv != null ? cbv.getBrowseLink() : "";
@@ -274,6 +336,54 @@ public class ConnectorUploadService {
         }
     }
 
+    private void saveIntegrationMethodCapabilities(UploadImplementationDto dto, IntegrationMethod integrationMethod) {
+        List<IntegrationMethodCapabilityGroupDto> groups = dto.integrationMethodCapabilities();
+        if (groups == null || groups.isEmpty()) return;
+
+        for (IntegrationMethodCapabilityGroupDto group : groups) {
+            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
+
+            IntegrationMethodCapability cap = new IntegrationMethodCapability();
+            cap.setObjectClass(group.objectClass());
+            cap.setIntegrationMethod(integrationMethod);
+            cap = integrationMethodCapabilityRepository.save(cap);
+
+            final Integer capId = cap.getId();
+            for (String capabilityName : group.capabilityNames()) {
+                capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
+                    IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
+                    item.setIntegrationMethodCapabilityId(capId);
+                    item.setCapabilityId(capability.getId());
+                    integrationMethodCapabilityItemRepository.save(item);
+                });
+            }
+        }
+    }
+
+    private void saveConnectorVersionCapabilities(UploadImplementationDto dto, ConnectorVersion connectorVersion) {
+        List<IntegrationMethodCapabilityGroupDto> groups = dto.connectorCapabilities();
+        if (groups == null || groups.isEmpty()) return;
+
+        for (IntegrationMethodCapabilityGroupDto group : groups) {
+            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
+
+            ConnVersionCapability cap = new ConnVersionCapability();
+            cap.setObjectClass(group.objectClass());
+            cap.setConnectorVersion(connectorVersion);
+            cap = connVersionCapabilityRepository.save(cap);
+
+            final Integer capId = cap.getId();
+            for (String capabilityName : group.capabilityNames()) {
+                capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
+                    ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
+                    item.setConnVersionCapabilityId(capId);
+                    item.setCapabilityId(capability.getId());
+                    connVersionCapabilityItemRepository.save(item);
+                });
+            }
+        }
+    }
+
     private void persistEntities(ApplicationResolution appRes, UploadResolution uploadRes,
                                   ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
         if (uploadRes.isNewVersion()) {
@@ -286,5 +396,6 @@ public class ConnectorUploadService {
             connectorRepository.save(uploadRes.connector());
             integrationMethodRepository.save(uploadRes.integrationMethod());
         }
+        connectorVersionRepository.save(connectorVersion);
     }
 }

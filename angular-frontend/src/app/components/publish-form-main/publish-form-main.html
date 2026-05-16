@@ -290,7 +290,12 @@
               @if (currentStep() === 3) {
                 <div class="step-content">
                   <h5 class="step-title">Define integration method</h5>
-                  <p class="step-subtitle">{{ selectedMethodInfo()?.description }}</p>
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+                    @for (title of selectedMethodTitles(); track title; let last = $last) {
+                      <span class="method-type-badge">{{ title }}</span>
+                      @if (!last) { <span class="method-type-separator">+</span> }
+                    }
+                  </div>
 
                   <!-- Name + Version row -->
                   <div class="method-name-version-row mb-4">
@@ -306,13 +311,13 @@
                     </div>
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
-                        Integration method version <span class="text-danger">&nbsp;*</span>
+                        Integration method version
                         <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                           <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">The version of this integration method.</span>
+                          <span class="info-tooltip">Version is fixed at 1.0 for new integration methods.</span>
                         </span>
                       </label>
-                      <input type="text" class="form-control" [(ngModel)]="methodFormVersion" placeholder="e.g. 4.0.0">
+                      <input type="text" class="form-control input-disabled" [value]="methodFormVersion()" readonly>
                     </div>
                   </div>
 
@@ -324,6 +329,12 @@
                                 placeholder="Type description of application..." rows="4" maxlength="350"></textarea>
                       <div class="text-end text-muted char-counter">{{ methodFormDescription().length }}/350 characters</div>
                     </div>
+                  </div>
+
+                  <!-- Integration method capabilities -->
+                  <div class="mb-4">
+                    <label class="form-label form-label-upload">Define integration method capabilities</label>
+                    <app-capability-picker (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
                   </div>
 
                   <!-- Integration Tutorial -->
@@ -344,13 +355,13 @@
                          (dragleave)="tutorialDragOver.set(false)"
                          (drop)="onTutorialFileDrop($event)"
                          (click)="tutorialFileInput.click()">
-                      <input #tutorialFileInput type="file" class="d-none" multiple
-                             accept=".txt,.jar,.crt,.xml" (change)="onTutorialFileSelect($event)">
+                      <input #tutorialFileInput type="file" class="d-none"
+                             accept=".pdf,.xml,.json,.yaml,.yml,.txt" (change)="onTutorialFileSelect($event)">
                       <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
                       <div class="tutorial-dropzone-text">
                         <span class="tutorial-dropzone-link">Click to import</span> or drag and drop
                       </div>
-                      <div class="tutorial-dropzone-hint">the files in the accepted format (e.g. txt, jar, crt)</div>
+                      <div class="tutorial-dropzone-hint">PDF, XML, JSON, YAML or TXT (max 20 MB)</div>
                     </div>
                     @if (tutorialFiles().length > 0) {
                       <div class="tutorial-file-list">
@@ -572,7 +583,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion()">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
