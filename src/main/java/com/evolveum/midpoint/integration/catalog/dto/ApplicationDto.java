@@ -6,31 +6,28 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 public record ApplicationDto(
-        UUID id,
-        String displayName,
-        String description,
-        String logoPath,
-        String logoContentType,
-        String logoOriginalName,
-        Long logoSizeBytes,
-        String lifecycleState,
-        OffsetDateTime lastModified,
-        OffsetDateTime createdAt,
-        List<String> capabilities,
-        String requester,
-        List<CountryOfOriginDto> origins,
-        List<ApplicationTagDto> categories,
-        List<ApplicationTagDto> tags,
-        List<ImplementationVersionDto> implementationVersions,
-        Long requestId,
-        Long voteCount,
-        List<String> frameworks,
-        List<ObjectClassCapabilityDto> objectClassCapabilities
+        UUID id,                                                           // application.id
+        String displayName,                                                // application.display_name
+        String description,                                                // application.description
+        String logoPath,                                                   // application.logo_path
+        String lifecycleState,                                             // application.lifecycle_state
+        LocalDateTime updated,                                             // application.updated
+        LocalDateTime createdAt,                                           // application.created_at
+        List<String> capabilities,                                         // capability.name via integration_method_capability
+        String requester,                                                  // request.requester
+        List<CountryOfOriginDto> origins,                                  // country_of_origin via application_origin
+        List<ApplicationTagDto> categories,                                // application_tag (CATEGORY) via application_application_tag
+        List<ApplicationTagDto> tags,                                      // application_tag via application_application_tag
+        List<IntegrationMethodDto> integrationMethods,                     // integration_method
+        Long requestId,                                                    // request.id
+        Long voteCount,                                                    // computed: count of vote rows
+        List<String> frameworks,                                           // connector_bundle.framework
+        List<ObjectClassCapabilityDto> objectClassCapabilities             // object_class_capabilities
 ) {
     public static Builder builder() {
         return new Builder();
@@ -41,18 +38,15 @@ public record ApplicationDto(
         private String displayName;
         private String description;
         private String logoPath;
-        private String logoContentType;
-        private String logoOriginalName;
-        private Long logoSizeBytes;
         private String lifecycleState;
-        private OffsetDateTime lastModified;
-        private OffsetDateTime createdAt;
+        private LocalDateTime updated;
+        private LocalDateTime createdAt;
         private List<String> capabilities;
         private String requester;
         private List<CountryOfOriginDto> origins;
         private List<ApplicationTagDto> categories;
         private List<ApplicationTagDto> tags;
-        private List<ImplementationVersionDto> implementationVersions;
+        private List<IntegrationMethodDto> integrationMethods;
         private Long requestId;
         private Long voteCount;
         private List<String> frameworks;
@@ -78,32 +72,17 @@ public record ApplicationDto(
             return this;
         }
 
-        public Builder logoContentType(String logoContentType) {
-            this.logoContentType = logoContentType;
-            return this;
-        }
-
-        public Builder logoOriginalName(String logoOriginalName) {
-            this.logoOriginalName = logoOriginalName;
-            return this;
-        }
-
-        public Builder logoSizeBytes(Long logoSizeBytes) {
-            this.logoSizeBytes = logoSizeBytes;
-            return this;
-        }
-
         public Builder lifecycleState(String lifecycleState) {
             this.lifecycleState = lifecycleState;
             return this;
         }
 
-        public Builder lastModified(OffsetDateTime lastModified) {
-            this.lastModified = lastModified;
+        public Builder updated(LocalDateTime updated) {
+            this.updated = updated;
             return this;
         }
 
-        public Builder createdAt(OffsetDateTime createdAt) {
+        public Builder createdAt(LocalDateTime createdAt) {
             this.createdAt = createdAt;
             return this;
         }
@@ -133,8 +112,8 @@ public record ApplicationDto(
             return this;
         }
 
-        public Builder implementationVersions(List<ImplementationVersionDto> implementationVersions) {
-            this.implementationVersions = implementationVersions;
+        public Builder integrationMethods(List<IntegrationMethodDto> integrationMethods) {
+            this.integrationMethods = integrationMethods;
             return this;
         }
 
@@ -164,18 +143,15 @@ public record ApplicationDto(
                     displayName,
                     description,
                     logoPath,
-                    logoContentType,
-                    logoOriginalName,
-                    logoSizeBytes,
                     lifecycleState,
-                    lastModified,
+                    updated,
                     createdAt,
                     capabilities,
                     requester,
                     origins,
                     categories,
                     tags,
-                    implementationVersions,
+                    integrationMethods,
                     requestId,
                     voteCount,
                     frameworks,

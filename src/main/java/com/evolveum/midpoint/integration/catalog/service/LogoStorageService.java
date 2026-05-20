@@ -22,20 +22,12 @@ import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Service for managing logo file storage on disk.
- */
 @Slf4j
 @Service
 public class LogoStorageService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-            "image/png",
-            "image/jpeg",
-            "image/jpg",
-            "image/gif",
-            "image/svg+xml",
-            "image/webp"
+            "image/png", "image/jpeg", "image/jpg", "image/gif", "image/svg+xml", "image/webp"
     );
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
@@ -52,169 +44,85 @@ public class LogoStorageService {
         this.applicationRepository = applicationRepository;
         this.basePath = Paths.get(logoStorageProperties.basePath()).toAbsolutePath().normalize();
         log.info("Logo storage base path resolved to: {}", this.basePath);
-
         validateAndInitializeStorageDirectory();
     }
 
-    /**
-     * Validates and initializes the logo storage directory at startup.
-     * Creates the directory if it doesn't exist and verifies write permissions.
-     *
-     * @throws IllegalStateException if the directory cannot be created or is not writable
-     */
     private void validateAndInitializeStorageDirectory() {
         try {
             if (!Files.exists(basePath)) {
                 Files.createDirectories(basePath);
                 log.info("Created logo storage directory: {}", basePath);
             }
-
             if (!Files.isDirectory(basePath)) {
-                throw new IllegalStateException(
-                        String.format("Logo storage path exists but is not a directory: %s", basePath));
+                throw new IllegalStateException("Logo storage path is not a directory: " + basePath);
             }
-
             if (!Files.isWritable(basePath)) {
-                throw new IllegalStateException(
-                        String.format("Logo storage directory is not writable: %s", basePath));
+                throw new IllegalStateException("Logo storage directory is not writable: " + basePath);
             }
-
-            log.info("Logo storage directory validated successfully: {}", basePath);
         } catch (IOException e) {
-            throw new IllegalStateException(
-                    String.format("Failed to create logo storage directory: %s", basePath), e);
+            throw new IllegalStateException("Failed to create logo storage directory: " + basePath, e);
         }
     }
 
-    /**
-     * Validates the uploaded file for size and content type.
-     *
-     * @param file the uploaded file
-     * @throws IllegalArgumentException if validation fails
-     */
     public void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Logo file is required");
         }
-
-        // Validate file size
         if (file.getSize() > logoStorageProperties.maxSizeBytes()) {
             throw new IllegalArgumentException(
-                    String.format("Logo file size exceeds maximum allowed size of %d bytes",
-                            logoStorageProperties.maxSizeBytes()));
+                    "Logo file size exceeds maximum allowed size of " + logoStorageProperties.maxSizeBytes() + " bytes");
         }
-
-        // Validate content type
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid content type '%s'. Allowed types: %s",
-                            contentType, ALLOWED_CONTENT_TYPES));
+            throw new IllegalArgumentException("Invalid content type '" + contentType + "'");
         }
-
-        // Validate file extension
         String originalFilename = file.getOriginalFilename();
         if (originalFilename != null) {
             String extension = getFileExtension(originalFilename).toLowerCase();
             if (!ALLOWED_EXTENSIONS.contains(extension)) {
-                throw new IllegalArgumentException(
-                        String.format("Invalid file extension '%s'. Allowed extensions: %s",
-                                extension, ALLOWED_EXTENSIONS));
+                throw new IllegalArgumentException("Invalid file extension '" + extension + "'");
             }
         }
     }
 
-    /**
-     * Generates a safe file name using UUID with the original file extension.
-     *
-     * @param originalFilename the original file name
-     * @return a UUID-based safe file name
-     */
     public String generateSafeFileName(String originalFilename) {
-        String extension = getFileExtension(originalFilename);
-        return UUID.randomUUID().toString() + extension;
+        return UUID.randomUUID().toString() + getFileExtension(originalFilename);
     }
 
-    /**
-     * Saves a logo file to disk and updates the application entity.
-     *
-     * @param application the application to update
-     * @param file the logo file to save
-     * @return the updated application
-     * @throws IOException if file operation fails
-     */
     @Transactional
     public Application saveLogo(Application application, MultipartFile file) throws IOException {
         validateFile(file);
-
-        // Delete old logo if exists
         deleteLogoFile(application.getLogoPath());
 
-        // Generate safe file name
         String safeFileName = generateSafeFileName(file.getOriginalFilename());
         Path targetPath = getLogoPath(safeFileName);
-
-        // Ensure directory exists
         Files.createDirectories(targetPath.getParent());
-
-        // Save file to disk
         Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-        // Update application entity with logo metadata
         application.setLogoPath(safeFileName);
-        application.setLogoContentType(file.getContentType());
-        application.setLogoOriginalName(file.getOriginalFilename());
-        application.setLogoSizeBytes(file.getSize());
-
-        log.info("Saved logo for application {}: {} ({} bytes)",
-                application.getId(), safeFileName, file.getSize());
-
+        log.info("Saved logo for application {}: {}", application.getId(), safeFileName);
         return applicationRepository.save(application);
     }
 
-    /**
-     * Deletes the logo file from disk and clears metadata from application.
-     *
-     * @param application the application to update
-     * @return the updated application
-     */
     @Transactional
     public Application deleteLogo(Application application) {
-        String logoPath = application.getLogoPath();
-
-        if (logoPath != null) {
-            deleteLogoFile(logoPath);
+        if (application.getLogoPath() != null) {
+            deleteLogoFile(application.getLogoPath());
         }
-
-        // Clear logo metadata
         application.setLogoPath(null);
-        application.setLogoContentType(null);
-        application.setLogoOriginalName(null);
-        application.setLogoSizeBytes(null);
-
         log.info("Deleted logo for application {}", application.getId());
-
         return applicationRepository.save(application);
     }
 
-    /**
-     * Loads logo file bytes from disk.
-     *
-     * @param logoPath the relative path to the logo file
-     * @return the file bytes, or null if not found
-     */
     public byte[] loadLogoBytes(String logoPath) {
         if (logoPath == null || logoPath.isBlank()) {
             return null;
         }
-
         Path filePath = getLogoPath(logoPath);
-
         if (!Files.exists(filePath)) {
             log.warn("Logo file not found: {}", filePath);
             return null;
         }
-
         try {
             return Files.readAllBytes(filePath);
         } catch (IOException e) {
@@ -223,28 +131,15 @@ public class LogoStorageService {
         }
     }
 
-    /**
-     * Gets the full path to a logo file.
-     *
-     * @param fileName the file name
-     * @return the full path
-     */
     public Path getLogoPath(String fileName) {
         return basePath.resolve(fileName);
     }
 
-    /**
-     * Deletes a logo file from disk.
-     *
-     * @param logoPath the relative path to the logo file
-     */
     private void deleteLogoFile(String logoPath) {
         if (logoPath == null || logoPath.isBlank()) {
             return;
         }
-
         Path filePath = getLogoPath(logoPath);
-
         try {
             if (Files.exists(filePath)) {
                 Files.delete(filePath);
@@ -255,50 +150,21 @@ public class LogoStorageService {
         }
     }
 
-    /**
-     * Extracts the file extension from a filename.
-     *
-     * @param filename the file name
-     * @return the extension including the dot, or empty string
-     */
     private String getFileExtension(String filename) {
-        if (filename == null) {
-            return "";
-        }
+        if (filename == null) return "";
         int lastDot = filename.lastIndexOf('.');
-        if (lastDot == -1) {
-            return "";
-        }
-        return filename.substring(lastDot);
+        return lastDot == -1 ? "" : filename.substring(lastDot);
     }
 
-    /**
-     * Checks if a logo file exists on disk.
-     *
-     * @param logoPath the relative path to the logo file
-     * @return true if the file exists
-     */
     public boolean logoExists(String logoPath) {
-        if (logoPath == null || logoPath.isBlank()) {
-            return false;
-        }
+        if (logoPath == null || logoPath.isBlank()) return false;
         return Files.exists(getLogoPath(logoPath));
     }
 
-    /**
-     * Gets the configured base path for logo storage.
-     *
-     * @return the base path
-     */
     public String getBasePath() {
         return logoStorageProperties.basePath();
     }
 
-    /**
-     * Gets the configured maximum file size in bytes.
-     *
-     * @return the max size in bytes
-     */
     public long getMaxSizeBytes() {
         return logoStorageProperties.maxSizeBytes();
     }

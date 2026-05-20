@@ -10,24 +10,26 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import java.time.LocalDateTime;
 
 /**
  * Created by Tomas.
  */
 @Entity
-@Table(name = "downloads")
+@Table(name = "download")
 @Getter @Setter
 public class Download {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "implementation_version_id", nullable = false)
-    private ImplementationVersion implementationVersion;
+    @JoinColumns({
+        @JoinColumn(name = "connector_bundle_version_id", referencedColumnName = "id", nullable = false),
+        @JoinColumn(name = "connector_bundle_version_revision", referencedColumnName = "revision", nullable = false)
+    })
+    private ConnectorBundleVersion connectorBundleVersion;
 
     @Column(name = "ip_address", length = 45, nullable = false)
     private String ipAddress;
@@ -36,5 +38,5 @@ public class Download {
     private String userAgent;
 
     @Column(name = "downloaded_at", nullable = false)
-    private OffsetDateTime downloadedAt;
+    private LocalDateTime downloadedAt;
 }

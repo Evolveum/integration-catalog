@@ -7,7 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
 public record CountryOfOriginDto(
-        Long id,
-        String name,
-        String displayName
+        Long id,            // country_of_origin.id
+        String name,        // country_of_origin.name
+        String displayName  // country_of_origin.display_name
 ) {}

@@ -15,7 +15,7 @@ import lombok.Setter;
  * Created by TomasS.
  */
 @Entity
-@Table(name = "votes")
+@Table(name = "vote")
 @IdClass(VoteId.class)
 @Getter @Setter
 public class Vote {

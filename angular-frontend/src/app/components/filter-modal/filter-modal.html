@@ -133,12 +133,12 @@
               <div>
                 <h5 class="mb-4">MidPoint version</h5>
                 <div class="d-flex flex-wrap gap-2">
-                  @for (version of midpointVersions(); track version) {
+                  @for (version of midpointVersions(); track version.id) {
                     <span
                       class="badge filter-badge rounded-pill"
-                      [class.selected]="isMidpointVersionSelected(version)"
-                      (click)="toggleMidpointVersion(version)">
-                      {{ version }}
+                      [class.selected]="isMidpointVersionSelected(version.id)"
+                      (click)="toggleMidpointVersion(version.id)">
+                      {{ version.version }} — {{ version.versionName }}
                     </span>
                   } @empty {
                     <p class="text-muted">No MidPoint versions available</p>

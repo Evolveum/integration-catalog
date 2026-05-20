@@ -7,12 +7,10 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.VerifyBundleInformationForm;
-import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
-import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
-import com.evolveum.midpoint.integration.catalog.object.Implementation;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
+import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.ConnectorBundleRepository;
-import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
+import com.evolveum.midpoint.integration.catalog.repository.ConnectorRepository;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +23,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service for verifying and merging connector bundles.
- * Handles the logic for moving implementations and bundle versions between connector bundles.
+ * Verifies and merges connector bundles after build.
+ * Moves Connector and ConnectorBundleVersion entities between ConnectorBundle targets.
  */
 @Slf4j
 @Service
@@ -34,61 +32,39 @@ import java.util.UUID;
 public class BundleMergeService {
 
     private final ConnectorBundleRepository connectorBundleRepository;
-    private final ImplementationVersionRepository implementationVersionRepository;
+    private final ConnectorRepository connectorRepository;
+    private final IntegrationMethodRepository integrationMethodRepository;
 
-    // ==================== Public API ====================
-
-    /**
-     * Verify validity of the implementation version based on the data produced by the Jenkins pipeline.
-     * The process checks if a new connector bundle implementation version should be assigned to an existing connector-bundle.
-     * Used in case of bundled connectors, i.e. LDAP contains an implementation (connector class) for LDAP connectors
-     * but also an implementation version which handles AD based systems.
-     *
-     * @param verifyPayload JSON form used to verify the validity of the implementation version
-     * @return true if the implementation version is valid and the Jenkins pipeline can proceed
-     */
     @Transactional
     public boolean verify(VerifyBundleInformationForm verifyPayload) {
-        UUID implementationVersionId = verifyPayload.getOid();
+        UUID integMethodId = verifyPayload.getOid();
         String bundleName = verifyPayload.getBundleName();
         String version = verifyPayload.getVersion();
         String className = verifyPayload.getClassName();
 
-        // 1. Find source bundle and implementation version
-        ConnectorBundle sourceBundle = findSourceBundle(implementationVersionId);
-        ImplementationVersion sourceImplVersion = findImplementationVersionOrThrow(implementationVersionId);
+        IntegrationMethod method = findIntegrationMethod(integMethodId);
+        ConnectorBundle sourceBundle = resolveSourceBundle(method);
 
-        // 2. Find target bundle by name
-        ConnectorBundle targetBundle;
-        try {
-            targetBundle = findTargetBundle(bundleName);
-        } catch (ResponseStatusException e) {
-            sourceImplVersion.setErrorMessage(e.getReason());
-            throw e;
-        }
+        ConnectorBundle targetBundle = connectorBundleRepository.findByBundleName(bundleName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No bundle found with bundle name " + bundleName));
 
-        // 3. Validate payload
-        validateVerifyPayload(version, className, sourceImplVersion);
+        validateVerifyPayload(version, className);
 
-        // 4. Check if target bundle has a matching version
-        Optional<BundleVersion> matchingBundleVersion = findMatchingBundleVersion(targetBundle, version);
+        Optional<ConnectorBundleVersion> matchingVersion = findMatchingBundleVersion(targetBundle, version);
 
-        if (matchingBundleVersion.isPresent()) {
-            // 5a. Version exists - check for conflict and move implementation version
-            BundleVersion targetBundleVersion = matchingBundleVersion.get();
-            checkForClassNameConflict(targetBundleVersion, className, bundleName, version, sourceImplVersion);
-
+        if (matchingVersion.isPresent()) {
+            checkForClassNameConflict(matchingVersion.get(), className, bundleName, version);
             try {
-                moveImplVersionAndDeleteBundle(sourceBundle, targetBundleVersion, sourceImplVersion);
+                moveConnectorVersionsAndDeleteBundle(sourceBundle, matchingVersion.get());
             } catch (Exception e) {
-                handleVerifyError(sourceImplVersion, e);
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getLocalizedMessage());
             }
         } else {
-            // 5b. Version doesn't exist - move all bundle versions to target
             try {
                 moveBundleVersionsAndDeleteBundle(sourceBundle, targetBundle);
             } catch (Exception e) {
-                handleVerifyError(sourceImplVersion, e);
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getLocalizedMessage());
             }
         }
 
@@ -96,166 +72,102 @@ public class BundleMergeService {
     }
 
     /**
-     * Moves all bundle versions and implementations from source to target bundle, then deletes source.
-     * Used when merging bundles during successful build or verification.
-     *
-     * @param sourceBundle the bundle to move from (will be deleted)
-     * @param targetBundle the bundle to move to
+     * Moves all connectors and bundle versions from source to target bundle, then deletes source.
      */
     @Transactional(rollbackFor = Exception.class)
     public void moveBundleVersionsAndDeleteBundle(ConnectorBundle sourceBundle, ConnectorBundle targetBundle) {
-        // Move implementations
-        for (Implementation impl : sourceBundle.getImplementations()) {
-            impl.setConnectorBundle(targetBundle);
-            targetBundle.getImplementations().add(impl);
+        for (Connector connector : sourceBundle.getConnectors()) {
+            connector.setConnectorBundle(targetBundle);
+            targetBundle.getConnectors().add(connector);
         }
-        sourceBundle.getImplementations().clear();
+        sourceBundle.getConnectors().clear();
 
-        // Move bundle versions
-        for (BundleVersion bv : sourceBundle.getBundleVersions()) {
-            bv.setConnectorBundle(targetBundle);
-            targetBundle.getBundleVersions().add(bv);
+        for (ConnectorBundleVersion cbv : sourceBundle.getBundleVersions()) {
+            cbv.setConnectorBundle(targetBundle);
+            targetBundle.getBundleVersions().add(cbv);
         }
         sourceBundle.getBundleVersions().clear();
 
         connectorBundleRepository.delete(sourceBundle);
-        log.debug("Moved all versions from bundle {} to bundle {}",
-                sourceBundle.getId(), targetBundle.getId());
+        log.debug("Moved all from bundle {} to bundle {}", sourceBundle.getId(), targetBundle.getId());
     }
 
     /**
-     * Moves a single implementation version to a target bundle version, then deletes the source bundle.
-     * Used when the target bundle already has a matching version.
-     *
-     * @param sourceBundle the source bundle (will be deleted)
-     * @param targetBundleVersion the target bundle version to move the implementation to
-     * @param sourceImplVersion the implementation version to move
+     * Moves connector versions from source bundle into a specific target bundle version, then deletes source.
      */
     @Transactional(rollbackFor = Exception.class)
-    public void moveImplVersionAndDeleteBundle(ConnectorBundle sourceBundle,
-                                                BundleVersion targetBundleVersion,
-                                                ImplementationVersion sourceImplVersion) {
-        // Validate source bundle state
-        if (sourceBundle.getBundleName() != null && !sourceBundle.getBundleName().isEmpty()) {
+    public void moveConnectorVersionsAndDeleteBundle(ConnectorBundle sourceBundle,
+                                                      ConnectorBundleVersion targetBundleVersion) {
+        if (sourceBundle.getBundleName() != null && !sourceBundle.getBundleName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Illegal state of connector bundle. Bundle already contains implementation version which is being verified");
+                    "Illegal state: source bundle already has a name");
         }
-
-        // Move the implementation version to target
-        sourceImplVersion.setBundleVersion(targetBundleVersion);
-        targetBundleVersion.getImplementationVersions().add(sourceImplVersion);
 
         ConnectorBundle targetBundle = targetBundleVersion.getConnectorBundle();
 
-        // Clean up source bundle versions and delete other implementation versions
-        for (BundleVersion bv : sourceBundle.getBundleVersions()) {
-            for (ImplementationVersion iv : bv.getImplementationVersions()) {
-                if (iv.getId().equals(sourceImplVersion.getId())) {
-                    continue;
-                }
-                implementationVersionRepository.delete(iv);
+        for (Connector connector : sourceBundle.getConnectors()) {
+            for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                cv.setConnectorBundleVersion(targetBundleVersion);
+                targetBundleVersion.getConnectorVersions().add(cv);
             }
-            bv.getImplementationVersions().clear();
-            bv.setConnectorBundle(null);
+            connector.setConnectorBundle(targetBundle);
+            targetBundle.getConnectors().add(connector);
         }
+        sourceBundle.getConnectors().clear();
         sourceBundle.getBundleVersions().clear();
 
-        // Move implementations to target
-        for (Implementation impl : sourceBundle.getImplementations()) {
-            impl.setConnectorBundle(targetBundle);
-            targetBundle.getImplementations().add(impl);
-        }
-        sourceBundle.getImplementations().clear();
-
         connectorBundleRepository.delete(sourceBundle);
-        log.debug("Moved implementation version {} to bundle version {}",
-                sourceImplVersion.getId(), targetBundleVersion.getId());
+        log.debug("Moved connector versions to bundle version {}", targetBundleVersion.getId());
     }
 
-    // ==================== Lookup Methods ====================
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
-    /**
-     * Finds the source connector bundle containing the given implementation version.
-     */
-    private ConnectorBundle findSourceBundle(UUID implementationVersionId) {
-        return connectorBundleRepository
-                .findByBundleVersions_ImplementationVersions_Id(implementationVersionId)
+    private IntegrationMethod findIntegrationMethod(UUID id) {
+        return integrationMethodRepository.findByApplicationId(id).stream()
+                .filter(m -> m.getId().equals(id))
+                .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No bundle found containing the connector implementation version with OID " + implementationVersionId));
+                        "Integration method not found: " + id));
     }
 
-    /**
-     * Finds a connector bundle by its bundle name.
-     */
-    private ConnectorBundle findTargetBundle(String bundleName) {
-        return connectorBundleRepository
-                .findByBundleName(bundleName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No bundle found with bundle name " + bundleName));
+    private ConnectorBundle resolveSourceBundle(IntegrationMethod method) {
+        if (method.getConnectors() == null || method.getConnectors().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "No connector linked to integration method " + method.getId());
+        }
+        Connector connector = method.getConnectors().get(0).getConnector();
+        if (connector == null || connector.getConnectorBundle() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "No connector bundle found for integration method " + method.getId());
+        }
+        return connector.getConnectorBundle();
     }
 
-    /**
-     * Finds an implementation version by ID.
-     */
-    private ImplementationVersion findImplementationVersionOrThrow(UUID implementationVersionId) {
-        return implementationVersionRepository
-                .findById(implementationVersionId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No implementation version found with id " + implementationVersionId));
-    }
-
-    /**
-     * Finds a bundle version within a connector bundle that matches the given version string.
-     */
-    private Optional<BundleVersion> findMatchingBundleVersion(ConnectorBundle bundle, String version) {
+    private Optional<ConnectorBundleVersion> findMatchingBundleVersion(ConnectorBundle bundle, String version) {
         return bundle.getBundleVersions().stream()
-                .filter(bv -> version.equals(bv.getConnectorVersion()))
+                .filter(cbv -> version.equals(cbv.getBundleVersion()))
                 .findFirst();
     }
 
-    // ==================== Validation Methods ====================
-
-    /**
-     * Validates that the verify payload contains required fields.
-     */
-    private void validateVerifyPayload(String version, String className, ImplementationVersion implVersion) {
+    private void validateVerifyPayload(String version, String className) {
         if (version == null || version.isEmpty()) {
-            String err = "Request payload lacks connector bundle version.";
-            implVersion.setErrorMessage(err);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, err);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Request payload lacks connector bundle version.");
         }
-
         if (className == null || className.isEmpty()) {
-            String err = "Request payload lacks connector className.";
-            implVersion.setErrorMessage(err);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, err);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Request payload lacks connector className.");
         }
     }
 
-    /**
-     * Checks if a bundle version already contains an implementation with the given class name.
-     */
-    private void checkForClassNameConflict(BundleVersion bundleVersion, String className,
-                                           String bundleName, String version, ImplementationVersion implVersion) {
-        boolean hasConflict = bundleVersion.getImplementationVersions().stream()
-                .anyMatch(iv -> className.equals(iv.getClassName()));
-
-        if (hasConflict) {
-            String err = "The connector bundle " + bundleName + " with the version " + version
-                    + " already contains an implementation for the connector class " + className;
-            implVersion.setErrorMessage(err);
-            throw new ResponseStatusException(HttpStatus.CONFLICT, err);
+    private void checkForClassNameConflict(ConnectorBundleVersion bundleVersion, String className,
+                                            String bundleName, String version) {
+        boolean conflict = bundleVersion.getConnectorVersions().stream()
+                .anyMatch(cv -> className.equals(cv.getFullyQualifiedClassName()));
+        if (conflict) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Bundle " + bundleName + " version " + version
+                            + " already contains connector class " + className);
         }
-    }
-
-    // ==================== Error Handling ====================
-
-    /**
-     * Sets error message on implementation version and throws ResponseStatusException.
-     */
-    private void handleVerifyError(ImplementationVersion implVersion, Exception e) {
-        String err = e.getLocalizedMessage();
-        implVersion.setErrorMessage(err);
-        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
     }
 }

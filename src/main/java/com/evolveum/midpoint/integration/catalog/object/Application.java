@@ -16,7 +16,7 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -49,18 +49,8 @@ public class Application {
 
     private String description;
 
-    // Logo file storage fields
     @Column(name = "logo_path")
     private String logoPath;
-
-    @Column(name = "logo_content_type", length = 100)
-    private String logoContentType;
-
-    @Column(name = "logo_original_name")
-    private String logoOriginalName;
-
-    @Column(name = "logo_size_bytes")
-    private Long logoSizeBytes;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
@@ -69,14 +59,14 @@ public class Application {
 
     @CreationTimestamp
     @Column(name = "created_at")
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "last_modified")
-    private OffsetDateTime lastModified;
+    @Column(name = "updated")
+    private LocalDateTime updated;
 
     @OneToMany(mappedBy = "application", fetch = FetchType.EAGER)
-    private List<Implementation> implementations;
+    private List<IntegrationMethod> integrationMethods;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationApplicationTag> applicationApplicationTags;
@@ -84,19 +74,18 @@ public class Application {
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationOrigin> applicationOrigins;
 
-    // Transient fields for receiving data from frontend (not persisted to database)
     @Transient
-    private List<String> origins; // Country names from frontend
+    private List<String> origins;
 
     @Transient
-    private List<ApplicationTagDto> tags; // Tag DTOs from frontend
+    private List<ApplicationTagDto> tags;
 
-    public Application addImplementation(Implementation implementation) {
-        if (implementations == null) {
-            implementations = new ArrayList<>();
+    public Application addIntegrationMethod(IntegrationMethod integrationMethod) {
+        if (integrationMethods == null) {
+            integrationMethods = new ArrayList<>();
         }
-        implementation.setApplication(this);
-        implementations.add(implementation);
+        integrationMethod.setApplication(this);
+        integrationMethods.add(integrationMethod);
         return this;
     }
 }

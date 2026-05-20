@@ -15,13 +15,13 @@ import java.util.UUID;
  * lifecycle state (always ACTIVE), vote count, and request ID.
  */
 public record ActiveConnectorDto(
-        UUID id,
-        String displayName,
-        String description,
-        List<CountryOfOriginDto> origins,
-        List<ApplicationTagDto> categories,
-        List<ApplicationTagDto> tags,
-        List<String> capabilities,
-        List<String> frameworks,
-        List<String> midpointVersions
+        UUID id,                             // application.id
+        String displayName,                  // application.display_name
+        String description,                  // application.description
+        List<CountryOfOriginDto> origins,    // country_of_origin via application_origin
+        List<ApplicationTagDto> categories,  // application_tag (CATEGORY) via application_application_tag
+        List<ApplicationTagDto> tags,        // application_tag via application_application_tag
+        List<String> capabilities,           // capability.name via integration_method_capability
+        List<String> frameworks,             // connector_bundle.framework
+        List<String> midpointVersions        // midpoint_version.version
 ) {}

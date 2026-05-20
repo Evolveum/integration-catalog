@@ -8,90 +8,76 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
-import com.evolveum.midpoint.integration.catalog.object.Application;
-import com.evolveum.midpoint.integration.catalog.object.BundleVersion;
-import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
-import com.evolveum.midpoint.integration.catalog.object.Implementation;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
-import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
-import com.evolveum.midpoint.integration.catalog.repository.ConnectorBundleRepository;
-import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
+import com.evolveum.midpoint.integration.catalog.object.*;
+import com.evolveum.midpoint.integration.catalog.repository.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service for handling Jenkins build callbacks.
- * Processes success and failure notifications from the build pipeline.
+ * Handles Jenkins build callbacks — updates IntegrationMethod lifecycle and capabilities.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BuildCallbackService {
 
-    private final ImplementationVersionRepository implementationVersionRepository;
+    private final IntegrationMethodRepository integrationMethodRepository;
     private final ConnectorBundleRepository connectorBundleRepository;
     private final ApplicationRepository applicationRepository;
+    private final CapabilityRepository capabilityRepository;
+    private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
     private final BundleMergeService bundleMergeService;
 
     /**
-     * Handles successful build callback from Jenkins pipeline.
-     * Updates the implementation version with build information and handles bundle merging if needed.
-     *
-     * @param oid the implementation version UUID
-     * @param continueForm form containing build results (version, download link, capabilities, etc.)
+     * Successful build: activate the integration method and persist capabilities.
+     * The OID is the IntegrationMethod UUID.
      */
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
-        ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
-        Implementation implementation = version.getImplementation();
+        IntegrationMethod method = findLatestRevision(oid);
 
-        // Update BundleVersion with build information
-        BundleVersion bundleVersion = version.getBundleVersion();
-        if (bundleVersion != null) {
-            bundleVersion.setConnectorVersion(continueForm.getConnectorVersion());
-            bundleVersion.setDownloadLink(continueForm.getDownloadLink());
-        }
+        // Resolve connector and bundle version through linked connector
+        ConnectorBundleVersion bundleVersion = resolveConnectorBundleVersion(method);
+        ConnectorBundle sourceBundle = resolveConnectorBundle(method);
 
-        // Check if this upload is not just a different version of a similar connector bundle
+        // Handle possible bundle rename / cross-bundle merge
         String newBundleName = continueForm.getConnectorBundle();
-        Optional<ConnectorBundle> existingBundle = connectorBundleRepository.findByBundleName(newBundleName);
-        ConnectorBundle sourceBundle = implementation.getConnectorBundle();
-
-        if (existingBundle.isPresent()) {
-            // We want to move everything to the target bundle and delete the source
-            if (!(sourceBundle.getBundleName() != null && !sourceBundle.getBundleName().isEmpty())) {
+        if (newBundleName != null && !newBundleName.isBlank()) {
+            Optional<ConnectorBundle> existingBundle = connectorBundleRepository.findByBundleName(newBundleName);
+            if (existingBundle.isPresent() && sourceBundle != null) {
                 ConnectorBundle targetBundle = existingBundle.get();
-                bundleMergeService.moveBundleVersionsAndDeleteBundle(sourceBundle, targetBundle);
-
-                // IMPORTANT: update implementation bundle AFTER the move
-                implementation.setConnectorBundle(targetBundle);
-            }
-        } else {
-            // Only update the bundle name if this is not a cross-bundle merge
-            if (sourceBundle != null) {
+                if (sourceBundle.getBundleName() == null || sourceBundle.getBundleName().isBlank()) {
+                    bundleMergeService.moveBundleVersionsAndDeleteBundle(sourceBundle, targetBundle);
+                    relinkConnectorToBundle(method, targetBundle);
+                }
+            } else if (sourceBundle != null) {
                 sourceBundle.setBundleName(newBundleName);
             }
         }
 
-        OffsetDateTime odt = OffsetDateTime.ofInstant(Instant.ofEpochMilli(continueForm.getPublishTime()), ZoneOffset.UTC);
-        version.setPublishDate(odt)
-                .setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
-        version.setCapabilities(continueForm.getCapability().toArray(new ImplementationVersion.CapabilitiesType[0]));
-        version.setClassName(continueForm.getConnectorClass());
-        implementationVersionRepository.save(version);
+        // Update connector version class name
+        if (continueForm.getConnectorClass() != null) {
+            updateConnectorVersionClassName(method, continueForm.getConnectorClass());
+        }
 
-        // Set application lifecycle to ACTIVE on successful build
+        // Persist capabilities on all linked connector versions
+        if (continueForm.getCapability() != null && !continueForm.getCapability().isEmpty()) {
+            persistCapabilitiesOnConnectorVersions(method, continueForm.getCapability());
+        }
+
+        // Activate integration method
+        method.setLifecycleState(LifecycleType.ACTIVE);
+
+        // Activate application
         try {
-            Application application = version.getImplementation().getApplication();
+            Application application = method.getApplication();
             application.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
             applicationRepository.save(application);
         } catch (Exception e) {
@@ -100,32 +86,90 @@ public class BuildCallbackService {
     }
 
     /**
-     * Handles failed build callback from Jenkins pipeline.
-     * Marks the implementation version as errored and updates application state if needed.
-     *
-     * @param oid the implementation version UUID
-     * @param failForm form containing the error message
+     * Failed build: mark the integration method as errored.
      */
     @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
-        ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
-        version.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.WITH_ERROR);
+        IntegrationMethod method = findLatestRevision(oid);
+        method.setLifecycleState(LifecycleType.WITH_ERROR);
 
-        // Set error message on ImplementationVersion
-        if (version.getBundleVersion() != null) {
-            version.setErrorMessage(failForm.getErrorMessage());
-        }
-
-        Implementation implementation = version.getImplementation();
-        Application application = implementation.getApplication();
-
-        // If this is the only implementation version of the only implementation,
-        // mark the application as errored too
-        if (implementation.getImplementationVersions().size() == 1
-                && application.getImplementations().size() == 1) {
+        Application application = method.getApplication();
+        List<IntegrationMethod> allMethods = integrationMethodRepository.findByApplicationId(application.getId());
+        if (allMethods.size() == 1) {
             application.setLifecycleState(Application.ApplicationLifecycleType.WITH_ERROR);
+            applicationRepository.save(application);
         }
+    }
 
-        implementationVersionRepository.save(version);
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private IntegrationMethod findLatestRevision(UUID id) {
+        return integrationMethodRepository.findByApplicationId(id).stream()
+                .filter(m -> m.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + id));
+    }
+
+    private ConnectorBundleVersion resolveConnectorBundleVersion(IntegrationMethod method) {
+        if (method.getConnectors() == null || method.getConnectors().isEmpty()) return null;
+        IntegrationMethodConnector link = method.getConnectors().get(0);
+        if (link.getConnector() == null || link.getConnector().getConnectorVersions().isEmpty()) return null;
+        return link.getConnector().getConnectorVersions().get(0).getConnectorBundleVersion();
+    }
+
+    private ConnectorBundle resolveConnectorBundle(IntegrationMethod method) {
+        if (method.getConnectors() == null || method.getConnectors().isEmpty()) return null;
+        IntegrationMethodConnector link = method.getConnectors().get(0);
+        if (link.getConnector() == null) return null;
+        return link.getConnector().getConnectorBundle();
+    }
+
+    private void relinkConnectorToBundle(IntegrationMethod method, ConnectorBundle targetBundle) {
+        if (method.getConnectors() == null) return;
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            if (link.getConnector() != null) {
+                link.getConnector().setConnectorBundle(targetBundle);
+            }
+        }
+    }
+
+    private void updateConnectorVersionClassName(IntegrationMethod method, String className) {
+        if (method.getConnectors() == null) return;
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            if (link.getConnector() == null) continue;
+            for (ConnectorVersion cv : link.getConnector().getConnectorVersions()) {
+                cv.setFullyQualifiedClassName(className);
+            }
+        }
+    }
+
+    private void persistCapabilitiesOnConnectorVersions(IntegrationMethod method,
+                                                         List<CapabilityType> capabilityTypes) {
+        if (method.getConnectors() == null) return;
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            if (link.getConnector() == null) continue;
+            for (ConnectorVersion cv : link.getConnector().getConnectorVersions()) {
+                ConnVersionCapability group = new ConnVersionCapability();
+                group.setObjectClass("__ACCOUNT__");
+                group.setConnectorVersion(cv);
+
+                for (CapabilityType capType : capabilityTypes) {
+                    Capability cap = capabilityRepository.findByName(capType.name())
+                            .orElseGet(() -> {
+                                Capability c = new Capability();
+                                c.setName(capType.name());
+                                return capabilityRepository.save(c);
+                            });
+
+                    ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
+                    item.setConnVersionCapabilityId(group.getId());
+                    item.setCapabilityId(cap.getId());
+                    item.setConnVersionCapability(group);
+                    item.setCapability(cap);
+                    group.getItems().add(item);
+                }
+                connVersionCapabilityRepository.save(group);
+            }
+        }
     }
 }

@@ -6,7 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.form;
 
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
+import com.evolveum.midpoint.integration.catalog.object.CapabilityType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,6 +20,5 @@ public class ContinueForm {
     private Long publishTime;
     private String downloadLink;
     private String connectorClass;
-    private List<ImplementationVersion.CapabilitiesType> capability;
-
+    private List<CapabilityType> capability;
 }

@@ -313,7 +313,7 @@
                 </div>
                 <div class="card-body d-flex flex-column">
                   <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
-                  <p class="card-text text-muted small card-description" [class.card-description-single]="app.lifecycleState === 'IN_REVIEW'">{{ app.description }}</p>
+                  <p class="card-text text-muted small card-description">{{ app.description }}</p>
                   <!-- Bottom section based on lifecycle state -->
                   @if (app.lifecycleState === 'REQUESTED') {
                     <div class="mt-auto">
@@ -329,9 +329,11 @@
                   } @else if (app.lifecycleState === 'WITH_ERROR') {
                     <p class="text-center mt-auto mb-0 link-error">Error details</p>
                   } @else if (app.lifecycleState === 'IN_REVIEW') {
-                    <div class="in-review-info-box mt-auto d-flex align-items-center gap-2">
-                      <i class="fa-solid fa-circle-exclamation flex-shrink-0" style="color: #6c757d;"></i>
-                      <span>This connector is currently awaiting manual review. If you'd like to expedite the process, contact us at <a href="mailto:support@evolveum.com" class="text-decoration-none" style="color: #6c757d;" (click)="$event.stopPropagation()"><strong>support&#64;evolveum.com</strong></a> — priority review is available upon request.</span>
+                    <!-- in review -->
+                  } @else if (app.currentMidpointVersion) {
+                    <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
+                      <i class="fa-solid fa-circle-info flex-shrink-0"></i>
+                      <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
                     </div>
                   }
                 </div>
@@ -422,7 +424,7 @@
               </div>
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
-                <p class="card-text text-muted small card-description" [class.card-description-single]="app.lifecycleState === 'IN_REVIEW'">{{ app.description }}</p>
+                <p class="card-text text-muted small card-description">{{ app.description }}</p>
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
                   <div class="mt-auto">
@@ -438,9 +440,11 @@
                 } @else if (app.lifecycleState === 'WITH_ERROR') {
                   <p class="text-center mt-auto mb-0 link-error">Error details</p>
                 } @else if (app.lifecycleState === 'IN_REVIEW') {
-                  <div class="in-review-info-box mt-auto d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-circle-exclamation flex-shrink-0" style="color: #6c757d;"></i>
-                    <span>This connector is currently awaiting manual review. If you'd like to expedite the process, contact us at <a href="mailto:support@evolveum.com" class="text-decoration-none" style="color: #6c757d;" (click)="$event.stopPropagation()"><strong>support&#64;evolveum.com</strong></a> — priority review is available upon request.</span>
+                  <!-- in review -->
+                } @else if (app.currentMidpointVersion) {
+                  <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-circle-info flex-shrink-0"></i>
+                    <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
                   </div>
                 }
               </div>
@@ -589,14 +593,14 @@
 
     @if (openDropdown() === 'midpointVersions' && dropdownPosition()) {
       <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
-        @for (version of allMidpointVersions(); track version) {
-          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionInFilter(version); $event.stopPropagation()">
-            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(version)" [class.checkbox-unchecked]="!isMidpointVersionSelected(version)">
-              @if (isMidpointVersionSelected(version)) {
+        @for (ver of allMidpointVersions(); track ver.id) {
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionInFilter(ver.id); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(ver.id)" [class.checkbox-unchecked]="!isMidpointVersionSelected(ver.id)">
+              @if (isMidpointVersionSelected(ver.id)) {
                 <i class="fa-solid fa-check icon-xs text-white"></i>
               }
             </div>
-            <span>{{ version }}</span>
+            <span>{{ ver.version }} - {{ ver.versionName }}</span>
           </div>
         }
         <div class="border-top pt-2 mt-2">

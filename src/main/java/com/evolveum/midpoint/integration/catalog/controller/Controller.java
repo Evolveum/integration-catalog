@@ -11,12 +11,10 @@ import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
-
-import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
-import com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.LogoStorageService;
+import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,23 +44,18 @@ public class Controller {
 
     private final ApplicationService applicationService;
     private final LogoStorageService logoStorageService;
-
-    private final ImplementationVersionRepository implementationVersionRepository;
+    private final TutorialStorageService tutorialStorageService;
     private final RequestRepository requestRepository;
-    private final DownloadRepository downloadRepository;
-
     private final ApplicationMapper applicationMapper;
 
     public Controller(ApplicationService applicationService,
                       LogoStorageService logoStorageService,
-                      DownloadRepository downloadRepository,
-                      ImplementationVersionRepository implementationVersionRepository,
+                      TutorialStorageService tutorialStorageService,
                       RequestRepository requestRepository,
                       ApplicationMapper applicationMapper) {
         this.applicationService = applicationService;
         this.logoStorageService = logoStorageService;
-        this.downloadRepository = downloadRepository;
-        this.implementationVersionRepository = implementationVersionRepository;
+        this.tutorialStorageService = tutorialStorageService;
         this.requestRepository = requestRepository;
         this.applicationMapper = applicationMapper;
     }
@@ -85,29 +78,14 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Get connector version by ID",
-            description = "Fetches a connector version by its UUID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Connector version found"),
-            @ApiResponse(responseCode = "404", description = "Connector version not found")
-    })
-    @GetMapping("/connid-versions/{id}")
-    public ResponseEntity<ConnidVersion> getConnectorVersion(@PathVariable UUID id) {
-        try {
-            return ResponseEntity.ok(applicationService.getConnectorVersion(id));
-        } catch (RuntimeException ex) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
     @Operation(summary = "Get all application tags",
-            description = "Fetches a application tags")
+            description = "Fetches all application tags")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Application tags found"),
             @ApiResponse(responseCode = "404", description = "Application tags not found")
     })
     @GetMapping("/application-tags")
-    public ResponseEntity<List<ApplicationTag>> getApplicationTags() {
+    public ResponseEntity<List<ApplicationTagDto>> getApplicationTags() {
         try {
             return ResponseEntity.ok(applicationService.getApplicationTags());
         } catch (RuntimeException ex) {
@@ -115,8 +93,24 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Get all integration method types",
+            description = "Fetches all available integration method types")
+    @ApiResponse(responseCode = "200", description = "Integration method types retrieved successfully")
+    @GetMapping("/integration-method-types")
+    public ResponseEntity<List<IntegrationMethodType>> getIntegrationMethodTypes() {
+        return ResponseEntity.ok(applicationService.getIntegrationMethodTypes());
+    }
+
+    @Operation(summary = "Get all MidPoint versions",
+            description = "Fetches all available MidPoint versions")
+    @ApiResponse(responseCode = "200", description = "MidPoint versions retrieved successfully")
+    @GetMapping("/midpoint-versions")
+    public ResponseEntity<List<MidpointVersionDto>> getMidpointVersions() {
+        return ResponseEntity.ok(applicationService.getMidpointVersions());
+    }
+
     @Operation(summary = "Get all countries of origin",
-            description = "Fetches a countries of origin")
+            description = "Fetches all countries of origin")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Countries of origin found"),
             @ApiResponse(responseCode = "404", description = "Countries of origin not found")
@@ -137,7 +131,14 @@ public class Controller {
         return ResponseEntity.ok(exists);
     }
 
-    @Operation(summary = "", description = "")
+    @Operation(summary = "Check if connector bundle name exists", description = "Returns true if the specified bundle name is already taken")
+    @GetMapping("/upload/check-bundle-name")
+    public ResponseEntity<Boolean> checkBundleNameExists(@RequestParam String bundleName) {
+        boolean exists = applicationService.checkBundleNameExists(bundleName);
+        return ResponseEntity.ok(exists);
+    }
+
+    @Operation(summary = "Upload connector implementation")
     @PostMapping("/upload/connector")
     public ResponseEntity<String> uploadConnector(
             @RequestBody UploadImplementationDto dto,
@@ -149,73 +150,57 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Upload status - success",
-            description = "")
+    @Operation(summary = "Upload status - success")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Upload status - success worked"),
             @ApiResponse(responseCode = "404", description = "Upload status - success did not work")
     })
     @PostMapping("/upload/continue/{oid}")
-    public ResponseEntity completeBuildSuccessfully(@RequestBody ContinueForm continueForm, @PathVariable UUID oid) {
+    public ResponseEntity<Void> completeBuildSuccessfully(@RequestBody ContinueForm continueForm, @PathVariable UUID oid) {
         applicationService.successBuild(oid, continueForm);
-        return ResponseEntity.ok(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "Upload status - fail",
-            description = "")
+    @Operation(summary = "Upload status - fail")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Upload status - failed"),
             @ApiResponse(responseCode = "404", description = "Upload status - did not fail")
     })
     @PostMapping("/upload/continue/fail/{oid}")
-    public ResponseEntity completeBuildWithFailure(@RequestBody FailForm failForm, @PathVariable UUID oid) {
+    public ResponseEntity<Void> completeBuildWithFailure(@RequestBody FailForm failForm, @PathVariable UUID oid) {
         applicationService.failBuild(oid, failForm);
-        return ResponseEntity.ok(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "Download based on ID",
-            description = "")
+    @Operation(summary = "Download connector by integration method ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Download based on ID worked"),
-            @ApiResponse(responseCode = "404", description = "Download based on ID failed")
+            @ApiResponse(responseCode = "200", description = "Download successful"),
+            @ApiResponse(responseCode = "404", description = "Not found")
     })
     @GetMapping("/downloads/{oid}")
     public ResponseEntity<byte[]> downloadConnector(@PathVariable UUID oid, HttpServletRequest request) {
-
-        ImplementationVersion version = applicationService.findImplementationVersion(oid)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
-
-        // Get download link from BundleVersion
-        String downloadLink = (version.getBundleVersion() != null) ?
-                version.getBundleVersion().getDownloadLink() : null;
-
-        if (downloadLink == null || downloadLink.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Download link not available");
-        }
-
-        String filename = downloadLink.substring(downloadLink.lastIndexOf('/') + 1);
         String ip = request.getRemoteAddr();
         String ua = request.getHeader("User-Agent");
-
         try {
             byte[] fileBytes = applicationService.downloadConnector(oid, ip, ua);
             if (fileBytes == null) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to download connector: no data returned");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No download data returned");
             }
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
             headers.setContentDisposition(org.springframework.http.ContentDisposition.builder("attachment")
-                    .filename(filename)
+                    .filename("connector-" + oid + ".jar")
                     .build());
             headers.setContentLength(fileBytes.length);
             return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to download connector: " + e.getMessage(), e);
         }
     }
 
-    @Operation(summary = "Search applications by parameters",
-            description = "")
+    @Operation(summary = "Search applications by parameters")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Applications found"),
             @ApiResponse(responseCode = "404", description = "Applications not found")
@@ -224,8 +209,7 @@ public class Controller {
     public ResponseEntity<Page<Application>> searchApplication(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
-            @PathVariable int page
-    ) {
+            @PathVariable int page) {
         try {
             return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
         } catch (RuntimeException ex) {
@@ -233,30 +217,27 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Search versions of connector by parameters",
-            description = "")
+    @Operation(summary = "Search integration methods by parameters")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Versions of connector found"),
-            @ApiResponse(responseCode = "404", description = "Versions of connector not found")
+            @ApiResponse(responseCode = "200", description = "Integration methods found"),
+            @ApiResponse(responseCode = "404", description = "Integration methods not found")
     })
-    @GetMapping("/versions-of-connector/search/{size}/{page}")
-    public ResponseEntity<Page<ImplementationVersion>> searchVersionsOfConnector(
+    @PostMapping("/integration-methods/search/{size}/{page}")
+    public ResponseEntity<Page<IntegrationMethod>> searchIntegrationMethods(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
-            @PathVariable int page
-    ) {
+            @PathVariable int page) {
         try {
-            return ResponseEntity.ok(applicationService.searchVersionsOfConnector(searchForm, page, size));
+            return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size));
         } catch (RuntimeException ex) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @Operation(summary = "Get Request ID",
-            description = "")
+    @Operation(summary = "Get Request by ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Request ID found"),
-            @ApiResponse(responseCode = "404", description = "Request ID not found")
+            @ApiResponse(responseCode = "200", description = "Request found"),
+            @ApiResponse(responseCode = "404", description = "Request not found")
     })
     @GetMapping("/requests/{id}")
     public ResponseEntity<Request> getRequest(@PathVariable Long id) {
@@ -265,11 +246,10 @@ public class Controller {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
     }
 
-    @Operation(summary = "Get Request for Application ID",
-            description = "")
+    @Operation(summary = "Get Request for Application ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Request for Application ID found"),
-            @ApiResponse(responseCode = "404", description = "Request for Application ID not found")
+            @ApiResponse(responseCode = "200", description = "Request found"),
+            @ApiResponse(responseCode = "404", description = "Request not found")
     })
     @GetMapping("/applications/{appId}/request")
     public ResponseEntity<Request> getRequestForApplication(@PathVariable UUID appId) {
@@ -353,11 +333,10 @@ public class Controller {
         return ResponseEntity.ok(hasVoted);
     }
 
-    @Operation(summary = "Show counts of categories",
-            description = "")
+    @Operation(summary = "Show counts of categories")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Showed counts of categories successfully"),
-            @ApiResponse(responseCode = "404", description = "Show counts of categories failed")
+            @ApiResponse(responseCode = "200", description = "Category counts retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Failed to retrieve category counts")
     })
     @GetMapping("/categories/counts")
     public ResponseEntity<List<CategoryCountDto>> getCategoryCounts() {
@@ -367,12 +346,11 @@ public class Controller {
     @Operation(summary = "Show all available applications",
             description = "Returns a list of application cards for display")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Showed all available applications successfully"),
-            @ApiResponse(responseCode = "404", description = "Show all available applications failed")
+            @ApiResponse(responseCode = "200", description = "Applications retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Failed to retrieve applications")
     })
     @GetMapping("/applications")
     public ResponseEntity<List<ApplicationCardDto>> getAllApplications() {
-        // Use list method without pagination to get all applications as cards
         Page<ApplicationCardDto> page = applicationService.list(Pageable.unpaged(), null, null);
         return ResponseEntity.ok(page.getContent());
     }
@@ -387,17 +365,24 @@ public class Controller {
         return ResponseEntity.ok(applicationService.listActiveConnectors());
     }
 
+    @Operation(summary = "Get catalog connectors",
+            description = "Returns connector bundles in ACTIVE lifecycle state for use in the publish form connector picker")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Catalog connectors retrieved successfully")
+    })
+    @GetMapping("/connectors/catalog")
+    public ResponseEntity<List<CatalogConnectorDto>> getCatalogConnectors() {
+        return ResponseEntity.ok(applicationService.listCatalogConnectors());
+    }
+
     @Operation(summary = "Get available capabilities",
-            description = "Returns a list of all available capability types that can be used in requests")
+            description = "Returns a list of all available capability types")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Capabilities retrieved successfully")
     })
     @GetMapping("/capabilities")
-    public ResponseEntity<List<String>> getCapabilities() {
-        List<String> capabilities = java.util.Arrays.stream(ImplementationVersion.CapabilitiesType.values())
-                .map(Enum::name)
-                .toList();
-        return ResponseEntity.ok(capabilities);
+    public ResponseEntity<List<CapabilityDto>> getCapabilities() {
+        return ResponseEntity.ok(applicationService.getCapabilities());
     }
 
     @Operation(summary = "Get total downloads count",
@@ -407,8 +392,7 @@ public class Controller {
     })
     @GetMapping("/statistics/downloads-count")
     public ResponseEntity<Long> getTotalDownloadsCount() {
-        long count = downloadRepository.count();
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(applicationService.getTotalDownloadsCount());
     }
 
     @Operation(summary = "Get downloads count for an application",
@@ -418,38 +402,35 @@ public class Controller {
     })
     @GetMapping("/applications/{applicationId}/downloads-count")
     public ResponseEntity<Long> getApplicationDownloadsCount(@PathVariable UUID applicationId) {
-        long count = downloadRepository.countByImplementationVersionImplementationApplicationId(applicationId);
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(applicationService.countDownloadsForApplication(applicationId));
     }
 
-    @Operation(summary = "Verify status - success",
-            description = "")
+    @Operation(summary = "Verify bundle information after build")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Verify status - success, bundle with such version found, but not with this connector implementation"),
-            @ApiResponse(responseCode = "400", description = "Verify status - Failed"),
-            @ApiResponse(responseCode = "404", description = "Verify status - Failed, either no such bundle found, or such version of bundle is not present"),
-            @ApiResponse(responseCode = "409", description = "Verify status - Failed, a class was already found for a bundle with corresponding version")
+            @ApiResponse(responseCode = "200", description = "Bundle verified successfully"),
+            @ApiResponse(responseCode = "400", description = "Verification failed"),
+            @ApiResponse(responseCode = "404", description = "Bundle not found"),
+            @ApiResponse(responseCode = "409", description = "Connector class already exists for this bundle version")
     })
     @PostMapping("/upload/verify")
-    public ResponseEntity<Boolean> verify(@RequestBody VerifyBundleInformationForm verifiPayload) {
+    public ResponseEntity<Boolean> verify(@RequestBody VerifyBundleInformationForm verifyPayload) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.verify(verifiPayload));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.verify(verifyPayload));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
-    @Operation(summary = "Get implementations for application",
-            description = "Returns all implementations for a specific application")
+    @Operation(summary = "Get integration methods for application",
+            description = "Returns all integration methods for a specific application")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Implementations retrieved successfully"),
+            @ApiResponse(responseCode = "200", description = "Integration methods retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @GetMapping("/applications/{applicationId}/implementations")
-    public ResponseEntity<List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto>> getImplementationsByApplicationId(@PathVariable UUID applicationId) {
-        List<com.evolveum.midpoint.integration.catalog.dto.ImplementationListItemDto> implementations =
-                applicationService.getImplementationsByApplicationId(applicationId);
-        return ResponseEntity.ok(implementations);
+    public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(@PathVariable UUID applicationId) {
+        List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId);
+        return ResponseEntity.ok(items);
     }
 
     // ==================== Logo Endpoints ====================
@@ -484,6 +465,35 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Upload tutorial file for an integration method",
+            description = "Uploads a tutorial document (PDF, XML, JSON, YAML, TXT) for an integration method. Stored on disk; path saved to integration_method.file_path.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tutorial uploaded successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid file (wrong type, too large, or empty)"),
+            @ApiResponse(responseCode = "404", description = "Integration method not found"),
+            @ApiResponse(responseCode = "500", description = "Failed to save tutorial file")
+    })
+    @PostMapping(value = "/integration-methods/{id}/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadTutorial(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            tutorialStorageService.saveTutorial(id, file);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to upload tutorial: " + ex.getMessage(), ex);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to save tutorial file: " + ex.getMessage(), ex);
+        }
+    }
+
     @Operation(summary = "Get application logo",
             description = "Returns the logo image for an application with proper Content-Type header")
     @ApiResponses(value = {
@@ -502,72 +512,42 @@ public class Controller {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
         }
 
-        // Check if logo exists (either file-based or legacy bytea)
-        byte[] logoBytes = null;
-        String contentType = "image/png"; // default
-        String etag = null;
-
-        if (application.getLogoPath() != null && !application.getLogoPath().isBlank()) {
-            // File-based logo
-            logoBytes = logoStorageService.loadLogoBytes(application.getLogoPath());
-            if (logoBytes == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Logo file not found on disk");
-            }
-            contentType = application.getLogoContentType() != null
-                    ? application.getLogoContentType()
-                    : "image/png";
-            // Generate ETag from path and size
-            etag = "\"" + application.getLogoPath().hashCode() + "-" + application.getLogoSizeBytes() + "\"";
-        } else {
+        if (application.getLogoPath() == null || application.getLogoPath().isBlank()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No logo available for this application");
         }
 
-        // Check If-None-Match for caching
-        if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
-            return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
-                    .eTag(etag)
-                    .build();
+        byte[] logoBytes = logoStorageService.loadLogoBytes(application.getLogoPath());
+        if (logoBytes == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Logo file not found on disk");
         }
 
+        String etag = "\"" + application.getLogoPath().hashCode() + "-" + logoBytes.length + "\"";
+        if (ifNoneMatch != null && ifNoneMatch.equals(etag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(etag).build();
+        }
+
+        String contentType = detectContentType(application.getLogoPath());
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(contentType));
         headers.setContentLength(logoBytes.length);
-        headers.setCacheControl("public, max-age=86400"); // Cache for 24 hours
+        headers.setCacheControl("public, max-age=86400");
         headers.setETag(etag);
-
-        // Set Content-Disposition for download hint
-        if (application.getLogoOriginalName() != null) {
-            headers.setContentDisposition(
-                    org.springframework.http.ContentDisposition.inline()
-                            .filename(application.getLogoOriginalName())
-                            .build());
-        }
 
         return new ResponseEntity<>(logoBytes, headers, HttpStatus.OK);
     }
 
-    @Operation(summary = "Delete implementation version",
-            description = "Permanently removes an implementation version from the catalog")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Implementation version deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Implementation version not found")
-    })
-    @DeleteMapping("/implementations/versions/{id}")
-    public ResponseEntity<Void> deleteImplementationVersion(@PathVariable UUID id) {
-        try {
-            applicationService.deleteImplementationVersion(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException ex) {
-            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
-            }
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to delete implementation version: " + ex.getMessage(), ex);
-        }
+    private String detectContentType(String logoPath) {
+        if (logoPath == null) return "image/png";
+        String lower = logoPath.toLowerCase();
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        return "image/png";
     }
 
     @Operation(summary = "Delete application logo",
-            description = "Removes the logo file and clears metadata from the application")
+            description = "Removes the logo file and clears the logo path from the application")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Logo deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Application not found")

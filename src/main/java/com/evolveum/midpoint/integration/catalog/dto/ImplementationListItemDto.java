@@ -6,27 +6,28 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * DTO for listing implementations in the upload form.
- * Contains data from multiple tables: implementation, connector_bundle, bundle_version, and implementation_version.
+ * DTO for listing integration methods in the upload form.
+ * Contains data from: integration_method, connector, connector_bundle, connector_bundle_version.
  */
 public record ImplementationListItemDto(
-        UUID id,                          // implementation.id
-        String name,                      // implementation.display_name (for list display)
-        String description,               // implementation_version.description (for list display)
-        String publishedDate,             // implementation_version.publish_date formatted
-        String version,                   // bundle_version.connector_version
-        String displayName,               // implementation.display_name
-        String maintainer,                // connector_bundle.maintainer
-        String licenseType,               // connector_bundle.license
-        String implementationDescription, // implementation_version.description
-        String browseLink,                // bundle_version.browse_link
-        String ticketingLink,             // connector_bundle.ticketing_system_link
-        String buildFramework,            // bundle_version.build_framework
-        String checkoutLink,              // bundle_version.checkout_link
-        String pathToProjectDirectory,     // bundle_version.path_to_project
-        String className                  // implmentation_version.class_name
+        UUID id,                           // integration_method.id
+        String name,                       // integration_method.display_name
+        String description,                // integration_method.description
+        String publishedDate,              // connector_bundle_version.released_date (null — no direct field yet)
+        String version,                    // connector_bundle_version.bundle_version
+        String displayName,                // integration_method.display_name
+        String maintainer,                 // connector_bundle.maintainer
+        String licenseType,                // connector_bundle.license
+        String implementationDescription,  // integration_method.description
+        String browseLink,                 // connector_bundle_version.browse_link
+        String ticketingLink,              // connector_bundle.ticketing_link
+        String buildFramework,             // connector_bundle_version.build_framework
+        String gitCloneUrl,                // connector_bundle_version.git_clone_url
+        String pathToProjectDirectory,     // connector_bundle_version.path_to_project
+        String className,                  // connector.fully_qualified_class_name
+        String bundleDisplayName,          // connector_bundle.display_name
+        String bundleFramework             // connector_bundle.framework
 ) {}

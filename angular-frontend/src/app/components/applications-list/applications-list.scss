@@ -342,6 +342,22 @@
   padding-top: 0.25rem;
 }
 
+.current-version-banner {
+  background-color: $color-info-bg;
+  border: 1px solid $color-info-border;
+  border-radius: 6px;
+  padding: 0.5rem 0.3rem;
+  font-size: 0.7rem;
+  color: $color-info-text;
+  height: 38px;
+  width: 100%;
+  justify-content: center;
+
+  i {
+    color: #0AA2C0;
+  }
+}
+
 
 .card-title-truncate {
   white-space: nowrap;

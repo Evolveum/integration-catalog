@@ -15,17 +15,17 @@ import java.util.List;
  * Created by TomasS.
  */
 public record RequestFormDto(
-        @NotBlank String integrationApplicationName,
-        String deploymentType,
-        @NotBlank String description,
-        String systemVersion,
-        String contactEmail,
-        Boolean openToCollaborate,
-        String requester,
-        List<ObjectClassCapabilityEntry> capabilities
+        @NotBlank String integrationApplicationName, // → application.display_name
+        String deploymentType,                        // → application_tag (DEPLOYMENT type)
+        @NotBlank String description,                 // → application.description
+        String systemVersion,                         // request context field
+        String contactEmail,                          // request context field
+        Boolean openToCollaborate,                    // request context field
+        String requester,                             // → request.requester / catalog_users.username
+        List<ObjectClassCapabilityEntry> capabilities // → object_class_capabilities
 ) {
     public record ObjectClassCapabilityEntry(
-            String objectName,
-            List<String> capabilities
+            String objectName,        // object_class_capabilities.object_name
+            List<String> capabilities // capability.name items
     ) {}
 }
