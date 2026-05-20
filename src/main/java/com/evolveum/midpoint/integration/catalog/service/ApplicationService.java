@@ -62,6 +62,7 @@ public class ApplicationService {
     private final ConnectorDownloadService connectorDownloadService;
     private final BuildCallbackService buildCallbackService;
     private final ConnectorUploadService connectorUploadService;
+    private final CapabilityRepository capabilityRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -85,7 +86,8 @@ public class ApplicationService {
                               ConnectorDownloadService connectorDownloadService,
                               BuildCallbackService buildCallbackService,
                               ConnectorUploadService connectorUploadService,
-                              RecentlyUsedApplicationRepository recentlyUsedApplicationRepository) {
+                              RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
+                              CapabilityRepository capabilityRepository) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
@@ -109,6 +111,7 @@ public class ApplicationService {
         this.buildCallbackService = buildCallbackService;
         this.connectorUploadService = connectorUploadService;
         this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
+        this.capabilityRepository = capabilityRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -133,7 +136,7 @@ public class ApplicationService {
 
     public List<MidpointVersionDto> getMidpointVersions() {
         return midpointVersionRepository.findAll().stream()
-                .map(v -> new MidpointVersionDto(v.getId(), v.getVersion(), v.getVersionName()))
+                .map(v -> new MidpointVersionDto(v.getId(), v.getVersion(), v.getVersionName(), v.isCurrent()))
                 .toList();
     }
 
@@ -152,6 +155,18 @@ public class ApplicationService {
     public boolean checkVersionExists(String bundleVersion) {
         if (bundleVersion == null || bundleVersion.isEmpty()) return false;
         return connectorBundleVersionRepository.existsByBundleVersion(bundleVersion);
+    }
+
+    public boolean checkBundleNameExists(String bundleName) {
+        if (bundleName == null || bundleName.isBlank()) return false;
+        return connectorBundleRepository.existsByBundleName(bundleName);
+    }
+
+    public List<CapabilityDto> getCapabilities() {
+        return capabilityRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparingInt(c -> c.getDisplayOrder() != null ? c.getDisplayOrder() : 0))
+                .map(c -> new CapabilityDto(c.getName(), c.getGlobality()))
+                .toList();
     }
 
     @Transactional
@@ -286,6 +301,31 @@ public class ApplicationService {
     public List<ActiveConnectorDto> listActiveConnectors() {
         return applicationReadPort.findByLifecycleState(Application.ApplicationLifecycleType.ACTIVE).stream()
                 .map(applicationMapper::toActiveConnectorDto)
+                .toList();
+    }
+
+    public List<CatalogConnectorDto> listCatalogConnectors() {
+        return connectorBundleRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .flatMap(bundle -> {
+                    ConnectorBundleVersion latest = bundle.getBundleVersions().stream()
+                            .max(java.util.Comparator.comparingInt(ConnectorBundleVersion::getId))
+                            .orElse(null);
+                    return bundle.getConnectors().stream().map(connector -> new CatalogConnectorDto(
+                            bundle.getId(),
+                            connector.getDisplayName(),
+                            connector.getDescription(),
+                            connector.getRevision(),
+                            bundle.getDisplayName(),
+                            connector.getMaintainer(),
+                            bundle.getLicense() != null ? bundle.getLicense().name() : null,
+                            bundle.getBuildFramework() != null ? bundle.getBuildFramework().name() : null,
+                            bundle.getFramework() != null ? bundle.getFramework().name() : null,
+                            latest != null ? latest.getBrowseLink() : null,
+                            latest != null ? latest.getGitCloneUrl() : bundle.getGitCloneUrl(),
+                            latest != null ? latest.getPathToProject() : bundle.getPathToProject(),
+                            connector.getFullyQualifiedClassName()
+                    ));
+                })
                 .toList();
     }
 

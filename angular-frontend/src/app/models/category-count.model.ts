@@ -5,6 +5,6 @@
  */
 
 export interface CategoryCount {
-  displayName: string;
-  count: number;
+  displayName: string; // application_tag.display_name (where tag_type = CATEGORY)
+  count: number;       // computed: count of application_application_tag rows
 }

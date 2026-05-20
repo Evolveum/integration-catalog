@@ -62,38 +62,38 @@ INSERT INTO connector_tag (id, name, display_name) OVERRIDING SYSTEM VALUE VALUE
 
 SELECT setval('connector_tag_id_seq', 1);
 
-INSERT INTO capability (id, name, description, display_order) VALUES
-    (1, 'CREATE',        			'Create new objects',                  1),
-    (2, 'GET',           			'Read individual objects',             2),
-    (3, 'UPDATE',        			'Modify existing objects',             3),
-    (4, 'DELETE',       			'Remove objects',                      4),
-    (5, 'TEST',          			'Test connection to resource',         5),
-    (6, 'SCRIPT_ON_CONNECTOR',      'Test connection to resource',        10),
-    (7, 'SCRIPT_ON_RESOURCE',       'Test connection to resource',         9),
-    (8, 'AUTHENTICATION',			'Authenticate users',                  8),
-    (9, 'SEARCH',        			'Search and list objects',             7),
-    (10,'VALIDATE',        			'Search and list objects',             6),
-    (11,'SYNC',          			'Synchronize objects periodically',   11),
-    (12,'LIVE_SYNC',     			'Receive live change notifications',  12),
-    (13,'SCHEMA',        			'Retrieve resource schema',           13),
-    (14,'DISCOVER_CONFIGURATION',	'Search and list objects',            14),
-    (15,'RESOLVE_USERNAME',         'Search and list objects',            15),
-    (16,'PARTIAL_SCHEMA',        	'Retrieve resource schema',           16),
-    (17,'COMPLEX_UPDATE_DELTA',     'Retrieve resource schema',           17),
-    (18,'UPDATE_DELTA',        		'Retrieve resource schema',           18);
+INSERT INTO capability (id, name, description, display_order, globality) VALUES
+    (1, 'CREATE',        			'Create new objects',                  1, 'GLOBAL'),
+    (2, 'GET',           			'Read individual objects',             2, 'GLOBAL'),
+    (3, 'UPDATE',        			'Modify existing objects',             3, 'SPECIFIC'),
+    (4, 'DELETE',       			'Remove objects',                      4, 'SPECIFIC'),
+    (5, 'TEST',          			'Test connection to resource',         5, 'SPECIFIC'),
+    (6, 'SCRIPT_ON_CONNECTOR',      'Test connection to resource',        10, 'SPECIFIC'),
+    (7, 'SCRIPT_ON_RESOURCE',       'Test connection to resource',         9, 'SPECIFIC'),
+    (8, 'AUTHENTICATION',			'Authenticate users',                  8, 'SPECIFIC'),
+    (9, 'SEARCH',        			'Search and list objects',             7, 'SPECIFIC'),
+    (10,'VALIDATE',        			'Search and list objects',             6, 'SPECIFIC'),
+    (11,'SYNC',          			'Synchronize objects periodically',   11, 'SPECIFIC'),
+    (12,'LIVE_SYNC',     			'Receive live change notifications',  12, 'SPECIFIC'),
+    (13,'SCHEMA',        			'Retrieve resource schema',           13, 'SPECIFIC'),
+    (14,'DISCOVER_CONFIGURATION',	'Search and list objects',            14, 'SPECIFIC'),
+    (15,'RESOLVE_USERNAME',         'Search and list objects',            15, 'SPECIFIC'),
+    (16,'PARTIAL_SCHEMA',        	'Retrieve resource schema',           16, 'SPECIFIC'),
+    (17,'COMPLEX_UPDATE_DELTA',     'Retrieve resource schema',           17, 'SPECIFIC'),
+    (18,'UPDATE_DELTA',        		'Retrieve resource schema',           18, 'SPECIFIC');
 	
 SELECT setval('capability_id_seq', 18);
 
 
-INSERT INTO midpoint_version (id, version, version_name) values
-	(1, '4.2', 'Version 4.2'),
-	(2, '4.3', 'Version 4.3'),
-	(3, '4.4', 'Version 4.4'),
-	(4, '4.5', 'Version 4.5'),
-	(5, '4.6', 'Version 4.6'),
-	(6, '4.7', 'Version 4.7'),
-	(7, '4.8', 'Version 4.8'),
-	(8, '4.9', 'Version 4.9');
+INSERT INTO midpoint_version (id, version, version_name, is_current) values
+	(1, '4.2', 'Version 4.2', false),
+	(2, '4.3', 'Version 4.3', false),
+	(3, '4.4', 'Version 4.4', false),
+	(4, '4.5', 'Version 4.5', false),
+	(5, '4.6', 'Version 4.6', true),
+	(6, '4.7', 'Version 4.7', false),
+	(7, '4.8', 'Version 4.8', false),
+	(8, '4.9', 'Version 4.9', false);
 	
 SELECT setval('midpoint_version_id_seq', 8);
 
@@ -122,9 +122,9 @@ INSERT INTO connector_bundle (id, revision, author, maintainer, created_at, upda
     bundle_name, display_name, description, framework, license, ticketing_link, build_framework)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5', 'Conn bun maintainer 1', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
-     'ConnId LDAP connector for Active Directory and OpenLDAP', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN'),
-    (2, '1.0', 'u1', 'Conn bun maintainer 2', NOW(), NOW(), 'IN_REVIEW', 'connector-servicenow', 'ServiceNow Connector Bundle',
-     'ConnId ServiceNow REST connector bundle', 'JAVA_BASED', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE');
+     'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN'),
+    (2, '1.0', 'u1', 'Conn bun maintainer 2', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
+     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE');
 
 SELECT setval('connector_bundle_id_seq', 3);
 
@@ -139,7 +139,7 @@ OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5','Conn bun ver author 1', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
      'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN'),
     (2, '1.0', 'u1', 'Conn bun ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
-     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', 'MAVEN');
+     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL);
 
 SELECT setval('connector_bundle_version_id_seq', 4);
 
@@ -150,9 +150,9 @@ SELECT setval('connector_bundle_version_id_seq', 4);
 INSERT INTO connector (id, revision, author, maintainer, created_at, updated, display_name,
     fully_qualified_class_name, connector_bundle_id, description)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'Conn author 1', 'Conn maintainer 1', NOW(), NOW(), 'Display name Connector 1',
+    (1, '1.0', 'Conn author 1', 'Conn maintainer 1', NOW(), NOW(), 'Display name Connector Java-based',
 	'Fully qualified conn class name 1', 1, 'Description Connector 1'),
-    (2, '1.0', 'Conn author 2', 'Conn maintainer 2', NOW(), NOW(), 'Display name Connector 2',
+    (2, '1.0', 'Conn author 2', 'Conn maintainer 2', NOW(), NOW(), 'Display name Connector LOW CODE',
 	'Fully qualified conn class name 2', 2, 'Description connector 2');
 
 SELECT setval('connector_id_seq', 2);
@@ -184,9 +184,9 @@ INSERT INTO integration_method (id, application_id, display_name, description,
      tutorial, file_path, midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
-	 'Tutorial 1','/file_path',1,5,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1'),
+	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1'),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111', 'Test 2 - Integration method','Test 2 - Integration method description',
-	 'Tutorial 2','/file_path',4,6,'ACTIVE','1.0','IM author 2','IM maintainer 2',NOW(),NOW(),'2024.2');
+	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','IM author 2','IM maintainer 2',NOW(),NOW(),'2024.2');
 
 -- ============================================================
 -- INTEGRATION METHOD → CONNECTOR links
@@ -198,6 +198,8 @@ INSERT INTO integration_method_connector (id, integ_method_id, integ_method_revi
 VALUES
     (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 1, '4.7', '4.9'),
     (2, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 2, '4.3', '4.5');
+
+SELECT setval('integration_method_connector_id_seq', 2);
 
 -- ============================================================
 -- INTEGRATION METHOD → INTEGRATION METHOD TYPE links

@@ -871,3 +871,88 @@
   }
 }
 
+/* Cancel review request confirmation modal */
+.cancel-confirm-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.cancel-confirm-container {
+  z-index: 1050;
+}
+
+.cancel-confirm-dialog {
+  background: $color-white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 480px;
+  max-width: 95vw;
+}
+
+.cancel-confirm-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid $color-border-light;
+}
+
+.cancel-confirm-icon {
+  color: #e0502b;
+  font-size: 1.1rem;
+}
+
+.cancel-confirm-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: $color-text-dark;
+}
+
+.cancel-confirm-close {
+  color: $color-gray-secondary;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.cancel-confirm-body {
+  padding: 1.25rem;
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  line-height: 1.55;
+}
+
+.cancel-confirm-footer {
+  padding: 0.75rem 1.25rem 1rem;
+}
+
+.cancel-confirm-separator {
+  margin: 0;
+  border-color: $color-border-light;
+  opacity: 1;
+}
+
+.cancel-keep-btn {
+  background: none;
+  border: none;
+  color: $color-dark-blue;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.cancel-confirm-btn {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: $color-white;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+
+  &:hover {
+    background-color: #b02a37;
+    border-color: #b02a37;
+    color: $color-white;
+  }
+}

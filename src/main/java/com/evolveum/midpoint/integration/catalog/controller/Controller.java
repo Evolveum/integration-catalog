@@ -131,6 +131,13 @@ public class Controller {
         return ResponseEntity.ok(exists);
     }
 
+    @Operation(summary = "Check if connector bundle name exists", description = "Returns true if the specified bundle name is already taken")
+    @GetMapping("/upload/check-bundle-name")
+    public ResponseEntity<Boolean> checkBundleNameExists(@RequestParam String bundleName) {
+        boolean exists = applicationService.checkBundleNameExists(bundleName);
+        return ResponseEntity.ok(exists);
+    }
+
     @Operation(summary = "Upload connector implementation")
     @PostMapping("/upload/connector")
     public ResponseEntity<String> uploadConnector(
@@ -358,17 +365,24 @@ public class Controller {
         return ResponseEntity.ok(applicationService.listActiveConnectors());
     }
 
+    @Operation(summary = "Get catalog connectors",
+            description = "Returns connector bundles in ACTIVE lifecycle state for use in the publish form connector picker")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Catalog connectors retrieved successfully")
+    })
+    @GetMapping("/connectors/catalog")
+    public ResponseEntity<List<CatalogConnectorDto>> getCatalogConnectors() {
+        return ResponseEntity.ok(applicationService.listCatalogConnectors());
+    }
+
     @Operation(summary = "Get available capabilities",
             description = "Returns a list of all available capability types")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Capabilities retrieved successfully")
     })
     @GetMapping("/capabilities")
-    public ResponseEntity<List<String>> getCapabilities() {
-        List<String> capabilities = java.util.Arrays.stream(CapabilityType.values())
-                .map(Enum::name)
-                .toList();
-        return ResponseEntity.ok(capabilities);
+    public ResponseEntity<List<CapabilityDto>> getCapabilities() {
+        return ResponseEntity.ok(applicationService.getCapabilities());
     }
 
     @Operation(summary = "Get total downloads count",

@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
+import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import org.springframework.stereotype.Component;
@@ -24,13 +25,16 @@ public class ApplicationMapper {
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
     private final CatalogUserRepository catalogUserRepository;
+    private final MidpointVersionRepository midpointVersionRepository;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
-                             DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository) {
+                             DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository,
+                             MidpointVersionRepository midpointVersionRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
         this.catalogUserRepository = catalogUserRepository;
+        this.midpointVersionRepository = midpointVersionRepository;
     }
 
     // ── Tag helpers ───────────────────────────────────────────────────────────
@@ -87,6 +91,7 @@ public class ApplicationMapper {
                     String framework = null;
                     String connectorDisplayName = null;
                     String revision = null;
+                    String downloadLink = null;
                     if (!method.getConnectors().isEmpty()) {
                         IntegrationMethodConnector link = method.getConnectors().get(0);
                         if (link.getConnector() != null) {
@@ -102,6 +107,11 @@ public class ApplicationMapper {
                                     .filter(cv -> cv.getConnectorBundleVersion() != null
                                             && cv.getConnectorBundleVersion().getBundleVersion() != null)
                                     .map(cv -> cv.getConnectorBundleVersion().getBundleVersion())
+                                    .findFirst().orElse(null);
+                            downloadLink = link.getConnector().getConnectorVersions().stream()
+                                    .filter(cv -> cv.getConnectorBundleVersion() != null
+                                            && cv.getConnectorBundleVersion().getBrowseLink() != null)
+                                    .map(cv -> cv.getConnectorBundleVersion().getBrowseLink())
                                     .findFirst().orElse(null);
                         }
                     }
@@ -144,7 +154,7 @@ public class ApplicationMapper {
                             method.getAuthor(),
                             organizationId,
                             lifecycleState,
-                            null,           // downloadLink
+                            downloadLink,
                             framework,
                             null,           // errorMessage
                             downloadCount,
@@ -301,6 +311,18 @@ public class ApplicationMapper {
         List<String> frameworks = extractFrameworks(app);
         List<String> midpointVersions = new ArrayList<>(); // ConnidVersion removed; revisit if re-added
 
+        String currentMidpointVersion = null;
+        Optional<MidpointVersion> currentVersionOpt = midpointVersionRepository.findByIsCurrentTrue();
+        if (currentVersionOpt.isPresent() && app.getIntegrationMethods() != null) {
+            Integer currentVersionId = currentVersionOpt.get().getId();
+            boolean hasCurrentVersion = app.getIntegrationMethods().stream()
+                    .anyMatch(m -> LifecycleType.ACTIVE == m.getLifecycleState()
+                               && currentVersionId.equals(m.getMidpointMinVersionId()));
+            if (hasCurrentVersion) {
+                currentMidpointVersion = currentVersionOpt.get().getVersion();
+            }
+        }
+
         return new ApplicationCardDto(
                 app.getId(),
                 app.getDisplayName(),
@@ -314,7 +336,8 @@ public class ApplicationMapper {
                 requestId,
                 voteCount,
                 frameworks,
-                midpointVersions.isEmpty() ? null : midpointVersions
+                midpointVersions.isEmpty() ? null : midpointVersions,
+                currentMidpointVersion
         );
     }
 
@@ -376,6 +399,8 @@ public class ApplicationMapper {
         String maintainer = null;
         String licenseType = null;
         String ticketingLink = null;
+        String bundleDisplayName = null;
+        String bundleFramework = null;
 
         if (!method.getConnectors().isEmpty()) {
             IntegrationMethodConnector link = method.getConnectors().get(0);
@@ -387,6 +412,8 @@ public class ApplicationMapper {
                     maintainer = bundle.getMaintainer();
                     licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                     ticketingLink = bundle.getTicketingLink();
+                    bundleDisplayName = bundle.getDisplayName();
+                    bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
                 }
                 connector.getConnectorVersions().stream()
                         .filter(cv -> cv.getConnectorBundleVersion() != null)
@@ -425,7 +452,9 @@ public class ApplicationMapper {
                 buildFramework,
                 gitCloneUrl,
                 pathToProject,
-                className
+                className,
+                bundleDisplayName,
+                bundleFramework
         );
     }
 

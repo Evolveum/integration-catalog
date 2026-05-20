@@ -5,10 +5,10 @@
  */
 
 export interface Request {
-  id?: number;
-  applicationId: string;
-  capabilitiesType: string;
-  requester: string;
+  id?: number;               // request.id
+  applicationId: string;     // request.application_id (FK → application.id)
+  capabilitiesType: string;  // request context field
+  requester: string;         // request.requester
 }
 
 export interface CreateRequest {
@@ -49,47 +49,47 @@ export interface TagWithType {
  * Application data for upload payload
  */
 export interface UploadApplicationData {
-  id: string | null;
-  displayName: string;
-  description: string;
-  logo: string | null;
-  origins: string[];
-  tags: TagWithType[];
+  id: string | null;   // application.id (null for new)
+  displayName: string; // application.display_name
+  description: string; // application.description
+  logo: string | null; // application.logo_path (base64 encoded)
+  origins: string[];   // country_of_origin.name
+  tags: TagWithType[]; // application_tag entries via application_application_tag
 }
 
 /**
  * Integration method data for upload payload
  */
 export interface UploadIntegrationMethodData {
-  id: string | null;
-  displayName: string;
-  revision: string;
-  description: string;
-  tutorial: string;
-  typeIds: number[];
-  midpointMinVersion: number | null;
-  midpointMaxVersion: number | null;
+  id: string | null;              // integration_method.id (null for new)
+  displayName: string;            // integration_method.display_name
+  revision: string;               // integration_method.revision
+  description: string;            // integration_method.description
+  tutorial: string;               // integration_method.tutorial
+  typeIds: number[];              // integration_method_type.id
+  midpointMinVersion: number | null; // midpoint_version.id (FK for min version)
+  midpointMaxVersion: number | null; // midpoint_version.id (FK for max version)
 }
 
 /**
  * Connector data for upload payload
  */
 export interface UploadConnectorData {
-  displayName: string;
-  description: string;
-  maintainer: string;
-  framework: string;
-  license: string | null;
-  ticketingSystemLink: string | null;
-  browseLink: string | null;
-  gitCloneUrl: string | null;
-  buildFramework: string | null;
-  pathToProject: string | null;
-  className: string | null;
-  bundleName: string | null;
-  version: string | null;
-  commitTag: string | null;
-  bundleDisplayName: string | null;
+  displayName: string;               // connector.display_name
+  description: string;               // connector.description
+  maintainer: string;                // connector.maintainer
+  framework: string;                 // connector_bundle.framework
+  license: string | null;            // connector_bundle.license
+  ticketingSystemLink: string | null; // connector_bundle.ticketing_link
+  browseLink: string | null;         // connector_bundle_version.browse_link
+  gitCloneUrl: string | null;        // connector_bundle_version.git_clone_url
+  buildFramework: string | null;     // connector_bundle.build_framework
+  pathToProject: string | null;      // connector_bundle_version.path_to_project
+  className: string | null;          // connector.fully_qualified_class_name
+  bundleName: string | null;         // connector_bundle.bundle_name
+  version: string | null;            // connector_bundle_version.bundle_version
+  commitTag: string | null;          // connector_bundle_version.commit_tag
+  bundleDisplayName: string | null;  // connector_bundle.display_name
 }
 
 /**
@@ -104,8 +104,8 @@ export interface UploadFileItem {
  * Capability group (one object class with its selected capabilities)
  */
 export interface IntegrationMethodCapabilityGroup {
-  objectClass: string;
-  capabilityNames: string[];
+  objectClass: string;          // object_class_capabilities.object_name
+  capabilityNames: string[];    // capability.name via integration_method_capability_item / conn_version_capability_item
 }
 
 /**

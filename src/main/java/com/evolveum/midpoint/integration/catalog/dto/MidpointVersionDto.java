@@ -6,4 +6,9 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-public record MidpointVersionDto(Integer id, String version, String versionName) {}
+public record MidpointVersionDto(
+        Integer id,           // midpoint_version.id
+        String version,       // midpoint_version.version
+        String versionName,   // midpoint_version.version_name
+        boolean isCurrent     // midpoint_version.is_current
+) {}

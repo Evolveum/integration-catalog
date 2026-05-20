@@ -253,6 +253,7 @@
   padding: 10px 16px;
   cursor: pointer;
   margin: 0;
+  gap: 8px;
   border-bottom: 1px solid $color-border-light;
   font-size: 14px;
   color: $color-black;
@@ -274,7 +275,7 @@
 .integration-method-view-more {
   padding: 10px 16px;
   cursor: pointer;
-  color: $color-primary;
+  color: $color-dark-blue;
   font-size: 14px;
   font-weight: 500;
   border-top: 1px solid $color-border-light;
@@ -286,6 +287,7 @@
 
 .view-more-icon {
   font-size: 10px;
+  color: $color-dark-blue;
 }
 
 /* Form Separator */

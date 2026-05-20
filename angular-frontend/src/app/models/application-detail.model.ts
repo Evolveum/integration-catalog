@@ -5,70 +5,71 @@
  */
 
 export interface MidpointVersion {
-  id: number;
-  version: string;
-  versionName: string;
+  id: number;           // midpoint_version.id
+  version: string;      // midpoint_version.version
+  versionName: string;  // midpoint_version.version_name
+  isCurrent: boolean;   // midpoint_version.is_current
 }
 
 export interface CountryOfOrigin {
-  id: number;
-  name: string;
-  displayName: string;
+  id: number;           // country_of_origin.id
+  name: string;         // country_of_origin.name
+  displayName: string;  // country_of_origin.display_name
 }
 
 export interface ApplicationTag {
-  id: number;
-  name: string;
-  displayName: string;
-  tagType: string | null;
+  id: number;             // application_tag.id
+  name: string;           // application_tag.name
+  displayName: string;    // application_tag.display_name
+  tagType: string | null; // application_tag.tag_type
 }
 
 export interface IntegrationMethod {
-  id: string;
-  description: string | null;
-  implementationTags: string[] | null;
-  capabilities: string[] | null;
-  connectorVersion: string | null;
-  systemVersion: string | null;
-  releasedDate: string | null;
-  author: string | null;
-  organizationId: number | null;
-  lifecycleState: string | null;
-  downloadLink: string | null;
-  framework: string | null;
-  errorMessage: string | null;
-  downloadCount: number | null;
-  midpointMinVersionId: number | null;
-  midpointMaxVersionId: number | null;
-  connectorDisplayName: string | null;
-  integMethodTypes: string[] | null;
-  objectClassCapabilities: ObjectClassCapability[] | null;
-  revision: string | null;
+  id: string;                              // integration_method.id
+  description: string | null;              // integration_method.description
+  implementationTags: string[] | null;     // integration_method_type.name
+  capabilities: string[] | null;           // capability.name via integration_method_capability
+  connectorVersion: string | null;         // connector_bundle_version.bundle_version
+  systemVersion: string | null;            // integration_method.system_version
+  releasedDate: string | null;             // connector_bundle_version.released_date
+  author: string | null;                   // connector.author
+  organizationId: number | null;           // connector.organization_id
+  lifecycleState: string | null;           // integration_method.lifecycle_state
+  downloadLink: string | null;             // generated download URL
+  framework: string | null;               // connector_bundle.framework
+  errorMessage: string | null;             // integration_method.error_message
+  downloadCount: number | null;            // computed: count of download rows
+  midpointMinVersionId: number | null;     // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
+  midpointMaxVersionId: number | null;     // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+  connectorDisplayName: string | null;     // connector.display_name
+  integMethodTypes: string[] | null;       // integration_method_type.name
+  objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
+  revision: string | null;                // integration_method.revision
 }
 
 export interface ObjectClassCapability {
-  objectName: string;
-  capabilities: string[];
+  objectName: string;     // object_class_capabilities.object_name
+  capabilities: string[]; // capability.name items
 }
 
 export interface ApplicationDetail {
-  id: string;
-  displayName: string;
-  description: string;
-  logoPath: string | null;
-  lifecycleState: string;
-  updated: string | null;
-  createdAt: string | null;
-  capabilities: string[] | null;
-  requester: string | null;
-  origins: CountryOfOrigin[] | null;
-  categories: ApplicationTag[] | null;
-  tags: ApplicationTag[] | null;
-  integrationMethods: IntegrationMethod[] | null;
-  requestId: number | null;
-  voteCount: number | null;
-  frameworks: string[] | null;
-  objectClassCapabilities: ObjectClassCapability[] | null;
+  id: string;                               // application.id
+  displayName: string;                      // application.display_name
+  description: string;                      // application.description
+  logoPath: string | null;                  // application.logo_path
+  lifecycleState: string;                   // application.lifecycle_state
+  updated: string | null;                   // application.updated
+  createdAt: string | null;                 // application.created_at
+  capabilities: string[] | null;            // capability.name via integration_method_capability
+  requester: string | null;                 // request.requester
+  origins: CountryOfOrigin[] | null;        // country_of_origin via application_origin
+  categories: ApplicationTag[] | null;      // application_tag (CATEGORY) via application_application_tag
+  tags: ApplicationTag[] | null;            // application_tag via application_application_tag
+  integrationMethods: IntegrationMethod[] | null; // integration_method
+  requestId: number | null;                 // request.id
+  voteCount: number | null;                 // computed: count of vote rows
+  frameworks: string[] | null;              // connector_bundle.framework
+  objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
 }
 
 export function hasLogoDetail(app: ApplicationDetail): boolean {

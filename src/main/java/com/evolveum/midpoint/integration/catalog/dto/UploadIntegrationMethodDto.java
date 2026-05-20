@@ -10,13 +10,13 @@ import java.util.List;
 import java.util.UUID;
 
 public record UploadIntegrationMethodDto(
-        UUID id,
-        String displayName,
-        String revision,
-        String description,
-        String tutorial,
-        List<Integer> typeIds,
-        Integer midpointMinVersion,
-        Integer midpointMaxVersion
+        UUID id,                    // integration_method.id (null for new)
+        String displayName,         // integration_method.display_name
+        String revision,            // integration_method.revision
+        String description,         // integration_method.description
+        String tutorial,            // integration_method.tutorial
+        List<Integer> typeIds,      // integration_method_type.id
+        Integer midpointMinVersion, // midpoint_version.id (FK for min version)
+        Integer midpointMaxVersion  // midpoint_version.id (FK for max version)
 ) {
 }

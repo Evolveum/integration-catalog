@@ -116,15 +116,20 @@
                 </div>
                 <div class="col-4">
                   <label class="form-label form-label-upload">
-                    Connector version
+                    Connector version@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                       <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">Version is fixed at 1.0 for new connectors.</span>
+                      <span class="info-tooltip">Version of this connector (e.g. 1.0.0). Only numbers and dots allowed.</span>
                     </span>
                   </label>
-                  <input type="text" class="form-control input-disabled"
+                  <input type="text"
+                         [class.form-control]="true"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="connectorVersion()"
-                         readonly>
+                         (input)="onConnectorVersionInput($event)"
+                         (blur)="onConnectorVersionBlur($event)"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. 1.0.0">
                 </div>
               </div>
 
@@ -194,7 +199,8 @@
                 <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
               </div>
 
-              <!-- Connector bundle name -->
+              <!-- Connector bundle name (java-based only) -->
+              @if (isJavaBasedConnector) {
               <div class="mb-4">
                 <label class="form-label form-label-upload">
                   Connector bundle name
@@ -206,10 +212,15 @@
                 <input type="text" class="form-control"
                        [class.input-disabled]="isExistingConnector"
                        [value]="connectorBundleName()"
-                       (input)="connectorBundleName.set($any($event.target).value); onFieldChange()"
+                       (input)="connectorBundleName.set($any($event.target).value); bundleNameTaken.set(false); onFieldChange()"
+                       (blur)="onBundleNameBlur()"
                        [disabled]="isExistingConnector"
                        placeholder="Enter connector bundle name">
+                @if (bundleNameTaken()) {
+                  <div class="field-error">This bundle name is already taken. Please choose a different one.</div>
+                }
               </div>
+              }
 
               <!-- Connector capabilities -->
               <div class="mb-3">
@@ -265,6 +276,7 @@
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
                   <input type="url" class="method-link-input flex-grow-1"
+                         autocomplete="off"
                          [value]="devSupportPortal()"
                          (input)="devSupportPortal.set($any($event.target).value); onFieldChange()"
                          [disabled]="isExistingConnector"
@@ -273,8 +285,32 @@
                 <div class="form-text">Ensure the link is accessible to the intended audience.</div>
               </div>
 
-              <!-- Evolveum-hosted: repo ownership + GitHub API key -->
+              <!-- Evolveum-hosted: source file + repo ownership + GitHub API key -->
               @if (connectorType === 'evolveum-hosted' && !isExistingConnector) {
+                <h6 class="dev-section-title mt-3">Source and implementation details</h6>
+
+                <!-- Import a source file -->
+                <div class="mb-3">
+                  <label class="form-label form-label-upload">Import a source file</label>
+                  <div class="tutorial-dropzone"
+                       [class.tutorial-dropzone-over]="devSourceFileDragOver()"
+                       (dragover)="$event.preventDefault(); devSourceFileDragOver.set(true)"
+                       (dragleave)="devSourceFileDragOver.set(false)"
+                       (drop)="onSourceFileDrop($any($event))"
+                       (click)="sourceFileInput.click()">
+                    <input #sourceFileInput type="file" class="d-none" accept=".zip" (change)="onSourceFileSelect($event)">
+                    <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
+                    <div class="tutorial-dropzone-text">
+                      @if (devSourceFile()) {
+                        <span class="tutorial-dropzone-link">{{ devSourceFile()!.name }}</span>
+                      } @else {
+                        <span class="tutorial-dropzone-link">Click to import</span> or drag and drop
+                      }
+                    </div>
+                    <div class="tutorial-dropzone-hint">the files in the accepted format (.zip)</div>
+                  </div>
+                </div>
+
                 <div class="mb-3">
                   <label class="form-label form-label-upload">Where should we create the repository?</label>
                   <div style="display:flex; flex-wrap:nowrap; gap:2rem;">
@@ -298,6 +334,7 @@
                     <div class="method-link-wrapper d-flex align-items-center">
                       <input [type]="showGithubApiKey() ? 'text' : 'password'"
                              class="method-link-input flex-grow-1"
+                             autocomplete="new-password"
                              [value]="devGithubApiKey()"
                              (input)="devGithubApiKey.set($any($event.target).value); onFieldChange()"
                              placeholder="••••••••••••••••••••••••••••••••••••••••••••••">
@@ -307,13 +344,13 @@
                       </button>
                     </div>
                     <div class="form-text mt-1">
-                      <i class="fa-solid fa-location-crosshairs me-1"></i>
+                      <i class="fa-regular fa-lightbulb me-1 lighbulb-icon"></i>
                       We'll use this API key once to create a repository in your GitHub account. The key is not stored.
                     </div>
                     <div class="form-text">
-                      Need help creating a GitHub API key?
+                      Need help creating a GitHub API key? See Github's guide on personal access tokens:
                       <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token"
-                         target="_blank" rel="noopener noreferrer">
+                         target="_blank" rel="noopener noreferrer" class="github-api-key-link">
                         How to create Github API Key <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem;"></i>
                       </a>
                     </div>
@@ -321,8 +358,8 @@
                 }
               }
 
-              <!-- Framework setting (java-based + existing) -->
-              @if (connectorType === 'java-based' || isExistingConnector) {
+              <!-- Framework setting (java-based only) -->
+              @if (isJavaBasedConnector) {
                 <h6 class="dev-section-title mt-3">Framework setting</h6>
                 <div class="mb-3">
                   <label class="form-label d-flex align-items-center form-label-upload">
@@ -351,6 +388,7 @@
                 </div>
               }
 
+              @if (connectorType !== 'evolveum-hosted' || isExistingConnector) {
               <!-- Source code access -->
               <h6 class="dev-section-title mt-3">Source code access</h6>
 
@@ -422,11 +460,12 @@
                          [disabled]="isExistingConnector"
                          placeholder="e.g. /connectors/my-ldap-connector">
                 </div>
-                <div class="form-text">Leave empty if the project is in the repository root.</div>
+                <div class="form-text">Specific directory containing the build file (e.g. pom.xml). Leave empty if the project is in the repository root.</div>
               </div>
+              } <!-- end @if connectorType !== 'evolveum-hosted' -->
 
-              <!-- Class name (java-based + existing) -->
-              @if (connectorType === 'java-based' || isExistingConnector) {
+              <!-- Class name (java-based only) -->
+              @if (isJavaBasedConnector) {
                 <div class="mb-0">
                   <label class="form-label d-flex align-items-center form-label-upload">
                     {{ isExistingConnector ? 'Connector entry class' : 'Class name' }}@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
@@ -706,16 +745,22 @@
                 <span class="review-detail-label">Supported midPoint version:</span>
                 <span class="review-detail-value">
                   {{ getMidpointVersionLabel(midpointMinVersionId()) }}
-                  @if (midpointMaxVersionId()) { &nbsp;—&nbsp;{{ getMidpointVersionLabel(midpointMaxVersionId()) }} }
+                  @if (midpointMaxVersionId()) { &nbsp;-&nbsp;{{ getMidpointVersionLabel(midpointMaxVersionId()) }} }
                 </span>
               </div>
             }
+            <!-- @if (connectorVersion()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Connector version:</span>
+                <span class="review-detail-value">{{ connectorVersion() }}</span>
+              </div>
+            } -->
             @if (connectorVersionFrom()) {
               <div class="review-detail-row">
                 <span class="review-detail-label">{{ connectorName() }}:</span>
                 <span class="review-detail-value">
                   {{ connectorVersionFrom() }}
-                  @if (connectorVersionTo()) { &nbsp;—&nbsp;{{ connectorVersionTo() }} }
+                  @if (connectorVersionTo()) { &nbsp;-&nbsp;{{ connectorVersionTo() }} }
                 </span>
               </div>
             }

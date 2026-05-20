@@ -152,10 +152,47 @@
                           </span>
                         }
                       </div>
-                    }
+
+                    <!-- Combined view -->
+                    } @else if (isCombinedRequest()) {
+                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection('req-global')" style="cursor:pointer;">
+                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded('req-global')" [class.fa-chevron-down]="isComboSectionExpanded('req-global')"></i>
+                        <p class="fw-semibold mb-0">Global capabilities: <span class="fw-normal text-muted">(All object classes)</span></p>
+                      </div>
+                      @if (isComboSectionExpanded('req-global')) {
+                        <div class="d-flex flex-wrap gap-2 ms-3 mb-3">
+                          @for (cap of getRequestGlobalCaps(); track cap) {
+                            <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                          }
+                        </div>
+                      }
+                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection('req-specific')" style="cursor:pointer;">
+                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded('req-specific')" [class.fa-chevron-down]="isComboSectionExpanded('req-specific')"></i>
+                        <p class="fw-semibold mb-0">Capabilities: <span class="fw-normal text-muted">(Per specific object classes)</span></p>
+                      </div>
+                      @if (isComboSectionExpanded('req-specific')) {
+                        <div class="mb-3">
+                          @for (occ of getRequestSpecificOccs(); track occ.objectName) {
+                            <div class="mb-2 ms-3">
+                              <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(occ.objectName)" style="cursor:pointer;">
+                                <span class="fw-semibold">{{ occ.objectName }}</span>
+                                <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(occ.objectName)" [class.fa-chevron-up]="isObjectClassExpanded(occ.objectName)"></i>
+                                <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                              </div>
+                              @if (isObjectClassExpanded(occ.objectName)) {
+                                <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                  @for (cap of occ.capabilities; track cap) {
+                                    <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
 
                     <!-- Per-specific object class view -->
-                    @if (!isGlobalRequest()) {
+                    } @else {
                       <p class="fw-semibold mb-2">
                         Capabilities: <span class="fw-normal text-muted">(Per specific object classes)</span>
                       </p>
@@ -399,6 +436,41 @@
                                     </span>
                                   }
                                 </div>
+                              } @else if (isCombinedMethod(version)) {
+                                <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-global')" style="cursor:pointer;">
+                                  <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-global')"></i>
+                                  <p class="text-sm mb-0 im-capabilities-header">Global capabilities: <span class="text-muted fw-normal">(All object classes)</span></p>
+                                </div>
+                                @if (isComboSectionExpanded(version.id + '-combo-global')) {
+                                  <div class="d-flex flex-wrap gap-2 ms-3 mb-2">
+                                    @for (cap of getGlobalCaps(version); track cap) {
+                                      <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                    }
+                                  </div>
+                                }
+                                <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-specific')" style="cursor:pointer;">
+                                  <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-specific')"></i>
+                                  <p class="text-sm mb-0 im-capabilities-header">Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span></p>
+                                </div>
+                                @if (isComboSectionExpanded(version.id + '-combo-specific')) {
+                                  @for (occ of getSpecificOccs(version); track occ.objectName) {
+                                    @let expandKey = version.id + '-' + occ.objectName;
+                                    <div class="mb-2 ms-3">
+                                      <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey)" style="cursor:pointer;">
+                                        <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                                        <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
+                                        <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                                      </div>
+                                      @if (isObjectClassExpanded(expandKey)) {
+                                        <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                          @for (cap of occ.capabilities; track cap) {
+                                            <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                          }
+                                        </div>
+                                      }
+                                    </div>
+                                  }
+                                }
                               } @else {
                                 <p class="text-sm mb-2 im-capabilities-header">
                                   Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
@@ -456,10 +528,10 @@
                               }
                             </div>
                             <div class="d-flex gap-2">
-                              <button class="btn btn-sm btn-im-edit d-flex align-items-center gap-1">
+                              <button class="btn btn-sm btn-im-edit d-flex align-items-center gap-1" [disabled]="version.lifecycleState === 'IN_REVIEW'">
                                 <i class="fa-solid fa-pen-to-square"></i>Edit
                               </button>
-                              <button class="btn btn-sm btn-im-download d-flex align-items-center gap-1" (click)="downloadVersion(version.id)" [disabled]="!version.id">
+                              <button class="btn btn-sm btn-im-download d-flex align-items-center gap-1" (click)="downloadVersion(version.id)" [disabled]="!version.downloadLink || version.lifecycleState === 'IN_REVIEW'">
                                 <i class="fa-solid fa-download"></i>Download
                               </button>
                             </div>
@@ -617,6 +689,35 @@
   <!-- Backdrop to close dropdown when clicking outside -->
   @if (openDropdown() || methodDropdownOpen()) {
     <div (click)="closeDropdown(); methodDropdownOpen.set(false)" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
+  }
+
+  <!-- Cancel review request confirmation modal -->
+  @if (isCancelConfirmOpen()) {
+    <div class="cancel-confirm-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeCancelConfirm()"></div>
+    <div class="cancel-confirm-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+      <div class="cancel-confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="cancel-confirm-header d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation cancel-confirm-icon"></i>
+            <span class="cancel-confirm-title">Cancel review request?</span>
+          </div>
+          <button type="button" class="btn p-0 cancel-confirm-close" (click)="closeCancelConfirm()" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="cancel-confirm-body">
+          Are you sure you want to cancel this request? <strong>All progress and data</strong>
+          entered during the upload or edit will be <strong>permanently lost.</strong> This action cannot be undone.
+        </div>
+        <hr class="cancel-confirm-separator">
+        <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
+          <button type="button" class="btn cancel-keep-btn" (click)="closeCancelConfirm()">Keep request</button>
+          <button type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmCancel()">
+            <i class="fa-solid fa-trash-can"></i>Cancel request
+          </button>
+        </div>
+      </div>
+    </div>
   }
   }
 </div>

@@ -91,7 +91,7 @@ public class ConnectorBundle {
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "build_framework", columnDefinition = "BuildFrameworkType", nullable = false)
+    @Column(name = "build_framework", columnDefinition = "BuildFrameworkType")
     private BuildFrameworkType buildFramework;
 
     @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)

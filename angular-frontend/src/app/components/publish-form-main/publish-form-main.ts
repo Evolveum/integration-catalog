@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { CatalogConnector } from '../../models/catalog-connector.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
@@ -53,7 +54,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   // Step 3 – method-specific form fields
   protected readonly methodFormDisplayName = signal<string>('');
-  protected readonly methodFormVersion     = signal<string>('1.0');
+  protected readonly methodFormVersion     = signal<string>('');
   protected readonly methodFormDescription = signal<string>('');
   protected readonly methodFormTutorial    = signal<string>('');
   protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
@@ -93,16 +94,16 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   // Step 4 - Connector catalog modal
   protected readonly showConnectorCatalogModal = signal<boolean>(false);
-  protected readonly catalogConnectors = signal<ImplementationListItem[]>([]);
+  protected readonly catalogConnectors = signal<CatalogConnector[]>([]);
   protected readonly isCatalogLoading = signal<boolean>(false);
   protected readonly connectorCatalogSearch = signal<string>('');
-  protected readonly selectedCatalogConnector = signal<ImplementationListItem | null>(null);
+  protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
 
-  protected readonly filteredCatalogConnectors = computed(() => {
+  protected readonly filteredCatalogConnectors = computed<CatalogConnector[]>(() => {
     const query = this.connectorCatalogSearch().toLowerCase().trim();
     if (!query) return this.catalogConnectors();
     return this.catalogConnectors().filter(c =>
-      c.displayName.toLowerCase().includes(query) ||
+      c.displayName?.toLowerCase().includes(query) ||
       c.description?.toLowerCase().includes(query)
     );
   });
@@ -423,6 +424,20 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.childConnectorName.set(data.connectorName);
   }
 
+  protected onMethodVersionInput(event: Event): void {
+    const el = event.target as HTMLInputElement;
+    const filtered = el.value.replace(/[^0-9.]/g, '');
+    el.value = filtered;
+    this.methodFormVersion.set(filtered);
+  }
+
+  protected onMethodVersionBlur(event: Event): void {
+    const el = event.target as HTMLInputElement;
+    const trimmed = el.value.replace(/\.+$/, '');
+    el.value = trimmed;
+    this.methodFormVersion.set(trimmed);
+  }
+
   protected onMethodFormDescriptionChange(event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
     if (value.length <= 350) {
@@ -740,10 +755,8 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.showConnectorCatalogModal.set(true);
     this.connectorCatalogSearch.set('');
     this.catalogConnectors.set([]);
-    const appId = this.selectedApplication()?.id;
-    if (!appId) return;
     this.isCatalogLoading.set(true);
-    this.applicationService.getImplementationsByApplicationId(appId).subscribe({
+    this.applicationService.getCatalogConnectors().subscribe({
       next: (items) => { this.catalogConnectors.set(items); this.isCatalogLoading.set(false); },
       error: () => this.isCatalogLoading.set(false)
     });

@@ -1,5 +1,52 @@
 @use 'variables' as *;
 
+.github-api-key-link {
+  color: $color-dark-blue;
+  font-weight: 600;
+}
+
+.lighbulb-icon {
+  color: $color-dark-blue;
+}
+
+/* Source file dropzone */
+.tutorial-dropzone {
+  border: 1.5px dashed $color-border-input;
+  border-radius: 6px;
+  background-color: #ffffff;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+
+  &:hover, &.tutorial-dropzone-over {
+    border-color: $midpoint-special-color;
+    background-color: rgba($midpoint-special-color, 0.04);
+  }
+}
+
+.tutorial-dropzone-icon {
+  font-size: 1.5rem;
+  color: $color-text-secondary;
+  margin-bottom: 0.5rem;
+}
+
+.tutorial-dropzone-text {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  margin-bottom: 0.25rem;
+}
+
+.tutorial-dropzone-link {
+  color: $midpoint-special-color;
+  font-weight: 500;
+}
+
+.tutorial-dropzone-hint {
+  font-size: 0.75rem;
+  color: $color-gray-secondary;
+}
+
 .form-check-input[type="radio"] {
   accent-color: $midpoint-special-color !important;
 }

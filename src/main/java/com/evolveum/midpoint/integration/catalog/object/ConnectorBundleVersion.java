@@ -80,7 +80,7 @@ public class ConnectorBundleVersion implements Persistable<Integer> {
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "build_framework", columnDefinition = "BuildFrameworkType", nullable = false)
+    @Column(name = "build_framework", columnDefinition = "BuildFrameworkType")
     private BuildFrameworkType buildFramework;
 
     @Column(name = "commit_tag")

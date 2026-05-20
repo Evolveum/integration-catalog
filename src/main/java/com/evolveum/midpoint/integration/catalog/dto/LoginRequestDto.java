@@ -9,6 +9,6 @@ package com.evolveum.midpoint.integration.catalog.dto;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequestDto(
-        @NotBlank String username,
-        @NotBlank String password
+        @NotBlank String username, // catalog_users.username
+        @NotBlank String password  // catalog_users.password
 ) {}

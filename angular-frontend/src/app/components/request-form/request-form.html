@@ -90,7 +90,7 @@
                         <span>{{ method }}</span>
                       </label>
                     }
-                    @if (integrationMethods.length > 4) {
+                    @if (integrationMethods().length > 4) {
                       <div class="integration-method-view-more" (click)="toggleIntegrationMethodExpanded($event)">
                         @if (isIntegrationMethodExpanded()) {
                           <i class="fa-solid fa-chevron-up me-1 view-more-icon"></i>

@@ -8,7 +8,7 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion } from '../../models/application-detail.model';
+import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 
@@ -26,6 +26,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly expandedVersions = new Set<number>();
   protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
   protected readonly expandedGlobalCapabilities = signal<Set<string>>(new Set());
+  protected readonly expandedComboSections = signal<Set<string>>(new Set());
   protected readonly globalCapabilitiesExpanded = signal<boolean>(false);
   protected readonly activeEvolvumVersions = signal<any[]>([]);
   protected readonly activeCommunityVersions = signal<any[]>([]);
@@ -49,6 +50,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly isContinuePressed = signal<boolean>(true);
   protected readonly allVersions = signal<any[]>([]);
   protected readonly cancelledVersionIds = signal<string[]>([]);
+  protected readonly isCancelConfirmOpen = signal<boolean>(false);
+  private pendingCancelType: 'request' | 'version' | null = null;
+  private pendingCancelVersionId: string | null = null;
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 5;
   protected readonly totalPages = computed(() => Math.ceil(this.allVersions().length / this.itemsPerPage));
@@ -97,27 +101,88 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   }
 
   protected cancelVersion(id: string): void {
-    this.cancelledVersionIds.update(ids => [...ids, id]);
+    this.pendingCancelType = 'version';
+    this.pendingCancelVersionId = id;
+    this.isCancelConfirmOpen.set(true);
   }
 
   protected cancelRequest(): void {
-    const requestId = this.application()?.requestId;
-    if (!requestId) return;
-    this.applicationService.cancelRequest(requestId).subscribe({
-      next: () => this.router.navigate(['/applications']),
-      error: (err) => console.error('Failed to cancel request', err)
-    });
+    this.pendingCancelType = 'request';
+    this.pendingCancelVersionId = null;
+    this.isCancelConfirmOpen.set(true);
+  }
+
+  protected closeCancelConfirm(): void {
+    this.isCancelConfirmOpen.set(false);
+    this.pendingCancelType = null;
+    this.pendingCancelVersionId = null;
+  }
+
+  protected confirmCancel(): void {
+    if (this.pendingCancelType === 'version' && this.pendingCancelVersionId) {
+      this.cancelledVersionIds.update(ids => [...ids, this.pendingCancelVersionId!]);
+      this.closeCancelConfirm();
+    } else if (this.pendingCancelType === 'request') {
+      const requestId = this.application()?.requestId;
+      if (!requestId) { this.closeCancelConfirm(); return; }
+      this.applicationService.cancelRequest(requestId).subscribe({
+        next: () => { this.closeCancelConfirm(); this.router.navigate(['/applications']); },
+        error: (err) => { console.error('Failed to cancel request', err); this.closeCancelConfirm(); }
+      });
+    }
   }
 
   protected isGlobalRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
-    return !!caps && caps.length > 0 && caps[0].objectName.toLowerCase() === 'global';
+    return !!caps && caps.length > 0 && caps.every(c => c.objectName.toLowerCase() === 'global');
   }
 
   protected isGlobalMethod(version: IntegrationMethod): boolean {
     return !!version.objectClassCapabilities &&
-      version.objectClassCapabilities.length === 1 &&
-      version.objectClassCapabilities[0].objectName.toLowerCase() === 'global';
+      version.objectClassCapabilities.length > 0 &&
+      version.objectClassCapabilities.every(c => c.objectName.toLowerCase() === 'global');
+  }
+
+  protected isCombinedRequest(): boolean {
+    const caps = this.application()?.objectClassCapabilities;
+    if (!caps || caps.length === 0) return false;
+    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
+           caps.some(c => c.objectName.toLowerCase() !== 'global');
+  }
+
+  protected isCombinedMethod(version: IntegrationMethod): boolean {
+    const caps = version.objectClassCapabilities;
+    if (!caps || caps.length === 0) return false;
+    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
+           caps.some(c => c.objectName.toLowerCase() !== 'global');
+  }
+
+  protected toggleComboSection(key: string): void {
+    this.expandedComboSections.update(set => {
+      const next = new Set(set);
+      if (next.has(key)) { next.delete(key); } else { next.add(key); }
+      return next;
+    });
+  }
+
+  protected isComboSectionExpanded(key: string): boolean {
+    return this.expandedComboSections().has(key);
+  }
+
+  protected getGlobalCaps(version: IntegrationMethod): string[] {
+    return version.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
+  }
+
+  protected getSpecificOccs(version: IntegrationMethod): ObjectClassCapability[] {
+    return version.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
+  }
+
+  protected getRequestGlobalCaps(): string[] {
+    return this.application()?.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
+  }
+
+  protected getRequestSpecificOccs(): ObjectClassCapability[] {
+    return this.application()?.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
   }
 
   protected toggleObjectClass(name: string): void {

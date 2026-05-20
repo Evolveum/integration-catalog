@@ -31,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -132,8 +134,23 @@ public class ConnectorUploadService {
             connector = integrationMethod.getConnectors().isEmpty() ? null
                     : integrationMethod.getConnectors().get(0).getConnector();
             bundle = connector != null ? connector.getConnectorBundle() : createNewConnectorBundle(connDto, username);
+        } else if (connDto.connectorBundleId() != null) {
+            // New integration method reusing an existing connector bundle from the catalog
+            bundle = connectorBundleRepository.findById(connDto.connectorBundleId())
+                    .orElseThrow(() -> new RuntimeException("Connector bundle not found: " + connDto.connectorBundleId()));
+            integrationMethod = new IntegrationMethod();
+            integrationMethod.setApplication(application);
+            integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
+            connector = new Connector();
+            connector.setDisplayName(connDto.displayName());
+            connector.setRevision("1.0.0");
+            connector.setAuthor(username);
+            connector.setMaintainer(connDto.maintainer());
+            connector.setDescription(connDto.description());
+            connector.setFullyQualifiedClassName(connDto.className());
+            connector.setConnectorBundle(bundle);
         } else {
-            // Entirely new integration method
+            // Entirely new integration method with a new connector bundle
             integrationMethod = new IntegrationMethod();
             integrationMethod.setApplication(application);
             integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
@@ -185,7 +202,7 @@ public class ConnectorUploadService {
             throw new IllegalArgumentException("Framework must be specified");
         }
 
-        BuildFrameworkType buildFramework = dto.buildFramework() != null ? dto.buildFramework() : BuildFrameworkType.MAVEN;
+        BuildFrameworkType buildFramework = dto.buildFramework();
 
         ConnectorBundle bundle = new ConnectorBundle();
         bundle.setRevision("1.0.0");
@@ -207,13 +224,22 @@ public class ConnectorUploadService {
 
     private ConnectorBundleVersion createBundleVersion(UploadConnectorDto dto, ConnectorBundle bundle, String username) {
         String version = dto.version() != null ? dto.version() : "1.0.0";
+
+        if (bundle.getId() != null) {
+            Optional<ConnectorBundleVersion> existing = connectorBundleVersionRepository
+                    .findByConnectorBundleIdAndBundleVersion(bundle.getId(), version);
+            if (existing.isPresent()) {
+                return existing.get();
+            }
+        }
+
         ConnectorBundleVersion cbv = new ConnectorBundleVersion();
         cbv.setRevision(version);
         cbv.setAuthor(username);
         cbv.setMaintainer(dto.maintainer());
         cbv.setBundleVersion(version);
         cbv.setConnectorBundle(bundle);
-        cbv.setBuildFramework(dto.buildFramework() != null ? dto.buildFramework() : BuildFrameworkType.MAVEN);
+        cbv.setBuildFramework(dto.buildFramework());
         cbv.setPathToProject(dto.pathToProject());
         cbv.setBrowseLink(dto.browseLink());
         cbv.setGitCloneUrl(dto.gitCloneUrl());
@@ -247,11 +273,8 @@ public class ConnectorUploadService {
         if (application.getLifecycleState() == null) {
             application.setLifecycleState(Application.ApplicationLifecycleType.IN_REVIEW);
         }
-        if (bundle.getBundleName() == null) {
-            bundle.setBundleName("connector-bundle");
-        }
-        if (bundleVersion.getBuildFramework() == null) {
-            bundleVersion.setBuildFramework(BuildFrameworkType.MAVEN);
+        if (bundle.getBundleName() == null || bundle.getBundleName().isBlank()) {
+            bundle.setBundleName(UUID.randomUUID().toString());
         }
     }
 
@@ -388,12 +411,21 @@ public class ConnectorUploadService {
                                   ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
         if (uploadRes.isNewVersion()) {
             if (appRes.isNew()) applicationRepository.save(appRes.application());
-            connectorBundleVersionRepository.save(bundleVersion);
+            if (bundleVersion.getId() == null) connectorBundleVersionRepository.save(bundleVersion);
         } else {
             applicationRepository.save(appRes.application());
-            connectorBundleRepository.save(uploadRes.bundle());
-            connectorBundleVersionRepository.save(bundleVersion);
+            if (uploadRes.bundle().getId() == null) {
+                connectorBundleRepository.save(uploadRes.bundle());
+            }
+            if (bundleVersion.getId() == null) connectorBundleVersionRepository.save(bundleVersion);
             connectorRepository.save(uploadRes.connector());
+
+            IntegrationMethodConnector imc = new IntegrationMethodConnector();
+            imc.setConnector(uploadRes.connector());
+            imc.setConnectorMinVersion(connectorVersion.getRevision());
+            imc.setIntegrationMethod(uploadRes.integrationMethod());
+            uploadRes.integrationMethod().getConnectors().add(imc);
+
             integrationMethodRepository.save(uploadRes.integrationMethod());
         }
         connectorVersionRepository.save(connectorVersion);

@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, Input, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Component, signal, Input, Output, EventEmitter, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -19,7 +19,7 @@ import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capabili
   templateUrl: './request-form.html',
   styleUrls: ['./request-form.scss']
 })
-export class RequestForm {
+export class RequestForm implements OnInit {
   @Input() isRequestModalOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
   @Output() requestSubmitted = new EventEmitter<void>();
@@ -35,7 +35,7 @@ export class RequestForm {
     openToCollaborate: false,
     deploymentType: ''
   };
-  protected readonly integrationMethods = ['SCIM generic', 'Manual connector', 'REST API', 'Number 4', 'Peekaboo', 'We have been found, RUN'];
+  protected readonly integrationMethods = signal<string[]>([]);
   protected readonly isIntegrationMethodDropdownOpen = signal<boolean>(false);
   protected readonly isIntegrationMethodExpanded = signal<boolean>(false);
   protected readonly capabilityGroups = signal<CapabilityGroup[]>([]);
@@ -47,6 +47,13 @@ export class RequestForm {
     private applicationService: ApplicationService,
     private authService: AuthService
   ) {}
+
+  ngOnInit(): void {
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.integrationMethods.set(types.map(t => t.displayName)),
+      error: (err) => console.error('Failed to load integration method types', err)
+    });
+  }
 
   protected closeRequestModal(): void {
     this.isRequestModalOpen.set(false);
@@ -129,8 +136,8 @@ export class RequestForm {
 
   protected get visibleIntegrationMethods(): string[] {
     return this.isIntegrationMethodExpanded()
-      ? this.integrationMethods
-      : this.integrationMethods.slice(0, 4);
+      ? this.integrationMethods()
+      : this.integrationMethods().slice(0, 4);
   }
 
   protected toggleIntegrationMethodExpanded(event: Event): void {

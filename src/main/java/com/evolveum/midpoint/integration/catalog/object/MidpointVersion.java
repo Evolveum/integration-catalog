@@ -25,4 +25,7 @@ public class MidpointVersion {
 
     @Column(name = "version_name")
     private String versionName;
+
+    @Column(name = "is_current")
+    private boolean isCurrent;
 }

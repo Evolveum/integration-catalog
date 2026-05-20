@@ -11,24 +11,24 @@ import java.util.List;
 import java.util.UUID;
 
 public record IntegrationMethodDto(
-        UUID id,
-        String description,
-        List<String> implementationTags,
-        List<String> capabilities,
-        List<ObjectClassCapabilityDto> objectClassCapabilities,
-        String connectorVersion,
-        String systemVersion,
-        LocalDate releasedDate,
-        String author,
-        Integer organizationId,
-        String lifecycleState,
-        String downloadLink,
-        String framework,
-        String errorMessage,
-        Long downloadCount,
-        Integer midpointMinVersionId,
-        Integer midpointMaxVersionId,
-        String connectorDisplayName,
-        List<String> integMethodTypes,
-        String revision
+        UUID id,                                                    // integration_method.id
+        String description,                                         // integration_method.description
+        List<String> implementationTags,                            // integration_method_type.name
+        List<String> capabilities,                                  // capability.name via integration_method_capability
+        List<ObjectClassCapabilityDto> objectClassCapabilities,     // object_class_capabilities
+        String connectorVersion,                                    // connector_bundle_version.bundle_version
+        String systemVersion,                                       // integration_method.system_version
+        LocalDate releasedDate,                                     // connector_bundle_version.released_date
+        String author,                                              // connector.author
+        Integer organizationId,                                     // connector.organization_id
+        String lifecycleState,                                      // integration_method.lifecycle_state
+        String downloadLink,                                        // generated download URL
+        String framework,                                           // connector_bundle.framework
+        String errorMessage,                                        // integration_method.error_message
+        Long downloadCount,                                         // computed: count of download rows
+        Integer midpointMinVersionId,                               // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
+        Integer midpointMaxVersionId,                               // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+        String connectorDisplayName,                                // connector.display_name
+        List<String> integMethodTypes,                              // integration_method_type.name
+        String revision                                             // integration_method.revision
 ) {}

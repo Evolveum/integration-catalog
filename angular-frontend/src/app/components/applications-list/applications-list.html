@@ -313,7 +313,7 @@
                 </div>
                 <div class="card-body d-flex flex-column">
                   <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
-                  <p class="card-text text-muted small card-description" [class.card-description-single]="app.lifecycleState === 'IN_REVIEW'">{{ app.description }}</p>
+                  <p class="card-text text-muted small card-description">{{ app.description }}</p>
                   <!-- Bottom section based on lifecycle state -->
                   @if (app.lifecycleState === 'REQUESTED') {
                     <div class="mt-auto">
@@ -329,9 +329,11 @@
                   } @else if (app.lifecycleState === 'WITH_ERROR') {
                     <p class="text-center mt-auto mb-0 link-error">Error details</p>
                   } @else if (app.lifecycleState === 'IN_REVIEW') {
-                    <div class="in-review-info-box mt-auto d-flex align-items-center gap-2">
-                      <i class="fa-solid fa-circle-exclamation flex-shrink-0" style="color: #6c757d;"></i>
-                      <span>This connector is currently awaiting manual review. If you'd like to expedite the process, contact us at <a href="mailto:support@evolveum.com" class="text-decoration-none" style="color: #6c757d;" (click)="$event.stopPropagation()"><strong>support&#64;evolveum.com</strong></a> — priority review is available upon request.</span>
+                    <!-- in review -->
+                  } @else if (app.currentMidpointVersion) {
+                    <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
+                      <i class="fa-solid fa-circle-info flex-shrink-0"></i>
+                      <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
                     </div>
                   }
                 </div>
@@ -422,7 +424,7 @@
               </div>
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title card-title-truncate">{{ app.displayName }}</h5>
-                <p class="card-text text-muted small card-description" [class.card-description-single]="app.lifecycleState === 'IN_REVIEW'">{{ app.description }}</p>
+                <p class="card-text text-muted small card-description">{{ app.description }}</p>
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
                   <div class="mt-auto">
@@ -438,9 +440,11 @@
                 } @else if (app.lifecycleState === 'WITH_ERROR') {
                   <p class="text-center mt-auto mb-0 link-error">Error details</p>
                 } @else if (app.lifecycleState === 'IN_REVIEW') {
-                  <div class="in-review-info-box mt-auto d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-circle-exclamation flex-shrink-0" style="color: #6c757d;"></i>
-                    <span>This connector is currently awaiting manual review. If you'd like to expedite the process, contact us at <a href="mailto:support@evolveum.com" class="text-decoration-none" style="color: #6c757d;" (click)="$event.stopPropagation()"><strong>support&#64;evolveum.com</strong></a> — priority review is available upon request.</span>
+                  <!-- in review -->
+                } @else if (app.currentMidpointVersion) {
+                  <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-circle-info flex-shrink-0"></i>
+                    <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
                   </div>
                 }
               </div>

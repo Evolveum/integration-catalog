@@ -7,6 +7,6 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
 public record CategoryCountDto(
-        String displayName,
-        Long count
+        String displayName, // application_tag.display_name (where tag_type = CATEGORY)
+        Long count          // computed: count of application_application_tag rows
 ) {}

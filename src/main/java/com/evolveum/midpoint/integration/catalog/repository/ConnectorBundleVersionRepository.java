@@ -21,6 +21,8 @@ public interface ConnectorBundleVersionRepository extends JpaRepository<Connecto
 
     Optional<ConnectorBundleVersion> findByBundleVersion(String bundleVersion);
 
+    Optional<ConnectorBundleVersion> findByConnectorBundleIdAndBundleVersion(Integer connectorBundleId, String bundleVersion);
+
     boolean existsByBundleVersion(String bundleVersion);
 
     boolean existsByConnectorBundleIdAndBundleVersion(Integer connectorBundleId, String bundleVersion);

@@ -23,12 +23,12 @@ export interface CapabilityGroup {
 export class CapabilityPicker implements OnInit {
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
 
-  protected readonly isLoading        = signal<boolean>(false);
-  protected readonly availableCaps    = signal<string[]>([]);
-  protected readonly scope            = signal<'global' | 'specific'>('global');
-  protected readonly globalCaps       = signal<string[]>([]);
-  protected readonly isGlobalOpen     = signal<boolean>(false);
-  protected readonly entries          = signal<{ objectClass: string; capabilities: string[]; isOpen: boolean }[]>(
+  protected readonly isLoading         = signal<boolean>(false);
+  protected readonly globalAvailable   = signal<string[]>([]);
+  protected readonly specificAvailable = signal<string[]>([]);
+  protected readonly globalCaps        = signal<string[]>([]);
+  protected readonly isGlobalOpen      = signal<boolean>(false);
+  protected readonly entries           = signal<{ objectClass: string; capabilities: string[]; isOpen: boolean }[]>(
     [{ objectClass: '', capabilities: [], isOpen: false }]
   );
 
@@ -37,13 +37,16 @@ export class CapabilityPicker implements OnInit {
   ngOnInit(): void {
     this.isLoading.set(true);
     this.applicationService.getCapabilities().subscribe({
-      next: (caps) => { this.availableCaps.set(caps); this.isLoading.set(false); },
+      next: (caps) => {
+        this.globalAvailable.set(caps.filter(c => c.globality === 'GLOBAL').map(c => c.name));
+        this.specificAvailable.set(caps.filter(c => c.globality === 'SPECIFIC').map(c => c.name));
+        this.isLoading.set(false);
+      },
       error: () => this.isLoading.set(false)
     });
   }
 
   public reset(): void {
-    this.scope.set('global');
     this.globalCaps.set([]);
     this.isGlobalOpen.set(false);
     this.entries.set([{ objectClass: '', capabilities: [], isOpen: false }]);
@@ -51,21 +54,15 @@ export class CapabilityPicker implements OnInit {
   }
 
   private emit(): void {
-    if (this.scope() === 'global') {
-      const caps = this.globalCaps();
-      this.capabilitiesChange.emit(caps.length > 0 ? [{ objectClass: 'Global', capabilityNames: caps }] : []);
-    } else {
-      this.capabilitiesChange.emit(
-        this.entries()
-          .filter(e => e.objectClass && e.capabilities.length > 0)
-          .map(e => ({ objectClass: e.objectClass, capabilityNames: e.capabilities }))
-      );
+    const groups: CapabilityGroup[] = [];
+    const global = this.globalCaps();
+    if (global.length > 0) {
+      groups.push({ objectClass: 'Global', capabilityNames: global });
     }
-  }
-
-  protected setScope(s: 'global' | 'specific'): void {
-    this.scope.set(s);
-    this.emit();
+    this.entries()
+      .filter(e => e.objectClass && e.capabilities.length > 0)
+      .forEach(e => groups.push({ objectClass: e.objectClass, capabilityNames: e.capabilities }));
+    this.capabilitiesChange.emit(groups);
   }
 
   protected fmt(cap: string): string {

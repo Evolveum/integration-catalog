@@ -8,9 +8,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Application } from '../models/application.model';
+import { MidpointVersion } from '../models/application-detail.model';
 import { ApplicationDetail, ApplicationTag } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
+import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 
@@ -50,12 +52,16 @@ export class ApplicationService {
     return this.http.post<void>(`${environment.apiUrl}/requests`, request);
   }
 
-  getCapabilities(): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiUrl}/capabilities`);
+  getCapabilities(): Observable<{ name: string; globality: string }[]> {
+    return this.http.get<{ name: string; globality: string }[]>(`${environment.apiUrl}/capabilities`);
   }
 
   getImplementationsByApplicationId(applicationId: string): Observable<ImplementationListItem[]> {
     return this.http.get<ImplementationListItem[]>(`${environment.apiUrl}/applications/${applicationId}/implementations`);
+  }
+
+  getCatalogConnectors(): Observable<CatalogConnector[]> {
+    return this.http.get<CatalogConnector[]>(`${environment.apiUrl}/connectors/catalog`);
   }
 
   uploadConnector(payload: UploadConnectorPayload): Observable<string> {
@@ -66,6 +72,10 @@ export class ApplicationService {
     return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version?version=${encodeURIComponent(version)}`);
   }
 
+  checkBundleNameExists(bundleName: string): Observable<boolean> {
+    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-bundle-name?bundleName=${encodeURIComponent(bundleName)}`);
+  }
+
   getAllTags(): Observable<ApplicationTag[]> {
     return this.http.get<ApplicationTag[]>(`${environment.apiUrl}/application-tags`);
   }
@@ -74,8 +84,8 @@ export class ApplicationService {
     return this.http.get<{ id: number; displayName: string; description: string | null }[]>(`${environment.apiUrl}/integration-method-types`);
   }
 
-  getMidpointVersions(): Observable<{ id: number; version: string; versionName: string }[]> {
-    return this.http.get<{ id: number; version: string; versionName: string }[]>(`${environment.apiUrl}/midpoint-versions`);
+  getMidpointVersions(): Observable<MidpointVersion[]> {
+    return this.http.get<MidpointVersion[]>(`${environment.apiUrl}/midpoint-versions`);
   }
 
   getTotalDownloadsCount(): Observable<number> {

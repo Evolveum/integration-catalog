@@ -10,10 +10,12 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
+import { MidpointVersion } from '../../models/application-detail.model';
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { CatalogConnector } from '../../models/catalog-connector.model';
 import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 
@@ -65,7 +67,7 @@ export interface Step5FormData {
 })
 export class PublishFormImpl implements OnInit, OnChanges {
   @Input() connectorType = '';
-  @Input() selectedCatalogConnector: ImplementationListItem | null = null;
+  @Input() selectedCatalogConnector: CatalogConnector | null = null;
   @Input() reviewSummary: ReviewSummary | null = null;
 
   @ViewChild(CapabilityPicker) private capabilityPicker?: CapabilityPicker;
@@ -84,7 +86,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   // Basic info
   protected readonly connectorName = signal<string>('');
-  protected readonly connectorVersion = signal<string>('1.0.0');
+  protected readonly connectorVersion = signal<string>('');
   protected readonly connectorMaintainer = signal<string>('');
   protected readonly maintainerOptions = signal<string[]>([]);
   protected readonly maintainerSearch = signal<string>('');
@@ -99,6 +101,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
+  protected readonly bundleNameTaken = signal<boolean>(false);
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
 
   // Connector capabilities (from CapabilityPicker child)
@@ -115,9 +118,11 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly devRepoOwnership = signal<'evolveum' | 'own'>('evolveum');
   protected readonly devGithubApiKey = signal<string>('');
   protected readonly showGithubApiKey = signal<boolean>(false);
+  protected readonly devSourceFile = signal<File | null>(null);
+  protected readonly devSourceFileDragOver = signal<boolean>(false);
 
   // Compatibility step
-  protected readonly midpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
+  protected readonly midpointVersions = signal<MidpointVersion[]>([]);
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
   protected readonly connectorVersionFrom = signal<string>('');
@@ -135,6 +140,13 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   protected get isExistingConnector(): boolean {
     return !!this.selectedCatalogConnector;
+  }
+
+  protected get isJavaBasedConnector(): boolean {
+    if (this.isExistingConnector) {
+      return this.selectedCatalogConnector?.bundleFramework === 'JAVA_BASED';
+    }
+    return this.connectorType === 'java-based';
   }
 
   protected get isCompatibilityStepValid(): boolean {
@@ -175,9 +187,13 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected get isStep5Valid(): boolean {
     if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
     if (this.isExistingConnector) return true;
-    if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
-    if (this.isGitCloneUrlInvalid()) return false;
-    if (this.isCommitTagInvalid()) return false;
+    if (!this.connectorVersion().trim()) return false;
+    if (this.bundleNameTaken()) return false;
+    if (this.connectorType !== 'evolveum-hosted') {
+      if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
+      if (this.isGitCloneUrlInvalid()) return false;
+      if (this.isCommitTagInvalid()) return false;
+    }
     if (this.connectorType === 'java-based') {
       if (!this.devBuildTool() || !this.devClassName().trim()) return false;
     }
@@ -232,7 +248,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
       this.internalStep.set(5);
     }
     if (changes['selectedCatalogConnector']) {
-      const connector = changes['selectedCatalogConnector'].currentValue as ImplementationListItem | null;
+      const connector = changes['selectedCatalogConnector'].currentValue as CatalogConnector | null;
       if (connector) {
         this.populateFromCatalogConnector(connector);
       } else if (!changes['selectedCatalogConnector'].firstChange) {
@@ -271,11 +287,12 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   private resetFields(): void {
     this.connectorName.set('');
-    this.connectorVersion.set('1.0.0');
+    this.connectorVersion.set('');
     this.connectorMaintainer.set(this.authService.currentUser() ?? '');
     this.connectorLicense.set('');
     this.connectorDescription.set('');
     this.connectorBundleName.set('');
+    this.bundleNameTaken.set(false);
     this.connectorCapabilities.set([]);
     this.capabilityPicker?.reset();
     this.devProjectHomepage.set('');
@@ -288,23 +305,25 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devRepoOwnership.set('evolveum');
     this.devGithubApiKey.set('');
     this.showGithubApiKey.set(false);
+    this.devSourceFile.set(null);
+    this.devSourceFileDragOver.set(false);
     this.publishComplete.set(false);
     this.publishCreatedOn.set(null);
     this.publishedVersionId.set(null);
     this.publishedApplicationId.set(null);
   }
 
-  private populateFromCatalogConnector(connector: ImplementationListItem): void {
+  private populateFromCatalogConnector(connector: CatalogConnector): void {
     this.connectorName.set(connector.displayName ?? '');
     this.connectorVersion.set(connector.version ?? '');
     this.connectorVersionFrom.set(connector.version ?? '');
     this.connectorMaintainer.set(connector.maintainer ?? this.authService.currentUser() ?? '');
     this.connectorLicense.set(connector.licenseType ?? '');
-    this.connectorDescription.set(connector.implementationDescription ?? connector.description ?? '');
-    this.connectorBundleName.set('');
+    this.connectorDescription.set(connector.description ?? '');
+    this.connectorBundleName.set(connector.bundleDisplayName ?? '');
     this.devProjectHomepage.set(connector.browseLink ?? '');
     this.devGitCloneUrl.set(connector.gitCloneUrl ?? '');
-    this.devProjectFolderPath.set(connector.pathToProjectDirectory ?? '');
+    this.devProjectFolderPath.set(connector.pathToProject ?? '');
     this.devClassName.set(connector.className ?? '');
     const bf = (connector.buildFramework ?? '').toLowerCase();
     this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
@@ -316,35 +335,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   }
 
   protected publishIntegrationMethod(): void {
-    if (this.isExistingConnector) {
-      this.doPublish(this.incrementVersion(this.connectorVersion()));
-      return;
-    }
-
-    const version = this.connectorVersion() || null;
-    if (version) {
-      this.applicationService.checkVersionExists(version).subscribe({
-        next: (exists) => {
-          if (exists) {
-            this.existingVersion.set(version);
-            this.showVersionExistsWarning.set(true);
-            setTimeout(() => this.closeVersionExistsWarning(), 5000);
-          } else {
-            this.doPublish();
-          }
-        },
-        error: () => this.doPublish()
-      });
-    } else {
-      this.doPublish();
-    }
-  }
-
-  private incrementVersion(version: string): string {
-    const parts = version.split('.');
-    const last = parseInt(parts[parts.length - 1], 10);
-    parts[parts.length - 1] = isNaN(last) ? '1' : String(last + 1);
-    return parts.join('.');
+    this.doPublish();
   }
 
   private doPublish(versionOverride?: string): void {
@@ -362,7 +353,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
         ]
       },
       integrationMethod: {
-        id: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
+        id: null,
         displayName: summary?.methodName ?? '',
         revision: summary?.methodVersion ?? '',
         description: summary?.methodDescription ?? '',
@@ -386,7 +377,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
         bundleName: null,
         version: versionOverride ?? this.connectorVersion() ?? null,
         commitTag: this.devCommitTag() || null,
-        bundleDisplayName: this.connectorBundleName() || null
+        bundleDisplayName: this.connectorBundleName() || null,
+        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null
       },
       files: [],
       integrationMethodCapabilities: summary?.imCapabilities ?? [],
@@ -500,6 +492,43 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorLicense.set(opt);
     this.isLicenseDropdownOpen.set(false);
     this.emitChange();
+  }
+
+  protected onConnectorVersionInput(event: Event): void {
+    const el = event.target as HTMLInputElement;
+    const filtered = el.value.replace(/[^0-9.]/g, '');
+    el.value = filtered;
+    this.connectorVersion.set(filtered);
+    this.onFieldChange();
+  }
+
+  protected onSourceFileSelect(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    if (file) { this.devSourceFile.set(file); this.onFieldChange(); }
+  }
+
+  protected onSourceFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.devSourceFileDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0] ?? null;
+    if (file) { this.devSourceFile.set(file); this.onFieldChange(); }
+  }
+
+  protected onBundleNameBlur(): void {
+    const name = this.connectorBundleName().trim();
+    if (!name) return;
+    this.applicationService.checkBundleNameExists(name).subscribe({
+      next: (exists) => this.bundleNameTaken.set(exists),
+      error: () => this.bundleNameTaken.set(false)
+    });
+  }
+
+  protected onConnectorVersionBlur(event: Event): void {
+    const el = event.target as HTMLInputElement;
+    const trimmed = el.value.replace(/\.+$/, '');
+    el.value = trimmed;
+    this.connectorVersion.set(trimmed);
+    this.onFieldChange();
   }
 
   protected onFieldChange(): void {

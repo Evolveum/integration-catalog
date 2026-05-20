@@ -28,4 +28,7 @@ public class Capability {
 
     @Column(name = "display_order")
     private Integer displayOrder;
+
+    @Column(name = "globality", length = 30)
+    private String globality;
 }

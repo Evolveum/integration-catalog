@@ -311,13 +311,13 @@
                     </div>
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
-                        Integration method version
+                        Integration method version <span class="text-danger">&nbsp;*</span>
                         <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                           <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Version is fixed at 1.0 for new integration methods.</span>
+                          <span class="info-tooltip">Version of this integration method (e.g. 1.0.0). Only numbers and dots allowed.</span>
                         </span>
                       </label>
-                      <input type="text" class="form-control input-disabled" [value]="methodFormVersion()" readonly>
+                      <input type="text" class="form-control" [value]="methodFormVersion()" (input)="onMethodVersionInput($event)" (blur)="onMethodVersionBlur($event)" placeholder="e.g. 1.0.0">
                     </div>
                   </div>
 
@@ -583,7 +583,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName()">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
@@ -652,7 +652,7 @@
       <!-- Header -->
       <div class="cc-modal-header d-flex justify-content-between align-items-start">
         <div>
-          <h5 class="cc-modal-title mb-1">All connectors for application {{ selectedApplication()?.displayName ?? 'new application' }}</h5>
+          <h5 class="cc-modal-title mb-1">Active connectors catalog</h5>
           <p class="cc-modal-subtitle mb-0">Select connector</p>
         </div>
         <button type="button" class="btn-close" (click)="closeConnectorCatalogModal()" aria-label="Close"></button>
@@ -688,11 +688,7 @@
           </div>
         } @else if (filteredCatalogConnectors().length === 0) {
           <div class="cc-empty">
-            @if (catalogConnectors().length === 0 && !selectedApplication()) {
-              No connectors available — you are defining a new application.
-            } @else {
-              No connectors match your search.
-            }
+            No connectors match your search.
           </div>
         } @else {
           @for (connector of filteredCatalogConnectors(); track connector.id) {

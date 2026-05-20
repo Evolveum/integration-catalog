@@ -65,6 +65,7 @@ public class IntegrationMethod implements Persistable<UUID> {
     private String displayName;
 
     private String description;
+    @Column(columnDefinition = "TEXT")
     private String tutorial;
 
     @Column(name = "file_path")
