@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Output, EventEmitter, signal, OnInit } from '@angular/core';
+import { Component, Output, EventEmitter, signal, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 
@@ -32,7 +32,15 @@ export class CapabilityPicker implements OnInit {
     [{ objectClass: '', capabilities: [], isOpen: false }]
   );
 
-  constructor(private applicationService: ApplicationService) {}
+  constructor(private applicationService: ApplicationService, private elementRef: ElementRef) {}
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.isGlobalOpen.set(false);
+      this.entries.update(es => es.map(e => ({ ...e, isOpen: false })));
+    }
+  }
 
   ngOnInit(): void {
     this.isLoading.set(true);

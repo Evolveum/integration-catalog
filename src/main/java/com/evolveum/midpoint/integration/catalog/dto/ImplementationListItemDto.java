@@ -17,17 +17,18 @@ public record ImplementationListItemDto(
         String name,                       // integration_method.display_name
         String description,                // integration_method.description
         String publishedDate,              // connector_bundle_version.released_date (null — no direct field yet)
-        String version,                    // connector_bundle_version.bundle_version
+        String version,                    // connector_bundle_version.revision
         String displayName,                // integration_method.display_name
-        String maintainer,                 // connector_bundle.maintainer
+        String maintainer,                 // connector.maintainer
         String licenseType,                // connector_bundle.license
-        String implementationDescription,  // integration_method.description
+        String implementationDescription,  // connector.description
         String browseLink,                 // connector_bundle_version.browse_link
         String ticketingLink,              // connector_bundle.ticketing_link
         String buildFramework,             // connector_bundle_version.build_framework
         String gitCloneUrl,                // connector_bundle_version.git_clone_url
         String pathToProjectDirectory,     // connector_bundle_version.path_to_project
         String className,                  // connector.fully_qualified_class_name
-        String bundleDisplayName,          // connector_bundle.display_name
-        String bundleFramework             // connector_bundle.framework
+        String bundleDisplayName,          // connector.display_name
+        String bundleFramework,            // connector_bundle.framework
+        String commitTag                   // connector_bundle_version.commit_tag
 ) {}

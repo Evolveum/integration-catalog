@@ -219,20 +219,28 @@ SELECT setval('int_method_int_method_type_id_seq', 3);
 -- (no IDENTITY on id — explicit values required)
 -- ============================================================
 
+-- integration_method_capability.object_class drives the frontend display:
+--   'Global'        → "Global capabilities (All object classes)"  — use GLOBAL capabilities only (CREATE=1, GET=2)
+--   anything else   → "Capabilities (Per specific object classes)" — use SPECIFIC capabilities only (id >= 3)
+-- aaaaaaaa: specific-only method (Account + Group)
+-- bbbbbbbb: global-only method (Global)
 INSERT INTO integration_method_capability (id, integ_method_id, integ_method_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
     (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Account'),
     (2, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Group'),
-    (3, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 'Global');
+    (3, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Global'),
+    (4, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 'Global');
 
-SELECT setval('integration_method_capability_id_seq', 3);
+SELECT setval('integration_method_capability_id_seq', 4);
 
 INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id) VALUES
-    -- Account: CREATE GET UPDATE DELETE SEARCH LIVE_SYNC TEST SCHEMA
-    (1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),(1,8),
-	-- Group
-    (2,1),(2,2),(2,3),(2,4),(2,5),
-	-- Global
-	(3,1),(3,2),(3,3),(3,4),(3,5),(3,6),(3,7),(3,8);   
+    -- Account (SPECIFIC caps): UPDATE DELETE TEST SEARCH LIVE_SYNC SCHEMA
+    (1,3),(1,4),(1,5),(1,9),(1,12),(1,13),
+    -- Group (SPECIFIC caps): UPDATE DELETE SEARCH
+    (2,3),(2,4),(2,9),
+    -- Global (GLOBAL caps): CREATE GET
+    (3,1),(3,2),
+    -- Global (GLOBAL caps): CREATE GET
+    (4,1),(4,2);
 
 -- ============================================================
 -- CONNECTOR VERSION CAPABILITIES
@@ -241,15 +249,18 @@ INSERT INTO integration_method_capability_item (integration_method_capability_id
 
 INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
     (1, 1, '1.0', 'Account'),
-    (2, 1, '1.0', 'Group');
+    (2, 1, '1.0', 'Group'),
+    (3, 1, '1.0', 'Global');
 
-SELECT setval('conn_version_capability_id_seq', 2);
+SELECT setval('conn_version_capability_id_seq', 3);
 
 INSERT INTO conn_version_capability_item (conn_version_capability_id, capability_id) VALUES
     -- LDAP Account
     (1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),(1,8),
     -- LDAP Group
-    (2,1),(2,2),(2,3),(2,4),(2,5);
+    (2,1),(2,2),(2,3),(2,4),(2,5),
+    -- LDAP Global
+    (3,1),(3,2);
 
 -- ============================================================
 -- REQUEST for SAP HR (REQUESTED lifecycle)

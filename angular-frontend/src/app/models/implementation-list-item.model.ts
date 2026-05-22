@@ -9,17 +9,18 @@ export interface ImplementationListItem {
   name: string;                   // integration_method.display_name
   description: string;            // integration_method.description
   publishedDate: string;          // connector_bundle_version.released_date (null — no direct field yet)
-  version: string;                // connector_bundle_version.bundle_version
+  version: string;                // connector_bundle_version.revision
   displayName: string;            // integration_method.display_name
-  maintainer: string;             // connector_bundle.maintainer
+  maintainer: string;             // connector.maintainer
   licenseType: string;            // connector_bundle.license
-  implementationDescription: string; // integration_method.description
+  implementationDescription: string; // connector.description
   browseLink: string;             // connector_bundle_version.browse_link
   ticketingLink: string;          // connector_bundle.ticketing_link
   buildFramework: string;         // connector_bundle_version.build_framework
   gitCloneUrl: string;            // connector_bundle_version.git_clone_url
   pathToProjectDirectory: string; // connector_bundle_version.path_to_project
   className: string;              // connector.fully_qualified_class_name
-  bundleDisplayName: string;      // connector_bundle.display_name
+  bundleDisplayName: string;      // connector.display_name
   bundleFramework: string;        // connector_bundle.framework
+  commitTag: string;              // connector_bundle_version.commit_tag
 }

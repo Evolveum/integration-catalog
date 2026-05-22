@@ -786,30 +786,21 @@
   color: #b02a37;
 }
 
-.btn-upgrade-version {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: $midpoint-special-color;
-  cursor: pointer;
-}
-
-.btn-upgrade-version:hover {
-  color: $color-dark-blue;
-}
-
-.btn-im-edit {
+.btn-im-edit-upgrade {
   background-color: white;
   border: 1px solid $midpoint-special-color;
   color: $midpoint-special-color;
   font-size: 0.8rem;
-}
 
-.btn-im-edit:hover {
-  background-color: #f8f9fa;
-  color: $midpoint-special-color;
+  &:hover:not(:disabled) {
+    background-color: #f8f9fa;
+    color: $midpoint-special-color;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 .btn-im-download {

@@ -397,30 +397,27 @@ public class ApplicationMapper {
         String pathToProject = null;
         String className = null;
         String maintainer = null;
+        String connectorDescription = null;
         String licenseType = null;
         String ticketingLink = null;
-        String bundleDisplayName = null;
+        String connectorDisplayName = null;
         String bundleFramework = null;
+        String commitTag = null;
 
         if (!method.getConnectors().isEmpty()) {
             IntegrationMethodConnector link = method.getConnectors().get(0);
             Connector connector = link.getConnector();
             if (connector != null) {
                 className = connector.getFullyQualifiedClassName();
+                maintainer = connector.getMaintainer();
+                connectorDescription = connector.getDescription();
+                connectorDisplayName = connector.getDisplayName();
                 ConnectorBundle bundle = connector.getConnectorBundle();
                 if (bundle != null) {
-                    maintainer = bundle.getMaintainer();
                     licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                     ticketingLink = bundle.getTicketingLink();
-                    bundleDisplayName = bundle.getDisplayName();
                     bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
                 }
-                connector.getConnectorVersions().stream()
-                        .filter(cv -> cv.getConnectorBundleVersion() != null)
-                        .findFirst()
-                        .ifPresent(cv -> {
-                            // field assignments inside lambda are not possible, done below
-                        });
                 // Get latest CBV
                 Optional<ConnectorBundleVersion> latestCbv = connector.getConnectorVersions().stream()
                         .filter(cv -> cv.getConnectorBundleVersion() != null)
@@ -428,11 +425,12 @@ public class ApplicationMapper {
                         .findFirst();
                 if (latestCbv.isPresent()) {
                     ConnectorBundleVersion cbv = latestCbv.get();
-                    connectorVersion = cbv.getBundleVersion();
+                    connectorVersion = cbv.getRevision();
                     browseLink = cbv.getBrowseLink();
                     gitCloneUrl = cbv.getGitCloneUrl();
                     buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;
                     pathToProject = cbv.getPathToProject();
+                    commitTag = cbv.getCommitTag();
                 }
             }
         }
@@ -446,15 +444,16 @@ public class ApplicationMapper {
                 method.getDisplayName(),
                 maintainer,
                 licenseType,
-                method.getDescription(),
+                connectorDescription,
                 browseLink,
                 ticketingLink,
                 buildFramework,
                 gitCloneUrl,
                 pathToProject,
                 className,
-                bundleDisplayName,
-                bundleFramework
+                connectorDisplayName,
+                bundleFramework,
+                commitTag
         );
     }
 

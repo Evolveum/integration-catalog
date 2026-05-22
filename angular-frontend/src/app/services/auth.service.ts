@@ -77,6 +77,7 @@ export class AuthService {
         if (response.organizationName != null) {
           localStorage.setItem('currentOrganizationName', response.organizationName);
         }
+        window.location.reload();
         return true;
       }),
       catchError(() => of(false))
@@ -92,6 +93,7 @@ export class AuthService {
     localStorage.removeItem('currentRole');
     localStorage.removeItem('currentOrganizationId');
     localStorage.removeItem('currentOrganizationName');
+    window.location.reload();
   }
 
   currentOrganizationId(): number | null {
