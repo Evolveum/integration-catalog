@@ -12,8 +12,8 @@ import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
+import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.hibernate.validator.internal.IgnoreForbiddenApisErrors;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -57,9 +57,6 @@ class ControllerTest {
     private com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository applicationRepository;
 
     @MockitoBean
-    private com.evolveum.midpoint.integration.catalog.repository.ImplementationVersionRepository implementationVersionRepository;
-
-    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.RequestRepository requestRepository;
 
     @MockitoBean
@@ -69,16 +66,14 @@ class ControllerTest {
     private com.evolveum.midpoint.integration.catalog.service.LogoStorageService logoStorageService;
 
     @MockitoBean
+    private TutorialStorageService tutorialStorageService;
+
+    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
 
     private UUID testAppId;
     private UUID testVersionId;
     private Application testApplication;
-    private ImplementationVersion testImplementationVersion;
-    private ConnectorBundle testConnectorBundle;
-    private BundleVersion testBundleVersion;
-    private Implementation testImplementation;
-    private ConnidVersion testConnidVersion;
     private Request testRequest;
     private Vote testVote;
 
@@ -94,47 +89,8 @@ class ControllerTest {
         testApplication.setDisplayName("Test Application");
         testApplication.setDescription("Test Description");
         testApplication.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
-        testApplication.setCreatedAt(OffsetDateTime.now());
-        testApplication.setLastModified(OffsetDateTime.now());
-
-        // Setup test ConnectorBundle
-        testConnectorBundle = new ConnectorBundle();
-        testConnectorBundle.setId(1);
-        testConnectorBundle.setBundleName("com.evolveum.polygon.connector.test");
-        testConnectorBundle.setMaintainer("Test Maintainer");
-        testConnectorBundle.setFramework(ConnectorBundle.FrameworkType.JAVA_BASED);
-        testConnectorBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
-
-        // Setup test Implementation
-        testImplementation = new Implementation();
-        testImplementation.setId(UUID.randomUUID());
-        testImplementation.setDisplayName("Test Implementation");
-        testImplementation.setConnectorBundle(testConnectorBundle);
-        testImplementation.setApplication(testApplication);
-
-        // Setup test BundleVersion
-        testBundleVersion = new BundleVersion();
-        testBundleVersion.setId(1);
-        testBundleVersion.setConnectorVersion("1.0.0");
-        testBundleVersion.setDownloadLink("http://example.com/connector.jar");
-        testBundleVersion.setBrowseLink("http://example.com/browse");
-        testBundleVersion.setCheckoutLink("http://example.com/checkout");
-        testBundleVersion.setConnectorBundle(testConnectorBundle);
-        testBundleVersion.setBuildFramework(BundleVersion.BuildFrameworkType.MAVEN);
-        testBundleVersion.setConnidVersion("1.5.0.0");
-
-        // Setup test ImplementationVersion
-        testImplementationVersion = new ImplementationVersion();
-        testImplementationVersion.setId(testVersionId);
-        testImplementationVersion.setDescription("Test Version");
-        testImplementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
-        testImplementationVersion.setImplementation(testImplementation);
-        testImplementationVersion.setBundleVersion(testBundleVersion);
-
-
-        // Setup test ConnidVersion
-        testConnidVersion = new ConnidVersion();
-        testConnidVersion.setVersion("1.5.0.0");
+        testApplication.setCreatedAt(LocalDateTime.now());
+        testApplication.setUpdated(LocalDateTime.now());
 
         // Setup test Request
         testRequest = new Request();
@@ -157,8 +113,8 @@ class ControllerTest {
                 .displayName("Test Application")
                 .description("Test Description")
                 .lifecycleState("ACTIVE")
-                .createdAt(OffsetDateTime.now())
-                .lastModified(OffsetDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .updated(LocalDateTime.now())
                 .build();
 
         when(applicationService.getApplication(testAppId)).thenReturn(testApplication);
@@ -185,46 +141,26 @@ class ControllerTest {
         verify(applicationService).getApplication(nonExistentId);
     }
 
-    // ===== GET /api/connid-versions/{id} =====
+    // ===== GET /api/connid-versions/{id} — endpoint removed after DB rework =====
 
+    @Disabled("Endpoint /api/connid-versions/{id} was removed in the DB rework")
     @Test
     void getConnectorVersionShouldReturnVersionWhenExists() throws Exception {
-        when(applicationService.getConnectorVersion(testVersionId)).thenReturn(testConnidVersion);
-
-        mockMvc.perform(get("/api/connid-versions/{id}", testVersionId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.version").value("1.5.0.0"));
-
-        verify(applicationService).getConnectorVersion(testVersionId);
     }
 
+    @Disabled("Endpoint /api/connid-versions/{id} was removed in the DB rework")
     @Test
     void getConnectorVersionShouldReturnNotFoundWhenNotExists() throws Exception {
-        UUID nonExistentId = UUID.randomUUID();
-        when(applicationService.getConnectorVersion(nonExistentId))
-                .thenThrow(new RuntimeException("Version not found"));
-
-        mockMvc.perform(get("/api/connid-versions/{id}", nonExistentId))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).getConnectorVersion(nonExistentId);
     }
 
     // ===== GET /api/application-tags =====
 
     @Test
     void getApplicationTagsShouldReturnAllTags() throws Exception {
-        ApplicationTag tag1 = new ApplicationTag();
-        tag1.setId(1L);
-        tag1.setName("category_ldap");
-        tag1.setDisplayName("LDAP");
+        ApplicationTagDto tag1 = new ApplicationTagDto(1L, "category_ldap", "LDAP", "CATEGORY");
+        ApplicationTagDto tag2 = new ApplicationTagDto(2L, "category_hr", "HR Systems", "CATEGORY");
 
-        ApplicationTag tag2 = new ApplicationTag();
-        tag2.setId(2L);
-        tag2.setName("category_hr");
-        tag2.setDisplayName("HR Systems");
-
-        List<ApplicationTag> tags = Arrays.asList(tag1, tag2);
+        List<ApplicationTagDto> tags = Arrays.asList(tag1, tag2);
         when(applicationService.getApplicationTags()).thenReturn(tags);
 
         mockMvc.perform(get("/api/application-tags"))
@@ -273,11 +209,11 @@ class ControllerTest {
         continueForm.setPublishTime(System.currentTimeMillis());
         continueForm.setConnectorClass("com.evolveum.polygon.connector.test.TestConnector");
         continueForm.setCapability(
-                List.of(ImplementationVersion.CapabilitiesType.SCHEMA,
-                        ImplementationVersion.CapabilitiesType.TEST,
-                        ImplementationVersion.CapabilitiesType.VALIDATE,
-                        ImplementationVersion.CapabilitiesType.GET,
-                        ImplementationVersion.CapabilitiesType.SEARCH
+                List.of(CapabilityType.SCHEMA,
+                        CapabilityType.TEST,
+                        CapabilityType.VALIDATE,
+                        CapabilityType.GET,
+                        CapabilityType.SEARCH
                 ));
 
         doNothing().when(applicationService).successBuild(eq(testVersionId), any(ContinueForm.class));
@@ -313,8 +249,6 @@ class ControllerTest {
     void downloadConnectorShouldReturnFileWhenSuccessful() throws Exception {
         byte[] fileBytes = "test file content".getBytes();
 
-        when(applicationService.findImplementationVersion(any(UUID.class)))
-                .thenReturn(Optional.of(testImplementationVersion));
         when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
                 .thenReturn(fileBytes);
 
@@ -324,34 +258,28 @@ class ControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
                 .andExpect(content().bytes(fileBytes));
 
-        verify(applicationService).findImplementationVersion(any(UUID.class));
         verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
     }
 
     @Test
     void downloadConnectorShouldReturnNotFoundWhenVersionNotExists() throws Exception {
-        UUID nonExistentId = UUID.randomUUID();
-        when(applicationService.findImplementationVersion(nonExistentId))
-                .thenReturn(Optional.empty());
+        when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
+                .thenReturn(null);
 
-        mockMvc.perform(get("/api/downloads/{oid}", nonExistentId))
+        mockMvc.perform(get("/api/downloads/{oid}", UUID.randomUUID()))
                 .andExpect(status().isNotFound());
 
-        verify(applicationService).findImplementationVersion(nonExistentId);
-        verify(applicationService, never()).downloadConnector(any(), nullable(String.class), nullable(String.class));
+        verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
     }
 
     @Test
     void downloadConnectorShouldReturnInternalServerErrorWhenDownloadFails() throws Exception {
-        when(applicationService.findImplementationVersion(any(UUID.class)))
-                .thenReturn(Optional.of(testImplementationVersion));
         when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
                 .thenThrow(new IOException("Download failed"));
 
         mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
                 .andExpect(status().isInternalServerError());
 
-        verify(applicationService).findImplementationVersion(any(UUID.class));
         verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
     }
 
@@ -566,10 +494,8 @@ class ControllerTest {
                 "Test Application",
                 "Test Description",
                 null,
-                null,
-                null,
-                null,
                 "ACTIVE",
+                null,
                 null,
                 null,
                 null,
