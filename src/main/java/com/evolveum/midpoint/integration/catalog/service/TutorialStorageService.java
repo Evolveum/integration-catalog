@@ -8,7 +8,10 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.TutorialStorageProperties;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +44,9 @@ public class TutorialStorageService {
     private final TutorialStorageProperties properties;
     private final IntegrationMethodRepository integrationMethodRepository;
     private final Path basePath;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public TutorialStorageService(TutorialStorageProperties properties,
                                    IntegrationMethodRepository integrationMethodRepository) {
@@ -93,32 +99,42 @@ public class TutorialStorageService {
     public void saveTutorial(UUID integrationMethodId, MultipartFile file) throws IOException {
         validateFile(file);
 
-        IntegrationMethod method = integrationMethodRepository.findByUuid(integrationMethodId)
+        IntegrationMethod method = integrationMethodRepository.findFirstByIdOrderByCreatedAtDesc(integrationMethodId)
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + integrationMethodId));
-
-        deleteFile(method.getFilePath());
 
         String safeFileName = UUID.randomUUID() + getFileExtension(file.getOriginalFilename());
         Path target = basePath.resolve(safeFileName);
         Files.createDirectories(target.getParent());
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
 
-        method.setFilePath(safeFileName);
-        integrationMethodRepository.save(method);
+        updateFilePath(integrationMethodId, method.getRevision(), safeFileName);
         log.info("Saved tutorial for integration method {}: {}", integrationMethodId, safeFileName);
     }
 
-    private void deleteFile(String filePath) {
-        if (filePath == null || filePath.isBlank()) return;
-        Path path = basePath.resolve(filePath);
-        try {
-            if (Files.exists(path)) {
-                Files.delete(path);
-                log.info("Deleted tutorial file: {}", path);
-            }
-        } catch (IOException e) {
-            log.error("Failed to delete tutorial file: {}", path, e);
+    @Transactional
+    public void saveTutorialForRevision(UUID integrationMethodId, String revision, MultipartFile file) throws IOException {
+        validateFile(file);
+
+        if (!integrationMethodRepository.existsById(new IntegrationMethodId(integrationMethodId, revision))) {
+            throw new RuntimeException("Integration method not found: " + integrationMethodId + "/" + revision);
         }
+
+        String safeFileName = UUID.randomUUID() + getFileExtension(file.getOriginalFilename());
+        Path target = basePath.resolve(safeFileName);
+        Files.createDirectories(target.getParent());
+        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+        updateFilePath(integrationMethodId, revision, safeFileName);
+        log.info("Saved tutorial for integration method {}/{}: {}", integrationMethodId, revision, safeFileName);
+    }
+
+    private void updateFilePath(UUID id, String revision, String filePath) {
+        entityManager.createQuery(
+                "UPDATE IntegrationMethod m SET m.filePath = :filePath WHERE m.id = :id AND m.revision = :revision")
+                .setParameter("filePath", filePath)
+                .setParameter("id", id)
+                .setParameter("revision", revision)
+                .executeUpdate();
     }
 
     private String getFileExtension(String filename) {

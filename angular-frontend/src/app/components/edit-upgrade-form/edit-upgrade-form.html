@@ -76,7 +76,7 @@
             <i class="fa-solid fa-circle-info info-icon-sm"></i>
           </button>
         </label>
-        <app-capability-picker (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+        <app-capability-picker [initialCapabilities]="initialCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
       </div>
 
       <!-- Integration method type -->
@@ -119,6 +119,12 @@
           </div>
           <div class="tutorial-dropzone-hint">the files in the accepted format (.pdf, .xml, .json, .yaml, .txt)</div>
         </div>
+        @if (fileWarning()) {
+          <div class="tutorial-file-warning mt-2">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+            Only one tutorial file is allowed. Remove the existing file first.
+          </div>
+        }
         @if (tutorialFiles().length > 0) {
           <div class="tutorial-file-list mt-2">
             @for (entry of tutorialFiles(); track entry.name; let i = $index) {

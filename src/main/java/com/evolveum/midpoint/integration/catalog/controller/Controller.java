@@ -433,6 +433,21 @@ public class Controller {
         return ResponseEntity.ok(items);
     }
 
+    @Operation(summary = "Save integration method as new version")
+    @PutMapping("/applications/{appId}/integration-method/{methodId}/{currentRevision}")
+    public ResponseEntity<String> editIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String currentRevision,
+            @RequestBody EditIntegrationMethodDto dto) {
+        try {
+            String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto);
+            return ResponseEntity.ok(newRevision);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     // ==================== Logo Endpoints ====================
 
     @Operation(summary = "Upload application logo",
@@ -479,6 +494,30 @@ public class Controller {
             @RequestParam("file") MultipartFile file) {
         try {
             tutorialStorageService.saveTutorial(id, file);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to upload tutorial: " + ex.getMessage(), ex);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to save tutorial file: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Operation(summary = "Upload tutorial file for a specific integration method revision")
+    @PostMapping(value = "/applications/{appId}/integration-method/{methodId}/{revision}/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadTutorialForRevision(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            tutorialStorageService.saveTutorialForRevision(methodId, revision, file);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());

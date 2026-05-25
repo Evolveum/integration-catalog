@@ -90,7 +90,6 @@ public class ApplicationMapper {
                     String connectorVersion = null;
                     String framework = null;
                     String connectorDisplayName = null;
-                    String revision = null;
                     String downloadLink = null;
                     if (!method.getConnectors().isEmpty()) {
                         IntegrationMethodConnector link = method.getConnectors().get(0);
@@ -101,7 +100,6 @@ public class ApplicationMapper {
                                 if (bundle.getFramework() != null) {
                                     framework = bundle.getFramework().name();
                                 }
-                                revision = bundle.getRevision();
                             }
                             connectorVersion = link.getConnector().getConnectorVersions().stream()
                                     .filter(cv -> cv.getConnectorBundleVersion() != null
@@ -162,7 +160,10 @@ public class ApplicationMapper {
                             method.getMidpointMaxVersionId(),
                             connectorDisplayName,
                             integMethodTypes,
-                            revision
+                            method.getRevision(),
+                            method.getDisplayName(),
+                            method.getTutorial(),
+                            method.getFilePath()
                     );
                 })
                 .toList();

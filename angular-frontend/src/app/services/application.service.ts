@@ -101,6 +101,28 @@ export class ApplicationService {
     window.open(url, '_blank');
   }
 
+  uploadTutorialFile(appId: string, methodId: string, revision: string, file: File): Observable<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`,
+      formData
+    );
+  }
+
+  editIntegrationMethod(
+    appId: string,
+    methodId: string,
+    currentRevision: string,
+    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean }
+  ): Observable<string> {
+    return this.http.put<string>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
+      payload,
+      { responseType: 'text' as 'json' }
+    );
+  }
+
   // ==================== Logo Methods ====================
 
   /**

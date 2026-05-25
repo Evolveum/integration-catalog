@@ -36,16 +36,24 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly methodDescription = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
+
+  // Tutorial content
+  protected readonly methodTutorial = signal<string>('');
 
   // Tutorial file
   protected readonly tutorialDragOver = signal<boolean>(false);
-  protected readonly tutorialFiles = signal<{ name: string; file: File; isNew: boolean }[]>([]);
+  protected readonly tutorialFiles = signal<{ name: string; file?: File; isNew: boolean }[]>([]);
+  protected readonly hadInitialFile = signal<boolean>(false);
+  protected readonly fileWarning = signal<boolean>(false);
+  private fileWarningTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Connector
   protected readonly connector = signal<ImplementationListItem | null>(null);
   protected readonly connectorCapsExpanded = signal<Set<string>>(new Set());
 
   private easyMde: EasyMDE | null = null;
+  private editorPreviewActivated = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -65,10 +73,29 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         this.appHasLogo.set(hasLogoDetail(app));
         const ver = app.integrationMethods?.find(m => m.id === vId);
         if (ver) {
-          this.methodName.set(ver.connectorDisplayName ?? '');
+          this.methodName.set(ver.displayName ?? '');
           this.methodVersion.set(ver.revision ?? '');
           this.methodDescription.set(ver.description ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
+          this.methodTutorial.set(ver.tutorial ?? '');
+          if (this.easyMde && ver.tutorial) {
+            this.easyMde.value(ver.tutorial);
+            if (!this.editorPreviewActivated) {
+              EasyMDE.togglePreview(this.easyMde);
+              this.editorPreviewActivated = true;
+            }
+          }
+          if (ver.filePath) {
+            const fileName = ver.filePath.split('/').pop() ?? ver.filePath;
+            this.tutorialFiles.set([{ name: fileName, isNew: false }]);
+            this.hadInitialFile.set(true);
+          }
+          this.initialCapabilities.set(
+            (ver.objectClassCapabilities ?? []).map(oc => ({
+              objectClass: oc.objectName,
+              capabilityNames: oc.capabilities ?? []
+            }))
+          );
         }
       }
     });
@@ -92,6 +119,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       this.easyMde.toTextArea();
       this.easyMde = null;
     }
+    if (this.fileWarningTimer) clearTimeout(this.fileWarningTimer);
   }
 
   private initEditor(): void {
@@ -100,13 +128,18 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.easyMde = new EasyMDE({
       element: el,
       spellChecker: false,
-      autosave: { enabled: true, uniqueId: 'edit-tutorial-' + this.versionId() },
+      autosave: { enabled: false, uniqueId: 'edit-tutorial-' + this.versionId() },
       toolbar: ['bold', 'italic', 'strikethrough', '|',
                 'heading-1', 'heading-2', '|',
                 'unordered-list', 'ordered-list', '|',
                 'link', '|', 'preview', 'side-by-side'],
       placeholder: 'Write your integration tutorial here...',
     });
+    if (this.methodTutorial()) {
+      this.easyMde.value(this.methodTutorial());
+      EasyMDE.togglePreview(this.easyMde);
+      this.editorPreviewActivated = true;
+    }
   }
 
   protected onImCapabilitiesChange(caps: CapabilityGroup[]): void {
@@ -126,9 +159,18 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   private addFiles(files: FileList): void {
-    Array.from(files).forEach(f =>
-      this.tutorialFiles.update(list => [...list, { name: f.name, file: f, isNew: true }])
-    );
+    if (this.tutorialFiles().length > 0) {
+      this.showFileWarning();
+      return;
+    }
+    const f = files[0];
+    if (f) this.tutorialFiles.set([{ name: f.name, file: f, isNew: true }]);
+  }
+
+  private showFileWarning(): void {
+    if (this.fileWarningTimer) clearTimeout(this.fileWarningTimer);
+    this.fileWarning.set(true);
+    this.fileWarningTimer = setTimeout(() => this.fileWarning.set(false), 4000);
   }
 
   protected removeTutorialFile(i: number): void {
@@ -168,10 +210,52 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   protected save(): void {
-    // TODO: wire up save API call
+    this.doSave(false);
   }
 
   protected saveAsNewVersion(): void {
-    // TODO: wire up save-as-new-version API call
+    this.doSave(true);
+  }
+
+  private doSave(minorBump: boolean): void {
+    const tutorial = this.easyMde ? this.easyMde.value() : this.methodTutorial();
+    const capabilities = this.imCapabilities().length > 0
+      ? this.imCapabilities()
+      : this.initialCapabilities();
+
+    const newFile = this.tutorialFiles().find(f => f.isNew && f.file)?.file ?? null;
+    // removeFile: clear old path only when user explicitly removed the file without uploading a replacement
+    const removeFile = this.hadInitialFile() && this.tutorialFiles().length === 0;
+
+    this.applicationService.editIntegrationMethod(
+      this.appId(),
+      this.versionId(),
+      this.methodVersion(),
+      {
+        displayName: this.methodName(),
+        description: this.methodDescription(),
+        tutorial,
+        capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
+        removeFile,
+        minorBump
+      }
+    ).subscribe({
+      next: (newRevision) => {
+        this.methodVersion.set(newRevision);
+        if (newFile) {
+          this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), newRevision, newFile)
+            .subscribe({
+              next: () => this.router.navigate(['/applications', this.appId()]),
+              error: (err) => {
+                console.error('Tutorial file upload failed', err);
+                this.router.navigate(['/applications', this.appId()]);
+              }
+            });
+        } else {
+          this.router.navigate(['/applications', this.appId()]);
+        }
+      },
+      error: (err) => console.error('Save failed', err)
+    });
   }
 }

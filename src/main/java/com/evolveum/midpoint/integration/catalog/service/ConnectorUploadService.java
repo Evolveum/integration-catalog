@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
+import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -357,6 +359,88 @@ public class ConnectorUploadService {
             log.error("Failed to trigger Jenkins pipeline: {}", e.getMessage());
             return e.getMessage();
         }
+    }
+
+    @Transactional
+    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
+        IntegrationMethod existing = integrationMethodRepository.findById(new IntegrationMethodId(methodId, currentRevision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + currentRevision));
+
+        String newRevision = dto.minorBump() ? incrementMinorRevision(currentRevision) : incrementRevision(currentRevision);
+
+        IntegrationMethod updated = new IntegrationMethod();
+        updated.setId(methodId);
+        updated.setRevision(newRevision);
+        updated.setApplication(existing.getApplication());
+        updated.setLifecycleState(existing.getLifecycleState());
+        updated.setAuthor(existing.getAuthor());
+        updated.setMaintainer(existing.getMaintainer());
+        updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
+        updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+        updated.setAppVersion(existing.getAppVersion());
+        updated.setFilePath(dto.removeFile() ? null : existing.getFilePath());
+        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
+        updated.setDisplayName(dto.displayName());
+        updated.setDescription(dto.description());
+        updated.setTutorial(dto.tutorial());
+
+        for (IntegrationMethodConnector oldLink : existing.getConnectors()) {
+            IntegrationMethodConnector newLink = new IntegrationMethodConnector();
+            newLink.setIntegrationMethod(updated);
+            newLink.setConnector(oldLink.getConnector());
+            newLink.setConnectorMinVersion(oldLink.getConnectorMinVersion());
+            newLink.setConnectorMaxVersion(oldLink.getConnectorMaxVersion());
+            updated.getConnectors().add(newLink);
+        }
+
+        integrationMethodRepository.save(updated);
+
+        if (dto.capabilities() != null) {
+            for (IntegrationMethodCapabilityGroupDto group : dto.capabilities()) {
+                if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
+                IntegrationMethodCapability cap = new IntegrationMethodCapability();
+                cap.setObjectClass(group.objectClass());
+                cap.setIntegrationMethod(updated);
+                cap = integrationMethodCapabilityRepository.save(cap);
+                final Integer capId = cap.getId();
+                for (String capabilityName : group.capabilityNames()) {
+                    capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
+                        IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
+                        item.setIntegrationMethodCapabilityId(capId);
+                        item.setCapabilityId(capability.getId());
+                        integrationMethodCapabilityItemRepository.save(item);
+                    });
+                }
+            }
+        }
+
+        return newRevision;
+    }
+
+    private String incrementRevision(String revision) {
+        if (revision == null || revision.isBlank()) return "1";
+        String[] parts = revision.split("\\.");
+        try {
+            int last = Integer.parseInt(parts[parts.length - 1]);
+            parts[parts.length - 1] = String.valueOf(last + 1);
+        } catch (NumberFormatException e) {
+            return revision + ".1";
+        }
+        return String.join(".", parts);
+    }
+
+    private String incrementMinorRevision(String revision) {
+        if (revision == null || revision.isBlank()) return "1.0";
+        String[] parts = revision.split("\\.");
+        if (parts.length < 2) return revision + ".1.0";
+        try {
+            int minor = Integer.parseInt(parts[parts.length - 2]);
+            parts[parts.length - 2] = String.valueOf(minor + 1);
+            parts[parts.length - 1] = "0";
+        } catch (NumberFormatException e) {
+            return revision + ".0";
+        }
+        return String.join(".", parts);
     }
 
     private void saveIntegrationMethodCapabilities(UploadImplementationDto dto, IntegrationMethod integrationMethod) {

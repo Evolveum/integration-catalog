@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Output, EventEmitter, signal, OnInit, HostListener, ElementRef } from '@angular/core';
+import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 
@@ -20,7 +20,8 @@ export interface CapabilityGroup {
   templateUrl: './capability-picker.html',
   styleUrls: ['./capability-picker.scss']
 })
-export class CapabilityPicker implements OnInit {
+export class CapabilityPicker implements OnInit, OnChanges {
+  @Input() initialCapabilities: CapabilityGroup[] = [];
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
 
   protected readonly isLoading         = signal<boolean>(false);
@@ -52,6 +53,24 @@ export class CapabilityPicker implements OnInit {
       },
       error: () => this.isLoading.set(false)
     });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['initialCapabilities'] && this.initialCapabilities?.length) {
+      this.applyInitialCapabilities();
+    }
+  }
+
+  private applyInitialCapabilities(): void {
+    const global = this.initialCapabilities.find(g => g.objectClass === 'Global');
+    this.globalCaps.set(global ? global.capabilityNames : []);
+
+    const specific = this.initialCapabilities.filter(g => g.objectClass !== 'Global');
+    this.entries.set(specific.length > 0
+      ? specific.map(g => ({ objectClass: g.objectClass, capabilities: g.capabilityNames, isOpen: false }))
+      : [{ objectClass: '', capabilities: [], isOpen: false }]
+    );
+    this.emit();
   }
 
   public reset(): void {

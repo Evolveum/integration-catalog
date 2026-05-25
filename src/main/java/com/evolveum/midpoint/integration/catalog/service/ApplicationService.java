@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
@@ -172,6 +173,11 @@ public class ApplicationService {
     @Transactional
     public String uploadConnector(UploadImplementationDto dto, String username) {
         return connectorUploadService.uploadConnector(dto, username);
+    }
+
+    @Transactional
+    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
+        return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
     }
 
     @Transactional
