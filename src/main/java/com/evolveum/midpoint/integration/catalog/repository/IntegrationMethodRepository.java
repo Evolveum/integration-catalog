@@ -11,6 +11,8 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.object.LifecycleType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,4 +26,8 @@ public interface IntegrationMethodRepository extends JpaRepository<IntegrationMe
     List<IntegrationMethod> findByApplicationIdAndLifecycleState(UUID applicationId, LifecycleType lifecycleState);
 
     Optional<IntegrationMethod> findFirstByIdOrderByCreatedAtDesc(UUID id);
+    List<IntegrationMethod> findByLifecycleState(LifecycleType lifecycleState);
+
+    @Query("SELECT m FROM IntegrationMethod m WHERE m.id = :id")
+    Optional<IntegrationMethod> findByUuid(@Param("id") UUID id);
 }

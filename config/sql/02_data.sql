@@ -63,24 +63,24 @@ INSERT INTO connector_tag (id, name, display_name) OVERRIDING SYSTEM VALUE VALUE
 SELECT setval('connector_tag_id_seq', 1);
 
 INSERT INTO capability (id, name, description, display_order, globality) VALUES
-    (1, 'CREATE',        			'Create new objects',                  1, 'GLOBAL'),
-    (2, 'GET',           			'Read individual objects',             2, 'GLOBAL'),
-    (3, 'UPDATE',        			'Modify existing objects',             3, 'SPECIFIC'),
-    (4, 'DELETE',       			'Remove objects',                      4, 'SPECIFIC'),
-    (5, 'TEST',          			'Test connection to resource',         5, 'SPECIFIC'),
-    (6, 'SCRIPT_ON_CONNECTOR',      'Test connection to resource',        10, 'SPECIFIC'),
-    (7, 'SCRIPT_ON_RESOURCE',       'Test connection to resource',         9, 'SPECIFIC'),
-    (8, 'AUTHENTICATION',			'Authenticate users',                  8, 'SPECIFIC'),
-    (9, 'SEARCH',        			'Search and list objects',             7, 'SPECIFIC'),
-    (10,'VALIDATE',        			'Search and list objects',             6, 'SPECIFIC'),
-    (11,'SYNC',          			'Synchronize objects periodically',   11, 'SPECIFIC'),
-    (12,'LIVE_SYNC',     			'Receive live change notifications',  12, 'SPECIFIC'),
-    (13,'SCHEMA',        			'Retrieve resource schema',           13, 'SPECIFIC'),
-    (14,'DISCOVER_CONFIGURATION',	'Search and list objects',            14, 'SPECIFIC'),
-    (15,'RESOLVE_USERNAME',         'Search and list objects',            15, 'SPECIFIC'),
-    (16,'PARTIAL_SCHEMA',        	'Retrieve resource schema',           16, 'SPECIFIC'),
-    (17,'COMPLEX_UPDATE_DELTA',     'Retrieve resource schema',           17, 'SPECIFIC'),
-    (18,'UPDATE_DELTA',        		'Retrieve resource schema',           18, 'SPECIFIC');
+    (1,  'TEST',                    'Test connection to resource',        1, 'GLOBAL'),
+    (2,  'SCHEMA',                  'Retrieve resource schema',           2, 'GLOBAL'),
+    (3,  'PARTIAL_SCHEMA',          'Retrieve partial resource schema',   3, 'GLOBAL'),
+    (4,  'DISCOVER_CONFIGURATION',  'Discover Configuration',             4, 'GLOBAL'),
+    (5,  'AUTHENTICATION',          'Authenticate users',                 5, 'GLOBAL'),
+    (6,  'SCRIPT_ON_CONNECTOR',     'Script on Connector',                6, 'GLOBAL'),
+    (7,  'SCRIPT_ON_RESOURCE',      'Script on resource',                 7, 'GLOBAL'),
+    (8,  'RESOLVE_USERNAME',        'Resolve Username',                   8, 'GLOBAL'),
+    (9,  'SEARCH',                  'Search and list objects',            1, 'SPECIFIC'),
+    (10, 'GET',                     'Read individual objects',            2, 'SPECIFIC'),
+    (11, 'CREATE',                  'Create new objects',                 3, 'SPECIFIC'),
+    (12, 'UPDATE',                  'Modify existing objects',            4, 'SPECIFIC'),
+    (13, 'UPDATE_DELTA',            'Update the delta',                   5, 'SPECIFIC'),
+    (14, 'COMPLEX_UPDATE_DELTA',    'Update the complex delta',           6, 'SPECIFIC'),
+    (15, 'DELETE',                  'Remove objects',                     7, 'SPECIFIC'),
+    (16, 'LIVE_SYNC',               'Receive live change notifications',  8, 'SPECIFIC'),
+    (17, 'SYNC',                    'Synchronize objects periodically',   9, 'SPECIFIC'),
+    (18, 'VALIDATE',                'Validate',                          10, 'SPECIFIC');
 	
 SELECT setval('capability_id_seq', 18);
 
@@ -90,10 +90,12 @@ INSERT INTO midpoint_version (id, version, version_name, is_current) values
 	(2, '4.3', 'Version 4.3', false),
 	(3, '4.4', 'Version 4.4', false),
 	(4, '4.5', 'Version 4.5', false),
-	(5, '4.6', 'Version 4.6', true),
+	(5, '4.6', 'Version 4.6', false),
 	(6, '4.7', 'Version 4.7', false),
 	(7, '4.8', 'Version 4.8', false),
-	(8, '4.9', 'Version 4.9', false);
+	(8, '4.9', 'Version 4.9', true),
+    (9, '4.10', 'Version 4.10', false),
+    (10, '4.11', 'Version 4.11', false);
 	
 SELECT setval('midpoint_version_id_seq', 8);
 
@@ -134,12 +136,12 @@ SELECT setval('connector_bundle_id_seq', 3);
 
 INSERT INTO connector_bundle_version (id, revision, author, maintainer, created_at, updated,
     lifecycle_state, connector_bundle_id, bundle_version, browse_link, git_clone_ULR,
-    path_to_project, build_framework)
+    path_to_project, build_framework, error_message)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5','Conn bun ver author 1', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
-     'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN'),
+     'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL),
     (2, '1.0', 'u1', 'Conn bun ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
-     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL);
+     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL);
 
 SELECT setval('connector_bundle_version_id_seq', 4);
 
@@ -169,10 +171,10 @@ SELECT setval('connector_connector_tag_id_seq', 1);
 
 INSERT INTO connector_version (id, revision, author, maintainer, created_at, updated,
     lifecycle_state, connector_bundle_version_id, connector_bundle_version_revision,
-    connector_id, fully_qualified_class_name)
+    connector_id, fully_qualified_class_name, error_message)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'u5', 'Conn ver author 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully qualified conn ver class name 1'),
-    (2, '1.0', 'u1', 'Conn ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully qualified conn ver class name 2');
+    (1, '1.0', 'u5', 'Conn ver author 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully qualified conn ver class name 1', NULL),
+    (2, '1.0', 'u1', 'Conn ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully qualified conn ver class name 2', NULL);
 
 SELECT setval('connector_version_id_seq', 2);
 
@@ -219,28 +221,20 @@ SELECT setval('int_method_int_method_type_id_seq', 3);
 -- (no IDENTITY on id — explicit values required)
 -- ============================================================
 
--- integration_method_capability.object_class drives the frontend display:
---   'Global'        → "Global capabilities (All object classes)"  — use GLOBAL capabilities only (CREATE=1, GET=2)
---   anything else   → "Capabilities (Per specific object classes)" — use SPECIFIC capabilities only (id >= 3)
--- aaaaaaaa: specific-only method (Account + Group)
--- bbbbbbbb: global-only method (Global)
 INSERT INTO integration_method_capability (id, integ_method_id, integ_method_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
     (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Account'),
     (2, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Group'),
-    (3, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Global'),
-    (4, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 'Global');
+    (3, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Global');
 
-SELECT setval('integration_method_capability_id_seq', 4);
+SELECT setval('integration_method_capability_id_seq', 3);
 
 INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id) VALUES
-    -- Account (SPECIFIC caps): UPDATE DELETE TEST SEARCH LIVE_SYNC SCHEMA
-    (1,3),(1,4),(1,5),(1,9),(1,12),(1,13),
-    -- Group (SPECIFIC caps): UPDATE DELETE SEARCH
-    (2,3),(2,4),(2,9),
-    -- Global (GLOBAL caps): CREATE GET
-    (3,1),(3,2),
-    -- Global (GLOBAL caps): CREATE GET
-    (4,1),(4,2);
+    -- Account: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
+    (1,11),(1,10),(1,12),(1,15),(1,17),(1,18),
+    -- Group: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1)
+    (2,11),(2,10),(2,12),(2,15),
+    -- Global: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
+    (3,1),(3,2),(3,3),(3,4),(3,5),(3,6);
 
 -- ============================================================
 -- CONNECTOR VERSION CAPABILITIES
@@ -255,12 +249,12 @@ INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision,
 SELECT setval('conn_version_capability_id_seq', 3);
 
 INSERT INTO conn_version_capability_item (conn_version_capability_id, capability_id) VALUES
-    -- LDAP Account
-    (1,1),(1,2),(1,3),(1,4),(1,5),(1,6),(1,7),(1,8),
-    -- LDAP Group
-    (2,1),(2,2),(2,3),(2,4),(2,5),
-    -- LDAP Global
-    (3,1),(3,2);
+    -- Account: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
+    (1,11),(1,10),(1,12),(1,15),(1,17),(1,18),
+    -- Group: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1)
+    (2,11),(2,10),(2,12),(2,15),
+    -- Global: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
+    (3,1),(3,2),(3,3),(3,4),(3,5),(3,6);
 
 -- ============================================================
 -- REQUEST for SAP HR (REQUESTED lifecycle)

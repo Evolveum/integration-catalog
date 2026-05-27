@@ -26,6 +26,7 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.HttpException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -137,9 +138,11 @@ public class ConnectorUploadService {
                     : integrationMethod.getConnectors().get(0).getConnector();
             bundle = connector != null ? connector.getConnectorBundle() : createNewConnectorBundle(connDto, username);
         } else if (connDto.connectorBundleId() != null) {
-            // New integration method reusing an existing connector bundle from the catalog
-            bundle = connectorBundleRepository.findById(connDto.connectorBundleId())
+            // User chose an existing connector as a template — create a new independent bundle
+            // so the new IN_REVIEW connector is isolated from the existing ACTIVE one
+            ConnectorBundle templateBundle = connectorBundleRepository.findById(connDto.connectorBundleId())
                     .orElseThrow(() -> new RuntimeException("Connector bundle not found: " + connDto.connectorBundleId()));
+            bundle = createNewConnectorBundle(connDto, templateBundle, username);
             integrationMethod = new IntegrationMethod();
             integrationMethod.setApplication(application);
             integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
@@ -205,6 +208,36 @@ public class ConnectorUploadService {
         }
 
         BuildFrameworkType buildFramework = dto.buildFramework();
+
+        ConnectorBundle bundle = new ConnectorBundle();
+        bundle.setRevision("1.0.0");
+        bundle.setAuthor(username);
+        bundle.setFramework(framework);
+        bundle.setBuildFramework(buildFramework);
+        bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
+        bundle.setBundleName(dto.bundleName());
+        bundle.setDisplayName(dto.bundleDisplayName());
+        bundle.setDescription(dto.description());
+        bundle.setMaintainer(dto.maintainer());
+        bundle.setTicketingLink(dto.ticketingSystemLink());
+        bundle.setProjectHomepage(dto.browseLink());
+        bundle.setGitCloneUrl(dto.gitCloneUrl());
+        bundle.setPathToProject(dto.pathToProject());
+        bundle.setLifecycleState(LifecycleType.IN_REVIEW);
+        return bundle;
+    }
+
+    private ConnectorBundle createNewConnectorBundle(UploadConnectorDto dto, ConnectorBundle template, String username) {
+        ConnectorBundle.FrameworkType framework = dto.framework() != null ? dto.framework() : template.getFramework();
+        BuildFrameworkType buildFramework = dto.buildFramework() != null ? dto.buildFramework() : template.getBuildFramework();
+        if (framework == null && buildFramework != null) {
+            framework = (buildFramework == BuildFrameworkType.MAVEN)
+                    ? ConnectorBundle.FrameworkType.JAVA_BASED
+                    : ConnectorBundle.FrameworkType.LOW_CODE;
+        }
+        if (framework == null) {
+            throw new IllegalArgumentException("Framework must be specified");
+        }
 
         ConnectorBundle bundle = new ConnectorBundle();
         bundle.setRevision("1.0.0");
@@ -317,7 +350,8 @@ public class ConnectorUploadService {
         if (res.isNewVersion()) return;
 
         if (ConnectorBundle.FrameworkType.LOW_CODE.equals(res.bundle().getFramework())) {
-            boolean hasLinks = bundleVersion.getBrowseLink() != null && !bundleVersion.getBrowseLink().isEmpty();
+            boolean hasLinks = (bundleVersion.getBrowseLink() != null && !bundleVersion.getBrowseLink().isEmpty())
+                    || (bundleVersion.getGitCloneUrl() != null && !bundleVersion.getGitCloneUrl().isEmpty());
             if (!hasLinks) {
                 try {
                     GithubClient githubClient = new GithubClient(githubProperties);
@@ -326,7 +360,11 @@ public class ConnectorUploadService {
                     bundleVersion.setGitCloneUrl(repo.getHttpTransportUrl());
                     bundleVersion.setBrowseLink(repo.getHtmlUrl().toString() + "/tree/main");
                 } catch (Exception e) {
-                    log.error("Failed to create GitHub repository: {}", e.getMessage());
+                    String msg = (e instanceof HttpException httpEx && httpEx.getResponseCode() == 401)
+                            ? "Unable to create GitHub repository - bad credentials."
+                            : "Unable to create GitHub repository: " + e.getMessage();
+                    log.error(msg);
+                    bundleVersion.setErrorMessage(msg);
                 }
             }
         }

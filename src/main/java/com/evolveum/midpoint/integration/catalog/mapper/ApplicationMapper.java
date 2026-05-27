@@ -91,6 +91,7 @@ public class ApplicationMapper {
                     String framework = null;
                     String connectorDisplayName = null;
                     String downloadLink = null;
+                    String errorMessage = null;
                     if (!method.getConnectors().isEmpty()) {
                         IntegrationMethodConnector link = method.getConnectors().get(0);
                         if (link.getConnector() != null) {
@@ -110,6 +111,11 @@ public class ApplicationMapper {
                                     .filter(cv -> cv.getConnectorBundleVersion() != null
                                             && cv.getConnectorBundleVersion().getBrowseLink() != null)
                                     .map(cv -> cv.getConnectorBundleVersion().getBrowseLink())
+                                    .findFirst().orElse(null);
+                            errorMessage = link.getConnector().getConnectorVersions().stream()
+                                    .map(ConnectorVersion::getConnectorBundleVersion)
+                                    .filter(cbv -> cbv != null && cbv.getErrorMessage() != null)
+                                    .map(ConnectorBundleVersion::getErrorMessage)
                                     .findFirst().orElse(null);
                         }
                     }
@@ -154,7 +160,7 @@ public class ApplicationMapper {
                             lifecycleState,
                             downloadLink,
                             framework,
-                            null,           // errorMessage
+                            errorMessage,
                             downloadCount,
                             method.getMidpointMinVersionId(),
                             method.getMidpointMaxVersionId(),

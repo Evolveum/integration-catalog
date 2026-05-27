@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -589,6 +590,88 @@ class ControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+    }
+
+    // ===== GET /api/connectors/catalog =====
+
+    @Test
+    void getCatalogConnectorsShouldReturnList() throws Exception {
+        CatalogConnectorDto dto = new CatalogConnectorDto(
+                1,
+                "LDAP Connector",
+                "LDAP connector for directory services",
+                "1.0.0",
+                "Polygon LDAP",
+                "Evolveum",
+                "APACHE_2",
+                "MAVEN",
+                "JAVA_BASED",
+                "https://github.com/Evolveum/connector-ldap",
+                "https://github.com/Evolveum/connector-ldap.git",
+                null,
+                "com.evolveum.polygon.connector.ldap.LdapConnector"
+        );
+        when(applicationService.listCatalogConnectors()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/connectors/catalog"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].displayName").value("LDAP Connector"))
+                .andExpect(jsonPath("$[0].bundleFramework").value("JAVA_BASED"));
+
+        verify(applicationService).listCatalogConnectors();
+    }
+
+    @Test
+    void getCatalogConnectorsShouldReturnEmptyListWhenNoneActive() throws Exception {
+        when(applicationService.listCatalogConnectors()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/api/connectors/catalog"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        verify(applicationService).listCatalogConnectors();
+    }
+
+    // ===== POST /api/upload/connector =====
+
+    @Test
+    void uploadConnectorShouldReturnOkWhenSuccessful() throws Exception {
+        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+                .thenReturn("app-uuid|method-uuid");
+
+        mockMvc.perform(post("/api/upload/connector")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
+
+        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+    }
+
+    @Test
+    void uploadConnectorShouldReturnBadRequestOnIllegalArgument() throws Exception {
+        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+                .thenThrow(new IllegalArgumentException("Framework must be specified"));
+
+        mockMvc.perform(post("/api/upload/connector")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+    }
+
+    @Test
+    void uploadConnectorShouldReturnConflictOnDuplicateBundle() throws Exception {
+        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
+
+        mockMvc.perform(post("/api/upload/connector")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isConflict());
+
+        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
     }
 
     // ===== GET /api/connectors/active =====

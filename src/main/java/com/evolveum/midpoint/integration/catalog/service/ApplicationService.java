@@ -31,7 +31,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Created by Dominik.
@@ -153,11 +155,6 @@ public class ApplicationService {
         return countryOfOriginRepository.findAll();
     }
 
-    public boolean checkVersionExists(String bundleVersion) {
-        if (bundleVersion == null || bundleVersion.isEmpty()) return false;
-        return connectorBundleVersionRepository.existsByBundleVersion(bundleVersion);
-    }
-
     public boolean checkBundleNameExists(String bundleName) {
         if (bundleName == null || bundleName.isBlank()) return false;
         return connectorBundleRepository.existsByBundleName(bundleName);
@@ -166,7 +163,7 @@ public class ApplicationService {
     public List<CapabilityDto> getCapabilities() {
         return capabilityRepository.findAll().stream()
                 .sorted(java.util.Comparator.comparingInt(c -> c.getDisplayOrder() != null ? c.getDisplayOrder() : 0))
-                .map(c -> new CapabilityDto(c.getName(), c.getGlobality()))
+                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder()))
                 .toList();
     }
 
@@ -311,26 +308,36 @@ public class ApplicationService {
     }
 
     public List<CatalogConnectorDto> listCatalogConnectors() {
+        Set<Integer> activeConnectorIds = integrationMethodRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .flatMap(m -> m.getConnectors().stream())
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .map(Connector::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
         return connectorBundleRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
                 .flatMap(bundle -> {
                     ConnectorBundleVersion latest = bundle.getBundleVersions().stream()
                             .max(java.util.Comparator.comparingInt(ConnectorBundleVersion::getId))
                             .orElse(null);
-                    return bundle.getConnectors().stream().map(connector -> new CatalogConnectorDto(
-                            bundle.getId(),
-                            connector.getDisplayName(),
-                            connector.getDescription(),
-                            connector.getRevision(),
-                            bundle.getDisplayName(),
-                            connector.getMaintainer(),
-                            bundle.getLicense() != null ? bundle.getLicense().name() : null,
-                            bundle.getBuildFramework() != null ? bundle.getBuildFramework().name() : null,
-                            bundle.getFramework() != null ? bundle.getFramework().name() : null,
-                            latest != null ? latest.getBrowseLink() : null,
-                            latest != null ? latest.getGitCloneUrl() : bundle.getGitCloneUrl(),
-                            latest != null ? latest.getPathToProject() : bundle.getPathToProject(),
-                            connector.getFullyQualifiedClassName()
-                    ));
+                    return bundle.getConnectors().stream()
+                            .filter(c -> activeConnectorIds.contains(c.getId()))
+                            .map(connector -> new CatalogConnectorDto(
+                                    bundle.getId(),
+                                    connector.getDisplayName(),
+                                    connector.getDescription(),
+                                    connector.getRevision(),
+                                    bundle.getDisplayName(),
+                                    connector.getMaintainer(),
+                                    bundle.getLicense() != null ? bundle.getLicense().name() : null,
+                                    bundle.getBuildFramework() != null ? bundle.getBuildFramework().name() : null,
+                                    bundle.getFramework() != null ? bundle.getFramework().name() : null,
+                                    latest != null ? latest.getBrowseLink() : null,
+                                    latest != null ? latest.getGitCloneUrl() : bundle.getGitCloneUrl(),
+                                    latest != null ? latest.getPathToProject() : bundle.getPathToProject(),
+                                    connector.getFullyQualifiedClassName()
+                            ));
                 })
                 .toList();
     }

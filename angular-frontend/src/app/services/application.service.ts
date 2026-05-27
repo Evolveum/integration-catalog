@@ -52,8 +52,8 @@ export class ApplicationService {
     return this.http.post<void>(`${environment.apiUrl}/requests`, request);
   }
 
-  getCapabilities(): Observable<{ name: string; globality: string }[]> {
-    return this.http.get<{ name: string; globality: string }[]>(`${environment.apiUrl}/capabilities`);
+  getCapabilities(): Observable<{ name: string; globality: string; displayOrder: number | null }[]> {
+    return this.http.get<{ name: string; globality: string; displayOrder: number | null }[]>(`${environment.apiUrl}/capabilities`);
   }
 
   getImplementationsByApplicationId(applicationId: string): Observable<ImplementationListItem[]> {

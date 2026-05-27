@@ -342,6 +342,26 @@
   background-color: $color-bg-selected;
 }
 
+.connector-option-card-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.connector-coming-soon-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: #e9ecef;
+  color: #6c757d;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
 .radio-input {
   width: 20px;
   height: 20px;
