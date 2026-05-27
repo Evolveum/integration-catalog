@@ -246,7 +246,7 @@ INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision,
     (2, 1, '1.0', 'Group'),
     (3, 1, '1.0', 'Global');
 
-SELECT setval('conn_version_capability_id_seq', 2);
+SELECT setval('conn_version_capability_id_seq', 3);
 
 INSERT INTO conn_version_capability_item (conn_version_capability_id, capability_id) VALUES
     -- Account: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
