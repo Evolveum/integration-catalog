@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Output, EventEmitter, signal, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 
@@ -21,6 +21,7 @@ export interface CapabilityGroup {
   styleUrls: ['./capability-picker.scss']
 })
 export class CapabilityPicker implements OnInit {
+  @Input() initialGroups: CapabilityGroup[] = [];
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
 
   protected readonly isLoading         = signal<boolean>(false);
@@ -32,14 +33,38 @@ export class CapabilityPicker implements OnInit {
     [{ objectClass: '', capabilities: [], isOpen: false }]
   );
 
-  constructor(private applicationService: ApplicationService) {}
+  constructor(private applicationService: ApplicationService, private el: ElementRef) {}
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.el.nativeElement.contains(event.target as Node)) {
+      this.isGlobalOpen.set(false);
+      this.entries.update(es => es.map(e => ({ ...e, isOpen: false })));
+    }
+  }
 
   ngOnInit(): void {
+    if (this.initialGroups.length > 0) {
+      const globalGroup = this.initialGroups.find(g => g.objectClass === 'Global');
+      if (globalGroup) {
+        this.globalCaps.set(globalGroup.capabilityNames);
+      }
+      const specificGroups = this.initialGroups.filter(g => g.objectClass !== 'Global');
+      if (specificGroups.length > 0) {
+        this.entries.set(specificGroups.map(g => ({
+          objectClass: g.objectClass,
+          capabilities: g.capabilityNames,
+          isOpen: false
+        })));
+      }
+    }
     this.isLoading.set(true);
     this.applicationService.getCapabilities().subscribe({
       next: (caps) => {
-        this.globalAvailable.set(caps.filter(c => c.globality === 'GLOBAL').map(c => c.name));
-        this.specificAvailable.set(caps.filter(c => c.globality === 'SPECIFIC').map(c => c.name));
+        const byOrder = (a: { displayOrder: number | null }, b: { displayOrder: number | null }) =>
+          (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+        this.globalAvailable.set(caps.filter(c => c.globality === 'GLOBAL').sort(byOrder).map(c => c.name));
+        this.specificAvailable.set(caps.filter(c => c.globality === 'SPECIFIC').sort(byOrder).map(c => c.name));
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)

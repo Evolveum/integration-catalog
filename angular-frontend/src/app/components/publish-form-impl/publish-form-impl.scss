@@ -630,6 +630,11 @@
     color: $color-text-secondary;
     vertical-align: middle;
   }
+
+  th:last-child,
+  td:last-child {
+    text-align: right;
+  }
 }
 
 .publish-status-badge {
@@ -750,4 +755,5 @@
 .compat-info-icon {
   font-size: 14px;
   color: $text-publishing-blue;
+  align-self: center;
 }

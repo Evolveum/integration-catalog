@@ -124,13 +124,6 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Check if connector version exists", description = "Returns true if the specified version already exists in the catalog")
-    @GetMapping("/upload/check-version")
-    public ResponseEntity<Boolean> checkVersionExists(@RequestParam String version) {
-        boolean exists = applicationService.checkVersionExists(version);
-        return ResponseEntity.ok(exists);
-    }
-
     @Operation(summary = "Check if connector bundle name exists", description = "Returns true if the specified bundle name is already taken")
     @GetMapping("/upload/check-bundle-name")
     public ResponseEntity<Boolean> checkBundleNameExists(@RequestParam String bundleName) {
@@ -147,6 +140,11 @@ public class Controller {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, username));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Publish failed due to a data conflict (e.g. duplicate bundle version). " +
+                "Please ensure the database migration 03_fix_bundle_version_unique_constraint.sql has been applied. " +
+                "Details: " + e.getMostSpecificCause().getMessage());
         }
     }
 
