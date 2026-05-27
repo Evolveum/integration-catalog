@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Output, EventEmitter, signal, OnInit, HostListener, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 
@@ -21,6 +21,7 @@ export interface CapabilityGroup {
   styleUrls: ['./capability-picker.scss']
 })
 export class CapabilityPicker implements OnInit {
+  @Input() initialGroups: CapabilityGroup[] = [];
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
 
   protected readonly isLoading         = signal<boolean>(false);
@@ -43,6 +44,20 @@ export class CapabilityPicker implements OnInit {
   }
 
   ngOnInit(): void {
+    if (this.initialGroups.length > 0) {
+      const globalGroup = this.initialGroups.find(g => g.objectClass === 'Global');
+      if (globalGroup) {
+        this.globalCaps.set(globalGroup.capabilityNames);
+      }
+      const specificGroups = this.initialGroups.filter(g => g.objectClass !== 'Global');
+      if (specificGroups.length > 0) {
+        this.entries.set(specificGroups.map(g => ({
+          objectClass: g.objectClass,
+          capabilities: g.capabilityNames,
+          isOpen: false
+        })));
+      }
+    }
     this.isLoading.set(true);
     this.applicationService.getCapabilities().subscribe({
       next: (caps) => {
