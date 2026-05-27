@@ -25,6 +25,8 @@ public interface IntegrationMethodRepository extends JpaRepository<IntegrationMe
 
     List<IntegrationMethod> findByApplicationIdAndLifecycleState(UUID applicationId, LifecycleType lifecycleState);
 
+    List<IntegrationMethod> findByLifecycleState(LifecycleType lifecycleState);
+
     @Query("SELECT m FROM IntegrationMethod m WHERE m.id = :id")
     Optional<IntegrationMethod> findByUuid(@Param("id") UUID id);
 }

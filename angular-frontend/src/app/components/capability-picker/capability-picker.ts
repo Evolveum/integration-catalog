@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Output, EventEmitter, signal, OnInit } from '@angular/core';
+import { Component, Output, EventEmitter, signal, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 
@@ -32,14 +32,24 @@ export class CapabilityPicker implements OnInit {
     [{ objectClass: '', capabilities: [], isOpen: false }]
   );
 
-  constructor(private applicationService: ApplicationService) {}
+  constructor(private applicationService: ApplicationService, private el: ElementRef) {}
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.el.nativeElement.contains(event.target as Node)) {
+      this.isGlobalOpen.set(false);
+      this.entries.update(es => es.map(e => ({ ...e, isOpen: false })));
+    }
+  }
 
   ngOnInit(): void {
     this.isLoading.set(true);
     this.applicationService.getCapabilities().subscribe({
       next: (caps) => {
-        this.globalAvailable.set(caps.filter(c => c.globality === 'GLOBAL').map(c => c.name));
-        this.specificAvailable.set(caps.filter(c => c.globality === 'SPECIFIC').map(c => c.name));
+        const byOrder = (a: { displayOrder: number | null }, b: { displayOrder: number | null }) =>
+          (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+        this.globalAvailable.set(caps.filter(c => c.globality === 'GLOBAL').sort(byOrder).map(c => c.name));
+        this.specificAvailable.set(caps.filter(c => c.globality === 'SPECIFIC').sort(byOrder).map(c => c.name));
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)

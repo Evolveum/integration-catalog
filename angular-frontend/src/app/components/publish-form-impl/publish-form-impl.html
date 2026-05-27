@@ -32,8 +32,8 @@
     <h4 class="publish-complete-title">Your integration method is awaiting approval</h4>
     <p class="publish-complete-subtitle">
       Our team will process your integration method promptly and expects to get back to you
-      <strong>within 1-2 weeks</strong>. If you have questions, please contact us at
-      <a href="#" class="publish-email-link" (click)="$event.preventDefault(); copyEmailToClipboard()">help&#64;evolveum.com</a>.
+      <strong>within 1-4 weeks</strong>. If you have questions, please contact us at
+      <a href="mailto:help&#64;evolveum.com" class="publish-email-link">help&#64;evolveum.com</a>.
     </p>
 
     <table class="publish-complete-table">
@@ -41,7 +41,6 @@
         <tr>
           <th>Created on</th>
           <th>Status</th>
-          <th>Support portal</th>
           <th>Details</th>
         </tr>
       </thead>
@@ -49,13 +48,6 @@
         <tr>
           <td>{{ publishCreatedOn() | date:'MMMM d, yyyy' }}</td>
           <td><span class="publish-status-badge">Awaiting approval</span></td>
-          <td>
-            @if (devSupportPortal()) {
-              <i class="fa-solid fa-link me-1 publish-link-icon"></i>{{ devSupportPortal() }}
-            } @else {
-              <span class="text-muted">—</span>
-            }
-          </td>
           <td>
             <button type="button" class="btn publish-app-detail-btn btn-sm" (click)="cancelPublish()">Cancel</button>
           </td>
@@ -119,7 +111,7 @@
                     Connector version@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                       <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">Version of this connector (e.g. 1.0.0). Only numbers and dots allowed.</span>
+                      <span class="info-tooltip">Version of this connector (e.g. 1.0.0). Must contain at least two dots.</span>
                     </span>
                   </label>
                   <input type="text"
@@ -130,6 +122,9 @@
                          (blur)="onConnectorVersionBlur($event)"
                          [disabled]="isExistingConnector"
                          placeholder="e.g. 1.0.0">
+                  @if (isConnectorVersionInvalid() && !isExistingConnector) {
+                    <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
+                  }
                 </div>
               </div>
 
@@ -176,14 +171,14 @@
                        (blur)="onLicenseBlur()"
                        (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
                        (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
-                    {{ connectorLicense() || 'Select license' }}
+                    {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
                   @if (isLicenseDropdownOpen()) {
                     <div class="license-dropdown">
                       @for (opt of licenseOptions; track opt) {
                         <div class="license-option"
                              [class.license-option-selected]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ opt }}</div>
+                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
                       }
                     </div>
                   }
@@ -426,8 +421,7 @@
                     <span class="info-tooltip"><strong>Version identifier of the source code.</strong><br><br>Enter a specific release tag (e.g., 1.0.4) to build a stable version of the connector. If needed, you can also enter a development branch name to build from the latest code.</span>
                   </span>
                 </label>
-                <div class="method-link-wrapper d-flex align-items-center"
-                     [class.method-link-wrapper--invalid]="isCommitTagInvalid() && !isExistingConnector">
+                <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-tag method-link-icon-i"></i></span>
                   <input type="text" class="method-link-input flex-grow-1"
                          [value]="devCommitTag()"
@@ -435,9 +429,6 @@
                          [disabled]="isExistingConnector"
                          placeholder="e.g. 1.0.4">
                 </div>
-                @if (isCommitTagInvalid() && !isExistingConnector) {
-                  <div class="field-error">Invalid format. Only numbers and dots are allowed (e.g., 1.0.4).</div>
-                }
               </div>
 
               <!-- Implementation details -->
@@ -494,16 +485,14 @@
         </div>
 
         <!-- Note alert -->
-        <div class="alert-info-note d-flex gap-2 align-items-start mt-2">
-          <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
-          <span class="alert-text">
-            @if (isExistingConnector) {
+        @if (isExistingConnector) {
+          <div class="alert-info-note d-flex gap-2 align-items-start mt-2">
+            <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+            <span class="alert-text">
               <strong>Note</strong> &nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
-            } @else {
-              <strong>Note</strong> &nbsp;Once published, this integration method will appear in the public catalog and be visible to other users.
-            }
-          </span>
-        </div>
+            </span>
+          </div>
+        }
       </div>
     }
 
@@ -597,9 +586,9 @@
               </div>
             </div>
             <div class="form-text mb-3">Use three numbers separated by dots. This value is indexed and searchable — users can filter connectors by version range.</div>
-            <div class="compat-info-note d-flex gap-2 align-items-start">
-              <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0 mt-1"></i>
-              <span>Do not specify a "To version" if you expect the connector to be compatible with future releases.</span>
+            <div class="compat-info-note d-flex gap-2 align-items-center">
+              <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0"></i>
+              <span>Do not specify a "To version" if you expect your integration method will be compatible with future releases of the connector.</span>
             </div>
           </div>
         </div>
@@ -652,9 +641,6 @@
             </div>
             <div class="d-flex align-items-center gap-2 mb-1">
               <span class="review-detail-name">{{ reviewSummary?.methodName }}</span>
-              @if (reviewSummary?.methodVersion) {
-                <span class="review-version-badge">{{ reviewSummary!.methodVersion }}</span>
-              }
             </div>
             <p class="review-description mb-0">Integration method description: {{ reviewSummary?.methodDescription }}</p>
           </div>
@@ -765,6 +751,14 @@
               </div>
             }
           </div>
+        </div>
+
+        <!-- Note alert -->
+        <div class="alert-info-note d-flex gap-2 align-items-start mt-3">
+          <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+          <span class="alert-text">
+            <strong>Note</strong> &nbsp;Once published, this integration method will appear in the public catalog and be visible to other users.
+          </span>
         </div>
       </div>
     }

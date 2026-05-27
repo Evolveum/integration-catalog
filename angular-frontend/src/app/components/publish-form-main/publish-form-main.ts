@@ -54,7 +54,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   // Step 3 – method-specific form fields
   protected readonly methodFormDisplayName = signal<string>('');
-  protected readonly methodFormVersion     = signal<string>('');
+  protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
   protected readonly methodFormTutorial    = signal<string>('');
   protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
@@ -110,6 +110,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly selectedIntegrationMethod = signal<string[]>([]);
   protected readonly childInternalStep = signal<number>(5);
   protected readonly childConnectorName = signal<string>('');
+  protected readonly childMidpointLabel = signal<string>('');
   protected readonly effectiveStep = computed(() =>
     this.currentStep() >= 5 ? this.childInternalStep() : this.currentStep()
   );
@@ -422,6 +423,10 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   protected handleFormDataChanged(data: Step5FormData): void {
     this.childConnectorName.set(data.connectorName);
+  }
+
+  protected handleCompatibilityLabelChange(label: string): void {
+    this.childMidpointLabel.set(label);
   }
 
   protected onMethodVersionInput(event: Event): void {

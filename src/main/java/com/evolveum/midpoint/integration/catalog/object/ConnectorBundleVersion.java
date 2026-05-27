@@ -86,6 +86,9 @@ public class ConnectorBundleVersion implements Persistable<Integer> {
     @Column(name = "commit_tag")
     private String commitTag;
 
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+
     @OneToMany(mappedBy = "connectorBundleVersion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnectorVersion> connectorVersions = new ArrayList<>();
 

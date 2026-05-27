@@ -76,6 +76,9 @@ public class ConnectorVersion implements Persistable<Integer> {
     @Column(name = "fully_qualified_class_name")
     private String fullyQualifiedClassName;
 
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+
     @OneToMany(mappedBy = "connectorVersion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnVersionCapability> capabilities = new ArrayList<>();
 }

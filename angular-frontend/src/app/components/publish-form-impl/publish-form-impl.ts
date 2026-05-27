@@ -69,6 +69,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   @Input() connectorType = '';
   @Input() selectedCatalogConnector: CatalogConnector | null = null;
   @Input() reviewSummary: ReviewSummary | null = null;
+  @Input() currentParentStep: number = 0;
 
   @ViewChild(CapabilityPicker) private capabilityPicker?: CapabilityPicker;
 
@@ -76,13 +77,14 @@ export class PublishFormImpl implements OnInit, OnChanges {
   @Output() formDataChanged = new EventEmitter<Step5FormData>();
   @Output() goToParentStep = new EventEmitter<number>();
   @Output() internalStepChange = new EventEmitter<number>();
+  @Output() compatibilityLabelChange = new EventEmitter<string>();
 
   // Internal step: 5 = Add connector, 6 = Compatibility settings, 7 = Review
   protected readonly internalStep = signal<5 | 6 | 7>(5);
 
   // Accordion state
-  protected readonly basicInfoExpanded = signal<boolean>(false);
-  protected readonly devBuildExpanded = signal<boolean>(false);
+  protected readonly basicInfoExpanded = signal<boolean>(true);
+  protected readonly devBuildExpanded = signal<boolean>(true);
 
   // Basic info
   protected readonly connectorName = signal<string>('');
@@ -103,6 +105,15 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly connectorBundleName = signal<string>('');
   protected readonly bundleNameTaken = signal<boolean>(false);
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
+  protected readonly licenseLabels: Record<string, string> = {
+    'MIT': 'MIT',
+    'APACHE_2': 'Apache 2.0',
+    'BSD': 'BSD',
+    'EUPL': 'EUPL 1.2'
+  };
+  protected fmtLicense(key: string): string {
+    return this.licenseLabels[key] ?? key;
+  }
 
   // Connector capabilities (from CapabilityPicker child)
   protected readonly connectorCapabilities = signal<CapabilityGroup[]>([]);
@@ -168,14 +179,23 @@ export class PublishFormImpl implements OnInit, OnChanges {
     return maxIndex < minIndex;
   });
 
+  protected readonly midpointCompatLabel = computed(() => {
+    const minLabel = this.getMidpointVersionLabel(this.midpointMinVersionId());
+    if (!minLabel) return '';
+    const maxLabel = this.getMidpointVersionLabel(this.midpointMaxVersionId());
+    return maxLabel ? `${minLabel} – ${maxLabel}` : `${minLabel}+`;
+  });
+
+  protected readonly isConnectorVersionInvalid = computed(() => {
+    if (this.isExistingConnector) return false;
+    const v = this.connectorVersion().trim();
+    if (!v) return false;
+    return (v.match(/\./g) ?? []).length < 2;
+  });
+
   protected readonly isGitCloneUrlInvalid = computed(() => {
     const url = this.devGitCloneUrl();
     return !!url && !url.trim().endsWith('.git');
-  });
-
-  protected readonly isCommitTagInvalid = computed(() => {
-    const tag = this.devCommitTag().trim();
-    return !!tag && !/^[\d.]+$/.test(tag);
   });
 
   protected readonly isClassNameInvalid = computed(() => {
@@ -188,11 +208,11 @@ export class PublishFormImpl implements OnInit, OnChanges {
     if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
     if (this.isExistingConnector) return true;
     if (!this.connectorVersion().trim()) return false;
+    if (this.isConnectorVersionInvalid()) return false;
     if (this.bundleNameTaken()) return false;
     if (this.connectorType !== 'evolveum-hosted') {
       if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
       if (this.isGitCloneUrlInvalid()) return false;
-      if (this.isCommitTagInvalid()) return false;
     }
     if (this.connectorType === 'java-based') {
       if (!this.devBuildTool() || !this.devClassName().trim()) return false;
@@ -243,6 +263,14 @@ export class PublishFormImpl implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['currentParentStep']) {
+      const prev = changes['currentParentStep'].previousValue as number;
+      const curr = changes['currentParentStep'].currentValue as number;
+      if (prev >= 5 && curr < 5) {
+        this.internalStep.set(5);
+        this.internalStepChange.emit(5);
+      }
+    }
     if (changes['connectorType'] && !changes['connectorType'].firstChange) {
       this.resetFields();
       this.internalStep.set(5);
@@ -268,6 +296,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
       this.internalStep.set(6);
       this.internalStepChange.emit(6);
     } else if (this.internalStep() === 6) {
+      this.compatibilityLabelChange.emit(this.midpointCompatLabel());
       this.internalStep.set(7);
       this.internalStepChange.emit(7);
     }
@@ -366,7 +395,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
         displayName: this.connectorName(),
         description: this.connectorDescription(),
         maintainer: this.connectorMaintainer(),
-        framework: this.mapConnectorTypeToFramework(this.connectorType),
+        framework: this.isExistingConnector
+            ? (this.selectedCatalogConnector?.bundleFramework ?? 'JAVA_BASED')
+            : this.mapConnectorTypeToFramework(this.connectorType),
         license: this.connectorLicense() || null,
         ticketingSystemLink: this.devSupportPortal() || null,
         browseLink: this.devProjectHomepage() || null,

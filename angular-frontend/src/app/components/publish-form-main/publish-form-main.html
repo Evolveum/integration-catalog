@@ -240,13 +240,16 @@
                 <span class="step-sublabel">{{ selectedMethodsLabel() }}</span>
               }
               @if ($index === 2 && effectiveStep() > 3 && methodFormDisplayName()) {
-                <span class="step-sublabel">{{ methodFormDisplayName() }}{{ methodFormVersion() ? ' + ' + methodFormVersion() : '' }}</span>
+                <span class="step-sublabel">{{ methodFormDisplayName() }}</span>
               }
               @if ($index === 3 && effectiveStep() > 4 && connectorTypeLabel()) {
                 <span class="step-sublabel">{{ connectorTypeLabel() }}</span>
               }
               @if ($index === 4 && effectiveStep() > 5 && childConnectorName()) {
                 <span class="step-sublabel">{{ childConnectorName() }}</span>
+              }
+              @if ($index === 5 && effectiveStep() > 6 && childMidpointLabel()) {
+                <span class="step-sublabel">{{ childMidpointLabel() }}</span>
               }
             </div>
           </div>
@@ -317,7 +320,7 @@
                           <span class="info-tooltip">Version of this integration method (e.g. 1.0.0). Only numbers and dots allowed.</span>
                         </span>
                       </label>
-                      <input type="text" class="form-control" [value]="methodFormVersion()" (input)="onMethodVersionInput($event)" (blur)="onMethodVersionBlur($event)" placeholder="e.g. 1.0.0">
+                      <input type="text" class="form-control input-disabled" [value]="methodFormVersion()" disabled placeholder="e.g. 1.0.0">
                     </div>
                   </div>
 
@@ -427,16 +430,16 @@
                     </div>
                   </div>
 
-                  <!-- Option 3: Low-code without repository -->
-                  <div class="connector-option mb-3 connector-option-card"
-                       [class.selected]="selectedConnectorType() === 'evolveum-hosted'"
-                       (click)="selectConnectorType('evolveum-hosted')">
+                  <!-- Option 3: Low-code without repository (disabled until GitHub hosting is ready) -->
+                  <div class="connector-option mb-3 connector-option-card connector-option-card-disabled">
                     <div class="d-flex align-items-center">
-                      <input type="radio" name="connectorType"
-                             [checked]="selectedConnectorType() === 'evolveum-hosted'"
+                      <input type="radio" name="connectorType" disabled
                              class="form-check-input me-3 flex-shrink-0 radio-input">
                       <div class="flex-grow-1">
-                        <div class="connector-title mb-1">Low-code connector without repository</div>
+                        <div class="connector-title mb-1">
+                          Low-code connector without repository
+                          <span class="connector-coming-soon-badge">Coming soon</span>
+                        </div>
                         <div class="connector-description">
                           Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
                         </div>
@@ -598,17 +601,18 @@
             </div><!-- end footer -->
           }<!-- end @if (currentStep() < 5) -->
 
-          <!-- Steps 5–7: delegated to child component -->
-          @if (currentStep() >= 5) {
-            <app-publish-form-impl
-              [connectorType]="selectedConnectorType()"
-              [selectedCatalogConnector]="selectedCatalogConnector()"
-              [reviewSummary]="reviewSummary()"
-              (goToParentStep)="handleGoToParentStep($event)"
-              (internalStepChange)="handleChildInternalStepChange($event)"
-              (formDataChanged)="handleFormDataChanged($event)">
-            </app-publish-form-impl>
-          }
+          <!-- Steps 5–7: delegated to child component (kept alive to preserve filled values) -->
+          <app-publish-form-impl
+            [hidden]="currentStep() < 5"
+            [connectorType]="selectedConnectorType()"
+            [selectedCatalogConnector]="selectedCatalogConnector()"
+            [reviewSummary]="reviewSummary()"
+            [currentParentStep]="currentStep()"
+            (goToParentStep)="handleGoToParentStep($event)"
+            (internalStepChange)="handleChildInternalStepChange($event)"
+            (formDataChanged)="handleFormDataChanged($event)"
+            (compatibilityLabelChange)="handleCompatibilityLabelChange($event)">
+          </app-publish-form-impl>
 
         </div><!-- end modal-main-left -->
       </div><!-- end modal-main -->
