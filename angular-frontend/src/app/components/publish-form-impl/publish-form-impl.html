@@ -220,7 +220,7 @@
               <!-- Connector capabilities -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Define capabilities for:</label>
-                <app-capability-picker [initialGroups]="connectorCapabilities()" (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
+                <app-capability-picker [initialCapabilities]="connectorCapabilities()" (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
               </div>
 
             </div>

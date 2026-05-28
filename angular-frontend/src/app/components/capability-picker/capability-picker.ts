@@ -4,7 +4,6 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Input, Output, EventEmitter, signal, OnInit, HostListener, ElementRef } from '@angular/core';
 import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
@@ -21,8 +20,6 @@ export interface CapabilityGroup {
   templateUrl: './capability-picker.html',
   styleUrls: ['./capability-picker.scss']
 })
-export class CapabilityPicker implements OnInit {
-  @Input() initialGroups: CapabilityGroup[] = [];
 export class CapabilityPicker implements OnInit, OnChanges {
   @Input() initialCapabilities: CapabilityGroup[] = [];
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
@@ -45,30 +42,10 @@ export class CapabilityPicker implements OnInit, OnChanges {
       this.entries.update(es => es.map(e => ({ ...e, isOpen: false })));
     }
   }
-  constructor(private applicationService: ApplicationService, private el: ElementRef) {}
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    if (!this.el.nativeElement.contains(event.target as Node)) {
-      this.isGlobalOpen.set(false);
-      this.entries.update(es => es.map(e => ({ ...e, isOpen: false })));
-    }
-  }
 
   ngOnInit(): void {
-    if (this.initialGroups.length > 0) {
-      const globalGroup = this.initialGroups.find(g => g.objectClass === 'Global');
-      if (globalGroup) {
-        this.globalCaps.set(globalGroup.capabilityNames);
-      }
-      const specificGroups = this.initialGroups.filter(g => g.objectClass !== 'Global');
-      if (specificGroups.length > 0) {
-        this.entries.set(specificGroups.map(g => ({
-          objectClass: g.objectClass,
-          capabilities: g.capabilityNames,
-          isOpen: false
-        })));
-      }
+    if (this.initialCapabilities.length > 0) {
+      this.applyInitialCapabilities();
     }
     this.isLoading.set(true);
     this.applicationService.getCapabilities().subscribe({
@@ -124,7 +101,6 @@ export class CapabilityPicker implements OnInit, OnChanges {
     return cap.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  // Global caps
   protected onGlobalChange(event: Event, cap: string): void {
     const checked = (event.target as HTMLInputElement).checked;
     this.globalCaps.update(cs => checked ? [...cs, cap] : cs.filter(c => c !== cap));
@@ -137,7 +113,6 @@ export class CapabilityPicker implements OnInit, OnChanges {
     this.emit();
   }
 
-  // Object class entries
   protected addEntry(): void {
     this.entries.update(es => [...es, { objectClass: '', capabilities: [], isOpen: false }]);
   }
