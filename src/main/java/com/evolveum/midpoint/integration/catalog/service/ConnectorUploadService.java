@@ -9,7 +9,9 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.dto.AddConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
+import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
@@ -34,6 +36,7 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -455,6 +458,149 @@ public class ConnectorUploadService {
         return newRevision;
     }
 
+    @Transactional
+    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+                                                AddConnectorDto dto, String username) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        Connector connector;
+        String connectorMinVersion;
+
+        if (dto.existingConnectorId() != null) {
+            connector = connectorRepository.findById(dto.existingConnectorId())
+                    .orElseThrow(() -> new RuntimeException("Connector not found: " + dto.existingConnectorId()));
+            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), connector.getRevision(), "1.0.0");
+        } else {
+            UploadConnectorDto connDto = new UploadConnectorDto(
+                    dto.displayName(), dto.framework(), dto.version(), dto.bundleName(), dto.license(),
+                    dto.buildFramework(), dto.description(), dto.maintainer(), dto.browseLink(),
+                    null, dto.gitCloneUrl(), dto.className(), dto.pathToProject(), dto.commitTag(),
+                    dto.displayName(), null);
+
+            ConnectorBundle bundle = createNewConnectorBundle(connDto, username);
+            connectorBundleRepository.save(bundle);
+
+            ConnectorBundleVersion bundleVersion = createBundleVersion(connDto, bundle, username);
+            connectorBundleVersionRepository.save(bundleVersion);
+
+            connector = new Connector();
+            connector.setDisplayName(dto.displayName());
+            connector.setRevision(dto.version() != null ? dto.version() : "1.0.0");
+            connector.setAuthor(username);
+            connector.setMaintainer(dto.maintainer());
+            connector.setDescription(dto.description());
+            connector.setFullyQualifiedClassName(dto.className());
+            connector.setConnectorBundle(bundle);
+            connectorRepository.save(connector);
+
+            ConnectorVersion connectorVersion = createConnectorVersion(connDto, connector, bundleVersion, username);
+            connectorVersionRepository.save(connectorVersion);
+
+            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), connectorVersion.getRevision(), "1.0.0");
+            saveConnectorVersionCapabilities(dto.connectorCapabilities(), connectorVersion);
+        }
+
+        if (dto.midpointMinVersion() != null) method.setMidpointMinVersionId(dto.midpointMinVersion());
+        if (dto.midpointMaxVersion() != null) method.setMidpointMaxVersionId(dto.midpointMaxVersion());
+
+        // Append a new connector link, leaving any existing connectors on this integration
+        // method revision untouched (a method revision may hold multiple connectors).
+        IntegrationMethodConnector imc = new IntegrationMethodConnector();
+        imc.setConnector(connector);
+        imc.setConnectorMinVersion(connectorMinVersion);
+        imc.setConnectorMaxVersion(emptyToNull(dto.connectorVersionTo()));
+        imc.setIntegrationMethod(method);
+        method.getConnectors().add(imc);
+
+        integrationMethodRepository.save(method);
+    }
+
+    /**
+     * Updates an existing connector (and its bundle / latest version) in place, replacing the
+     * fields edited via the "Edit connector" modal. The connector must be linked to the given
+     * integration method revision.
+     */
+    @Transactional
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        Connector connector = method.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .filter(c -> connectorId.equals(c.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+
+        // Connector
+        connector.setDisplayName(dto.displayName());
+        connector.setMaintainer(dto.maintainer());
+        connector.setDescription(dto.description());
+        connector.setFullyQualifiedClassName(dto.className());
+
+        // Connector bundle
+        ConnectorBundle bundle = connector.getConnectorBundle();
+        if (bundle != null) {
+            bundle.setDisplayName(dto.displayName());
+            bundle.setDescription(dto.description());
+            bundle.setMaintainer(dto.maintainer());
+            if (dto.license() != null) bundle.setLicense(dto.license());
+            if (dto.bundleName() != null && !dto.bundleName().isBlank()) bundle.setBundleName(dto.bundleName());
+            bundle.setTicketingLink(dto.supportPortal());
+            bundle.setProjectHomepage(dto.browseLink());
+            bundle.setGitCloneUrl(dto.gitCloneUrl());
+            bundle.setPathToProject(dto.pathToProject());
+            if (dto.buildFramework() != null) bundle.setBuildFramework(dto.buildFramework());
+            connectorBundleRepository.save(bundle);
+        }
+
+        // Latest connector version + its bundle version
+        Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getConnectorBundleVersion() != null)
+                .findFirst();
+        if (latestCv.isPresent()) {
+            ConnectorVersion cv = latestCv.get();
+            cv.setMaintainer(dto.maintainer());
+            cv.setFullyQualifiedClassName(dto.className());
+
+            ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+            cbv.setBrowseLink(dto.browseLink());
+            cbv.setGitCloneUrl(dto.gitCloneUrl());
+            cbv.setPathToProject(dto.pathToProject());
+            cbv.setCommitTag(dto.commitTag());
+            if (dto.buildFramework() != null) cbv.setBuildFramework(dto.buildFramework());
+            connectorBundleVersionRepository.save(cbv);
+            connectorVersionRepository.save(cv);
+
+            replaceConnectorVersionCapabilities(cv, dto.connectorCapabilities());
+        }
+
+        connectorRepository.save(connector);
+    }
+
+    private void replaceConnectorVersionCapabilities(ConnectorVersion connectorVersion,
+                                                     List<IntegrationMethodCapabilityGroupDto> groups) {
+        // Remove existing capabilities (items cascade away via orphanRemoval)
+        if (connectorVersion.getCapabilities() != null && !connectorVersion.getCapabilities().isEmpty()) {
+            connVersionCapabilityRepository.deleteAll(connectorVersion.getCapabilities());
+            connectorVersion.getCapabilities().clear();
+        }
+        saveConnectorVersionCapabilities(groups, connectorVersion);
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v;
+        }
+        return null;
+    }
+
+    private static String emptyToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
+    }
+
     private String incrementRevision(String revision) {
         if (revision == null || revision.isBlank()) return "1";
         String[] parts = revision.split("\\.");
@@ -506,7 +652,10 @@ public class ConnectorUploadService {
     }
 
     private void saveConnectorVersionCapabilities(UploadImplementationDto dto, ConnectorVersion connectorVersion) {
-        List<IntegrationMethodCapabilityGroupDto> groups = dto.connectorCapabilities();
+        saveConnectorVersionCapabilities(dto.connectorCapabilities(), connectorVersion);
+    }
+
+    private void saveConnectorVersionCapabilities(List<IntegrationMethodCapabilityGroupDto> groups, ConnectorVersion connectorVersion) {
         if (groups == null || groups.isEmpty()) return;
 
         for (IntegrationMethodCapabilityGroupDto group : groups) {

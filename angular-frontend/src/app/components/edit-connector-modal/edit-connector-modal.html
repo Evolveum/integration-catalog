@@ -1,0 +1,326 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<div class="ecm-overlay" (click)="close.emit()">
+  <div class="ecm-modal" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="ecm-modal-header d-flex justify-content-between align-items-center">
+      <h5 class="ecm-modal-title mb-0">Edit connector</h5>
+      <button type="button" class="btn-close" (click)="close.emit()" aria-label="Close"></button>
+    </div>
+
+    <!-- Body -->
+    <div class="ecm-modal-body">
+
+      <!-- Accordion: Basic Information & Capabilities -->
+      <div class="accordion-panel mb-3">
+        <div class="accordion-panel-header" (click)="basicInfoExpanded.set(!basicInfoExpanded())">
+          <i class="fa-solid accordion-chevron"
+             [class.fa-chevron-right]="!basicInfoExpanded()"
+             [class.fa-chevron-down]="basicInfoExpanded()"></i>
+          <span class="accordion-panel-title">Basic information &amp; capabilities</span>
+        </div>
+        @if (basicInfoExpanded()) {
+          <div class="accordion-panel-body">
+
+            <!-- Connector name + version -->
+            <div class="row g-3 mb-3">
+              <div class="col-8">
+                <label class="form-label form-label-upload">
+                  Connector name <span class="text-danger">*</span>
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="The display name of this connector in the catalog.">
+                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                  </button>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="connectorName()"
+                       (input)="connectorName.set($any($event.target).value)"
+                       placeholder="Enter connector name">
+              </div>
+              <div class="col-4">
+                <label class="form-label form-label-upload">
+                  Connector version
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector. To publish a new version, use “Save as new version” on the integration method.">
+                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                  </button>
+                </label>
+                <input type="text" class="form-control input-disabled"
+                       [value]="connectorVersion()" disabled>
+              </div>
+            </div>
+
+            <!-- Maintainer -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">
+                Maintainer <span class="text-danger">*</span>
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Person or team responsible for maintaining this connector.">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+              <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
+                <input type="text" class="form-select"
+                       [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                       (input)="onMaintainerInput($event)"
+                       (focus)="onMaintainerFocus()"
+                       (blur)="onMaintainerBlur()"
+                       placeholder="Select maintainer...">
+                @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
+                  <div class="maintainer-dropdown">
+                    @for (option of filteredMaintainerOptions(); track option) {
+                      <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ option }}</div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- License -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">
+                License type <span class="text-danger">*</span>
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Software licensing terms (e.g., Apache 2.0, EUPL 1.2).">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+              <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
+                <div class="form-select license-select-trigger"
+                     [class.license-placeholder]="!connectorLicense()"
+                     tabindex="0"
+                     (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                     (blur)="onLicenseBlur()"
+                     (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                     (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
+                  {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
+                </div>
+                @if (isLicenseDropdownOpen()) {
+                  <div class="license-dropdown">
+                    @for (opt of licenseOptions; track opt) {
+                      <div class="license-option"
+                           [class.license-option-selected]="connectorLicense() === opt"
+                           (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">Connector description</label>
+              <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
+                        [value]="connectorDescription()"
+                        (input)="connectorDescription.set($any($event.target).value)"></textarea>
+              <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+            </div>
+
+            <!-- Bundle name (java-based only) -->
+            @if (isJavaBased) {
+              <div class="mb-4">
+                <label class="form-label form-label-upload">
+                  Connector bundle name
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Display name for the connector bundle grouping related connector versions.">
+                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                  </button>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="connectorBundleName()"
+                       (input)="connectorBundleName.set($any($event.target).value)"
+                       placeholder="Enter connector bundle name">
+              </div>
+            }
+
+            <!-- Capabilities -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">Define capabilities for:</label>
+              <app-capability-picker
+                [initialCapabilities]="initialCapabilities()"
+                (capabilitiesChange)="onCapabilitiesChange($event)">
+              </app-capability-picker>
+            </div>
+
+          </div>
+        }
+      </div>
+
+      <!-- Accordion: Development & Build -->
+      <div class="accordion-panel mb-3">
+        <div class="accordion-panel-header" (click)="devBuildExpanded.set(!devBuildExpanded())">
+          <i class="fa-solid accordion-chevron"
+             [class.fa-chevron-right]="!devBuildExpanded()"
+             [class.fa-chevron-down]="devBuildExpanded()"></i>
+          <span class="accordion-panel-title">Development &amp; build</span>
+        </div>
+        @if (devBuildExpanded()) {
+          <div class="accordion-panel-body">
+
+            <h6 class="dev-section-title">Repository &amp; Documentation</h6>
+
+            <!-- Project homepage -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">
+                Project homepage
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Link to the official project repository.">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+              <div class="method-link-wrapper d-flex align-items-center">
+                <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                <input type="url" class="method-link-input flex-grow-1"
+                       [value]="devProjectHomepage()"
+                       (input)="devProjectHomepage.set($any($event.target).value)"
+                       placeholder="e.g. https://github.com/Evolveum/connector-ldap">
+              </div>
+            </div>
+
+            <!-- Support portal -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">
+                Support portal
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Link to the dedicated support page for this connector.">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+              <div class="method-link-wrapper d-flex align-items-center">
+                <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                <input type="url" class="method-link-input flex-grow-1"
+                       [value]="devSupportPortal()"
+                       (input)="devSupportPortal.set($any($event.target).value)"
+                       placeholder="e.g. https://support.evolveum.com">
+              </div>
+            </div>
+
+            <!-- Build tool (java-based only) -->
+            @if (isJavaBased) {
+              <h6 class="dev-section-title mt-3">Framework setting</h6>
+              <div class="mb-3">
+                <label class="form-label form-label-upload">
+                  Build tool <span class="text-danger">*</span>
+                </label>
+                <div class="d-flex gap-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="ecmBuildTool" id="ecm-build-maven"
+                           [checked]="devBuildTool() === 'maven'"
+                           (change)="devBuildTool.set('maven')">
+                    <label class="form-check-label" for="ecm-build-maven">Maven</label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="ecmBuildTool" id="ecm-build-gradle"
+                           [checked]="devBuildTool() === 'gradle'"
+                           (change)="devBuildTool.set('gradle')">
+                    <label class="form-check-label" for="ecm-build-gradle">Gradle</label>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Source code access -->
+            <h6 class="dev-section-title mt-3">Source code access</h6>
+
+            <!-- Git clone URL -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">
+                Git clone URL <span class="text-danger">*</span>
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Address used by the build system to download the source code.">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+              <div class="method-link-wrapper d-flex align-items-center"
+                   [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid()">
+                <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                <input type="url" class="method-link-input flex-grow-1"
+                       [value]="devGitCloneUrl()"
+                       (input)="devGitCloneUrl.set($any($event.target).value)"
+                       placeholder="e.g. https://github.com/Evolveum/connector-ldap.git">
+              </div>
+              @if (isGitCloneUrlInvalid()) {
+                <div class="field-error">Invalid format. Please use a Git clone URL (e.g., ending in .git).</div>
+              } @else {
+                <div class="form-text">Ensure the link is accessible to the intended audience.</div>
+              }
+            </div>
+
+            <!-- Commit tag -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">
+                Commit tag <span class="text-danger">*</span>
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Specific release tag or branch to build from.">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+              <div class="method-link-wrapper d-flex align-items-center">
+                <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-tag method-link-icon-i"></i></span>
+                <input type="text" class="method-link-input flex-grow-1"
+                       [value]="devCommitTag()"
+                       (input)="devCommitTag.set($any($event.target).value)"
+                       placeholder="e.g. 1.0.4">
+              </div>
+            </div>
+
+            <!-- Project folder path -->
+            <div class="mb-3">
+              <label class="form-label form-label-upload">
+                Project folder path <span class="text-danger">*</span>
+                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Relative path from the repository root to the connector module.">
+                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                </button>
+              </label>
+              <input type="text" class="form-control"
+                     [value]="devProjectFolderPath()"
+                     (input)="devProjectFolderPath.set($any($event.target).value)"
+                     placeholder="e.g. connector-ldap">
+            </div>
+
+            <!-- Class name (java-based only) -->
+            @if (isJavaBased) {
+              <div class="mb-3">
+                <label class="form-label form-label-upload">
+                  Class name <span class="text-danger">*</span>
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Fully qualified Java class name of the connector (e.g. com.example.MyConnector).">
+                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
+                  </button>
+                </label>
+                <div class="method-link-wrapper d-flex align-items-center"
+                     [class.method-link-wrapper--invalid]="isClassNameInvalid()">
+                  <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                  <input type="text" class="method-link-input flex-grow-1"
+                         [value]="devClassName()"
+                         (input)="devClassName.set($any($event.target).value)"
+                         placeholder="e.g. com.evolveum.connector.ldap.LdapConnector">
+                </div>
+                @if (isClassNameInvalid()) {
+                  <div class="field-error">Invalid format. Use a full Java class name with dots (e.g., com.project.ConnectorClass) and no spaces.</div>
+                }
+              </div>
+            }
+
+          </div>
+        }
+      </div>
+
+      @if (saveError()) {
+        <div class="field-error mb-2">
+          <i class="fa-solid fa-triangle-exclamation me-1"></i>{{ saveError() }}
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="ecm-modal-footer d-flex justify-content-between align-items-center">
+      <button type="button" class="btn ecm-cancel-btn" (click)="close.emit()">Cancel</button>
+      <button type="button" class="btn btn-primary ecm-save-btn"
+              [disabled]="!isValid() || isSaving()"
+              (click)="save()">
+        @if (isSaving()) {
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...
+        } @else {
+          <i class="fa-solid fa-floppy-disk me-1"></i>Save changes
+        }
+      </button>
+    </div>
+
+  </div>
+</div>

@@ -178,6 +178,24 @@ public class ApplicationService {
     }
 
     @Transactional
+    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+                                                AddConnectorDto dto, String username) {
+        connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+    }
+
+    @Transactional
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+        connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ImplementationListItemDto> getConnectorsForIntegrationMethod(UUID methodId, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .map(applicationMapper::mapConnectorsForMethod)
+                .orElseGet(List::of);
+    }
+
+    @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
         buildCallbackService.successBuild(oid, continueForm);
     }

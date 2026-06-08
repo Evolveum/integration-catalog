@@ -114,12 +114,61 @@ export class ApplicationService {
     appId: string,
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean }
+    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; newRevision: string }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
       payload,
       { responseType: 'text' as 'json' }
+    );
+  }
+
+  getConnectorsForIntegrationMethod(appId: string, methodId: string, revision: string): Observable<ImplementationListItem[]> {
+    return this.http.get<ImplementationListItem[]>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors`
+    );
+  }
+
+  addConnectorToIntegrationMethod(
+    appId: string,
+    versionId: string,
+    revision: string,
+    payload: {
+      existingConnectorId: number | null;
+      displayName: string; description: string; maintainer: string;
+      framework: string; license: string | null;
+      browseLink: string | null; gitCloneUrl: string | null;
+      buildFramework: string | null; pathToProject: string | null;
+      className: string | null; bundleName: string | null;
+      version: string | null; commitTag: string | null;
+      midpointMinVersion: number | null; midpointMaxVersion: number | null;
+      connectorVersionFrom: string | null; connectorVersionTo: string | null;
+      connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+    }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${versionId}/${encodeURIComponent(revision)}/connectors`,
+      payload
+    );
+  }
+
+  updateConnector(
+    appId: string,
+    methodId: string,
+    revision: string,
+    connectorId: number,
+    payload: {
+      displayName: string; description: string; maintainer: string;
+      license: string | null; browseLink: string | null; supportPortal: string | null;
+      gitCloneUrl: string | null; buildFramework: string | null;
+      pathToProject: string | null; className: string | null; bundleName: string | null;
+      commitTag: string | null;
+      connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+    }
+  ): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`,
+      payload
     );
   }
 

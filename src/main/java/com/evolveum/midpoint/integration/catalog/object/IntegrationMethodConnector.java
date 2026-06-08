@@ -12,9 +12,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 @Entity
-@Table(name = "integration_method_connector",
-    uniqueConstraints = @UniqueConstraint(name = "uq_imc_met_id_met_rev",
-        columnNames = {"integ_method_id", "integ_method_revision"}))
+@Table(name = "integration_method_connector")
 @Getter @Setter
 @Accessors(chain = true)
 public class IntegrationMethodConnector {

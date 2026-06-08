@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -14,6 +15,7 @@ import java.util.UUID;
  */
 public record ImplementationListItemDto(
         UUID id,                           // integration_method.id
+        Integer connectorId,               // connector.id (identifies the linked connector for editing)
         String name,                       // integration_method.display_name
         String description,                // integration_method.description
         String publishedDate,              // connector_bundle_version.released_date (null — no direct field yet)
@@ -29,6 +31,8 @@ public record ImplementationListItemDto(
         String pathToProjectDirectory,     // connector_bundle_version.path_to_project
         String className,                  // connector.fully_qualified_class_name
         String bundleDisplayName,          // connector.display_name
+        String bundleName,                 // connector_bundle.bundle_name
         String bundleFramework,            // connector_bundle.framework
-        String commitTag                   // connector_bundle_version.commit_tag
+        String commitTag,                  // connector_bundle_version.commit_tag
+        List<ObjectClassCapabilityDto> objectClassCapabilities // conn_version_capability + items
 ) {}

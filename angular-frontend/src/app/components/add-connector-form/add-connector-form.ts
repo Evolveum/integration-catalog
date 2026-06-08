@@ -1,0 +1,366 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
+import {
+  Component, Input, Output, EventEmitter, OnInit,
+  signal, computed
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { ApplicationService } from '../../services/application.service';
+import { AuthService, UserRole } from '../../services/auth.service';
+import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { PageHeader } from '../page-header/page-header';
+import { CatalogConnector } from '../../models/catalog-connector.model';
+import { MidpointVersion } from '../../models/application-detail.model';
+
+type Step = 1 | 2 | 3;
+
+@Component({
+  selector: 'app-add-connector-form',
+  standalone: true,
+  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader],
+  templateUrl: './add-connector-form.html',
+  styleUrls: ['./add-connector-form.scss']
+})
+export class AddConnectorForm implements OnInit {
+  @Input() appId = '';
+  @Input() versionId = '';
+  @Input() revision = '';
+  @Input() appName = '';
+  @Input() appHasLogo = false;
+  @Input() logoUrl = '';
+  @Output() close = new EventEmitter<void>();
+  @Output() saved = new EventEmitter<void>();
+
+  protected readonly step = signal<Step>(1);
+  protected readonly isSaving = signal<boolean>(false);
+  protected readonly saveError = signal<string>('');
+  protected readonly logoLoadError = signal<boolean>(false);
+
+  // ── Step 1: Connector type ────────────────────────────────
+  protected readonly connectorType = signal<string>('java-based');
+
+  // Catalog modal
+  protected readonly showCatalogModal = signal<boolean>(false);
+  protected readonly catalogConnectors = signal<CatalogConnector[]>([]);
+  protected readonly isCatalogLoading = signal<boolean>(false);
+  protected readonly catalogSearch = signal<string>('');
+  protected readonly pendingCatalogConnector = signal<CatalogConnector | null>(null);
+  protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
+
+  protected readonly filteredCatalogConnectors = computed(() => {
+    const q = this.catalogSearch().toLowerCase().trim();
+    return this.catalogConnectors().filter(c =>
+      !q ||
+      c.displayName.toLowerCase().includes(q) ||
+      (c.bundleDisplayName ?? '').toLowerCase().includes(q)
+    );
+  });
+
+  // ── Step 2: Connector details ─────────────────────────────
+  protected readonly basicInfoExpanded = signal<boolean>(true);
+  protected readonly devBuildExpanded = signal<boolean>(true);
+
+  protected readonly connectorName = signal<string>('');
+  protected readonly connectorVersion = signal<string>('');
+  protected readonly connectorMaintainer = signal<string>('');
+  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly maintainerSearch = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => o.toLowerCase().includes(search));
+  });
+  protected readonly connectorLicense = signal<string>('');
+  protected readonly isLicenseDropdownOpen = signal<boolean>(false);
+  protected readonly connectorDescription = signal<string>('');
+  protected readonly connectorBundleName = signal<string>('');
+  protected readonly bundleNameTaken = signal<boolean>(false);
+  protected readonly connectorCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
+
+  protected readonly devProjectHomepage = signal<string>('');
+  protected readonly devSupportPortal = signal<string>('');
+  protected readonly devBuildTool = signal<'maven' | 'gradle' | ''>('');
+  protected readonly devGitCloneUrl = signal<string>('');
+  protected readonly devCommitTag = signal<string>('');
+  protected readonly devProjectFolderPath = signal<string>('');
+  protected readonly devClassName = signal<string>('');
+
+  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
+  protected readonly licenseLabels: Record<string, string> = {
+    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
+  };
+
+  // ── Step 3: Compatibility ─────────────────────────────────
+  protected readonly midpointVersions = signal<MidpointVersion[]>([]);
+  protected readonly midpointMinVersionId = signal<number | null>(null);
+  protected readonly midpointMaxVersionId = signal<number | null>(null);
+  protected readonly connectorVersionFrom = signal<string>('');
+  protected readonly connectorVersionTo = signal<string>('');
+
+  // ── Computed helpers ──────────────────────────────────────
+  protected get isExistingConnector(): boolean {
+    return !!this.selectedCatalogConnector();
+  }
+
+  protected get isJavaBasedConnector(): boolean {
+    if (this.isExistingConnector) {
+      return this.selectedCatalogConnector()?.bundleFramework === 'JAVA_BASED';
+    }
+    return this.connectorType() === 'java-based';
+  }
+
+  protected readonly isConnectorVersionInvalid = computed(() => {
+    if (this.selectedCatalogConnector()) return false;
+    const v = this.connectorVersion().trim();
+    if (!v) return false;
+    return (v.match(/\./g) ?? []).length < 2;
+  });
+
+  protected readonly isGitCloneUrlInvalid = computed(() => {
+    const url = this.devGitCloneUrl();
+    return !!url && !url.trim().endsWith('.git');
+  });
+
+  protected readonly isClassNameInvalid = computed(() => {
+    const name = this.devClassName().trim();
+    if (!name) return false;
+    return name.includes('/') || name.includes('\\') || name.includes(' ') || !name.includes('.');
+  });
+
+  protected readonly isStep2Valid = computed(() => {
+    if (this.selectedCatalogConnector()) return true;
+    const base = !!this.connectorName().trim()
+      && !!this.connectorVersion().trim()
+      && !!this.connectorMaintainer().trim()
+      && !!this.connectorLicense();
+    if (!base || this.isConnectorVersionInvalid() || this.bundleNameTaken()) return false;
+    const devOk = !!this.devGitCloneUrl().trim()
+      && !!this.devCommitTag().trim()
+      && !!this.devProjectFolderPath().trim()
+      && !this.isGitCloneUrlInvalid();
+    const javaOk = !this.isJavaBasedConnector
+      || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
+    return devOk && javaOk;
+  });
+
+  protected readonly isMidpointRangeInvalid = computed(() => {
+    const minId = this.midpointMinVersionId();
+    const maxId = this.midpointMaxVersionId();
+    if (!minId || !maxId) return false;
+    const vers = this.midpointVersions();
+    return vers.findIndex(v => v.id === maxId) < vers.findIndex(v => v.id === minId);
+  });
+
+  protected readonly isStep3Valid = computed(() =>
+    this.midpointMinVersionId() !== null && !this.isMidpointRangeInvalid()
+  );
+
+  constructor(
+    private appService: ApplicationService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.initMaintainerOptions();
+    this.appService.getMidpointVersions().subscribe({
+      next: v => this.midpointVersions.set(v)
+    });
+  }
+
+  private initMaintainerOptions(): void {
+    const currentUser = this.authService.currentUser();
+    const role = this.authService.currentRole();
+    const orgName = this.authService.currentOrganizationName();
+
+    if (role === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+      });
+    } else if (role === UserRole.OrganizationContributor && orgName) {
+      this.maintainerOptions.set([orgName]);
+    } else if (currentUser) {
+      this.maintainerOptions.set([currentUser]);
+    }
+  }
+
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: string): void {
+    this.connectorMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
+  }
+
+  protected fmtLicense(key: string): string {
+    return this.licenseLabels[key] ?? key;
+  }
+
+  protected getMidpointVersionLabel(id: number | null): string {
+    if (id === null) return '';
+    return this.midpointVersions().find(v => v.id === id)?.version ?? '';
+  }
+
+  protected showLogo(): boolean {
+    return this.appHasLogo && !this.logoLoadError();
+  }
+
+  protected onLogoError(): void {
+    this.logoLoadError.set(true);
+  }
+
+  // ── Step 1 actions ────────────────────────────────────────
+  protected selectConnectorType(type: string): void {
+    this.connectorType.set(type);
+    this.selectedCatalogConnector.set(null);
+  }
+
+  protected openCatalogModal(): void {
+    this.pendingCatalogConnector.set(this.selectedCatalogConnector());
+    this.catalogSearch.set('');
+    this.showCatalogModal.set(true);
+    if (this.catalogConnectors().length === 0) {
+      this.isCatalogLoading.set(true);
+      this.appService.getCatalogConnectors().subscribe({
+        next: c => { this.catalogConnectors.set(c); this.isCatalogLoading.set(false); },
+        error: () => this.isCatalogLoading.set(false)
+      });
+    }
+  }
+
+  protected closeCatalogModal(): void {
+    this.showCatalogModal.set(false);
+  }
+
+  protected confirmCatalogSelection(): void {
+    const c = this.pendingCatalogConnector();
+    if (!c) return;
+    this.selectedCatalogConnector.set(c);
+    this.populateFromCatalogConnector(c);
+    this.showCatalogModal.set(false);
+    this.step.set(2);
+  }
+
+  private populateFromCatalogConnector(c: CatalogConnector): void {
+    this.connectorName.set(c.displayName ?? '');
+    this.connectorVersion.set(c.version ?? '');
+    this.connectorMaintainer.set(c.maintainer ?? this.authService.currentUser() ?? '');
+    this.connectorLicense.set(c.licenseType ?? '');
+    this.devProjectHomepage.set(c.browseLink ?? '');
+    this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
+    this.devProjectFolderPath.set(c.pathToProject ?? '');
+    this.devClassName.set(c.className ?? '');
+    const bf = (c.buildFramework ?? '').toLowerCase();
+    this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
+  }
+
+  // ── Step 2 actions ────────────────────────────────────────
+  protected onConnectorVersionBlur(event: Event): void {
+    const el = event.target as HTMLInputElement;
+    const trimmed = el.value.replace(/\.+$/, '');
+    el.value = trimmed;
+    this.connectorVersion.set(trimmed);
+  }
+
+  protected onBundleNameBlur(): void {
+    const name = this.connectorBundleName().trim();
+    if (!name) return;
+    this.appService.checkBundleNameExists(name).subscribe({
+      next: exists => this.bundleNameTaken.set(exists),
+      error: () => this.bundleNameTaken.set(false)
+    });
+  }
+
+  protected onLicenseBlur(): void {
+    setTimeout(() => this.isLicenseDropdownOpen.set(false), 150);
+  }
+
+  protected selectLicenseOption(opt: string): void {
+    this.connectorLicense.set(opt);
+    this.isLicenseDropdownOpen.set(false);
+  }
+
+  protected onCapabilitiesChange(caps: CapabilityGroup[]): void {
+    this.connectorCapabilities.set(caps);
+  }
+
+  // ── Navigation ────────────────────────────────────────────
+  protected goToCatalog(): void {
+    this.router.navigate(['/applications']);
+  }
+
+  protected goToApp(): void {
+    this.router.navigate(['/applications', this.appId]);
+  }
+
+  protected back(): void {
+    const s = this.step();
+    if (s > 1) this.step.set((s - 1) as Step);
+    else this.close.emit();
+  }
+
+  // ── Save ──────────────────────────────────────────────────
+  protected save(): void {
+    this.isSaving.set(true);
+    this.saveError.set('');
+    const cc = this.selectedCatalogConnector();
+    const payload = {
+      existingConnectorId: cc ? cc.id : null,
+      displayName: this.connectorName(),
+      description: this.connectorDescription(),
+      maintainer: this.connectorMaintainer(),
+      framework: this.isJavaBasedConnector ? 'JAVA_BASED' : 'LOW_CODE',
+      license: this.connectorLicense() || null,
+      browseLink: this.devProjectHomepage() || null,
+      gitCloneUrl: this.devGitCloneUrl() || null,
+      buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
+      pathToProject: this.devProjectFolderPath() || null,
+      className: this.devClassName() || null,
+      bundleName: this.connectorBundleName() || null,
+      version: this.connectorVersion() || null,
+      commitTag: this.devCommitTag() || null,
+      midpointMinVersion: this.midpointMinVersionId(),
+      midpointMaxVersion: this.midpointMaxVersionId(),
+      connectorVersionFrom: this.connectorVersionFrom() || null,
+      connectorVersionTo: this.connectorVersionTo() || null,
+      connectorCapabilities: this.connectorCapabilities().map(g => ({
+        objectClass: g.objectClass,
+        capabilityNames: g.capabilityNames
+      }))
+    };
+
+    this.appService.addConnectorToIntegrationMethod(this.appId, this.versionId, this.revision, payload).subscribe({
+      next: () => { this.isSaving.set(false); this.saved.emit(); },
+      error: err => {
+        this.isSaving.set(false);
+        console.error('Add connector failed', err);
+        this.saveError.set(
+          err?.error?.message || err?.message || 'Failed to add connector. Please try again.'
+        );
+      }
+    });
+  }
+}

@@ -276,6 +276,10 @@
   border-radius: 8px;
   padding: 1rem 1.25rem;
   background: #fff;
+
+  & + & {
+    margin-top: 1rem;
+  }
 }
 
 .edit-connector-card-header {

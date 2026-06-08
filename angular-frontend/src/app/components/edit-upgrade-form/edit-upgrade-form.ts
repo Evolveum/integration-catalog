@@ -12,18 +12,21 @@ import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
 import { PageHeader } from '../page-header/page-header';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { AddConnectorForm } from '../add-connector-form/add-connector-form';
+import { EditConnectorModal } from '../edit-connector-modal/edit-connector-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail } from '../../models/application-detail.model';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker],
+  imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker, AddConnectorForm, EditConnectorModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })
 export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly loading = signal<boolean>(true);
+  protected readonly showAddConnector = signal<boolean>(false);
   protected readonly appId = signal<string>('');
   protected readonly appName = signal<string>('');
   protected readonly appHasLogo = signal<boolean>(false);
@@ -48,9 +51,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly fileWarning = signal<boolean>(false);
   private fileWarningTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // Connector
-  protected readonly connector = signal<ImplementationListItem | null>(null);
+  // Connectors
+  protected readonly connectors = signal<ImplementationListItem[]>([]);
   protected readonly connectorCapsExpanded = signal<Set<string>>(new Set());
+  protected readonly editingConnector = signal<ImplementationListItem | null>(null);
 
   private easyMde: EasyMDE | null = null;
   private editorPreviewActivated = false;
@@ -96,22 +100,28 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
               capabilityNames: oc.capabilities ?? []
             }))
           );
+          this.loadConnectors(aId, vId, ver.revision ?? '');
+        } else {
+          this.finishLoading();
         }
-      }
-    });
-
-    this.applicationService.getImplementationsByApplicationId(aId).subscribe({
-      next: (impls) => {
-        const impl = impls.find(i => i.id === vId) ?? null;
-        this.connector.set(impl);
-        this.loading.set(false);
-        setTimeout(() => this.initEditor(), 50);
       },
-      error: () => {
-        this.loading.set(false);
-        setTimeout(() => this.initEditor(), 50);
-      }
+      error: () => this.finishLoading()
     });
+  }
+
+  private loadConnectors(appId: string, methodId: string, revision: string): void {
+    this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
+      next: (connectors) => {
+        this.connectors.set(connectors);
+        this.finishLoading();
+      },
+      error: () => this.finishLoading()
+    });
+  }
+
+  private finishLoading(): void {
+    this.loading.set(false);
+    setTimeout(() => this.initEditor(), 50);
   }
 
   ngOnDestroy(): void {
@@ -209,6 +219,24 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.router.navigate(['/applications', this.appId()]);
   }
 
+  protected onConnectorSaved(): void {
+    this.showAddConnector.set(false);
+    this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
+  }
+
+  protected openEditConnector(connector: ImplementationListItem): void {
+    this.editingConnector.set(connector);
+  }
+
+  protected closeEditConnector(): void {
+    this.editingConnector.set(null);
+  }
+
+  protected onConnectorEdited(): void {
+    this.editingConnector.set(null);
+    this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
+  }
+
   protected save(): void {
     this.doSave(false);
   }
@@ -217,7 +245,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.doSave(true);
   }
 
-  private doSave(minorBump: boolean): void {
+  private bumpVersion(version: string, major: boolean): string {
+    const [maj, min] = version.split('.').map(Number);
+    return major ? `${maj + 1}.1` : `${maj}.${min + 1}`;
+  }
+
+  private doSave(major: boolean): void {
     const tutorial = this.easyMde ? this.easyMde.value() : this.methodTutorial();
     const capabilities = this.imCapabilities().length > 0
       ? this.imCapabilities()
@@ -226,6 +259,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const newFile = this.tutorialFiles().find(f => f.isNew && f.file)?.file ?? null;
     // removeFile: clear old path only when user explicitly removed the file without uploading a replacement
     const removeFile = this.hadInitialFile() && this.tutorialFiles().length === 0;
+    const newRevision = this.bumpVersion(this.methodVersion(), major);
 
     this.applicationService.editIntegrationMethod(
       this.appId(),
@@ -237,7 +271,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         tutorial,
         capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
         removeFile,
-        minorBump
+        newRevision
       }
     ).subscribe({
       next: (newRevision) => {

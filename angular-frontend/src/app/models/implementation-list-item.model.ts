@@ -4,8 +4,14 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+export interface ObjectClassCapability {
+  objectName: string;             // conn_version_capability.object_class
+  capabilities: string[];         // capability.name items
+}
+
 export interface ImplementationListItem {
   id: string;                     // integration_method.id
+  connectorId: number | null;     // connector.id (identifies the linked connector for editing)
   name: string;                   // integration_method.display_name
   description: string;            // integration_method.description
   publishedDate: string;          // connector_bundle_version.released_date (null — no direct field yet)
@@ -21,6 +27,8 @@ export interface ImplementationListItem {
   pathToProjectDirectory: string; // connector_bundle_version.path_to_project
   className: string;              // connector.fully_qualified_class_name
   bundleDisplayName: string;      // connector.display_name
+  bundleName: string;             // connector_bundle.bundle_name
   bundleFramework: string;        // connector_bundle.framework
   commitTag: string;              // connector_bundle_version.commit_tag
+  objectClassCapabilities: ObjectClassCapability[]; // conn_version_capability + items
 }

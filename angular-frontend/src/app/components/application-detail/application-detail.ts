@@ -292,6 +292,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
   }
 
+  protected navigateToDetails(versionId: string): void {
+    const appId = this.application()?.id;
+    if (appId) {
+      this.router.navigate(['/applications', appId, 'integration-method', versionId, 'details']);
+    }
+  }
+
   protected toggleFilterModal(): void {
     this.isFilterModalOpen.update(open => !open);
   }

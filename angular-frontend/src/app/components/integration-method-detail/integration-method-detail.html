@@ -1,0 +1,227 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<app-page-header [breadcrumb]="true">
+  <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <span class="breadcrumb-sep">›</span>
+    <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goBack()" style="cursor:pointer;">
+      @if (showLogo()) {
+        <img [src]="getLogoUrl()" [alt]="appName()" class="breadcrumb-app-icon" (error)="onLogoError()">
+      }
+      {{ appName() }}
+    </a>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-current">Integration method detail</span>
+  </span>
+</app-page-header>
+
+@if (loading()) {
+  <div class="d-flex justify-content-center align-items-center" style="min-height:300px;">
+    <span class="spinner-border text-secondary" role="status"></span>
+  </div>
+} @else {
+  <div class="view-page">
+    <div class="view-page-content">
+      <h2 class="view-page-title">{{ methodName() }}</h2>
+
+      <!-- Method summary -->
+      <div class="view-summary mb-4">
+        <div class="view-row">
+          <span class="view-label">Integration method name:</span>
+          <span class="view-value">{{ methodName() || '—' }}</span>
+        </div>
+        <div class="view-row">
+          <span class="view-label">Version:</span>
+          <span class="view-value">{{ methodVersion() || '—' }}</span>
+        </div>
+        <div class="view-row">
+          <span class="view-label">Integration method type:</span>
+          <span class="view-value d-flex align-items-center gap-2 flex-wrap">
+            @if (methodTypes().length > 0) {
+              @for (type of methodTypes(); track type) {
+                <span class="im-method-tag">{{ type }}</span>
+              }
+            } @else { — }
+          </span>
+        </div>
+        <div class="view-row">
+          <span class="view-label">Description:</span>
+          <span class="view-value">{{ methodDescription() || '—' }}</span>
+        </div>
+      </div>
+
+      <!-- Global Capabilities -->
+      <div class="mb-4">
+        <label class="view-section-label">Global Capabilities</label>
+        @if (globalCapabilities().length > 0) {
+          <div class="view-caps-box d-flex flex-wrap gap-2">
+            @for (cap of globalCapabilities(); track cap) {
+              <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+            }
+          </div>
+        } @else {
+          <div class="view-caps-box text-muted">No capabilities defined.</div>
+        }
+      </div>
+
+      <!-- Integration tutorial (read-only preview) -->
+      <div class="mb-4">
+        <label class="view-section-label">Integration tutorial</label>
+        <div class="view-tutorial-wrapper">
+          <textarea id="view-tutorial-editor"></textarea>
+        </div>
+      </div>
+
+      <!-- Additional tutorials/samples -->
+      @if (tutorialFileName()) {
+        <div class="mb-4">
+          <label class="view-section-label">Additional tutorials/samples</label>
+          <div class="view-tutorial-file">
+            <span class="d-flex align-items-center gap-2">
+              <i class="fa-regular fa-file view-tutorial-file-icon"></i>
+              <span class="view-tutorial-file-name">{{ tutorialFileName() }}</span>
+            </span>
+          </div>
+        </div>
+      }
+
+      <!-- CONNECTORS section -->
+      <div class="view-connectors-section">
+        <div class="view-connectors-header">
+          <span class="view-connectors-title">CONNECTORS</span>
+        </div>
+
+        @for (c of connectors(); track $index; let ci = $index) {
+          <div class="view-connector-card">
+            <div class="view-connector-card-header" (click)="toggleConnector(ci)" style="cursor:pointer;">
+              <span class="view-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <i class="fa-solid icon-sm"
+                 [class.fa-chevron-up]="isConnectorExpanded(ci)"
+                 [class.fa-chevron-down]="!isConnectorExpanded(ci)"></i>
+            </div>
+
+            @if (isConnectorExpanded(ci)) {
+              <div class="view-connector-details">
+                <div class="view-connector-row">
+                  <span class="view-connector-label">Maintainer:</span>
+                  <span class="view-connector-value">{{ c.maintainer || '—' }}</span>
+                </div>
+                <div class="view-connector-row">
+                  <span class="view-connector-label">Connector version:</span>
+                  <span class="view-connector-value">{{ c.version || '—' }}</span>
+                </div>
+                <div class="view-connector-row">
+                  <span class="view-connector-label">License type:</span>
+                  <span class="view-connector-value">{{ c.licenseType || '—' }}</span>
+                </div>
+                @if (c.implementationDescription) {
+                  <div class="view-connector-row">
+                    <span class="view-connector-label">Connector description:</span>
+                    <span class="view-connector-value">{{ c.implementationDescription }}</span>
+                  </div>
+                }
+
+                <!-- Capabilities (per object class, collapsible) -->
+                @if (c.objectClassCapabilities && c.objectClassCapabilities.length > 0) {
+                  <div class="view-connector-row align-items-start">
+                    <span class="view-connector-label">Capabilities:</span>
+                    <div class="view-connector-value">
+                      @for (occ of c.objectClassCapabilities; track occ.objectName) {
+                        @let key = ci + '-' + occ.objectName;
+                        <div class="mb-1">
+                          <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleCaps(key)" style="cursor:pointer;">
+                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                            <i class="fa-solid icon-sm"
+                               [class.fa-chevron-up]="isCapsExpanded(key)"
+                               [class.fa-chevron-down]="!isCapsExpanded(key)"></i>
+                            <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                          </div>
+                          @if (isCapsExpanded(key)) {
+                            <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                              @for (cap of occ.capabilities; track cap) {
+                                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (c.browseLink) {
+                  <div class="view-connector-row">
+                    <span class="view-connector-label">Project homepage:</span>
+                    <span class="view-connector-value">
+                      <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                    </span>
+                  </div>
+                }
+                @if (c.ticketingLink) {
+                  <div class="view-connector-row">
+                    <span class="view-connector-label">Support portal:</span>
+                    <span class="view-connector-value">
+                      <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
+                    </span>
+                  </div>
+                }
+                @if (c.gitCloneUrl) {
+                  <div class="view-connector-row">
+                    <span class="view-connector-label">Git clone URL:</span>
+                    <span class="view-connector-value">
+                      <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
+                    </span>
+                  </div>
+                }
+                @if (c.commitTag) {
+                  <div class="view-connector-row">
+                    <span class="view-connector-label">Commit tag:</span>
+                    <span class="view-connector-value">
+                      <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag }}
+                    </span>
+                  </div>
+                }
+                @if (c.pathToProjectDirectory) {
+                  <div class="view-connector-row">
+                    <span class="view-connector-label">Project folder path:</span>
+                    <span class="view-connector-value">{{ c.pathToProjectDirectory }}</span>
+                  </div>
+                }
+                @if (c.className) {
+                  <div class="view-connector-row">
+                    <span class="view-connector-label">Class name:</span>
+                    <span class="view-connector-value">{{ c.className }}</span>
+                  </div>
+                }
+
+                <!-- Per-connector actions -->
+                <div class="view-connector-footer d-flex justify-content-end gap-2">
+                  <button type="button" class="btn btn-sm view-edit-upgrade-btn d-flex align-items-center gap-1" (click)="editAndUpgrade()">
+                    <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                  </button>
+                  <button type="button" class="btn btn-sm view-download-btn d-flex align-items-center gap-1" (click)="downloadConnector()">
+                    <i class="fa-solid fa-download"></i>Download
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @empty {
+          <p class="text-muted fst-italic">No connectors found.</p>
+        }
+      </div>
+
+      <!-- Footer: Back -->
+      <div class="view-footer">
+        <button type="button" class="btn view-back-btn d-flex align-items-center gap-2" (click)="goBack()">
+          <i class="fa-solid fa-arrow-left"></i>Back
+        </button>
+      </div>
+
+    </div><!-- end view-page-content -->
+  </div><!-- end view-page -->
+}

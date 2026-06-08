@@ -71,11 +71,18 @@ export class CapabilityPicker implements OnInit, OnChanges {
     this.globalCaps.set(global ? global.capabilityNames : []);
 
     const specific = this.initialCapabilities.filter(g => g.objectClass !== 'Global');
-    this.entries.set(specific.length > 0
-      ? specific.map(g => ({ objectClass: g.objectClass, capabilities: g.capabilityNames, isOpen: false }))
-      : [{ objectClass: '', capabilities: [], isOpen: false }]
-    );
-    this.emit();
+    const current = this.entries();
+
+    const fromInit = specific.map(g => {
+      const existing = current.find(e => e.objectClass === g.objectClass);
+      return { objectClass: g.objectClass, capabilities: g.capabilityNames, isOpen: existing?.isOpen ?? false };
+    });
+
+    // Preserve in-progress entries (objectClass typed but not yet in initialCapabilities because they have no capabilities)
+    const inProgress = current.filter(e => e.objectClass && !specific.some(g => g.objectClass === e.objectClass));
+
+    const merged = [...fromInit, ...inProgress];
+    this.entries.set(merged.length > 0 ? merged : [{ objectClass: '', capabilities: [], isOpen: false }]);
   }
 
   public reset(): void {

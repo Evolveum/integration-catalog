@@ -446,6 +446,57 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Add a connector to an integration method revision",
+            description = "Links a connector (existing or newly created) to the given integration method revision.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connector added successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors")
+    public ResponseEntity<Void> addConnectorToIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestBody AddConnectorDto dto,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        try {
+            applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "List connectors of an integration method revision")
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors")
+    public ResponseEntity<List<ImplementationListItemDto>> getConnectorsForIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision) {
+        return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision));
+    }
+
+    @Operation(summary = "Update a connector of an integration method revision",
+            description = "Replaces the fields of an existing connector (and its bundle / latest version) in place.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connector updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @PutMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}")
+    public ResponseEntity<Void> updateConnector(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @PathVariable Integer connectorId,
+            @RequestBody EditConnectorDto dto) {
+        try {
+            applicationService.updateConnector(methodId, revision, connectorId, dto);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     // ==================== Logo Endpoints ====================
 
     @Operation(summary = "Upload application logo",

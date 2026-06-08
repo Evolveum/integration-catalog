@@ -152,10 +152,10 @@ SELECT setval('connector_bundle_version_id_seq', 4);
 INSERT INTO connector (id, revision, author, maintainer, created_at, updated, display_name,
     fully_qualified_class_name, connector_bundle_id, description)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'Conn author 1', 'Conn maintainer 1', NOW(), NOW(), 'Display name Connector Java-based',
-	'Fully qualified conn class name 1', 1, 'Description Connector 1'),
-    (2, '1.0', 'Conn author 2', 'Conn maintainer 2', NOW(), NOW(), 'Display name Connector LOW CODE',
-	'Fully qualified conn class name 2', 2, 'Description connector 2');
+    (1, '1.0.0', 'Conn author 1', 'Conn maintainer 1', NOW(), NOW(), 'Display name Connector Java-based',
+	'Fully.qualified.conn.class.name.1', 1, 'Description Connector 1'),
+    (2, '1.0.0', 'Conn author 2', 'Conn maintainer 2', NOW(), NOW(), 'Display name Connector LOW CODE',
+	'Fully.qualified.conn.class.name.2', 2, 'Description connector 2');
 
 SELECT setval('connector_id_seq', 2);
 
@@ -173,8 +173,8 @@ INSERT INTO connector_version (id, revision, author, maintainer, created_at, upd
     lifecycle_state, connector_bundle_version_id, connector_bundle_version_revision,
     connector_id, fully_qualified_class_name, error_message)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'u5', 'Conn ver author 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully qualified conn ver class name 1', NULL),
-    (2, '1.0', 'u1', 'Conn ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully qualified conn ver class name 2', NULL);
+    (1, '1.0.0', 'u5', 'Conn ver author 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL),
+    (2, '1.0.0', 'u1', 'Conn ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL);
 
 SELECT setval('connector_version_id_seq', 2);
 
@@ -183,7 +183,7 @@ SELECT setval('connector_version_id_seq', 2);
 -- ============================================================
 
 INSERT INTO integration_method (id, application_id, display_name, description,
-     tutorial, file_path, midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version)
+     tutorial, file_path,  int_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
 	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1'),

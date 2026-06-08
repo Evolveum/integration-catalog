@@ -4,6 +4,19 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
+@if (showAddConnector()) {
+  <app-add-connector-form
+    [appId]="appId()"
+    [versionId]="versionId()"
+    [revision]="methodVersion()"
+    [appName]="appName()"
+    [appHasLogo]="appHasLogo()"
+    [logoUrl]="getLogoUrl()"
+    (close)="showAddConnector.set(false)"
+    (saved)="onConnectorSaved()">
+  </app-add-connector-form>
+} @else {
+
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
     <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
@@ -71,10 +84,7 @@
       <!-- Capabilities -->
       <div class="mb-4">
         <label class="form-label form-label-upload">
-          Define capabilities for: <span class="text-danger">*</span>
-          <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Define which capabilities this integration method supports.">
-            <i class="fa-solid fa-circle-info info-icon-sm"></i>
-          </button>
+          Define capabilities for: <span class="text-danger">*</span>          
         </label>
         <app-capability-picker [initialCapabilities]="initialCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
       </div>
@@ -145,17 +155,19 @@
       <div class="edit-connectors-section">
         <div class="edit-connectors-header">
           <span class="edit-connectors-title">CONNECTORS</span>
-          <button type="button" class="btn btn-sm edit-add-connector-btn">
+          <button type="button" class="btn btn-sm edit-add-connector-btn"
+                  (click)="showAddConnector.set(true)">
             <i class="fa-solid fa-plus me-1"></i>Add new connector
           </button>
         </div>
 
-        @if (connector()) {
+        @for (c of connectors(); track $index) {
           <div class="edit-connector-card">
             <div class="edit-connector-card-header">
-              <span class="edit-connector-name">{{ connector()!.bundleDisplayName || connector()!.name }}</span>
+              <span class="edit-connector-name">{{ c.bundleDisplayName || c.name }}</span>
               <div class="d-flex gap-3">
-                <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1">
+                <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
+                        (click)="openEditConnector(c)">
                   <i class="fa-solid fa-pen-to-square"></i>Edit
                 </button>
                 <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1">
@@ -167,64 +179,64 @@
             <div class="edit-connector-details">
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Maintainer:</span>
-                <span class="edit-connector-value">{{ connector()!.maintainer || '—' }}</span>
+                <span class="edit-connector-value">{{ c.maintainer || '—' }}</span>
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Connector version:</span>
-                <span class="edit-connector-value">{{ connector()!.version || '—' }}</span>
+                <span class="edit-connector-value">{{ c.version || '—' }}</span>
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">License type:</span>
-                <span class="edit-connector-value">{{ connector()!.licenseType || '—' }}</span>
+                <span class="edit-connector-value">{{ c.licenseType || '—' }}</span>
               </div>
-              @if (connector()!.implementationDescription) {
+              @if (c.implementationDescription) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Connector description:</span>
-                  <span class="edit-connector-value">{{ connector()!.implementationDescription }}</span>
+                  <span class="edit-connector-value">{{ c.implementationDescription }}</span>
                 </div>
               }
-              @if (connector()!.browseLink) {
+              @if (c.browseLink) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Project homepage:</span>
                   <span class="edit-connector-value">
-                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ connector()!.browseLink }}
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
                   </span>
                 </div>
               }
-              @if (connector()!.ticketingLink) {
+              @if (c.ticketingLink) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Support portal:</span>
                   <span class="edit-connector-value">
-                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ connector()!.ticketingLink }}
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
                   </span>
                 </div>
               }
-              @if (connector()!.gitCloneUrl) {
+              @if (c.gitCloneUrl) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Git clone URL:</span>
                   <span class="edit-connector-value">
-                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ connector()!.gitCloneUrl }}
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
                   </span>
                 </div>
               }
-              @if (connector()!.commitTag) {
+              @if (c.commitTag) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Commit tag:</span>
                   <span class="edit-connector-value">
-                    <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ connector()!.commitTag }}
+                    <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag }}
                   </span>
                 </div>
               }
-              @if (connector()!.pathToProjectDirectory) {
+              @if (c.pathToProjectDirectory) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Project folder path:</span>
-                  <span class="edit-connector-value">{{ connector()!.pathToProjectDirectory }}</span>
+                  <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
                 </div>
               }
-              @if (connector()!.className) {
+              @if (c.className) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Class name:</span>
-                  <span class="edit-connector-value">{{ connector()!.className }}</span>
+                  <span class="edit-connector-value">{{ c.className }}</span>
                 </div>
               }
             </div>
@@ -246,4 +258,17 @@
     </div><!-- end edit-page-content -->
 
   </div><!-- end edit-page -->
+
+  @if (editingConnector()) {
+    <app-edit-connector-modal
+      [appId]="appId()"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
+      [connector]="editingConnector()!"
+      (close)="closeEditConnector()"
+      (saved)="onConnectorEdited()">
+    </app-edit-connector-modal>
+  }
 }
+
+}<!-- end @else showAddConnector -->

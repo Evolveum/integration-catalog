@@ -489,7 +489,7 @@
           <div class="alert-info-note d-flex gap-2 align-items-start mt-2">
             <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
             <span class="alert-text">
-              <strong>Note</strong> &nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
+              <strong>Note</strong>&nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
             </span>
           </div>
         }
@@ -516,22 +516,22 @@
             <div>
               <label class="form-label form-label-upload">From version <span class="text-danger">*</span></label>
               <select class="form-select compat-version-select"
-                      [value]="midpointMinVersionId() ?? ''"
-                      (change)="midpointMinVersionId.set($any($event.target).value ? +$any($event.target).value : null)">
-                <option value="">Select version</option>
+                      [ngModel]="midpointMinVersionId()"
+                      (ngModelChange)="midpointMinVersionId.set($event)">
+                <option [ngValue]="null">Select version</option>
                 @for (v of midpointVersions(); track v.id) {
-                  <option [value]="v.id">{{ v.version }}</option>
+                  <option [ngValue]="v.id">{{ v.version }}</option>
                 }
               </select>
             </div>
             <div>
               <label class="form-label form-label-upload">To version</label>
               <select class="form-select compat-version-select"
-                      [value]="midpointMaxVersionId() ?? ''"
-                      (change)="midpointMaxVersionId.set($any($event.target).value ? +$any($event.target).value : null)">
-                <option value="">Select version</option>
+                      [ngModel]="midpointMaxVersionId()"
+                      (ngModelChange)="midpointMaxVersionId.set($event)">
+                <option [ngValue]="null">Select version</option>
                 @for (v of midpointVersions(); track v.id) {
-                  <option [value]="v.id">{{ v.version }}</option>
+                  <option [ngValue]="v.id">{{ v.version }}</option>
                 }
               </select>
             </div>
