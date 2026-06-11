@@ -8,6 +8,7 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, Observable } from 'rxjs';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
 import { PageHeader } from '../page-header/page-header';
@@ -36,6 +37,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   // Form fields
   protected readonly methodName = signal<string>('');
   protected readonly methodVersion = signal<string>('');
+  protected readonly methodLifecycleState = signal<string | null>(null);
   protected readonly methodDescription = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
@@ -44,12 +46,15 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   // Tutorial content
   protected readonly methodTutorial = signal<string>('');
 
-  // Tutorial file
+  // Tutorial files (multiple per integration method)
   protected readonly tutorialDragOver = signal<boolean>(false);
   protected readonly tutorialFiles = signal<{ name: string; file?: File; isNew: boolean }[]>([]);
-  protected readonly hadInitialFile = signal<boolean>(false);
-  protected readonly fileWarning = signal<boolean>(false);
-  private fileWarningTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly initialFileNames = signal<string[]>([]);
+
+  // License type display labels
+  private readonly licenseLabels: Record<string, string> = {
+    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
+  };
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
@@ -68,6 +73,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   ngOnInit(): void {
     const aId = this.route.snapshot.paramMap.get('appId') ?? '';
     const vId = this.route.snapshot.paramMap.get('versionId') ?? '';
+    const rev = this.route.snapshot.paramMap.get('revision') ?? '';
     this.appId.set(aId);
     this.versionId.set(vId);
 
@@ -75,10 +81,17 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       next: (app) => {
         this.appName.set(app.displayName);
         this.appHasLogo.set(hasLogoDetail(app));
-        const ver = app.integrationMethods?.find(m => m.id === vId);
+        // A method can have several revisions sharing one id; open the one named in the route,
+        // falling back to the latest if the revision is missing (e.g. an old link).
+        const methods = (app.integrationMethods ?? []).filter(m => m.id === vId);
+        const ver = (rev ? methods.find(m => m.revision === rev) : undefined)
+          ?? methods
+            .sort((a, b) => (a.revision ?? '').localeCompare(b.revision ?? '', undefined, { numeric: true }))
+            .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
           this.methodVersion.set(ver.revision ?? '');
+          this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
@@ -89,11 +102,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
               this.editorPreviewActivated = true;
             }
           }
-          if (ver.filePath) {
-            const fileName = ver.filePath.split('/').pop() ?? ver.filePath;
-            this.tutorialFiles.set([{ name: fileName, isNew: false }]);
-            this.hadInitialFile.set(true);
-          }
+          this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.initialCapabilities.set(
             (ver.objectClassCapabilities ?? []).map(oc => ({
               objectClass: oc.objectName,
@@ -106,6 +115,19 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         }
       },
       error: () => this.finishLoading()
+    });
+  }
+
+  private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
+    this.applicationService.listTutorialFiles(appId, methodId, revision).subscribe({
+      next: (names) => {
+        this.tutorialFiles.set(names.map(n => ({ name: n, isNew: false })));
+        this.initialFileNames.set(names);
+      },
+      error: () => {
+        this.tutorialFiles.set([]);
+        this.initialFileNames.set([]);
+      }
     });
   }
 
@@ -129,7 +151,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       this.easyMde.toTextArea();
       this.easyMde = null;
     }
-    if (this.fileWarningTimer) clearTimeout(this.fileWarningTimer);
   }
 
   private initEditor(): void {
@@ -169,18 +190,20 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   private addFiles(files: FileList): void {
-    if (this.tutorialFiles().length > 0) {
-      this.showFileWarning();
-      return;
+    const existing = new Set(this.tutorialFiles().map(f => f.name));
+    const toAdd: { name: string; file: File; isNew: boolean }[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (f && !existing.has(f.name)) {
+        toAdd.push({ name: f.name, file: f, isNew: true });
+        existing.add(f.name);
+      }
     }
-    const f = files[0];
-    if (f) this.tutorialFiles.set([{ name: f.name, file: f, isNew: true }]);
+    if (toAdd.length) this.tutorialFiles.update(list => [...list, ...toAdd]);
   }
 
-  private showFileWarning(): void {
-    if (this.fileWarningTimer) clearTimeout(this.fileWarningTimer);
-    this.fileWarning.set(true);
-    this.fileWarningTimer = setTimeout(() => this.fileWarning.set(false), 4000);
+  protected tutorialFileUrl(name: string): string {
+    return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
   }
 
   protected removeTutorialFile(i: number): void {
@@ -197,6 +220,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   protected isCapsExpanded(key: string): boolean {
     return this.connectorCapsExpanded().has(key);
+  }
+
+  protected fmtLicense(key: string | null | undefined): string {
+    if (!key) return '—';
+    return this.licenseLabels[key] ?? key;
   }
 
   protected getLogoUrl(): string {
@@ -237,6 +265,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
   }
 
+  protected isInReview(): boolean {
+    return this.methodLifecycleState() === 'IN_REVIEW';
+  }
+
   protected save(): void {
     this.doSave(false);
   }
@@ -256,9 +288,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       ? this.imCapabilities()
       : this.initialCapabilities();
 
-    const newFile = this.tutorialFiles().find(f => f.isNew && f.file)?.file ?? null;
-    // removeFile: clear old path only when user explicitly removed the file without uploading a replacement
-    const removeFile = this.hadInitialFile() && this.tutorialFiles().length === 0;
+    const newFiles = this.tutorialFiles().filter(f => f.isNew && f.file).map(f => f.file!);
+    const keptNames = this.tutorialFiles().filter(f => !f.isNew).map(f => f.name);
+    const removedNames = this.initialFileNames().filter(n => !keptNames.includes(n));
     const newRevision = this.bumpVersion(this.methodVersion(), major);
 
     this.applicationService.editIntegrationMethod(
@@ -270,24 +302,29 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         description: this.methodDescription(),
         tutorial,
         capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
-        removeFile,
+        removeFile: false,
         newRevision
       }
     ).subscribe({
-      next: (newRevision) => {
-        this.methodVersion.set(newRevision);
-        if (newFile) {
-          this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), newRevision, newFile)
-            .subscribe({
-              next: () => this.router.navigate(['/applications', this.appId()]),
-              error: (err) => {
-                console.error('Tutorial file upload failed', err);
-                this.router.navigate(['/applications', this.appId()]);
-              }
-            });
-        } else {
+      next: (savedRevision) => {
+        this.methodVersion.set(savedRevision);
+        // The new revision starts with the previous revision's files copied forward by the backend;
+        // here we delete the files the user removed and upload the ones they added.
+        const ops: Observable<void>[] = [
+          ...removedNames.map(n => this.applicationService.deleteTutorialFile(this.appId(), this.versionId(), savedRevision, n)),
+          ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), savedRevision, f))
+        ];
+        if (ops.length === 0) {
           this.router.navigate(['/applications', this.appId()]);
+          return;
         }
+        forkJoin(ops).subscribe({
+          next: () => this.router.navigate(['/applications', this.appId()]),
+          error: (err) => {
+            console.error('Tutorial file sync failed', err);
+            this.router.navigate(['/applications', this.appId()]);
+          }
+        });
       },
       error: (err) => console.error('Save failed', err)
     });

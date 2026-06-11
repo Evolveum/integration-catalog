@@ -285,17 +285,17 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
   }
 
-  protected navigateToEdit(versionId: string): void {
+  protected navigateToEdit(versionId: string, revision: string): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, 'edit']);
+      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision, 'edit']);
     }
   }
 
-  protected navigateToDetails(versionId: string): void {
+  protected navigateToDetails(versionId: string, revision: string): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, 'details']);
+      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision, 'details']);
     }
   }
 
@@ -560,8 +560,11 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return framework;
   }
 
-  protected downloadVersion(versionId: string): void {
-    this.applicationService.downloadConnector(versionId);
+  protected downloadBundle(methodId: string, revision: string): void {
+    const appId = this.application()?.id;
+    if (appId) {
+      this.applicationService.downloadBundle(appId, methodId, revision);
+    }
   }
 
   // ==================== Logo Methods ====================

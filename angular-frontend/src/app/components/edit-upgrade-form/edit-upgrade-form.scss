@@ -90,18 +90,15 @@
    INFO ICON (native title tooltip)
    ======================================== */
 .btn-info-icon {
-  color: #6c757d;
-  line-height: 1;
-  vertical-align: middle;
-
-  &:hover {
-    color: $color-dark-blue;
-  }
+  border: none;
+  background: none;
+  box-shadow: none !important;
+  position: relative;
+  top: -3px;
+  &:hover, &:focus, &:active { background: none; box-shadow: none; }
 }
 
-.info-icon-sm {
-  font-size: 0.8rem;
-}
+.info-icon-sm { font-size: 12px; color: $text-publishing-blue; }
 
 /* ========================================
    INTEGRATION METHOD TYPE
@@ -145,6 +142,9 @@
   border: 2px dashed #ced4da;
   border-radius: 8px;
   padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -212,6 +212,15 @@
 .tutorial-file-name {
   flex: 1;
   color: #212529;
+}
+
+.tutorial-file-link {
+  text-decoration: none;
+
+  &:hover {
+    color: $color-dark-blue;
+    text-decoration: underline;
+  }
 }
 
 .tutorial-file-new-badge {
@@ -346,27 +355,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #dee2e6;
   margin-top: 2.5rem;
   padding-top: 1.25rem;
 }
 
 .edit-cancel-btn {
-  color: #495057;
+  color: $color-dark-blue;
   font-size: 0.875rem;
   text-decoration: none;
   padding: 0;
 
   &:hover {
-    color: #212529;
+    color: $color-dark-blue;
   }
 }
 
 .edit-save-btn {
   font-size: 0.875rem;
   background: #fff;
-  border: 1px solid #ced4da;
-  color: #212529;
+  border: 1px solid $color-dark-blue;
+  color: $color-dark-blue;
   padding: 0.4rem 1.25rem;
   border-radius: 4px;
 

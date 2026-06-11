@@ -77,15 +77,17 @@
       </div>
 
       <!-- Additional tutorials/samples -->
-      @if (tutorialFileName()) {
+      @if (tutorialFiles().length > 0) {
         <div class="mb-4">
           <label class="view-section-label">Additional tutorials/samples</label>
-          <div class="view-tutorial-file">
-            <span class="d-flex align-items-center gap-2">
-              <i class="fa-regular fa-file view-tutorial-file-icon"></i>
-              <span class="view-tutorial-file-name">{{ tutorialFileName() }}</span>
-            </span>
-          </div>
+          @for (name of tutorialFiles(); track name) {
+            <div class="view-tutorial-file">
+              <span class="d-flex align-items-center gap-2">
+                <i class="fa-regular fa-file view-tutorial-file-icon"></i>
+                <a class="view-tutorial-file-name" [href]="tutorialFileUrl(name)" target="_blank" rel="noopener">{{ name }}</a>
+              </span>
+            </div>
+          }
         </div>
       }
 

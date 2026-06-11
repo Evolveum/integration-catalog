@@ -35,7 +35,7 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly globalCapabilities = signal<string[]>([]);
   protected readonly methodTutorial = signal<string>('');
-  protected readonly tutorialFileName = signal<string | null>(null);
+  protected readonly tutorialFiles = signal<string[]>([]);
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
@@ -53,6 +53,7 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   ngOnInit(): void {
     const aId = this.route.snapshot.paramMap.get('appId') ?? '';
     const vId = this.route.snapshot.paramMap.get('versionId') ?? '';
+    const rev = this.route.snapshot.paramMap.get('revision') ?? '';
     this.appId.set(aId);
     this.versionId.set(vId);
 
@@ -60,7 +61,13 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
       next: (app) => {
         this.appName.set(app.displayName);
         this.appHasLogo.set(hasLogoDetail(app));
-        const ver = app.integrationMethods?.find(m => m.id === vId);
+        // A method can have several revisions sharing one id; open the one named in the route,
+        // falling back to the latest if the revision is missing (e.g. an old link).
+        const methods = (app.integrationMethods ?? []).filter(m => m.id === vId);
+        const ver = (rev ? methods.find(m => m.revision === rev) : undefined)
+          ?? methods
+            .sort((a, b) => (a.revision ?? '').localeCompare(b.revision ?? '', undefined, { numeric: true }))
+            .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
           this.methodVersion.set(ver.revision ?? '');
@@ -68,9 +75,7 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
           this.globalCapabilities.set(this.flattenCapabilities(ver.objectClassCapabilities));
-          if (ver.filePath) {
-            this.tutorialFileName.set(ver.filePath.split('/').pop() ?? ver.filePath);
-          }
+          this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.loadConnectors(aId, vId, ver.revision ?? '');
         } else {
           this.finishLoading();
@@ -87,6 +92,17 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
       for (const cap of occ.capabilities ?? []) seen.add(cap);
     }
     return Array.from(seen);
+  }
+
+  private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
+    this.applicationService.listTutorialFiles(appId, methodId, revision).subscribe({
+      next: (names) => this.tutorialFiles.set(names),
+      error: () => this.tutorialFiles.set([])
+    });
+  }
+
+  protected tutorialFileUrl(name: string): string {
+    return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
   }
 
   private loadConnectors(appId: string, methodId: string, revision: string): void {
@@ -183,7 +199,7 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   }
 
   protected editAndUpgrade(): void {
-    this.router.navigate(['/applications', this.appId(), 'integration-method', this.versionId(), 'edit']);
+    this.router.navigate(['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit']);
   }
 
   protected downloadConnector(): void {

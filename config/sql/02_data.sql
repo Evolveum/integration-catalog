@@ -183,7 +183,7 @@ SELECT setval('connector_version_id_seq', 2);
 -- ============================================================
 
 INSERT INTO integration_method (id, application_id, display_name, description,
-     tutorial, file_path,  int_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version)
+     tutorial, file_path,  midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
 	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1'),
@@ -242,9 +242,9 @@ INSERT INTO integration_method_capability_item (integration_method_capability_id
 -- ============================================================
 
 INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
-    (1, 1, '1.0', 'Account'),
-    (2, 1, '1.0', 'Group'),
-    (3, 1, '1.0', 'Global');
+    (1, 1, '1.0.0', 'Account'),
+    (2, 1, '1.0.0', 'Group'),
+    (3, 1, '1.0.0', 'Global');
 
 SELECT setval('conn_version_capability_id_seq', 3);
 
@@ -260,8 +260,10 @@ INSERT INTO conn_version_capability_item (conn_version_capability_id, capability
 -- REQUEST for SAP HR (REQUESTED lifecycle)
 -- ============================================================
 
-INSERT INTO request (application_id, requester, mail, collab, base_url, system_version) VALUES
-    ('22222222-2222-2222-2222-222222222222', 'jane', 'jane@example.com', true, 'https://sap-hr.example.com', '2024');
+INSERT INTO request (id, application_id, requester, mail, collab, base_url, system_version) OVERRIDING SYSTEM VALUE VALUES
+    (1, '22222222-2222-2222-2222-222222222222', 'jane', 'jane@example.com', true, 'https://sap-hr.example.com', '2024');
+
+SELECT setval('request_id_seq', 1);
 
 INSERT INTO object_class_capabilities (request_id, object_name, capabilities) VALUES
     (1, 'Account', ARRAY['CREATE','GET','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),

@@ -60,6 +60,7 @@ public class ConnectorUploadService {
     private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
     private final ConnVersionCapabilityItemRepository connVersionCapabilityItemRepository;
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
+    private final TutorialStorageService tutorialStorageService;
 
     private record ApplicationResolution(Application application, boolean isNew,
                                           List<String> originNames, List<ApplicationTagDto> tagDtos) {}
@@ -407,19 +408,28 @@ public class ConnectorUploadService {
         IntegrationMethod existing = integrationMethodRepository.findById(new IntegrationMethodId(methodId, currentRevision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + currentRevision));
 
+        // An unpublished (in-review) revision is overwritten in place, so fixing a mistake in a
+        // freshly saved revision doesn't spawn yet another one. Published revisions are versioned.
+        if (existing.getLifecycleState() == LifecycleType.IN_REVIEW) {
+            return updateIntegrationMethodInPlace(existing, methodId, currentRevision, dto);
+        }
+
         String newRevision = dto.minorBump() ? incrementMinorRevision(currentRevision) : incrementRevision(currentRevision);
 
         IntegrationMethod updated = new IntegrationMethod();
         updated.setId(methodId);
         updated.setRevision(newRevision);
         updated.setApplication(existing.getApplication());
-        updated.setLifecycleState(existing.getLifecycleState());
+        // A revision produced by the edit-upgrade flow always starts unpublished, pending review.
+        updated.setLifecycleState(LifecycleType.IN_REVIEW);
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
         updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
         updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
         updated.setAppVersion(existing.getAppVersion());
-        updated.setFilePath(dto.removeFile() ? null : existing.getFilePath());
+        // Carry tutorial files forward into the new revision's own folder, then point file_path at it.
+        String tutorialFolder = tutorialStorageService.copyTutorialFolder(methodId, currentRevision, newRevision);
+        updated.setFilePath(tutorialFolder);
         updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
         updated.setDisplayName(dto.displayName());
         updated.setDescription(dto.description());
@@ -436,26 +446,50 @@ public class ConnectorUploadService {
 
         integrationMethodRepository.save(updated);
 
-        if (dto.capabilities() != null) {
-            for (IntegrationMethodCapabilityGroupDto group : dto.capabilities()) {
-                if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
-                IntegrationMethodCapability cap = new IntegrationMethodCapability();
-                cap.setObjectClass(group.objectClass());
-                cap.setIntegrationMethod(updated);
-                cap = integrationMethodCapabilityRepository.save(cap);
-                final Integer capId = cap.getId();
-                for (String capabilityName : group.capabilityNames()) {
-                    capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
-                        IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
-                        item.setIntegrationMethodCapabilityId(capId);
-                        item.setCapabilityId(capability.getId());
-                        integrationMethodCapabilityItemRepository.save(item);
-                    });
-                }
-            }
-        }
+        saveIntegrationMethodCapabilities(dto.capabilities(), updated);
 
         return newRevision;
+    }
+
+    /**
+     * Overwrites an in-review revision in place (same id + revision): updates metadata, replaces
+     * its capabilities, and leaves its tutorial folder as-is so file add/delete affect only it.
+     */
+    private String updateIntegrationMethodInPlace(IntegrationMethod existing, UUID methodId,
+                                                  String currentRevision, EditIntegrationMethodDto dto) {
+        existing.setDisplayName(dto.displayName());
+        existing.setDescription(dto.description());
+        existing.setTutorial(dto.tutorial());
+        existing.setFilePath(tutorialStorageService.folderName(methodId, currentRevision));
+
+        // Drop the current capabilities (cascade removes their items), then recreate from the DTO.
+        existing.getCapabilities().clear();
+        integrationMethodRepository.saveAndFlush(existing);
+
+        saveIntegrationMethodCapabilities(dto.capabilities(), existing);
+
+        return currentRevision;
+    }
+
+    private void saveIntegrationMethodCapabilities(List<IntegrationMethodCapabilityGroupDto> groups,
+                                                   IntegrationMethod target) {
+        if (groups == null) return;
+        for (IntegrationMethodCapabilityGroupDto group : groups) {
+            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
+            IntegrationMethodCapability cap = new IntegrationMethodCapability();
+            cap.setObjectClass(group.objectClass());
+            cap.setIntegrationMethod(target);
+            cap = integrationMethodCapabilityRepository.save(cap);
+            final Integer capId = cap.getId();
+            for (String capabilityName : group.capabilityNames()) {
+                capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
+                    IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
+                    item.setIntegrationMethodCapabilityId(capId);
+                    item.setCapabilityId(capability.getId());
+                    integrationMethodCapabilityItemRepository.save(item);
+                });
+            }
+        }
     }
 
     @Transactional
@@ -628,27 +662,7 @@ public class ConnectorUploadService {
     }
 
     private void saveIntegrationMethodCapabilities(UploadImplementationDto dto, IntegrationMethod integrationMethod) {
-        List<IntegrationMethodCapabilityGroupDto> groups = dto.integrationMethodCapabilities();
-        if (groups == null || groups.isEmpty()) return;
-
-        for (IntegrationMethodCapabilityGroupDto group : groups) {
-            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
-
-            IntegrationMethodCapability cap = new IntegrationMethodCapability();
-            cap.setObjectClass(group.objectClass());
-            cap.setIntegrationMethod(integrationMethod);
-            cap = integrationMethodCapabilityRepository.save(cap);
-
-            final Integer capId = cap.getId();
-            for (String capabilityName : group.capabilityNames()) {
-                capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
-                    IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
-                    item.setIntegrationMethodCapabilityId(capId);
-                    item.setCapabilityId(capability.getId());
-                    integrationMethodCapabilityItemRepository.save(item);
-                });
-            }
-        }
+        saveIntegrationMethodCapabilities(dto.integrationMethodCapabilities(), integrationMethod);
     }
 
     private void saveConnectorVersionCapabilities(UploadImplementationDto dto, ConnectorVersion connectorVersion) {

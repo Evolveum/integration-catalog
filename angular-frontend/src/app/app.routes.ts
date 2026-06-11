@@ -15,7 +15,7 @@ export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
   { path: 'applications', component: ApplicationsList },
   { path: 'applications/:id', component: ApplicationDetail },
-  { path: 'applications/:appId/integration-method/:versionId/details', component: IntegrationMethodDetail },
-  { path: 'applications/:appId/integration-method/:versionId/edit', component: EditUpgradeForm },
+  { path: 'applications/:appId/integration-method/:versionId/:revision/details', component: IntegrationMethodDetail },
+  { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm },
   { path: 'publish', component: PublishFormMain }
 ];

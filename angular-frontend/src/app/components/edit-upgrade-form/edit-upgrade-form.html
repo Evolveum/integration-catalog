@@ -113,14 +113,14 @@
 
       <!-- Import a tutorial file -->
       <div class="mb-4">
-        <label class="form-label form-label-upload">Import a tutorial file</label>
+        <label class="form-label form-label-upload">Additional tutorials/samples</label>
         <div class="tutorial-dropzone"
              [class.tutorial-dropzone-over]="tutorialDragOver()"
              (dragover)="$event.preventDefault(); tutorialDragOver.set(true)"
              (dragleave)="tutorialDragOver.set(false)"
              (drop)="onTutorialFileDrop($any($event))"
              (click)="tutorialFileInput.click()">
-          <input #tutorialFileInput type="file" class="d-none"
+          <input #tutorialFileInput type="file" class="d-none" multiple
                  accept=".pdf,.xml,.json,.yaml,.yml,.txt"
                  (change)="onTutorialFileSelect($event)">
           <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
@@ -129,19 +129,17 @@
           </div>
           <div class="tutorial-dropzone-hint">the files in the accepted format (.pdf, .xml, .json, .yaml, .txt)</div>
         </div>
-        @if (fileWarning()) {
-          <div class="tutorial-file-warning mt-2">
-            <i class="fa-solid fa-triangle-exclamation me-1"></i>
-            Only one tutorial file is allowed. Remove the existing file first.
-          </div>
-        }
         @if (tutorialFiles().length > 0) {
           <div class="tutorial-file-list mt-2">
             @for (entry of tutorialFiles(); track entry.name; let i = $index) {
               <div class="tutorial-file-item">
                 <i class="fa-regular fa-file tutorial-file-icon"></i>
-                <span class="tutorial-file-name">{{ entry.name }}</span>
-                @if (entry.isNew) { <span class="tutorial-file-new-badge">NEW</span> }
+                @if (entry.isNew) {
+                  <span class="tutorial-file-name">{{ entry.name }}</span>
+                  <span class="tutorial-file-new-badge">NEW</span>
+                } @else {
+                  <a class="tutorial-file-name tutorial-file-link" [href]="tutorialFileUrl(entry.name)" target="_blank" rel="noopener">{{ entry.name }}</a>
+                }
                 <button type="button" class="tutorial-file-delete" (click)="removeTutorialFile(i)">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
@@ -168,7 +166,7 @@
               <div class="d-flex gap-3">
                 <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
                         (click)="openEditConnector(c)">
-                  <i class="fa-solid fa-pen-to-square"></i>Edit
+                  <i class="fa-solid fa-pencil"></i>Edit
                 </button>
                 <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1">
                   <i class="fa-solid fa-trash-can"></i>Delete
@@ -187,7 +185,7 @@
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">License type:</span>
-                <span class="edit-connector-value">{{ c.licenseType || '—' }}</span>
+                <span class="edit-connector-value">{{ fmtLicense(c.licenseType) }}</span>
               </div>
               @if (c.implementationDescription) {
                 <div class="edit-connector-row">
@@ -248,10 +246,12 @@
       <div class="edit-footer">
         <button type="button" class="btn btn-link edit-cancel-btn" (click)="cancel()">Cancel</button>
         <div class="d-flex gap-2">
-          <button type="button" class="btn edit-save-btn" (click)="save()">Save</button>
-          <button type="button" class="btn edit-save-version-btn" (click)="saveAsNewVersion()">
-            <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
-          </button>
+          <button type="button" class="btn edit-save-btn" (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+          @if (!isInReview()) {
+            <button type="button" class="btn edit-save-version-btn" (click)="saveAsNewVersion()">
+              <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
+            </button>
+          }
         </div>
       </div>
 

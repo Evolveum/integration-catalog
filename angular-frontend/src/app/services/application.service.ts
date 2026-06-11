@@ -110,6 +110,27 @@ export class ApplicationService {
     );
   }
 
+  listTutorialFiles(appId: string, methodId: string, revision: string): Observable<string[]> {
+    return this.http.get<string[]>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`
+    );
+  }
+
+  deleteTutorialFile(appId: string, methodId: string, revision: string, name: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`
+    );
+  }
+
+  getTutorialFileUrl(appId: string, methodId: string, revision: string, name: string): string {
+    return `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`;
+  }
+
+  downloadBundle(appId: string, methodId: string, revision: string): void {
+    const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
+    window.open(url, '_blank');
+  }
+
   editIntegrationMethod(
     appId: string,
     methodId: string,
