@@ -9,7 +9,10 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.dto.AddConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
+import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
+import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
@@ -30,8 +33,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,6 +60,7 @@ public class ConnectorUploadService {
     private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
     private final ConnVersionCapabilityItemRepository connVersionCapabilityItemRepository;
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
+    private final TutorialStorageService tutorialStorageService;
 
     private record ApplicationResolution(Application application, boolean isNew,
                                           List<String> originNames, List<ApplicationTagDto> tagDtos) {}
@@ -397,18 +403,83 @@ public class ConnectorUploadService {
         }
     }
 
-    private void saveIntegrationMethodCapabilities(UploadImplementationDto dto, IntegrationMethod integrationMethod) {
-        List<IntegrationMethodCapabilityGroupDto> groups = dto.integrationMethodCapabilities();
-        if (groups == null || groups.isEmpty()) return;
+    @Transactional
+    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
+        IntegrationMethod existing = integrationMethodRepository.findById(new IntegrationMethodId(methodId, currentRevision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + currentRevision));
 
+        // An unpublished (in-review) revision is overwritten in place, so fixing a mistake in a
+        // freshly saved revision doesn't spawn yet another one. Published revisions are versioned.
+        if (existing.getLifecycleState() == LifecycleType.IN_REVIEW) {
+            return updateIntegrationMethodInPlace(existing, methodId, currentRevision, dto);
+        }
+
+        String newRevision = dto.minorBump() ? incrementMinorRevision(currentRevision) : incrementRevision(currentRevision);
+
+        IntegrationMethod updated = new IntegrationMethod();
+        updated.setId(methodId);
+        updated.setRevision(newRevision);
+        updated.setApplication(existing.getApplication());
+        // A revision produced by the edit-upgrade flow always starts unpublished, pending review.
+        updated.setLifecycleState(LifecycleType.IN_REVIEW);
+        updated.setAuthor(existing.getAuthor());
+        updated.setMaintainer(existing.getMaintainer());
+        updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
+        updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+        updated.setAppVersion(existing.getAppVersion());
+        // Carry tutorial files forward into the new revision's own folder, then point file_path at it.
+        String tutorialFolder = tutorialStorageService.copyTutorialFolder(methodId, currentRevision, newRevision);
+        updated.setFilePath(tutorialFolder);
+        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
+        updated.setDisplayName(dto.displayName());
+        updated.setDescription(dto.description());
+        updated.setTutorial(dto.tutorial());
+
+        for (IntegrationMethodConnector oldLink : existing.getConnectors()) {
+            IntegrationMethodConnector newLink = new IntegrationMethodConnector();
+            newLink.setIntegrationMethod(updated);
+            newLink.setConnector(oldLink.getConnector());
+            newLink.setConnectorMinVersion(oldLink.getConnectorMinVersion());
+            newLink.setConnectorMaxVersion(oldLink.getConnectorMaxVersion());
+            updated.getConnectors().add(newLink);
+        }
+
+        integrationMethodRepository.save(updated);
+
+        saveIntegrationMethodCapabilities(dto.capabilities(), updated);
+
+        return newRevision;
+    }
+
+    /**
+     * Overwrites an in-review revision in place (same id + revision): updates metadata, replaces
+     * its capabilities, and leaves its tutorial folder as-is so file add/delete affect only it.
+     */
+    private String updateIntegrationMethodInPlace(IntegrationMethod existing, UUID methodId,
+                                                  String currentRevision, EditIntegrationMethodDto dto) {
+        existing.setDisplayName(dto.displayName());
+        existing.setDescription(dto.description());
+        existing.setTutorial(dto.tutorial());
+        existing.setFilePath(tutorialStorageService.folderName(methodId, currentRevision));
+
+        // Drop the current capabilities (cascade removes their items), then recreate from the DTO.
+        existing.getCapabilities().clear();
+        integrationMethodRepository.saveAndFlush(existing);
+
+        saveIntegrationMethodCapabilities(dto.capabilities(), existing);
+
+        return currentRevision;
+    }
+
+    private void saveIntegrationMethodCapabilities(List<IntegrationMethodCapabilityGroupDto> groups,
+                                                   IntegrationMethod target) {
+        if (groups == null) return;
         for (IntegrationMethodCapabilityGroupDto group : groups) {
             if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
-
             IntegrationMethodCapability cap = new IntegrationMethodCapability();
             cap.setObjectClass(group.objectClass());
-            cap.setIntegrationMethod(integrationMethod);
+            cap.setIntegrationMethod(target);
             cap = integrationMethodCapabilityRepository.save(cap);
-
             final Integer capId = cap.getId();
             for (String capabilityName : group.capabilityNames()) {
                 capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
@@ -421,8 +492,184 @@ public class ConnectorUploadService {
         }
     }
 
+    @Transactional
+    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+                                                AddConnectorDto dto, String username) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        Connector connector;
+        String connectorMinVersion;
+
+        if (dto.existingConnectorId() != null) {
+            connector = connectorRepository.findById(dto.existingConnectorId())
+                    .orElseThrow(() -> new RuntimeException("Connector not found: " + dto.existingConnectorId()));
+            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), connector.getRevision(), "1.0.0");
+        } else {
+            UploadConnectorDto connDto = new UploadConnectorDto(
+                    dto.displayName(), dto.framework(), dto.version(), dto.bundleName(), dto.license(),
+                    dto.buildFramework(), dto.description(), dto.maintainer(), dto.browseLink(),
+                    null, dto.gitCloneUrl(), dto.className(), dto.pathToProject(), dto.commitTag(),
+                    dto.displayName(), null);
+
+            ConnectorBundle bundle = createNewConnectorBundle(connDto, username);
+            connectorBundleRepository.save(bundle);
+
+            ConnectorBundleVersion bundleVersion = createBundleVersion(connDto, bundle, username);
+            connectorBundleVersionRepository.save(bundleVersion);
+
+            connector = new Connector();
+            connector.setDisplayName(dto.displayName());
+            connector.setRevision(dto.version() != null ? dto.version() : "1.0.0");
+            connector.setAuthor(username);
+            connector.setMaintainer(dto.maintainer());
+            connector.setDescription(dto.description());
+            connector.setFullyQualifiedClassName(dto.className());
+            connector.setConnectorBundle(bundle);
+            connectorRepository.save(connector);
+
+            ConnectorVersion connectorVersion = createConnectorVersion(connDto, connector, bundleVersion, username);
+            connectorVersionRepository.save(connectorVersion);
+
+            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), connectorVersion.getRevision(), "1.0.0");
+            saveConnectorVersionCapabilities(dto.connectorCapabilities(), connectorVersion);
+        }
+
+        if (dto.midpointMinVersion() != null) method.setMidpointMinVersionId(dto.midpointMinVersion());
+        if (dto.midpointMaxVersion() != null) method.setMidpointMaxVersionId(dto.midpointMaxVersion());
+
+        // Append a new connector link, leaving any existing connectors on this integration
+        // method revision untouched (a method revision may hold multiple connectors).
+        IntegrationMethodConnector imc = new IntegrationMethodConnector();
+        imc.setConnector(connector);
+        imc.setConnectorMinVersion(connectorMinVersion);
+        imc.setConnectorMaxVersion(emptyToNull(dto.connectorVersionTo()));
+        imc.setIntegrationMethod(method);
+        method.getConnectors().add(imc);
+
+        integrationMethodRepository.save(method);
+    }
+
+    /**
+     * Updates an existing connector (and its bundle / latest version) in place, replacing the
+     * fields edited via the "Edit connector" modal. The connector must be linked to the given
+     * integration method revision.
+     */
+    @Transactional
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        Connector connector = method.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .filter(c -> connectorId.equals(c.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+
+        // Connector
+        connector.setDisplayName(dto.displayName());
+        connector.setMaintainer(dto.maintainer());
+        connector.setDescription(dto.description());
+        connector.setFullyQualifiedClassName(dto.className());
+
+        // Connector bundle
+        ConnectorBundle bundle = connector.getConnectorBundle();
+        if (bundle != null) {
+            bundle.setDisplayName(dto.displayName());
+            bundle.setDescription(dto.description());
+            bundle.setMaintainer(dto.maintainer());
+            if (dto.license() != null) bundle.setLicense(dto.license());
+            if (dto.bundleName() != null && !dto.bundleName().isBlank()) bundle.setBundleName(dto.bundleName());
+            bundle.setTicketingLink(dto.supportPortal());
+            bundle.setProjectHomepage(dto.browseLink());
+            bundle.setGitCloneUrl(dto.gitCloneUrl());
+            bundle.setPathToProject(dto.pathToProject());
+            if (dto.buildFramework() != null) bundle.setBuildFramework(dto.buildFramework());
+            connectorBundleRepository.save(bundle);
+        }
+
+        // Latest connector version + its bundle version
+        Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getConnectorBundleVersion() != null)
+                .findFirst();
+        if (latestCv.isPresent()) {
+            ConnectorVersion cv = latestCv.get();
+            cv.setMaintainer(dto.maintainer());
+            cv.setFullyQualifiedClassName(dto.className());
+
+            ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+            cbv.setBrowseLink(dto.browseLink());
+            cbv.setGitCloneUrl(dto.gitCloneUrl());
+            cbv.setPathToProject(dto.pathToProject());
+            cbv.setCommitTag(dto.commitTag());
+            if (dto.buildFramework() != null) cbv.setBuildFramework(dto.buildFramework());
+            connectorBundleVersionRepository.save(cbv);
+            connectorVersionRepository.save(cv);
+
+            replaceConnectorVersionCapabilities(cv, dto.connectorCapabilities());
+        }
+
+        connectorRepository.save(connector);
+    }
+
+    private void replaceConnectorVersionCapabilities(ConnectorVersion connectorVersion,
+                                                     List<IntegrationMethodCapabilityGroupDto> groups) {
+        // Remove existing capabilities (items cascade away via orphanRemoval)
+        if (connectorVersion.getCapabilities() != null && !connectorVersion.getCapabilities().isEmpty()) {
+            connVersionCapabilityRepository.deleteAll(connectorVersion.getCapabilities());
+            connectorVersion.getCapabilities().clear();
+        }
+        saveConnectorVersionCapabilities(groups, connectorVersion);
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isBlank()) return v;
+        }
+        return null;
+    }
+
+    private static String emptyToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
+    }
+
+    private String incrementRevision(String revision) {
+        if (revision == null || revision.isBlank()) return "1";
+        String[] parts = revision.split("\\.");
+        try {
+            int last = Integer.parseInt(parts[parts.length - 1]);
+            parts[parts.length - 1] = String.valueOf(last + 1);
+        } catch (NumberFormatException e) {
+            return revision + ".1";
+        }
+        return String.join(".", parts);
+    }
+
+    private String incrementMinorRevision(String revision) {
+        if (revision == null || revision.isBlank()) return "1.0";
+        String[] parts = revision.split("\\.");
+        if (parts.length < 2) return revision + ".1.0";
+        try {
+            int minor = Integer.parseInt(parts[parts.length - 2]);
+            parts[parts.length - 2] = String.valueOf(minor + 1);
+            parts[parts.length - 1] = "0";
+        } catch (NumberFormatException e) {
+            return revision + ".0";
+        }
+        return String.join(".", parts);
+    }
+
+    private void saveIntegrationMethodCapabilities(UploadImplementationDto dto, IntegrationMethod integrationMethod) {
+        saveIntegrationMethodCapabilities(dto.integrationMethodCapabilities(), integrationMethod);
+    }
+
     private void saveConnectorVersionCapabilities(UploadImplementationDto dto, ConnectorVersion connectorVersion) {
-        List<IntegrationMethodCapabilityGroupDto> groups = dto.connectorCapabilities();
+        saveConnectorVersionCapabilities(dto.connectorCapabilities(), connectorVersion);
+    }
+
+    private void saveConnectorVersionCapabilities(List<IntegrationMethodCapabilityGroupDto> groups, ConnectorVersion connectorVersion) {
         if (groups == null || groups.isEmpty()) return;
 
         for (IntegrationMethodCapabilityGroupDto group : groups) {

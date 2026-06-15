@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
@@ -169,6 +170,29 @@ public class ApplicationService {
     @Transactional
     public String uploadConnector(UploadImplementationDto dto, String username) {
         return connectorUploadService.uploadConnector(dto, username);
+    }
+
+    @Transactional
+    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
+        return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
+    }
+
+    @Transactional
+    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+                                                AddConnectorDto dto, String username) {
+        connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+    }
+
+    @Transactional
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+        connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ImplementationListItemDto> getConnectorsForIntegrationMethod(UUID methodId, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .map(applicationMapper::mapConnectorsForMethod)
+                .orElseGet(List::of);
     }
 
     @Transactional

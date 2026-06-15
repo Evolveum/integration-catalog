@@ -8,19 +8,25 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.TutorialStorageProperties;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -41,6 +47,9 @@ public class TutorialStorageService {
     private final TutorialStorageProperties properties;
     private final IntegrationMethodRepository integrationMethodRepository;
     private final Path basePath;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public TutorialStorageService(TutorialStorageProperties properties,
                                    IntegrationMethodRepository integrationMethodRepository) {
@@ -89,41 +98,147 @@ public class TutorialStorageService {
         }
     }
 
-    @Transactional
-    public void saveTutorial(UUID integrationMethodId, MultipartFile file) throws IOException {
-        validateFile(file);
-
-        IntegrationMethod method = integrationMethodRepository.findByUuid(integrationMethodId)
-                .orElseThrow(() -> new RuntimeException("Integration method not found: " + integrationMethodId));
-
-        deleteFile(method.getFilePath());
-
-        String safeFileName = UUID.randomUUID() + getFileExtension(file.getOriginalFilename());
-        Path target = basePath.resolve(safeFileName);
-        Files.createDirectories(target.getParent());
-        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-
-        method.setFilePath(safeFileName);
-        integrationMethodRepository.save(method);
-        log.info("Saved tutorial for integration method {}: {}", integrationMethodId, safeFileName);
+    /** Folder name (and the value stored in integration_method.file_path) for a given method revision. */
+    public String folderName(UUID integrationMethodId, String revision) {
+        return integrationMethodId + "_" + sanitizeSegment(revision);
     }
 
-    private void deleteFile(String filePath) {
-        if (filePath == null || filePath.isBlank()) return;
-        Path path = basePath.resolve(filePath);
+    @Transactional
+    public void saveTutorial(UUID integrationMethodId, MultipartFile file) throws IOException {
+        IntegrationMethod method = integrationMethodRepository.findFirstByIdOrderByCreatedAtDesc(integrationMethodId)
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + integrationMethodId));
+        saveTutorialForRevision(integrationMethodId, method.getRevision(), file);
+    }
+
+    @Transactional
+    public void saveTutorialForRevision(UUID integrationMethodId, String revision, MultipartFile file) throws IOException {
+        validateFile(file);
+
+        if (!integrationMethodRepository.existsById(new IntegrationMethodId(integrationMethodId, revision))) {
+            throw new RuntimeException("Integration method not found: " + integrationMethodId + "/" + revision);
+        }
+
+        String folder = folderName(integrationMethodId, revision);
+        Path folderPath = basePath.resolve(folder);
+        Files.createDirectories(folderPath);
+
+        String fileName = uniqueFileName(folderPath, sanitizeFileName(file.getOriginalFilename()));
+        Path target = folderPath.resolve(fileName);
+        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+        updateFilePath(integrationMethodId, revision, folder);
+        log.info("Saved tutorial file for integration method {}/{}: {}", integrationMethodId, revision, fileName);
+    }
+
+    /** Lists the tutorial file names stored for a given method revision. */
+    public List<String> listTutorialFiles(UUID integrationMethodId, String revision) {
+        Path folderPath = basePath.resolve(folderName(integrationMethodId, revision));
+        if (!Files.isDirectory(folderPath)) {
+            return List.of();
+        }
+        try (Stream<Path> entries = Files.list(folderPath)) {
+            return entries
+                    .filter(Files::isRegularFile)
+                    .map(p -> p.getFileName().toString())
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to list tutorial files for " + integrationMethodId + "/" + revision, e);
+        }
+    }
+
+    /** Resolves a single tutorial file to an absolute path, guarding against path traversal. */
+    public Path resolveTutorialFile(UUID integrationMethodId, String revision, String fileName) {
+        Path folderPath = basePath.resolve(folderName(integrationMethodId, revision)).normalize();
+        Path target = folderPath.resolve(Paths.get(fileName).getFileName().toString()).normalize();
+        if (!target.startsWith(folderPath)) {
+            throw new IllegalArgumentException("Invalid tutorial file name: " + fileName);
+        }
+        if (!Files.isRegularFile(target)) {
+            throw new RuntimeException("Tutorial file not found: " + fileName);
+        }
+        return target;
+    }
+
+    @Transactional
+    public void deleteTutorialFile(UUID integrationMethodId, String revision, String fileName) throws IOException {
+        Path folderPath = basePath.resolve(folderName(integrationMethodId, revision)).normalize();
+        Path target = folderPath.resolve(Paths.get(fileName).getFileName().toString()).normalize();
+        if (!target.startsWith(folderPath)) {
+            throw new IllegalArgumentException("Invalid tutorial file name: " + fileName);
+        }
+        boolean deleted = Files.deleteIfExists(target);
+        log.info("Delete tutorial file {} for {}/{}: {}", fileName, integrationMethodId, revision, deleted ? "removed" : "not found");
+    }
+
+    /**
+     * Copies all tutorial files from one revision folder to another (used when a new revision is created).
+     * Returns the destination folder name.
+     */
+    public String copyTutorialFolder(UUID integrationMethodId, String fromRevision, String toRevision) {
+        String destFolder = folderName(integrationMethodId, toRevision);
+        Path from = basePath.resolve(folderName(integrationMethodId, fromRevision));
+        Path to = basePath.resolve(destFolder);
+        if (from.equals(to) || !Files.isDirectory(from)) {
+            return destFolder;
+        }
         try {
-            if (Files.exists(path)) {
-                Files.delete(path);
-                log.info("Deleted tutorial file: {}", path);
+            Files.createDirectories(to);
+            try (Stream<Path> entries = Files.list(from)) {
+                entries.filter(Files::isRegularFile).forEach(src -> {
+                    try {
+                        Files.copy(src, to.resolve(src.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
             }
         } catch (IOException e) {
-            log.error("Failed to delete tutorial file: {}", path, e);
+            throw new UncheckedIOException("Failed to copy tutorial folder for " + integrationMethodId
+                    + " from " + fromRevision + " to " + toRevision, e);
         }
+        return destFolder;
+    }
+
+    private void updateFilePath(UUID id, String revision, String filePath) {
+        entityManager.createQuery(
+                "UPDATE IntegrationMethod m SET m.filePath = :filePath WHERE m.id = :id AND m.revision = :revision")
+                .setParameter("filePath", filePath)
+                .setParameter("id", id)
+                .setParameter("revision", revision)
+                .executeUpdate();
     }
 
     private String getFileExtension(String filename) {
         if (filename == null) return "";
         int lastDot = filename.lastIndexOf('.');
         return lastDot == -1 ? "" : filename.substring(lastDot);
+    }
+
+    /** Reduces an uploaded name to a safe base file name (no path separators, restricted character set). */
+    private String sanitizeFileName(String original) {
+        String base = original == null ? "" : Paths.get(original).getFileName().toString();
+        base = base.replaceAll("[^A-Za-z0-9._() -]", "_").trim();
+        return base.isEmpty() ? "file" : base;
+    }
+
+    private String sanitizeSegment(String segment) {
+        return segment == null ? "" : segment.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
+    /** Appends " (n)" before the extension until the name is free within the folder. */
+    private String uniqueFileName(Path folder, String fileName) {
+        Path candidate = folder.resolve(fileName);
+        if (!Files.exists(candidate)) {
+            return fileName;
+        }
+        String ext = getFileExtension(fileName);
+        String stem = ext.isEmpty() ? fileName : fileName.substring(0, fileName.length() - ext.length());
+        for (int i = 1; ; i++) {
+            String next = stem + " (" + i + ")" + ext;
+            if (!Files.exists(folder.resolve(next))) {
+                return next;
+            }
+        }
     }
 }

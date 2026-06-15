@@ -30,5 +30,8 @@ public record IntegrationMethodDto(
         Integer midpointMaxVersionId,                               // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
         String connectorDisplayName,                                // connector.display_name
         List<String> integMethodTypes,                              // integration_method_type.name
-        String revision                                             // integration_method.revision
+        String revision,                                            // integration_method.revision
+        String displayName,                                         // integration_method.display_name
+        String tutorial,                                            // integration_method.tutorial
+        String filePath                                             // integration_method.file_path
 ) {}

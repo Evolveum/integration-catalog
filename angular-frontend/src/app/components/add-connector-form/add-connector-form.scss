@@ -1,0 +1,452 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+/* ── Breadcrumb ─────────────────────────────────────────── */
+.page-header-breadcrumb-text { font-size: 0.8125rem; color: #6b7280; }
+
+.breadcrumb-link {
+  background: none; border: none; padding: 0;
+  font-size: 0.8125rem; font-weight: 500;
+  color: $color-dark-blue; cursor: pointer; text-decoration: none;
+  &:hover { color: $color-dark-blue; text-decoration: underline; }
+}
+
+.breadcrumb-sep  { font-size: 0.8125rem; color: #9ca3af; }
+.breadcrumb-current { font-size: 0.8125rem; font-weight: 500; color: #000; }
+.breadcrumb-app-icon { height: 1em; width: auto; object-fit: contain; vertical-align: middle; }
+
+/* ── Page layout ────────────────────────────────────────── */
+.ac-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 60px);
+  min-width: 1080px;
+}
+
+.ac-content {
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+/* ── Step title & form labels ───────────────────────────── */
+.step-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-bottom: 1.5rem;
+}
+
+.form-label-upload {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.4rem;
+}
+
+.char-counter { font-size: 0.75rem; margin-top: 0.25rem; }
+
+.field-error { font-size: 0.875rem; color: #dc3545; margin-top: 0.25rem; }
+
+.input-disabled {
+  background-color: $color-bg-disabled;
+  color: $color-gray-secondary;
+}
+
+/* ── Info icon (native title tooltip) ──────────────────── */
+.btn-info-icon {
+  border: none;
+  background: none;
+  box-shadow: none !important;
+  position: relative;
+  top: -3px;
+  &:hover, &:focus, &:active { background: none; box-shadow: none; }
+}
+.info-icon-sm { font-size: 12px; color: $text-publishing-blue; }
+
+/* ── Connector type cards ───────────────────────────────── */
+.connector-option .form-check-input:checked {
+  background-color: $midpoint-special-color;
+  border-color: $midpoint-special-color;
+}
+
+.connector-option .form-check-input:focus {
+  border-color: $midpoint-special-color;
+  box-shadow: 0 0 0 0.25rem $shadow-teal;
+}
+
+.connector-option-card {
+  border: 2px solid $color-border-light;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  &.selected {
+    border-color: $midpoint-special-color;
+    background-color: $color-bg-selected;
+  }
+}
+
+.connector-option-card-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.connector-coming-soon-badge {
+  display: inline-block;
+  font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 8px; border-radius: 4px;
+  border: 1px solid #d5d7da;
+  background-color: #fafbfc; color: #525151;
+  margin-left: 0.5rem; vertical-align: middle;
+}
+
+.radio-input { width: 20px; height: 20px; cursor: pointer; }
+
+.connector-title { font-weight: 600; font-size: 0.9375rem; }
+
+.connector-description { color: $color-black; font-size: 0.875rem; }
+
+.connector-existing-link {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.connector-existing-anchor {
+  color: $midpoint-special-color; font-weight: 500; text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+.connector-existing-icon { font-size: 0.75rem; margin-left: 2px; }
+
+.btn-link-inline { background: none; border: none; padding: 0; cursor: pointer; }
+
+/* ── Accordion panels ───────────────────────────────────── */
+.accordion-panel {
+  border: 1px solid $color-border-light;
+  border-radius: 8px;
+  overflow: visible;
+}
+
+.accordion-panel-header {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  cursor: pointer; user-select: none;
+  background: #f8f9fa; border-radius: 8px;
+}
+
+.accordion-chevron { font-size: 0.75rem; color: $color-text-secondary; width: 12px; }
+
+.accordion-panel-title {
+  font-size: 0.8125rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: $color-text-dark;
+}
+
+.accordion-panel-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  border-top: 1px solid $color-border-light;
+  background-color: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+
+  .form-control, .form-select, .method-link-wrapper,
+  .method-link-input, .license-select-trigger {
+    background-color: #fff;
+    border-color: $color-border-light;
+  }
+
+  .form-control.input-disabled { background-color: $color-bg-muted; }
+}
+
+/* ── Dev section headings ───────────────────────────────── */
+.dev-section-title {
+  font-size: 0.9375rem; font-weight: 600;
+  color: $color-text-dark; margin-bottom: 0.75rem;
+}
+
+/* ── Method link input row ──────────────────────────────── */
+.method-link-wrapper {
+  border-radius: 4px; overflow: hidden;
+  height: calc(1.5em + 0.75rem + 2px);
+  border: 1px solid $color-border-input; padding: 0;
+}
+
+.method-link-icon {
+  border-right: 1px solid $color-border-input;
+  height: 100%; color: $color-gray-secondary;
+}
+
+.method-link-icon-i { font-size: 13px; }
+
+.method-link-input {
+  border: none; outline: none;
+  background: transparent;
+  padding: 0.375rem 0.75rem; font-size: 1rem;
+  &::placeholder { color: $color-gray-secondary; }
+}
+
+.method-link-wrapper--invalid { border-color: #dc3545; }
+
+/* ── License combobox ───────────────────────────────────── */
+.license-combobox {
+  position: relative;
+  &.open .license-select-trigger {
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
+}
+
+.license-select-trigger { cursor: pointer; user-select: none; }
+.license-placeholder { color: $color-gray-secondary; }
+
+.license-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  z-index: 1050; background: #fff;
+  border: 1px solid #dee2e6; border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: calc(4 * 2.375rem); overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,.1);
+}
+
+.license-option {
+  padding: 0.5rem 0.75rem; cursor: pointer; font-size: 1rem; color: #212529;
+  &:hover { background-color: #e9ecef; }
+  &.license-option-selected { background-color: $color-bg-selected; }
+}
+
+/* ── Maintainer combobox ────────────────────────────────── */
+.maintainer-combobox {
+  position: relative;
+  &.open input.form-select {
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
+}
+
+.maintainer-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  z-index: 1050; background: #fff;
+  border: 1px solid #dee2e6; border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: calc(8 * 2.375rem); overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,.1);
+}
+
+.maintainer-option {
+  padding: 0.5rem 0.75rem; cursor: pointer; font-size: 1rem; color: #212529;
+  &:hover { background-color: #e9ecef; }
+}
+
+/* ── Alert info note ────────────────────────────────────── */
+.alert-info-note {
+  background-color: $color-info-bg;
+  border: 1px solid $color-info-border;
+  border-radius: 4px; padding: 0.75rem 1rem;
+}
+
+.alert-icon { font-size: 16px; color: $text-publishing-blue; margin-top: 2px; }
+.alert-text { color: $color-info-text; font-size: 0.875rem; }
+
+/* ── Compatibility section ──────────────────────────────── */
+.compat-step-desc {
+  font-size: 0.9375rem; color: $color-text-secondary; margin-bottom: 1.5rem;
+}
+
+.compat-section { margin-bottom: 1.5rem; }
+
+.compat-section-title {
+  font-size: 1rem; font-weight: 600;
+  color: $color-text-dark; margin-bottom: 0.5rem;
+}
+
+.compat-section-desc {
+  font-size: 0.875rem; color: $color-text-secondary; margin-bottom: 1rem;
+}
+
+.compat-version-select { min-width: 140px; }
+
+.compat-connector-card {
+  border: 1px solid $color-border-light;
+  border-radius: 8px; padding: 1.25rem;
+  background: $color-white;
+}
+
+.compat-connector-name {
+  font-size: 0.9375rem; font-weight: 600; color: $color-text-dark;
+}
+
+.compat-connector-version {
+  font-size: 0.8125rem; color: $color-text-secondary; margin-top: 2px;
+}
+
+.compat-badge {
+  display: inline-block;
+  font-size: 0.75rem; font-weight: 500;
+  color: $color-text-secondary;
+  background: $color-bg-muted;
+  border: 1px solid $color-border-light;
+  border-radius: 4px; padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+.compat-range-label {
+  font-size: 0.6875rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: $color-text-secondary; margin-bottom: 0.75rem;
+}
+
+.compat-info-note {
+  background-color: $color-info-bg;
+  border: 1px solid $color-info-border;
+  border-radius: 4px; padding: 0.75rem 1rem;
+  font-size: 0.875rem; color: $color-info-text;
+}
+
+.compat-info-icon { font-size: 14px; color: $text-publishing-blue; }
+
+/* ── Footer navigation ──────────────────────────────────── */
+.ac-footer {
+  border-top: 1px solid #dee2e6;
+  padding: 1rem 0;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.ac-footer-inner {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ac-footer-error {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 0.75rem;
+  padding: 0 1.5rem;
+  text-align: right;
+}
+
+.ac-btn-back {
+  color: $midpoint-special-color;
+  background: none; border: none;
+  padding: 0.375rem 0.75rem; font-weight: 600;
+  &:hover { color: $color-dark-blue; }
+}
+
+.ac-btn-next {
+  background-color: $midpoint-special-color;
+  border-color: $midpoint-special-color;
+  &:hover { background-color: $color-dark-blue; border-color: $color-dark-blue; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.ac-btn-icon { font-size: 12px; }
+
+/* ── Catalog connector modal ────────────────────────────── */
+.cc-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 1050;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.cc-modal {
+  background: $color-white; border-radius: 8px;
+  width: 100%; max-width: 560px; max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+}
+
+.cc-modal-header {
+  padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid $color-border-light; flex-shrink: 0;
+}
+
+.cc-modal-title   { font-size: 1rem; font-weight: 600; color: $color-text-dark; }
+.cc-modal-subtitle { font-size: 0.875rem; color: $color-text-secondary; }
+
+.cc-modal-search { padding: 1rem 1.5rem 0.75rem; flex-shrink: 0; }
+
+.cc-modal-body {
+  flex: 1; overflow-y: auto;
+  padding: 0 1.5rem 0.5rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+
+.cc-loading, .cc-empty {
+  padding: 2rem 0; text-align: center;
+  font-size: 0.875rem; color: $color-text-secondary;
+}
+
+.cc-connector-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  border: 2px solid $color-border-light;
+  border-radius: 8px; padding: 0.875rem 1rem;
+  cursor: pointer; transition: border-color 0.15s, background-color 0.15s;
+
+  &.selected {
+    border-color: $midpoint-special-color;
+    background-color: $color-bg-selected;
+  }
+
+  &:hover:not(.selected) { border-color: $color-gray-secondary; }
+}
+
+.cc-connector-info { flex: 1; min-width: 0; }
+.cc-connector-name { font-weight: 600; font-size: 0.9375rem; color: $color-text-dark; }
+.cc-connector-desc {
+  font-size: 0.8125rem; color: $color-text-secondary; margin-top: 0.25rem;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.cc-modal-footer {
+  padding: 1rem 1.5rem; border-top: 1px solid $color-border-light; flex-shrink: 0;
+}
+
+.define-new-cancel-btn {
+  color: $midpoint-special-color; font-weight: 600; padding: 0; text-decoration: none;
+  &:hover { color: $color-text-dark; }
+}
+
+/* ── Catalog search input ───────────────────────────────── */
+.search-input-wrapper {
+  border: 2px solid $color-dark-blue; border-radius: 50px;
+  background-color: $color-white; transition: border-width 0.15s ease-in-out;
+}
+
+.search-icon-wrapper { padding: 0.375rem 0.75rem; }
+
+.search-input {
+  border: none; outline: none;
+  padding: 0.375rem 0.75rem; font-size: 1rem; background: transparent;
+  &::placeholder { color: $color-gray-secondary; }
+}
+
+.clear-search-btn {
+  background: none; border: none;
+  border-left: 1px solid $color-border-input;
+  padding: 0.375rem 0.75rem; cursor: pointer;
+  &:hover { opacity: 0.7; }
+}
+
+.search-icon  { font-size: 14px; color: $color-gray-secondary; }
+.clear-icon   { font-size: 12px; color: $color-gray-secondary; }
+
+/* Radio */
+.form-check-input[type="radio"] { accent-color: $midpoint-special-color !important; }
+.form-check-input[type="radio"]:checked {
+  background-color: $midpoint-special-color !important;
+  border-color: $midpoint-special-color !important;
+}

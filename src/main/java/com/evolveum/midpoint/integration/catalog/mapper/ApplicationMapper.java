@@ -90,7 +90,6 @@ public class ApplicationMapper {
                     String connectorVersion = null;
                     String framework = null;
                     String connectorDisplayName = null;
-                    String revision = null;
                     String downloadLink = null;
                     String errorMessage = null;
                     if (!method.getConnectors().isEmpty()) {
@@ -102,7 +101,6 @@ public class ApplicationMapper {
                                 if (bundle.getFramework() != null) {
                                     framework = bundle.getFramework().name();
                                 }
-                                revision = bundle.getRevision();
                             }
                             connectorVersion = link.getConnector().getConnectorVersions().stream()
                                     .filter(cv -> cv.getConnectorBundleVersion() != null
@@ -168,7 +166,10 @@ public class ApplicationMapper {
                             method.getMidpointMaxVersionId(),
                             connectorDisplayName,
                             integMethodTypes,
-                            revision
+                            method.getRevision(),
+                            method.getDisplayName(),
+                            method.getTutorial(),
+                            method.getFilePath()
                     );
                 })
                 .toList();
@@ -395,7 +396,27 @@ public class ApplicationMapper {
 
     public ImplementationListItemDto mapToIntegrationMethodListItemDto(IntegrationMethod method) {
         if (method == null) return null;
+        Connector connector = method.getConnectors().isEmpty()
+                ? null
+                : method.getConnectors().get(0).getConnector();
+        return buildIntegrationMethodListItem(method, connector);
+    }
 
+    /**
+     * Maps every connector linked to the given integration method to its own list item,
+     * so a method revision with multiple connectors yields multiple entries.
+     */
+    public List<ImplementationListItemDto> mapConnectorsForMethod(IntegrationMethod method) {
+        if (method == null) return List.of();
+        return method.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .map(connector -> buildIntegrationMethodListItem(method, connector))
+                .toList();
+    }
+
+    private ImplementationListItemDto buildIntegrationMethodListItem(IntegrationMethod method, Connector connector) {
+        Integer connectorId = null;
         String connectorVersion = null;
         String browseLink = null;
         String gitCloneUrl = null;
@@ -403,48 +424,47 @@ public class ApplicationMapper {
         String pathToProject = null;
         String className = null;
         String maintainer = null;
+        String connectorDescription = null;
         String licenseType = null;
         String ticketingLink = null;
-        String bundleDisplayName = null;
+        String connectorDisplayName = null;
+        String bundleName = null;
         String bundleFramework = null;
+        String commitTag = null;
+        List<ObjectClassCapabilityDto> objectClassCapabilities = List.of();
 
-        if (!method.getConnectors().isEmpty()) {
-            IntegrationMethodConnector link = method.getConnectors().get(0);
-            Connector connector = link.getConnector();
-            if (connector != null) {
-                className = connector.getFullyQualifiedClassName();
-                ConnectorBundle bundle = connector.getConnectorBundle();
-                if (bundle != null) {
-                    maintainer = bundle.getMaintainer();
-                    licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
-                    ticketingLink = bundle.getTicketingLink();
-                    bundleDisplayName = bundle.getDisplayName();
-                    bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
-                }
-                connector.getConnectorVersions().stream()
-                        .filter(cv -> cv.getConnectorBundleVersion() != null)
-                        .findFirst()
-                        .ifPresent(cv -> {
-                            // field assignments inside lambda are not possible, done below
-                        });
-                // Get latest CBV
-                Optional<ConnectorBundleVersion> latestCbv = connector.getConnectorVersions().stream()
-                        .filter(cv -> cv.getConnectorBundleVersion() != null)
-                        .map(ConnectorVersion::getConnectorBundleVersion)
-                        .findFirst();
-                if (latestCbv.isPresent()) {
-                    ConnectorBundleVersion cbv = latestCbv.get();
-                    connectorVersion = cbv.getBundleVersion();
-                    browseLink = cbv.getBrowseLink();
-                    gitCloneUrl = cbv.getGitCloneUrl();
-                    buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;
-                    pathToProject = cbv.getPathToProject();
-                }
+        if (connector != null) {
+            connectorId = connector.getId();
+            className = connector.getFullyQualifiedClassName();
+            maintainer = connector.getMaintainer();
+            connectorDescription = connector.getDescription();
+            connectorDisplayName = connector.getDisplayName();
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle != null) {
+                licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
+                ticketingLink = bundle.getTicketingLink();
+                bundleName = bundle.getBundleName();
+                bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
             }
+            // Get latest CBV
+            Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
+                    .filter(cv -> cv.getConnectorBundleVersion() != null)
+                    .findFirst();
+            if (latestCv.isPresent()) {
+                ConnectorBundleVersion cbv = latestCv.get().getConnectorBundleVersion();
+                connectorVersion = cbv.getRevision();
+                browseLink = cbv.getBrowseLink();
+                gitCloneUrl = cbv.getGitCloneUrl();
+                buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;
+                pathToProject = cbv.getPathToProject();
+                commitTag = cbv.getCommitTag();
+            }
+            objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
         return new ImplementationListItemDto(
                 method.getId(),
+                connectorId,
                 method.getDisplayName(),
                 method.getDescription(),
                 null,               // publishedDate (no direct field)
@@ -452,16 +472,40 @@ public class ApplicationMapper {
                 method.getDisplayName(),
                 maintainer,
                 licenseType,
-                method.getDescription(),
+                connectorDescription,
                 browseLink,
                 ticketingLink,
                 buildFramework,
                 gitCloneUrl,
                 pathToProject,
                 className,
-                bundleDisplayName,
-                bundleFramework
+                connectorDisplayName,
+                bundleName,
+                bundleFramework,
+                commitTag,
+                objectClassCapabilities
         );
+    }
+
+    /**
+     * Collects the object-class capabilities of the connector's first connector version,
+     * grouped by object class, so the edit form can pre-fill the capability picker.
+     */
+    private List<ObjectClassCapabilityDto> mapConnectorVersionCapabilities(Connector connector) {
+        return connector.getConnectorVersions().stream()
+                .findFirst()
+                .map(cv -> cv.getCapabilities().stream()
+                        .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
+                        .map(cap -> new ObjectClassCapabilityDto(
+                                cap.getObjectClass(),
+                                cap.getItems().stream()
+                                        .filter(item -> item.getCapability() != null
+                                                && item.getCapability().getName() != null)
+                                        .map(item -> item.getCapability().getName())
+                                        .toList()
+                        ))
+                        .toList())
+                .orElseGet(List::of);
     }
 
     // ── Shared helpers ────────────────────────────────────────────────────────

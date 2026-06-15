@@ -30,7 +30,6 @@ import java.util.UUID;
 public class IntegrationMethod implements Persistable<UUID> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Id
@@ -39,6 +38,15 @@ public class IntegrationMethod implements Persistable<UUID> {
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;
+
+    @PrePersist
+    void assignIdIfMissing() {
+        // A new revision of an existing method keeps that method's id (set explicitly);
+        // a genuinely new method has no id yet, so we generate one here.
+        if (this.id == null) {
+            this.id = UUID.randomUUID();
+        }
+    }
 
     @PostPersist
     @PostLoad

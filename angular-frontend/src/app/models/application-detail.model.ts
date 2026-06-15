@@ -45,6 +45,9 @@ export interface IntegrationMethod {
   integMethodTypes: string[] | null;       // integration_method_type.name
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
   revision: string | null;                // integration_method.revision
+  displayName: string | null;             // integration_method.display_name
+  tutorial: string | null;               // integration_method.tutorial
+  filePath: string | null;               // integration_method.file_path
 }
 
 export interface ObjectClassCapability {

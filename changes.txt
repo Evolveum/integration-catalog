@@ -113,8 +113,8 @@ to align with the agreed terminology:
 2e. Constraints & indexes
   - All new tables have proper PKs, FKs with ON DELETE CASCADE, and indexes
   - unique_connector_bundle_version on connector_bundle_version(bundle_version)
-  - uq_imc_met_id_met_rev on integration_method_connector ensures one
-    connector link per integration method version
+  - integration_method_connector allows multiple connector links per
+    integration method version (no uniqueness on integ_method_id/revision)
 
 
 --------------------------------------------------------------------------------
@@ -288,6 +288,10 @@ Repositories (new):
     If applying to an existing new-schema DB:
       ALTER TABLE connector_bundle ALTER COLUMN build_framework DROP NOT NULL;
       ALTER TABLE connector_bundle_version ALTER COLUMN build_framework DROP NOT NULL;
+  - integration_method_connector no longer restricts to one connector per
+    integration method version (multiple connectors are now supported).
+    If applying to an existing new-schema DB:
+      ALTER TABLE integration_method_connector DROP CONSTRAINT uq_imc_met_id_met_rev;
 
 ================================================================================
 
@@ -464,5 +468,41 @@ STEP 7 — Review & publish  (no new input — confirmation only)
   /api/upload/connector.  The response returns application.id and
   integration_method.id, which are then used to upload the logo and
   tutorial file via separate requests.
+
+================================================================================
+
+--------------------------------------------------------------------------------
+10. EDIT CONNECTOR (edit-upgrade flow)
+--------------------------------------------------------------------------------
+The "Edit" button on each connector card in the edit-upgrade page now opens a
+two-section modal ("Edit connector") mirroring publish steps 5 & 6 (Basic
+information & capabilities, Development & build). Saving replaces the connector's
+values in the DB in place (no new revision is created).
+
+New endpoint:
+  PUT /api/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}
+       Body: EditConnectorDto. Updates the connector, its connector_bundle, the
+       latest connector_bundle_version + connector_version, and replaces the
+       connector version's capability groups.
+
+Backend:
+  - EditConnectorDto (new)
+  - ConnectorUploadService.updateConnector(...) + ApplicationService delegate
+  - ImplementationListItemDto extended: connectorId, bundleName,
+    objectClassCapabilities (so the edit form can pre-fill and target the
+    correct connector)
+  - ApplicationMapper.buildIntegrationMethodListItem populates the new fields
+
+Frontend:
+  - New component: edit-connector-modal (reuses publish step 5/6 field layout)
+  - implementation-list-item.model.ts: connectorId, bundleName,
+    objectClassCapabilities added
+  - application.service.ts: updateConnector(...)
+  - edit-upgrade-form wires the Edit button to the modal and reloads connectors
+    on save
+
+Note: the connector version field is read-only in the edit modal — publishing a
+new version is handled by "Save as new version" on the integration method, not
+by editing an existing connector in place.
 
 ================================================================================

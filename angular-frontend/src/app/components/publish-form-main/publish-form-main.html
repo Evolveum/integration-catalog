@@ -337,7 +337,7 @@
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
                     <label class="form-label form-label-upload">Define integration method capabilities</label>
-                    <app-capability-picker [initialGroups]="imCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+                    <app-capability-picker [initialCapabilities]="imCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
                   </div>
 
                   <!-- Integration Tutorial -->
@@ -438,7 +438,7 @@
                       <div class="flex-grow-1">
                         <div class="connector-title mb-1">
                           Low-code connector without repository
-                          <span class="connector-coming-soon-badge">Coming soon</span>
+                          <span class="connector-coming-soon-badge"><i class="fa-regular fa-clock"></i> Coming soon</span>
                         </div>
                         <div class="connector-description">
                           Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.

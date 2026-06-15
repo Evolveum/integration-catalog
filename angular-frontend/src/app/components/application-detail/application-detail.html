@@ -389,7 +389,7 @@
                                 <span class="im-revision-badge">{{ version.revision }}</span>
                               }
                             </div>
-                            <a href="javascript:void(0)" class="im-view-details-link">View details</a>
+                            <a href="javascript:void(0)" class="im-view-details-link" (click)="navigateToDetails(version.id, version.revision)"><i class="fa-solid fa-eye me-1"></i>View details</a>
                           </div>
 
                           <!-- Row 2: Status badge + method type tags -->
@@ -521,17 +521,13 @@
                                 <button type="button" class="btn-cancel-request d-flex align-items-center gap-2" (click)="cancelVersion(version.id)">
                                   <i class="fa-solid fa-trash-can"></i>Cancel request
                                 </button>
-                              } @else {
-                                <button type="button" class="btn-upgrade-version d-flex align-items-center gap-2">
-                                  <i class="fa-solid fa-arrow-rotate-right"></i>Upgrade version
-                                </button>
                               }
                             </div>
                             <div class="d-flex gap-2">
-                              <button class="btn btn-sm btn-im-edit d-flex align-items-center gap-1" [disabled]="version.lifecycleState === 'IN_REVIEW'">
-                                <i class="fa-solid fa-pen-to-square"></i>Edit
+                              <button class="btn btn-sm btn-im-edit-upgrade d-flex align-items-center gap-1" [disabled]="version.lifecycleState === 'IN_REVIEW'" (click)="navigateToEdit(version.id, version.revision)">
+                                <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                               </button>
-                              <button class="btn btn-sm btn-im-download d-flex align-items-center gap-1" (click)="downloadVersion(version.id)" [disabled]="!version.downloadLink || version.lifecycleState === 'IN_REVIEW'">
+                              <button class="btn btn-sm btn-im-download d-flex align-items-center gap-1" (click)="downloadBundle(version.id, version.revision)" [disabled]="version.lifecycleState === 'IN_REVIEW'">
                                 <i class="fa-solid fa-download"></i>Download
                               </button>
                             </div>

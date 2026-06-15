@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
+import com.evolveum.midpoint.integration.catalog.service.BundleService;
 import com.evolveum.midpoint.integration.catalog.service.LogoStorageService;
 import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
@@ -34,6 +35,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,17 +48,20 @@ public class Controller {
     private final ApplicationService applicationService;
     private final LogoStorageService logoStorageService;
     private final TutorialStorageService tutorialStorageService;
+    private final BundleService bundleService;
     private final RequestRepository requestRepository;
     private final ApplicationMapper applicationMapper;
 
     public Controller(ApplicationService applicationService,
                       LogoStorageService logoStorageService,
                       TutorialStorageService tutorialStorageService,
+                      BundleService bundleService,
                       RequestRepository requestRepository,
                       ApplicationMapper applicationMapper) {
         this.applicationService = applicationService;
         this.logoStorageService = logoStorageService;
         this.tutorialStorageService = tutorialStorageService;
+        this.bundleService = bundleService;
         this.requestRepository = requestRepository;
         this.applicationMapper = applicationMapper;
     }
@@ -431,6 +437,72 @@ public class Controller {
         return ResponseEntity.ok(items);
     }
 
+    @Operation(summary = "Save integration method as new version")
+    @PutMapping("/applications/{appId}/integration-method/{methodId}/{currentRevision}")
+    public ResponseEntity<String> editIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String currentRevision,
+            @RequestBody EditIntegrationMethodDto dto) {
+        try {
+            String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto);
+            return ResponseEntity.ok(newRevision);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Add a connector to an integration method revision",
+            description = "Links a connector (existing or newly created) to the given integration method revision.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connector added successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors")
+    public ResponseEntity<Void> addConnectorToIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestBody AddConnectorDto dto,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        try {
+            applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "List connectors of an integration method revision")
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors")
+    public ResponseEntity<List<ImplementationListItemDto>> getConnectorsForIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision) {
+        return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision));
+    }
+
+    @Operation(summary = "Update a connector of an integration method revision",
+            description = "Replaces the fields of an existing connector (and its bundle / latest version) in place.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connector updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @PutMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}")
+    public ResponseEntity<Void> updateConnector(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @PathVariable Integer connectorId,
+            @RequestBody EditConnectorDto dto) {
+        try {
+            applicationService.updateConnector(methodId, revision, connectorId, dto);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     // ==================== Logo Endpoints ====================
 
     @Operation(summary = "Upload application logo",
@@ -489,6 +561,113 @@ public class Controller {
         } catch (IOException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save tutorial file: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Operation(summary = "Upload tutorial file for a specific integration method revision")
+    @PostMapping(value = "/applications/{appId}/integration-method/{methodId}/{revision}/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadTutorialForRevision(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            tutorialStorageService.saveTutorialForRevision(methodId, revision, file);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (RuntimeException ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to upload tutorial: " + ex.getMessage(), ex);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to save tutorial file: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Operation(summary = "List tutorial files for a specific integration method revision")
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/tutorial")
+    public ResponseEntity<List<String>> listTutorialFiles(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision) {
+        return ResponseEntity.ok(tutorialStorageService.listTutorialFiles(methodId, revision));
+    }
+
+    @Operation(summary = "Download a single tutorial file for a specific integration method revision")
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/tutorial/file")
+    public ResponseEntity<byte[]> downloadTutorialFile(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestParam("name") String name) {
+        try {
+            Path file = tutorialStorageService.resolveTutorialFile(methodId, revision, name);
+            byte[] bytes = Files.readAllBytes(file);
+            String contentType = Files.probeContentType(file);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + "\"")
+                    .body(bytes);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to read tutorial file: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Operation(summary = "Download a ZIP bundle for an integration method revision",
+            description = "Bundles the tutorial XML, all tutorial files, and a Notepad++ installer into a single ZIP.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Bundle built successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method not found"),
+            @ApiResponse(responseCode = "500", description = "Failed to build bundle")
+    })
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/bundle")
+    public ResponseEntity<byte[]> downloadBundle(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision) {
+        try {
+            byte[] zip = bundleService.buildBundle(methodId, revision);
+            String fileName = "integration-method-" + methodId + ".zip";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .body(zip);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Bundle build interrupted: " + ex.getMessage(), ex);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to build bundle: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Operation(summary = "Delete a single tutorial file for a specific integration method revision")
+    @DeleteMapping("/applications/{appId}/integration-method/{methodId}/{revision}/tutorial/file")
+    public ResponseEntity<Void> deleteTutorialFile(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestParam("name") String name) {
+        try {
+            tutorialStorageService.deleteTutorialFile(methodId, revision, name);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to delete tutorial file: " + ex.getMessage(), ex);
         }
     }
 

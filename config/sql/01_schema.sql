@@ -635,9 +635,6 @@ ALTER TABLE ONLY integration_method
 
 ALTER TABLE ONLY recently_used_applications
     ADD CONSTRAINT uq_rua_user_app UNIQUE (user_id, application_id);
-
-ALTER TABLE ONLY integration_method_connector
-    ADD CONSTRAINT uq_imc_met_id_met_rev UNIQUE (integ_method_id, integ_method_revision);
 	
 	
 	
