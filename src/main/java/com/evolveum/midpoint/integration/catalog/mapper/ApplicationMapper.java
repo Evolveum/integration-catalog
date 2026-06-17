@@ -15,6 +15,7 @@ import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -92,6 +93,7 @@ public class ApplicationMapper {
                     String connectorDisplayName = null;
                     String downloadLink = null;
                     String errorMessage = null;
+                    LocalDate releasedDate = null;
                     if (!method.getConnectors().isEmpty()) {
                         IntegrationMethodConnector link = method.getConnectors().get(0);
                         if (link.getConnector() != null) {
@@ -117,6 +119,13 @@ public class ApplicationMapper {
                                     .filter(cbv -> cbv != null && cbv.getErrorMessage() != null)
                                     .map(ConnectorBundleVersion::getErrorMessage)
                                     .findFirst().orElse(null);
+                            releasedDate = link.getConnector().getConnectorVersions().stream()
+                                    .map(ConnectorVersion::getConnectorBundleVersion)
+                                    .filter(cbv -> cbv != null && cbv.getCreatedAt() != null)
+                                    .map(ConnectorBundleVersion::getCreatedAt)
+                                    .max(Comparator.naturalOrder())
+                                    .map(java.time.LocalDateTime::toLocalDate)
+                                    .orElse(null);
                         }
                     }
 
@@ -154,7 +163,7 @@ public class ApplicationMapper {
                             objectClassCapabilities,
                             connectorVersion,
                             null,           // systemVersion
-                            null,           // releasedDate
+                            releasedDate,   // connector_bundle_version.created_at
                             method.getAuthor(),
                             organizationId,
                             lifecycleState,

@@ -376,164 +376,179 @@
                       }
                     </div>
                   } @else {
-                    @for (version of pagedVersions(); track version.id) {
-                      @if (!cancelledVersionIds().includes(version.id)) {
-                        <div class="im-card border rounded bg-white mb-3 p-4">
-                          <!-- Row 1: Title + version badge | View details -->
-                          <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div class="d-flex align-items-center gap-2">
-                              <span class="fw-semibold im-title">
-                                @if (version.connectorDisplayName) { {{ version.connectorDisplayName }} } @else { Integration method {{ $index + 1 }} }
-                              </span>
-                              @if (version.revision) {
-                                <span class="im-revision-badge">{{ version.revision }}</span>
-                              }
-                            </div>
-                            <a href="javascript:void(0)" class="im-view-details-link" (click)="navigateToDetails(version.id, version.revision)"><i class="fa-solid fa-eye me-1"></i>View details</a>
-                          </div>
-
-                          <!-- Row 2: Status badge + method type tags -->
-                          <div class="d-flex align-items-center gap-2 mb-3">
-                            @if (version.lifecycleState === 'IN_REVIEW') {
-                              <span class="badge im-badge-awaiting">Awaiting approval</span>
-                            } @else if (version.lifecycleState === 'ACTIVE') {
-                              <span class="badge im-badge-published">Published</span>
-                            }
-                            @if (version.integMethodTypes && version.integMethodTypes.length > 0) {
-                              @for (type of version.integMethodTypes; track type) {
-                                <span class="im-method-tag">{{ type }}</span>
-                              }
-                            }
-                          </div>
-
-                          <!-- Description -->
-                          <p class="text-sm mb-3">
-                            @if (version.description) { {{ version.description }} } @else { <em class="text-muted">No description available</em> }
-                          </p>
-
-                          <!-- Capabilities -->
-                          @if (version.objectClassCapabilities && version.objectClassCapabilities.length > 0) {
-                            <hr class="im-divider">
-                            <div class="mb-3">
-                              @if (isGlobalMethod(version)) {
-                                @let allCaps = version.objectClassCapabilities[0].capabilities;
-                                @let remaining = allCaps.length - 10;
-                                @let visibleCaps = isMethodGlobalCapabilitiesExpanded(version.id) ? allCaps : allCaps.slice(0, 10);
-                                <p class="text-sm mb-2 im-capabilities-header">
-                                  Global capabilities: <span class="text-muted fw-normal">(All object classes)</span>
-                                </p>
-                                <div class="d-flex flex-wrap gap-2">
-                                  @for (cap of visibleCaps; track cap) {
-                                    <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                  }
-                                  @if (remaining > 0) {
-                                    <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleMethodGlobalCapabilities(version.id)">
-                                      @if (isMethodGlobalCapabilitiesExpanded(version.id)) {
-                                        <i class="fa-solid fa-eye-slash icon-sm"></i> Show less
-                                      } @else {
-                                        <i class="fa-solid fa-eye icon-sm"></i> + {{ remaining }} more
-                                      }
-                                    </span>
-                                  }
-                                </div>
-                              } @else if (isCombinedMethod(version)) {
-                                <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-global')" style="cursor:pointer;">
-                                  <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-global')"></i>
-                                  <p class="text-sm mb-0 im-capabilities-header">Global capabilities: <span class="text-muted fw-normal">(All object classes)</span></p>
-                                </div>
-                                @if (isComboSectionExpanded(version.id + '-combo-global')) {
-                                  <div class="d-flex flex-wrap gap-2 ms-3 mb-2">
-                                    @for (cap of getGlobalCaps(version); track cap) {
-                                      <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                    }
-                                  </div>
+                    @for (method of pagedMethods(); track method.id) {
+                      <div class="im-method-card bg-white mb-3">
+                        <!-- Collapsible header -->
+                        <div class="im-method-header d-flex align-items-center justify-content-between" (click)="toggleMethod(method.id)">
+                          <div class="d-flex align-items-start gap-3">
+                            <i class="fa-solid im-method-chevron" [class.fa-chevron-up]="isMethodExpanded(method.id)" [class.fa-chevron-down]="!isMethodExpanded(method.id)"></i>
+                            <div>
+                              <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="im-method-title">{{ method.name }}</span>
+                                @for (type of method.types; track type) {
+                                  <span class="im-method-tag">{{ type }}</span>
                                 }
-                                <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-specific')" style="cursor:pointer;">
-                                  <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-specific')"></i>
-                                  <p class="text-sm mb-0 im-capabilities-header">Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span></p>
-                                </div>
-                                @if (isComboSectionExpanded(version.id + '-combo-specific')) {
-                                  @for (occ of getSpecificOccs(version); track occ.objectName) {
-                                    @let expandKey = version.id + '-' + occ.objectName;
-                                    <div class="mb-2 ms-3">
-                                      <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey)" style="cursor:pointer;">
-                                        <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
-                                        <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
-                                        <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                              </div>
+                              <div class="d-flex align-items-center gap-3">
+                                @if (method.publishedCount > 0) {
+                                  <span class="im-summary-published">{{ method.publishedCount }} published</span>
+                                }
+                                @if (method.pendingCount > 0) {
+                                  <span class="im-summary-pending">{{ method.pendingCount }} pending review</span>
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          <span class="im-version-count">{{ method.versions.length }} version{{ method.versions.length === 1 ? '' : 's' }}</span>
+                        </div>
+
+                        @if (isMethodExpanded(method.id)) {
+                          <!-- Column headers -->
+                          <div class="im-table-header d-flex">
+                            <div class="im-col-version">VERSION</div>
+                            <div class="im-col-details">DETAILS</div>
+                            <div class="im-col-status">STATUS</div>
+                          </div>
+
+                          @for (version of method.versions; track version.revision) {
+                            <div class="im-version-row d-flex" role="button" (click)="navigateToDetails(version.id, version.revision)">
+                              <!-- VERSION -->
+                              <div class="im-col-version">
+                                <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
+                              </div>
+
+                              <!-- DETAILS -->
+                              <div class="im-col-details">
+                                <div class="im-row-title">{{ method.name }}</div>
+                                @if (version.lifecycleState === 'IN_REVIEW' && version.releasedDate) {
+                                  <div class="im-submitted-line"><i class="fa-regular fa-clock me-1"></i>Submitted for review on {{ version.releasedDate | date:'MMMM d, yyyy' }}</div>
+                                }
+                                <p class="text-sm im-row-desc">
+                                  @if (version.description) { {{ version.description }} } @else { <em class="text-muted">No description available</em> }
+                                </p>
+
+                                @if (version.objectClassCapabilities && version.objectClassCapabilities.length > 0) {
+                                  <hr class="im-divider">
+                                  <div>
+                                    @if (isGlobalMethod(version)) {
+                                      @let allCaps = version.objectClassCapabilities[0].capabilities;
+                                      @let remaining = allCaps.length - 10;
+                                      @let visibleCaps = isMethodGlobalCapabilitiesExpanded(version.id) ? allCaps : allCaps.slice(0, 10);
+                                      <p class="text-sm mb-2 im-capabilities-header">
+                                        Global capabilities: <span class="text-muted fw-normal">(All object classes)</span>
+                                      </p>
+                                      <div class="d-flex flex-wrap gap-2">
+                                        @for (cap of visibleCaps; track cap) {
+                                          <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                        }
+                                        @if (remaining > 0) {
+                                          <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleMethodGlobalCapabilities(version.id); $event.stopPropagation()">
+                                            @if (isMethodGlobalCapabilitiesExpanded(version.id)) {
+                                              <i class="fa-solid fa-eye-slash icon-sm"></i> Show less
+                                            } @else {
+                                              <i class="fa-solid fa-eye icon-sm"></i> + {{ remaining }} more
+                                            }
+                                          </span>
+                                        }
                                       </div>
-                                      @if (isObjectClassExpanded(expandKey)) {
-                                        <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
-                                          @for (cap of occ.capabilities; track cap) {
+                                    } @else if (isCombinedMethod(version)) {
+                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-global'); $event.stopPropagation()" style="cursor:pointer;">
+                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-global')"></i>
+                                        <p class="text-sm mb-0 im-capabilities-header">Global capabilities: <span class="text-muted fw-normal">(All object classes)</span></p>
+                                      </div>
+                                      @if (isComboSectionExpanded(version.id + '-combo-global')) {
+                                        <div class="d-flex flex-wrap gap-2 ms-3 mb-2">
+                                          @for (cap of getGlobalCaps(version); track cap) {
                                             <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
                                           }
                                         </div>
                                       }
-                                    </div>
-                                  }
-                                }
-                              } @else {
-                                <p class="text-sm mb-2 im-capabilities-header">
-                                  Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
-                                </p>
-                                @for (occ of version.objectClassCapabilities; track occ.objectName) {
-                                  @let expandKey = version.id + '-' + occ.objectName;
-                                  <div class="mb-2">
-                                    <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey)" style="cursor:pointer;">
-                                      <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
-                                      <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
-                                      <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
-                                    </div>
-                                    @if (isObjectClassExpanded(expandKey)) {
-                                      <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
-                                        @for (cap of occ.capabilities; track cap) {
-                                          <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                        }
+                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-specific'); $event.stopPropagation()" style="cursor:pointer;">
+                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-specific')"></i>
+                                        <p class="text-sm mb-0 im-capabilities-header">Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span></p>
                                       </div>
+                                      @if (isComboSectionExpanded(version.id + '-combo-specific')) {
+                                        @for (occ of getSpecificOccs(version); track occ.objectName) {
+                                          @let expandKey = version.id + '-' + occ.objectName;
+                                          <div class="mb-2 ms-3">
+                                            <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
+                                              <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                                              <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
+                                              <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                                            </div>
+                                            @if (isObjectClassExpanded(expandKey)) {
+                                              <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                                @for (cap of occ.capabilities; track cap) {
+                                                  <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                                }
+                                              </div>
+                                            }
+                                          </div>
+                                        }
+                                      }
+                                    } @else {
+                                      <p class="text-sm mb-2 im-capabilities-header">
+                                        Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
+                                      </p>
+                                      @for (occ of version.objectClassCapabilities; track occ.objectName) {
+                                        @let expandKey = version.id + '-' + occ.objectName;
+                                        <div class="mb-2">
+                                          <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
+                                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                                            <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
+                                            <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                                          </div>
+                                          @if (isObjectClassExpanded(expandKey)) {
+                                            <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                              @for (cap of occ.capabilities; track cap) {
+                                                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                              }
+                                            </div>
+                                          }
+                                        </div>
+                                      }
                                     }
                                   </div>
                                 }
-                              }
+                              </div>
+
+                              <!-- STATUS -->
+                              <div class="im-col-status">
+                                @if (version.lifecycleState === 'IN_REVIEW') {
+                                  <span class="badge im-badge-awaiting">Awaiting approval</span>
+                                } @else if (version.lifecycleState === 'ACTIVE') {
+                                  <span class="badge im-badge-published">Published</span>
+                                }
+
+                                <!-- Hover-revealed actions (set depends on lifecycle state) -->
+                                <div class="im-row-actions">
+                                  @if (version.lifecycleState === 'IN_REVIEW') {
+                                    <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-trash-can"></i>Cancel request
+                                    </button>
+                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-eye"></i>View details
+                                    </button>
+                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                    </button>
+                                  } @else {
+                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-eye"></i>View details
+                                    </button>
+                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                    </button>
+                                    <button type="button" class="btn btn-im-download" (click)="downloadBundle(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-download"></i>Download
+                                    </button>
+                                  }
+                                </div>
+                              </div>
                             </div>
                           }
-
-                          <!-- Error banner -->
-                          @if (version.errorMessage) {
-                            <div class="d-flex align-items-center justify-content-between mt-2 p-3 rounded error-banner">
-                              <div class="d-flex align-items-center gap-2">
-                                <i class="fa-solid fa-triangle-exclamation icon-lg text-error"></i>
-                                <span class="text-error text-sm">{{ version.errorMessage }}</span>
-                              </div>
-                              <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-retry d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-rotate-right icon-sm"></i>Retry Publish
-                                </button>
-                                <button class="btn btn-sm btn-edit-error d-flex align-items-center gap-1">
-                                  <i class="fa-solid fa-pen-to-square icon-sm"></i>Edit
-                                </button>
-                              </div>
-                            </div>
-                          }
-
-                          <!-- Footer actions -->
-                          <div class="d-flex justify-content-between align-items-center mt-3">
-                            <div>
-                              @if (version.lifecycleState === 'IN_REVIEW') {
-                                <button type="button" class="btn-cancel-request d-flex align-items-center gap-2" (click)="cancelVersion(version.id)">
-                                  <i class="fa-solid fa-trash-can"></i>Cancel request
-                                </button>
-                              }
-                            </div>
-                            <div class="d-flex gap-2">
-                              <button class="btn btn-sm btn-im-edit-upgrade d-flex align-items-center gap-1" [disabled]="version.lifecycleState === 'IN_REVIEW'" (click)="navigateToEdit(version.id, version.revision)">
-                                <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-                              </button>
-                              <button class="btn btn-sm btn-im-download d-flex align-items-center gap-1" (click)="downloadBundle(version.id, version.revision)" [disabled]="version.lifecycleState === 'IN_REVIEW'">
-                                <i class="fa-solid fa-download"></i>Download
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      }
+                        }
+                      </div>
                     } @empty {
                       <p class="text-muted fst-italic">No connector versions found</p>
                     }

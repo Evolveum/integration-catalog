@@ -150,6 +150,39 @@
   font-size: 0.875rem;
 }
 
+/* License / publishing notice */
+.publish-license-notice {
+  padding: 1.25rem 1.5rem;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #4b5563;
+
+  a {
+    color: $color-dark-blue;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.publish-license-confirm {
+  .form-check-input:checked {
+    background-color: $color-dark-blue;
+    border-color: $color-dark-blue;
+  }
+
+  .form-check-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1a202c;
+  }
+}
+
 /* Accordion panels */
 .accordion-panel {
   border: 1px solid $color-border-light;

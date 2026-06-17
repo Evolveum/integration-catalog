@@ -18,7 +18,7 @@ public record IntegrationMethodDto(
         List<ObjectClassCapabilityDto> objectClassCapabilities,     // object_class_capabilities
         String connectorVersion,                                    // connector_bundle_version.bundle_version
         String systemVersion,                                       // integration_method.system_version
-        LocalDate releasedDate,                                     // connector_bundle_version.released_date
+        LocalDate releasedDate,                                     // connector_bundle_version.created_at
         String author,                                              // connector.author
         Integer organizationId,                                     // connector.organization_id
         String lifecycleState,                                      // integration_method.lifecycle_state

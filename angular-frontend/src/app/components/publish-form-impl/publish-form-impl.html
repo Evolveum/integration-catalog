@@ -760,6 +760,28 @@
             <strong>Note</strong> &nbsp;Once published, this integration method will appear in the public catalog and be visible to other users.
           </span>
         </div>
+
+        <!-- License / publishing notice -->
+        <div class="publish-license-notice mt-3">
+          By publishing this integration method, you confirm that you hold all rights necessary to publish this content
+          under the license you have selected, that the content does not infringe any third-party rights, and that it
+          complies with Evolveum's <a href="https://www.google.com" target="_blank" rel="noopener">Terms of Use</a> and
+          <a href="https://www.google.com" target="_blank" rel="noopener">Acceptable Use Policy</a>. You grant Evolveum a
+          perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce, adapt, modify, translate,
+          publish, publicly perform, publicly display and distribute this content solely for the purpose of hosting and
+          displaying it in the Integration Catalog. Evolveum reserves the right to remove or decline publication of any
+          submitted content at its sole discretion.
+        </div>
+
+        <!-- Confirmation checkbox -->
+        <div class="form-check publish-license-confirm mt-3">
+          <input class="form-check-input" type="checkbox" id="publishConfirmCheck"
+                 [checked]="publishConfirmed()"
+                 (change)="publishConfirmed.set($any($event.target).checked)">
+          <label class="form-check-label" for="publishConfirmCheck">
+            I confirm that I have read and agree to the Terms of Use, and that I hold all necessary rights to publish this content.
+          </label>
+        </div>
       </div>
     }
 
@@ -782,7 +804,7 @@
         </button>
       }
       @if (internalStep() === 7) {
-        <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing()" (click)="publishIntegrationMethod()">
+        <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing() || !publishConfirmed()" (click)="publishIntegrationMethod()">
           @if (isPublishing()) {
             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
             Publishing...

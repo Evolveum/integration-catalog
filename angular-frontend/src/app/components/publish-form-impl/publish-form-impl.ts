@@ -140,6 +140,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly connectorVersionTo = signal<string>('');
 
   // Publish state
+  protected readonly publishConfirmed = signal<boolean>(false);
   protected readonly isPublishing = signal<boolean>(false);
   protected readonly publishComplete = signal<boolean>(false);
   protected readonly publishCreatedOn = signal<Date | null>(null);
