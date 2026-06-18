@@ -246,15 +246,41 @@
 
       <!-- License / publishing notice -->
       <div class="edit-license-notice">
-        By publishing this integration method, you confirm that you hold all rights necessary to publish this content
-        under the license you have selected, that the content does not infringe any third-party rights, and that it
-        complies with Evolveum's <a href="https://www.google.com" target="_blank" rel="noopener">Terms of Use</a> and
-        <a href="https://www.google.com" target="_blank" rel="noopener">Acceptable Use Policy</a>. You grant Evolveum a
-        perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce, adapt, modify, translate,
-        publish, publicly perform, publicly display and distribute this content solely for the purpose of hosting and
-        displaying it in the Integration Catalog. Evolveum reserves the right to remove or decline publication of any
-        submitted content at its sole discretion.
+        <p class="edit-license-text">
+          By publishing this integration method, you confirm that you hold all rights necessary to publish this content
+          under the license you have selected, that the content does not infringe any third-party rights, and that it
+          complies with Evolveum's <a href="https://www.google.com" target="_blank" rel="noopener">Terms of Use</a> and
+          <a href="https://www.google.com" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+        </p>
+
+        @if (licenseExpanded()) {
+          <p class="edit-license-text">
+            You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce,
+            adapt, modify, translate, publish, publicly perform, publicly display and distribute this content solely
+            for the purpose of hosting and displaying it in the Integration Catalog under the license you have
+            selected. Any tutorial, documentation, or descriptive text accompanying your submission will be published
+            under Evolveum's standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives
+            4.0 International (CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector
+            or configuration itself. Evolveum reserves the right to remove or decline publication of any submitted
+            content at its sole discretion, including but not limited to content that violates these
+            <a href="https://www.google.com" target="_blank" rel="noopener">Terms of Use</a> or the
+            <a href="https://www.google.com" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+          </p>
+        }
+
+        <button type="button" class="edit-license-toggle" (click)="licenseExpanded.set(!licenseExpanded())">
+          @if (licenseExpanded()) {
+            <i class="fa-solid fa-minus me-2"></i>Show less
+          } @else {
+            <i class="fa-solid fa-plus me-2"></i>Show more
+          }
+        </button>
       </div>
+
+      <!-- Print consent document -->
+      <button type="button" class="btn btn-print-consent" (click)="printConsentDocument()">
+        <i class="fa-solid fa-print me-2"></i>Print consent document
+      </button>
 
       <!-- Footer actions -->
       <div class="edit-footer">
