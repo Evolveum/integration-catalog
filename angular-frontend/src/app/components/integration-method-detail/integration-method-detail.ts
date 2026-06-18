@@ -4,14 +4,14 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
 import { PageHeader } from '../page-header/page-header';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
-import { hasLogoDetail } from '../../models/application-detail.model';
+import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 
 @Component({
   selector: 'app-integration-method-detail',
@@ -34,8 +34,16 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   protected readonly methodDescription = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly globalCapabilities = signal<string[]>([]);
+  protected readonly specificCapabilities = signal<ObjectClassCapability[]>([]);
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);
+
+  // Supported midPoint version range
+  protected readonly midpointVersions = signal<MidpointVersion[]>([]);
+  protected readonly methodMinVersionId = signal<number | null>(null);
+  protected readonly methodMaxVersionId = signal<number | null>(null);
+  protected readonly midpointMinVersion = computed(() => this.resolveMidpointVersion(this.methodMinVersionId()));
+  protected readonly midpointMaxVersion = computed(() => this.resolveMidpointVersion(this.methodMaxVersionId()));
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
@@ -57,6 +65,11 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     this.appId.set(aId);
     this.versionId.set(vId);
 
+    this.applicationService.getMidpointVersions().subscribe({
+      next: (versions) => this.midpointVersions.set(versions),
+      error: () => this.midpointVersions.set([])
+    });
+
     this.applicationService.getById(aId).subscribe({
       next: (app) => {
         this.appName.set(app.displayName);
@@ -74,7 +87,9 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
           this.methodDescription.set(ver.description ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
-          this.globalCapabilities.set(this.flattenCapabilities(ver.objectClassCapabilities));
+          this.methodMinVersionId.set(ver.midpointMinVersionId);
+          this.methodMaxVersionId.set(ver.midpointMaxVersionId);
+          this.setCapabilities(ver.objectClassCapabilities);
           this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.loadConnectors(aId, vId, ver.revision ?? '');
         } else {
@@ -85,13 +100,21 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     });
   }
 
-  private flattenCapabilities(occs: { objectName: string; capabilities: string[] }[] | null): string[] {
-    if (!occs) return [];
-    const seen = new Set<string>();
-    for (const occ of occs) {
-      for (const cap of occ.capabilities ?? []) seen.add(cap);
-    }
-    return Array.from(seen);
+  // Global capabilities are stored under the reserved 'Global' object class; the rest are
+  // grouped per object class so we can show their globality separately.
+  private setCapabilities(occs: ObjectClassCapability[] | null): void {
+    const groups = occs ?? [];
+    this.globalCapabilities.set(
+      groups.filter(o => o.objectName === 'Global').flatMap(o => o.capabilities ?? [])
+    );
+    this.specificCapabilities.set(
+      groups.filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0)
+    );
+  }
+
+  private resolveMidpointVersion(id: number | null): string {
+    if (id === null) return '';
+    return this.midpointVersions().find(v => v.id === id)?.version ?? '';
   }
 
   private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
@@ -172,6 +195,12 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     return this.expandedCaps().has(key);
   }
 
+  /** Derive the version badge ("v1", "v2", …) from the major part of the revision. */
+  protected versionBadge(revision: string | null): string {
+    const major = parseInt((revision ?? '').split('.')[0], 10);
+    return isNaN(major) ? 'v1' : `v${major}`;
+  }
+
   protected formatCapabilityText(text: string): string {
     if (!text) return '';
     const withSpaces = text.replace(/_/g, ' ').toLowerCase();
@@ -203,6 +232,6 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   }
 
   protected downloadConnector(): void {
-    this.applicationService.downloadConnector(this.versionId());
+    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion());
   }
 }
