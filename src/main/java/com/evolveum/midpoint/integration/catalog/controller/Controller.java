@@ -653,6 +653,34 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Download a ZIP bundle for a single connector of an integration method revision",
+            description = "Bundles the connector binary together with the method's tutorial text and files into a single ZIP.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connector bundle built successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found"),
+            @ApiResponse(responseCode = "500", description = "Failed to build connector bundle")
+    })
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}/bundle")
+    public ResponseEntity<byte[]> downloadConnectorBundle(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @PathVariable Integer connectorId) {
+        try {
+            byte[] zip = bundleService.buildConnectorBundle(methodId, revision, connectorId);
+            String fileName = "connector-" + connectorId + ".zip";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .body(zip);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to build connector bundle: " + ex.getMessage(), ex);
+        }
+    }
+
     @Operation(summary = "Delete a single tutorial file for a specific integration method revision")
     @DeleteMapping("/applications/{appId}/integration-method/{methodId}/{revision}/tutorial/file")
     public ResponseEntity<Void> deleteTutorialFile(

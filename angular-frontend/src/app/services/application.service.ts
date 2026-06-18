@@ -131,6 +131,11 @@ export class ApplicationService {
     window.open(url, '_blank');
   }
 
+  downloadConnectorBundle(appId: string, methodId: string, revision: string, connectorId: number): void {
+    const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/bundle`;
+    window.open(url, '_blank');
+  }
+
   editIntegrationMethod(
     appId: string,
     methodId: string,

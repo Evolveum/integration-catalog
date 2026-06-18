@@ -30,7 +30,7 @@ import java.util.zip.ZipOutputStream;
 /**
  * Assembles a downloadable ZIP bundle for an integration-method revision, containing:
  * <ul>
- *     <li>the tutorial text (integration_method.tutorial) as {@code tutorial.xml};</li>
+ *     <li>the tutorial text (integration_method.tutorial) as {@code tutorial.md};</li>
  *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/};</li>
  *     <li>a Notepad++ installer fetched from its pinned GitHub release (for testing).</li>
  * </ul>
@@ -76,13 +76,32 @@ public class BundleService {
         return baos.toByteArray();
     }
 
+    /**
+     * Builds a ZIP scoped to a single connector of the given integration-method revision, containing
+     * the method's tutorial text ({@code tutorial.md}) and uploaded tutorial files (under {@code files/}).
+     */
+    public byte[] buildConnectorBundle(UUID methodId, String revision, Integer connectorId) throws IOException {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Integration method not found: " + methodId + "/" + revision));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(baos)) {
+            addTutorialXml(zip, method);
+            addTutorialFiles(zip, methodId, revision);
+        }
+        log.info("Built connector bundle for {}/{} connector {}: {} bytes",
+                methodId, revision, connectorId, baos.size());
+        return baos.toByteArray();
+    }
+
     private void addTutorialXml(ZipOutputStream zip, IntegrationMethod method) throws IOException {
         String tutorial = method.getTutorial();
         if (tutorial == null || tutorial.isBlank()) {
-            log.debug("No tutorial text for {}/{}; skipping tutorial.xml", method.getId(), method.getRevision());
+            log.debug("No tutorial text for {}/{}; skipping tutorial.md", method.getId(), method.getRevision());
             return;
         }
-        zip.putNextEntry(new ZipEntry("tutorial.xml"));
+        zip.putNextEntry(new ZipEntry("tutorial.md"));
         zip.write(tutorial.getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
     }
