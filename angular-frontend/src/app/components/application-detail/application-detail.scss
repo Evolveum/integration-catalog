@@ -441,23 +441,77 @@
 /* ========================================
    PAGINATION
    ======================================== */
-.page-link-default {
-  background-color: white;
-  color: black;
-  font-weight: 600;
+/* Pagination styled to match the integration-method list footer mockup:
+   one connected segmented group (Previous | 1 | 2 | 3 | Next), all touching,
+   with rounding only on the far-left and far-right outer corners; the active
+   page is a subtle fill. */
+.im-list-footer {
+  .pagination {
+    gap: 0;
+  }
+
+  .page-item .page-link {
+    min-height: 38px;
+    min-width: 38px;
+    margin-left: -1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dee2e6;
+    border-radius: 0;
+    background-color: #F8F9FA;
+    color: #1f2937;
+    font-weight: 600;
+
+    &:hover {
+      background-color: #eceef0;
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
+  /* Previous = first item: round only the outer (left) corners */
+  .page-item:first-child .page-link {
+    margin-left: 0;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+  }
+
+  /* Next = last item: round only the outer (right) corners */
+  .page-item:last-child .page-link {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+  }
+
+  .page-item.active .page-link,
+  .page-link-active {
+    position: relative;
+    z-index: 1;
+    background-color: #E9ECEF;
+    border-color: #cdd9e3;
+    color: #1f2937;
+  }
+
+  .page-item.disabled .page-link {
+    color: #adb5bd;
+    background-color: #F8F9FA;
+  }
 }
 
-.page-link-active {
-  background-color: #206F9D;
-  color: white;
+.btn-go-to-catalog {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  color: $color-dark-blue;
   font-weight: 600;
-}
 
-.pagination .page-link {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  &:hover {
+    color: darken($color-dark-blue, 10%);
+    text-decoration: underline;
+  }
 }
 
 /* ========================================
@@ -829,7 +883,7 @@
 }
 
 .im-col-status {
-  flex: 0 0 160px;
+  flex: 0 0 220px;
 }
 
 .im-table-header {

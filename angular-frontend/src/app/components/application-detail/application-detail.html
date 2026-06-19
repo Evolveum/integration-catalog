@@ -515,9 +515,9 @@
                               <!-- STATUS -->
                               <div class="im-col-status">
                                 @if (version.lifecycleState === 'IN_REVIEW') {
-                                  <span class="badge im-badge-awaiting">Awaiting approval</span>
+                                  <span class="badge im-badge-awaiting"><i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval</span>
                                 } @else if (version.lifecycleState === 'ACTIVE') {
-                                  <span class="badge im-badge-published">Published</span>
+                                  <span class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
                                 }
 
                                 <!-- Hover-revealed actions (set depends on lifecycle state) -->
@@ -554,29 +554,35 @@
                     }
                   }
 
-                  @if (totalPages() > 1) {
-                    <nav aria-label="Page navigation" class="mt-3">
-                      <ul class="pagination justify-content-end">
-                        <li class="page-item" [class.disabled]="currentPage() === 0">
-                          <button class="page-link page-link-default" (click)="previousPage()" [disabled]="currentPage() === 0">
-                            <i class="fa-solid fa-arrow-left me-1 icon-md"></i>Previous
-                          </button>
-                        </li>
-                        @for (page of [].constructor(totalPages()); track $index) {
-                          <li class="page-item" [class.active]="currentPage() === $index">
-                            <button class="page-link" [class.page-link-active]="currentPage() === $index" [class.page-link-default]="currentPage() !== $index" (click)="goToPage($index)">
-                              {{ $index + 1 }}
+                  <div class="im-list-footer d-flex align-items-center justify-content-between mt-3">
+                    <button type="button" class="btn btn-go-to-catalog" (click)="goBack()">
+                      <i class="fa-solid fa-arrow-left me-2 icon-md"></i>Go to Integration catalog
+                    </button>
+
+                    @if (totalPages() > 1) {
+                      <nav aria-label="Page navigation">
+                        <ul class="pagination mb-0">
+                          <li class="page-item" [class.disabled]="currentPage() === 0">
+                            <button class="page-link page-link-default" (click)="previousPage()" [disabled]="currentPage() === 0">
+                              <i class="fa-solid fa-arrow-left me-1 icon-md"></i>Previous
                             </button>
                           </li>
-                        }
-                        <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
-                          <button class="page-link page-link-default" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
-                            Next<i class="fa-solid fa-arrow-right ms-1 icon-md"></i>
-                          </button>
-                        </li>
-                      </ul>
-                    </nav>
-                  }
+                          @for (page of [].constructor(totalPages()); track $index) {
+                            <li class="page-item" [class.active]="currentPage() === $index">
+                              <button class="page-link" [class.page-link-active]="currentPage() === $index" [class.page-link-default]="currentPage() !== $index" (click)="goToPage($index)">
+                                {{ $index + 1 }}
+                              </button>
+                            </li>
+                          }
+                          <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+                            <button class="page-link page-link-default" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+                              Next<i class="fa-solid fa-arrow-right ms-1 icon-md"></i>
+                            </button>
+                          </li>
+                        </ul>
+                      </nav>
+                    }
+                  </div>
                 </div>
               </div>
             }

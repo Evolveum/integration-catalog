@@ -771,6 +771,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const searchQuery = this.methodSearchQuery().toLowerCase().trim();
     if (searchQuery) {
       filteredVersions = filteredVersions.filter(version =>
+        version.displayName?.toLowerCase().includes(searchQuery) ||
         version.connectorDisplayName?.toLowerCase().includes(searchQuery) ||
         version.integMethodTypes?.some((t: string) => t.toLowerCase().includes(searchQuery)) ||
         version.description?.toLowerCase().includes(searchQuery)
