@@ -96,11 +96,6 @@ export class ApplicationService {
     return this.http.get<number>(`${environment.apiUrl}/applications/${applicationId}/downloads-count`);
   }
 
-  downloadConnector(versionId: string): void {
-    const url = `${environment.apiUrl}/downloads/${versionId}`;
-    window.open(url, '_blank');
-  }
-
   uploadTutorialFile(appId: string, methodId: string, revision: string, file: File): Observable<void> {
     const formData = new FormData();
     formData.append('file', file);
@@ -128,11 +123,6 @@ export class ApplicationService {
 
   downloadBundle(appId: string, methodId: string, revision: string): void {
     const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
-    window.open(url, '_blank');
-  }
-
-  downloadConnectorBundle(appId: string, methodId: string, revision: string, connectorId: number): void {
-    const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/bundle`;
     window.open(url, '_blank');
   }
 

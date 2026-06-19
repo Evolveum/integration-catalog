@@ -14,14 +14,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
@@ -31,28 +26,15 @@ import java.util.zip.ZipOutputStream;
  * Assembles a downloadable ZIP bundle for an integration-method revision, containing:
  * <ul>
  *     <li>the tutorial text (integration_method.tutorial) as {@code tutorial.md};</li>
- *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/};</li>
- *     <li>a Notepad++ installer fetched from its pinned GitHub release (for testing).</li>
+ *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/}.</li>
  * </ul>
  */
 @Slf4j
 @Service
 public class BundleService {
 
-    /**
-     * Pinned, version-locked Notepad++ installer. The release tag never moves, so the URL is stable
-     * and needs no version checking. Bump deliberately if a newer build is wanted.
-     */
-    private static final String NOTEPAD_INSTALLER_URL =
-            "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.6.4/npp.8.9.6.4.Installer.x64.exe";
-    private static final String NOTEPAD_INSTALLER_ENTRY = "npp.8.9.6.4.Installer.x64.exe";
-
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .followRedirects(HttpClient.Redirect.NORMAL) // GitHub release assets redirect to a CDN host
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService) {
@@ -60,8 +42,11 @@ public class BundleService {
         this.tutorialStorageService = tutorialStorageService;
     }
 
-    /** Builds the bundle and returns the complete ZIP as a byte array. */
-    public byte[] buildBundle(UUID methodId, String revision) throws IOException, InterruptedException {
+    /** A built ZIP bundle together with a suggested download file name. */
+    public record Bundle(String fileName, byte[] data) {}
+
+    /** Builds the bundle and returns the ZIP bytes plus a suggested file name. */
+    public Bundle buildBundle(UUID methodId, String revision) throws IOException {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Integration method not found: " + methodId + "/" + revision));
@@ -70,29 +55,20 @@ public class BundleService {
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {
             addTutorialXml(zip, method);
             addTutorialFiles(zip, methodId, revision);
-            addNotepadInstaller(zip);
         }
         log.info("Built bundle for integration method {}/{}: {} bytes", methodId, revision, baos.size());
-        return baos.toByteArray();
+        return new Bundle(buildFileName(method), baos.toByteArray());
     }
 
-    /**
-     * Builds a ZIP scoped to a single connector of the given integration-method revision, containing
-     * the method's tutorial text ({@code tutorial.md}) and uploaded tutorial files (under {@code files/}).
-     */
-    public byte[] buildConnectorBundle(UUID methodId, String revision, Integer connectorId) throws IOException {
-        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Integration method not found: " + methodId + "/" + revision));
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ZipOutputStream zip = new ZipOutputStream(baos)) {
-            addTutorialXml(zip, method);
-            addTutorialFiles(zip, methodId, revision);
-        }
-        log.info("Built connector bundle for {}/{} connector {}: {} bytes",
-                methodId, revision, connectorId, baos.size());
-        return baos.toByteArray();
+    /** Builds a download file name from the method's display name and revision, sanitised for filesystems. */
+    private String buildFileName(IntegrationMethod method) {
+        String displayName = (method.getDisplayName() == null || method.getDisplayName().isBlank())
+                ? method.getId().toString()
+                : method.getDisplayName();
+        String revision = method.getRevision() == null ? "" : method.getRevision();
+        String raw = displayName + "-" + revision;
+        String safe = raw.trim().replaceAll("[^a-zA-Z0-9._-]+", "_");
+        return safe + ".zip";
     }
 
     private void addTutorialXml(ZipOutputStream zip, IntegrationMethod method) throws IOException {
@@ -114,19 +90,5 @@ public class BundleService {
             Files.copy(file, zip);
             zip.closeEntry();
         }
-    }
-
-    private void addNotepadInstaller(ZipOutputStream zip) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(NOTEPAD_INSTALLER_URL))
-                .timeout(Duration.ofSeconds(60))
-                .GET()
-                .build();
-        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        if (response.statusCode() != 200) {
-            throw new IOException("Failed to download Notepad++ installer: HTTP " + response.statusCode());
-        }
-        zip.putNextEntry(new ZipEntry(NOTEPAD_INSTALLER_ENTRY));
-        zip.write(response.body());
-        zip.closeEntry();
     }
 }

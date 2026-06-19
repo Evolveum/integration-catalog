@@ -202,9 +202,7 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     this.router.navigate(['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit']);
   }
 
-  protected downloadConnector(connector: ImplementationListItem): void {
-    if (connector.connectorId === null) return;
-    this.applicationService.downloadConnectorBundle(
-      this.appId(), this.versionId(), this.methodVersion(), connector.connectorId);
+  protected downloadConnector(): void {
+    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion());
   }
 }
