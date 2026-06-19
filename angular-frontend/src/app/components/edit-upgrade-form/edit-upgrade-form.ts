@@ -269,46 +269,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected isInReview(): boolean {
     return this.methodLifecycleState() === 'IN_REVIEW';
   }
-
-  // protected printConsentDocument(): void {
-  //   const consentParagraphs = [
-  //     `By publishing this integration method, you confirm that you hold all rights necessary to publish this content ` +
-  //       `under the license you have selected, that the content does not infringe any third-party rights, and that it ` +
-  //       `complies with Evolveum's Terms of Use and Acceptable Use Policy.`,
-  //     `You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce, adapt, ` +
-  //       `modify, translate, publish, publicly perform, publicly display and distribute this content solely for the ` +
-  //       `purpose of hosting and displaying it in the Integration Catalog under the license you have selected. Any ` +
-  //       `tutorial, documentation, or descriptive text accompanying your submission will be published under Evolveum's ` +
-  //       `standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International ` +
-  //       `(CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector or configuration ` +
-  //       `itself. Evolveum reserves the right to remove or decline publication of any submitted content at its sole ` +
-  //       `discretion, including but not limited to content that violates these Terms of Use or the Acceptable Use Policy.`,
-  //   ];
-
-  //   const printWindow = window.open('', '_blank', 'width=800,height=600');
-  //   if (!printWindow) return;
-
-  //   printWindow.document.write(`
-  //     <html>
-  //       <head>
-  //         <title>Publishing consent document</title>
-  //         <style>
-  //           body { font-family: Arial, Helvetica, sans-serif; color: #1a202c; line-height: 1.6; margin: 2.5rem; }
-  //           h1 { font-size: 1.25rem; margin-bottom: 1.5rem; }
-  //           p { font-size: 0.9rem; margin: 0 0 1rem; }
-  //         </style>
-  //       </head>
-  //       <body>
-  //         <h1>Publishing consent document</h1>
-  //         ${consentParagraphs.map((p) => `<p>${p}</p>`).join('')}
-  //       </body>
-  //     </html>
-  //   `);
-  //   printWindow.document.close();
-  //   printWindow.focus();
-  //   printWindow.print();
-  // }
-
+  
   protected save(): void {
     this.doSave(false);
   }
