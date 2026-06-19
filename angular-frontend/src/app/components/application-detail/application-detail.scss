@@ -2,6 +2,7 @@
   Copyright (c) 2010-2025 Evolveum and contributors
   Licensed under the EUPL-1.2 or later.
 */
+@use 'sass:color';
 @use 'variables' as *;
 
 /* ========================================
@@ -448,6 +449,7 @@
 .im-list-footer {
   .pagination {
     gap: 0;
+    align-items: center;
   }
 
   .page-item .page-link {
@@ -471,6 +473,16 @@
       outline: none;
       box-shadow: none;
     }
+  }
+
+  /* Numbered page buttons (between Previous and Next) are shorter than
+     Previous/Next. Fixed height (width stays 38px from the base rule);
+     min-height is reset so it can shrink below the base 38px. */
+  .page-item:not(:first-child):not(:last-child) .page-link {
+    min-height: 0;
+    height: 36px;
+    min-width: 0px;
+    width: 28px;
   }
 
   /* Previous = first item: round only the outer (left) corners */
@@ -509,7 +521,7 @@
   font-weight: 600;
 
   &:hover {
-    color: darken($color-dark-blue, 10%);
+    color: color.adjust($color-dark-blue, $lightness: -10%);
     text-decoration: underline;
   }
 }
