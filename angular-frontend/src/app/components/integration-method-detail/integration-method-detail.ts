@@ -203,6 +203,6 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   }
 
   protected downloadConnector(): void {
-    this.applicationService.downloadConnector(this.versionId());
+    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion());
   }
 }
