@@ -135,12 +135,19 @@ export class ApplicationService {
     appId: string,
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; newRevision: string }
+    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
       payload,
       { responseType: 'text' as 'json' }
+    );
+  }
+
+  publishIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/publish`,
+      {}
     );
   }
 

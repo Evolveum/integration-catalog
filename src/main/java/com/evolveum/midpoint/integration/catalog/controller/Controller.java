@@ -447,6 +447,31 @@ public class Controller {
         try {
             String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto);
             return ResponseEntity.ok(newRevision);
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Publish (approve) an in-review integration method revision",
+            description = "Activates an in-review revision. A minor revision replaces its same-major "
+                    + "published baseline; a new major version is kept alongside earlier majors.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Revision published"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
+            @ApiResponse(responseCode = "409", description = "Revision is not in review")
+    })
+    @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/publish")
+    public ResponseEntity<Void> publishIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision) {
+        try {
+            applicationService.publishIntegrationMethod(methodId, revision);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

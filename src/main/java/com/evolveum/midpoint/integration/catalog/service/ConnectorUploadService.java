@@ -408,14 +408,32 @@ public class ConnectorUploadService {
         IntegrationMethod existing = integrationMethodRepository.findById(new IntegrationMethodId(methodId, currentRevision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + currentRevision));
 
-        // An unpublished (in-review) revision is overwritten in place, so fixing a mistake in a
-        // freshly saved revision doesn't spawn yet another one. Published revisions are versioned.
-        if (existing.getLifecycleState() == LifecycleType.IN_REVIEW) {
-            return updateIntegrationMethodInPlace(existing, methodId, currentRevision, dto);
+        boolean editingDraft = existing.getLifecycleState() == LifecycleType.IN_REVIEW;
+
+        if (dto.minorBump() && editingDraft) {
+            // "Save" on an in-review draft: a small correction. Bump in place (2.1 -> 2.2), replacing
+            // the draft row so a draft keeps a single record while it is being revised.
+            return rewriteWithMinorBump(existing, methodId, currentRevision, dto);
         }
 
-        String newRevision = dto.minorBump() ? incrementMinorRevision(currentRevision) : incrementRevision(currentRevision);
+        // Otherwise spawn a fresh in-review draft, leaving the edited revision intact:
+        //   - "Save" on a published revision -> minor draft (2.0 -> 2.1); on publish it replaces 2.0;
+        //   - "Save as new version"          -> major draft (2.x -> 3.0), kept as a separate version.
+        String newRevision = dto.minorBump() ? bumpMinorRevision(currentRevision) : bumpMajorRevision(currentRevision);
+        if (integrationMethodRepository.existsById(new IntegrationMethodId(methodId, newRevision))) {
+            throw new IllegalStateException("Revision " + newRevision + " already exists for this method; "
+                    + "edit that draft instead of creating another.");
+        }
+        return createDraft(existing, methodId, currentRevision, dto, newRevision);
+    }
 
+    /**
+     * Creates a fresh in-review draft revision of a method, copying metadata, connectors and tutorial
+     * files forward and leaving the source revision intact. Used both by "Save" on a published revision
+     * (minor bump) and by "Save as new version" (major bump).
+     */
+    private String createDraft(IntegrationMethod existing, UUID methodId,
+                               String currentRevision, EditIntegrationMethodDto dto, String newRevision) {
         IntegrationMethod updated = new IntegrationMethod();
         updated.setId(methodId);
         updated.setRevision(newRevision);
@@ -435,14 +453,7 @@ public class ConnectorUploadService {
         updated.setDescription(dto.description());
         updated.setTutorial(dto.tutorial());
 
-        for (IntegrationMethodConnector oldLink : existing.getConnectors()) {
-            IntegrationMethodConnector newLink = new IntegrationMethodConnector();
-            newLink.setIntegrationMethod(updated);
-            newLink.setConnector(oldLink.getConnector());
-            newLink.setConnectorMinVersion(oldLink.getConnectorMinVersion());
-            newLink.setConnectorMaxVersion(oldLink.getConnectorMaxVersion());
-            updated.getConnectors().add(newLink);
-        }
+        copyConnectorLinks(existing, updated);
 
         integrationMethodRepository.save(updated);
 
@@ -452,23 +463,92 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Overwrites an in-review revision in place (same id + revision): updates metadata, replaces
-     * its capabilities, and leaves its tutorial folder as-is so file add/delete affect only it.
+     * Rewrites a revision in place with a minor bump (1.1 -> 1.2): builds the bumped revision from the
+     * edited data, moves the tutorial folder across, then deletes the superseded revision so only one
+     * record survives. The lifecycle state is preserved (a published fix stays published).
      */
-    private String updateIntegrationMethodInPlace(IntegrationMethod existing, UUID methodId,
-                                                  String currentRevision, EditIntegrationMethodDto dto) {
-        existing.setDisplayName(dto.displayName());
-        existing.setDescription(dto.description());
-        existing.setTutorial(dto.tutorial());
-        existing.setFilePath(tutorialStorageService.folderName(methodId, currentRevision));
+    private String rewriteWithMinorBump(IntegrationMethod existing, UUID methodId,
+                                        String currentRevision, EditIntegrationMethodDto dto) {
+        String newRevision = bumpMinorRevision(currentRevision);
 
-        // Drop the current capabilities (cascade removes their items), then recreate from the DTO.
-        existing.getCapabilities().clear();
-        integrationMethodRepository.saveAndFlush(existing);
+        IntegrationMethod updated = new IntegrationMethod();
+        updated.setId(methodId);
+        updated.setRevision(newRevision);
+        updated.setApplication(existing.getApplication());
+        updated.setLifecycleState(existing.getLifecycleState());
+        updated.setAuthor(existing.getAuthor());
+        updated.setMaintainer(existing.getMaintainer());
+        updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
+        updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+        updated.setAppVersion(existing.getAppVersion());
+        // Move the single tutorial folder over to the bumped revision and point file_path at it.
+        String tutorialFolder = tutorialStorageService.renameTutorialFolder(methodId, currentRevision, newRevision);
+        updated.setFilePath(tutorialFolder);
+        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
+        updated.setDisplayName(dto.displayName());
+        updated.setDescription(dto.description());
+        updated.setTutorial(dto.tutorial());
 
-        saveIntegrationMethodCapabilities(dto.capabilities(), existing);
+        copyConnectorLinks(existing, updated);
 
-        return currentRevision;
+        integrationMethodRepository.save(updated);
+        saveIntegrationMethodCapabilities(dto.capabilities(), updated);
+
+        // Drop the superseded revision; its capabilities and connector links cascade away.
+        integrationMethodRepository.delete(existing);
+        integrationMethodRepository.flush();
+
+        return newRevision;
+    }
+
+    private void copyConnectorLinks(IntegrationMethod from, IntegrationMethod to) {
+        for (IntegrationMethodConnector oldLink : from.getConnectors()) {
+            IntegrationMethodConnector newLink = new IntegrationMethodConnector();
+            newLink.setIntegrationMethod(to);
+            newLink.setConnector(oldLink.getConnector());
+            newLink.setConnectorMinVersion(oldLink.getConnectorMinVersion());
+            newLink.setConnectorMaxVersion(oldLink.getConnectorMaxVersion());
+            to.getConnectors().add(newLink);
+        }
+    }
+
+    /**
+     * Publishes (approves) an in-review revision: activates it and then removes any other ACTIVE
+     * revision of the same method that shares its major version. A minor draft therefore supersedes
+     * its published baseline (e.g. activating 2.1 drops the active 2.0), while a new major leaves
+     * earlier majors intact (activating 3.0 keeps 2.x). The superseded revisions and their tutorial
+     * folders are deleted.
+     */
+    @Transactional
+    public void publishIntegrationMethod(UUID methodId, String revision) {
+        IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+            throw new IllegalStateException("Only in-review revisions can be published: " + methodId + "/" + revision);
+        }
+
+        int major = parseMajor(revision);
+        UUID applicationId = draft.getApplication().getId();
+        // All revisions of this method live under the same application; filter that set down to the
+        // method's own revisions (the method id is stable across revisions).
+        List<IntegrationMethod> superseded = integrationMethodRepository.findByApplicationId(applicationId).stream()
+                .filter(m -> m.getId().equals(methodId))
+                .filter(m -> !m.getRevision().equals(revision))
+                .filter(m -> m.getLifecycleState() == LifecycleType.ACTIVE)
+                .filter(m -> parseMajor(m.getRevision()) == major)
+                .toList();
+
+        for (IntegrationMethod old : superseded) {
+            tutorialStorageService.deleteTutorialFolder(methodId, old.getRevision());
+            integrationMethodRepository.delete(old);
+        }
+        if (!superseded.isEmpty()) {
+            integrationMethodRepository.flush();
+        }
+
+        draft.setLifecycleState(LifecycleType.ACTIVE);
+        log.info("Published integration method {}/{}; superseded {} active revision(s) of major {}",
+                methodId, revision, superseded.size(), major);
     }
 
     private void saveIntegrationMethodCapabilities(List<IntegrationMethodCapabilityGroupDto> groups,
@@ -635,30 +715,34 @@ public class ConnectorUploadService {
         return (value == null || value.isBlank()) ? null : value;
     }
 
-    private String incrementRevision(String revision) {
-        if (revision == null || revision.isBlank()) return "1";
-        String[] parts = revision.split("\\.");
-        try {
-            int last = Integer.parseInt(parts[parts.length - 1]);
-            parts[parts.length - 1] = String.valueOf(last + 1);
-        } catch (NumberFormatException e) {
-            return revision + ".1";
-        }
-        return String.join(".", parts);
+    /** Major bump: increments the major segment and resets the minor to 0 (1.x -> 2.0, "1" -> "2.0"). */
+    private String bumpMajorRevision(String revision) {
+        return (parseMajor(revision) + 1) + ".0";
     }
 
-    private String incrementMinorRevision(String revision) {
-        if (revision == null || revision.isBlank()) return "1.0";
-        String[] parts = revision.split("\\.");
-        if (parts.length < 2) return revision + ".1.0";
+    /** Minor bump: keeps the major segment and increments the minor (1.1 -> 1.2, "1" -> "1.1"). */
+    private String bumpMinorRevision(String revision) {
+        return parseMajor(revision) + "." + (parseMinor(revision) + 1);
+    }
+
+    private int parseMajor(String revision) {
+        if (revision == null || revision.isBlank()) return 1;
         try {
-            int minor = Integer.parseInt(parts[parts.length - 2]);
-            parts[parts.length - 2] = String.valueOf(minor + 1);
-            parts[parts.length - 1] = "0";
+            return Integer.parseInt(revision.split("\\.")[0]);
         } catch (NumberFormatException e) {
-            return revision + ".0";
+            return 1;
         }
-        return String.join(".", parts);
+    }
+
+    private int parseMinor(String revision) {
+        if (revision == null || revision.isBlank()) return 0;
+        String[] parts = revision.split("\\.");
+        if (parts.length < 2) return 0;
+        try {
+            return Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private void saveIntegrationMethodCapabilities(UploadImplementationDto dto, IntegrationMethod integrationMethod) {
