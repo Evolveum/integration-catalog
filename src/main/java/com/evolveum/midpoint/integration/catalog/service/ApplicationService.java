@@ -291,8 +291,8 @@ public class ApplicationService {
         requestVotingService.cancelRequest(requestId);
     }
 
-    public byte[] downloadConnector(UUID integMethodId, String ip, String userAgent) throws IOException {
-        return connectorDownloadService.downloadConnector(integMethodId, ip, userAgent);
+    public void recordMethodDownload(UUID methodId, String revision, String ip, String userAgent) {
+        connectorDownloadService.recordMethodDownload(methodId, revision, ip, userAgent);
     }
 
     public List<ApplicationDto> getAllApplications() {
