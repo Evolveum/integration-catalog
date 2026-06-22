@@ -24,9 +24,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,16 +45,30 @@ import java.util.zip.ZipOutputStream;
  * <ul>
  *     <li>the tutorial text (integration_method.tutorial) as {@code tutorial.md};</li>
  *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/};</li>
- *     <li>JSON metadata for the application, integration method, and connectors, under {@code metadata/}.</li>
+ *     <li>JSON metadata for the application, integration method, and connectors, under {@code metadata/};</li>
+ *     <li>a pinned CSV connector JAR fetched from Nexus, added to every bundle.</li>
  * </ul>
  */
 @Slf4j
 @Service
 public class BundleService {
 
+    /**
+     * Pinned, version-locked CSV connector JAR added to every bundle. The release URL is immutable,
+     * so the bytes are fetched once and cached for the service's lifetime.
+     */
+    private static final String CONNECTOR_JAR_URL =
+            "https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar";
+    private static final String CONNECTOR_JAR_ENTRY = "connector-csvfile-1.4.2.0.jar";
+
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
     private final ObjectWriter jsonWriter;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
+            .connectTimeout(Duration.ofSeconds(15))
+            .build();
+    private volatile byte[] connectorJarCache;
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService,
@@ -78,6 +97,7 @@ public class BundleService {
             addTutorialXml(zip, method);
             addTutorialFiles(zip, methodId, revision);
             addMetadata(zip, method);
+            addConnectorJar(zip);
         }
         log.info("Built bundle for integration method {}/{}: {} bytes", methodId, revision, baos.size());
         return new Bundle(buildFileName(method), baos.toByteArray());
@@ -112,6 +132,44 @@ public class BundleService {
             zip.putNextEntry(new ZipEntry("files/" + name));
             Files.copy(file, zip);
             zip.closeEntry();
+        }
+    }
+
+    /** Adds the pinned CSV connector JAR (fetched from Nexus, cached after the first download). */
+    private void addConnectorJar(ZipOutputStream zip) throws IOException {
+        zip.putNextEntry(new ZipEntry(CONNECTOR_JAR_ENTRY));
+        zip.write(connectorJarBytes());
+        zip.closeEntry();
+    }
+
+    private byte[] connectorJarBytes() throws IOException {
+        byte[] cached = connectorJarCache;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (connectorJarCache == null) {
+                connectorJarCache = downloadConnectorJar();
+            }
+            return connectorJarCache;
+        }
+    }
+
+    private byte[] downloadConnectorJar() throws IOException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(CONNECTOR_JAR_URL))
+                .timeout(Duration.ofSeconds(60))
+                .GET()
+                .build();
+        try {
+            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() != 200) {
+                throw new IOException("Failed to download connector JAR: HTTP " + response.statusCode());
+            }
+            log.info("Fetched CSV connector JAR ({} bytes) for bundling", response.body().length);
+            return response.body();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while downloading connector JAR", e);
         }
     }
 
