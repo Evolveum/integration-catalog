@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -40,6 +41,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 @Tag(name = "Integration catalog", description = "API for managing endpoints of Integration catalog")
@@ -174,34 +176,6 @@ public class Controller {
     public ResponseEntity<Void> completeBuildWithFailure(@RequestBody FailForm failForm, @PathVariable UUID oid) {
         applicationService.failBuild(oid, failForm);
         return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "Download connector by integration method ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Download successful"),
-            @ApiResponse(responseCode = "404", description = "Not found")
-    })
-    @GetMapping("/downloads/{oid}")
-    public ResponseEntity<byte[]> downloadConnector(@PathVariable UUID oid, HttpServletRequest request) {
-        String ip = request.getRemoteAddr();
-        String ua = request.getHeader("User-Agent");
-        try {
-            byte[] fileBytes = applicationService.downloadConnector(oid, ip, ua);
-            if (fileBytes == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No download data returned");
-            }
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDisposition(org.springframework.http.ContentDisposition.builder("attachment")
-                    .filename("connector-" + oid + ".jar")
-                    .build());
-            headers.setContentLength(fileBytes.length);
-            return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
-        } catch (ResponseStatusException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to download connector: " + e.getMessage(), e);
-        }
     }
 
     @Operation(summary = "Search applications by parameters")
@@ -623,7 +597,7 @@ public class Controller {
     }
 
     @Operation(summary = "Download a ZIP bundle for an integration method revision",
-            description = "Bundles the tutorial XML, all tutorial files, and a Notepad++ installer into a single ZIP.")
+            description = "Bundles the tutorial (tutorial.md) and all uploaded tutorial files into a single ZIP.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle built successfully"),
             @ApiResponse(responseCode = "404", description = "Integration method not found"),
@@ -633,20 +607,22 @@ public class Controller {
     public ResponseEntity<byte[]> downloadBundle(
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
-            @PathVariable String revision) {
+            @PathVariable String revision,
+            HttpServletRequest request) {
         try {
-            byte[] zip = bundleService.buildBundle(methodId, revision);
-            String fileName = "integration-method-" + methodId + ".zip";
+            BundleService.Bundle bundle = bundleService.buildBundle(methodId, revision);
+            try {
+                applicationService.recordMethodDownload(methodId, revision,
+                        request.getRemoteAddr(), request.getHeader("User-Agent"));
+            } catch (RuntimeException ex) {
+                log.warn("Failed to record download for {}/{}: {}", methodId, revision, ex.getMessage());
+            }
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, "application/zip")
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-                    .body(zip);
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + bundle.fileName() + "\"")
+                    .body(bundle.data());
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Bundle build interrupted: " + ex.getMessage(), ex);
         } catch (IOException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to build bundle: " + ex.getMessage(), ex);

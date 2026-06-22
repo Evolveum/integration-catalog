@@ -10,7 +10,7 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.Download;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnector;
-import com.evolveum.midpoint.integration.catalog.repository.ConnectorBundleVersionRepository;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.util.UserAgentParser;
@@ -19,14 +19,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Comparator;
-import java.util.List;
 import java.util.UUID;
 
+/**
+ * Records download statistics for integration-method bundle downloads. A download is attributed to
+ * the latest active connector bundle version linked to the method, and de-duplicated within a short
+ * time window per (bundle version, ip, user-agent) so repeated clicks are not over-counted.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,31 +36,28 @@ public class ConnectorDownloadService {
     private static final long DOWNLOAD_OFFSET_SECONDS = 10;
 
     private final IntegrationMethodRepository integrationMethodRepository;
-    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final DownloadRepository downloadRepository;
 
     /**
-     * Downloads connector files for the latest active connector bundle version
-     * linked to the given integration method UUID.
+     * Records a download for the given integration-method revision against its latest connector bundle
+     * version. No-op (other than a debug log) if the method has no linked connector bundle version.
      */
-    public byte[] downloadConnector(UUID integMethodId, String ip, String userAgent) throws IOException {
-        List<IntegrationMethod> methods = integrationMethodRepository.findByApplicationId(integMethodId);
-        IntegrationMethod method = methods.stream()
-                .filter(m -> m.getId().equals(integMethodId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Integration method not found: " + integMethodId));
+    public void recordMethodDownload(UUID methodId, String revision, String ip, String userAgent) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElse(null);
+        if (method == null) {
+            log.debug("Integration method {}/{} not found; download not recorded", methodId, revision);
+            return;
+        }
 
         ConnectorBundleVersion bundleVersion = resolveLatestBundleVersion(method);
-        if (bundleVersion == null || bundleVersion.getBrowseLink() == null) {
-            throw new IllegalArgumentException("No download link available for integration method: " + integMethodId);
+        if (bundleVersion == null) {
+            log.debug("No connector bundle version for {}/{}; download not recorded", methodId, revision);
+            return;
         }
 
-        try (InputStream in = URI.create(bundleVersion.getBrowseLink()).toURL().openStream()) {
-            byte[] fileBytes = in.readAllBytes();
-            LocalDateTime cutoff = LocalDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
-            recordDownloadIfNew(bundleVersion, ip, userAgent, cutoff);
-            return fileBytes;
-        }
+        LocalDateTime cutoff = LocalDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
+        recordDownloadIfNew(bundleVersion, ip, userAgent, cutoff);
     }
 
     public void recordDownloadIfNew(ConnectorBundleVersion bundleVersion, String ip, String userAgent,

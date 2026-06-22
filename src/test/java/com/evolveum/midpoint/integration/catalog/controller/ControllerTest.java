@@ -244,46 +244,6 @@ class ControllerTest {
         verify(applicationService).failBuild(eq(testVersionId), any(FailForm.class));
     }
 
-    // ===== GET /api/downloads/{oid} =====
-
-    @Test
-    void downloadConnectorShouldReturnFileWhenSuccessful() throws Exception {
-        byte[] fileBytes = "test file content".getBytes();
-
-        when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
-                .thenReturn(fileBytes);
-
-        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
-                .andExpect(status().isOk())
-                .andExpect(header().exists("Content-Disposition"))
-                .andExpect(content().contentType(MediaType.APPLICATION_OCTET_STREAM))
-                .andExpect(content().bytes(fileBytes));
-
-        verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
-    }
-
-    @Test
-    void downloadConnectorShouldReturnNotFoundWhenVersionNotExists() throws Exception {
-        when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
-                .thenReturn(null);
-
-        mockMvc.perform(get("/api/downloads/{oid}", UUID.randomUUID()))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
-    }
-
-    @Test
-    void downloadConnectorShouldReturnInternalServerErrorWhenDownloadFails() throws Exception {
-        when(applicationService.downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class)))
-                .thenThrow(new IOException("Download failed"));
-
-        mockMvc.perform(get("/api/downloads/{oid}", testVersionId))
-                .andExpect(status().isInternalServerError());
-
-        verify(applicationService).downloadConnector(any(UUID.class), nullable(String.class), nullable(String.class));
-    }
-
     // ===== POST /api/applications/search/{size}/{page} =====
 
     @Test
