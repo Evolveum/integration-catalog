@@ -28,6 +28,7 @@ import { hasLogoDetail } from '../../models/application-detail.model';
 export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly loading = signal<boolean>(true);
   protected readonly showAddConnector = signal<boolean>(false);
+  // protected readonly licenseExpanded = signal<boolean>(false);
   protected readonly appId = signal<string>('');
   protected readonly appName = signal<string>('');
   protected readonly appHasLogo = signal<boolean>(false);
@@ -268,7 +269,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected isInReview(): boolean {
     return this.methodLifecycleState() === 'IN_REVIEW';
   }
-
+  
   protected save(): void {
     this.doSave(false);
   }

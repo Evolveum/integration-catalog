@@ -134,13 +134,15 @@
             @for (entry of tutorialFiles(); track entry.name; let i = $index) {
               <div class="tutorial-file-item">
                 <i class="fa-regular fa-file tutorial-file-icon"></i>
-                @if (entry.isNew) {
-                  <span class="tutorial-file-name">{{ entry.name }}</span>
-                  <span class="tutorial-file-new-badge">NEW</span>
-                } @else {
-                  <a class="tutorial-file-name tutorial-file-link" [href]="tutorialFileUrl(entry.name)" target="_blank" rel="noopener">{{ entry.name }}</a>
-                }
-                <button type="button" class="tutorial-file-delete" (click)="removeTutorialFile(i)">
+                <div class="tutorial-file-name-group">
+                  @if (entry.isNew) {
+                    <span class="tutorial-file-name">{{ entry.name }}</span>
+                    <span class="tutorial-file-new-badge">NEW</span>
+                  } @else {
+                    <a class="tutorial-file-name tutorial-file-link" [href]="tutorialFileUrl(entry.name)" target="_blank" rel="noopener">{{ entry.name }}</a>
+                  }
+                </div>
+                <button type="button" class="tutorial-file-delete" (click)="removeTutorialFile(i)" aria-label="Remove file">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
@@ -240,6 +242,14 @@
             </div>
           </div>
         }
+      </div>
+
+      <!-- License / publishing notice -->
+      <div class="edit-license-notice">
+        <p class="edit-license-text">
+          By saving this change, you confirm that the updated content remains compliant with the license you originally selected and with Evolveum's <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> and
+          <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+        </p>
       </div>
 
       <!-- Footer actions -->

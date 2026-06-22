@@ -36,7 +36,21 @@
         </div>
         <div class="view-row">
           <span class="view-label">Version:</span>
-          <span class="view-value">{{ methodVersion() || '—' }}</span>
+          <span class="view-value">
+            @if (methodVersion()) {
+              <span class="im-method-tag">{{ versionBadge(methodVersion()) }}</span>
+            } @else { — }
+          </span>
+        </div>
+        <div class="view-row">
+          <span class="view-label">Supported midPoint version:</span>
+          <span class="view-value d-flex align-items-center flex-wrap gap-2">
+            <span class="midpoint-range-label">From</span>
+            <span class="im-method-tag im-method-tag-range">{{ midpointMinVersion() || '—' }}</span>
+            <span class="midpoint-range-dash">—</span>
+            <span class="midpoint-range-label">To</span>
+            <span class="im-method-tag im-method-tag-range">{{ midpointMaxVersion() || '—' }}</span>
+          </span>
         </div>
         <div class="view-row">
           <span class="view-label">Integration method type:</span>
@@ -54,16 +68,28 @@
         </div>
       </div>
 
-      <!-- Global Capabilities -->
+      <!-- Capabilities (divided by globality) -->
       <div class="mb-4">
-        <label class="view-section-label">Global Capabilities</label>
         @if (globalCapabilities().length > 0) {
-          <div class="view-caps-box d-flex flex-wrap gap-2">
+          <label class="view-section-label">Global Capabilities</label>
+          <div class="view-caps-box d-flex flex-wrap gap-2 mb-3">
             @for (cap of globalCapabilities(); track cap) {
               <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
             }
           </div>
-        } @else {
+        }
+
+        @for (occ of specificCapabilities(); track occ.objectName) {
+          <label class="view-section-label">{{ occ.objectName }} Capabilities</label>
+          <div class="view-caps-box d-flex flex-wrap gap-2 mb-3">
+            @for (cap of occ.capabilities; track cap) {
+              <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+            }
+          </div>
+        }
+
+        @if (globalCapabilities().length === 0 && specificCapabilities().length === 0) {
+          <label class="view-section-label">Global Capabilities</label>
           <div class="view-caps-box text-muted">No capabilities defined.</div>
         }
       </div>

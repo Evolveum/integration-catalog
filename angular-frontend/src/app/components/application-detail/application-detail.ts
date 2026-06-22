@@ -12,6 +12,15 @@ import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, Integration
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 
+interface MethodGroup {
+  id: string;
+  name: string;
+  types: string[];
+  versions: IntegrationMethod[];
+  publishedCount: number;
+  pendingCount: number;
+}
+
 @Component({
   selector: 'app-application-detail',
   imports: [CommonModule, PageHeader],
@@ -55,11 +64,69 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   private pendingCancelVersionId: string | null = null;
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 5;
-  protected readonly totalPages = computed(() => Math.ceil(this.allVersions().length / this.itemsPerPage));
-  protected readonly pagedVersions = computed(() => {
-    const start = this.currentPage() * this.itemsPerPage;
-    return this.allVersions().slice(start, start + this.itemsPerPage);
+  protected readonly expandedMethods = signal<Set<string>>(new Set());
+
+  // Group the flat version list into method cards, keyed by the shared method UUID
+  // (integration_method.id is stable across revisions; revision distinguishes versions).
+  protected readonly groupedMethods = computed<MethodGroup[]>(() => {
+    const groups = new Map<string, MethodGroup>();
+    const cancelled = this.cancelledVersionIds();
+    for (const v of this.allVersions()) {
+      if (cancelled.includes(this.versionKey(v.id, v.revision))) continue;
+      let group = groups.get(v.id);
+      if (!group) {
+        group = {
+          id: v.id,
+          name: v.displayName || v.connectorDisplayName || 'Integration method',
+          types: v.integMethodTypes ?? [],
+          versions: [],
+          publishedCount: 0,
+          pendingCount: 0
+        };
+        groups.set(v.id, group);
+      }
+      group.versions.push(v);
+      if (v.lifecycleState === 'ACTIVE') group.publishedCount++;
+      else if (v.lifecycleState === 'IN_REVIEW') group.pendingCount++;
+    }
+    const result = Array.from(groups.values());
+    result.forEach(g => g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision)));
+    return result;
   });
+
+  protected readonly totalPages = computed(() => Math.ceil(this.groupedMethods().length / this.itemsPerPage));
+  protected readonly pagedMethods = computed(() => {
+    const start = this.currentPage() * this.itemsPerPage;
+    return this.groupedMethods().slice(start, start + this.itemsPerPage);
+  });
+
+  protected toggleMethod(id: string): void {
+    this.expandedMethods.update(set => {
+      const next = new Set(set);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }
+
+  protected isMethodExpanded(id: string): boolean {
+    return this.expandedMethods().has(id);
+  }
+
+  /** Derive the version badge ("v1", "v2", …) from the major part of the revision. */
+  protected versionBadge(revision: string | null): string {
+    const major = parseInt((revision ?? '').split('.')[0], 10);
+    return isNaN(major) ? 'v1' : `v${major}`;
+  }
+
+  private compareRevisions(a: string | null, b: string | null): number {
+    const pa = (a ?? '').split('.').map(n => parseInt(n, 10) || 0);
+    const pb = (b ?? '').split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const diff = (pa[i] || 0) - (pb[i] || 0);
+      if (diff !== 0) return diff;
+    }
+    return 0;
+  }
 
   protected readonly methodTypeFilter = signal<string>('all');
   protected readonly methodSearchQuery = signal<string>('');
@@ -100,10 +167,15 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.router.navigate(['/applications']);
   }
 
-  protected cancelVersion(id: string): void {
+  protected cancelVersion(id: string, revision: string | null): void {
     this.pendingCancelType = 'version';
-    this.pendingCancelVersionId = id;
+    this.pendingCancelVersionId = this.versionKey(id, revision);
     this.isCancelConfirmOpen.set(true);
+  }
+
+  /** Unique key for a single version (the method id is shared across revisions). */
+  private versionKey(id: string, revision: string | null): string {
+    return `${id}|${revision ?? ''}`;
   }
 
   protected cancelRequest(): void {
@@ -285,17 +357,17 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
   }
 
-  protected navigateToEdit(versionId: string, revision: string): void {
+  protected navigateToEdit(versionId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision, 'edit']);
+      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision ?? '', 'edit']);
     }
   }
 
-  protected navigateToDetails(versionId: string, revision: string): void {
+  protected navigateToDetails(versionId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision, 'details']);
+      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision ?? '', 'details']);
     }
   }
 
@@ -560,10 +632,10 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return framework;
   }
 
-  protected downloadBundle(methodId: string, revision: string): void {
+  protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.applicationService.downloadBundle(appId, methodId, revision);
+      this.applicationService.downloadBundle(appId, methodId, revision ?? '');
     }
   }
 
@@ -616,6 +688,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       next: (data) => {
         this.application.set(data);
         this.groupVersionsByLifecycleState(data.integrationMethods);
+        // Start with only the first method card expanded.
+        const firstId = this.groupedMethods()[0]?.id;
+        this.expandedMethods.set(firstId ? new Set([firstId]) : new Set());
         this.loading.set(false);
       },
       error: (err) => {
@@ -696,6 +771,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const searchQuery = this.methodSearchQuery().toLowerCase().trim();
     if (searchQuery) {
       filteredVersions = filteredVersions.filter(version =>
+        version.displayName?.toLowerCase().includes(searchQuery) ||
         version.connectorDisplayName?.toLowerCase().includes(searchQuery) ||
         version.integMethodTypes?.some((t: string) => t.toLowerCase().includes(searchQuery)) ||
         version.description?.toLowerCase().includes(searchQuery)

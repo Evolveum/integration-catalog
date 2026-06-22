@@ -980,6 +980,7 @@
 /* Step 3 – Tutorial file drop zone */
 .tutorial-import-label {
   font-size: 0.875rem;
+  font-weight: 600;
   color: $color-text-dark;
   margin-bottom: 0.5rem;
 }
@@ -1069,7 +1070,7 @@
 .tutorial-file-new-badge {
   font-size: 0.6875rem;
   font-weight: 600;
-  background-color: $midpoint-special-color;
+  background-color: $color-success;
   color: $color-white;
   border-radius: 4px;
   padding: 1px 6px;
