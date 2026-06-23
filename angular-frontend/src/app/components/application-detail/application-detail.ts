@@ -90,7 +90,12 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       else if (v.lifecycleState === 'IN_REVIEW') group.pendingCount++;
     }
     const result = Array.from(groups.values());
-    result.forEach(g => g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision)));
+    result.forEach(g => {
+      g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision));
+      // The card header reflects the most recent revision's name, so a rename in a new version shows.
+      const latest = g.versions[g.versions.length - 1];
+      g.name = latest.displayName || latest.connectorDisplayName || 'Integration method';
+    });
     return result;
   });
 
@@ -171,6 +176,20 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.pendingCancelType = 'version';
     this.pendingCancelVersionId = this.versionKey(id, revision);
     this.isCancelConfirmOpen.set(true);
+  }
+
+  /** Only superusers may approve (publish) an in-review revision. */
+  protected isSuperuser(): boolean {
+    return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  protected approveVersion(id: string, revision: string | null): void {
+    const appId = this.application()?.id;
+    if (!appId) return;
+    this.applicationService.publishIntegrationMethod(appId, id, revision ?? '').subscribe({
+      next: () => this.loadApplication(appId),
+      error: (err) => console.error('Failed to approve version', err)
+    });
   }
 
   /** Unique key for a single version (the method id is shared across revisions). */

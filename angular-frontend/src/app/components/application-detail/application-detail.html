@@ -419,7 +419,7 @@
 
                               <!-- DETAILS -->
                               <div class="im-col-details">
-                                <div class="im-row-title">{{ method.name }}</div>
+                                <div class="im-row-title">{{ version.displayName || version.connectorDisplayName || method.name }}</div>
                                 @if (version.lifecycleState === 'IN_REVIEW' && version.releasedDate) {
                                   <div class="im-submitted-line"><i class="fa-regular fa-clock me-1"></i>Submitted for review on {{ version.releasedDate | date:'MMMM d, yyyy' }}</div>
                                 }
@@ -532,6 +532,11 @@
                                     <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                     </button>
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-approve" (click)="approveVersion(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-check"></i>Approve
+                                      </button>
+                                    }
                                   } @else {
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details

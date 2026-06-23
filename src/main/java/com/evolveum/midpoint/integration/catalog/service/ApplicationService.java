@@ -178,6 +178,11 @@ public class ApplicationService {
     }
 
     @Transactional
+    public void publishIntegrationMethod(UUID methodId, String revision) {
+        connectorUploadService.publishIntegrationMethod(methodId, revision);
+    }
+
+    @Transactional
     public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
                                                 AddConnectorDto dto, String username) {
         connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);

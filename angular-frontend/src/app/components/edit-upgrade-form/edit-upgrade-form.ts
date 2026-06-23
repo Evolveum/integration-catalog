@@ -278,11 +278,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.doSave(true);
   }
 
-  private bumpVersion(version: string, major: boolean): string {
-    const [maj, min] = version.split('.').map(Number);
-    return major ? `${maj + 1}.1` : `${maj}.${min + 1}`;
-  }
-
   private doSave(major: boolean): void {
     const tutorial = this.easyMde ? this.easyMde.value() : this.methodTutorial();
     const capabilities = this.imCapabilities().length > 0
@@ -292,7 +287,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const newFiles = this.tutorialFiles().filter(f => f.isNew && f.file).map(f => f.file!);
     const keptNames = this.tutorialFiles().filter(f => !f.isNew).map(f => f.name);
     const removedNames = this.initialFileNames().filter(n => !keptNames.includes(n));
-    const newRevision = this.bumpVersion(this.methodVersion(), major);
 
     this.applicationService.editIntegrationMethod(
       this.appId(),
@@ -304,7 +298,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         tutorial,
         capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
         removeFile: false,
-        newRevision
+        // "Save" (major=false) is a minor in-place bump; "Save as new version" (major=true) is a major bump.
+        minorBump: !major
       }
     ).subscribe({
       next: (savedRevision) => {

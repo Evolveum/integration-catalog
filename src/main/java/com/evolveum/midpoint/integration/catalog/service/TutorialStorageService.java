@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -198,6 +199,53 @@ public class TutorialStorageService {
                     + " from " + fromRevision + " to " + toRevision, e);
         }
         return destFolder;
+    }
+
+    /**
+     * Moves a revision's tutorial folder to the target revision (used when a revision is rewritten in
+     * place with a bump). Returns the destination folder name; a no-op if the source folder is absent.
+     */
+    public String renameTutorialFolder(UUID integrationMethodId, String fromRevision, String toRevision) {
+        String destFolder = folderName(integrationMethodId, toRevision);
+        Path from = basePath.resolve(folderName(integrationMethodId, fromRevision));
+        Path to = basePath.resolve(destFolder);
+        if (from.equals(to) || !Files.isDirectory(from)) {
+            return destFolder;
+        }
+        try {
+            if (Files.exists(to)) {
+                deleteDirectoryRecursively(to);
+            }
+            Files.move(from, to);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to rename tutorial folder for " + integrationMethodId
+                    + " from " + fromRevision + " to " + toRevision, e);
+        }
+        return destFolder;
+    }
+
+    /** Removes a revision's tutorial folder entirely (used when a superseded revision is dropped). */
+    public void deleteTutorialFolder(UUID integrationMethodId, String revision) {
+        Path folder = basePath.resolve(folderName(integrationMethodId, revision));
+        try {
+            deleteDirectoryRecursively(folder);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to delete tutorial folder for "
+                    + integrationMethodId + "/" + revision, e);
+        }
+    }
+
+    private void deleteDirectoryRecursively(Path dir) throws IOException {
+        if (!Files.exists(dir)) return;
+        try (Stream<Path> walk = Files.walk(dir)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.delete(p);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+        }
     }
 
     private void updateFilePath(UUID id, String revision, String filePath) {
