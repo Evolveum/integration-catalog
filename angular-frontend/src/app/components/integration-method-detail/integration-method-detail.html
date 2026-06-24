@@ -4,6 +4,24 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
+<!-- Bundle download warning toast (stays until dismissed) -->
+@if (bundleWarning()) {
+  <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 100000;">
+    <div class="toast-box rounded-2 overflow-hidden">
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation toast-icon"></i>
+          <strong>Download warning</strong>
+        </div>
+        <button type="button" class="btn-close" (click)="closeBundleWarning()" aria-label="Close"></button>
+      </div>
+      <div class="px-3 py-2 toast-body-warning">
+        {{ bundleWarning() }}
+      </div>
+    </div>
+  </div>
+}
+
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
     <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>

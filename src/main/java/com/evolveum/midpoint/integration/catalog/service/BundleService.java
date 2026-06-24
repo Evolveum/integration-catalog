@@ -9,6 +9,8 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.Connector;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
+import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
+import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapability;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapabilityItem;
@@ -33,10 +35,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -46,20 +52,14 @@ import java.util.zip.ZipOutputStream;
  *     <li>the tutorial text (integration_method.tutorial) as {@code tutorial.md};</li>
  *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/};</li>
  *     <li>JSON metadata for the application, integration method, and connectors, under {@code metadata/};</li>
- *     <li>a pinned CSV connector JAR fetched from Nexus, added to every bundle.</li>
+ *     <li>the connector build JAR, resolved from the method's linked connector and fetched from its
+ *         {@code artifact_url}. If the method has no connector artifact (or the fetch fails), the JAR is
+ *         omitted, a {@code NOTICE.txt} explaining why is added, and the bundle carries a warning.</li>
  * </ul>
  */
 @Slf4j
 @Service
 public class BundleService {
-
-    /**
-     * Pinned, version-locked CSV connector JAR added to every bundle. The release URL is immutable,
-     * so the bytes are fetched once and cached for the service's lifetime.
-     */
-    private static final String CONNECTOR_JAR_URL =
-            "https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar";
-    private static final String CONNECTOR_JAR_ENTRY = "connector-csvfile-1.4.2.0.jar";
 
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
@@ -68,7 +68,8 @@ public class BundleService {
             .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
             .connectTimeout(Duration.ofSeconds(15))
             .build();
-    private volatile byte[] connectorJarCache;
+    /** Cache of fetched artifact bytes, keyed by artifact URL — release URLs are immutable. */
+    private final Map<String, byte[]> artifactCache = new ConcurrentHashMap<>();
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService,
@@ -78,8 +79,12 @@ public class BundleService {
         this.jsonWriter = objectMapper.writerWithDefaultPrettyPrinter();
     }
 
-    /** A built ZIP bundle together with a suggested download file name. */
-    public record Bundle(String fileName, byte[] data) {}
+    /**
+     * A built ZIP bundle together with a suggested download file name and an optional warning.
+     * {@code warning} is {@code null} on success; when non-null it describes why the connector JAR
+     * could not be included (so callers can surface it to the user) — the ZIP is still valid.
+     */
+    public record Bundle(String fileName, byte[] data, String warning) {}
 
     /**
      * Builds the bundle and returns the ZIP bytes plus a suggested file name.
@@ -92,15 +97,17 @@ public class BundleService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Integration method not found: " + methodId + "/" + revision));
 
+        String warning;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {
             addTutorialXml(zip, method);
             addTutorialFiles(zip, methodId, revision);
             addMetadata(zip, method);
-            addConnectorJar(zip);
+            warning = addConnectorJars(zip, method);
         }
-        log.info("Built bundle for integration method {}/{}: {} bytes", methodId, revision, baos.size());
-        return new Bundle(buildFileName(method), baos.toByteArray());
+        log.info("Built bundle for integration method {}/{}: {} bytes{}", methodId, revision, baos.size(),
+                warning == null ? "" : " (warning: " + warning + ")");
+        return new Bundle(buildFileName(method), baos.toByteArray(), warning);
     }
 
     /** Builds a download file name from the method's display name and revision, sanitised for filesystems. */
@@ -135,41 +142,139 @@ public class BundleService {
         }
     }
 
-    /** Adds the pinned CSV connector JAR (fetched from Nexus, cached after the first download). */
-    private void addConnectorJar(ZipOutputStream zip) throws IOException {
-        zip.putNextEntry(new ZipEntry(CONNECTOR_JAR_ENTRY));
-        zip.write(connectorJarBytes());
+    /**
+     * Adds a build JAR for every connector linked to the method, each resolved from that connector's
+     * latest bundle version artifact URL. Never throws on a missing or unreachable artifact: connectors
+     * without a build file are collected into a {@code NOTICE.txt} and a combined warning message is
+     * returned (or {@code null} when every connector's JAR was bundled). Duplicate JAR file names are
+     * de-duplicated so the ZIP never has clashing entries.
+     */
+    private String addConnectorJars(ZipOutputStream zip, IntegrationMethod method) throws IOException {
+        List<IntegrationMethodConnector> links = method.getConnectors();
+        if (links == null || links.isEmpty()) {
+            String warning = "No connector is linked to this integration method; "
+                    + "the bundle does not include a connector JAR.";
+            writeNotice(zip, warning);
+            return warning;
+        }
+
+        Set<String> usedEntryNames = new HashSet<>();
+        List<String> missing = new ArrayList<>();
+        int bundled = 0;
+
+        for (IntegrationMethodConnector link : links) {
+            Connector connector = link.getConnector();
+            if (connector == null) {
+                continue;
+            }
+            String label = connectorLabel(connector);
+            String artifactUrl = resolveArtifactUrl(connector);
+            if (artifactUrl == null || artifactUrl.isBlank()) {
+                missing.add(label + " (no build file available)");
+                continue;
+            }
+            try {
+                byte[] jar = artifactBytes(artifactUrl);
+                String entryName = uniqueEntryName(artifactEntryName(artifactUrl), usedEntryNames);
+                zip.putNextEntry(new ZipEntry(entryName));
+                zip.write(jar);
+                zip.closeEntry();
+                bundled++;
+            } catch (IOException e) {
+                log.warn("Failed to fetch connector artifact {} for {}/{}: {}",
+                        artifactUrl, method.getId(), method.getRevision(), e.getMessage());
+                missing.add(label + " (build file could not be retrieved: " + e.getMessage() + ")");
+            }
+        }
+
+        if (missing.isEmpty()) {
+            return null;
+        }
+
+        String warning = (bundled == 0
+                ? "No connector build file could be included in this bundle. "
+                : "Some connector build files could not be included in this bundle. ")
+                + "Missing: " + String.join("; ", missing) + ".";
+        writeNotice(zip, warning);
+        return warning;
+    }
+
+    /** Writes a human-readable NOTICE.txt explaining which connector JARs are missing. */
+    private void writeNotice(ZipOutputStream zip, String warning) throws IOException {
+        zip.putNextEntry(new ZipEntry("NOTICE.txt"));
+        zip.write(warning.getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
     }
 
-    private byte[] connectorJarBytes() throws IOException {
-        byte[] cached = connectorJarCache;
+    private String connectorLabel(Connector connector) {
+        String name = connector.getDisplayName();
+        return (name != null && !name.isBlank()) ? name : "connector " + connector.getId();
+    }
+
+    /**
+     * Resolves the build-artifact URL for a single connector, using its latest connector bundle
+     * version (most recently updated). Returns {@code null} if no bundle version carries an artifact URL.
+     */
+    private String resolveArtifactUrl(Connector connector) {
+        return connector.getConnectorVersions().stream()
+                .map(ConnectorVersion::getConnectorBundleVersion)
+                .filter(cbv -> cbv != null && cbv.getArtifactUrl() != null && !cbv.getArtifactUrl().isBlank())
+                .max(Comparator.comparing(ConnectorBundleVersion::getUpdated,
+                        Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(ConnectorBundleVersion::getArtifactUrl)
+                .orElse(null);
+    }
+
+    /** Returns {@code name} if unused, otherwise appends {@code -2}, {@code -3}, … before the extension. */
+    private String uniqueEntryName(String name, Set<String> used) {
+        if (used.add(name)) {
+            return name;
+        }
+        int dot = name.lastIndexOf('.');
+        String base = dot > 0 ? name.substring(0, dot) : name;
+        String ext = dot > 0 ? name.substring(dot) : "";
+        int counter = 2;
+        String candidate;
+        do {
+            candidate = base + "-" + counter + ext;
+            counter++;
+        } while (!used.add(candidate));
+        return candidate;
+    }
+
+    /** Derives a ZIP entry name from the artifact URL's last path segment. */
+    private String artifactEntryName(String artifactUrl) {
+        String path = URI.create(artifactUrl).getPath();
+        int slash = path.lastIndexOf('/');
+        String name = slash >= 0 ? path.substring(slash + 1) : path;
+        return name.isBlank() ? "connector.jar" : name;
+    }
+
+    private byte[] artifactBytes(String artifactUrl) throws IOException {
+        byte[] cached = artifactCache.get(artifactUrl);
         if (cached != null) {
             return cached;
         }
-        synchronized (this) {
-            if (connectorJarCache == null) {
-                connectorJarCache = downloadConnectorJar();
-            }
-            return connectorJarCache;
-        }
+        byte[] fetched = downloadArtifact(artifactUrl);
+        artifactCache.put(artifactUrl, fetched);
+        return fetched;
     }
 
-    private byte[] downloadConnectorJar() throws IOException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(CONNECTOR_JAR_URL))
+    private byte[] downloadArtifact(String artifactUrl) throws IOException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(artifactUrl))
                 .timeout(Duration.ofSeconds(60))
                 .GET()
                 .build();
         try {
             HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
             if (response.statusCode() != 200) {
-                throw new IOException("Failed to download connector JAR: HTTP " + response.statusCode());
+                throw new IOException("HTTP " + response.statusCode());
             }
-            log.info("Fetched CSV connector JAR ({} bytes) for bundling", response.body().length);
+            log.info("Fetched connector artifact ({} bytes) from {}", response.body().length, artifactUrl);
             return response.body();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while downloading connector JAR", e);
+            throw new IOException("Interrupted while downloading connector artifact", e);
         }
     }
 

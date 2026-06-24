@@ -5,8 +5,9 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
 import { ApplicationDetail, ApplicationTag } from '../models/application-detail.model';
@@ -121,9 +122,40 @@ export class ApplicationService {
     return `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`;
   }
 
-  downloadBundle(appId: string, methodId: string, revision: string): void {
+  /**
+   * Downloads the integration-method bundle ZIP and triggers a browser save.
+   * Emits the value of the `X-Bundle-Warning` response header (or `null`) so callers can notify
+   * the user when the connector build file could not be included.
+   */
+  downloadBundle(appId: string, methodId: string, revision: string): Observable<string | null> {
     const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
-    window.open(url, '_blank');
+    return this.http.get(url, { observe: 'response', responseType: 'blob' }).pipe(
+      map((response: HttpResponse<Blob>) => {
+        if (response.body) {
+          this.saveBlob(response.body, this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'bundle.zip');
+        }
+        return response.headers.get('X-Bundle-Warning');
+      })
+    );
+  }
+
+  private saveBlob(blob: Blob, fileName: string): void {
+    const objectUrl = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(objectUrl);
+  }
+
+  private parseContentDispositionFileName(disposition: string | null): string | null {
+    if (!disposition) {
+      return null;
+    }
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    return match ? decodeURIComponent(match[1]) : null;
   }
 
   editIntegrationMethod(
