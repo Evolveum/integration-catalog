@@ -152,15 +152,11 @@ public class BundleService {
     private String addConnectorJars(ZipOutputStream zip, IntegrationMethod method) throws IOException {
         List<IntegrationMethodConnector> links = method.getConnectors();
         if (links == null || links.isEmpty()) {
-            String warning = "No connector is linked to this integration method; "
-                    + "the bundle does not include a connector JAR.";
-            writeNotice(zip, warning);
-            return warning;
+            return null;
         }
 
         Set<String> usedEntryNames = new HashSet<>();
         List<String> missing = new ArrayList<>();
-        int bundled = 0;
 
         for (IntegrationMethodConnector link : links) {
             Connector connector = link.getConnector();
@@ -179,7 +175,6 @@ public class BundleService {
                 zip.putNextEntry(new ZipEntry(entryName));
                 zip.write(jar);
                 zip.closeEntry();
-                bundled++;
             } catch (IOException e) {
                 log.warn("Failed to fetch connector artifact {} for {}/{}: {}",
                         artifactUrl, method.getId(), method.getRevision(), e.getMessage());
@@ -191,9 +186,7 @@ public class BundleService {
             return null;
         }
 
-        String warning = (bundled == 0
-                ? "No connector build file could be included in this bundle. "
-                : "Some connector build files could not be included in this bundle. ")
+        String warning = "Some connector build files could not be included in this bundle. "
                 + "Missing: " + String.join("; ", missing) + ".";
         writeNotice(zip, warning);
         return warning;

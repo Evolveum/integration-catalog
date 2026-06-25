@@ -326,21 +326,27 @@
 }
 
 .toast-box {
-  box-shadow: 0 4px 6px $shadow-card;
   min-width: 350px;
   max-width: 420px;
+  border: 1px solid $toast-warning-border;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 
 .toast-header-warning {
-  background-color: $color-warning;
-  color: $color-black;
+  background-color: $toast-warning-header;
+  color: $toast-warning-text;
+  font-size: 1rem;
 }
 
 .toast-body-warning {
-  background-color: $color-warning-bg;
-  color: $color-black;
+  background-color: $toast-warning-body;
+  color: $toast-warning-text;
+  line-height: 1.4;
 }
 
 .toast-icon {
+  font-weight: 700;
   font-size: 18px;
+  line-height: 1;
 }
