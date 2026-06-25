@@ -32,6 +32,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly application = signal<ApplicationDetailModel | null>(null);
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
+  // Bundle download warning toast (stays until dismissed)
+  protected readonly bundleWarning = signal<string | null>(null);
   protected readonly expandedVersions = new Set<number>();
   protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
   protected readonly expandedGlobalCapabilities = signal<Set<string>>(new Set());
@@ -654,8 +656,15 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.applicationService.downloadBundle(appId, methodId, revision ?? '');
+      this.applicationService.downloadBundle(appId, methodId, revision ?? '').subscribe({
+        next: (warning) => this.bundleWarning.set(warning),
+        error: () => this.bundleWarning.set('Failed to download the bundle. Please try again.')
+      });
     }
+  }
+
+  protected closeBundleWarning(): void {
+    this.bundleWarning.set(null);
   }
 
   // ==================== Logo Methods ====================

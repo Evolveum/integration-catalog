@@ -67,6 +67,12 @@ $color-success-bg: #d1e7dd;
 $color-warning: #ffc107;
 $color-warning-bg: #fff3cd;
 
+// Warning toast (download warning) — amber header + cream body, dark framed card
+$toast-warning-header: #FFC107;
+$toast-warning-body: #FFF3CD;
+$toast-warning-border: $toast-warning-header;
+$toast-warning-text: #353A41;
+
 // Info Colors
 $color-info-bg: #d1ecf1;
 $color-info-border: #bee5eb;

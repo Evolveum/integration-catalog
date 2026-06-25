@@ -86,6 +86,14 @@ public class ConnectorBundleVersion implements Persistable<Integer> {
     @Column(name = "commit_tag")
     private String commitTag;
 
+    /**
+     * Location of the connector build artifact (e.g. a Nexus JAR URL). Resolved at bundle-download
+     * time and added to the ZIP. Nullable: a method whose connector has no artifact yields a bundle
+     * without the JAR rather than a failure.
+     */
+    @Column(name = "artifact_url")
+    private String artifactUrl;
+
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 

@@ -126,9 +126,11 @@ OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5', 'Conn bun maintainer 1', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
      'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN'),
     (2, '1.0', 'u1', 'Conn bun maintainer 2', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
-     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE');
+     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE'),
+    (3, '1.0', 'u5', 'Conn bun maintainer 3', NOW(), NOW(), 'ACTIVE', 'connector-csvfile', 'CSV File Connector Bundle',
+     'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues', 'MAVEN');
 
-SELECT setval('connector_bundle_id_seq', 3);
+SELECT setval('connector_bundle_id_seq', 4);
 
 -- ============================================================
 -- CONNECTOR BUNDLE VERSIONS  (id 1..4, composite PK id+revision)
@@ -136,12 +138,16 @@ SELECT setval('connector_bundle_id_seq', 3);
 
 INSERT INTO connector_bundle_version (id, revision, author, maintainer, created_at, updated,
     lifecycle_state, connector_bundle_id, bundle_version, browse_link, git_clone_ULR,
-    path_to_project, build_framework, error_message)
+    path_to_project, build_framework, artifact_url, error_message)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5','Conn bun ver author 1', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
-     'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL),
+     'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL, NULL),
     (2, '1.0', 'u1', 'Conn bun ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
-     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL);
+     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL),
+    (3, '1.0', 'u5', 'Conn bun ver author 3', NOW(), NOW(), 'ACTIVE', 3, '1.4.2.0',
+     'https://nexus.evolveum.com/nexus/#browse/browse:releases:com%2Fevolveum%2Fpolygon%2Fconnector-csvfile',
+     'https://github.com/Evolveum/connector-csv.git', '/path_to_project', 'MAVEN',
+     'https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar', NULL);
 
 SELECT setval('connector_bundle_version_id_seq', 4);
 
@@ -155,9 +161,11 @@ OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0.0', 'Conn author 1', 'Conn maintainer 1', NOW(), NOW(), 'Display name Connector Java-based',
 	'Fully.qualified.conn.class.name.1', 1, 'Description Connector 1'),
     (2, '1.0.0', 'Conn author 2', 'Conn maintainer 2', NOW(), NOW(), 'Display name Connector LOW CODE',
-	'Fully.qualified.conn.class.name.2', 2, 'Description connector 2');
+	'Fully.qualified.conn.class.name.2', 2, 'Description connector 2'),
+    (3, '1.0.0', 'Conn author 3', 'Conn maintainer 3', NOW(), NOW(), 'CSV File Connector',
+	'com.evolveum.polygon.connector.csv.CsvConnector', 3, 'CSV file connector');
 
-SELECT setval('connector_id_seq', 2);
+SELECT setval('connector_id_seq', 3);
 
 INSERT INTO connector_connector_tag (connector_id, tag_id) VALUES
     (1, 1);
@@ -174,9 +182,10 @@ INSERT INTO connector_version (id, revision, author, maintainer, created_at, upd
     connector_id, fully_qualified_class_name, error_message)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0.0', 'u5', 'Conn ver author 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL),
-    (2, '1.0.0', 'u1', 'Conn ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL);
+    (2, '1.0.0', 'u1', 'Conn ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL),
+    (3, '1.0.0', 'u5', 'Conn ver author 3', NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL);
 
-SELECT setval('connector_version_id_seq', 2);
+SELECT setval('connector_version_id_seq', 3);
 
 -- ============================================================
 -- INTEGRATION METHODS  (composite PK uuid + revision)
@@ -198,7 +207,7 @@ VALUES
 INSERT INTO integration_method_connector (id, integ_method_id, integ_method_revision,
     connector_id, connector_minVersion, connector_maxVersion)
 VALUES
-    (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 1, '4.7', '4.9'),
+    (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 3, '4.7', '4.9'),
     (2, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 2, '4.3', '4.5');
 
 SELECT setval('integration_method_connector_id_seq', 2);
@@ -242,9 +251,9 @@ INSERT INTO integration_method_capability_item (integration_method_capability_id
 -- ============================================================
 
 INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
-    (1, 1, '1.0.0', 'Account'),
-    (2, 1, '1.0.0', 'Group'),
-    (3, 1, '1.0.0', 'Global');
+    (1, 3, '1.0.0', 'Account'),
+    (2, 3, '1.0.0', 'Group'),
+    (3, 3, '1.0.0', 'Global');
 
 SELECT setval('conn_version_capability_id_seq', 3);
 

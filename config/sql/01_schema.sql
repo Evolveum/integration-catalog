@@ -272,6 +272,7 @@ CREATE TABLE connector_bundle_version (
 	path_to_project character varying(255),
 	build_framework BuildFrameworkType,
 	commit_tag character varying(255),
+	artifact_url character varying(255),
 	error_message text
 );
 

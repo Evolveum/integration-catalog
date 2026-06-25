@@ -50,6 +50,9 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   protected readonly expandedConnectors = signal<Set<number>>(new Set());
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
+  // Bundle download warning toast (stays until dismissed)
+  protected readonly bundleWarning = signal<string | null>(null);
+
   private easyMde: EasyMDE | null = null;
 
   constructor(
@@ -232,6 +235,13 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   }
 
   protected downloadConnector(): void {
-    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion());
+    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+      next: (warning) => this.bundleWarning.set(warning),
+      error: () => this.bundleWarning.set('Failed to download the bundle. Please try again.')
+    });
+  }
+
+  protected closeBundleWarning(): void {
+    this.bundleWarning.set(null);
   }
 }

@@ -316,3 +316,37 @@
     background: #f8f9fa;
   }
 }
+
+/* Bundle download warning toast */
+.toast-container {
+  z-index: 2000;
+  // Bootstrap's .toast-container sets pointer-events: none (only .toast re-enables it);
+  // our inner box uses .toast-box, so re-enable clicks here or the X is unclickable.
+  pointer-events: auto;
+}
+
+.toast-box {
+  min-width: 350px;
+  max-width: 420px;
+  border: 1px solid $toast-warning-border;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.toast-header-warning {
+  background-color: $toast-warning-header;
+  color: $toast-warning-text;
+  font-size: 1rem;
+}
+
+.toast-body-warning {
+  background-color: $toast-warning-body;
+  color: $toast-warning-text;
+  line-height: 1.4;
+}
+
+.toast-icon {
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1;
+}

@@ -642,10 +642,13 @@ public class Controller {
             } catch (RuntimeException ex) {
                 log.warn("Failed to record download for {}/{}: {}", methodId, revision, ex.getMessage());
             }
-            return ResponseEntity.ok()
+            ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, "application/zip")
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + bundle.fileName() + "\"")
-                    .body(bundle.data());
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + bundle.fileName() + "\"");
+            if (bundle.warning() != null) {
+                responseBuilder.header("X-Bundle-Warning", bundle.warning());
+            }
+            return responseBuilder.body(bundle.data());
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (IOException ex) {
