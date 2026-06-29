@@ -136,6 +136,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
+  protected readonly compatInfoDismissed = signal<boolean>(false);
   protected readonly connectorVersionFrom = signal<string>('');
   protected readonly connectorVersionTo = signal<string>('');
 
@@ -207,6 +208,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   });
 
   protected get isStep5Valid(): boolean {
+    if (this.connectorCapabilities().length === 0) return false;
     if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
     if (this.isExistingConnector) return true;
     if (!this.connectorVersion().trim()) return false;

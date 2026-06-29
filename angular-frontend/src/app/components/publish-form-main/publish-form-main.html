@@ -26,7 +26,7 @@
         <!-- Upload Logo -->
         <div class="mb-4">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Upload a logo
+            Upload a logo <span class="text-danger">&nbsp;*</span>
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Supported formats: PNG, JPEG, GIF, SVG, WebP. Max size: 5MB.</span>
@@ -62,7 +62,7 @@
         <!-- Description -->
         <div class="mb-4">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Description <span class="text-danger">&nbsp;*</span>
+            Description
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Provide a brief description of what this application does.</span>
@@ -118,7 +118,7 @@
         <!-- Category -->
         <div class="mb-4">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Category <span class="text-danger">&nbsp;*</span>
+            Category
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Select the primary category this application belongs to.</span>
@@ -278,9 +278,9 @@
                         <div class="d-flex align-items-center">
                           <input type="checkbox" class="im-checkbox flex-shrink-0 me-2"
                                  [checked]="isMethodSelected(method.displayName)">
-                          <div>
+                          <div class="im-card-text">
                             <div class="im-title">{{ method.displayName }}</div>
-                            <div class="im-desc">{{ method.description }}</div>
+                            <div class="im-desc" appOverflowTitle>{{ method.description }}</div>
                           </div>
                         </div>
                       </div>
@@ -336,7 +336,7 @@
 
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
-                    <label class="form-label form-label-upload">Define integration method capabilities</label>
+                    <label class="form-label form-label-upload">Define capabilities for: <span class="text-danger">&nbsp;*</span></label>
                     <app-capability-picker [initialCapabilities]="imCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
                   </div>
 
@@ -384,6 +384,16 @@
                         }
                       </div>
                     }
+                  </div>
+
+                  <!-- Copyright notice -->
+                  <div class="copyright-notice">
+                    <p class="copyright-notice-text">
+                      The documentation you provide in this section will be distributed by Evolveum under the terms of the
+                      Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0) license.
+                      Details are available in Evolveum's
+                      <a href="https://docs.evolveum.com/copyright/" target="_blank" rel="noopener">General Copyright and Licensing Guidelines.</a>
+                    </p>
                   </div>
 
                 </div>
@@ -451,7 +461,7 @@
                   <div class="connector-existing-link">
                     Do you want already existing connector?
                     <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openConnectorCatalogModal()">
-                      Select one from the catalog <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
+                      Select one from the catalog. <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
                     </button>
                   </div>
                 </div>
@@ -461,7 +471,7 @@
               @if (currentStep() === 1) {
                 <div class="step-content">
                   <h5 class="define-app-heading">Select target application</h5>
-                  <p class="define-app-subtitle">Search or define a new application to continue.</p>
+                  <p class="define-app-subtitle">Select an application or define a new one to continue.</p>
 
                   <!-- Search Input -->
                   <div class="position-relative mb-4">
@@ -586,7 +596,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion()">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || imCapabilities().length === 0">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>

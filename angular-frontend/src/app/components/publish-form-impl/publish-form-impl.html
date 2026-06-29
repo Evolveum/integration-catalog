@@ -219,7 +219,7 @@
 
               <!-- Connector capabilities -->
               <div class="mb-3">
-                <label class="form-label form-label-upload">Define capabilities for:</label>
+                <label class="form-label form-label-upload">Define capabilities for: <span class="text-danger">*</span></label>
                 <app-capability-picker [initialCapabilities]="connectorCapabilities()" (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
               </div>
 
@@ -501,7 +501,7 @@
       <div class="step-content">
         <h5 class="step-title">Compatibility settings</h5>
         <p class="compat-step-desc">
-          Specify which versions of midPoint and connectors this integration method supports.
+          Specify which versions of midPoint and connectors this integration method supports. <br />
           This helps users find Integration methods compatible with their environments.
         </p>
 
@@ -586,10 +586,15 @@
               </div>
             </div>
             <div class="form-text mb-3">Enter a version in the X.Y.Z format. Users can search for this connector by version range.</div>
-            <div class="compat-info-note d-flex gap-2 align-items-center">
-              <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0"></i>
-              <span>Do not specify a "To version" if you expect your integration method will be compatible with future releases of the connector.</span>
-            </div>
+            @if (!compatInfoDismissed()) {
+              <div class="compat-info-note d-flex gap-2 align-items-center">
+                <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0"></i>
+                <span>Do not specify a "To version" if you expect your integration method will be compatible with future releases of the connector.</span>
+                <button type="button" class="compat-info-close flex-shrink-0 ms-auto" (click)="compatInfoDismissed.set(true)" aria-label="Dismiss">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            }
           </div>
         </div>
       </div>
