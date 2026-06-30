@@ -32,8 +32,8 @@
     <h4 class="publish-complete-title">Your integration method is awaiting approval</h4>
     <p class="publish-complete-subtitle">
       Our team will process your integration method promptly and expects to get back to you
-      <strong>within 1-4 weeks</strong>. If you have questions, please contact us at
-      <a href="mailto:help&#64;evolveum.com" class="publish-email-link">help&#64;evolveum.com</a>.
+      <strong>within 1-4 weeks</strong>. If you have questions, please contact us at.
+      <!-- <a href="mailto:help&#64;evolveum.com" class="publish-email-link">help&#64;evolveum.com</a>. -->
     </p>
 
     <table class="publish-complete-table">
@@ -219,7 +219,7 @@
 
               <!-- Connector capabilities -->
               <div class="mb-3">
-                <label class="form-label form-label-upload">Define capabilities for: <span class="text-danger">*</span></label>
+                <label class="form-label form-label-upload">Define capabilities for:@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}</label>
                 <app-capability-picker [initialCapabilities]="connectorCapabilities()" (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
               </div>
 

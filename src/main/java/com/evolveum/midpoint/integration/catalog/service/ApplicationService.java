@@ -330,6 +330,7 @@ public class ApplicationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<CatalogConnectorDto> listCatalogConnectors() {
         Set<Integer> activeConnectorIds = integrationMethodRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
                 .flatMap(m -> m.getConnectors().stream())
@@ -359,7 +360,8 @@ public class ApplicationService {
                                     latest != null ? latest.getBrowseLink() : null,
                                     latest != null ? latest.getGitCloneUrl() : bundle.getGitCloneUrl(),
                                     latest != null ? latest.getPathToProject() : bundle.getPathToProject(),
-                                    connector.getFullyQualifiedClassName()
+                                    connector.getFullyQualifiedClassName(),
+                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector)
                             ));
                 })
                 .toList();

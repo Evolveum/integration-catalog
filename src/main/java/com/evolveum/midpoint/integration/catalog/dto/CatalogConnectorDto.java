@@ -6,6 +6,8 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import java.util.List;
+
 public record CatalogConnectorDto(
         Integer id,               // connector_bundle.id  (sent as connectorBundleId to backend)
         String displayName,       // connector.display_name
@@ -19,6 +21,7 @@ public record CatalogConnectorDto(
         String browseLink,        // latest connector_bundle_version.browse_link
         String gitCloneUrl,       // latest connector_bundle_version.git_clone_ulr
         String pathToProject,     // latest connector_bundle_version.path_to_project
-        String className          // connector.fully_qualified_class_name
+        String className,         // connector.fully_qualified_class_name
+        List<ObjectClassCapabilityDto> objectClassCapabilities // conn_version_capability + items
 ) {
 }

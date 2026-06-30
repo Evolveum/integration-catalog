@@ -1,3 +1,8 @@
+export interface CatalogConnectorObjectClassCapability {
+  objectName: string;          // conn_version_capability.object_class
+  capabilities: string[];      // capability.name items
+}
+
 export interface CatalogConnector {
   id: number;
   displayName: string;       // connector.display_name
@@ -12,4 +17,5 @@ export interface CatalogConnector {
   gitCloneUrl: string;       // latest connector_bundle_version.git_clone_url
   pathToProject: string;     // latest connector_bundle_version.path_to_project
   className: string;         // connector.fully_qualified_class_name
+  objectClassCapabilities: CatalogConnectorObjectClassCapability[]; // conn_version_capability + items
 }
