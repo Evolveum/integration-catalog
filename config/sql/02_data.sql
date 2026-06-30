@@ -48,12 +48,12 @@ INSERT INTO country_of_origin (id, name, display_name) OVERRIDING SYSTEM VALUE V
 SELECT setval('country_of_origin_id_seq', 3);
 
 INSERT INTO integration_method_type (id, display_name, description) OVERRIDING SYSTEM VALUE VALUES
-    (1, 'SCIM',        'SCIM integration method type'),
-    (2, 'REST API',    'REST Api integration method type'),
-    (3, 'OPEN_LDAP',   'Open LDAP integration method type'),
-    (4, 'MANUAL_ITSM', 'Manual ITSM integration method type'),
-    (5, 'DATABASE',     'Database integration method type'),
-    (6, 'CSV',         'CSV integration method type');
+    (1, 'SCIM',          'Standards-based provisioning of users and groups using the SCIM 2.0 protocol.'),
+    (2, 'REST API',      'Integrate directly with the application''s REST API endpoints.'),
+    (3, 'OpenLDAP',      'Connect to an OpenLDAP directory to read and manage identities.'),
+    (4, 'Manual / ITSM', 'Fulfil provisioning requests manually through an ITSM ticketing workflow.'),
+    (5, 'Database',      'Read and write identity data directly in a relational database.'),
+    (6, 'CSV',           'Exchange identity data through CSV file import and export.');
 
 SELECT setval('integration_method_type_id_seq', 6);
 

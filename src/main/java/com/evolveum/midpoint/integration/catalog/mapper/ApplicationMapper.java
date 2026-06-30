@@ -503,18 +503,35 @@ public class ApplicationMapper {
     private List<ObjectClassCapabilityDto> mapConnectorVersionCapabilities(Connector connector) {
         return connector.getConnectorVersions().stream()
                 .findFirst()
-                .map(cv -> cv.getCapabilities().stream()
-                        .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
-                        .map(cap -> new ObjectClassCapabilityDto(
-                                cap.getObjectClass(),
-                                cap.getItems().stream()
-                                        .filter(item -> item.getCapability() != null
-                                                && item.getCapability().getName() != null)
-                                        .map(item -> item.getCapability().getName())
-                                        .toList()
-                        ))
-                        .toList())
+                .map(this::mapCapabilitiesOf)
                 .orElseGet(List::of);
+    }
+
+    /**
+     * Collects the object-class capabilities of the connector's latest <em>published</em>
+     * (ACTIVE) connector version, grouped by object class, so the publish form can pre-fill
+     * the capability picker. Versions still in review (IN_REVIEW) are ignored.
+     */
+    public List<ObjectClassCapabilityDto> mapLatestPublishedConnectorVersionCapabilities(Connector connector) {
+        return connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE)
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
+                .map(this::mapCapabilitiesOf)
+                .orElseGet(List::of);
+    }
+
+    private List<ObjectClassCapabilityDto> mapCapabilitiesOf(ConnectorVersion cv) {
+        return cv.getCapabilities().stream()
+                .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
+                .map(cap -> new ObjectClassCapabilityDto(
+                        cap.getObjectClass(),
+                        cap.getItems().stream()
+                                .filter(item -> item.getCapability() != null
+                                        && item.getCapability().getName() != null)
+                                .map(item -> item.getCapability().getName())
+                                .toList()
+                ))
+                .toList();
     }
 
     // ── Shared helpers ────────────────────────────────────────────────────────

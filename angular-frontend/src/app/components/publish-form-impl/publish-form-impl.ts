@@ -136,6 +136,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
+  protected readonly compatInfoDismissed = signal<boolean>(false);
   protected readonly connectorVersionFrom = signal<string>('');
   protected readonly connectorVersionTo = signal<string>('');
 
@@ -209,6 +210,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected get isStep5Valid(): boolean {
     if (!this.connectorName().trim() || !this.connectorLicense().trim()) return false;
     if (this.isExistingConnector) return true;
+    if (this.connectorCapabilities().length === 0) return false;
     if (!this.connectorVersion().trim()) return false;
     if (this.isConnectorVersionInvalid()) return false;
     if (this.bundleNameTaken()) return false;
@@ -365,6 +367,12 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devRepoOwnership.set('evolveum');
     this.devGithubApiKey.set('');
     this.showGithubApiKey.set(false);
+
+    const caps: CapabilityGroup[] = (connector.objectClassCapabilities ?? []).map(oc => ({
+      objectClass: oc.objectName,
+      capabilityNames: oc.capabilities ?? []
+    }));
+    this.connectorCapabilities.set(caps);
   }
 
   protected publishIntegrationMethod(): void {

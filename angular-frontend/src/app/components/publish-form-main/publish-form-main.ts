@@ -13,11 +13,12 @@ import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
 
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, CapabilityPicker],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, CapabilityPicker, OverflowTitleDirective],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
 })
@@ -647,9 +648,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   protected canSubmitForm(): boolean {
     return this.displayName().trim() !== '' &&
-           this.description().trim() !== '' &&
-           this.category() !== '' &&
-           this.deploymentType() !== '';
+           this.logoFile() !== null;
   }
 
   protected onLogoUpload(event: Event): void {

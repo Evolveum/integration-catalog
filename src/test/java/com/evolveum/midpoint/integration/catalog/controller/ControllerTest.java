@@ -569,7 +569,8 @@ class ControllerTest {
                 "https://github.com/Evolveum/connector-ldap",
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
-                "com.evolveum.polygon.connector.ldap.LdapConnector"
+                "com.evolveum.polygon.connector.ldap.LdapConnector",
+                List.of()
         );
         when(applicationService.listCatalogConnectors()).thenReturn(List.of(dto));
 
