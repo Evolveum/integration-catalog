@@ -178,6 +178,13 @@ export class ApplicationService {
     );
   }
 
+  rejectIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,
+      {}
+    );
+  }
+
   getConnectorsForIntegrationMethod(appId: string, methodId: string, revision: string): Observable<ImplementationListItem[]> {
     return this.http.get<ImplementationListItem[]>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors`

@@ -121,7 +121,7 @@
 
             <!-- Updated Date -->
             <div class="d-flex align-items-center gap-1">
-              <i class="fa-regular fa-clock icon-md"></i>
+              <i class="fa-solid fa-clock-rotate-left"></i>
               <span class="font-weight-medium">{{ getTimeSinceLastUpdate(application()!.updated) }}</span>
             </div>
           </div>
@@ -131,9 +131,9 @@
   </div>
 
   <div class="container pt-3 pb-5">
-    <div class="row">
+    <div class="row im-layout-row">
       <!-- Left Panel - Main Content -->
-      <div class="col-lg-8">
+      <div class="col-lg-8 im-main-col">
 
         <div class="bg-white p-4 rounded mb-4">
           <!-- Description Section -->
@@ -246,7 +246,7 @@
               </div>
             }
 
-            @if (application()!.integrationMethods && application()!.integrationMethods!.length > 0) {
+            @if ((application()!.integrationMethods && application()!.integrationMethods!.length > 0) || application()!.lifecycleState === 'ACTIVE') {
               <div class="row mt-4">
                 <div class="col-12">
                   <!-- Tabs Navigation -->
@@ -388,8 +388,8 @@
                       } @else {
                         <p class="fw-semibold mb-2">No integration methods defined yet.</p>
                         <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
-                        <button type="button" class="btn btn-create-method" (click)="navigateToPublish()">
-                          <i class="fa-solid fa-plus me-1"></i>Create integration method
+                        <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToPublish()">
+                          <i class="fa-solid fa-plus me-1"></i>Add integration method
                         </button>
                       }
                     </div>
@@ -536,10 +536,12 @@
                                   <span class="badge im-badge-awaiting"><i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval</span>
                                 } @else if (version.lifecycleState === 'ACTIVE') {
                                   <span class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
+                                } @else if (version.lifecycleState === 'REJECTED') {
+                                  <span class="badge im-badge-rejected"><i class="fa-solid fa-xmark me-1"></i>Rejected</span>
                                 }
 
                                 <!-- Hover-revealed actions (set depends on lifecycle state) -->
-                                <div class="im-row-actions">
+                                <div class="im-row-actions" [class.im-row-actions-reserved]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
                                   @if (version.lifecycleState === 'IN_REVIEW') {
                                     <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-trash-can"></i>Cancel request
@@ -550,11 +552,13 @@
                                     <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                     </button>
-                                    @if (isSuperuser()) {
-                                      <button type="button" class="btn btn-im-approve" (click)="approveVersion(version.id, version.revision); $event.stopPropagation()">
-                                        <i class="fa-solid fa-check"></i>Approve
-                                      </button>
-                                    }
+                                  } @else if (version.lifecycleState === 'REJECTED') {
+                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-eye"></i>View details
+                                    </button>
+                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                    </button>
                                   } @else {
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
@@ -567,6 +571,18 @@
                                     </button>
                                   }
                                 </div>
+
+                                <!-- Always-visible approve/reject (IN_REVIEW, superuser) -->
+                                @if (version.lifecycleState === 'IN_REVIEW' && isSuperuser()) {
+                                  <div class="im-row-actions-always d-flex align-items-center justify-content-end gap-2">
+                                    <button type="button" class="btn btn-im-reject" (click)="rejectVersion(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-xmark"></i>Reject
+                                    </button>
+                                    <button type="button" class="btn btn-im-approve" (click)="approveVersion(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-check"></i>Approve
+                                    </button>
+                                  </div>
+                                }
                               </div>
                             </div>
                           }
@@ -614,7 +630,7 @@
       </div>
 
       <!-- Right Panel - Sidebar -->
-      <div class="col-lg-4">
+      <div class="col-lg-4 im-side-col">
         <div class="p-4 rounded shadow-sm sidebar-panel">
           <!-- Tags Section -->
           <div class="mb-4">
@@ -648,7 +664,7 @@
             @if (application()!.categories && application()!.categories!.length > 0) {
               <div>
                 @for (category of application()!.categories!; track category.id) {
-                  <p class="mb-1">{{ category.displayName }}</p>
+                  <p class="mb-1 fw-semibold">{{ category.displayName }}</p>
                 }
               </div>
             } @else {
@@ -660,7 +676,7 @@
           <div class="mb-5">
             <h6 class="text-muted small mb-1">Last Update</h6>
             @if (application()!.updated) {
-              <p class="mb-0">{{ application()!.updated | date: 'MMM d, yyyy' }}</p>
+              <p class="mb-0 fw-semibold">{{ application()!.updated | date: 'MMM d, yyyy' }}</p>
             } @else {
               <p class="mb-0 text-muted text-sm">Not available</p>
             }
@@ -671,7 +687,7 @@
             <h6 class="text-muted small mb-1">Maintainer Location</h6>
             @if (application()!.origins && application()!.origins!.length > 0) {
               @for (origin of application()!.origins!; track origin.id) {
-                <p class="mb-0 fw-bold text-body">{{ origin.displayName }}</p>
+                <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>
               }
             } @else {
               <p class="mb-0 text-muted text-sm">Not available</p>
@@ -679,9 +695,9 @@
           </div>
 
           <!-- Installations -->
-          <div class="mb-5">
+          <div class="mb-0">
             <h6 class="text-muted small mb-1">Installations</h6>
-            <p class="mb-0 fw-bold text-body stat-value">0</p>
+            <p class="mb-0 fw-semibold text-body stat-value">0</p>
           </div>
 
         </div>

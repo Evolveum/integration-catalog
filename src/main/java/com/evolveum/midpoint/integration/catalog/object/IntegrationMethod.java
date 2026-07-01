@@ -104,6 +104,10 @@ public class IntegrationMethod implements Persistable<UUID> {
     @Column(name = "app_version")
     private String appVersion;
 
+    /** Username of the user who approved or rejected this in-review revision. */
+    @Column(name = "reviewed_by")
+    private String reviewedBy;
+
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodCapability> capabilities = new ArrayList<>();
 

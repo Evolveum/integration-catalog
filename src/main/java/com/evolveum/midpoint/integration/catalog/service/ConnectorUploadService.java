@@ -520,7 +520,7 @@ public class ConnectorUploadService {
      * folders are deleted.
      */
     @Transactional
-    public void publishIntegrationMethod(UUID methodId, String revision) {
+    public void publishIntegrationMethod(UUID methodId, String revision, String username) {
         IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
         if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
@@ -547,8 +547,26 @@ public class ConnectorUploadService {
         }
 
         draft.setLifecycleState(LifecycleType.ACTIVE);
-        log.info("Published integration method {}/{}; superseded {} active revision(s) of major {}",
-                methodId, revision, superseded.size(), major);
+        draft.setReviewedBy(username);
+        log.info("Published integration method {}/{} by {}; superseded {} active revision(s) of major {}",
+                methodId, revision, username, superseded.size(), major);
+    }
+
+    /**
+     * Reject an in-review integration method revision: mark it REJECTED and record the reviewer.
+     * The revision is kept (not deleted) so the rejection and its author remain auditable.
+     */
+    @Transactional
+    public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
+        IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+            throw new IllegalStateException("Only in-review revisions can be rejected: " + methodId + "/" + revision);
+        }
+
+        draft.setLifecycleState(LifecycleType.REJECTED);
+        draft.setReviewedBy(username);
+        log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
     }
 
     private void saveIntegrationMethodCapabilities(List<IntegrationMethodCapabilityGroupDto> groups,

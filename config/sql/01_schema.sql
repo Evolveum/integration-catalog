@@ -35,7 +35,8 @@ CREATE TYPE LifecycleType AS ENUM (
 	'ACTIVE',
 	'DEPRECATED',
 	'ARCHIVED',
-	'WITH_ERROR'
+	'WITH_ERROR',
+	'REJECTED'
 );
 
 CREATE TYPE BuildFrameworkType AS ENUM (
@@ -359,7 +360,8 @@ CREATE TABLE integration_method (
 	maintainer character varying(255),
 	created_at timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
-	app_version character varying(255)
+	app_version character varying(255),
+	reviewed_by character varying(255)
 );
 
 CREATE TABLE integration_method_type (

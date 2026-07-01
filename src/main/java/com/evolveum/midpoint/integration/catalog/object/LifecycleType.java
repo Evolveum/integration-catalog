@@ -11,5 +11,6 @@ public enum LifecycleType {
     ACTIVE,
     DEPRECATED,
     ARCHIVED,
-    WITH_ERROR
+    WITH_ERROR,
+    REJECTED
 }
