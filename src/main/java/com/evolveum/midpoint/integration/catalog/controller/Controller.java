@@ -440,9 +440,34 @@ public class Controller {
     public ResponseEntity<Void> publishIntegrationMethod(
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
-            @PathVariable String revision) {
+            @PathVariable String revision,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.publishIntegrationMethod(methodId, revision);
+            applicationService.publishIntegrationMethod(methodId, revision, username);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Reject an in-review integration method revision",
+            description = "Marks an in-review revision as REJECTED and records the reviewing user. "
+                    + "The revision is kept for auditability.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Revision rejected"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
+            @ApiResponse(responseCode = "409", description = "Revision is not in review")
+    })
+    @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/reject")
+    public ResponseEntity<Void> rejectIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        try {
+            applicationService.rejectIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());

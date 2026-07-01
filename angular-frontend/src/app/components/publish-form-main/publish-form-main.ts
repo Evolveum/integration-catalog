@@ -2,7 +2,7 @@ import { Component, signal, computed, effect, OnInit, OnDestroy } from '@angular
 import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
@@ -236,11 +236,18 @@ export class PublishFormMain implements OnInit, OnDestroy {
     imCapabilities: this.imCapabilities()
   }));
 
+  // When arriving from an existing application ("Create integration method"),
+  // preselect that app and skip step 1 (app selection) — it's already chosen.
+  private preselectAppId: string | null = null;
+  private appsLoaded = false;
+  private countriesLoaded = false;
+
   constructor(
     private countryService: CountryService,
     private applicationService: ApplicationService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     effect(() => {
       if (this.currentStep() === 3) {
@@ -378,7 +385,11 @@ export class PublishFormMain implements OnInit, OnDestroy {
       return;
     }
 
-    this.applicationService.getAll().subscribe({ next: (data) => this.applications.set(data) });
+    this.preselectAppId = this.route.snapshot.queryParamMap.get('appId');
+
+    this.applicationService.getAll().subscribe({
+      next: (data) => { this.applications.set(data); this.appsLoaded = true; this.tryPreselectApp(); }
+    });
 
     this.applicationService.getRecentlyUsed().subscribe({ next: (data) => this.recentlyUsedApps.set(data) });
 
@@ -391,9 +402,24 @@ export class PublishFormMain implements OnInit, OnDestroy {
     });
 
     this.countryService.getAllCountries().subscribe({
-      next: (countries) => { this.allCountries.set(countries); this.isLoadingCountries.set(false); },
-      error: () => { this.isLoadingCountries.set(false); this.allCountries.set([]); }
+      next: (countries) => { this.allCountries.set(countries); this.isLoadingCountries.set(false); this.countriesLoaded = true; this.tryPreselectApp(); },
+      error: () => { this.isLoadingCountries.set(false); this.allCountries.set([]); this.countriesLoaded = true; this.tryPreselectApp(); }
     });
+  }
+
+  /**
+   * When navigated here with an ?appId (from an existing application's
+   * "Create integration method" button), preselect that application and jump
+   * straight to step 2 — the target app is already known, so step 1 is skipped.
+   * Waits for both applications and countries to load so origins resolve correctly.
+   */
+  private tryPreselectApp(): void {
+    if (!this.preselectAppId || !this.appsLoaded || !this.countriesLoaded) return;
+    const app = this.applications().find(a => a.id === this.preselectAppId);
+    this.preselectAppId = null;
+    if (!app) return;
+    this.selectApplication(app);
+    this.currentStep.set(2);
   }
 
   protected closeModal(): void {

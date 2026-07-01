@@ -178,7 +178,8 @@ public class ApplicationMapper {
                             method.getRevision(),
                             method.getDisplayName(),
                             method.getTutorial(),
-                            method.getFilePath()
+                            method.getFilePath(),
+                            method.getReviewedBy()
                     );
                 })
                 .toList();
