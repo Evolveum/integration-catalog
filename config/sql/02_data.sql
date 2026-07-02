@@ -107,7 +107,8 @@ INSERT INTO application (id, name, display_name, description, lifecycle_state, c
     ('11111111-1111-1111-1111-111111111111', 'my_test_app', 'My Test App',
      'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
     ('22222222-2222-2222-2222-222222222222', 'sap_hr', 'SAP HR',
-     'SAP Human Resources system integration requested by the community', 'REQUESTED', NOW(), NOW(), null);
+     'SAP Human Resources system integration requested by the community. Some more text to test limit of chars that can hold in this DB column.'
+     'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), null);
 
 INSERT INTO application_application_tag (application_id, tag_id) VALUES
     ('11111111-1111-1111-1111-111111111111', 1),
