@@ -97,7 +97,7 @@ INSERT INTO midpoint_version (id, version, version_name, is_current) values
     (9, '4.10', 'Version 4.10', false),
     (10, '4.11', 'Version 4.11', false);
 	
-SELECT setval('midpoint_version_id_seq', 8);
+SELECT setval('midpoint_version_id_seq', 10);
 
 -- ============================================================
 -- APPLICATIONS
