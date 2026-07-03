@@ -381,6 +381,12 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.methodSearchQuery.set('');
   }
 
+  /** True when the app already has at least one integration method (any lifecycle state). */
+  protected hasIntegrationMethods(): boolean {
+    const methods = this.application()?.integrationMethods;
+    return !!methods && methods.length > 0;
+  }
+
   protected navigateToPublish(): void {
     const appId = this.application()?.id;
     if (appId) {

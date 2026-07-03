@@ -304,6 +304,15 @@
 
                   <hr class="method-divider">
 
+                  <!-- Add new method (shown when the app already has any integration method) -->
+                  @if (hasIntegrationMethods()) {
+                    <div class="d-flex justify-content-end add-method-row">
+                      <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToPublish()">
+                        <i class="fa-solid fa-plus"></i>Add new method
+                      </button>
+                    </div>
+                  }
+
                   <!-- Active Filter Chips -->
                   @if (hasActiveFilters()) {
                     <div class="d-flex align-items-center gap-2 flex-wrap mb-3">

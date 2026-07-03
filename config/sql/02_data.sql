@@ -97,7 +97,7 @@ INSERT INTO midpoint_version (id, version, version_name, is_current) values
     (9, '4.10', 'Version 4.10', false),
     (10, '4.11', 'Version 4.11', false);
 	
-SELECT setval('midpoint_version_id_seq', 8);
+SELECT setval('midpoint_version_id_seq', 10);
 
 -- ============================================================
 -- APPLICATIONS
@@ -107,7 +107,8 @@ INSERT INTO application (id, name, display_name, description, lifecycle_state, c
     ('11111111-1111-1111-1111-111111111111', 'my_test_app', 'My Test App',
      'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
     ('22222222-2222-2222-2222-222222222222', 'sap_hr', 'SAP HR',
-     'SAP Human Resources system integration requested by the community', 'REQUESTED', NOW(), NOW(), null),
+     'SAP Human Resources system integration requested by the community. Some more text to test limit of chars that can hold in this DB column.'
+     'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), null),
     ('33333333-3333-3333-3333-333333333333', 'empty_app', 'Empty App',
      'Existing published application that currently has no integration methods or connectors', 'ACTIVE', NOW(), NOW(), null);
 
