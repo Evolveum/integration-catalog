@@ -105,8 +105,11 @@ public class IntegrationMethod implements Persistable<UUID> {
     private String appVersion;
 
     /** Username of the user who approved or rejected this in-review revision. */
-    @Column(name = "reviewed_by")
-    private String reviewedBy;
+    // Temporarily disabled: the current (non-local) DB does not have the reviewed_by column,
+    // and mapping it makes Hibernate reference it in every query. Re-enable this together with
+    // the getReviewedBy()/setReviewedBy() usages once the column exists.
+    // @Column(name = "reviewed_by")
+    // private String reviewedBy;
 
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodCapability> capabilities = new ArrayList<>();

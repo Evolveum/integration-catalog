@@ -9,6 +9,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
+import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
@@ -47,7 +48,6 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
-  protected readonly expandedConnectors = signal<Set<number>>(new Set());
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
   // Bundle download warning toast (stays until dismissed)
@@ -58,7 +58,8 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private applicationService: ApplicationService
+    private applicationService: ApplicationService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -110,9 +111,12 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     this.globalCapabilities.set(
       groups.filter(o => o.objectName === 'Global').flatMap(o => o.capabilities ?? [])
     );
-    this.specificCapabilities.set(
-      groups.filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0)
-    );
+    const specifics = groups.filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0);
+    this.specificCapabilities.set(specifics);
+    // Start with Global expanded and the specific groups collapsed; each can then be toggled independently.
+    const expanded = new Set<string>();
+    if (this.globalCapabilities().length > 0) expanded.add('global');
+    this.expandedCaps.set(expanded);
   }
 
   private resolveMidpointVersion(id: number | null): string {
@@ -135,8 +139,6 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
-        // First connector expanded by default
-        if (connectors.length > 0) this.expandedConnectors.set(new Set([0]));
         this.finishLoading();
       },
       error: () => this.finishLoading()
@@ -174,16 +176,20 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     EasyMDE.togglePreview(this.easyMde);
   }
 
-  protected toggleConnector(index: number): void {
-    this.expandedConnectors.update(s => {
+  // Connector detail sub-sections (Repository, Framework, Source, Implementation).
+  // Tracks the COLLAPSED ones so every section starts expanded (matches the design).
+  protected readonly collapsedSections = signal<Set<string>>(new Set());
+
+  protected toggleSection(key: string): void {
+    this.collapsedSections.update(s => {
       const ns = new Set(s);
-      ns.has(index) ? ns.delete(index) : ns.add(index);
+      ns.has(key) ? ns.delete(key) : ns.add(key);
       return ns;
     });
   }
 
-  protected isConnectorExpanded(index: number): boolean {
-    return this.expandedConnectors().has(index);
+  protected isSectionExpanded(key: string): boolean {
+    return !this.collapsedSections().has(key);
   }
 
   protected toggleCaps(key: string): void {
@@ -198,10 +204,45 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     return this.expandedCaps().has(key);
   }
 
+  /** A connector's object-class capabilities, with the Global class first when present. */
+  protected orderedConnectorCaps(caps: ObjectClassCapability[] | null | undefined): ObjectClassCapability[] {
+    return [...(caps ?? [])].sort((a, b) =>
+      (a.objectName === 'Global' ? 0 : 1) - (b.objectName === 'Global' ? 0 : 1)
+    );
+  }
+
   /** Derive the version badge ("v1", "v2", …) from the major part of the revision. */
   protected versionBadge(revision: string | null): string {
     const major = parseInt((revision ?? '').split('.')[0], 10);
     return isNaN(major) ? 'v1' : `v${major}`;
+  }
+
+  /** Turn a build-framework enum (e.g. "MAVEN") into a friendly label ("Maven"). */
+  protected formatBuildTool(value: string): string {
+    if (!value) return '—';
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  }
+
+  /** Friendly labels for the LicenseType enum (mirrors the publish form). */
+  private readonly licenseLabels: Record<string, string> = {
+    MIT: 'MIT',
+    APACHE_2: 'Apache 2.0',
+    BSD: 'BSD',
+    EUPL: 'EUPL 1.2',
+  };
+
+  protected formatLicense(value: string): string {
+    if (!value) return '—';
+    return this.licenseLabels[value] ?? value;
+  }
+
+  /** Append " (you)" when the maintainer matches the logged-in user. */
+  protected formatMaintainer(maintainer: string): string {
+    if (!maintainer) return '—';
+    const user = this.authService.currentUser();
+    return user && user.trim().toLowerCase() === maintainer.trim().toLowerCase()
+      ? `${maintainer} (you)`
+      : maintainer;
   }
 
   protected formatCapabilityText(text: string): string {

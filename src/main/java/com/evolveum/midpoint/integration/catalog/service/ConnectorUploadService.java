@@ -547,7 +547,7 @@ public class ConnectorUploadService {
         }
 
         draft.setLifecycleState(LifecycleType.ACTIVE);
-        draft.setReviewedBy(username);
+        // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
         log.info("Published integration method {}/{} by {}; superseded {} active revision(s) of major {}",
                 methodId, revision, username, superseded.size(), major);
     }
@@ -564,8 +564,10 @@ public class ConnectorUploadService {
             throw new IllegalStateException("Only in-review revisions can be rejected: " + methodId + "/" + revision);
         }
 
-        draft.setLifecycleState(LifecycleType.REJECTED);
-        draft.setReviewedBy(username);
+        // Temporarily disabled: the current (non-local) DB's LifecycleType enum has no 'REJECTED' label,
+        // so persisting it fails. Re-enable together with 'REJECTED' in 01_schema.sql once the DB enum has it.
+        // draft.setLifecycleState(LifecycleType.REJECTED);
+        // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
         log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
     }
 

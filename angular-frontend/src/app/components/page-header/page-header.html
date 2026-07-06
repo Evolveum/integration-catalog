@@ -10,17 +10,19 @@
 
   <!-- Right: user info or login -->
   <div class="ms-auto d-flex align-items-center gap-3">
-    <!-- Tasks (placeholder, non-functional for now) -->
+    <!-- Tasks & Notifications (placeholders, hidden for now - to be enabled later) -->
+    <!--
     <button class="header-icon-btn" type="button" title="Tasks">
       <i class="fa-regular fa-clipboard"></i>
       <span class="header-icon-badge">3</span>
     </button>
-    <!-- Notifications (placeholder, non-functional for now) -->
     <button class="header-icon-btn" type="button" title="Notifications">
       <i class="fa-regular fa-bell"></i>
     </button>
 
     <div class="header-divider"></div>
+    -->
+
 
     @if (currentUser()) {
       <button class="header-user d-flex align-items-center gap-2" (click)="logout()" title="Logout">

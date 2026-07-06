@@ -179,7 +179,7 @@ public class ApplicationMapper {
                             method.getDisplayName(),
                             method.getTutorial(),
                             method.getFilePath(),
-                            method.getReviewedBy()
+                            null // method.getReviewedBy() temporarily disabled - see IntegrationMethod.reviewedBy
                     );
                 })
                 .toList();
