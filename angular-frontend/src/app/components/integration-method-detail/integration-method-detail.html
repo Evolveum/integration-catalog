@@ -348,14 +348,16 @@
         <button type="button" class="btn view-back-btn d-flex align-items-center gap-2" (click)="goBack()">
           <i class="fa-solid fa-arrow-left"></i>Back
         </button>
-        <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
-            <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-          </button>
-          <button type="button" class="btn view-download-btn d-flex align-items-center gap-2" (click)="downloadConnector()">
-            <i class="fa-solid fa-download"></i>Download
-          </button>
-        </div>
+        @if (isActive()) {
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
+              <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+            </button>
+            <button type="button" class="btn view-download-btn d-flex align-items-center gap-2" (click)="downloadConnector()">
+              <i class="fa-solid fa-download"></i>Download
+            </button>
+          </div>
+        }
       </div>
 
     </div><!-- end view-page-content -->

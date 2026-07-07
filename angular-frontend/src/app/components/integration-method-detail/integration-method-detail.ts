@@ -39,6 +39,11 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);
 
+  // Lifecycle state of the opened revision; the footer actions (Edit and upgrade, Download)
+  // are only offered for published (ACTIVE) methods.
+  protected readonly methodLifecycleState = signal<string | null>(null);
+  protected readonly isActive = computed(() => this.methodLifecycleState() === 'ACTIVE');
+
   // Supported midPoint version range
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
   protected readonly methodMinVersionId = signal<number | null>(null);
@@ -88,6 +93,7 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
           this.methodVersion.set(ver.revision ?? '');
+          this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
