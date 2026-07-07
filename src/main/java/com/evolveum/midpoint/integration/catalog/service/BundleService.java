@@ -49,7 +49,8 @@ import java.util.zip.ZipOutputStream;
 /**
  * Assembles a downloadable ZIP bundle for an integration-method revision, containing:
  * <ul>
- *     <li>the tutorial text (integration_method.tutorial) as {@code tutorial.md};</li>
+ *     <li>the tutorial text (integration_method.tutorial), converted from Markdown to AsciiDoc, as
+ *         {@code tutorial.adoc};</li>
  *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/};</li>
  *     <li>JSON metadata for the application, integration method, and connectors, under {@code metadata/};</li>
  *     <li>the connector build JAR, resolved from the method's linked connector and fetched from its
@@ -124,11 +125,13 @@ public class BundleService {
     private void addTutorialXml(ZipOutputStream zip, IntegrationMethod method) throws IOException {
         String tutorial = method.getTutorial();
         if (tutorial == null || tutorial.isBlank()) {
-            log.debug("No tutorial text for {}/{}; skipping tutorial.md", method.getId(), method.getRevision());
+            log.debug("No tutorial text for {}/{}; skipping tutorial.adoc", method.getId(), method.getRevision());
             return;
         }
-        zip.putNextEntry(new ZipEntry("tutorial.md"));
-        zip.write(tutorial.getBytes(StandardCharsets.UTF_8));
+        // The tutorial is authored as Markdown; convert it to AsciiDoc for the bundle.
+        String asciidoc = MarkdownToAsciiDocConverter.convert(tutorial);
+        zip.putNextEntry(new ZipEntry("tutorial.adoc"));
+        zip.write(asciidoc.getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
     }
 

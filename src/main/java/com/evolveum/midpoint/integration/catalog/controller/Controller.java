@@ -527,6 +527,26 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Remove a connector from an integration method revision",
+            description = "Unlinks a connector from the given integration method revision. The connector itself is left intact.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connector removed successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @DeleteMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}")
+    public ResponseEntity<Void> deleteConnectorFromIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @PathVariable Integer connectorId) {
+        try {
+            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     // ==================== Logo Endpoints ====================
 
     @Operation(summary = "Upload application logo",
@@ -647,7 +667,7 @@ public class Controller {
     }
 
     @Operation(summary = "Download a ZIP bundle for an integration method revision",
-            description = "Bundles the tutorial (tutorial.md) and all uploaded tutorial files into a single ZIP.")
+            description = "Bundles the tutorial (tutorial.adoc, converted from Markdown) and all uploaded tutorial files into a single ZIP.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle built successfully"),
             @ApiResponse(responseCode = "404", description = "Integration method not found"),

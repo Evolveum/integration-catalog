@@ -101,7 +101,7 @@
         @if (isExistingConnector) {
           <div class="alert-info-note d-flex gap-2 align-items-center mb-3">
             <i class="fa-solid fa-circle-info alert-icon flex-shrink-0"></i>
-            <span class="alert-text">Fields pre-filled from the existing connector. You can adjust them before saving.</span>
+            <span class="alert-text">Fields are pre-filled from the existing connector and cannot be edited.</span>
           </div>
         }
 
@@ -138,12 +138,9 @@
                       <i class="fa-solid fa-circle-info info-icon-sm"></i>
                     </button>
                   </label>
-                  <input type="text" class="form-control"
-                         [class.input-disabled]="isExistingConnector"
+                  <input type="text" class="form-control input-disabled"
                          [value]="connectorVersion()"
-                         (input)="connectorVersion.set($any($event.target).value)"
-                         (blur)="onConnectorVersionBlur($event)"
-                         [disabled]="isExistingConnector"
+                         disabled
                          placeholder="e.g. 1.0.0">
                   @if (isConnectorVersionInvalid() && !isExistingConnector) {
                     <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
@@ -161,10 +158,12 @@
                 </label>
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
                          (input)="onMaintainerInput($event)"
                          (focus)="onMaintainerFocus()"
                          (blur)="onMaintainerBlur()"
+                         [disabled]="isExistingConnector"
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
@@ -187,11 +186,12 @@
                 <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
                   <div class="form-select license-select-trigger"
                        [class.license-placeholder]="!connectorLicense()"
-                       tabindex="0"
-                       (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       [class.input-disabled]="isExistingConnector"
+                       [attr.tabindex]="isExistingConnector ? -1 : 0"
+                       (click)="!isExistingConnector && isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
                        (blur)="onLicenseBlur()"
-                       (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
-                       (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
+                       (keydown.enter)="!isExistingConnector && isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (keydown.space)="$event.preventDefault(); !isExistingConnector && isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
                     {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
                   @if (isLicenseDropdownOpen()) {
@@ -210,8 +210,10 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
                 <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
+                          [class.input-disabled]="isExistingConnector"
                           [value]="connectorDescription()"
-                          (input)="connectorDescription.set($any($event.target).value)"></textarea>
+                          (input)="connectorDescription.set($any($event.target).value)"
+                          [disabled]="isExistingConnector"></textarea>
                 <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
               </div>
 
@@ -242,6 +244,7 @@
                 <label class="form-label form-label-upload">Define capabilities for:</label>
                 <app-capability-picker
                   [initialCapabilities]="initialCapabilities()"
+                  [disabled]="isExistingConnector"
                   (capabilitiesChange)="onCapabilitiesChange($event)">
                 </app-capability-picker>
               </div>
@@ -366,7 +369,13 @@
                          [value]="devCommitTag()"
                          (input)="devCommitTag.set($any($event.target).value)"
                          [disabled]="isExistingConnector"
-                         placeholder="e.g. 1.0.4">
+                         placeholder="e.g. a3F8c31">
+                </div>
+                <div class="form-text d-flex align-items-center flex-wrap gap-2">
+                  <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
+                  <a href="https://google.com" target="_blank" rel="noopener" class="commit-help-link d-inline-flex align-items-center gap-1">
+                    How to find it <i class="fa-solid fa-arrow-right"></i>
+                  </a>
                 </div>
               </div>
 

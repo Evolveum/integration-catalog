@@ -256,8 +256,9 @@
                 <input type="text" class="method-link-input flex-grow-1"
                        [value]="devCommitTag()"
                        (input)="devCommitTag.set($any($event.target).value)"
-                       placeholder="e.g. 1.0.4">
+                       placeholder="e.g. a3F8c31">
               </div>
+                <div class="form-text">Paste the full or short (7-character) commit  hash from your Git repository.</div>
             </div>
 
             <!-- Project folder path -->

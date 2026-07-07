@@ -198,6 +198,11 @@ public class ApplicationService {
         connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
     }
 
+    @Transactional
+    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
+        connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
+    }
+
     @Transactional(readOnly = true)
     public List<ImplementationListItemDto> getConnectorsForIntegrationMethod(UUID methodId, String revision) {
         return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))

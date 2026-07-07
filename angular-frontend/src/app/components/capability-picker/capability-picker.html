@@ -22,7 +22,7 @@
           <span class="badge d-inline-flex align-items-center cp-badge">
             {{ fmt(cap) }}
             <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center cp-remove-btn"
-                    (click)="removeGlobal(cap, $event)" aria-label="Remove">
+                    (click)="removeGlobal(cap, $event)" [disabled]="disabled" aria-label="Remove">
               <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
             </button>
           </span>
@@ -41,7 +41,7 @@
             @for (cap of globalAvailable(); track cap) {
               <label class="d-flex align-items-center cp-label">
                 <input type="checkbox" (change)="onGlobalChange($event, cap)"
-                       [checked]="globalCaps().includes(cap)" class="cp-checkbox">
+                       [checked]="globalCaps().includes(cap)" [disabled]="disabled" class="cp-checkbox">
                 <span class="cp-label-text">{{ fmt(cap) }}</span>
               </label>
             }
@@ -68,7 +68,7 @@
           @if (entry.objectClass) { <div class="cp-oc-card-subtitle">Object class</div> }
         </div>
         @if (i > 0) {
-          <button type="button" class="btn cp-remove-oc-btn" (click)="removeEntry(i)">
+          <button type="button" class="btn cp-remove-oc-btn" (click)="removeEntry(i)" [disabled]="disabled">
             <i class="fa-solid fa-trash-can me-1"></i>Remove
           </button>
         }
@@ -78,6 +78,7 @@
                placeholder="Type object class to configure"
                [value]="entry.objectClass"
                (input)="updateObjectClass(i, $any($event.target).value)"
+               [disabled]="disabled"
                [name]="'cp-oc-' + i">
       </div>
       <div class="position-relative">
@@ -93,7 +94,7 @@
               <span class="badge d-inline-flex align-items-center cp-badge">
                 {{ fmt(cap) }}
                 <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center cp-remove-btn"
-                        (click)="removeSpecific(i, cap, $event)" aria-label="Remove">
+                        (click)="removeSpecific(i, cap, $event)" [disabled]="disabled" aria-label="Remove">
                   <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
                 </button>
               </span>
@@ -114,7 +115,7 @@
                 @for (cap of specificAvailable(); track cap) {
                   <label class="d-flex align-items-center cp-label">
                     <input type="checkbox" (change)="onSpecificChange($event, i, cap)"
-                           [checked]="entry.capabilities.includes(cap)" class="cp-checkbox">
+                           [checked]="entry.capabilities.includes(cap)" [disabled]="disabled" class="cp-checkbox">
                     <span class="cp-label-text">{{ fmt(cap) }}</span>
                   </label>
                 }
@@ -125,7 +126,7 @@
       </div>
     </div>
   }
-  <button type="button" class="btn cp-add-oc-btn" (click)="addEntry()">
+  <button type="button" class="btn cp-add-oc-btn" (click)="addEntry()" [disabled]="disabled">
     <i class="fa-solid fa-plus me-1"></i>Add another object class
   </button>
 </div>

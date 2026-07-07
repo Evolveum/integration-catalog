@@ -442,8 +442,9 @@ public class ConnectorUploadService {
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
-        updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
-        updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+        // Supported midPoint version range comes from the edit form (prefilled from the source revision).
+        updated.setMidpointMinVersionId(dto.midpointMinVersion());
+        updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
         updated.setAppVersion(existing.getAppVersion());
         // Carry tutorial files forward into the new revision's own folder, then point file_path at it.
         String tutorialFolder = tutorialStorageService.copyTutorialFolder(methodId, currentRevision, newRevision);
@@ -478,8 +479,9 @@ public class ConnectorUploadService {
         updated.setLifecycleState(existing.getLifecycleState());
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
-        updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
-        updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+        // Supported midPoint version range comes from the edit form (prefilled from the source revision).
+        updated.setMidpointMinVersionId(dto.midpointMinVersion());
+        updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
         updated.setAppVersion(existing.getAppVersion());
         // Move the single tutorial folder over to the bumped revision and point file_path at it.
         String tutorialFolder = tutorialStorageService.renameTutorialFolder(methodId, currentRevision, newRevision);
@@ -647,6 +649,26 @@ public class ConnectorUploadService {
         imc.setIntegrationMethod(method);
         method.getConnectors().add(imc);
 
+        integrationMethodRepository.save(method);
+    }
+
+    /**
+     * Removes a connector from an integration method revision by deleting only the link between them.
+     * The connector itself may be shared with other methods, so it is left intact; orphanRemoval on the
+     * method's connectors collection deletes the join row.
+     */
+    @Transactional
+    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        IntegrationMethodConnector link = method.getConnectors().stream()
+                .filter(l -> l.getConnector() != null && connectorId.equals(l.getConnector().getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+
+        method.getConnectors().remove(link);
         integrationMethodRepository.save(method);
     }
 

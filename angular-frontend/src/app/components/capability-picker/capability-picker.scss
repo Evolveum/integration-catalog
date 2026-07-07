@@ -4,6 +4,13 @@
 */
 @use 'variables' as *;
 
+/* Read-only state: blocks the custom div triggers (mouse) and greys the picker.
+   Native inputs/buttons additionally carry [disabled] for keyboard. */
+:host(.cp-disabled) {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 /* Info icon */
 .btn-info-icon {
   border: none;

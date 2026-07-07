@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit, HostListener, ElementRef } from '@angular/core';
+import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit, HostListener, HostBinding, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 
@@ -22,7 +22,13 @@ export interface CapabilityGroup {
 })
 export class CapabilityPicker implements OnInit, OnChanges {
   @Input() initialCapabilities: CapabilityGroup[] = [];
+  // When true the whole picker is read-only (used for existing connectors).
+  @Input() disabled = false;
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
+
+  @HostBinding('class.cp-disabled') get isDisabled(): boolean {
+    return this.disabled;
+  }
 
   protected readonly isLoading         = signal<boolean>(false);
   protected readonly globalAvailable   = signal<string[]>([]);
