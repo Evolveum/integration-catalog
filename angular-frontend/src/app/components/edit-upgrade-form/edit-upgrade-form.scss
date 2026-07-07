@@ -644,3 +644,228 @@
     color: $color-white;
   }
 }
+
+/* "Changes saved" confirmation modal */
+.saved-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.saved-modal-container {
+  z-index: 1050;
+}
+
+.saved-modal-dialog {
+  position: relative;
+  background: $color-white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 480px;
+  max-width: 95vw;
+  padding: 1.25rem;
+}
+
+.saved-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  color: $color-gray-secondary;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.saved-modal-body {
+  padding: 1.5rem 1rem 2rem;
+}
+
+.saved-modal-check {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: #e6f4ea;
+  color: $color-success;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.saved-modal-title {
+  font-weight: 600;
+  font-size: 1.0625rem;
+  color: $color-text-dark;
+  margin: 0;
+}
+
+/* Bulleted summary shown in the "upgraded to new version" modal */
+.new-version-list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.75rem;
+  color: $color-text-secondary;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+
+  li {
+    margin-bottom: 0.15rem;
+  }
+}
+
+/* Full-width divider above the modal footer (spans past the dialog's padding) */
+.saved-modal-separator {
+  margin: 0 -1.25rem 0.75rem;
+  border: 0;
+  border-top: 1px solid $color-border-light;
+  opacity: 1;
+}
+
+.saved-modal-footer {
+  padding-top: 0.25rem;
+}
+
+.saved-modal-close-link {
+  background: none;
+  border: none;
+  color: $color-dark-blue;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.saved-modal-catalog-btn {
+  background-color: $color-dark-blue;
+  border-color: $color-dark-blue;
+  color: $color-white;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+
+  &:hover {
+    background-color: #1b5e85;
+    border-color: #1b5e85;
+    color: $color-white;
+  }
+}
+
+/* "Set up connector compatibility" modal */
+.compat-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.compat-modal-container {
+  z-index: 1050;
+}
+
+.compat-modal-dialog {
+  background: $color-white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 600px;
+  max-width: 95vw;
+}
+
+.compat-modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid $color-border-light;
+}
+
+.compat-modal-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: $color-text-dark;
+}
+
+.compat-modal-close {
+  color: $color-gray-secondary;
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.compat-modal-body {
+  padding: 1.25rem;
+}
+
+.compat-modal-desc {
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  line-height: 1.55;
+  margin-bottom: 1.25rem;
+}
+
+.compat-label-info {
+  color: $color-dark-blue;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+
+.compat-range-dash {
+  color: $color-gray-secondary;
+  align-self: center;
+  padding-top: 1.5rem;
+}
+
+.compat-modal-note {
+  background-color: #e7f6fb;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #0b6a86;
+  line-height: 1.5;
+}
+
+.compat-modal-note-icon {
+  color: #1b9dc9;
+  margin-top: 0.15rem;
+}
+
+.compat-modal-note-close {
+  color: #1b9dc9;
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.compat-modal-footer {
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid $color-border-light;
+}
+
+.compat-modal-close-link {
+  background: none;
+  border: none;
+  color: $color-dark-blue;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.compat-modal-apply-btn {
+  background-color: $color-dark-blue;
+  border-color: $color-dark-blue;
+  color: $color-white;
+  font-weight: 600;
+  padding: 0.4rem 1.25rem;
+  border-radius: 6px;
+
+  &:hover:not(:disabled) {
+    background-color: #1b5e85;
+    border-color: #1b5e85;
+    color: $color-white;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+  }
+}

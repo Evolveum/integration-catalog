@@ -240,6 +240,19 @@ export class ApplicationService {
     );
   }
 
+  updateConnectorCompatibility(
+    appId: string,
+    methodId: string,
+    revision: string,
+    connectorId: number,
+    payload: { connectorVersionFrom: string | null; connectorVersionTo: string | null }
+  ): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/compatibility`,
+      payload
+    );
+  }
+
   // ==================== Logo Methods ====================
 
   /**

@@ -355,10 +355,10 @@
                 }
               </div>
 
-              <!-- Commit tag -->
+              <!-- Commit hash -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">
-                  Commit tag@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  Commit hash@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Specific release tag or branch to build from.">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
@@ -426,91 +426,6 @@
       </div>
     }
 
-    <!-- ═══════ STEP 3: Compatibility ═══════ -->
-    @if (step() === 3) {
-      <div class="step-content">
-        <h5 class="step-title">Compatibility settings</h5>
-        <p class="compat-step-desc">
-          Specify which versions of midPoint and connectors this connector supports.
-        </p>
-
-        <!-- Supported midPoint version -->
-        <div class="compat-section mb-4">
-          <h6 class="compat-section-title">Supported midPoint version</h6>
-          <p class="compat-section-desc">
-            Define the range of midPoint versions that have been successfully tested with this connector.
-          </p>
-          <div class="d-flex align-items-end gap-3 mb-2">
-            <div>
-              <label class="form-label form-label-upload">From version <span class="text-danger">*</span></label>
-              <select class="form-select compat-version-select"
-                      [ngModel]="midpointMinVersionId()"
-                      (ngModelChange)="midpointMinVersionId.set($event)">
-                <option [ngValue]="null">Select version</option>
-                @for (v of midpointVersions(); track v.id) {
-                  <option [ngValue]="v.id">{{ v.version }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label class="form-label form-label-upload">To version</label>
-              <select class="form-select compat-version-select"
-                      [ngModel]="midpointMaxVersionId()"
-                      (ngModelChange)="midpointMaxVersionId.set($event)">
-                <option [ngValue]="null">Select version</option>
-                @for (v of midpointVersions(); track v.id) {
-                  <option [ngValue]="v.id">{{ v.version }}</option>
-                }
-              </select>
-            </div>
-          </div>
-          @if (isMidpointRangeInvalid()) {
-            <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
-          } @else {
-            <div class="form-text">Only include versions you have actively tested.</div>
-          }
-        </div>
-
-        <!-- Connector version ranges -->
-        <div class="compat-section">
-          <h6 class="compat-section-title">Connector version ranges</h6>
-          <div class="compat-connector-card">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <div>
-                <div class="compat-connector-name">{{ connectorName() }}</div>
-                @if (connectorVersion()) {
-                  <div class="compat-connector-version">v{{ connectorVersion() }} — configured</div>
-                }
-              </div>
-              <span class="compat-badge">{{ isExistingConnector ? 'existing connector' : 'custom connector' }}</span>
-            </div>
-            <div class="compat-range-label">SUPPORTED VERSION RANGE</div>
-            <div class="d-flex gap-3 mb-2">
-              <div class="flex-grow-1">
-                <label class="form-label form-label-upload">From version <span class="text-danger">*</span></label>
-                <input type="text" class="form-control"
-                       [value]="connectorVersionFrom()"
-                       (input)="connectorVersionFrom.set($any($event.target).value)"
-                       [placeholder]="connectorVersion() || '1.0.0'">
-              </div>
-              <div class="flex-grow-1">
-                <label class="form-label form-label-upload">To version</label>
-                <input type="text" class="form-control"
-                       [value]="connectorVersionTo()"
-                       (input)="connectorVersionTo.set($any($event.target).value)"
-                       placeholder="e.g. 1.0.0">
-              </div>
-            </div>
-            <div class="form-text mb-3">Enter a version in the X.Y.Z format. Users can search for this connector by version range.</div>
-            <div class="compat-info-note d-flex gap-2 align-items-center">
-              <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0"></i>
-              <span>Do not specify a "To version" if you expect your integration method will be compatible with future releases of the connector.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-
   </div><!-- end ac-content -->
 
   <!-- ═══════ Footer navigation ═══════ -->
@@ -532,14 +447,7 @@
       }
       @if (step() === 2) {
         <button type="button" class="btn btn-primary ac-btn-next"
-                [disabled]="!isStep2Valid()"
-                (click)="step.set(3)">
-          Continue <i class="fa-solid fa-arrow-right ms-2 ac-btn-icon"></i>
-        </button>
-      }
-      @if (step() === 3) {
-        <button type="button" class="btn btn-primary ac-btn-next"
-                [disabled]="!isStep3Valid() || isSaving()"
+                [disabled]="!isStep2Valid() || isSaving()"
                 (click)="save()">
           @if (isSaving()) {
             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...

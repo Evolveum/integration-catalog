@@ -210,6 +210,17 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     return this.expandedCaps().has(key);
   }
 
+  // ── "Connector compatibility" modal (read-only view of the connector version range) ──
+  protected readonly compatConnector = signal<ImplementationListItem | null>(null);
+
+  protected openCompatibility(connector: ImplementationListItem): void {
+    this.compatConnector.set(connector);
+  }
+
+  protected closeCompatibility(): void {
+    this.compatConnector.set(null);
+  }
+
   /** A connector's object-class capabilities, with the Global class first when present. */
   protected orderedConnectorCaps(caps: ObjectClassCapability[] | null | undefined): ObjectClassCapability[] {
     return [...(caps ?? [])].sort((a, b) =>

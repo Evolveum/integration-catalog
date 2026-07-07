@@ -415,10 +415,10 @@
                 }
               </div>
 
-              <!-- Commit tag -->
+              <!-- Commit hash -->
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
-                  Commit tag@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  Commit hash@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
                     <span class="info-tooltip"><strong>Version identifier of the source code.</strong><br><br>Enter a specific release tag (e.g., 1.0.4) to build a stable version of the connector. If needed, you can also enter a development branch name to build from the latest code.</span>
@@ -712,7 +712,7 @@
             }
             @if (devCommitTag()) {
               <div class="review-detail-row">
-                <span class="review-detail-label">Commit tag:</span>
+                <span class="review-detail-label">Commit hash:</span>
                 <span class="review-detail-value"><i class="fa-solid fa-tag review-link-icon me-1"></i>{{ devCommitTag() }}</span>
               </div>
             }

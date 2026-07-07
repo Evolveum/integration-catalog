@@ -289,7 +289,7 @@
   justify-content: space-between;
 }
 
-/* "See compatibility" link (placeholder for now) */
+/* "See compatibility" link */
 .view-connector-see-compat {
   background: none;
   border: none;
@@ -297,6 +297,89 @@
   font-size: 0.875rem;
   color: $color-dark-blue;
   cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* "Connector compatibility" modal (read-only) */
+.compat-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.compat-modal-container {
+  z-index: 1050;
+}
+
+.compat-modal-dialog {
+  background: $color-white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 600px;
+  max-width: 95vw;
+}
+
+.compat-modal-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid $color-border-light;
+}
+
+.compat-modal-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: $color-text-dark;
+}
+
+.compat-modal-close {
+  color: $color-gray-secondary;
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.compat-modal-body {
+  padding: 1.25rem;
+}
+
+.compat-modal-desc {
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  line-height: 1.55;
+  margin-bottom: 1.25rem;
+}
+
+.compat-label-info {
+  color: $color-dark-blue;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+
+.compat-range-dash {
+  color: $color-gray-secondary;
+  align-self: center;
+  padding-top: 1.5rem;
+}
+
+/* Placeholder shown when connector_maxVersion is empty */
+.compat-not-specified {
+  font-style: italic;
+  color: $color-black;
+}
+
+.compat-modal-footer {
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid $color-border-light;
+}
+
+.compat-modal-close-link {
+  background: none;
+  border: none;
+  color: $color-dark-blue;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
 
   &:hover {
     text-decoration: underline;

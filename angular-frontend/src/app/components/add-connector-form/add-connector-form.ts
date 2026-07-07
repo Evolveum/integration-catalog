@@ -16,9 +16,8 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { PageHeader } from '../page-header/page-header';
 import { CatalogConnector } from '../../models/catalog-connector.model';
-import { MidpointVersion } from '../../models/application-detail.model';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
 @Component({
   selector: 'app-add-connector-form',
@@ -100,13 +99,6 @@ export class AddConnectorForm implements OnInit {
     'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
   };
 
-  // ── Step 3: Compatibility ─────────────────────────────────
-  protected readonly midpointVersions = signal<MidpointVersion[]>([]);
-  protected readonly midpointMinVersionId = signal<number | null>(null);
-  protected readonly midpointMaxVersionId = signal<number | null>(null);
-  protected readonly connectorVersionFrom = signal<string>('');
-  protected readonly connectorVersionTo = signal<string>('');
-
   // ── Computed helpers ──────────────────────────────────────
   protected get isExistingConnector(): boolean {
     return !!this.selectedCatalogConnector();
@@ -153,18 +145,6 @@ export class AddConnectorForm implements OnInit {
     return devOk && javaOk;
   });
 
-  protected readonly isMidpointRangeInvalid = computed(() => {
-    const minId = this.midpointMinVersionId();
-    const maxId = this.midpointMaxVersionId();
-    if (!minId || !maxId) return false;
-    const vers = this.midpointVersions();
-    return vers.findIndex(v => v.id === maxId) < vers.findIndex(v => v.id === minId);
-  });
-
-  protected readonly isStep3Valid = computed(() =>
-    this.midpointMinVersionId() !== null && !this.isMidpointRangeInvalid()
-  );
-
   constructor(
     private appService: ApplicationService,
     private authService: AuthService,
@@ -174,9 +154,6 @@ export class AddConnectorForm implements OnInit {
   ngOnInit(): void {
     this.connectorMaintainer.set(this.authService.currentUser() ?? '');
     this.initMaintainerOptions();
-    this.appService.getMidpointVersions().subscribe({
-      next: v => this.midpointVersions.set(v)
-    });
   }
 
   private initMaintainerOptions(): void {
@@ -218,11 +195,6 @@ export class AddConnectorForm implements OnInit {
 
   protected fmtLicense(key: string): string {
     return this.licenseLabels[key] ?? key;
-  }
-
-  protected getMidpointVersionLabel(id: number | null): string {
-    if (id === null) return '';
-    return this.midpointVersions().find(v => v.id === id)?.version ?? '';
   }
 
   protected showLogo(): boolean {
@@ -294,8 +266,6 @@ export class AddConnectorForm implements OnInit {
     this.devCommitTag.set('');
     this.devProjectFolderPath.set('');
     this.devClassName.set('');
-    this.connectorVersionFrom.set('');
-    this.connectorVersionTo.set('');
   }
 
   private populateFromCatalogConnector(c: CatalogConnector): void {
@@ -369,10 +339,13 @@ export class AddConnectorForm implements OnInit {
       bundleName: this.connectorBundleName() || null,
       version: this.connectorVersion() || null,
       commitTag: this.devCommitTag() || null,
-      midpointMinVersion: this.midpointMinVersionId(),
-      midpointMaxVersion: this.midpointMaxVersionId(),
-      connectorVersionFrom: this.connectorVersionFrom() || null,
-      connectorVersionTo: this.connectorVersionTo() || null,
+      // midPoint range is set on the edit form; connector range via the "Set up compatibility" modal.
+      // Backend leaves the method's midPoint version untouched when these are null, and defaults the
+      // connector min version to the connector revision (or 1.0.0).
+      midpointMinVersion: null,
+      midpointMaxVersion: null,
+      connectorVersionFrom: null,
+      connectorVersionTo: null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
         capabilityNames: g.capabilityNames

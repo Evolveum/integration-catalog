@@ -34,5 +34,7 @@ public record ImplementationListItemDto(
         String bundleName,                 // connector_bundle.bundle_name
         String bundleFramework,            // connector_bundle.framework
         String commitTag,                  // connector_bundle_version.commit_tag
-        List<ObjectClassCapabilityDto> objectClassCapabilities // conn_version_capability + items
+        List<ObjectClassCapabilityDto> objectClassCapabilities, // conn_version_capability + items
+        String connectorMinVersion,        // integration_method_connector.connector_minversion
+        String connectorMaxVersion         // integration_method_connector.connector_maxversion
 ) {}

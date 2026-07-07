@@ -364,10 +364,123 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
   }
 
+  // ── "Set up connector compatibility" modal (connector version range) ──────────
+  protected readonly compatConnector = signal<ImplementationListItem | null>(null);
+  protected readonly compatFrom = signal<string>('');
+  protected readonly compatTo = signal<string>('');
+  protected readonly compatInfoDismissed = signal<boolean>(false);
+  protected readonly compatSaving = signal<boolean>(false);
+
+  /** A version is valid when it is in X.Y.Z form (three dot-separated numbers). */
+  private isVersionFormatValid(v: string): boolean {
+    return /^\d+\.\d+\.\d+$/.test(v.trim());
+  }
+
+  private compareVersions(a: string, b: string): number {
+    const pa = a.trim().split('.').map(n => parseInt(n, 10));
+    const pb = b.trim().split('.').map(n => parseInt(n, 10));
+    for (let i = 0; i < 3; i++) {
+      if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
+    }
+    return 0;
+  }
+
+  protected readonly isCompatFromValid = computed(() => this.isVersionFormatValid(this.compatFrom()));
+
+  protected readonly isCompatToValid = computed(() => {
+    const to = this.compatTo().trim();
+    return !to || this.isVersionFormatValid(to);
+  });
+
+  protected readonly isCompatRangeInvalid = computed(() => {
+    const to = this.compatTo().trim();
+    if (!this.isCompatFromValid() || !to || !this.isVersionFormatValid(to)) return false;
+    return this.compareVersions(to, this.compatFrom()) < 0;
+  });
+
+  protected readonly isCompatValid = computed(() =>
+    this.isCompatFromValid() && this.isCompatToValid() && !this.isCompatRangeInvalid()
+  );
+
+  protected openCompatibility(connector: ImplementationListItem): void {
+    this.compatConnector.set(connector);
+    // Prefill strictly from the IM↔connector link's version range (connector_minVersion /
+    // connector_maxVersion) — never the connector bundle version or the midPoint range.
+    this.compatFrom.set(connector.connectorMinVersion ?? '');
+    this.compatTo.set(connector.connectorMaxVersion ?? '');
+    this.compatInfoDismissed.set(false);
+  }
+
+  protected closeCompatibility(): void {
+    this.compatConnector.set(null);
+  }
+
+  protected applyCompatibility(): void {
+    const connector = this.compatConnector();
+    if (!connector || connector.connectorId == null || !this.isCompatValid()) return;
+    const from = this.compatFrom().trim();
+    const to = this.compatTo().trim() || null;
+    this.compatSaving.set(true);
+    this.applicationService.updateConnectorCompatibility(
+      this.appId(), this.versionId(), this.methodVersion(), connector.connectorId,
+      { connectorVersionFrom: from, connectorVersionTo: to }
+    ).subscribe({
+      next: () => {
+        // Reflect the change locally so the card shows the new range without a full reload.
+        this.connectors.update(list => list.map(c =>
+          c.connectorId === connector.connectorId
+            ? { ...c, connectorMinVersion: from, connectorMaxVersion: to }
+            : c
+        ));
+        this.compatSaving.set(false);
+        this.compatConnector.set(null);
+      },
+      error: (err) => {
+        console.error('Failed to update connector compatibility', err);
+        this.compatSaving.set(false);
+      }
+    });
+  }
+
   protected isInReview(): boolean {
     return this.methodLifecycleState() === 'IN_REVIEW';
   }
   
+  // A minor "Save" shows a confirmation modal; a major "Save as new version" shows an upgrade modal.
+  // Either modal's "Go to catalog" then leaves to the app detail.
+  protected readonly showSavedModal = signal<boolean>(false);
+  protected readonly showNewVersionModal = signal<boolean>(false);
+
+  protected closeSavedModal(): void {
+    this.showSavedModal.set(false);
+  }
+
+  protected closeNewVersionModal(): void {
+    this.showNewVersionModal.set(false);
+  }
+
+  /** Version badge ("v1", "v2", …) derived from the major part of the current revision. */
+  protected versionBadge(revision: string): string {
+    const major = parseInt((revision ?? '').split('.')[0], 10);
+    return isNaN(major) ? 'v1' : `v${major}`;
+  }
+
+  // Modal action: return to the application-detail of the app this IM belongs to
+  // (distinct from the breadcrumb's goToCatalog(), which opens the applications list).
+  protected savedGoToCatalog(): void {
+    this.showSavedModal.set(false);
+    this.showNewVersionModal.set(false);
+    this.router.navigate(['/applications', this.appId()]);
+  }
+
+  private afterSave(major: boolean): void {
+    if (major) {
+      this.showNewVersionModal.set(true);
+    } else {
+      this.showSavedModal.set(true);
+    }
+  }
+
   protected save(): void {
     this.doSave(false);
   }
@@ -411,14 +524,14 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), savedRevision, f))
         ];
         if (ops.length === 0) {
-          this.router.navigate(['/applications', this.appId()]);
+          this.afterSave(major);
           return;
         }
         forkJoin(ops).subscribe({
-          next: () => this.router.navigate(['/applications', this.appId()]),
+          next: () => this.afterSave(major),
           error: (err) => {
             console.error('Tutorial file sync failed', err);
-            this.router.navigate(['/applications', this.appId()]);
+            this.afterSave(major);
           }
         });
       },

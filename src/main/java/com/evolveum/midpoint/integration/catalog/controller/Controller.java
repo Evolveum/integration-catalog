@@ -527,6 +527,28 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Set the connector compatibility range for an integration method revision",
+            description = "Updates the connector version range (min/max) that this integration method supports.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Compatibility updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @PutMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}/compatibility")
+    public ResponseEntity<Void> updateConnectorCompatibility(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @PathVariable Integer connectorId,
+            @RequestBody UpdateConnectorCompatibilityDto dto) {
+        try {
+            applicationService.updateConnectorCompatibility(methodId, revision, connectorId,
+                    dto.connectorVersionFrom(), dto.connectorVersionTo());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     @Operation(summary = "Remove a connector from an integration method revision",
             description = "Unlinks a connector from the given integration method revision. The connector itself is left intact.")
     @ApiResponses(value = {

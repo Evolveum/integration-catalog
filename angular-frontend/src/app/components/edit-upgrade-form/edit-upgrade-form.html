@@ -197,8 +197,8 @@
             <div class="edit-connector-card-header">
               <span class="edit-connector-name">{{ c.bundleDisplayName || c.name }}</span>
               <div class="d-flex align-items-center gap-3">
-                <!-- Placeholder for now (non-functional) - to be wired later -->
-                <button type="button" class="edit-connector-see-compat d-flex align-items-center gap-2" title="See compatibility (coming soon)">
+                <button type="button" class="edit-connector-see-compat d-flex align-items-center gap-2"
+                        (click)="openCompatibility(c)" title="Set up connector compatibility">
                   <i class="fa-solid fa-screwdriver-wrench"></i>Set up compatibility
                 </button>
                 <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
@@ -325,9 +325,9 @@
                       </span>
                     </div>
                   }
-                  <!-- Commit tag always shown, even when empty -->
+                  <!-- Commit hash always shown, even when empty -->
                   <div class="edit-connector-row">
-                    <span class="edit-connector-label">Commit tag:</span>
+                    <span class="edit-connector-label">Commit hash:</span>
                     <span class="edit-connector-value">
                       <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag || '—' }}
                     </span>
@@ -426,6 +426,136 @@
           <button type="button" class="btn cancel-keep-btn" (click)="cancelDeleteConnector()">Keep connector</button>
           <button type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmDeleteConnector()">
             <i class="fa-solid fa-trash-can"></i>Delete connector
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- "Changes saved" confirmation modal (shown after a minor Save) -->
+  @if (showSavedModal()) {
+    <div class="saved-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeSavedModal()"></div>
+    <div class="saved-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+      <div class="saved-modal-dialog" (click)="$event.stopPropagation()">
+        <button type="button" class="btn p-0 saved-modal-close" (click)="closeSavedModal()" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="saved-modal-body d-flex flex-column align-items-center text-center">
+          <div class="saved-modal-check">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h5 class="saved-modal-title">Changes has been successfully saved</h5>
+        </div>
+        <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">
+          <button type="button" class="btn saved-modal-close-link" (click)="closeSavedModal()">Close</button>
+          <button type="button" class="btn saved-modal-catalog-btn" (click)="savedGoToCatalog()">Go to catalog</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- "Upgraded to new version" modal (shown after "Save as new version") -->
+  @if (showNewVersionModal()) {
+    <div class="saved-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeNewVersionModal()"></div>
+    <div class="saved-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+      <div class="saved-modal-dialog" (click)="$event.stopPropagation()">
+        <button type="button" class="btn p-0 saved-modal-close" (click)="closeNewVersionModal()" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="saved-modal-body d-flex flex-column align-items-center text-center">
+          <div class="saved-modal-check">
+            <i class="fa-solid fa-check"></i>
+          </div>
+          <h5 class="saved-modal-title">Integration method upgraded to {{ versionBadge(methodVersion()) }}</h5>
+        </div>
+        <ul class="new-version-list">
+          <li>Configuration metadata updated</li>
+          <li>Build artifacts generated and stored</li>
+          <li>Commit tag {{ methodVersion() }} created in repository</li>
+        </ul>
+        <hr class="saved-modal-separator">
+        <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">
+          <button type="button" class="btn saved-modal-close-link" (click)="closeNewVersionModal()">Close</button>
+          <button type="button" class="btn saved-modal-catalog-btn" (click)="savedGoToCatalog()">Go to catalog</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- "Set up connector compatibility" modal -->
+  @if (compatConnector(); as cc) {
+    <div class="compat-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeCompatibility()"></div>
+    <div class="compat-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+      <div class="compat-modal-dialog" (click)="$event.stopPropagation()">
+        <div class="compat-modal-header d-flex align-items-center justify-content-between">
+          <span class="compat-modal-title">Set up connector compatibility</span>
+          <button type="button" class="btn p-0 compat-modal-close" (click)="closeCompatibility()" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="compat-modal-body">
+          <p class="compat-modal-desc">
+            Define the connector version range supported by this integration. Only connectors within
+            the specified range will be available for use.
+          </p>
+
+          <div class="d-flex align-items-start gap-3 mb-1">
+            <div class="flex-grow-1">
+              <label class="form-label form-label-upload">
+                From version <span class="text-danger">*</span>
+                <i class="fa-solid fa-circle-info compat-label-info" title="The lowest connector version this integration supports."></i>
+              </label>
+              <input type="text" class="form-control"
+                     [value]="compatFrom()"
+                     (input)="compatFrom.set($any($event.target).value)"
+                     placeholder="e.g. 1.0.0">
+            </div>
+            <span class="compat-range-dash">—</span>
+            <div class="flex-grow-1">
+              <label class="form-label form-label-upload">
+                To version
+                <i class="fa-solid fa-circle-info compat-label-info" title="Leave empty for compatibility with future releases."></i>
+              </label>
+              <input type="text" class="form-control"
+                     [value]="compatTo()"
+                     (input)="compatTo.set($any($event.target).value)"
+                     placeholder="e.g. 1.0.0">
+            </div>
+          </div>
+
+          @if (isCompatRangeInvalid()) {
+            <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
+          } @else if ((compatFrom().trim() && !isCompatFromValid()) || !isCompatToValid()) {
+            <div class="field-error">Enter versions in the X.Y.Z format (e.g. 1.0.0).</div>
+          } @else {
+            <div class="form-text">Enter a version in the X.Y.Z format. Users can search for this connector by version range.</div>
+          }
+
+          @if (!compatInfoDismissed()) {
+            <div class="compat-modal-note d-flex gap-2 align-items-start mt-3">
+              <i class="fa-solid fa-circle-info compat-modal-note-icon flex-shrink-0"></i>
+              <span class="flex-grow-1">
+                Do not specify a <em>To version</em> if you expect your integration method will be compatible
+                with future releases of the connector.
+              </span>
+              <button type="button" class="btn p-0 compat-modal-note-close" (click)="compatInfoDismissed.set(true)" aria-label="Dismiss">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="compat-modal-footer d-flex justify-content-between align-items-center">
+          <button type="button" class="btn compat-modal-close-link" (click)="closeCompatibility()">Close</button>
+          <button type="button" class="btn compat-modal-apply-btn"
+                  [disabled]="!isCompatValid() || compatSaving()"
+                  (click)="applyCompatibility()">
+            @if (compatSaving()) {
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Applying…
+            } @else {
+              Apply changes
+            }
           </button>
         </div>
       </div>

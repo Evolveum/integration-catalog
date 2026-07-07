@@ -203,6 +203,13 @@ public class ApplicationService {
         connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
     }
 
+    @Transactional
+    public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
+                                             String connectorVersionFrom, String connectorVersionTo) {
+        connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
+                connectorVersionFrom, connectorVersionTo);
+    }
+
     @Transactional(readOnly = true)
     public List<ImplementationListItemDto> getConnectorsForIntegrationMethod(UUID methodId, String revision) {
         return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))

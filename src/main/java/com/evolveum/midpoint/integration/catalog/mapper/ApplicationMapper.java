@@ -406,10 +406,10 @@ public class ApplicationMapper {
 
     public ImplementationListItemDto mapToIntegrationMethodListItemDto(IntegrationMethod method) {
         if (method == null) return null;
-        Connector connector = method.getConnectors().isEmpty()
+        IntegrationMethodConnector link = method.getConnectors().isEmpty()
                 ? null
-                : method.getConnectors().get(0).getConnector();
-        return buildIntegrationMethodListItem(method, connector);
+                : method.getConnectors().get(0);
+        return buildIntegrationMethodListItem(method, link);
     }
 
     /**
@@ -419,13 +419,15 @@ public class ApplicationMapper {
     public List<ImplementationListItemDto> mapConnectorsForMethod(IntegrationMethod method) {
         if (method == null) return List.of();
         return method.getConnectors().stream()
-                .map(IntegrationMethodConnector::getConnector)
-                .filter(Objects::nonNull)
-                .map(connector -> buildIntegrationMethodListItem(method, connector))
+                .filter(link -> link.getConnector() != null)
+                .map(link -> buildIntegrationMethodListItem(method, link))
                 .toList();
     }
 
-    private ImplementationListItemDto buildIntegrationMethodListItem(IntegrationMethod method, Connector connector) {
+    private ImplementationListItemDto buildIntegrationMethodListItem(IntegrationMethod method, IntegrationMethodConnector link) {
+        Connector connector = link != null ? link.getConnector() : null;
+        String connectorMinVersion = link != null ? link.getConnectorMinVersion() : null;
+        String connectorMaxVersion = link != null ? link.getConnectorMaxVersion() : null;
         Integer connectorId = null;
         String connectorVersion = null;
         String browseLink = null;
@@ -493,7 +495,9 @@ public class ApplicationMapper {
                 bundleName,
                 bundleFramework,
                 commitTag,
-                objectClassCapabilities
+                objectClassCapabilities,
+                connectorMinVersion,
+                connectorMaxVersion
         );
     }
 

@@ -673,6 +673,33 @@ public class ConnectorUploadService {
     }
 
     /**
+     * Updates the connector version range (min/max) that a given integration-method revision supports,
+     * as set via the "Set up connector compatibility" modal. Only the link between the method and the
+     * connector is touched; the connector itself is left unchanged.
+     */
+    @Transactional
+    public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
+                                             String connectorVersionFrom, String connectorVersionTo) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        IntegrationMethodConnector link = method.getConnectors().stream()
+                .filter(l -> l.getConnector() != null && connectorId.equals(l.getConnector().getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+
+        String from = connectorVersionFrom == null || connectorVersionFrom.isBlank()
+                ? firstNonBlank(link.getConnector().getRevision(), "1.0.0")
+                : connectorVersionFrom.trim();
+        String to = connectorVersionTo == null || connectorVersionTo.isBlank() ? null : connectorVersionTo.trim();
+
+        link.setConnectorMinVersion(from);
+        link.setConnectorMaxVersion(to);
+        integrationMethodRepository.save(method);
+    }
+
+    /**
      * Updates an existing connector (and its bundle / latest version) in place, replacing the
      * fields edited via the "Edit connector" modal. The connector must be linked to the given
      * integration method revision.
