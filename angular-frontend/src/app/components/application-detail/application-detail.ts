@@ -185,6 +185,16 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
+  /** Reject an in-review revision (superuser only): marks it REJECTED and records the reviewer. */
+  protected rejectVersion(id: string, revision: string | null): void {
+    const appId = this.application()?.id;
+    if (!appId) return;
+    this.applicationService.rejectIntegrationMethod(appId, id, revision ?? '').subscribe({
+      next: () => this.loadApplication(appId),
+      error: (err) => console.error('Failed to reject version', err)
+    });
+  }
+
   protected approveVersion(id: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (!appId) return;
@@ -369,6 +379,12 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected resetMethodFilter(): void {
     this.methodTypeFilter.set('all');
     this.methodSearchQuery.set('');
+  }
+
+  /** True when the app already has at least one integration method (any lifecycle state). */
+  protected hasIntegrationMethods(): boolean {
+    const methods = this.application()?.integrationMethods;
+    return !!methods && methods.length > 0;
   }
 
   protected navigateToPublish(): void {
@@ -604,6 +620,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         return 'With error';
       case 'IN_REVIEW':
         return 'In review';
+      case 'REJECTED':
+        return 'Rejected';
       default:
         return state;
     }
@@ -760,7 +778,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const currentOrgId = this.authService.currentOrganizationId();
 
     let filteredVersions = versions.filter(version => {
-      if (version.lifecycleState !== 'IN_REVIEW') return true;
+      // IN_REVIEW and REJECTED share the same restricted visibility: not logged in → hidden;
+      // Superuser → all; author → own; OrganizationContributor → own + same org.
+      if (version.lifecycleState !== 'IN_REVIEW' && version.lifecycleState !== 'REJECTED') return true;
       if (!isLoggedIn) return false;
       if (isSuperuser) return true;
       if (version.author === currentUser) return true;

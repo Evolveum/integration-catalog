@@ -10,21 +10,32 @@
 
   <!-- Right: user info or login -->
   <div class="ms-auto d-flex align-items-center gap-3">
+    <!-- Tasks & Notifications (placeholders, hidden for now - to be enabled later) -->
+    <!--
+    <button class="header-icon-btn" type="button" title="Tasks">
+      <i class="fa-regular fa-clipboard"></i>
+      <span class="header-icon-badge">3</span>
+    </button>
+    <button class="header-icon-btn" type="button" title="Notifications">
+      <i class="fa-regular fa-bell"></i>
+    </button>
+
+    <div class="header-divider"></div>
+    -->
+
+
     @if (currentUser()) {
-      <div class="d-flex align-items-center gap-2">
-        <i class="fa-solid fa-circle-user header-user-icon"></i>
-        <div class="d-flex flex-column">
+      <button class="header-user d-flex align-items-center gap-2" (click)="logout()" title="Logout">
+        <i class="fa-solid fa-user header-user-icon"></i>
+        <div class="d-flex flex-column text-start">
           <span class="header-username">{{ currentUser() }}</span>
           <span class="header-role">({{ authService.currentRole() }})</span>
         </div>
-      </div>
-      <div class="header-divider"></div>
-      <button class="header-btn-logout" (click)="logout()" title="Logout">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <i class="fa-solid fa-chevron-down header-chevron"></i>
       </button>
     } @else {
       <button class="header-btn-login d-flex align-items-center gap-2" (click)="openLoginModal()">
-        <i class="fa-solid fa-circle-user header-user-icon"></i>
+        <i class="fa-solid fa-user header-user-icon"></i>
         <span>Login</span>
       </button>
     }

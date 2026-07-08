@@ -440,9 +440,34 @@ public class Controller {
     public ResponseEntity<Void> publishIntegrationMethod(
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
-            @PathVariable String revision) {
+            @PathVariable String revision,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.publishIntegrationMethod(methodId, revision);
+            applicationService.publishIntegrationMethod(methodId, revision, username);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Reject an in-review integration method revision",
+            description = "Marks an in-review revision as REJECTED and records the reviewing user. "
+                    + "The revision is kept for auditability.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Revision rejected"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
+            @ApiResponse(responseCode = "409", description = "Revision is not in review")
+    })
+    @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/reject")
+    public ResponseEntity<Void> rejectIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        try {
+            applicationService.rejectIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
@@ -496,6 +521,48 @@ public class Controller {
             @RequestBody EditConnectorDto dto) {
         try {
             applicationService.updateConnector(methodId, revision, connectorId, dto);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Set the connector compatibility range for an integration method revision",
+            description = "Updates the connector version range (min/max) that this integration method supports.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Compatibility updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @PutMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}/compatibility")
+    public ResponseEntity<Void> updateConnectorCompatibility(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @PathVariable Integer connectorId,
+            @RequestBody UpdateConnectorCompatibilityDto dto) {
+        try {
+            applicationService.updateConnectorCompatibility(methodId, revision, connectorId,
+                    dto.connectorVersionFrom(), dto.connectorVersionTo());
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Remove a connector from an integration method revision",
+            description = "Unlinks a connector from the given integration method revision. The connector itself is left intact.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connector removed successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
+    })
+    @DeleteMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}")
+    public ResponseEntity<Void> deleteConnectorFromIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @PathVariable Integer connectorId) {
+        try {
+            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
@@ -622,7 +689,7 @@ public class Controller {
     }
 
     @Operation(summary = "Download a ZIP bundle for an integration method revision",
-            description = "Bundles the tutorial (tutorial.md) and all uploaded tutorial files into a single ZIP.")
+            description = "Bundles the tutorial (tutorial.adoc, converted from Markdown) and all uploaded tutorial files into a single ZIP.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle built successfully"),
             @ApiResponse(responseCode = "404", description = "Integration method not found"),

@@ -57,6 +57,21 @@
   color: $color-gray-secondary;
 }
 
+/* "How to find it →" helper link under Commit hash */
+.commit-help-link {
+  color: $color-dark-blue;
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  /* Single continuous underline across text + icon at one level (avoids the
+     uneven per-glyph underline that text-decoration produces on the flex link). */
+  border-bottom: 1px solid transparent;
+
+  &:hover { border-bottom-color: currentColor; }
+
+  i { font-size: 0.75rem; }
+}
+
 /* ── Info icon (native title tooltip) ──────────────────── */
 .btn-info-icon {
   border: none;
@@ -163,7 +178,16 @@
     border-color: $color-border-light;
   }
 
-  .form-control.input-disabled { background-color: $color-bg-muted; }
+  .form-control:disabled,
+  .form-select:disabled,
+  .method-link-input:disabled,
+  .form-control.input-disabled,
+  .form-select.input-disabled,
+  .license-select-trigger.input-disabled,
+  .method-link-wrapper:has(.method-link-input:disabled) {
+    background-color: $color-bg-muted;
+    color: $color-gray-secondary;
+  }
 }
 
 /* ── Dev section headings ───────────────────────────────── */

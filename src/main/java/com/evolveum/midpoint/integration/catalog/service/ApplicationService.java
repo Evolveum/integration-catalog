@@ -19,7 +19,6 @@ import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,9 +41,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ApplicationService {
-
-    private static final Logger LOG
-            = (Logger) LoggerFactory.getLogger(ApplicationService.class);
 
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagRepository applicationTagRepository;
@@ -182,8 +178,13 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void publishIntegrationMethod(UUID methodId, String revision) {
-        connectorUploadService.publishIntegrationMethod(methodId, revision);
+    public void publishIntegrationMethod(UUID methodId, String revision, String username) {
+        connectorUploadService.publishIntegrationMethod(methodId, revision, username);
+    }
+
+    @Transactional
+    public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
+        connectorUploadService.rejectIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
@@ -195,6 +196,18 @@ public class ApplicationService {
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
         connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
+    }
+
+    @Transactional
+    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
+        connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
+    }
+
+    @Transactional
+    public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
+                                             String connectorVersionFrom, String connectorVersionTo) {
+        connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
+                connectorVersionFrom, connectorVersionTo);
     }
 
     @Transactional(readOnly = true)

@@ -162,7 +162,7 @@ export class ApplicationService {
     appId: string,
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean }
+    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
@@ -174,6 +174,13 @@ export class ApplicationService {
   publishIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/publish`,
+      {}
+    );
+  }
+
+  rejectIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,
       {}
     );
   }
@@ -223,6 +230,25 @@ export class ApplicationService {
   ): Observable<void> {
     return this.http.put<void>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`,
+      payload
+    );
+  }
+
+  deleteConnector(appId: string, methodId: string, revision: string, connectorId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`
+    );
+  }
+
+  updateConnectorCompatibility(
+    appId: string,
+    methodId: string,
+    revision: string,
+    connectorId: number,
+    payload: { connectorVersionFrom: string | null; connectorVersionTo: string | null }
+  ): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/compatibility`,
       payload
     );
   }

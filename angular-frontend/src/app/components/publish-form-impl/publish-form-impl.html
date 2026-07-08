@@ -116,11 +116,9 @@
                   </label>
                   <input type="text"
                          [class.form-control]="true"
-                         [class.input-disabled]="isExistingConnector"
+                         [class.input-disabled]="true"
                          [value]="connectorVersion()"
-                         (input)="onConnectorVersionInput($event)"
-                         (blur)="onConnectorVersionBlur($event)"
-                         [disabled]="isExistingConnector"
+                         disabled
                          placeholder="e.g. 1.0.0">
                   @if (isConnectorVersionInvalid() && !isExistingConnector) {
                     <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
@@ -139,10 +137,12 @@
                 </label>
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
                          (input)="onMaintainerInput($event)"
                          (focus)="onMaintainerFocus()"
                          (blur)="onMaintainerBlur()"
+                         [disabled]="isExistingConnector"
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
@@ -166,11 +166,12 @@
                 <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
                   <div class="form-select license-select-trigger"
                        [class.license-placeholder]="!connectorLicense()"
-                       tabindex="0"
-                       (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       [class.input-disabled]="isExistingConnector"
+                       [attr.tabindex]="isExistingConnector ? -1 : 0"
+                       (click)="!isExistingConnector && isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
                        (blur)="onLicenseBlur()"
-                       (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
-                       (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
+                       (keydown.enter)="!isExistingConnector && isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (keydown.space)="$event.preventDefault(); !isExistingConnector && isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
                     {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
                   @if (isLicenseDropdownOpen()) {
@@ -189,8 +190,10 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
                 <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
+                          [class.input-disabled]="isExistingConnector"
                           [value]="connectorDescription()"
-                          (input)="connectorDescription.set($any($event.target).value); onFieldChange()"></textarea>
+                          (input)="connectorDescription.set($any($event.target).value); onFieldChange()"
+                          [disabled]="isExistingConnector"></textarea>
                 <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
               </div>
 
@@ -220,7 +223,7 @@
               <!-- Connector capabilities -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Define capabilities for:@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}</label>
-                <app-capability-picker [initialCapabilities]="connectorCapabilities()" (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
+                <app-capability-picker [initialCapabilities]="connectorCapabilities()" [disabled]="isExistingConnector" (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
               </div>
 
             </div>
@@ -412,10 +415,10 @@
                 }
               </div>
 
-              <!-- Commit tag -->
+              <!-- Commit hash -->
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
-                  Commit tag@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  Commit hash@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
                     <span class="info-tooltip"><strong>Version identifier of the source code.</strong><br><br>Enter a specific release tag (e.g., 1.0.4) to build a stable version of the connector. If needed, you can also enter a development branch name to build from the latest code.</span>
@@ -427,7 +430,13 @@
                          [value]="devCommitTag()"
                          (input)="devCommitTag.set($any($event.target).value); onFieldChange()"
                          [disabled]="isExistingConnector"
-                         placeholder="e.g. 1.0.4">
+                         placeholder="e.g. a3F8c31">
+                </div>
+                <div class="form-text d-flex align-items-center flex-wrap gap-2">
+                  <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
+                  <a href="https://google.com" target="_blank" rel="noopener" class="commit-help-link d-inline-flex align-items-center gap-1">
+                    How to find it <i class="fa-solid fa-arrow-right"></i>
+                  </a>
                 </div>
               </div>
 
@@ -703,7 +712,7 @@
             }
             @if (devCommitTag()) {
               <div class="review-detail-row">
-                <span class="review-detail-label">Commit tag:</span>
+                <span class="review-detail-label">Commit hash:</span>
                 <span class="review-detail-value"><i class="fa-solid fa-tag review-link-icon me-1"></i>{{ devCommitTag() }}</span>
               </div>
             }

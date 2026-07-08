@@ -48,6 +48,7 @@ export interface IntegrationMethod {
   displayName: string | null;             // integration_method.display_name
   tutorial: string | null;               // integration_method.tutorial
   filePath: string | null;               // integration_method.file_path
+  reviewedBy: string | null;             // integration_method.reviewed_by (approver/rejecter)
 }
 
 export interface ObjectClassCapability {

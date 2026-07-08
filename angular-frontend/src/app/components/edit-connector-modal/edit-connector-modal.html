@@ -243,10 +243,10 @@
               }
             </div>
 
-            <!-- Commit tag -->
+            <!-- Commit hash -->
             <div class="mb-3">
               <label class="form-label form-label-upload">
-                Commit tag <span class="text-danger">*</span>
+                Commit hash <span class="text-danger">*</span>
                 <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Specific release tag or branch to build from.">
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
@@ -256,8 +256,9 @@
                 <input type="text" class="method-link-input flex-grow-1"
                        [value]="devCommitTag()"
                        (input)="devCommitTag.set($any($event.target).value)"
-                       placeholder="e.g. 1.0.4">
+                       placeholder="e.g. a3F8c31">
               </div>
+                <div class="form-text">Paste the full or short (7-character) commit  hash from your Git repository.</div>
             </div>
 
             <!-- Project folder path -->

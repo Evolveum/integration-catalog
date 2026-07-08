@@ -442,8 +442,9 @@ public class ConnectorUploadService {
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
-        updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
-        updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+        // Supported midPoint version range comes from the edit form (prefilled from the source revision).
+        updated.setMidpointMinVersionId(dto.midpointMinVersion());
+        updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
         updated.setAppVersion(existing.getAppVersion());
         // Carry tutorial files forward into the new revision's own folder, then point file_path at it.
         String tutorialFolder = tutorialStorageService.copyTutorialFolder(methodId, currentRevision, newRevision);
@@ -478,8 +479,9 @@ public class ConnectorUploadService {
         updated.setLifecycleState(existing.getLifecycleState());
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
-        updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
-        updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+        // Supported midPoint version range comes from the edit form (prefilled from the source revision).
+        updated.setMidpointMinVersionId(dto.midpointMinVersion());
+        updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
         updated.setAppVersion(existing.getAppVersion());
         // Move the single tutorial folder over to the bumped revision and point file_path at it.
         String tutorialFolder = tutorialStorageService.renameTutorialFolder(methodId, currentRevision, newRevision);
@@ -520,7 +522,7 @@ public class ConnectorUploadService {
      * folders are deleted.
      */
     @Transactional
-    public void publishIntegrationMethod(UUID methodId, String revision) {
+    public void publishIntegrationMethod(UUID methodId, String revision, String username) {
         IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
         if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
@@ -547,8 +549,28 @@ public class ConnectorUploadService {
         }
 
         draft.setLifecycleState(LifecycleType.ACTIVE);
-        log.info("Published integration method {}/{}; superseded {} active revision(s) of major {}",
-                methodId, revision, superseded.size(), major);
+        // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+        log.info("Published integration method {}/{} by {}; superseded {} active revision(s) of major {}",
+                methodId, revision, username, superseded.size(), major);
+    }
+
+    /**
+     * Reject an in-review integration method revision: mark it REJECTED and record the reviewer.
+     * The revision is kept (not deleted) so the rejection and its author remain auditable.
+     */
+    @Transactional
+    public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
+        IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+            throw new IllegalStateException("Only in-review revisions can be rejected: " + methodId + "/" + revision);
+        }
+
+        // Temporarily disabled: the current (non-local) DB's LifecycleType enum has no 'REJECTED' label,
+        // so persisting it fails. Re-enable together with 'REJECTED' in 01_schema.sql once the DB enum has it.
+        // draft.setLifecycleState(LifecycleType.REJECTED);
+        // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+        log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
     }
 
     private void saveIntegrationMethodCapabilities(List<IntegrationMethodCapabilityGroupDto> groups,
@@ -627,6 +649,53 @@ public class ConnectorUploadService {
         imc.setIntegrationMethod(method);
         method.getConnectors().add(imc);
 
+        integrationMethodRepository.save(method);
+    }
+
+    /**
+     * Removes a connector from an integration method revision by deleting only the link between them.
+     * The connector itself may be shared with other methods, so it is left intact; orphanRemoval on the
+     * method's connectors collection deletes the join row.
+     */
+    @Transactional
+    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        IntegrationMethodConnector link = method.getConnectors().stream()
+                .filter(l -> l.getConnector() != null && connectorId.equals(l.getConnector().getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+
+        method.getConnectors().remove(link);
+        integrationMethodRepository.save(method);
+    }
+
+    /**
+     * Updates the connector version range (min/max) that a given integration-method revision supports,
+     * as set via the "Set up connector compatibility" modal. Only the link between the method and the
+     * connector is touched; the connector itself is left unchanged.
+     */
+    @Transactional
+    public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
+                                             String connectorVersionFrom, String connectorVersionTo) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        IntegrationMethodConnector link = method.getConnectors().stream()
+                .filter(l -> l.getConnector() != null && connectorId.equals(l.getConnector().getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+
+        String from = connectorVersionFrom == null || connectorVersionFrom.isBlank()
+                ? firstNonBlank(link.getConnector().getRevision(), "1.0.0")
+                : connectorVersionFrom.trim();
+        String to = connectorVersionTo == null || connectorVersionTo.isBlank() ? null : connectorVersionTo.trim();
+
+        link.setConnectorMinVersion(from);
+        link.setConnectorMaxVersion(to);
         integrationMethodRepository.save(method);
     }
 

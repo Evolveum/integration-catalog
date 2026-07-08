@@ -88,7 +88,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   // Basic info
   protected readonly connectorName = signal<string>('');
-  protected readonly connectorVersion = signal<string>('');
+  // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
+  protected readonly connectorVersion = signal<string>('1.0.0');
   protected readonly connectorMaintainer = signal<string>('');
   protected readonly maintainerOptions = signal<string[]>([]);
   protected readonly maintainerSearch = signal<string>('');
@@ -320,7 +321,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   private resetFields(): void {
     this.connectorName.set('');
-    this.connectorVersion.set('');
+    this.connectorVersion.set('1.0.0');
     this.connectorVersionFrom.set('');
     this.connectorVersionTo.set('');
     this.connectorMaintainer.set(this.authService.currentUser() ?? '');
@@ -576,14 +577,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.emitChange();
   }
 
-  protected onConnectorVersionInput(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const filtered = el.value.replace(/[^0-9.]/g, '');
-    el.value = filtered;
-    this.connectorVersion.set(filtered);
-    this.onFieldChange();
-  }
-
   protected onSourceFileSelect(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0] ?? null;
     if (file) { this.devSourceFile.set(file); this.onFieldChange(); }
@@ -605,13 +598,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     });
   }
 
-  protected onConnectorVersionBlur(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const trimmed = el.value.replace(/\.+$/, '');
-    el.value = trimmed;
-    this.connectorVersion.set(trimmed);
-    this.onFieldChange();
-  }
 
   protected onFieldChange(): void {
     this.emitChange();

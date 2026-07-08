@@ -108,14 +108,20 @@ INSERT INTO application (id, name, display_name, description, lifecycle_state, c
      'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
     ('22222222-2222-2222-2222-222222222222', 'sap_hr', 'SAP HR',
      'SAP Human Resources system integration requested by the community. Some more text to test limit of chars that can hold in this DB column.'
-     'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), null);
+     'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), null),
+    ('33333333-3333-3333-3333-333333333333', 'empty_app', 'Empty App',
+     'Existing published application that currently has no integration methods or connectors', 'ACTIVE', NOW(), NOW(), null);
 
 INSERT INTO application_application_tag (application_id, tag_id) VALUES
     ('11111111-1111-1111-1111-111111111111', 1),
-    ('11111111-1111-1111-1111-111111111111', 6);
+    ('11111111-1111-1111-1111-111111111111', 6),
+    -- Empty App: HR Systems category + On Premise deployment (so the sidebar is populated)
+    ('33333333-3333-3333-3333-333333333333', 2),
+    ('33333333-3333-3333-3333-333333333333', 5);
 
 INSERT INTO application_origin (application_id, country_id) VALUES
-    ('11111111-1111-1111-1111-111111111111', 1);
+    ('11111111-1111-1111-1111-111111111111', 1),
+    ('33333333-3333-3333-3333-333333333333', 3);
 
 -- ============================================================
 -- CONNECTOR BUNDLES  (id 1..4)

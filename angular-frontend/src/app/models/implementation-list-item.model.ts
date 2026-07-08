@@ -31,4 +31,6 @@ export interface ImplementationListItem {
   bundleFramework: string;        // connector_bundle.framework
   commitTag: string;              // connector_bundle_version.commit_tag
   objectClassCapabilities: ObjectClassCapability[]; // conn_version_capability + items
+  connectorMinVersion: string | null; // integration_method_connector.connector_minversion
+  connectorMaxVersion: string | null; // integration_method_connector.connector_maxversion
 }
