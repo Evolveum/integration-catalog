@@ -268,7 +268,14 @@
                   </div><br> -->
 
                   <!-- Search Integration Methods Section -->
-                  <h5 class="mb-3">Search integration methods</h5>
+                  <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">Search integration methods</h5>
+                    @if (hasIntegrationMethods()) {
+                      <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToPublish()">
+                        <i class="fa-solid fa-plus"></i>Add new method
+                      </button>
+                    }
+                  </div>
 
                   <!-- Toolbar -->
                   <div class="d-flex align-items-center gap-2 mb-1">
@@ -303,15 +310,6 @@
                   </div>
 
                   <hr class="method-divider">
-
-                  <!-- Add new method (shown when the app already has any integration method) -->
-                  @if (hasIntegrationMethods()) {
-                    <div class="d-flex justify-content-end add-method-row">
-                      <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToPublish()">
-                        <i class="fa-solid fa-plus"></i>Add new method
-                      </button>
-                    </div>
-                  }
 
                   <!-- Active Filter Chips -->
                   @if (hasActiveFilters()) {

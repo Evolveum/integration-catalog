@@ -813,17 +813,10 @@
   color: #fff;
 }
 
-.add-method-row {
-  // Smaller gap above the button (offsets the divider's 1.5rem bottom margin),
-  // larger gap below before the results.
-  margin-top: -0.75rem;
-  margin-bottom: 2rem;
-}
-
 .btn-add-method {
-  background-color: $color-dark-blue;
+  background-color: #ffffff;
   border: 1px solid $color-dark-blue;
-  color: #ffffff;
+  color: $color-dark-blue;
   padding: 0.5rem 1.25rem;
   border-radius: 4px;
   font-size: 0.875rem;
@@ -832,9 +825,9 @@
 }
 
 .btn-add-method:hover {
-  background-color: color.adjust($color-dark-blue, $lightness: -8%);
-  border-color: color.adjust($color-dark-blue, $lightness: -8%);
-  color: #fff;
+  background-color: #f8f9fa;
+  border-color: $color-dark-blue;
+  color: $color-dark-blue;
 }
 
 /* ========================================
