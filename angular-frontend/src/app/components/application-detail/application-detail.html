@@ -4,603 +4,760 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<div class="container-fluid p-0" style="background-color: #e9ecef; min-height: 100vh;">
-<div class="container py-5">
+<!-- Bundle download warning toast (stays until dismissed) -->
+@if (bundleWarning()) {
+  <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 100000;">
+    <div class="toast-box rounded-2 overflow-hidden">
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
+        <div class="d-flex align-items-center gap-2">
+          <span class="toast-icon" aria-hidden="true">!</span>
+          <strong>Download warning</strong>
+        </div>
+        <button type="button" class="btn-close" (click)="closeBundleWarning()" aria-label="Close"></button>
+      </div>
+      <div class="px-3 py-2 toast-body-warning">
+        {{ bundleWarning() }}
+      </div>
+    </div>
+  </div>
+}
+
+<div class="container-fluid p-0 page-container">
+  <app-page-header [breadcrumb]="true">
+    <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
+      <a class="breadcrumb-link" (click)="goBack()" style="cursor:pointer;">Integration catalog</a>
+      @if (application()) {
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current d-flex align-items-center gap-1">
+          @if (!shouldShowLetterAvatar()) {
+            <img [src]="getLogoUrl()" [alt]="application()!.displayName" class="breadcrumb-app-icon">
+          }
+          {{ application()!.displayName }}
+        </span>
+      }
+    </span>
+  </app-page-header>
   @if (loading()) {
-    <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+    <div class="container py-5">
+      <div class="d-flex justify-content-center align-items-center loading-container">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
     </div>
   }
 
   @if (error()) {
-    <div class="alert alert-danger" role="alert">
-      <h4 class="alert-heading">Error</h4>
-      <p>{{ error() }}</p>
-      <hr>
-      <button class="btn btn-primary" (click)="goBack()">
-        <i class="bi bi-arrow-left"></i> Back to Integration Catalog
-      </button>
+    <div class="container py-5">
+      <div class="alert alert-danger" role="alert">
+        <h4 class="alert-heading">Error</h4>
+        <p>{{ error() }}</p>
+        <hr>
+        <button class="btn btn-primary" (click)="goBack()">
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to Integration Catalog
+        </button>
+      </div>
     </div>
   }
 
   @if (!loading() && !error() && application()) {
-    <div class="mb-4">
-      <button class="btn text-primary" (click)="goBack()" style="border: none;">
-        ← Back to Integration Catalog
-      </button>
-    </div>
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="container">
+        <div class="d-flex align-items-start gap-4">
+        <!-- Logo -->
+        <div class="flex-shrink-0">
+          @if (!shouldShowLetterAvatar()) {
+            <div class="logo-container d-flex align-items-center justify-content-center overflow-hidden">
+              <img [src]="getLogoUrl()"
+                   [alt]="application()!.displayName"
+                   (error)="onLogoError()"
+                   class="logo-image" />
+            </div>
+          } @else {
+            <div class="letter-avatar d-flex align-items-center justify-content-center" [style.background]="getAvatarGradient(application()!.displayName)">
+              {{ application()!.displayName.charAt(0) }}
+            </div>
+          }
+        </div>
 
+        <!-- Title and Info -->
+        <div class="flex-grow-1">
+          <h1 class="h2 mb-2 text-title">
+            {{ application()!.displayName }}
+            @if (application()!.tags && application()!.tags!.length > 0) {
+              @for (tag of application()!.tags!; track tag.id) {
+                @if (tag.name === 'popular') {
+                  <span class="badge badge-popular d-inline-flex align-items-center gap-1">
+                    <i class="fa-solid fa-fire-flame-curved icon-sm"></i>
+                    {{ tag.displayName }}
+                  </span>
+                }
+              }
+            }
+          </h1>
+          @if (application()!.tags && application()!.tags!.length > 0) {
+            @for (tag of application()!.tags!; track tag.id) {
+              @if (tag.tagType === 'COMMON' && (tag.name === 'evolveum-creation' || tag.name === 'community-creation' || tag.name === 'partner-creation')) {
+                <p class="mb-3 text-muted-custom text-md">{{ tag.displayName }}</p>
+              }
+            }
+          }
+          <p class="mb-4 text-body">{{ application()!.description }}</p>
+
+          <!-- Stats Row -->
+          <div class="d-flex align-items-center gap-4 text-body text-sm">
+            <!-- Star Rating (Placeholder) -->
+            <div class="d-flex align-items-center gap-1">
+              <i class="fa-solid fa-star star-icon"></i>
+              <span class="font-weight-medium"><b>"4.4</b> (404 reviews)"</span>
+            </div>
+
+            <!-- Installations (Placeholder) -->
+            <div class="d-flex align-items-center gap-1">
+              <i class="fa-solid fa-download icon-md"></i>
+              <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
+            </div>
+
+            <!-- Updated Date -->
+            <div class="d-flex align-items-center gap-1">
+              <i class="fa-regular fa-clock icon-md"></i>
+              <span class="font-weight-medium">{{ getTimeSinceLastUpdate(application()!.updated) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container pt-3 pb-5">
     <div class="row">
       <!-- Left Panel - Main Content -->
       <div class="col-lg-8">
-        <div class="card shadow-sm mb-4">
-          <div class="card-body">
-            <div class="row align-items-center mb-4">
-              <div class="col-auto">
-                <img [src]="application()!.logo" [alt]="application()!.displayName"
-                     class="img-fluid rounded" style="max-width: 100px; max-height: 100px;" />
-              </div>
-              <div class="col">
-                <h1 class="card-title mb-2">
-                  {{ application()!.displayName }}
-                  @if (application()!.tags && application()!.tags!.length > 0) {
-                    @for (tag of application()!.tags!; track tag.id) {
-                      @if (tag.name === 'popular') {
-                        <span class="badge bg-warning text-dark ms-2" style="font-size: 0.75rem;">{{ tag.displayName }}</span>
-                      }
-                    }
-                  }
-                </h1>
-                @if (application()!.lifecycleState) {
-                  <span class="badge bg-primary">{{ formatLifecycleState(application()!.lifecycleState) }}</span>
-                }
-              </div>
-            </div>
 
-            <div class="row">
-              <div class="col-12">
-                <h2 class="h4 mb-3">Description</h2>
-                <p class="text-muted">{{ application()!.description }}</p>
-              </div>
-            </div>
+        <div class="bg-white p-4 rounded mb-4">
+          <!-- Description Section -->
+          <div class="mb-4">
+            <h2 class="h5 mb-3">Description</h2>
+            <p>{{ application()!.description }}</p>
+          </div>
 
             <!-- REQUESTED Application Info -->
             @if (application()!.lifecycleState === 'REQUESTED') {
               <div class="row mt-4">
                 <div class="col-12">
-                  <h2 class="h5 mb-3">Community Requested Integration</h2>
-                  <p class="text-muted mb-3">
-                    This integration has been requested by the community and is pending development.
-                    Vote for this integration to help prioritize its development.
-                  </p>
+                  @if (application()!.objectClassCapabilities && application()!.objectClassCapabilities!.length > 0) {
 
-                  <!-- Capabilities -->
-                  @if (application()!.capabilities && application()!.capabilities!.length > 0) {
-                    <div class="mb-3">
-                      <h3 class="h6 mb-2">Requested Capabilities:</h3>
-                      <div class="d-flex flex-wrap gap-2">
-                        @for (capability of application()!.capabilities!; track capability) {
-                          <span class="badge" style="background-color: #cfe2ff; color: #084298; font-size: 0.875rem; padding: 0.5rem 0.75rem;">
-                            {{ capability }}
+                    <!-- Global capabilities view -->
+                    @if (isGlobalRequest()) {
+                      @let allCaps = application()!.objectClassCapabilities![0].capabilities;
+                      @let visibleCaps = globalCapabilitiesExpanded() ? allCaps : allCaps.slice(0, 10);
+                      @let remaining = allCaps.length - 10;
+                      <p class="fw-semibold mb-2">
+                        Global capabilities: <span class="fw-normal text-muted">(All object classes)</span>
+                      </p>
+                      <div class="d-flex flex-wrap gap-2 mb-3">
+                        @for (cap of visibleCaps; track cap) {
+                          <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                        }
+                        @if (remaining > 0) {
+                          <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleGlobalCapabilities()">
+                            @if (globalCapabilitiesExpanded()) {
+                              <i class="fa-solid fa-eye-slash icon-sm"></i> Show less
+                            } @else {
+                              <i class="fa-solid fa-eye icon-sm"></i> + {{ remaining }} more
+                            }
                           </span>
                         }
                       </div>
-                    </div>
+
+                    <!-- Combined view -->
+                    } @else if (isCombinedRequest()) {
+                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection('req-global')" style="cursor:pointer;">
+                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded('req-global')" [class.fa-chevron-down]="isComboSectionExpanded('req-global')"></i>
+                        <p class="fw-semibold mb-0">Global capabilities: <span class="fw-normal text-muted">(All object classes)</span></p>
+                      </div>
+                      @if (isComboSectionExpanded('req-global')) {
+                        <div class="d-flex flex-wrap gap-2 ms-3 mb-3">
+                          @for (cap of getRequestGlobalCaps(); track cap) {
+                            <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                          }
+                        </div>
+                      }
+                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection('req-specific')" style="cursor:pointer;">
+                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded('req-specific')" [class.fa-chevron-down]="isComboSectionExpanded('req-specific')"></i>
+                        <p class="fw-semibold mb-0">Capabilities: <span class="fw-normal text-muted">(Per specific object classes)</span></p>
+                      </div>
+                      @if (isComboSectionExpanded('req-specific')) {
+                        <div class="mb-3">
+                          @for (occ of getRequestSpecificOccs(); track occ.objectName) {
+                            <div class="mb-2 ms-3">
+                              <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(occ.objectName)" style="cursor:pointer;">
+                                <span class="fw-semibold">{{ occ.objectName }}</span>
+                                <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(occ.objectName)" [class.fa-chevron-up]="isObjectClassExpanded(occ.objectName)"></i>
+                                <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                              </div>
+                              @if (isObjectClassExpanded(occ.objectName)) {
+                                <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                  @for (cap of occ.capabilities; track cap) {
+                                    <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+
+                    <!-- Per-specific object class view -->
+                    } @else {
+                      <p class="fw-semibold mb-2">
+                        Capabilities: <span class="fw-normal text-muted">(Per specific object classes)</span>
+                      </p>
+                      <div class="mb-3">
+                        @for (occ of application()!.objectClassCapabilities!; track occ.objectName) {
+                          <div class="mb-2">
+                            <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(occ.objectName)" style="cursor:pointer;">
+                              <span class="fw-semibold">{{ occ.objectName }}</span>
+                              <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(occ.objectName)" [class.fa-chevron-up]="isObjectClassExpanded(occ.objectName)"></i>
+                              <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                            </div>
+                            @if (isObjectClassExpanded(occ.objectName)) {
+                              <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                @for (cap of occ.capabilities; track cap) {
+                                  <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+
                   }
 
-                  <!-- Created Date -->
-                  @if (application()!.createdAt) {
-                    <div class="mb-2">
-                      <strong>Requested on: </strong>
-                      <span class="text-muted">{{ application()!.createdAt | date: 'mediumDate' }}</span>
-                    </div>
-                  }
-
-                  <!-- Requester -->
-                  @if (application()!.requester) {
-                    <div class="mb-2">
-                      <strong>Requested by: </strong>
-                      <span class="text-muted">{{ application()!.requester }}</span>
-                    </div>
-                  }
+                  <!-- Cancel request -->
+                  <div class="mt-3">
+                    <button type="button" class="btn-cancel-request d-inline-flex align-items-center gap-2" (click)="cancelRequest()">
+                      <i class="fa-solid fa-trash-can"></i>Cancel request
+                    </button>
+                  </div>
                 </div>
               </div>
             }
 
-            @if (activeEvolvumVersions().length > 0 || activeCommunityVersions().length > 0 || otherEvolvumVersions().length > 0 || otherCommunityVersions().length > 0) {
+            @if (application()!.integrationMethods && application()!.integrationMethods!.length > 0) {
               <div class="row mt-4">
                 <div class="col-12">
                   <!-- Tabs Navigation -->
-                  <ul class="nav nav-tabs mb-3">
-                    <li class="nav-item">
-                      <a class="nav-link"
-                         [class.active]="activeTab() === 'main'"
-                         (click)="setActiveTab('main')"
-                         style="cursor: pointer;">
-                        Main version(s)
-                      </a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link"
-                         [class.active]="activeTab() === 'other'"
-                         (click)="setActiveTab('other')"
-                         style="cursor: pointer;">
-                        Other versions ({{ getTotalVersionsCount() }})
-                      </a>
-                    </li>
-                  </ul>
+                  <!-- <div class="tabs-container">
+                    <button
+                      (click)="setActiveTab('main')"
+                      class="btn-tab"
+                      [class.btn-tab-active]="activeTab() === 'main'"
+                      [class.btn-tab-inactive]="activeTab() !== 'main'">
+                      Main version(s)
+                    </button>
+                    <button
+                      (click)="setActiveTab('other')"
+                      class="btn-tab"
+                      [class.btn-tab-active]="activeTab() === 'other'"
+                      [class.btn-tab-inactive]="activeTab() !== 'other'">
+                      Other versions ({{ getTotalVersionsCount() }})
+                    </button>
+                  </div><br> -->
 
-                  <!-- Tab Content -->
-                  @if (activeTab() === 'main') {
-                    @if (activeEvolvumVersions().length > 0) {
-                      <h2 class="h6 mb-3 text-muted">CREATED BY EVOLVEUM OR EVOLVEUM PARTNER</h2>
-                    @for (version of activeEvolvumVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
+                  <!-- Search Integration Methods Section -->
+                  <h5 class="mb-3">Search integration methods</h5>
+
+                  <!-- Toolbar -->
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="method-type-dropdown" (click)="$event.stopPropagation()">
+                      <button type="button" class="method-type-select" (click)="toggleMethodDropdown()">
+                        {{ selectedMethodTypeLabel() }}
+                        <i class="fa-solid fa-chevron-down icon-xs ms-2"></i>
+                      </button>
+                      @if (methodDropdownOpen()) {
+                        <div class="method-type-panel">
+                          <div class="method-type-option" [class.method-type-option-active]="methodTypeFilter() === 'all'" (click)="selectMethodType('all')">All</div>
+                          @for (type of availableMethodTypes(); track type.id) {
+                            <div class="method-type-option" [class.method-type-option-active]="methodTypeFilter() === type.displayName" (click)="selectMethodType(type.displayName)">{{ type.displayName }}</div>
                           }
                         </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
-                        @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
-                        } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
-                        }
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
-
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
-                                }
-
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
-                              </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Download This Version
-                              </a>
-                            </div>
-                          </div>
-                        } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
-                          </div>
-                        }
-                      </div>
+                      }
                     </div>
-                    }
-                    }
+                    <div class="input-group flex-grow-1">
+                      <span class="input-group-text bg-white border-0">
+                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                      </span>
+                      <input type="text" class="form-control border-0" placeholder="Search"
+                             [value]="methodSearchQuery()" (input)="onMethodSearchChange($event)" />
+                    </div>
+                    <button type="button" (click)="toggleFilterModal()" class="btn btn-sm btn-filter d-flex align-items-center gap-2">
+                      <i class="fa-solid fa-filter icon-xl"></i>
+                      Filter
+                    </button>
+                    <button type="button" (click)="resetFilters()" class="btn btn-sm btn-reset">
+                      Reset filter
+                    </button>
+                  </div>
 
-                    @if (activeCommunityVersions().length > 0) {
-                      <h2 class="h6 mb-3 mt-5 text-muted">CREATED BY COMMUNITY</h2>
-                    @for (version of activeCommunityVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
-                          }
+                  <hr class="method-divider">
+
+                  <!-- Active Filter Chips -->
+                  @if (hasActiveFilters()) {
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                      @if (filterState().capabilities.length > 0) {
+                        <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
+                          <span>Capability</span>
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">{{ filterState().capabilities.length }}</span>
+                          <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-chevron-down icon-xs"></i>
+                          </button>
+                          <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-xmark icon-sm"></i>
+                          </button>
                         </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
-                        @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
-                        } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
-                        }
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
+                      }
+                      @if (filterState().midpointVersions.length > 0) {
+                        <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
+                          <span>MidPoint Version</span>
+                          <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">{{ filterState().midpointVersions.length }}</span>
+                          <button type="button" (click)="toggleDropdown('versions', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-chevron-down icon-xs"></i>
+                          </button>
+                          <button type="button" (click)="clearVersionsFilter()" class="btn-icon d-inline-flex align-items-center">
+                            <i class="fa-solid fa-xmark icon-sm"></i>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
 
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
-                                }
-
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
+                  <!-- Filter Modal -->
+                  @if (isFilterModalOpen()) {
+                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" (click)="toggleFilterModal()">
+                      <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
+                        <div class="d-flex flex-column h-100">
+                          <div class="d-flex flex-grow-1 overflow-hidden">
+                            <div class="border-end modal-sidebar overflow-auto">
+                              <div class="d-flex flex-column">
+                                <button type="button" (click)="selectFilterSection('capabilities')" class="modal-section-btn" [class.modal-section-btn-active]="selectedFilterSection() === 'capabilities'">
+                                  <span class="font-weight-medium">Capabilities</span>
+                                </button>
+                                <button type="button" (click)="selectFilterSection('versions')" class="modal-section-btn" [class.modal-section-btn-active]="selectedFilterSection() === 'versions'">
+                                  <span class="font-weight-medium">Midpoint Version</span>
+                                </button>
                               </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Download This Version
-                              </a>
+                            </div>
+                            <div class="p-4 modal-main overflow-auto">
+                              @if (selectedFilterSection() === 'capabilities') {
+                                <div class="d-flex flex-wrap gap-2">
+                                  @for (capability of allCapabilities; track capability) {
+                                    <span class="badge badge-selectable" [class.badge-selectable-active]="isCapabilitySelected(capability)" [class.badge-selectable-inactive]="!isCapabilitySelected(capability)" (click)="toggleCapabilityFilter(capability)">
+                                      {{ formatCapabilityText(capability) }}
+                                    </span>
+                                  }
+                                </div>
+                              }
+                              @if (selectedFilterSection() === 'versions') {
+                                <div class="d-flex flex-wrap gap-2">
+                                  @for (ver of midpointVersions(); track ver.id) {
+                                    <span class="badge badge-selectable" [class.badge-selectable-active]="isMidpointVersionSelected(ver.id)" [class.badge-selectable-inactive]="!isMidpointVersionSelected(ver.id)" (click)="toggleMidpointVersionFilter(ver.id)">
+                                      {{ ver.version }} - {{ ver.versionName }}
+                                    </span>
+                                  } @empty {
+                                    <p class="text-muted">No MidPoint versions available</p>
+                                  }
+                                </div>
+                              }
                             </div>
                           </div>
-                        } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
-                          </div>
-                        }
+                        </div>
                       </div>
                     </div>
-                    }
-                    }
+                  }
 
-                    @if (activeEvolvumVersions().length === 0 && activeCommunityVersions().length === 0) {
-                      <p class="text-muted fst-italic">No active versions available</p>
+                  <!-- Results: empty state or version cards -->
+                  @if (allVersions().length === 0) {
+                    <div class="method-empty-state d-flex flex-column align-items-center justify-content-center">
+                      @if (hasActiveFilters() || methodTypeFilter() !== 'all' || methodSearchQuery() !== '') {
+                        <p class="fw-semibold mb-2">No integration methods match the selected filters.</p>
+                        <p class="text-muted text-center mb-4">Try adjusting or resetting the filters to see available methods.</p>
+                        <button type="button" class="btn btn-create-method" (click)="resetFilters()">Reset filters</button>
+                      } @else {
+                        <p class="fw-semibold mb-2">No integration methods defined yet.</p>
+                        <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
+                        <button type="button" class="btn btn-create-method" (click)="navigateToPublish()">
+                          <i class="fa-solid fa-plus me-1"></i>Create integration method
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    @for (method of pagedMethods(); track method.id) {
+                      <div class="im-method-card bg-white mb-3">
+                        <!-- Collapsible header -->
+                        <div class="im-method-header d-flex align-items-center justify-content-between" (click)="toggleMethod(method.id)">
+                          <div class="d-flex align-items-start gap-3">
+                            <i class="fa-solid im-method-chevron" [class.fa-chevron-up]="isMethodExpanded(method.id)" [class.fa-chevron-down]="!isMethodExpanded(method.id)"></i>
+                            <div>
+                              <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="im-method-title">{{ method.name }}</span>
+                                @for (type of method.types; track type) {
+                                  <span class="im-method-tag">{{ type }}</span>
+                                }
+                              </div>
+                              <div class="d-flex align-items-center gap-3">
+                                @if (method.publishedCount > 0) {
+                                  <span class="im-summary-published">{{ method.publishedCount }} published</span>
+                                }
+                                @if (method.pendingCount > 0) {
+                                  <span class="im-summary-pending">{{ method.pendingCount }} pending review</span>
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          <span class="im-version-count">{{ method.versions.length }} version{{ method.versions.length === 1 ? '' : 's' }}</span>
+                        </div>
+
+                        @if (isMethodExpanded(method.id)) {
+                          <!-- Column headers -->
+                          <div class="im-table-header d-flex">
+                            <div class="im-col-version">VERSION</div>
+                            <div class="im-col-details">DETAILS</div>
+                            <div class="im-col-status">STATUS</div>
+                          </div>
+
+                          @for (version of method.versions; track version.revision) {
+                            <div class="im-version-row d-flex" role="button" (click)="navigateToDetails(version.id, version.revision)">
+                              <!-- VERSION -->
+                              <div class="im-col-version">
+                                <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
+                              </div>
+
+                              <!-- DETAILS -->
+                              <div class="im-col-details">
+                                <div class="im-row-title">{{ version.displayName || version.connectorDisplayName || method.name }}</div>
+                                @if (version.lifecycleState === 'IN_REVIEW' && version.releasedDate) {
+                                  <div class="im-submitted-line"><i class="fa-regular fa-clock me-1"></i>Submitted for review on {{ version.releasedDate | date:'MMMM d, yyyy' }}</div>
+                                }
+                                <p class="text-sm im-row-desc">
+                                  @if (version.description) { {{ version.description }} } @else { <em class="text-muted">No description available</em> }
+                                </p>
+
+                                @if (version.objectClassCapabilities && version.objectClassCapabilities.length > 0) {
+                                  <hr class="im-divider">
+                                  <div>
+                                    @if (isGlobalMethod(version)) {
+                                      @let allCaps = version.objectClassCapabilities[0].capabilities;
+                                      @let remaining = allCaps.length - 10;
+                                      @let visibleCaps = isMethodGlobalCapabilitiesExpanded(version.id) ? allCaps : allCaps.slice(0, 10);
+                                      <p class="text-sm mb-2 im-capabilities-header">
+                                        Global capabilities: <span class="text-muted fw-normal">(All object classes)</span>
+                                      </p>
+                                      <div class="d-flex flex-wrap gap-2">
+                                        @for (cap of visibleCaps; track cap) {
+                                          <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                        }
+                                        @if (remaining > 0) {
+                                          <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleMethodGlobalCapabilities(version.id); $event.stopPropagation()">
+                                            @if (isMethodGlobalCapabilitiesExpanded(version.id)) {
+                                              <i class="fa-solid fa-eye-slash icon-sm"></i> Show less
+                                            } @else {
+                                              <i class="fa-solid fa-eye icon-sm"></i> + {{ remaining }} more
+                                            }
+                                          </span>
+                                        }
+                                      </div>
+                                    } @else if (isCombinedMethod(version)) {
+                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-global'); $event.stopPropagation()" style="cursor:pointer;">
+                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-global')"></i>
+                                        <p class="text-sm mb-0 im-capabilities-header">Global capabilities: <span class="text-muted fw-normal">(All object classes)</span></p>
+                                      </div>
+                                      @if (isComboSectionExpanded(version.id + '-combo-global')) {
+                                        <div class="d-flex flex-wrap gap-2 ms-3 mb-2">
+                                          @for (cap of getGlobalCaps(version); track cap) {
+                                            <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                          }
+                                        </div>
+                                      }
+                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-specific'); $event.stopPropagation()" style="cursor:pointer;">
+                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-specific')"></i>
+                                        <p class="text-sm mb-0 im-capabilities-header">Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span></p>
+                                      </div>
+                                      @if (isComboSectionExpanded(version.id + '-combo-specific')) {
+                                        @for (occ of getSpecificOccs(version); track occ.objectName) {
+                                          @let expandKey = version.id + '-' + occ.objectName;
+                                          <div class="mb-2 ms-3">
+                                            <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
+                                              <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                                              <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
+                                              <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                                            </div>
+                                            @if (isObjectClassExpanded(expandKey)) {
+                                              <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                                @for (cap of occ.capabilities; track cap) {
+                                                  <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                                }
+                                              </div>
+                                            }
+                                          </div>
+                                        }
+                                      }
+                                    } @else {
+                                      <p class="text-sm mb-2 im-capabilities-header">
+                                        Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
+                                      </p>
+                                      @for (occ of version.objectClassCapabilities; track occ.objectName) {
+                                        @let expandKey = version.id + '-' + occ.objectName;
+                                        <div class="mb-2">
+                                          <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
+                                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                                            <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
+                                            <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                                          </div>
+                                          @if (isObjectClassExpanded(expandKey)) {
+                                            <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                              @for (cap of occ.capabilities; track cap) {
+                                                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                              }
+                                            </div>
+                                          }
+                                        </div>
+                                      }
+                                    }
+                                  </div>
+                                }
+                              </div>
+
+                              <!-- STATUS -->
+                              <div class="im-col-status">
+                                @if (version.lifecycleState === 'IN_REVIEW') {
+                                  <span class="badge im-badge-awaiting"><i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval</span>
+                                } @else if (version.lifecycleState === 'ACTIVE') {
+                                  <span class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
+                                }
+
+                                <!-- Hover-revealed actions (set depends on lifecycle state) -->
+                                <div class="im-row-actions">
+                                  @if (version.lifecycleState === 'IN_REVIEW') {
+                                    <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-trash-can"></i>Cancel request
+                                    </button>
+                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-eye"></i>View details
+                                    </button>
+                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                    </button>
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-approve" (click)="approveVersion(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-check"></i>Approve
+                                      </button>
+                                    }
+                                  } @else {
+                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-eye"></i>View details
+                                    </button>
+                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                    </button>
+                                    <button type="button" class="btn btn-im-download" (click)="downloadBundle(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-download"></i>Download
+                                    </button>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          }
+                        }
+                      </div>
+                    } @empty {
+                      <p class="text-muted fst-italic">No connector versions found</p>
                     }
                   }
 
-                  @if (activeTab() === 'other') {
-                    @if (otherEvolvumVersions().length > 0) {
-                      <h2 class="h6 mb-3 text-muted">CREATED BY EVOLVEUM OR EVOLVEUM PARTNER</h2>
-                    @for (version of otherEvolvumVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
-                          }
-                          @if (version.lifecycleState) {
-                            <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
-                          }
-                        </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
-                        @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
-                        } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
-                        }
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
+                  <div class="im-list-footer d-flex align-items-center justify-content-between mt-3">
+                    <button type="button" class="btn btn-go-to-catalog" (click)="goBack()">
+                      <i class="fa-solid fa-arrow-left me-2 icon-md"></i>Go to Integration catalog
+                    </button>
 
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
-                                }
-
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
-                              </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Download This Version
-                              </a>
-                            </div>
-                          </div>
-                        } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
-                          </div>
-                        }
-                      </div>
-                    </div>
+                    @if (totalPages() > 1) {
+                      <nav aria-label="Page navigation">
+                        <ul class="pagination mb-0">
+                          <li class="page-item" [class.disabled]="currentPage() === 0">
+                            <button class="page-link page-link-default" (click)="previousPage()" [disabled]="currentPage() === 0">
+                              <i class="fa-solid fa-arrow-left me-1 icon-md"></i>Previous
+                            </button>
+                          </li>
+                          @for (page of [].constructor(totalPages()); track $index) {
+                            <li class="page-item" [class.active]="currentPage() === $index">
+                              <button class="page-link" [class.page-link-active]="currentPage() === $index" [class.page-link-default]="currentPage() !== $index" (click)="goToPage($index)">
+                                {{ $index + 1 }}
+                              </button>
+                            </li>
+                          }
+                          <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+                            <button class="page-link page-link-default" (click)="nextPage()" [disabled]="currentPage() === totalPages() - 1">
+                              Next<i class="fa-solid fa-arrow-right ms-1 icon-md"></i>
+                            </button>
+                          </li>
+                        </ul>
+                      </nav>
                     }
-                    }
-
-                    @if (otherCommunityVersions().length > 0) {
-                      <h2 class="h6 mb-3 mt-5 text-muted">CREATED BY COMMUNITY</h2>
-                    @for (version of otherCommunityVersions(); track $index) {
-                    <div class="mb-4">
-                      <div class="border p-3 rounded position-relative">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          @if (version.connectorVersion) {
-                            <strong>{{ version.connectorVersion }}</strong>
-                          } @else {
-                            <strong>Version {{ $index + 1 }}</strong>
-                          }
-                          @if (version.systemVersion) {
-                            <span class="badge bg-primary">{{ version.systemVersion }}</span>
-                          }
-                          @if (version.capabilities && version.capabilities.includes('Installed')) {
-                            <span class="badge bg-success">Installed</span>
-                          }
-                          @if (version.lifecycleState) {
-                            <span class="badge bg-warning text-dark">{{ formatLifecycleState(version.lifecycleState) }}</span>
-                          }
-                        </div>
-                        @if (version.releasedDate || version.author) {
-                          <p class="text-muted small mb-2">
-                            @if (version.releasedDate) {
-                              <span>Released: {{ version.releasedDate | date: 'MMM d, yyyy' }}</span>
-                            }
-                            @if (version.releasedDate && version.author) {
-                              <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            }
-                            @if (version.author) {
-                              <span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 3px;">
-                                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-                                </svg>
-                                Created by [{{ version.author }}]
-                              </span>
-                            }
-                            @if (version.implementationTags && (version.implementationTags.includes('ai_generated') || version.implementationTags.includes('AI Generated'))) {
-                              <span class="ms-2 fw-bold" style="color: #000; border: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M8 0l2.5 5.5L16 8l-5.5 2.5L8 16l-2.5-5.5L0 8l5.5-2.5L8 0z"/>
-                                </svg>
-                                AI Generated
-                              </span>
-                            }
-                          </p>
-                        }
-                        @if (version.description) {
-                          <p class="text-muted mb-2">{{ version.description }}</p>
-                        } @else {
-                          <p class="text-muted fst-italic mb-2">No description available</p>
-                        }
-                        @if (hasNonInstalledCapabilities(version.capabilities)) {
-                          <div class="mt-2">
-                            <h6 class="text-muted small mb-2">Capabilities</h6>
-                            <div class="d-flex justify-content-between align-items-start gap-3">
-                              <div class="d-flex flex-wrap gap-1 flex-grow-1">
-                                @let allCapabilities = filterInstalledCapability(version.capabilities);
-                                @let isVersionExpanded = isExpanded($index);
-                                @let visibleCapabilities = isVersionExpanded ? allCapabilities : allCapabilities.slice(0, 10);
-                                @let remainingCount = allCapabilities.length - 10;
-
-                                @for (item of visibleCapabilities; track $index) {
-                                  <span class="badge bg-info">{{ item }}</span>
-                                }
-
-                                @if (remainingCount > 0) {
-                                  <span class="badge bg-secondary" style="cursor: pointer;" (click)="toggleCapabilities($index)">
-                                    {{ isVersionExpanded ? 'Show less' : '+' + remainingCount + ' more' }}
-                                  </span>
-                                }
-                              </div>
-                              <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-shrink-0" [class.disabled]="!version.downloadLink">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                                </svg>
-                                Download This Version
-                              </a>
-                            </div>
-                          </div>
-                        } @else {
-                          <div class="text-end mt-3">
-                            <a [href]="version.downloadLink" target="_blank" rel="noopener noreferrer" class="btn btn-primary" [class.disabled]="!version.downloadLink">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-bottom: 2px;">
-                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
-                              </svg>
-                              Download This Version
-                            </a>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                    }
-                    }
-
-                    @if (otherEvolvumVersions().length === 0 && otherCommunityVersions().length === 0) {
-                      <p class="text-muted fst-italic">No other versions available</p>
-                    }
-                  }
+                  </div>
                 </div>
               </div>
             }
-          </div>
         </div>
+
       </div>
 
-      <!-- Right Panel - Quick Info -->
+      <!-- Right Panel - Sidebar -->
       <div class="col-lg-4">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h3 class="h5 mb-3">Quick Info</h3>
-            <hr class="mb-4">
-
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">Tags</h6>
-              @if (application()!.tags && application()!.tags!.length > 0) {
-                <div class="d-flex flex-wrap gap-1">
-                  @for (tag of application()!.tags!; track tag.id) {
-                    @if (tag.name !== 'popular' && tag.tagType !== 'CATEGORY') {
-                      @if (tag.tagType === 'DEPLOYMENT') {
-                        <span class="badge bg-primary">{{ tag.displayName }}</span>
-                      }
-                      @if (tag.tagType === 'LOCALITY') {
-                        <span class="badge bg-info">{{ tag.displayName }}</span>
-                      }
-                      @if (tag.tagType === 'COMMON') {
-                        <span class="badge bg-secondary">{{ tag.displayName }}</span>
-                      }
+        <div class="p-4 rounded shadow-sm sidebar-panel">
+          <!-- Tags Section -->
+          <div class="mb-4">
+            <h6 class="text-muted small mb-2">Tags</h6>
+            @if (application()!.tags && application()!.tags!.length > 0) {
+              <div class="d-flex flex-column gap-2">
+                @for (tag of application()!.tags!; track tag.id) {
+                  @if (tag.name !== 'popular' && tag.tagType !== 'CATEGORY' && tag.tagType !== 'COMMON') {
+                    @if (tag.tagType === 'DEPLOYMENT') {
+                      <span class="badge badge-deployment">{{ tag.displayName }}</span>
+                    }
+                    @if (tag.tagType === 'LOCALITY') {
+                      <span class="badge badge-locality">{{ tag.displayName }}</span>
+                    }
+                    @if (tag.tagType === 'COMMON') {
+                      <span class="badge badge-common">{{ tag.displayName }}</span>
                     }
                   }
-                </div>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
-
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">App Category</h6>
-              @if (application()!.categories && application()!.categories!.length > 0) {
-                <div>
-                  @for (category of application()!.categories!; track category.id) {
-                    <p class="mb-1">{{ category.displayName }}</p>
-                  }
-                </div>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
-
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">Last Updated</h6>
-              @if (application()!.lastModified) {
-                <p class="mb-0">{{ application()!.lastModified | date: 'mediumDate' }}</p>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
-
-            <div class="mb-3">
-              <h6 class="text-muted small mb-1">Origin(s)</h6>
-              @if (application()!.origins && application()!.origins!.length > 0) {
-                <div>
-                  @for (origin of application()!.origins!; track origin.id) {
-                    <p class="mb-1">{{ origin.displayName }}</p>
-                  }
-                </div>
-              } @else {
-                <p class="mb-0 text-muted fst-italic">Not available</p>
-              }
-            </div>
+                }
+              </div>
+            } @else {
+              <p class="mb-0 text-muted text-sm">No tags available</p>
+            }
           </div>
+
+          <!-- <hr> -->
+
+          <!-- App Category -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">App Category</h6>
+            @if (application()!.categories && application()!.categories!.length > 0) {
+              <div>
+                @for (category of application()!.categories!; track category.id) {
+                  <p class="mb-1">{{ category.displayName }}</p>
+                }
+              </div>
+            } @else {
+              <p class="mb-0 text-muted text-sm">Not available</p>
+            }
+          </div>
+
+          <!-- Last Update -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">Last Update</h6>
+            @if (application()!.updated) {
+              <p class="mb-0">{{ application()!.updated | date: 'MMM d, yyyy' }}</p>
+            } @else {
+              <p class="mb-0 text-muted text-sm">Not available</p>
+            }
+          </div>
+
+          <!-- Maintainer Location -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">Maintainer Location</h6>
+            @if (application()!.origins && application()!.origins!.length > 0) {
+              @for (origin of application()!.origins!; track origin.id) {
+                <p class="mb-0 fw-bold text-body">{{ origin.displayName }}</p>
+              }
+            } @else {
+              <p class="mb-0 text-muted text-sm">Not available</p>
+            }
+          </div>
+
+          <!-- Installations -->
+          <div class="mb-5">
+            <h6 class="text-muted small mb-1">Installations</h6>
+            <p class="mb-0 fw-bold text-body stat-value">0</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fixed Position Filter Dropdowns -->
+  @if (openDropdown() === 'capabilities' && dropdownPosition()) {
+    <div class="filter-dropdown overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      @for (capability of allCapabilities; track capability) {
+        <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCapabilityFilter(capability); $event.stopPropagation()">
+          <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
+            @if (isCapabilitySelected(capability)) {
+              <i class="fa-solid fa-check icon-xs text-white"></i>
+            }
+          </div>
+          <span>{{ formatCapabilityText(capability) }}</span>
+        </div>
+      }
+      <div class="border-top pt-2 mt-2">
+        <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
+      </div>
+    </div>
+  }
+
+  @if (openDropdown() === 'versions' && dropdownPosition()) {
+    <div class="filter-dropdown overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+      @for (ver of midpointVersions(); track ver.id) {
+        <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleMidpointVersionFilter(ver.id); $event.stopPropagation()">
+          <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isMidpointVersionSelected(ver.id)" [class.checkbox-unchecked]="!isMidpointVersionSelected(ver.id)">
+            @if (isMidpointVersionSelected(ver.id)) {
+              <i class="fa-solid fa-check icon-xs text-white"></i>
+            }
+          </div>
+          <span>{{ ver.version }} - {{ ver.versionName }}</span>
+        </div>
+      }
+      <div class="border-top pt-2 mt-2">
+        <a href="javascript:void(0)" (click)="clearVersionsFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
+      </div>
+    </div>
+  }
+
+  <!-- Backdrop to close dropdown when clicking outside -->
+  @if (openDropdown() || methodDropdownOpen()) {
+    <div (click)="closeDropdown(); methodDropdownOpen.set(false)" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
+  }
+
+  <!-- Cancel review request confirmation modal -->
+  @if (isCancelConfirmOpen()) {
+    <div class="cancel-confirm-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeCancelConfirm()"></div>
+    <div class="cancel-confirm-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+      <div class="cancel-confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="cancel-confirm-header d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation cancel-confirm-icon"></i>
+            <span class="cancel-confirm-title">Cancel review request?</span>
+          </div>
+          <button type="button" class="btn p-0 cancel-confirm-close" (click)="closeCancelConfirm()" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="cancel-confirm-body">
+          Are you sure you want to cancel this request? <strong>All progress and data</strong>
+          entered during the upload or edit will be <strong>permanently lost.</strong> This action cannot be undone.
+        </div>
+        <hr class="cancel-confirm-separator">
+        <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
+          <button type="button" class="btn cancel-keep-btn" (click)="closeCancelConfirm()">Keep request</button>
+          <button type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmCancel()">
+            <i class="fa-solid fa-trash-can"></i>Cancel request
+          </button>
         </div>
       </div>
     </div>
   }
-</div>
+  }
 </div>

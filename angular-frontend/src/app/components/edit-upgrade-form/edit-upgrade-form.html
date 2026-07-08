@@ -1,0 +1,284 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+@if (showAddConnector()) {
+  <app-add-connector-form
+    [appId]="appId()"
+    [versionId]="versionId()"
+    [revision]="methodVersion()"
+    [appName]="appName()"
+    [appHasLogo]="appHasLogo()"
+    [logoUrl]="getLogoUrl()"
+    (close)="showAddConnector.set(false)"
+    (saved)="onConnectorSaved()">
+  </app-add-connector-form>
+} @else {
+
+<app-page-header [breadcrumb]="true">
+  <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <span class="breadcrumb-sep">›</span>
+    <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="cancel()" style="cursor:pointer;">
+      @if (showLogo()) {
+        <img [src]="getLogoUrl()" [alt]="appName()" class="breadcrumb-app-icon" (error)="onLogoError()">
+      }
+      {{ appName() }}
+    </a>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-current">Integration method detail</span>
+  </span>
+</app-page-header>
+
+@if (loading()) {
+  <div class="d-flex justify-content-center align-items-center" style="min-height:300px;">
+    <span class="spinner-border text-secondary" role="status"></span>
+  </div>
+} @else {
+  <div class="edit-page">
+    <div class="edit-page-content">
+      <h2 class="edit-page-title">{{ methodName() }}</h2>
+
+      <!-- Name + Version row -->
+      <div class="row g-3 mb-4">
+        <div class="col-4">
+          <label class="form-label form-label-upload">
+            Integration method name <span class="text-danger">*</span>
+            <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="The display name for this integration in the catalog.">
+              <i class="fa-solid fa-circle-info info-icon-sm"></i>
+            </button>
+          </label>
+          <input type="text" class="form-control"
+                 [value]="methodName()"
+                 (input)="methodName.set($any($event.target).value)"
+                 placeholder="Type name...">
+        </div>
+        <div class="col-8">
+          <label class="form-label form-label-upload">
+            Integration method version <span class="text-danger">*</span>
+            <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this integration method.">
+              <i class="fa-solid fa-circle-info info-icon-sm"></i>
+            </button>
+          </label>
+          <input type="text" class="form-control edit-version-input"
+                 [value]="methodVersion()"
+                 disabled>
+          <div class="form-text mt-1">The <strong>version number</strong> updates automatically upon clicking "Save as new version".</div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload">Description</label>
+        <div class="position-relative">
+          <textarea class="form-control" rows="4" maxlength="350"
+                    placeholder="Type description..."
+                    [value]="methodDescription()"
+                    (input)="methodDescription.set($any($event.target).value)"></textarea>
+          <div class="char-counter text-end text-muted">{{ methodDescription().length }} / 350 characters</div>
+        </div>
+      </div>
+
+      <!-- Capabilities -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload">
+          Define capabilities for: <span class="text-danger">*</span>          
+        </label>
+        <app-capability-picker [initialCapabilities]="initialCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+      </div>
+
+      <!-- Integration method type -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="form-label form-label-upload mb-0">Integration method type:</span>
+          @if (methodTypes().length > 0) {
+            @for (type of methodTypes(); track type) {
+              <span class="im-method-tag">{{ type }}</span>
+            }
+          } @else {
+            <span class="text-muted" style="font-size:0.875rem;">—</span>
+          }
+        </div>
+      </div>
+
+      <!-- Integration tutorial -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload">Integration tutorial</label>
+        <div class="edit-tutorial-wrapper">
+          <textarea id="edit-tutorial-editor"></textarea>
+        </div>
+      </div>
+
+      <!-- Import a tutorial file -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload">Additional tutorials/samples</label>
+        <div class="tutorial-dropzone"
+             [class.tutorial-dropzone-over]="tutorialDragOver()"
+             (dragover)="$event.preventDefault(); tutorialDragOver.set(true)"
+             (dragleave)="tutorialDragOver.set(false)"
+             (drop)="onTutorialFileDrop($any($event))"
+             (click)="tutorialFileInput.click()">
+          <input #tutorialFileInput type="file" class="d-none" multiple
+                 accept=".pdf,.xml,.json,.yaml,.yml,.txt"
+                 (change)="onTutorialFileSelect($event)">
+          <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
+          <div class="tutorial-dropzone-text">
+            <span class="tutorial-dropzone-link">Click to import</span> or drag and drop
+          </div>
+          <div class="tutorial-dropzone-hint">the files in the accepted format (.pdf, .xml, .json, .yaml, .txt)</div>
+        </div>
+        @if (tutorialFiles().length > 0) {
+          <div class="tutorial-file-list mt-2">
+            @for (entry of tutorialFiles(); track entry.name; let i = $index) {
+              <div class="tutorial-file-item">
+                <i class="fa-regular fa-file tutorial-file-icon"></i>
+                <div class="tutorial-file-name-group">
+                  @if (entry.isNew) {
+                    <span class="tutorial-file-name">{{ entry.name }}</span>
+                    <span class="tutorial-file-new-badge">NEW</span>
+                  } @else {
+                    <a class="tutorial-file-name tutorial-file-link" [href]="tutorialFileUrl(entry.name)" target="_blank" rel="noopener">{{ entry.name }}</a>
+                  }
+                </div>
+                <button type="button" class="tutorial-file-delete" (click)="removeTutorialFile(i)" aria-label="Remove file">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- CONNECTORS section -->
+      <div class="edit-connectors-section">
+        <div class="edit-connectors-header">
+          <span class="edit-connectors-title">CONNECTORS</span>
+          <button type="button" class="btn btn-sm edit-add-connector-btn"
+                  (click)="showAddConnector.set(true)">
+            <i class="fa-solid fa-plus me-1"></i>Add new connector
+          </button>
+        </div>
+
+        @for (c of connectors(); track $index) {
+          <div class="edit-connector-card">
+            <div class="edit-connector-card-header">
+              <span class="edit-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <div class="d-flex gap-3">
+                <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
+                        (click)="openEditConnector(c)">
+                  <i class="fa-solid fa-pencil"></i>Edit
+                </button>
+                <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1">
+                  <i class="fa-solid fa-trash-can"></i>Delete
+                </button>
+              </div>
+            </div>
+
+            <div class="edit-connector-details">
+              <div class="edit-connector-row">
+                <span class="edit-connector-label">Maintainer:</span>
+                <span class="edit-connector-value">{{ c.maintainer || '—' }}</span>
+              </div>
+              <div class="edit-connector-row">
+                <span class="edit-connector-label">Connector version:</span>
+                <span class="edit-connector-value">{{ c.version || '—' }}</span>
+              </div>
+              <div class="edit-connector-row">
+                <span class="edit-connector-label">License type:</span>
+                <span class="edit-connector-value">{{ fmtLicense(c.licenseType) }}</span>
+              </div>
+              @if (c.implementationDescription) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Connector description:</span>
+                  <span class="edit-connector-value">{{ c.implementationDescription }}</span>
+                </div>
+              }
+              @if (c.browseLink) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project homepage:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                  </span>
+                </div>
+              }
+              @if (c.ticketingLink) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Support portal:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
+                  </span>
+                </div>
+              }
+              @if (c.gitCloneUrl) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Git clone URL:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
+                  </span>
+                </div>
+              }
+              @if (c.commitTag) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Commit tag:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag }}
+                  </span>
+                </div>
+              }
+              @if (c.pathToProjectDirectory) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project folder path:</span>
+                  <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
+                </div>
+              }
+              @if (c.className) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Class name:</span>
+                  <span class="edit-connector-value">{{ c.className }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- License / publishing notice -->
+      <div class="edit-license-notice">
+        <p class="edit-license-text">
+          By saving this change, you confirm that the updated content remains compliant with the license you originally selected and with Evolveum's <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> and
+          <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+        </p>
+      </div>
+
+      <!-- Footer actions -->
+      <div class="edit-footer">
+        <button type="button" class="btn btn-link edit-cancel-btn" (click)="cancel()">Cancel</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn edit-save-btn" (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+          @if (!isInReview()) {
+            <button type="button" class="btn edit-save-version-btn" (click)="saveAsNewVersion()">
+              <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
+            </button>
+          }
+        </div>
+      </div>
+
+    </div><!-- end edit-page-content -->
+
+  </div><!-- end edit-page -->
+
+  @if (editingConnector()) {
+    <app-edit-connector-modal
+      [appId]="appId()"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
+      [connector]="editingConnector()!"
+      (close)="closeEditConnector()"
+      (saved)="onConnectorEdited()">
+    </app-edit-connector-modal>
+  }
+}
+
+}<!-- end @else showAddConnector -->

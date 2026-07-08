@@ -1,0 +1,114 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+
+/* Modal Overlay */
+.modal-backdrop-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.modal-container {
+  z-index: 1050;
+}
+
+.modal-dialog-filter {
+  max-width: 800px;
+  margin: auto;
+}
+
+.modal-content-filter {
+  border-radius: 12px;
+}
+
+/* Two-panel Layout */
+.filter-layout {
+  min-height: 500px;
+}
+
+/* Left Sidebar */
+.filter-sidebar {
+  width: 250px;
+  min-width: 250px;
+  flex-shrink: 0;
+  background-color: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  border-radius: 12px 0 0 12px;
+  padding: 1.5rem 0;
+}
+
+/* Filter Options in Sidebar */
+.filter-option {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  color: #212529;
+  opacity: 0.75;
+  background-color: transparent;
+}
+
+.filter-option.active {
+  color: #000000;
+  opacity: 1;
+  background-color: #e9ecef;
+}
+
+.filter-option:hover {
+  background-color: #e9ecef !important;
+}
+
+.filter-option-icon {
+  font-size: 18px;
+  color: #6c757d;
+}
+
+.filter-option.active .filter-option-icon {
+  color: #0d6efd;
+}
+
+.filter-option-label {
+  font-weight: 600;
+}
+
+/* Right Content Area */
+.filter-content {
+  padding: 2rem;
+}
+
+/* Category Items */
+.category-item {
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  background-color: transparent;
+}
+
+.category-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.category-item.selected {
+  background-color: #dee2e6;
+}
+
+/* Filter Badges (shared styles) */
+.filter-badge {
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: normal;
+  border: 1px solid #ced4da;
+  background-color: white;
+  color: #212529;
+}
+
+.filter-badge.selected {
+  border-color: #206f9d;
+  box-shadow: 0 0 0 1px #206f9d;
+  background-color: #f2f2f2;
+  color: #206f9d;
+}
+
+.filter-badge:hover {
+  opacity: 0.9;
+}

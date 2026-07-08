@@ -1,0 +1,1241 @@
+/* Upload Form Main Modal Styles */
+@use 'variables' as *;
+
+/* Radio button styling for connector options */
+.connector-option .form-check-input:checked {
+  background-color: $midpoint-special-color;
+  border-color: $midpoint-special-color;
+}
+
+.connector-option .form-check-input:focus {
+  border-color: $midpoint-special-color;
+  box-shadow: 0 0 0 0.25rem $shadow-teal;
+}
+
+.connector-option .form-check-input[type="radio"],
+.form-check-input[type="radio"] {
+  accent-color: $midpoint-special-color !important;
+}
+
+/* Bootstrap radio button checked state */
+.form-check-input[type="radio"]:checked {
+  background-color: $midpoint-special-color !important;
+  border-color: $midpoint-special-color !important;
+}
+
+/* Info icon tooltip styles */
+.info-icon-wrapper {
+  vertical-align: middle;
+}
+
+.info-icon-wrapper .info-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -2px;
+  transform: none;
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  width: 250px;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.info-icon-wrapper .info-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 5px;
+  transform: none;
+  border: 6px solid transparent;
+  border-width: 8px 4px;
+  border-bottom-color: $color-text-dark;
+}
+
+.info-icon-wrapper:hover .info-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-icon-wrapper svg {
+  transition: transform 0.2s ease;
+}
+
+.info-icon-wrapper:hover svg {
+  transform: scale(1.1);
+}
+
+/* Search input wrapper styles */
+.search-input-wrapper {
+  border: 2px solid $color-dark-blue;
+  border-radius: 50px;
+  background-color: $color-white;
+  transition: border-width 0.15s ease-in-out;
+}
+
+.search-input-wrapper:focus-within {
+  border-width: 2px;
+  border-color: $color-dark-blue;
+}
+
+.search-icon-wrapper {
+  padding: 0.375rem 0.75rem;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  background: transparent;
+}
+
+.search-input::placeholder {
+  color: $color-gray-secondary;
+}
+
+.clear-search-btn {
+  background: none;
+  border: none;
+  border-left: 1px solid $color-border-input;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  opacity: 0.7;
+}
+
+/* Page Styles */
+.publish-page {
+  display: block;
+  min-height: 100vh;
+  min-width: 1080px;
+  background: #fff;
+}
+
+/* Side-by-Side Modal */
+.sbs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: $color-white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sbs-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1.5rem;
+  border-bottom: 1px solid $color-border-light;
+  flex-shrink: 0;
+}
+
+.sbs-modal-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.sbs-close-btn {
+  background: none;
+  border: 1px solid $color-border-input;
+  border-radius: 4px;
+  padding: 4px 14px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: $color-text-dark;
+
+  &:hover {
+    background: $color-bg-hover;
+  }
+}
+
+.sbs-modal-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sbs-editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid $color-border-light;
+
+  ::ng-deep .EasyMDEContainer {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+
+    .CodeMirror {
+      flex: 1;
+      height: 100%;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.sbs-preview-pane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: $color-text-dark;
+}
+
+.publish-content {
+  display: block;
+  min-width: 1080px;
+}
+
+.modal-body-upload {
+  padding: 2rem 1.5rem;
+}
+
+.modal-footer-upload {
+  border-top: none;
+  padding: 1rem 1.5rem;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  z-index: 10;
+}
+
+/* Step Number */
+.step-number {
+  width: 20px;
+  height: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.step-number-completed {
+  background: transparent;
+  border: none;
+  color: #198754;
+}
+
+.step-number-active {
+  border-radius: 50%;
+  border: 1px solid $midpoint-special-color;
+  background: $midpoint-special-color;
+  box-shadow: inset 0 0 0 4px #fff;
+}
+
+.step-number-inactive {
+  border-radius: 50%;
+  background-color: transparent;
+  border: 1.5px solid $color-gray-secondary;
+  color: $color-gray-secondary;
+}
+
+.step-label-text {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  line-height: 20px;
+}
+
+.step-label-active {
+  color: $color-text-dark;
+  font-weight: 600;
+}
+
+.step-label-completed {
+  color: $color-text-dark;
+  font-weight: 600;
+}
+
+.step-label-inactive {
+  color: $color-gray-secondary;
+  font-weight: 400;
+}
+
+.step-check-icon {
+  font-size: 12px;
+}
+
+.step-sublabel {
+  font-size: 0.75rem;
+  color: $color-gray-secondary;
+  white-space: pre-line;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+
+.step-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-bottom: 0.5rem;
+}
+
+.step-subtitle {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+/* Step 3 – method type badges */
+.method-type-badge {
+  display: inline-block;
+  background-color: $color-bg-light;
+  color: $color-text-dark;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid $color-border-input;
+}
+
+.method-type-separator {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+/* Form Labels */
+.form-label-upload {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+/* Info Icon */
+.info-icon {
+  font-size: 14px;
+  color: $text-publishing-blue;
+}
+
+/* Connector Option Card */
+.connector-option-card {
+  border: 2px solid $color-border-light;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.connector-option-card.selected {
+  border-color: $midpoint-special-color;
+  background-color: $color-bg-selected;
+}
+
+.connector-option-card-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.connector-coming-soon-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #d5d7da;
+  background-color: #fafbfc;
+  color: #525151;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.radio-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.connector-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.connector-description {
+  color: $color-black;
+  font-size: 0.875rem;
+}
+
+/* Search Icon */
+.search-icon {
+  font-size: 14px;
+  color: $color-gray-secondary;
+}
+
+.clear-icon {
+  font-size: 12px;
+  color: $color-gray-secondary;
+}
+
+/* Selected Application Card */
+.selected-app-card {
+  border: 2px solid $color-dark-blue;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.selected-app-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.selected-app-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.min-width-0 {
+  min-width: 0;
+}
+
+/* Card Styles */
+.app-card {
+  border: 1px solid $color-border-light;
+  border-radius: 8px;
+}
+
+.app-card-body {
+  padding: 1.5rem;
+}
+
+.app-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, $color-light-blue 0%, #50e6ff 100%);
+  border-radius: 4px;
+  color: $color-white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.app-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.app-description {
+  font-size: 0.875rem;
+}
+
+.search-results .card:hover {
+  border-color: $midpoint-special-color !important;
+  box-shadow: 0 2px 8px $shadow-teal;
+  transform: translateY(-2px);
+}
+
+.trash-icon {
+  font-size: 16px;
+}
+
+/* Input Widths */
+.input-width-sm {
+  max-width: 240px;
+}
+
+/* Logo Upload */
+.logo-upload-area {
+  border: 2px dashed $color-border-light;
+  border-radius: 8px;
+  padding: 2rem;
+  background-color: $color-bg-light;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+
+  &:hover, &.logo-upload-area-over {
+    border-color: $midpoint-special-color;
+    background-color: rgba($midpoint-special-color, 0.04);
+  }
+}
+
+.logo-preview {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.logo-icon {
+  font-size: 40px;
+  color: $color-gray-secondary;
+}
+
+.upload-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.upload-text {
+  font-size: 0.8125rem;
+}
+
+.upload-btn-icon {
+  font-size: 12px;
+}
+
+/* Character Counter */
+.char-counter {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Footer Buttons */
+.btn-back {
+  color: $midpoint-special-color;
+  background: none;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  font-weight: 600;
+}
+
+.btn-back-icon {
+  font-size: 12px;
+}
+
+.btn-next {
+  background-color: $midpoint-special-color;
+  border-color: $midpoint-special-color;
+}
+
+.btn-next-icon {
+  font-size: 12px;
+}
+
+/* Define New Modal Overlay */
+.define-new-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.define-new-modal {
+  background: $color-white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.define-new-modal-header {
+  padding: 1.25rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid $color-border-light;
+  flex-shrink: 0;
+}
+
+.define-new-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.define-new-modal-subtitle {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+}
+
+.define-new-modal-body {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.define-new-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid $color-border-light;
+  flex-shrink: 0;
+}
+
+.define-new-cancel-btn {
+  color: $midpoint-special-color;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-text-dark;
+  }
+}
+
+/* Connector Catalog Modal */
+.cc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cc-modal {
+  background: $color-white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.cc-modal-header {
+  padding: 1.25rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid $color-border-light;
+  flex-shrink: 0;
+}
+
+.cc-modal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: $color-modal-title;
+}
+
+.cc-modal-subtitle {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-top: 0.75rem;
+}
+
+.cc-modal-search {
+  padding: 1rem 1.5rem 0.75rem 1.5rem;
+  flex-shrink: 0;
+
+  /* Minimal underline-style search (overrides the shared pill style for this modal only) */
+  .search-input-wrapper {
+    border: none;
+    border-bottom: 1px solid $color-border-light;
+    border-radius: 0;
+    background: transparent;
+    transition: border-color 0.15s ease-in-out;
+  }
+
+  .search-input-wrapper:focus-within {
+    border: none;
+    border-bottom: 1px solid $color-dark-blue;
+  }
+
+  .search-icon-wrapper {
+    padding: 0.375rem 0.75rem 0.375rem 0;
+  }
+
+  .search-icon {
+    font-size: 18px;
+    color: $color-text-dark;
+  }
+
+  .clear-search-btn {
+    border-left: none;
+  }
+}
+
+.cc-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1.5rem 0.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cc-loading,
+.cc-empty {
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+}
+
+.cc-connector-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 2px solid $color-border-light;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+
+  &.selected {
+    border-color: $midpoint-special-color;
+    background-color: $color-bg-selected;
+  }
+
+  &:hover:not(.selected) {
+    border-color: $color-gray-secondary;
+  }
+}
+
+.cc-connector-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cc-connector-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: $color-text-dark;
+}
+
+.cc-connector-desc {
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  margin-top: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cc-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid $color-border-light;
+  flex-shrink: 0;
+}
+
+.btn-link-inline {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Main layout: step sidebar + content side by side */
+.publish-main-layout {
+  display: flex;
+  min-width: 1080px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+/* Step Sidebar */
+.step-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  padding: 2rem 0 2rem 1.5rem;
+  margin-right: 50px;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-sidebar-item {
+  display: flex;
+  align-items: center;
+}
+
+.step-item-future {
+  opacity: 0.4;
+}
+
+.step-connector {
+  width: 2px;
+  height: 40px;
+  background-color: $color-border-light;
+  margin: 15px 0 15px 9px;
+}
+
+/* Modal main area */
+.modal-main {
+  display: flex;
+  flex: 1;
+}
+
+.modal-main-left {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.recently-used-empty {
+  font-size: 0.875rem;
+}
+
+.define-app-heading {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: $color-black;
+  margin-bottom: 1rem;
+}
+
+.define-app-subtitle {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: $color-black;
+  margin-bottom: 2rem;
+}
+
+/* Recently Used Section */
+.recently-used-section {
+  border: 1px solid $color-border-light;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto 1.5rem auto;
+}
+
+.recently-used-heading {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+  padding-bottom: 1rem;
+  margin: 0 -1.5rem 1rem -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  border-bottom: 1px solid $color-border-light;
+}
+
+.recently-used-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.recent-app-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid $color-border-light;
+  border-radius: 8px;
+  text-align: center;
+  width: 100px;
+
+  &:hover {
+    background-color: $color-bg-hover;
+    border-color: $color-border-input;
+  }
+}
+
+.recent-app-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: $color-bg-light;
+  margin-bottom: 0.375rem;
+}
+
+.breadcrumb-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-dark-blue;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-dark-blue;
+    text-decoration: underline;
+  }
+}
+
+.breadcrumb-sep {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.breadcrumb-current {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #000;
+}
+
+.breadcrumb-app-icon {
+  height: 1em;
+  width: auto;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.recent-app-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.recent-app-initial {
+  width: 100%;
+  height: 100%;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $color-white;
+  background: linear-gradient(135deg, $color-light-blue 0%, #50e6ff 100%);
+}
+
+.recent-app-name {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: $color-text-dark;
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+/* Origin Badge */
+.origin-badge-added {
+  background-color: rgba($color-darker-blue, 0.1);
+  color: $color-black;
+}
+
+/* Integration Method Cards (Step 2) */
+.im-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 90px;
+  gap: 1rem;
+}
+
+.im-card {
+  border: 1px solid $color-border-light;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: border-color 0.2s;
+
+  &:hover:not(.im-card-selected) {
+    border-color: $color-border-input;
+  }
+}
+
+.im-card-selected {
+  border: 2px solid $midpoint-special-color;
+  background-color: $color-bg-selected;
+}
+
+.im-checkbox {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  accent-color: $midpoint-special-color;
+  flex-shrink: 0;
+}
+
+/* Lets .im-title / .im-desc ellipsis work inside the flex row */
+.im-card-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.im-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: $color-text-dark;
+  margin-bottom: 0.25rem;
+  /* keep the title on a single line */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.im-desc {
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  /* clamp to 2 lines, trailing "…" when longer (full text via native title tooltip) */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Step 3 – copyright / documentation license notice */
+.copyright-notice {
+  padding: 1.25rem 1.5rem;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: $color-black;
+
+  a {
+    color: $color-dark-blue;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .copyright-notice-text {
+    margin: 0;
+  }
+}
+
+/* Step 3 – disabled input */
+.input-disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: default;
+}
+
+/* Step 3 – name + version row */
+.method-name-version-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  gap: 1rem;
+}
+
+/* Step 3 – Tutorial editor */
+.tutorial-section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-bottom: 0.25rem;
+}
+
+.tutorial-section-subtitle {
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  margin-bottom: 0.75rem;
+}
+
+.tutorial-editor-wrapper {
+  .EasyMDEContainer {
+    .CodeMirror {
+      border-radius: 0 0 4px 4px;
+      font-size: 0.875rem;
+      min-height: 180px;
+    }
+
+    .editor-toolbar {
+      border-radius: 4px 4px 0 0;
+      opacity: 1;
+    }
+  }
+}
+
+/* Step 3 – Tutorial file drop zone */
+.tutorial-import-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-bottom: 0.5rem;
+}
+
+.tutorial-dropzone {
+  border: 1.5px dashed $color-border-input;
+  border-radius: 6px;
+  background-color: $color-bg-light;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+
+  &:hover, &.tutorial-dropzone-over {
+    border-color: $midpoint-special-color;
+    background-color: rgba($midpoint-special-color, 0.04);
+  }
+}
+
+.tutorial-dropzone-icon {
+  font-size: 1.5rem;
+  color: $color-text-secondary;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.tutorial-dropzone-text {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  margin-bottom: 0.25rem;
+}
+
+.tutorial-dropzone-link {
+  color: $midpoint-special-color;
+  font-weight: 500;
+}
+
+.tutorial-dropzone-hint {
+  font-size: 0.75rem;
+  color: $color-gray-secondary;
+}
+
+/* Step 3 – Tutorial file list */
+.tutorial-file-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.tutorial-file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  background-color: $color-white;
+  font-size: 0.875rem;
+}
+
+.tutorial-file-icon {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  flex-shrink: 0;
+}
+
+.tutorial-file-name-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tutorial-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: $color-text-dark;
+}
+
+.tutorial-file-new-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background-color: $color-success;
+  color: $color-white;
+  border-radius: 4px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.tutorial-file-delete {
+  background: none;
+  border: none;
+  padding: 0 0.25rem;
+  cursor: pointer;
+  color: #dc3545;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  line-height: 1;
+
+  &:hover {
+    opacity: 0.7;
+  }
+}
+
+/* Step 4 – existing connectors link */
+.connector-existing-link {
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.connector-existing-anchor {
+  color: $midpoint-special-color;
+  font-weight: 500;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.connector-existing-icon {
+  font-size: 0.75rem;
+  margin-left: 2px;
+}
+
+/* Category combobox */
+.category-combobox {
+  position: relative;
+
+  &.open .category-select-trigger {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.category-select-trigger {
+  cursor: pointer;
+  user-select: none;
+}
+
+.category-placeholder {
+  color: $color-gray-secondary;
+}
+
+.category-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1060;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-option {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #212529;
+
+  &:hover {
+    background-color: #e9ecef;
+  }
+
+  &.category-option-selected {
+    background-color: $color-bg-selected;
+  }
+}
+
+/* Define New Button */
+.btn-define-new {
+  background-color: $color-bg-muted;
+  border: 1px solid $color-border-input;
+  color: $color-text-dark;
+}

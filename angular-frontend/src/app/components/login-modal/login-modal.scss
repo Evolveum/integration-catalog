@@ -1,0 +1,29 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+
+/* Login Modal Styles */
+
+.modal-backdrop-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.modal-container {
+  z-index: 1050;
+}
+
+.modal-dialog-login {
+  max-width: 400px;
+  margin: auto;
+}
+
+.modal-header-login {
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.modal-body-login {
+  padding: 1.5rem;
+}

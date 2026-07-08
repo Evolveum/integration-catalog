@@ -1,0 +1,849 @@
+<!-- Version exists warning toast -->
+@if (showVersionExistsWarning()) {
+  <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 1090;">
+    <div class="toast-box rounded-2 overflow-hidden">
+      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation toast-icon"></i>
+          <strong>Version Already Exists</strong>
+        </div>
+        <button type="button" class="btn-close" (click)="closeVersionExistsWarning()" aria-label="Close"></button>
+      </div>
+      <div class="px-3 py-2 toast-body-warning">
+        Version <strong>{{ existingVersion() }}</strong> already exists in the catalog. Please use a different version number.
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Email copied toast -->
+@if (emailCopied()) {
+  <div class="position-fixed bottom-0 start-50 translate-middle-x pb-4" style="z-index:9999;">
+    <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 shadow-sm" style="background:#212529; color:#fff; font-size:0.875rem;">
+      <i class="fa-solid fa-check"></i> Email address copied to clipboard
+    </div>
+  </div>
+}
+
+<!-- Step 7: Publish confirmation -->
+@if (publishComplete()) {
+  <div class="publish-complete-wrap">
+    <i class="fa-regular fa-clock publish-complete-clock"></i>
+    <h4 class="publish-complete-title">Your integration method is awaiting approval</h4>
+    <p class="publish-complete-subtitle">
+      Our team will process your integration method promptly and expects to get back to you
+      <strong>within 1-4 weeks</strong>. If you have questions, please contact us at.
+      <!-- <a href="mailto:help&#64;evolveum.com" class="publish-email-link">help&#64;evolveum.com</a>. -->
+    </p>
+
+    <table class="publish-complete-table">
+      <thead>
+        <tr>
+          <th>Created on</th>
+          <th>Status</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ publishCreatedOn() | date:'MMMM d, yyyy' }}</td>
+          <td><span class="publish-status-badge">Awaiting approval</span></td>
+          <td>
+            <button type="button" class="btn publish-app-detail-btn btn-sm" (click)="cancelPublish()">Cancel</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="publish-complete-footer">
+      @if (publishedApplicationId() || reviewSummary?.applicationId) {
+        <button type="button" class="btn btn-outline-secondary publish-app-detail-btn" (click)="navigateToAppDetail()">
+          @if (reviewSummary?.applicationLogoUrl) {
+            <img [src]="reviewSummary!.applicationLogoUrl" [alt]="reviewSummary!.applicationName" class="publish-app-detail-icon">
+          }
+          {{ reviewSummary?.applicationName }} application detail
+        </button>
+      }
+      <button type="button" class="btn btn-publish" routerLink="/">
+        Return to Integration catalog
+      </button>
+    </div>
+  </div>
+}
+
+@if (!publishComplete()) {
+  <!-- Modal body: step 5 or step 6 -->
+  <div class="modal-body modal-body-upload">
+
+    <!-- Step 5: Add connector -->
+    @if (internalStep() === 5) {
+      <div class="step-content">
+        <h5 class="step-title">Add connector</h5>
+
+        <!-- Accordion: Basic Information & Capabilities -->
+        <div class="accordion-panel mb-3">
+          <div class="accordion-panel-header" (click)="basicInfoExpanded.set(!basicInfoExpanded())">
+            <i class="fa-solid accordion-chevron"
+               [class.fa-chevron-right]="!basicInfoExpanded()"
+               [class.fa-chevron-down]="basicInfoExpanded()"></i>
+            <span class="accordion-panel-title">Basic information &amp; capabilities</span>
+          </div>
+          @if (basicInfoExpanded()) {
+            <div class="accordion-panel-body">
+
+              <!-- Connector name + version -->
+              <div class="row g-3 mb-3">
+                <div class="col-8">
+                  <label class="form-label form-label-upload">
+                    Connector name <span class="text-danger">*</span>
+                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                      <i class="fa-solid fa-circle-info info-icon"></i>
+                      <span class="info-tooltip">The display name of this connector in the catalog.</span>
+                    </span>
+                  </label>
+                  <input type="text" class="form-control"
+                         [value]="connectorName()"
+                         (input)="connectorName.set($any($event.target).value); onFieldChange()"
+                         placeholder="Enter connector name">
+                </div>
+                <div class="col-4">
+                  <label class="form-label form-label-upload">
+                    Connector version@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                      <i class="fa-solid fa-circle-info info-icon"></i>
+                      <span class="info-tooltip">Version of this connector (e.g. 1.0.0). Must contain at least two dots.</span>
+                    </span>
+                  </label>
+                  <input type="text"
+                         [class.form-control]="true"
+                         [class.input-disabled]="isExistingConnector"
+                         [value]="connectorVersion()"
+                         (input)="onConnectorVersionInput($event)"
+                         (blur)="onConnectorVersionBlur($event)"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. 1.0.0">
+                  @if (isConnectorVersionInvalid() && !isExistingConnector) {
+                    <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
+                  }
+                </div>
+              </div>
+
+              <!-- Maintainer -->
+              <div class="mb-3">
+                <label class="form-label form-label-upload">
+                  Maintainer <span class="text-danger">*</span>
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
+                  </span>
+                </label>
+                <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
+                  <input type="text" class="form-select"
+                         [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                         (input)="onMaintainerInput($event)"
+                         (focus)="onMaintainerFocus()"
+                         (blur)="onMaintainerBlur()"
+                         placeholder="Select maintainer...">
+                  @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
+                    <div class="maintainer-dropdown">
+                      @for (option of filteredMaintainerOptions(); track option) {
+                        <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ option }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- License -->
+              <div class="mb-3">
+                <label class="form-label form-label-upload">
+                  License type <span class="text-danger">*</span>
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">Specifies the software licensing terms (e.g., Apache 2.0, EUPL 1.2). Used for compliance tracking and auditing purposes.</span>
+                  </span>
+                </label>
+                <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
+                  <div class="form-select license-select-trigger"
+                       [class.license-placeholder]="!connectorLicense()"
+                       tabindex="0"
+                       (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (blur)="onLicenseBlur()"
+                       (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
+                    {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
+                  </div>
+                  @if (isLicenseDropdownOpen()) {
+                    <div class="license-dropdown">
+                      @for (opt of licenseOptions; track opt) {
+                        <div class="license-option"
+                             [class.license-option-selected]="connectorLicense() === opt"
+                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Description -->
+              <div class="mb-3">
+                <label class="form-label form-label-upload">Connector description</label>
+                <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
+                          [value]="connectorDescription()"
+                          (input)="connectorDescription.set($any($event.target).value); onFieldChange()"></textarea>
+                <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+              </div>
+
+              <!-- Connector bundle name (java-based only) -->
+              @if (isJavaBasedConnector) {
+              <div class="mb-4">
+                <label class="form-label form-label-upload">
+                  Connector bundle name
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">Display name for the connector bundle grouping related connector versions.</span>
+                  </span>
+                </label>
+                <input type="text" class="form-control"
+                       [class.input-disabled]="isExistingConnector"
+                       [value]="connectorBundleName()"
+                       (input)="connectorBundleName.set($any($event.target).value); bundleNameTaken.set(false); onFieldChange()"
+                       (blur)="onBundleNameBlur()"
+                       [disabled]="isExistingConnector"
+                       placeholder="Enter connector bundle name">
+                @if (bundleNameTaken()) {
+                  <div class="field-error">This bundle name is already taken. Please choose a different one.</div>
+                }
+              </div>
+              }
+
+              <!-- Connector capabilities -->
+              <div class="mb-3">
+                <label class="form-label form-label-upload">Define capabilities for:@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}</label>
+                <app-capability-picker [initialCapabilities]="connectorCapabilities()" (capabilitiesChange)="onConnectorCapabilitiesChange($event)"></app-capability-picker>
+              </div>
+
+            </div>
+          }
+        </div>
+
+        <!-- Accordion: Development & Build -->
+        <div class="accordion-panel mb-3">
+          <div class="accordion-panel-header" (click)="devBuildExpanded.set(!devBuildExpanded())">
+            <i class="fa-solid accordion-chevron"
+               [class.fa-chevron-right]="!devBuildExpanded()"
+               [class.fa-chevron-down]="devBuildExpanded()"></i>
+            <span class="accordion-panel-title">Development &amp; build</span>
+          </div>
+          @if (devBuildExpanded()) {
+            <div class="accordion-panel-body">
+
+              <h6 class="dev-section-title">Repository &amp; Documentation</h6>
+
+              <!-- Project homepage -->
+              <div class="mb-3">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  Project homepage
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip"><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the Integration Catalog.</span>
+                  </span>
+                </label>
+                <div class="method-link-wrapper d-flex align-items-center">
+                  <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                  <input type="url" class="method-link-input flex-grow-1"
+                         [value]="devProjectHomepage()"
+                         (input)="devProjectHomepage.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. https://github.com/Evolveum/connector-ldap">
+                </div>
+              </div>
+
+              <!-- Support portal -->
+              <div class="mb-3">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  Support portal
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip"><strong>Link to the support portal</strong><br><br>Provide the URL to the dedicated support page for this connector. This allows users to submit service requests, report bugs, or access professional technical assistance provided by the maintainer.</span>
+                  </span>
+                </label>
+                <div class="method-link-wrapper d-flex align-items-center">
+                  <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                  <input type="url" class="method-link-input flex-grow-1"
+                         autocomplete="off"
+                         [value]="devSupportPortal()"
+                         (input)="devSupportPortal.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. https://support.evolveum.com">
+                </div>
+                <div class="form-text">Ensure the link is accessible to the intended audience.</div>
+              </div>
+
+              <!-- Evolveum-hosted: source file + repo ownership + GitHub API key -->
+              @if (connectorType === 'evolveum-hosted' && !isExistingConnector) {
+                <h6 class="dev-section-title mt-3">Source and implementation details</h6>
+
+                <!-- Import a source file -->
+                <div class="mb-3">
+                  <label class="form-label form-label-upload">Import a source file</label>
+                  <div class="tutorial-dropzone"
+                       [class.tutorial-dropzone-over]="devSourceFileDragOver()"
+                       (dragover)="$event.preventDefault(); devSourceFileDragOver.set(true)"
+                       (dragleave)="devSourceFileDragOver.set(false)"
+                       (drop)="onSourceFileDrop($any($event))"
+                       (click)="sourceFileInput.click()">
+                    <input #sourceFileInput type="file" class="d-none" accept=".zip" (change)="onSourceFileSelect($event)">
+                    <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
+                    <div class="tutorial-dropzone-text">
+                      @if (devSourceFile()) {
+                        <span class="tutorial-dropzone-link">{{ devSourceFile()!.name }}</span>
+                      } @else {
+                        <span class="tutorial-dropzone-link">Click to import</span> or drag and drop
+                      }
+                    </div>
+                    <div class="tutorial-dropzone-hint">the files in the accepted format (.zip)</div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label form-label-upload">Where should we create the repository?</label>
+                  <div style="display:flex; flex-wrap:nowrap; gap:2rem;">
+                    <div class="form-check" style="white-space:nowrap;">
+                      <input class="form-check-input" type="radio" name="devRepoOwnership" id="repo-evolveum"
+                             [checked]="devRepoOwnership() === 'evolveum'"
+                             (change)="devRepoOwnership.set('evolveum'); onFieldChange()">
+                      <label class="form-check-label" for="repo-evolveum">Use Evolveum's GitHub account (default)</label>
+                    </div>
+                    <div class="form-check" style="white-space:nowrap;">
+                      <input class="form-check-input" type="radio" name="devRepoOwnership" id="repo-own"
+                             [checked]="devRepoOwnership() === 'own'"
+                             (change)="devRepoOwnership.set('own'); onFieldChange()">
+                      <label class="form-check-label" for="repo-own">Use your own GitHub account</label>
+                    </div>
+                  </div>
+                </div>
+                @if (devRepoOwnership() === 'own') {
+                  <div class="mb-3">
+                    <label class="form-label form-label-upload">GitHub API Key</label>
+                    <div class="method-link-wrapper d-flex align-items-center">
+                      <input [type]="showGithubApiKey() ? 'text' : 'password'"
+                             class="method-link-input flex-grow-1"
+                             autocomplete="new-password"
+                             [value]="devGithubApiKey()"
+                             (input)="devGithubApiKey.set($any($event.target).value); onFieldChange()"
+                             placeholder="••••••••••••••••••••••••••••••••••••••••••••••">
+                      <button type="button" class="method-link-clear d-flex align-items-center px-2"
+                              (click)="showGithubApiKey.set(!showGithubApiKey())">
+                        <i class="fa-solid" [class.fa-eye]="!showGithubApiKey()" [class.fa-eye-slash]="showGithubApiKey()"></i>
+                      </button>
+                    </div>
+                    <div class="form-text mt-1">
+                      <i class="fa-regular fa-lightbulb me-1 lighbulb-icon"></i>
+                      We'll use this API key once to create a repository in your GitHub account. The key is not stored.
+                    </div>
+                    <div class="form-text">
+                      Need help creating a GitHub API key? See Github's guide on personal access tokens:
+                      <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token"
+                         target="_blank" rel="noopener noreferrer" class="github-api-key-link">
+                        How to create Github API Key <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem;"></i>
+                      </a>
+                    </div>
+                  </div>
+                }
+              }
+
+              <!-- Framework setting (java-based only) -->
+              @if (isJavaBasedConnector) {
+                <h6 class="dev-section-title mt-3">Framework setting</h6>
+                <div class="mb-3">
+                  <label class="form-label d-flex align-items-center form-label-upload">
+                    Build tool@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                      <i class="fa-solid fa-circle-info info-icon"></i>
+                      <span class="info-tooltip">The build system used to compile this connector.</span>
+                    </span>
+                  </label>
+                  <div class="d-flex gap-4">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="devBuildTool" id="build-maven"
+                             [checked]="devBuildTool() === 'maven'"
+                             (change)="devBuildTool.set('maven'); onFieldChange()"
+                             [disabled]="isExistingConnector">
+                      <label class="form-check-label" for="build-maven">Maven</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="devBuildTool" id="build-gradle"
+                             [checked]="devBuildTool() === 'gradle'"
+                             (change)="devBuildTool.set('gradle'); onFieldChange()"
+                             [disabled]="isExistingConnector">
+                      <label class="form-check-label" for="build-gradle">Gradle</label>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (connectorType !== 'evolveum-hosted' || isExistingConnector) {
+              <!-- Source code access -->
+              <h6 class="dev-section-title mt-3">Source code access</h6>
+
+              <!-- Git clone URL -->
+              <div class="mb-3">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  Git clone URL@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">The technical address used by the build system (Jenkins) to download the source code. Copy the 'Clone' URL from your repository.</span>
+                  </span>
+                </label>
+                <div class="method-link-wrapper d-flex align-items-center"
+                     [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid() && !isExistingConnector">
+                  <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                  <input type="url" class="method-link-input flex-grow-1"
+                         [value]="devGitCloneUrl()"
+                         (input)="devGitCloneUrl.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. https://github.com/Evolveum/connector-ldap.git">
+                </div>
+                @if (isGitCloneUrlInvalid() && !isExistingConnector) {
+                  <div class="field-error">Invalid format. Please use a Git clone URL (e.g., ending in .git).</div>
+                } @else {
+                  <div class="form-text">Ensure the link is accessible to the intended audience.</div>
+                }
+              </div>
+
+              <!-- Commit tag -->
+              <div class="mb-3">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  Commit tag@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip"><strong>Version identifier of the source code.</strong><br><br>Enter a specific release tag (e.g., 1.0.4) to build a stable version of the connector. If needed, you can also enter a development branch name to build from the latest code.</span>
+                  </span>
+                </label>
+                <div class="method-link-wrapper d-flex align-items-center">
+                  <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-tag method-link-icon-i"></i></span>
+                  <input type="text" class="method-link-input flex-grow-1"
+                         [value]="devCommitTag()"
+                         (input)="devCommitTag.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. 1.0.4">
+                </div>
+              </div>
+
+              <!-- Implementation details -->
+              <h6 class="dev-section-title mt-3">Implementation details</h6>
+
+              <!-- Project folder path -->
+              <div class="mb-3">
+                <label class="form-label d-flex align-items-center form-label-upload">
+                  Project folder path@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip"><strong>Location of the connector within the repository</strong><br><br>Specify the folder where the connector source code is located. Leave this field empty if the code is in the main (root) directory of the repository.</span>
+                  </span>
+                </label>
+                <div class="method-link-wrapper d-flex align-items-center">
+                  <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-regular fa-folder method-link-icon-i"></i></span>
+                  <input type="text" class="method-link-input flex-grow-1"
+                         [value]="devProjectFolderPath()"
+                         (input)="devProjectFolderPath.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. /connectors/my-ldap-connector">
+                </div>
+                <div class="form-text">Specific directory containing the build file (e.g. pom.xml). Leave empty if the project is in the repository root.</div>
+              </div>
+              } <!-- end @if connectorType !== 'evolveum-hosted' -->
+
+              <!-- Class name (java-based only) -->
+              @if (isJavaBasedConnector) {
+                <div class="mb-0">
+                  <label class="form-label d-flex align-items-center form-label-upload">
+                    {{ isExistingConnector ? 'Connector entry class' : 'Class name' }}@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                      <i class="fa-solid fa-circle-info info-icon"></i>
+                      <span class="info-tooltip"><strong>The main entry point of the connector logic.</strong><br><br>Specify the full Java class name that implements the connector. Unlike file paths, this uses dot notation to separate packages (e.g., com.example.MyConnector). This class tells midPoint which part of the code to execute.</span>
+                    </span>
+                  </label>
+                  <div class="method-link-wrapper d-flex align-items-center"
+                       [class.method-link-wrapper--invalid]="isClassNameInvalid() && !isExistingConnector">
+                    <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
+                    <input type="text" class="method-link-input flex-grow-1"
+                           [value]="devClassName()"
+                           (input)="devClassName.set($any($event.target).value); onFieldChange()"
+                           [disabled]="isExistingConnector"
+                           placeholder="e.g. org.identityconnectors.ldap.LdapConnector">
+                  </div>
+                  @if (isClassNameInvalid() && !isExistingConnector) {
+                    <div class="field-error">Invalid format. Use a full Java class name with dots (e.g., com.project.ConnectorClass) and no spaces.</div>
+                  }
+                </div>
+              }
+
+            </div>
+          }
+        </div>
+
+        <!-- Note alert -->
+        @if (isExistingConnector) {
+          <div class="alert-info-note d-flex gap-2 align-items-start mt-2">
+            <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+            <span class="alert-text">
+              <strong>Note</strong>&nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Step 6: Compatibility settings -->
+    @if (internalStep() === 6) {
+      <div class="step-content">
+        <h5 class="step-title">Compatibility settings</h5>
+        <p class="compat-step-desc">
+          Specify which versions of midPoint and connectors this integration method supports. <br />
+          This helps users find Integration methods compatible with their environments.
+        </p>
+
+        <!-- Supported midPoint version -->
+        <div class="compat-section mb-4">
+          <h6 class="compat-section-title">Supported midPoint version</h6>
+          <p class="compat-section-desc">
+            Define the range of midPoint versions that have been successfully tested with this integration method.
+            This affects its discoverability in the catalog.
+          </p>
+          <div class="d-flex align-items-end gap-3 mb-2">
+            <div>
+              <label class="form-label form-label-upload">From version <span class="text-danger">*</span></label>
+              <select class="form-select compat-version-select"
+                      [ngModel]="midpointMinVersionId()"
+                      (ngModelChange)="midpointMinVersionId.set($event)">
+                <option [ngValue]="null">Select version</option>
+                @for (v of midpointVersions(); track v.id) {
+                  <option [ngValue]="v.id">{{ v.version }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="form-label form-label-upload">To version</label>
+              <select class="form-select compat-version-select"
+                      [ngModel]="midpointMaxVersionId()"
+                      (ngModelChange)="midpointMaxVersionId.set($event)">
+                <option [ngValue]="null">Select version</option>
+                @for (v of midpointVersions(); track v.id) {
+                  <option [ngValue]="v.id">{{ v.version }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          @if (isMidpointVersionRangeInvalid()) {
+            <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
+          } @else {
+            <div class="form-text">Only include versions you have actively tested. Untested versions can be added later.</div>
+          }
+        </div>
+
+        <!-- Connector version ranges -->
+        <div class="compat-section">
+          <h6 class="compat-section-title">Connector version ranges</h6>
+          <div class="compat-connector-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <div class="compat-connector-name">{{ connectorName() }}</div>
+                @if (connectorVersion()) {
+                  <div class="compat-connector-version">v{{ connectorVersion() }} — configured</div>
+                }
+              </div>
+              <span class="compat-badge">{{ isExistingConnector ? 'existing connector' : 'custom connector' }}</span>
+            </div>
+            <div class="compat-range-label">SUPPORTED VERSION RANGE</div>
+            <div class="d-flex gap-3 mb-2">
+              <div class="flex-grow-1">
+                <label class="form-label form-label-upload">
+                  From version <span class="text-danger">*</span>
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">The minimum connector version this integration method has been tested with.</span>
+                  </span>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="connectorVersionFrom()"
+                       (input)="connectorVersionFrom.set($any($event.target).value)"
+                       [placeholder]="connectorVersion() || '1.0.0'">
+              </div>
+              <div class="flex-grow-1">
+                <label class="form-label form-label-upload">
+                  To version
+                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                    <i class="fa-solid fa-circle-info info-icon"></i>
+                    <span class="info-tooltip">Leave empty if you expect the connector to be compatible with future releases.</span>
+                  </span>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="connectorVersionTo()"
+                       (input)="connectorVersionTo.set($any($event.target).value)"
+                       placeholder="e.g. 1.0.0">
+              </div>
+            </div>
+            <div class="form-text mb-3">Enter a version in the X.Y.Z format. Users can search for this connector by version range.</div>
+            @if (!compatInfoDismissed()) {
+              <div class="compat-info-note d-flex gap-2 align-items-center">
+                <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0"></i>
+                <span>Do not specify a "To version" if you expect your integration method will be compatible with future releases of the connector.</span>
+                <button type="button" class="compat-info-close flex-shrink-0 ms-auto" (click)="compatInfoDismissed.set(true)" aria-label="Dismiss">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Step 7: Review -->
+    @if (internalStep() === 7) {
+      <div class="step-content">
+        <h5 class="step-title">Review your setup</h5>
+
+        <!-- Card 1: Target application -->
+        <div class="review-card mb-3">
+          <div class="review-card-header">
+            <span class="review-card-title">Target application</span>
+            <button type="button" class="review-edit-btn" (click)="goToParentStep.emit(1)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <div class="review-card-body">
+            <div class="d-flex align-items-center gap-2">
+              @if (reviewSummary?.applicationLogoUrl) {
+                <img [src]="reviewSummary!.applicationLogoUrl" [alt]="reviewSummary!.applicationName" class="review-app-logo">
+              } @else if (reviewSummary?.applicationLogoPreviewUrl) {
+                <img [src]="reviewSummary!.applicationLogoPreviewUrl!" alt="App logo" class="review-app-logo">
+              } @else {
+                <div class="review-app-avatar d-flex align-items-center justify-content-center">
+                  {{ (reviewSummary?.applicationName || '?').charAt(0) }}
+                </div>
+              }
+              <span class="review-app-name">{{ reviewSummary?.applicationName }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Integration method -->
+        <div class="review-card mb-3">
+          <div class="review-card-header">
+            <span class="review-card-title">Integration method</span>
+            <button type="button" class="review-edit-btn" (click)="goToParentStep.emit(2)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <div class="review-card-body">
+            <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+              @for (title of reviewSummary?.methodTitles ?? []; track title; let last = $last) {
+                <span class="review-method-badge">{{ title }}</span>
+                @if (!last) { <span class="review-method-separator">+</span> }
+              }
+            </div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="review-detail-name">{{ reviewSummary?.methodName }}</span>
+            </div>
+            <p class="review-description mb-0">Integration method description: {{ reviewSummary?.methodDescription }}</p>
+          </div>
+        </div>
+
+        <!-- Card 3: Connector type -->
+        <div class="review-card mb-3">
+          <div class="review-card-header">
+            <span class="review-card-title">Connector type</span>
+            <button type="button" class="review-edit-btn" (click)="goToParentStep.emit(4)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <div class="review-card-body">
+            <span class="review-method-badge d-inline-flex align-items-center gap-2">
+              <i class="fa-solid fa-screwdriver-wrench review-type-icon"></i>
+              {{ connectorTypeLabel }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Card 4: Connector details -->
+        <div class="review-card mb-3">
+          <div class="review-card-header">
+            <span class="review-card-title">Connector details</span>
+            <button type="button" class="review-edit-btn" (click)="internalStep.set(5)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <div class="review-card-body">
+            <div class="review-detail-row">
+              <span class="review-detail-label">Connector name:</span>
+              <span class="review-detail-value d-flex align-items-center gap-2">
+                {{ connectorName() }}
+                @if (connectorVersion()) { <span class="review-version-badge">{{ connectorVersion() }}</span> }
+              </span>
+            </div>
+            @if (devProjectHomepage()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Project homepage:</span>
+                <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devProjectHomepage() }}</span>
+              </div>
+            }
+            @if (devSupportPortal()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Support portal:</span>
+                <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devSupportPortal() }}</span>
+              </div>
+            }
+            @if (devGitCloneUrl()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Git clone URL:</span>
+                <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devGitCloneUrl() }}</span>
+              </div>
+            }
+            @if (devCommitTag()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Commit tag:</span>
+                <span class="review-detail-value"><i class="fa-solid fa-tag review-link-icon me-1"></i>{{ devCommitTag() }}</span>
+              </div>
+            }
+            @if (devProjectFolderPath()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Project folder path:</span>
+                <span class="review-detail-value">{{ devProjectFolderPath() }}</span>
+              </div>
+            }
+            @if (devClassName() && (connectorType === 'java-based' || isExistingConnector)) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">{{ isExistingConnector ? 'Connector entry class:' : 'Class name:' }}</span>
+                <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devClassName() }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Card 5: Compatibility setting -->
+        <div class="review-card mb-3">
+          <div class="review-card-header">
+            <span class="review-card-title">Compatibility setting</span>
+            <button type="button" class="review-edit-btn" (click)="internalStep.set(6)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+          <div class="review-card-body">
+            @if (midpointMinVersionId()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Supported midPoint version:</span>
+                <span class="review-detail-value">
+                  {{ getMidpointVersionLabel(midpointMinVersionId()) }}
+                  @if (midpointMaxVersionId()) { &nbsp;-&nbsp;{{ getMidpointVersionLabel(midpointMaxVersionId()) }} }
+                </span>
+              </div>
+            }
+            <!-- @if (connectorVersion()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Connector version:</span>
+                <span class="review-detail-value">{{ connectorVersion() }}</span>
+              </div>
+            } -->
+            @if (connectorVersionFrom()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">{{ connectorName() }}:</span>
+                <span class="review-detail-value">
+                  {{ connectorVersionFrom() }}
+                  @if (connectorVersionTo()) { &nbsp;-&nbsp;{{ connectorVersionTo() }} }
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Note alert -->
+        <div class="alert-info-note d-flex gap-2 align-items-start mt-3">
+          <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+          <span class="alert-text">
+            <strong>Note</strong> &nbsp;Once published, this integration method will appear in the public catalog and be visible to other users.
+          </span>
+        </div>
+
+        <!-- License / publishing notice -->
+        <div class="publish-license-notice mt-3">
+          <p class="publish-license-text">
+            By publishing this integration method, you confirm that you hold all rights necessary to publish this content
+            under the license you have selected, that the content does not infringe any third-party rights, and that it
+            complies with Evolveum's <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> and
+            <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+          </p>
+
+          @if (licenseExpanded()) {
+            <p class="publish-license-text">
+              You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce,
+              adapt, modify, translate, publish, publicly perform, publicly display and distribute this content solely
+              for the purpose of hosting and displaying it in the Integration Catalog under the license you have
+              selected. Any tutorial, documentation, or descriptive text accompanying your submission will be published
+              under Evolveum's standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives
+              4.0 International (CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector
+              or configuration itself. Evolveum reserves the right to remove or decline publication of any submitted
+              content at its sole discretion, including but not limited to content that violates these
+              <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> or the
+              <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+            </p>
+          }
+
+          <button type="button" class="publish-license-toggle" (click)="licenseExpanded.set(!licenseExpanded())">
+            @if (licenseExpanded()) {
+              <i class="fa-solid fa-minus me-2"></i>Show less
+            } @else {
+              <i class="fa-solid fa-plus me-2"></i>Show more
+            }
+          </button>
+        </div>
+
+        <!-- Print consent document -->
+        <button type="button" class="btn btn-print-consent mt-3" (click)="printConsentDocument()">
+          <i class="fa-solid fa-print me-2"></i>Print consent document
+        </button>
+
+        <!-- Confirmation checkbox -->
+        <div class="form-check publish-license-confirm mt-3">
+          <input class="form-check-input" type="checkbox" id="publishConfirmCheck"
+                 [checked]="publishConfirmed()"
+                 (change)="publishConfirmed.set($any($event.target).checked)">
+          <label class="form-check-label" for="publishConfirmCheck">
+            I confirm that I have read and agree to the Terms of Use, and that I hold all necessary rights to publish this content.
+          </label>
+        </div>
+      </div>
+    }
+
+  </div><!-- end modal-body -->
+
+  <!-- Footer -->
+  <div class="modal-footer d-flex justify-content-between modal-footer-upload">
+    <button type="button" class="btn d-flex align-items-center btn-back" (click)="previousInternalStep()">
+      <i class="fa-solid fa-arrow-left me-2 btn-back-icon"></i>Back
+    </button>
+    <div>
+      @if (internalStep() === 5) {
+        <button type="button" class="btn btn-primary btn-next" [disabled]="!isStep5Valid" (click)="nextInternalStep()">
+          Continue <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+        </button>
+      }
+      @if (internalStep() === 6) {
+        <button type="button" class="btn btn-primary btn-next" [disabled]="!isCompatibilityStepValid" (click)="nextInternalStep()">
+          Continue <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+        </button>
+      }
+      @if (internalStep() === 7) {
+        <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing() || !publishConfirmed()" (click)="publishIntegrationMethod()">
+          @if (isPublishing()) {
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Publishing...
+          } @else {
+            Publish integration method <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+          }
+        </button>
+      }
+    </div>
+  </div>
+}

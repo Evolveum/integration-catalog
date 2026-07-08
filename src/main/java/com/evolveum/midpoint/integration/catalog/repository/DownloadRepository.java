@@ -6,25 +6,24 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
+import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.Download;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
-import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
+import java.time.LocalDateTime;
 
 /**
  * Created by Tomas.
  */
-public interface DownloadRepository extends JpaRepository<Download, UUID>,
+public interface DownloadRepository extends JpaRepository<Download, Integer>,
         JpaSpecificationExecutor<Download> {
 
-        boolean existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(ImplementationVersion implementationVersion,
-                                      InetAddress ipAddress,
-                                      String userAgent,
-                                      OffsetDateTime downloadedAt);
+    boolean existsByConnectorBundleVersionAndIpAddressAndUserAgentAndDownloadedAt(
+            ConnectorBundleVersion connectorBundleVersion,
+            String ipAddress,
+            String userAgent,
+            LocalDateTime downloadedAt);
 
-    long countByImplementationVersionId(UUID implementationVersionId);
+    long countByConnectorBundleVersion(ConnectorBundleVersion connectorBundleVersion);
 }

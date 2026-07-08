@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -41,5 +42,10 @@ public class JpaApplicationReadAdapter implements ApplicationReadPort {
     public Application getById(UUID id) {
         return repo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Application " + id + " not found"));
+    }
+
+    @Override
+    public List<Application> findByLifecycleState(Application.ApplicationLifecycleType lifecycleState) {
+        return repo.findByLifecycleState(lifecycleState);
     }
 }

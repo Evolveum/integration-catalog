@@ -7,15 +7,16 @@
 package com.evolveum.midpoint.integration.catalog.repository;
 
 import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
-public interface ApplicationTagRepository extends JpaRepository<ApplicationTag, UUID>,
+public interface ApplicationTagRepository extends JpaRepository<ApplicationTag, Long>,
         JpaSpecificationExecutor<ApplicationTag> {
 
     List<ApplicationTag> findByTagType(ApplicationTag.ApplicationTagType tagType);
+
+    Optional<ApplicationTag> findByNameAndTagType(String name, ApplicationTag.ApplicationTagType tagType);
 }

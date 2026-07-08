@@ -6,12 +6,9 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion.CapabilitiesType;
-import com.evolveum.midpoint.integration.catalog.repository.adapter.CapabilitiesArrayConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnTransformer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,12 +32,23 @@ public class Request {
     @JoinColumn(name = "application_id", nullable = false)
     private Application application;
 
-    @Convert(converter = CapabilitiesArrayConverter.class)
-    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
-    @Column(name = "capabilities")
-    private CapabilitiesType[] capabilities;
-
+    @Column(name = "requester")
     private String requester;
+
+    @Column(name = "mail", length = 50)
+    private String mail;
+
+    @Column(name = "collab", nullable = false)
+    private boolean collab = false;
+
+    @Column(name = "base_url")
+    private String baseUrl;
+
+    @Column(name = "system_version", length = 20)
+    private String systemVersion;
+
+    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ObjectClassCapabilities> objectClassCapabilities = new ArrayList<>();
 
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<Vote> votes = new ArrayList<>();

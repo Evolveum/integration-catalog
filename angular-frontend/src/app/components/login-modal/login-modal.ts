@@ -14,10 +14,10 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './login-modal.html',
-  styleUrls: ['./login-modal.css']
+  styleUrls: ['./login-modal.scss']
 })
 export class LoginModal {
-  @Input() isOpen = signal<boolean>(false);
+  @Input() isOpen: boolean = false;
   @Output() modalClosed = new EventEmitter<void>();
 
   protected username = '';
@@ -39,13 +39,13 @@ export class LoginModal {
       return;
     }
 
-    const success = this.authService.login(this.username, this.password);
-
-    if (success) {
-      this.closeModal();
-    } else {
-      this.errorMessage.set('Invalid username or password');
-    }
+    this.authService.login(this.username, this.password).subscribe(success => {
+      if (success) {
+        this.closeModal();
+      } else {
+        this.errorMessage.set('Invalid username or password');
+      }
+    });
   }
 
   private resetForm(): void {

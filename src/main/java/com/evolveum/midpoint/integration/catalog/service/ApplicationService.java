@@ -6,13 +6,9 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import ch.qos.logback.classic.Logger;
-import com.evolveum.midpoint.integration.catalog.IntegrationCatalogApplication;
 import com.evolveum.midpoint.integration.catalog.dto.*;
-import com.evolveum.midpoint.integration.catalog.common.ItemFile;
+import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
-import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
-import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
@@ -21,33 +17,24 @@ import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
-import com.evolveum.midpoint.integration.catalog.repository.adapter.InetAddress;
 
 import lombok.extern.slf4j.Slf4j;
-import org.kohsuke.github.GHRepository;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.http.HttpResponse;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Created by Dominik.
@@ -59,73 +46,62 @@ public class ApplicationService {
     private static final Logger LOG
             = (Logger) LoggerFactory.getLogger(ApplicationService.class);
 
-    private static final long DOWNLOAD_OFFSET_SECONDS = 10;
-
-    @Autowired
     private final ApplicationRepository applicationRepository;
-
-    @Autowired
     private final ApplicationTagRepository applicationTagRepository;
-
-    @Autowired
     private final CountryOfOriginRepository countryOfOriginRepository;
-
-    @Autowired
-    private final ImplementationRepository implementationRepository;
-
-    @Autowired
-    private final ImplementationVersionRepository implementationVersionRepository;
-
-    @Autowired
-    private final ConnidVersionRepository connidVersionRepository;
-
-    @Autowired
+    private final IntegrationMethodRepository integrationMethodRepository;
+    private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
+    private final MidpointVersionRepository midpointVersionRepository;
+    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final GithubProperties githubProperties;
-
-    @Autowired
     private final JenkinsProperties jenkinsProperties;
-
-    @Autowired
     private final DownloadRepository downloadRepository;
-
-    @Autowired
     private final RequestRepository requestRepository;
-
-    @Autowired
     private final VoteRepository voteRepository;
-
-    @Autowired
     private final ApplicationReadPort applicationReadPort;
-
-    @Autowired
     private final ApplicationMapper applicationMapper;
-
-    @Autowired
-    private final BundleVersionRepository bundleVersionRepository;
-
-    @Autowired
     private final ConnectorBundleRepository connectorBundleRepository;
+    private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
+    private final ApplicationTagService applicationTagService;
+    private final RecentlyUsedApplicationRepository recentlyUsedApplicationRepository;
+    private final BundleMergeService bundleMergeService;
+    private final RequestVotingService requestVotingService;
+    private final ConnectorDownloadService connectorDownloadService;
+    private final BuildCallbackService buildCallbackService;
+    private final ConnectorUploadService connectorUploadService;
+    private final CapabilityRepository capabilityRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
                               CountryOfOriginRepository countryOfOriginRepository,
-                              ImplementationRepository implementationRepository,
-                              ImplementationVersionRepository implementationVersionRepository,
-                              ConnidVersionRepository connidVersionRepository,
+                              IntegrationMethodRepository integrationMethodRepository,
+                              IntegrationMethodTypeRepository integrationMethodTypeRepository,
+                              MidpointVersionRepository midpointVersionRepository,
+                              ConnectorBundleRepository connectorBundleRepository,
+                              ConnectorBundleVersionRepository connectorBundleVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
                               DownloadRepository downloadRepository,
                               RequestRepository requestRepository,
                               VoteRepository voteRepository,
                               ApplicationReadPort applicationReadPort,
-                              ApplicationMapper applicationMapper, BundleVersionRepository bundleVersionRepository, ConnectorBundleRepository connectorBundleRepository
-    ) {
+                              ApplicationMapper applicationMapper,
+                              ApplicationApplicationTagRepository applicationApplicationTagRepository,
+                              ApplicationTagService applicationTagService,
+                              BundleMergeService bundleMergeService,
+                              RequestVotingService requestVotingService,
+                              ConnectorDownloadService connectorDownloadService,
+                              BuildCallbackService buildCallbackService,
+                              ConnectorUploadService connectorUploadService,
+                              RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
+                              CapabilityRepository capabilityRepository) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
-        this.implementationRepository = implementationRepository;
-        this.implementationVersionRepository = implementationVersionRepository;
-        this.connidVersionRepository = connidVersionRepository;
+        this.integrationMethodRepository = integrationMethodRepository;
+        this.integrationMethodTypeRepository = integrationMethodTypeRepository;
+        this.midpointVersionRepository = midpointVersionRepository;
+        this.connectorBundleVersionRepository = connectorBundleVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
         this.downloadRepository = downloadRepository;
@@ -133,8 +109,16 @@ public class ApplicationService {
         this.voteRepository = voteRepository;
         this.applicationReadPort = applicationReadPort;
         this.applicationMapper = applicationMapper;
-        this.bundleVersionRepository = bundleVersionRepository;
         this.connectorBundleRepository = connectorBundleRepository;
+        this.applicationApplicationTagRepository = applicationApplicationTagRepository;
+        this.applicationTagService = applicationTagService;
+        this.bundleMergeService = bundleMergeService;
+        this.requestVotingService = requestVotingService;
+        this.connectorDownloadService = connectorDownloadService;
+        this.buildCallbackService = buildCallbackService;
+        this.connectorUploadService = connectorUploadService;
+        this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
+        this.capabilityRepository = capabilityRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -142,238 +126,92 @@ public class ApplicationService {
                 .orElseThrow(() -> new RuntimeException("Application not found with id: " + uuid));
     }
 
-    public ImplementationVersion getImplementationVersion(UUID uuid) {
-        return implementationVersionRepository.getReferenceById(uuid);
+    public List<ApplicationTagDto> getApplicationTags() {
+        return applicationTagRepository.findAll().stream()
+                .map(tag -> new ApplicationTagDto(
+                        tag.getId(),
+                        tag.getName(),
+                        tag.getDisplayName(),
+                        tag.getTagType() != null ? tag.getTagType().name() : null
+                ))
+                .toList();
     }
 
-    public ConnidVersion getConnectorVersion(UUID id) {
-        ImplementationVersion implVersion = this.implementationVersionRepository.getReferenceById(id);
-        if (implVersion.getBundleVersion() != null && implVersion.getBundleVersion().getConnidVersion() != null) {
-            return connidVersionRepository.getReferenceById(implVersion.getBundleVersion().getConnidVersion());
-        }
-        return null;
+    public List<IntegrationMethodType> getIntegrationMethodTypes() {
+        return integrationMethodTypeRepository.findAll();
     }
 
-    public List<ApplicationTag> getApplicationTags() {
-        return applicationTagRepository.findAll();
+    public List<MidpointVersionDto> getMidpointVersions() {
+        return midpointVersionRepository.findAll().stream()
+                .map(v -> new MidpointVersionDto(v.getId(), v.getVersion(), v.getVersionName(), v.isCurrent()))
+                .toList();
     }
 
     public List<CategoryCountDto> getCategoryCounts() {
-        List<ApplicationTag> categoryTags = applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.CATEGORY);
-
-        List<CategoryCountDto> categoryCounts = categoryTags.stream()
+        return applicationTagRepository.findByTagType(ApplicationTag.ApplicationTagType.CATEGORY).stream()
                 .map(tag -> new CategoryCountDto(
                         tag.getDisplayName(),
-                        (long) tag.getApplicationApplicationTags().size()
-                ))
+                        (long) tag.getApplicationApplicationTags().size()))
                 .toList();
-
-        return categoryCounts;
     }
 
     public List<CountryOfOrigin> getCountriesOfOrigin() {
         return countryOfOriginRepository.findAll();
     }
 
-    /**
-     * Method upload connector to integration catalog and return link to git repository at the successful processing and failure message at a processing failure.
-     * The connector is stored on GitHub in case there is no GitHub repositor of the connector and then upload to nexus with a use jenkins job.
-     * @param dto UploadImplementationDto containing application, implementation, implementationVersion, and files
-     * @return
-     */
-    public String uploadConnector(UploadImplementationDto dto) {
-        Application application = dto.application();
-        ImplementationDTO implementationDto = dto.implementation();
-        Implementation implementation = new Implementation();
-
-        implementation.setDisplayName(implementationDto.displayName());
-        List<ItemFile> files = dto.files();
-
-        if (application.getId() != null) {
-            Optional<Application> existApplication = applicationRepository.findById(application.getId());
-            application = existApplication.orElseThrow(() -> new RuntimeException("Application not found"));
-        }
-
-        implementation.setApplication(application);
-
-        ConnectorBundle connectorBundle = new ConnectorBundle();
-        connectorBundle.setFramework(implementationDto.framework());
-        connectorBundle.setLicense(implementationDto.license());
-        connectorBundle.setMaintainer(implementationDto.maintainer());
-        connectorBundle.setTicketingSystemLink(implementationDto.ticketingSystemLink());
-
-        BundleVersion bundleVersion = new BundleVersion();
-        bundleVersion.setConnectorVersion( implementationDto.connectorVersion());
-        bundleVersion.setConnectorBundle(connectorBundle);
-        bundleVersion.setBuildFramework(implementationDto.buildFramework());
-
-        bundleVersion.setPathToProject(implementationDto.pathToProject());
-        bundleVersion.setBrowseLink(implementationDto.browseLink());
-        bundleVersion.setCheckoutLink(implementationDto.checkoutLink());
-
-        ImplementationVersion implementationVersion = new ImplementationVersion();
-        implementationVersion.setDescription(implementationDto.description());
-        implementationVersion.setImplementation(implementation);
-        implementationVersion.setBundleVersion(bundleVersion);
-        implementationVersion.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.IN_PUBLISH_PROCESS);
-
-        implementation.setConnectorBundle(connectorBundle);
-
-        // Check framework from ConnectorBundle
-        if (implementation.getConnectorBundle() != null) {
-            if (ConnectorBundle.FrameworkType.SCIM_REST.equals(implementation.getConnectorBundle().getFramework())) {
-
-                if (!(bundleVersion.getCheckoutLink() != null && !bundleVersion.getCheckoutLink().isEmpty()
-                        && bundleVersion.getBrowseLink() != null && !bundleVersion.getBrowseLink().isEmpty())) {
-                    try {
-                        GithubClient githubClient = new GithubClient(githubProperties);
-                        GHRepository repository = githubClient.createProject(implementation.getDisplayName(),
-                                implementationVersion, files);
-
-                        // Store repository links in BundleVersion
-                        if (implementationVersion.getBundleVersion() != null) {
-                            implementationVersion.getBundleVersion().setCheckoutLink(repository.getHttpTransportUrl());
-                            implementationVersion.getBundleVersion().setBrowseLink(repository.getHtmlUrl().toString() + "/tree/main");
-                        }
-                    } catch (Exception e) {
-                        // Store error in BundleVersion
-                        if (implementationVersion.getBundleVersion() != null) {
-                            implementationVersion.setErrorMessage(e.getMessage());
-                        }
-                        log.error(e.getMessage());
-                    }
-                }
-            } else {
-                if (ConnectorBundle.FrameworkType.CONNID.equals(implementation.getConnectorBundle().getFramework())) {
-                    implementationVersion.getBundleVersion().setCheckoutLink(implementationDto.checkoutLink());
-
-                    if (implementationVersion.getBundleVersion() != null) {
-                        implementationVersion.getBundleVersion().setBrowseLink(implementationDto.browseLink());
-                    }
-                }
-            }
-        }
-
-        applicationRepository.save(application);
-        connectorBundleRepository.save(connectorBundle);
-        implementationRepository.save(implementation);
-        bundleVersionRepository.save(bundleVersion);
-        implementationVersionRepository.save(implementationVersion);
-
-        // Check for errors in BundleVersion
-        String errorMessage = (implementationVersion.getBundleVersion() != null) ?
-                implementationVersion.getErrorMessage() : null;
-
-        if (errorMessage == null) {
-            try {
-                // Get data from BundleVersion and ConnectorBundle for Jenkins
-                String checkoutLink = implementationVersion.getBundleVersion() != null ?
-                        implementationVersion.getBundleVersion().getCheckoutLink() : "";
-                String browseLink = implementationVersion.getBundleVersion() != null ?
-                        implementationVersion.getBundleVersion().getBrowseLink() : "";
-                String framework = implementation.getConnectorBundle() != null ?
-                        implementation.getConnectorBundle().getFramework().name() : "";
-                String className = implementationDto.className() != null ?
-                        implementationDto.className() : "";
-                String pathToProject = implementationDto.pathToProject() != null ?
-                        implementationDto.pathToProject() : "";
-
-                //TODO
-                JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
-                HttpResponse<String> response = jenkinsClient.triggerJob(
-                        "integration-catalog-upload-connid-connector",
-                        Map.of("REPOSITORY_URL", checkoutLink,
-                                "BRANCH_URL", browseLink,
-                                "CONNECTOR_OID", implementationVersion.getId().toString(),
-                                "IMPL_TITLE", implementation.getDisplayName(),
-                                "IMPL_FRAMEWORK", framework,
-                                "SKIP_DEPLOY", "false",
-                                "CONNECTOR_CLASS", className,
-                                "PATH_TO_PROJECT", pathToProject));
-                log.info(response.body());
-                return response.body();
-//                return  "";
-            } catch (Exception e) {
-                if (implementationVersion.getBundleVersion() != null) {
-                    implementationVersion.setErrorMessage(e.getMessage());
-                    implementationVersionRepository.save(implementationVersion);
-                }
-                log.error(e.getMessage());
-                errorMessage = e.getMessage();
-            }
-        }
-
-        return errorMessage;
+    public boolean checkBundleNameExists(String bundleName) {
+        if (bundleName == null || bundleName.isBlank()) return false;
+        return connectorBundleRepository.existsByBundleName(bundleName);
     }
 
-    public String downloadConnector(String connectorVersion) {
-        // TODO move impl from controller
-        return null;
+    public List<CapabilityDto> getCapabilities() {
+        return capabilityRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparingInt(c -> c.getDisplayOrder() != null ? c.getDisplayOrder() : 0))
+                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder()))
+                .toList();
     }
 
+    @Transactional
+    public String uploadConnector(UploadImplementationDto dto, String username) {
+        return connectorUploadService.uploadConnector(dto, username);
+    }
+
+    @Transactional
+    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
+        return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
+    }
+
+    @Transactional
+    public void publishIntegrationMethod(UUID methodId, String revision) {
+        connectorUploadService.publishIntegrationMethod(methodId, revision);
+    }
+
+    @Transactional
+    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+                                                AddConnectorDto dto, String username) {
+        connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+    }
+
+    @Transactional
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+        connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ImplementationListItemDto> getConnectorsForIntegrationMethod(UUID methodId, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .map(applicationMapper::mapConnectorsForMethod)
+                .orElseGet(List::of);
+    }
+
+    @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
-        ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
-        Implementation implementation = version.getImplementation();
-//        String connectorBundleName = continueForm.getConnectorBundle();
-
-        // Update BundleVersion with build information
-
-        BundleVersion bundleVersion = version.getBundleVersion();
-        if (bundleVersion != null) {
-            bundleVersion.setConnectorVersion(continueForm.getConnectorVersion());
-            bundleVersion.setDownloadLink(continueForm.getDownloadLink());
-        }
-
-        // Check if this upload is not just a different version of a similar connector bundle
-        String newBundleName = continueForm.getConnectorBundle();
-        Optional<ConnectorBundle> existingBundle = connectorBundleRepository.findByBundleName(newBundleName);
-        ConnectorBundle sourceBundle = implementation.getConnectorBundle();
-
-        if (existingBundle.isPresent()) {
-            // We want to move everything to the target bundle and delete the source
-            ConnectorBundle targetBundle = existingBundle.get();
-
-            moveBundleVersionAndDeleteConnectorBundle(sourceBundle, targetBundle);
-
-            // IMPORTANT: update implementation bundle AFTER the move
-            implementation.setConnectorBundle(targetBundle);
-
-        } else {
-            // Only update the bundle name if this is not a cross-bundle merge
-            if (sourceBundle != null) {
-                sourceBundle.setBundleName(newBundleName);
-            }
-        }
-
-        OffsetDateTime odt = OffsetDateTime.ofInstant(Instant.ofEpochMilli(continueForm.getPublishTime()), ZoneOffset.UTC);
-        version.setPublishDate(odt)
-                .setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.ACTIVE);
-        version.setCapabilities(continueForm.getCapability().toArray(new ImplementationVersion.CapabilitiesType[0]));
-        version.setClassName(continueForm.getConnectorClass());
-
-
-//        implementationRepository.save(implementation);
-        implementationVersionRepository.save(version);
+        buildCallbackService.successBuild(oid, continueForm);
     }
 
+    @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
-        ImplementationVersion version = implementationVersionRepository.getReferenceById(oid);
-        version.setLifecycleState(ImplementationVersion.ImplementationVersionLifecycleType.WITH_ERROR);
-
-        // Set error message on BundleVersion
-        if (version.getBundleVersion() != null) {
-            version.setErrorMessage(failForm.getErrorMessage());
-        }
-
-        Implementation implementation = version.getImplementation();
-        Application application = implementation.getApplication();
-
-        if (implementation.getImplementationVersions().size() == 1
-                && application.getImplementations().size() == 1) {
-            application.setLifecycleState(Application.ApplicationLifecycleType.WITH_ERROR);
-        }
-
-        implementationVersionRepository.save(version);
+        buildCallbackService.failBuild(oid, failForm);
     }
 
     public Page<Application> searchApplication(SearchForm searchForm, int page, int size) {
@@ -391,267 +229,95 @@ public class ApplicationService {
 
         if (searchForm.getLifecycleState() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("applicationLifecycleType"), searchForm.getLifecycleState()));
-        }
-
-        if (searchForm.getApplicationTag() != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("applicationTag"), searchForm.getApplicationTag()));
-        }
-
-        if (searchForm.getCountryOfOrigin() != null) {
-            spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("countryOfOrigin"), searchForm.getCountryOfOrigin()));
+                    cb.equal(root.get("lifecycleState"), searchForm.getLifecycleState()));
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
         return applicationRepository.findAll(spec, pageable);
     }
 
-    public Page<ImplementationVersion> searchVersionsOfConnector(SearchForm searchForm, int page, int size
-    ) {
-        Specification<ImplementationVersion> spec = (root, query, cb) -> cb.conjunction();
+    public Page<IntegrationMethod> searchIntegrationMethods(SearchForm searchForm, int page, int size) {
+        Specification<IntegrationMethod> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchForm.getMaintainer() != null && !searchForm.getMaintainer().isBlank()) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer() + "%"));
+                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer().toLowerCase() + "%"));
         }
 
         if (searchForm.getLifecycleState() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("applicationLifecycleType"), searchForm.getLifecycleState()));
+                    cb.equal(root.get("lifecycleState"), searchForm.getLifecycleState()));
         }
 
         if (searchForm.getApplicationId() != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("application_id"), searchForm.getApplicationId()));
-        }
-
-        if (searchForm.getSystemVersion() != null && !searchForm.getSystemVersion().isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("system_version")), "%" + searchForm.getSystemVersion() + "%"));
+                    cb.equal(root.get("application").get("id"), searchForm.getApplicationId()));
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
-        return implementationVersionRepository.findAll(spec, pageable);
+        return integrationMethodRepository.findAll(spec, pageable);
     }
 
     public List<Vote> getVotes() {
-        return voteRepository.findAll();
+        return requestVotingService.getVotes();
     }
 
     public List<Request> getRequests() {
-        return requestRepository.findAll();
+        return requestVotingService.getRequests();
     }
 
-    public void recordDownloadIfNew(ImplementationVersion version, InetAddress ip, String userAgent, OffsetDateTime cutoff) {
-        boolean duplicate = downloadRepository
-                .existsByImplementationVersionAndIpAddressAndUserAgentAndDownloadedAt(version, ip, userAgent, cutoff);
-
-        if (!duplicate) {
-            Download dl = new Download();
-            dl.setImplementationVersion(version);
-            dl.setIpAddress(ip);
-            dl.setUserAgent(userAgent);
-            dl.setDownloadedAt(OffsetDateTime.now());
-            downloadRepository.save(dl);
-        }
-    }
-
-    /**
-     * @deprecated This method is deprecated as capabilitiesType enum has been replaced with capabilities JSON field.
-     * Use createRequestFromForm() instead for new request form submissions.
-     */
-    @Deprecated
-    public Request createRequest(UUID applicationId, String capabilitiesType, String requester) {
-        Application application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new IllegalArgumentException("Application not found: " + applicationId));
-
-        Request r = new Request();
-        r.setApplication(application);
-        r.setRequester(requester);
-        return requestRepository.save(r);
-    }
-
-    /**
-     * Creates a new Application and Request from the request form submission.
-     * The Application will be created with lifecycle state REQUESTED.
-     *
-     * @param dto RequestFormDto containing integrationApplicationName, description, capabilities, and email
-     * @return The created Request entity
-     */
+    @Transactional
     public Request createRequestFromForm(RequestFormDto dto) {
-        String integrationApplicationName = dto.integrationApplicationName();
-        String description = dto.description();
-        List<String> capabilities = dto.capabilities();
-        String email = dto.email();
-
-        // Generate abbreviated name: lowercase, spaces replaced with underscores, remove special characters
-        String abbreviatedName = integrationApplicationName.toLowerCase()
-                .replaceAll("[^a-z0-9_]", "_")
-                .replaceAll("_+", "_")
-                .replaceAll("^_|_$", "");
-
-        // Check if application with this name already exists
-        Optional<Application> existingApp = applicationRepository.findByName(abbreviatedName);
-        if (existingApp.isPresent()) {
-            // Append timestamp to make it unique
-            abbreviatedName = abbreviatedName + "_" + System.currentTimeMillis();
-        }
-
-        try {
-            // Create the application
-            Application application = new Application();
-            application.setName(abbreviatedName);
-            application.setDisplayName(integrationApplicationName);
-            application.setDescription(description != null ? description : "");
-            application.setLifecycleState(Application.ApplicationLifecycleType.REQUESTED);
-
-            // Save the application (UUID is auto-generated, timestamps are auto-set)
-            application = applicationRepository.save(application);
-
-            // Check if a request already exists for this application
-            if (requestRepository.existsByApplicationId(application.getId())) {
-                throw new IllegalStateException("A request already exists for application: " + application.getDisplayName());
-            }
-
-            // Convert capabilities list to enum array
-            ImplementationVersion.CapabilitiesType[] capabilitiesArray = null;
-            if (capabilities != null && !capabilities.isEmpty()) {
-                capabilitiesArray = capabilities.stream()
-                        .map(cap -> ImplementationVersion.CapabilitiesType.valueOf(cap))
-                        .toArray(ImplementationVersion.CapabilitiesType[]::new);
-            }
-
-            // Create the Request entity
-            Request request = new Request();
-            request.setApplication(application);
-            request.setCapabilities(capabilitiesArray);
-            request.setRequester(email); // Email is optional, can be null
-
-            return requestRepository.save(request);
-        } catch (IllegalStateException e) {
-            log.warn("Duplicate request attempt: {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to create request for application: {}", integrationApplicationName, e);
-            throw new RuntimeException("Failed to create request: " + e.getMessage(), e);
-        }
-    }
-
-    public Optional<ImplementationVersion> findImplementationVersion(UUID id) {
-        return implementationVersionRepository.findById(id);
+        return requestVotingService.createRequestFromForm(dto);
     }
 
     public Optional<Request> getRequest(Long id) {
-        return requestRepository.findById(id);
+        return requestVotingService.getRequest(id);
     }
 
     public Optional<Request> getRequestForApplication(UUID appId) {
-        return requestRepository.findByApplicationId(appId);
+        return requestVotingService.getRequestForApplication(appId);
     }
 
-    /**
-     * Submit a vote for a request.
-     * Each user can only vote once per request (enforced by unique constraint).
-     *
-     * @param requestId The ID of the request to vote for
-     * @param voter The username of the voter
-     * @return The created Vote entity
-     * @throws IllegalArgumentException if request not found or user already voted
-     */
     public Vote submitVote(Long requestId, String voter) {
-        Request request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
-
-        // Check if user already voted
-        if (voteRepository.existsByRequestIdAndVoter(requestId, voter)) {
-            throw new IllegalArgumentException("User has already voted for this request");
-        }
-
-        Vote vote = new Vote();
-        vote.setRequestId(requestId);
-        vote.setVoter(voter);
-        vote.setRequest(request);
-
-        return voteRepository.save(vote);
+        return requestVotingService.submitVote(requestId, voter);
     }
 
-    /**
-     * Get the vote count for a specific request.
-     *
-     * @param requestId The ID of the request
-     * @return The number of votes
-     */
     public long getVoteCount(Long requestId) {
-        return voteRepository.countByRequestId(requestId);
+        return requestVotingService.getVoteCount(requestId);
     }
 
-    /**
-     * Check if a user has voted for a specific request.
-     *
-     * @param requestId The ID of the request
-     * @param voter The username of the voter
-     * @return true if user has voted, false otherwise
-     */
     public boolean hasUserVoted(Long requestId, String voter) {
-        return voteRepository.existsByRequestIdAndVoter(requestId, voter);
+        return requestVotingService.hasUserVoted(requestId, voter);
     }
 
-    public byte[] downloadConnector(UUID versionId, String ip, String userAgent) throws IOException {
-        ImplementationVersion version = implementationVersionRepository.findById(versionId)
-                .orElseThrow(() -> new IllegalArgumentException("Version not found: " + versionId));
+    public void cancelRequest(Long requestId) {
+        requestVotingService.cancelRequest(requestId);
+    }
 
-        // Get download link from BundleVersion
-        String downloadLink = (version.getBundleVersion() != null) ?
-                version.getBundleVersion().getDownloadLink() : null;
-
-        if (downloadLink == null || downloadLink.isEmpty()) {
-
-            throw new IllegalArgumentException("No download link available for version: " + versionId);
-        }
-
-        try (InputStream in = new URL(downloadLink).openStream()) {
-            byte[] fileBytes = in.readAllBytes();
-
-            InetAddress inet = new InetAddress(ip);
-            OffsetDateTime cutoff = OffsetDateTime.now().minusSeconds(DOWNLOAD_OFFSET_SECONDS);
-            recordDownloadIfNew(version, inet, userAgent, cutoff);
-
-            return fileBytes;
-        }
+    public void recordMethodDownload(UUID methodId, String revision, String ip, String userAgent) {
+        connectorDownloadService.recordMethodDownload(methodId, revision, ip, userAgent);
     }
 
     public List<ApplicationDto> getAllApplications() {
         return applicationRepository.findAll().stream()
                 .map(app -> {
-                    // For REQUESTED apps, get requestId and vote count
                     Long requestId = null;
                     Long voteCount = null;
                     if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
-                        Optional<Request> request = getRequestForApplication(app.getId());
+                        Optional<Request> request = requestVotingService.getRequestForApplication(app.getId());
                         if (request.isPresent()) {
                             requestId = request.get().getId();
-                            voteCount = getVoteCount(requestId);
+                            voteCount = requestVotingService.getVoteCount(requestId);
                         }
                     }
-
-                    // Use mapper to build DTO (capabilities and requester are null for list view)
                     return applicationMapper.mapToApplicationDto(app, null, null, requestId, voteCount);
                 })
                 .toList();
     }
 
-    /**
-     * List applications with pagination and optional filtering
-     * @param pageable Pagination parameters
-     * @param q Optional search query by name
-     * @param featured Optional filter for featured applications
-     * @return Page of ApplicationCardDto
-     */
     public Page<ApplicationCardDto> list(Pageable pageable, String q, Boolean featured) {
         Page<Application> page;
-
         if (featured != null && featured) {
             page = applicationReadPort.findFeatured(pageable);
         } else if (q != null && !q.isBlank()) {
@@ -659,237 +325,105 @@ public class ApplicationService {
         } else {
             page = applicationReadPort.findAll(pageable);
         }
-
-        return page.map(this::toCard);
+        return page.map(applicationMapper::toCardDto);
     }
 
-    /**
-     * Convert Application entity to ApplicationCardDto for list display
-     * @param app Application entity
-     * @return ApplicationCardDto
-     */
-    private ApplicationCardDto toCard(Application app) {
-        String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
-
-        // Convert origins from ApplicationOrigin join table
-        List<CountryOfOriginDto> origins = null;
-        if (app.getApplicationOrigins() != null) {
-            origins = app.getApplicationOrigins().stream()
-                    .map(appOrigin -> new CountryOfOriginDto(
-                            appOrigin.getCountryOfOrigin().getId(),
-                            appOrigin.getCountryOfOrigin().getName(),
-                            appOrigin.getCountryOfOrigin().getDisplayName()
-                    ))
-                    .toList();
-        }
-
-        // Convert categories and tags from ApplicationApplicationTag join table
-        List<ApplicationTagDto> categories = null;
-        List<ApplicationTagDto> tags = null;
-        if (app.getApplicationApplicationTags() != null) {
-            categories = app.getApplicationApplicationTags().stream()
-                    .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(
-                            aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(),
-                            aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()
-                    ))
-                    .toList();
-
-            tags = app.getApplicationApplicationTags().stream()
-                    .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(
-                            aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(),
-                            aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()
-                    ))
-                    .toList();
-        }
-
-        // Get request info if lifecycle state is REQUESTED
-        Long requestId = null;
-        Long voteCount = null;
-        if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
-            Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
-            if (requestOpt.isPresent()) {
-                Request request = requestOpt.get();
-                requestId = request.getId();
-                voteCount = voteRepository.countByRequestId(request.getId());
-            }
-        }
-
-        return new ApplicationCardDto(
-                app.getId(),
-                app.getDisplayName(),
-                app.getDescription(),
-                app.getLogo(),
-                lifecycleState,
-                origins,
-                categories,
-                tags,
-                requestId,
-                voteCount
-        );
+    public List<ActiveConnectorDto> listActiveConnectors() {
+        return applicationReadPort.findByLifecycleState(Application.ApplicationLifecycleType.ACTIVE).stream()
+                .map(applicationMapper::toActiveConnectorDto)
+                .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<CatalogConnectorDto> listCatalogConnectors() {
+        Set<Integer> activeConnectorIds = integrationMethodRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .flatMap(m -> m.getConnectors().stream())
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .map(Connector::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-    /**
-     * Verify validity of the implementation version based on the data produced by the jenkins pipeline.
-     * The process checks id a new connector bundle implementation version should be assigned to an existing connector-bundle.
-     * Used in case of bundled connectors, i.e. Ldap contains an implementation (connector class) for Ldap connectors
-     * but also an implementation version which handles AD based systems.
-     *
-     * @param verifiPayload Json form used to verify the validity of the implementation version.
-     * @return Boolean signaling that the implementation version is valid and the Jenkins pipeline can proceed.
-     */
-    public Boolean verify(VerifyBundleInformationForm verifiPayload) {
-
-        String bundleName = verifiPayload.getBundleName();
-        String err;
-        Optional<ConnectorBundle> bundle = connectorBundleRepository.findByBundleName(bundleName);
-        UUID implementationVersionId = verifiPayload.getOid();
-        Optional<ConnectorBundle> connectorBundle = connectorBundleRepository.
-                findByBundleVersions_ImplementationVersions_Id(implementationVersionId);
-
-        if (connectorBundle.isEmpty()) {
-            err = "No bundle found containing the connector Implementation version with OID " + implementationVersionId + ".";
-
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
-        }
-
-        Optional<ImplementationVersion> iVersion = implementationVersionRepository.
-                findById(implementationVersionId);
-
-        if (iVersion.isEmpty()) {
-            err = "No implementation version found with id " + implementationVersionId + ".";
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
-        }
-
-        ImplementationVersion sourceImplementationVersion = iVersion.get();
-        if (bundle.isEmpty()) {
-
-            err = "No bundle found with bundle name " + bundleName + ".";
-            sourceImplementationVersion.setErrorMessage(err);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, err);
-        } else {
-            String version = verifiPayload.getVersion();
-            String className = verifiPayload.getClassName();
-
-            if (!(version != null && !version.isEmpty())) {
-
-                err = "Request payload lacks connector bundle version. ";
-                sourceImplementationVersion.setErrorMessage(err);
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, err);
-            }
-
-            if (!(className != null && !className.isEmpty())) {
-
-                err = "Request payload lacks connector className. ";
-                sourceImplementationVersion.setErrorMessage(err);
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, err);
-            }
-
-            List<BundleVersion> bundleVersions = bundle.get().getBundleVersions();
-            for (BundleVersion bundleVersion : bundleVersions) {
-                if (version.equals(bundleVersion.getConnectorVersion())) {
-                    List<ImplementationVersion> implementationVersions = bundleVersion.getImplementationVersions();
-                    for (ImplementationVersion implementationVersion : implementationVersions) {
-                        if (className.equals(implementationVersion.getClassName())) {
-
-                            err = "The connector bundle " + bundleName + " with the version "
-                                    + version + " already contains a implementation" + " for the connector class "
-                                    + className;
-                            sourceImplementationVersion.setErrorMessage(err);
-                            throw new ResponseStatusException(HttpStatus.CONFLICT, err);
-                        }
-                    }
-                    try {
-
-                        moveImplVersionAndDeleteConnectorBundle(connectorBundle.get(),
-                                bundleVersion, sourceImplementationVersion);
-                    } catch (Exception e) {
-
-                        err = e.getLocalizedMessage();
-                        LOG.error(err);
-                        sourceImplementationVersion.setErrorMessage(err);
-                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
-                    }
-
-                    return true;
-                }
-            }
-            try {
-
-                moveBundleVersionAndDeleteConnectorBundle(connectorBundle.get(), bundle.get());
-                return true;
-
-            } catch (Exception e) {
-
-                err = e.getLocalizedMessage();
-                LOG.error(err);
-                sourceImplementationVersion.setErrorMessage(err);
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, err);
-            }
-        }
-    }
-    @Transactional(rollbackFor = Exception.class)
-    private void moveBundleVersionAndDeleteConnectorBundle(ConnectorBundle sourceBundle,
-                                                           ConnectorBundle targetBundle) {
-
-        for (Implementation impl : sourceBundle.getImplementations()) {
-            impl.setConnectorBundle(targetBundle);
-            targetBundle.getImplementations().add(impl);
-        }
-        sourceBundle.getImplementations().clear();
-
-        for (BundleVersion bv : sourceBundle.getBundleVersions()) {
-
-            bv.setConnectorBundle(targetBundle);
-            targetBundle.getBundleVersions().add(bv);
-        }
-
-        sourceBundle.getBundleVersions().clear();
-
-        connectorBundleRepository.delete(sourceBundle);
+        return connectorBundleRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .flatMap(bundle -> {
+                    ConnectorBundleVersion latest = bundle.getBundleVersions().stream()
+                            .max(java.util.Comparator.comparingInt(ConnectorBundleVersion::getId))
+                            .orElse(null);
+                    return bundle.getConnectors().stream()
+                            .filter(c -> activeConnectorIds.contains(c.getId()))
+                            .map(connector -> new CatalogConnectorDto(
+                                    bundle.getId(),
+                                    connector.getDisplayName(),
+                                    connector.getDescription(),
+                                    connector.getRevision(),
+                                    bundle.getDisplayName(),
+                                    connector.getMaintainer(),
+                                    bundle.getLicense() != null ? bundle.getLicense().name() : null,
+                                    bundle.getBuildFramework() != null ? bundle.getBuildFramework().name() : null,
+                                    bundle.getFramework() != null ? bundle.getFramework().name() : null,
+                                    latest != null ? latest.getBrowseLink() : null,
+                                    latest != null ? latest.getGitCloneUrl() : bundle.getGitCloneUrl(),
+                                    latest != null ? latest.getPathToProject() : bundle.getPathToProject(),
+                                    connector.getFullyQualifiedClassName(),
+                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector)
+                            ));
+                })
+                .toList();
     }
 
+    @Transactional
+    public boolean verify(VerifyBundleInformationForm verifyPayload) {
+        return bundleMergeService.verify(verifyPayload);
+    }
 
-    @Transactional(rollbackFor = Exception.class)
-    public void moveImplVersionAndDeleteConnectorBundle(ConnectorBundle sourceBundle,
-        BundleVersion targetBundleVersion, ImplementationVersion sourceImplementationVersion) {
+    @Transactional(readOnly = true)
+    public List<ImplementationListItemDto> getIntegrationMethodsByApplicationId(UUID applicationId) {
+        return integrationMethodRepository.findByApplicationId(applicationId).stream()
+                .map(applicationMapper::mapToIntegrationMethodListItemDto)
+                .filter(dto -> dto != null)
+                .toList();
+    }
 
-        if (sourceBundle.getBundleName() != null && !sourceBundle.getBundleName().isEmpty()) {
-            LOG.error("Illegal state of connector bundle. Bundle already contains implementation version " +
-                    "which is being verified");
+    public List<ApplicationDto> getRecentlyUsedApplications() {
+        return recentlyUsedApplicationRepository.findAllByOrderByIdDesc().stream()
+                .map(RecentlyUsedApplication::getApplicationId)
+                .distinct()
+                .limit(9)
+                .map(id -> applicationRepository.findById(id).orElse(null))
+                .filter(app -> app != null)
+                .map(app -> applicationMapper.mapToApplicationDto(app, null, null, null, null))
+                .toList();
+    }
 
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Illegal state of connector" +
-                    " bundle. Bundle already contains implementation version which is being verified");
-        }
+    @Transactional
+    public void recordRecentlyUsed(UUID applicationId, String userId) {
+        recentlyUsedApplicationRepository.deleteByUserIdAndApplicationId(userId, applicationId);
+        recentlyUsedApplicationRepository.flush();
+        RecentlyUsedApplication entry = new RecentlyUsedApplication()
+                .setUserId(userId)
+                .setApplicationId(applicationId);
+        recentlyUsedApplicationRepository.save(entry);
+    }
 
-        sourceImplementationVersion.setBundleVersion(targetBundleVersion);
-        targetBundleVersion.getImplementationVersions().add(sourceImplementationVersion);
-        ConnectorBundle targetBundle = targetBundleVersion.getConnectorBundle();
-        for (BundleVersion bv : sourceBundle.getBundleVersions()) {
+    public long getTotalDownloadsCount() {
+        return downloadRepository.count();
+    }
 
-            for (ImplementationVersion iv : bv.getImplementationVersions()) {
-
-                if (iv.getId().equals(sourceImplementationVersion.getId())) {
-                    continue;
-                }
-                implementationVersionRepository.delete(iv);
-            }
-            bv.getImplementationVersions().clear();
-            bv.setConnectorBundle(null);
-        }
-        sourceBundle.getBundleVersions().clear();
-
-        for (Implementation impl : sourceBundle.getImplementations()) {
-            impl.setConnectorBundle(targetBundle);
-            targetBundle.getImplementations().add(impl);
-        }
-        sourceBundle.getImplementations().clear();
-        connectorBundleRepository.delete(sourceBundle);
+    public long countDownloadsForApplication(UUID applicationId) {
+        return applicationRepository.findById(applicationId)
+                .map(app -> {
+                    if (app.getIntegrationMethods() == null) return 0L;
+                    return app.getIntegrationMethods().stream()
+                            .flatMap(m -> m.getConnectors().stream())
+                            .map(IntegrationMethodConnector::getConnector)
+                            .filter(Objects::nonNull)
+                            .flatMap(c -> c.getConnectorVersions().stream())
+                            .map(ConnectorVersion::getConnectorBundleVersion)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .mapToLong(downloadRepository::countByConnectorBundleVersion)
+                            .sum();
+                })
+                .orElse(0L);
     }
 }

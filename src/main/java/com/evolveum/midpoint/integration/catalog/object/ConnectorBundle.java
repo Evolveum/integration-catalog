@@ -10,9 +10,12 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,8 +26,8 @@ import java.util.List;
 public class ConnectorBundle {
 
     public enum FrameworkType {
-        CONNID,
-        SCIM_REST
+        JAVA_BASED,
+        LOW_CODE
     }
 
     public enum LicenseType {
@@ -38,27 +41,62 @@ public class ConnectorBundle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "bundle_name", unique = true)
-    private String bundleName;
-
+    private String revision;
+    private String author;
     private String maintainer;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updated;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "framework", columnDefinition = "frameworkType", nullable = false)
+    @Column(name = "lifecycle_state", columnDefinition = "LifecycleType", nullable = false)
+    private LifecycleType lifecycleState;
+
+    @Column(name = "bundle_name")
+    private String bundleName;
+
+    @Column(name = "display_name")
+    private String displayName;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "framework", columnDefinition = "FrameworkType", nullable = false)
     private FrameworkType framework;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "license", columnDefinition = "licenseType", nullable = false)
+    @Column(name = "license", columnDefinition = "LicenseType", nullable = false)
     private LicenseType license;
 
-    @Column(name = "ticketing_system_link", columnDefinition = "TEXT")
-    private String ticketingSystemLink;
+    @Column(name = "ticketing_link")
+    private String ticketingLink;
 
-    @OneToMany(mappedBy = "connectorBundle")
-    private List<Implementation> implementations = new ArrayList<>();
+    @Column(name = "project_homepage")
+    private String projectHomepage;
+
+    @Column(name = "git_clone_ulr")
+    private String gitCloneUrl;
+
+    @Column(name = "path_to_project")
+    private String pathToProject;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "build_framework", columnDefinition = "BuildFrameworkType")
+    private BuildFrameworkType buildFramework;
 
     @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BundleVersion> bundleVersions = new ArrayList<>();
+    private List<Connector> connectors = new ArrayList<>();
+
+    @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ConnectorBundleVersion> bundleVersions = new ArrayList<>();
 }

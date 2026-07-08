@@ -7,8 +7,8 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
 public record ApplicationTagDto(
-        Long id,
-        String name,
-        String displayName,
-        String tagType
+        Long id,            // application_tag.id
+        String name,        // application_tag.name
+        String displayName, // application_tag.display_name
+        String tagType      // application_tag.tag_type
 ) {}

@@ -4,53 +4,54 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, Input, Output, EventEmitter } from '@angular/core';
+import { Component, signal, Input, Output, EventEmitter, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '../../services/application.service';
+import { AuthService } from '../../services/auth.service';
+import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 
 @Component({
   selector: 'app-request-form',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CapabilityPicker],
   templateUrl: './request-form.html',
-  styleUrls: ['./request-form.css']
+  styleUrls: ['./request-form.scss']
 })
-export class RequestForm {
+export class RequestForm implements OnInit {
   @Input() isRequestModalOpen = signal<boolean>(false);
   @Output() modalClosed = new EventEmitter<void>();
+  @Output() requestSubmitted = new EventEmitter<void>();
+
+  @ViewChild(CapabilityPicker) private capabilityPicker?: CapabilityPicker;
 
   protected formData = {
     integrationApplicationName: '',
-    baseUrl: '',
+    integrationMethod: '',
     description: '',
     systemVersion: '',
-    email: ''
+    contactEmail: '',
+    openToCollaborate: false,
+    deploymentType: ''
   };
-  protected readonly selectedCapabilities = signal<string[]>([]);
-  protected readonly isCapabilitiesDropdownOpen = signal<boolean>(false);
+  protected readonly integrationMethods = signal<string[]>([]);
+  protected readonly isIntegrationMethodDropdownOpen = signal<boolean>(false);
+  protected readonly isIntegrationMethodExpanded = signal<boolean>(false);
+  protected readonly capabilityGroups = signal<CapabilityGroup[]>([]);
   protected readonly isSubmitting = signal<boolean>(false);
   protected readonly submitSuccess = signal<boolean>(false);
   protected readonly submitError = signal<string | null>(null);
-  protected readonly availableCapabilities = signal<string[]>([]);
-  protected readonly isLoadingCapabilities = signal<boolean>(false);
 
-  constructor(private applicationService: ApplicationService) {
-    this.loadCapabilities();
-  }
+  constructor(
+    private applicationService: ApplicationService,
+    private authService: AuthService
+  ) {}
 
-  private loadCapabilities(): void {
-    this.isLoadingCapabilities.set(true);
-    this.applicationService.getCapabilities().subscribe({
-      next: (capabilities: string[]) => {
-        this.availableCapabilities.set(capabilities);
-        this.isLoadingCapabilities.set(false);
-      },
-      error: (err: any) => {
-        console.error('Error loading capabilities:', err);
-        this.isLoadingCapabilities.set(false);
-        // Optionally set a fallback or show an error message
-      }
+  ngOnInit(): void {
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.integrationMethods.set(types.map(t => t.displayName)),
+      error: (err) => console.error('Failed to load integration method types', err)
     });
   }
 
@@ -63,28 +64,42 @@ export class RequestForm {
   protected resetForm(): void {
     this.formData = {
       integrationApplicationName: '',
-      baseUrl: '',
+      integrationMethod: '',
       description: '',
       systemVersion: '',
-      email: ''
+      contactEmail: '',
+      openToCollaborate: false,
+      deploymentType: ''
     };
-    this.selectedCapabilities.set([]);
+    this.capabilityGroups.set([]);
+    this.capabilityPicker?.reset();
     this.submitSuccess.set(false);
     this.submitError.set(null);
+  }
+
+  protected onCapabilitiesChange(groups: CapabilityGroup[]): void {
+    this.capabilityGroups.set(groups);
   }
 
   protected submitRequest(): void {
     this.isSubmitting.set(true);
     this.submitError.set(null);
 
+    const capabilities = this.capabilityGroups().map(g => ({
+      objectName: g.objectClass,
+      capabilities: g.capabilityNames
+    }));
+
     const request = {
       integrationApplicationName: this.formData.integrationApplicationName,
-      baseUrl: this.formData.baseUrl,
-      capabilities: this.selectedCapabilities(),
+      integrationMethod: this.formData.integrationMethod,
+      deploymentType: this.formData.deploymentType,
+      capabilities,
       description: this.formData.description,
       systemVersion: this.formData.systemVersion,
-      email: this.formData.email,
-      requester: this.formData.email || 'anonymous'
+      contactEmail: this.formData.contactEmail,
+      openToCollaborate: this.formData.openToCollaborate,
+      requester: this.authService.currentUser()
     };
 
     this.applicationService.submitRequest(request).subscribe({
@@ -92,12 +107,13 @@ export class RequestForm {
         this.isSubmitting.set(false);
         this.closeRequestModal();
         this.submitSuccess.set(true);
+        this.requestSubmitted.emit();
         // Auto-hide success message after 5 seconds
         setTimeout(() => {
           this.submitSuccess.set(false);
         }, 5000);
       },
-      error: (err: any) => {
+      error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
         this.submitError.set('Failed to submit request. Please try again.');
         console.error('Error submitting request:', err);
@@ -109,37 +125,24 @@ export class RequestForm {
     this.submitSuccess.set(false);
   }
 
-  protected toggleCapabilitiesDropdown(): void {
-    this.isCapabilitiesDropdownOpen.update(value => !value);
+  protected toggleIntegrationMethodDropdown(): void {
+    this.isIntegrationMethodDropdownOpen.update(value => !value);
   }
 
-  protected closeCapabilitiesDropdown(): void {
-    this.isCapabilitiesDropdownOpen.set(false);
+  protected selectIntegrationMethod(method: string): void {
+    this.formData.integrationMethod = method;
+    this.isIntegrationMethodDropdownOpen.set(false);
   }
 
-  protected onCapabilityChange(event: Event, capability: string): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    if (checked) {
-      this.selectedCapabilities.update(caps => [...caps, capability]);
-    } else {
-      this.selectedCapabilities.update(caps => caps.filter(cap => cap !== capability));
-    }
+  protected get visibleIntegrationMethods(): string[] {
+    return this.isIntegrationMethodExpanded()
+      ? this.integrationMethods()
+      : this.integrationMethods().slice(0, 4);
   }
 
-  protected removeCapability(capability: string, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    this.selectedCapabilities.update(caps => caps.filter(cap => cap !== capability));
-    // Uncheck the corresponding checkbox
-    const checkboxId = `capability-${capability.toLowerCase()}`;
-    const checkbox = document.getElementById(checkboxId) as HTMLInputElement;
-    if (checkbox) {
-      checkbox.checked = false;
-    }
+  protected toggleIntegrationMethodExpanded(event: Event): void {
+    event.stopPropagation();
+    this.isIntegrationMethodExpanded.update(v => !v);
   }
 
-  protected formatCapabilityName(capability: string): string {
-    return capability.replace(/_/g, ' ');
-  }
 }

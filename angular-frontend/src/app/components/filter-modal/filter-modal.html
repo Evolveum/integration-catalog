@@ -1,0 +1,206 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+@if (isOpen()) {
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
+  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto" (click)="closeModal()">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-filter">
+      <div class="modal-content modal-content-filter" (click)="$event.stopPropagation()">
+
+        <div class="d-flex filter-layout">
+          <!-- Left Sidebar -->
+          <div class="filter-sidebar">
+            <!-- <div
+              class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'trending'"
+              (click)="selectSection('trending')"
+              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
+              [style.background-color]="selectedSection() === 'trending' ? '#e9ecef' : 'transparent'">
+              <i class="fa-solid fa-chart-line" style="font-size: 14px;"></i>
+              <span>Trending</span>
+            </div> -->
+
+            <div
+              class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'categories'"
+              (click)="selectSection('categories')">
+              <i class="fa-solid fa-list filter-option-icon"></i>
+              <span class="filter-option-label">Categories</span>
+            </div>
+
+            <div
+              class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'capabilities'"
+              (click)="selectSection('capabilities')">
+              <i class="fa-solid fa-puzzle-piece filter-option-icon"></i>
+              <span class="filter-option-label">Capabilities</span>
+            </div>
+
+            <div
+              class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'midpoint'"
+              (click)="selectSection('midpoint')">
+              <i class="fa-solid fa-layer-group filter-option-icon"></i>
+              <span class="filter-option-label">MidPoint version</span>
+            </div>
+
+            <div
+              class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'appstatus'"
+              (click)="selectSection('appstatus')">
+              <i class="fa-solid fa-tag filter-option-icon"></i>
+              <span class="filter-option-label">App status</span>
+            </div>
+
+            <div
+              class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'integration'"
+              (click)="selectSection('integration')">
+              <i class="fa-solid fa-code filter-option-icon"></i>
+              <span class="filter-option-label">Integration method</span>
+            </div>
+
+            <div
+              class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'maintainer'"
+              (click)="selectSection('maintainer')">
+              <i class="fa-solid fa-user-gear filter-option-icon"></i>
+              <span class="filter-option-label">Maintainer</span>
+            </div>
+          </div>
+
+          <!-- Right Content -->
+          <div class="filter-content flex-grow-1">
+            <!-- Trending -->
+            <!-- @if (selectedSection() === 'trending') {
+              <div>
+                <h5 class="mb-4">Trending</h5>
+                <div>
+                  <span
+                    class="badge"
+                    [class.selected]="trending()"
+                    (click)="toggleTrending()"
+                    style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
+                    [style.border]="trending() ? '1px solid #2722c7' : '1px solid #a6a6a6'"
+                    [style.background-color]="trending() ? '#f2f2f2' : 'white'"
+                    [style.color]="trending() ? '#0c3c85' : '#212529'">
+                    Popular
+                  </span>
+                </div>
+              </div>
+            } -->
+
+            <!-- Categories -->
+            @if (selectedSection() === 'categories') {
+              <div>
+                <h5 class="mb-4">Categories</h5>
+                <div class="category-list">
+                  @for (category of categories(); track category.name) {
+                    <div
+                      class="category-item d-flex justify-content-between align-items-center py-2 px-3"
+                      [class.selected]="isCategorySelected(category.name)"
+                      (click)="toggleCategory(category.name)">
+                      <span>{{ category.displayName }}</span>
+                      <span class="text-muted">{{ category.count }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Capabilities -->
+            @if (selectedSection() === 'capabilities') {
+              <div>
+                <h5 class="mb-4">Capabilities</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (capability of capabilities; track capability) {
+                    <span
+                      class="badge filter-badge rounded-pill"
+                      [class.selected]="isCapabilitySelected(capability)"
+                      (click)="toggleCapability(capability)">
+                      {{ formatCapability(capability) }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- MidPoint Version -->
+            @if (selectedSection() === 'midpoint') {
+              <div>
+                <h5 class="mb-4">MidPoint version</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (version of midpointVersions(); track version.id) {
+                    <span
+                      class="badge filter-badge rounded-pill"
+                      [class.selected]="isMidpointVersionSelected(version.id)"
+                      (click)="toggleMidpointVersion(version.id)">
+                      {{ version.version }} — {{ version.versionName }}
+                    </span>
+                  } @empty {
+                    <p class="text-muted">No MidPoint versions available</p>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- App Status -->
+            @if (selectedSection() === 'appstatus') {
+              <div>
+                <h5 class="mb-4">App status</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (status of appStatuses; track status.name) {
+                    <span
+                      class="badge filter-badge rounded-pill"
+                      [class.selected]="isAppStatusSelected(status.name)"
+                      (click)="toggleAppStatus(status.name)">
+                      {{ status.displayName }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Integration Method -->
+            @if (selectedSection() === 'integration') {
+              <div>
+                <h5 class="mb-4">Integration method</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (method of integrationMethods; track method) {
+                    <span
+                      class="badge filter-badge rounded-pill"
+                      [class.selected]="isIntegrationMethodSelected(method)"
+                      (click)="toggleIntegrationMethod(method)">
+                      {{ method }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Maintainer -->
+            @if (selectedSection() === 'maintainer') {
+              <div>
+                <h5 class="mb-4">Maintainer</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  @for (maintainer of maintainers; track maintainer) {
+                    <span
+                      class="badge filter-badge rounded-pill"
+                      [class.selected]="isMaintainerSelected(maintainer)"
+                      (click)="toggleMaintainer(maintainer)">
+                      {{ maintainer }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}

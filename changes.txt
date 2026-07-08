@@ -1,0 +1,508 @@
+================================================================================
+CHANGES — branch: remaking_DB_as_a_whole
+Task: #4885 – WP4 – Update DB schema according to the terminology
+================================================================================
+
+--------------------------------------------------------------------------------
+1. TERMINOLOGY / NAMING OVERHAUL
+--------------------------------------------------------------------------------
+The core domain model was renamed throughout the entire stack (DB, Java, Angular)
+to align with the agreed terminology:
+
+  Old name                  →  New name
+  ──────────────────────────────────────────────────────
+  Implementation            →  Integration Method
+  ImplementationVersion     →  ConnectorVersion
+  ConnidVersion             →  (replaced by ConnectorBundle / ConnectorBundleVersion)
+  ImplementationTag         →  ConnectorTag
+  ImplementationImplementationTag → ConnectorConnectorTag
+  ImplementationVersionLifecycleType (DB enum) → LifecycleType
+  IntegrationMethodType (DB enum, fixed values) → integration_method_type table
+
+  Upload form components    →  Publish form components
+    upload-form-main        →  publish-form-main
+    upload-form-impl        →  publish-form-impl
+
+
+--------------------------------------------------------------------------------
+2. DATABASE SCHEMA CHANGES  (config/sql/01_schema.sql)
+--------------------------------------------------------------------------------
+
+2a. Renamed / changed enums
+  - ImplementationVersionLifecycleType  →  LifecycleType  (same values)
+  - IntegrationMethodType (fixed enum)  →  removed; replaced by a proper
+    integration_method_type table (values loaded via seed data)
+  - New enum: GlobalityType  ('GLOBAL' | 'SPECIFIC')  — for capability scope
+
+2b. application table
+  - Removed: last_modified, logo_content_type, logo_original_name, logo_size_bytes
+  - Added:   updated (timestamp)
+  - logo_path kept (other logo metadata moved to file system)
+
+2c. Removed tables
+  - implementation          (replaced by integration_method)
+  - implementation_version  (replaced by connector_version)
+  - connid_version          (replaced by connector_bundle / connector_bundle_version)
+
+2d. New / changed tables
+
+  connector_bundle
+    - Existing table significantly expanded:
+      display_name, description, ticketing_link, project_homepage,
+      git_clone_url, path_to_project, build_framework (nullable),
+      license (NOT NULL), framework (NOT NULL), lifecycle_state (NOT NULL)
+    - build_framework is nullable — LOW_CODE connectors have no build tool
+
+  connector_bundle_version  (new table)
+    - Composite PK: (id, revision)
+    - Tracks individual released versions of a bundle
+    - Fields: bundle_version, browse_link, git_clone_url, path_to_project,
+      build_framework (nullable), commit_tag, lifecycle_state
+
+  connector  (new table)
+    - Represents a single connector class inside a bundle
+    - Fields: display_name, fully_qualified_class_name, connector_bundle_id,
+      maintainer, author, description, revision
+
+  connector_version  (new table)
+    - Composite PK: (id, revision)
+    - Links a connector to a specific bundle version
+    - Fields: fully_qualified_class_name, lifecycle_state, connector_id,
+      connector_bundle_version_id + revision
+
+  connector_tag / connector_connector_tag
+    - Renamed from implementation_tag / implementation_implementation_tag
+    - Structure unchanged
+
+  integration_method  (replaces implementation)
+    - UUID primary key (composite with revision)
+    - Fields: display_name, description, tutorial, file_path,
+      midpoint_minVersion, midpoint_maxVersion, lifecycle_state,
+      revision, author, maintainer, app_version, application_id
+
+  integration_method_type  (new table, replaces fixed enum)
+    - id, display_name, description
+    - Seed data includes: ConnID Connector, REST API, SCIM, Manual/ITSM,
+      Database, CSV, LDAP, Low-code Connector
+
+  int_method_int_method_type  (new join table)
+    - integration_method ↔ integration_method_type  (many-to-many)
+
+  integration_method_connector  (new table)
+    - Links an integration_method to a connector with version range
+    - Fields: connector_id, connector_minVersion, connector_maxVersion
+
+  capability  (new table)
+    - id, name, description, display_order, globality (GLOBAL | SPECIFIC)
+    - Seed data populates all ConnID capability types
+
+  integration_method_capability / integration_method_capability_item
+    - Stores capability groups per integration method (by object class)
+
+  conn_version_capability / conn_version_capability_item
+    - Stores capability groups per connector version (by object class)
+
+  midpoint_version  (new table)
+    - id, version, version_name, is_current
+    - Used to select compatible midPoint version range for an integration method
+
+  application_tag
+    - Extracted into its own table (was previously managed differently)
+    - Fields: id, name, display_name, tag_type (DEPLOYMENT|LOCALITY|CATEGORY|COMMON)
+
+2e. Constraints & indexes
+  - All new tables have proper PKs, FKs with ON DELETE CASCADE, and indexes
+  - unique_connector_bundle_version on connector_bundle_version(bundle_version)
+  - integration_method_connector allows multiple connector links per
+    integration method version (no uniqueness on integ_method_id/revision)
+
+
+--------------------------------------------------------------------------------
+3. NEW / CHANGED API ENDPOINTS  (GET /api/...)
+--------------------------------------------------------------------------------
+
+New endpoints:
+  GET  /api/integration-method-types
+       Returns all available integration method types (formerly a fixed enum)
+
+  GET  /api/midpoint-versions
+       Returns all midPoint versions for compatibility range selection
+
+  GET  /api/upload/check-bundle-name?bundleName=…
+       Returns true if a connector bundle name is already taken
+
+  GET  /api/connectors/catalog
+       Returns connector bundles in ACTIVE state for use in publish form
+       connector picker (select existing connector when publishing)
+
+  POST /api/integration-methods/search/{size}/{page}
+       Searches integration methods with filtering (same shape as application search)
+
+  POST /api/integration-methods/{id}/tutorial
+       Uploads a tutorial file (PDF/XML/JSON/YAML/TXT) for an integration method
+
+Changed endpoints:
+  POST /api/upload/connector
+       Payload restructured — now splits into three sub-objects:
+         application, integrationMethod, connector
+       connector sub-object carries: displayName, framework, buildFramework,
+         gitCloneUrl, pathToProject, className, bundleName, bundleDisplayName,
+         commitTag, connectorBundleId (for reusing an existing connector)
+       Also accepts integrationMethodCapabilities and connectorCapabilities
+       (capability groups per object class)
+
+  GET  /api/capabilities
+       Now returns full capability objects with globality (GLOBAL|SPECIFIC)
+       instead of raw capability type strings
+
+
+--------------------------------------------------------------------------------
+4. NEW BACKEND CLASSES
+--------------------------------------------------------------------------------
+
+DTOs (new):
+  UploadConnectorDto          — connector sub-object for the upload payload
+  UploadIntegrationMethodDto  — integration method sub-object for upload payload
+  IntegrationMethodDto        — response DTO for integration method data
+  IntegrationMethodCapabilityGroupDto — capability group (objectClass + names)
+  CatalogConnectorDto         — connector bundle entry for the picker dropdown
+  CapabilityDto               — capability with name, description, globality
+  MidpointVersionDto          — version id + label for compatibility selector
+
+DTOs (removed):
+  CreateRequestDto            — merged into RequestFormDto
+  ImplementationDTO           — replaced by IntegrationMethodDto
+  ImplementationVersionDto    — replaced by UploadConnectorDto / ConnectorVersion
+
+Domain objects (new):
+  IntegrationMethod, IntegrationMethodId
+  IntegrationMethodType
+  IntegrationMethodConnector
+  IntegrationMethodCapability, IntegrationMethodCapabilityItem,
+    IntegrationMethodCapabilityItemId
+  Connector
+  ConnectorVersion, ConnectorVersionId
+  ConnectorBundleVersion, ConnectorBundleVersionId
+  ConnectorTag, ConnectorConnectorTag
+  ConnVersionCapability, ConnVersionCapabilityItem, ConnVersionCapabilityItemId
+  Capability, CapabilityType
+  BuildFrameworkType          — enum: MAVEN | GRADLE
+  LifecycleType               — enum: IN_REVIEW | ACTIVE | DEPRECATED | ARCHIVED | WITH_ERROR
+  MidpointVersion
+
+Domain objects (removed):
+  Implementation, ImplementationVersion, ConnidVersion, BundleVersion
+
+Services (new):
+  TutorialStorageService      — saves/loads tutorial files on disk (mirrors
+                                 LogoStorageService pattern)
+
+Repositories (new):
+  ConnectorRepository, ConnectorVersionRepository
+  ConnectorBundleVersionRepository
+  ConnectorTagRepository, ConnectorConnectorTagRepository
+  IntegrationMethodRepository, IntegrationMethodTypeRepository
+  IntegrationMethodCapabilityRepository, IntegrationMethodCapabilityItemRepository
+  ConnVersionCapabilityRepository, ConnVersionCapabilityItemRepository
+  MidpointVersionRepository, CapabilityRepository
+
+
+--------------------------------------------------------------------------------
+5. FRONTEND CHANGES  (Angular)
+--------------------------------------------------------------------------------
+
+5a. Components renamed
+  upload-form-main  →  publish-form-main
+  upload-form-impl  →  publish-form-impl
+  Route updated:  /upload  →  /publish
+
+5b. New component: capability-picker
+  - Reusable picker for selecting capabilities per object class
+  - Two sections: Global (applies to all object classes) and
+    Specific (per named object class with add/remove rows)
+  - Used in both publish-form-impl (connector capabilities) and request-form
+
+5c. publish-form-impl (was upload-form-impl)
+  - Step 5 now has three connector type paths:
+      java-based         — full dev & build section (build tool, class name, repo)
+      own-repo           — low-code with own git repository
+      evolveum-hosted    — low-code, Evolveum creates the GitHub repo
+  - "Select existing connector" path: connector picker loads catalog connectors
+    and pre-populates all fields; skips bundle name / version uniqueness checks
+  - Internal sub-steps: Add connector (5) → Compatibility (6) → Review (7)
+  - Compatibility step: midPoint version range (min/max) per integration method
+  - Connector capability groups sent alongside integration method capabilities
+  - Tutorial file upload added (POST after main publish completes)
+  - Build framework (MAVEN / GRADLE) only required for java-based connectors;
+    sent as null for low-code (field is now nullable in DB)
+
+5d. publish-form-main
+  - Step labels updated to match new flow
+  - Step 4 now shows connector type selector (java-based / own-repo /
+    evolveum-hosted / existing catalog connector)
+
+5e. request-form
+  - Capability picker embedded in request form
+  - Capabilities submitted as structured groups (objectClass + capability names)
+
+5f. application-detail
+  - Displays integration methods and their associated connector versions
+  - Shows connector capabilities and midPoint version compatibility range
+  - Download links per connector bundle version
+
+5g. applications-list / filter-modal
+  - Filtering updated to work with new integration_method and tag structure
+  - Filter by integration method type (previously hardcoded enum, now dynamic)
+
+5h. Models (new/changed)
+  - catalog-connector.model.ts    — new; represents a catalog connector entry
+  - application-detail.model.ts   — updated to reflect new nested structure
+    (IntegrationMethod → ConnectorVersion → ConnectorBundleVersion)
+  - implementation-list-item.model.ts — updated field names
+  - request.model.ts              — capabilities now use structured groups
+
+5i. Auth — login and logout now trigger window.location.reload() so that
+  per-role connector visibility is refreshed immediately
+
+
+--------------------------------------------------------------------------------
+6. SEED DATA CHANGES  (config/sql/02_data.sql)
+--------------------------------------------------------------------------------
+  - Full rewrite to match the new schema structure
+  - Populates: application_tag, country_of_origin, midpoint_version,
+    capability, integration_method_type
+  - Sample applications with integration methods, connector bundles,
+    connector bundle versions, connectors, and connector versions
+  - Removed old connid_version entries
+
+
+--------------------------------------------------------------------------------
+7. NOTES FOR MIGRATION (existing database)
+--------------------------------------------------------------------------------
+  - This branch is a full DB rebuild — the old schema is NOT forward-compatible
+  - To migrate an existing instance: drop and recreate the DB from the new
+    01_schema.sql + 02_data.sql scripts
+  - Two columns changed from NOT NULL to nullable:
+      connector_bundle.build_framework
+      connector_bundle_version.build_framework
+    If applying to an existing new-schema DB:
+      ALTER TABLE connector_bundle ALTER COLUMN build_framework DROP NOT NULL;
+      ALTER TABLE connector_bundle_version ALTER COLUMN build_framework DROP NOT NULL;
+  - integration_method_connector no longer restricts to one connector per
+    integration method version (multiple connectors are now supported).
+    If applying to an existing new-schema DB:
+      ALTER TABLE integration_method_connector DROP CONSTRAINT uq_imc_met_id_met_rev;
+
+================================================================================
+
+--------------------------------------------------------------------------------
+8. DATABASE STRUCTURE  (current schema — 01_schema.sql)
+--------------------------------------------------------------------------------
+
+Table                            | Columns
+---------------------------------|------------------------------------------------------------------
+application                      | id, name, display_name, description, lifecycle_state,
+                                 | created_at, updated, logo_path
+---------------------------------|------------------------------------------------------------------
+application_tag                  | id, name, display_name, tag_type
+---------------------------------|------------------------------------------------------------------
+application_application_tag      | id, application_id, tag_id
+---------------------------------|------------------------------------------------------------------
+application_origin               | id, application_id, country_id
+---------------------------------|------------------------------------------------------------------
+country_of_origin                | id, name, display_name
+---------------------------------|------------------------------------------------------------------
+connector                        | id, revision, author, maintainer, created_at, updated,
+                                 | display_name, fully_qualified_class_name,
+                                 | connector_bundle_id, description
+---------------------------------|------------------------------------------------------------------
+connector_tag                    | id, name, display_name
+---------------------------------|------------------------------------------------------------------
+connector_connector_tag          | id, connector_id, tag_id
+---------------------------------|------------------------------------------------------------------
+connector_version                | id, revision, author, maintainer, created_at, updated,
+                                 | lifecycle_state, connector_bundle_version_id,
+                                 | connector_bundle_version_revision, connector_id,
+                                 | fully_qualified_class_name
+---------------------------------|------------------------------------------------------------------
+connector_bundle                 | id, revision, author, maintainer, created_at, updated,
+                                 | lifecycle_state, bundle_name, display_name, description,
+                                 | framework, license, ticketing_link, project_homepage,
+                                 | git_clone_ULR, path_to_project, build_framework
+---------------------------------|------------------------------------------------------------------
+connector_bundle_version         | id, revision, author, maintainer, created_at, updated,
+                                 | lifecycle_state, connector_bundle_id, bundle_version,
+                                 | browse_link, git_clone_ULR, path_to_project,
+                                 | build_framework, commit_tag
+---------------------------------|------------------------------------------------------------------
+download                         | id, connector_bundle_version_id,
+                                 | connector_bundle_version_revision, ip_address,
+                                 | user_agent, downloaded_at
+---------------------------------|------------------------------------------------------------------
+request                          | id, application_id, requester, mail, collab,
+                                 | base_url, system_version
+---------------------------------|------------------------------------------------------------------
+object_class_capabilities        | id, request_id, object_name, capabilities
+---------------------------------|------------------------------------------------------------------
+vote                             | request_id, voter
+---------------------------------|------------------------------------------------------------------
+integration_method               | id, application_id, display_name, description, tutorial,
+                                 | file_path, midpoint_minVersion, midpoint_maxVersion,
+                                 | lifecycle_state, revision, author, maintainer,
+                                 | created_at, updated, app_version
+---------------------------------|------------------------------------------------------------------
+integration_method_type          | id, display_name, description
+---------------------------------|------------------------------------------------------------------
+int_method_int_method_type       | id, integration_method_id, integration_method_revision,
+                                 | integration_method_type_id
+---------------------------------|------------------------------------------------------------------
+capability                       | id, name, description, display_order, globality
+---------------------------------|------------------------------------------------------------------
+integration_method_capability    | id, object_class, integ_method_id, integ_method_revision
+---------------------------------|------------------------------------------------------------------
+integration_method_capability_item | integration_method_capability_id, capability_id
+---------------------------------|------------------------------------------------------------------
+conn_version_capability          | id, object_class, conn_version_id, conn_version_revision
+---------------------------------|------------------------------------------------------------------
+conn_version_capability_item     | conn_version_capability_id, capability_id
+---------------------------------|------------------------------------------------------------------
+integration_method_connector     | id, integ_method_id, integ_method_revision, connector_id,
+                                 | connector_minVersion, connector_maxVersion
+---------------------------------|------------------------------------------------------------------
+recently_used_applications       | id, user_id, application_id
+---------------------------------|------------------------------------------------------------------
+organizations                    | id, name, description
+---------------------------------|------------------------------------------------------------------
+catalog_users                    | username, password, role, organization_id
+---------------------------------|------------------------------------------------------------------
+midpoint_version                 | id, version, version_name, is_current
+
+
+--------------------------------------------------------------------------------
+9. PUBLISH FLOW — GUI FIELD TO DB COLUMN MAPPING
+--------------------------------------------------------------------------------
+
+STEP 1 — Select target application (or define new)
+GUI element                      | DB table.column
+---------------------------------|------------------------------------------------------------------
+Select existing application      | (references application.id — no write)
+Display Name (new app)           | application.display_name
+Application logo (upload)        | application.logo_path  (file written to disk)
+Description (new app)            | application.description
+Origin(s) multi-select           | application_origin.country_id  (one row per country)
+Category dropdown                | application_application_tag.tag_id  (tag_type = CATEGORY)
+Deployment Type radio            | application_application_tag.tag_id  (tag_type = DEPLOYMENT)
+
+STEP 2 — Select integration method type
+GUI element                      | DB table.column
+---------------------------------|------------------------------------------------------------------
+Method type checkboxes           | int_method_int_method_type.integration_method_type_id
+                                 |   (one row per selected type, linked via integration_method_id)
+
+STEP 3 — Define integration method
+GUI element                      | DB table.column
+---------------------------------|------------------------------------------------------------------
+Integration method name          | integration_method.display_name
+Integration method version       | integration_method.revision
+Description                      | integration_method.description
+IM capabilities — object class   | integration_method_capability.object_class
+IM capabilities — capability     | integration_method_capability_item.capability_id
+Tutorial (rich text editor)      | integration_method.tutorial
+Tutorial file upload             | integration_method.file_path  (file written to disk)
+
+STEP 4 — Select connector type
+GUI element                      | DB table.column
+---------------------------------|------------------------------------------------------------------
+Java-based connector radio       | connector_bundle.framework = 'JAVA_BASED'
+Low-code (own repo) radio        | connector_bundle.framework = 'LOW_CODE'
+Low-code (Evolveum hosted) radio | connector_bundle.framework = 'LOW_CODE'
+Select from catalog (picker)     | connector_bundle_version linked via existing connector_bundle.id
+                                 |   (no new bundle written; existing bundle reused)
+
+STEP 5 — Add connector  /  Basic information & capabilities
+GUI element                      | DB table.column
+---------------------------------|------------------------------------------------------------------
+Connector name                   | connector_bundle.display_name
+                                 | connector.display_name
+Connector version                | connector_bundle_version.bundle_version
+                                 | connector_version.revision
+Maintainer                       | connector_bundle.maintainer
+                                 | connector.maintainer
+                                 | connector_version.maintainer
+License type                     | connector_bundle.license
+Connector description            | connector_bundle.description
+                                 | connector.description
+Connector bundle name            | connector_bundle.bundle_name
+Connector capabilities (global)  | conn_version_capability.object_class = 'Global'
+                                 | conn_version_capability_item.capability_id
+Connector capabilities (specific)| conn_version_capability.object_class  (per object class name)
+                                 | conn_version_capability_item.capability_id
+
+STEP 5 — Add connector  /  Development & build
+GUI element                      | DB table.column
+---------------------------------|------------------------------------------------------------------
+Project homepage                 | connector_bundle.project_homepage
+                                 | connector_bundle_version.browse_link
+Support portal                   | connector_bundle.ticketing_link
+Build tool (Maven / Gradle)      | connector_bundle.build_framework
+                                 | connector_bundle_version.build_framework
+                                 |   (null for LOW_CODE — field is nullable)
+Git clone URL                    | connector_bundle.git_clone_ULR
+                                 | connector_bundle_version.git_clone_ULR
+Commit tag                       | connector_bundle_version.commit_tag
+Project folder path              | connector_bundle.path_to_project
+                                 | connector_bundle_version.path_to_project
+Class name / Connector entry class | connector.fully_qualified_class_name
+                                 | connector_version.fully_qualified_class_name
+
+STEP 6 — Compatibility settings
+GUI element                      | DB table.column
+---------------------------------|------------------------------------------------------------------
+midPoint from version            | integration_method.midpoint_minVersion  (FK → midpoint_version.id)
+midPoint to version              | integration_method.midpoint_maxVersion  (FK → midpoint_version.id)
+Connector version from           | integration_method_connector.connector_minVersion
+Connector version to             | integration_method_connector.connector_maxVersion
+
+STEP 7 — Review & publish  (no new input — confirmation only)
+  All data collected in steps 1–6 is submitted as a single POST to
+  /api/upload/connector.  The response returns application.id and
+  integration_method.id, which are then used to upload the logo and
+  tutorial file via separate requests.
+
+================================================================================
+
+--------------------------------------------------------------------------------
+10. EDIT CONNECTOR (edit-upgrade flow)
+--------------------------------------------------------------------------------
+The "Edit" button on each connector card in the edit-upgrade page now opens a
+two-section modal ("Edit connector") mirroring publish steps 5 & 6 (Basic
+information & capabilities, Development & build). Saving replaces the connector's
+values in the DB in place (no new revision is created).
+
+New endpoint:
+  PUT /api/applications/{appId}/integration-method/{methodId}/{revision}/connectors/{connectorId}
+       Body: EditConnectorDto. Updates the connector, its connector_bundle, the
+       latest connector_bundle_version + connector_version, and replaces the
+       connector version's capability groups.
+
+Backend:
+  - EditConnectorDto (new)
+  - ConnectorUploadService.updateConnector(...) + ApplicationService delegate
+  - ImplementationListItemDto extended: connectorId, bundleName,
+    objectClassCapabilities (so the edit form can pre-fill and target the
+    correct connector)
+  - ApplicationMapper.buildIntegrationMethodListItem populates the new fields
+
+Frontend:
+  - New component: edit-connector-modal (reuses publish step 5/6 field layout)
+  - implementation-list-item.model.ts: connectorId, bundleName,
+    objectClassCapabilities added
+  - application.service.ts: updateConnector(...)
+  - edit-upgrade-form wires the Edit button to the modal and reloads connectors
+    on save
+
+Note: the connector version field is read-only in the edit modal — publishing a
+new version is handled by "Save as new version" on the integration method, not
+by editing an existing connector in place.
+
+================================================================================

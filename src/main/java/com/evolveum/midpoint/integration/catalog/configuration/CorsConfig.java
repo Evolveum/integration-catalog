@@ -23,6 +23,7 @@ public class CorsConfig {
                         .allowedOrigins("http://localhost:4200")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
+                        .exposedHeaders("X-Bundle-Warning", "Content-Disposition")
                         .allowCredentials(true);
             }
         };

@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +16,7 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +33,7 @@ public class Application {
 
     public enum ApplicationLifecycleType {
         REQUESTED,
-        IN_PUBLISH_PROCESS,
+        IN_REVIEW,
         ACTIVE,
         WITH_ERROR
     }
@@ -48,9 +49,8 @@ public class Application {
 
     private String description;
 
-    //TODO - how to load logo - this way or with url somehow
-    @Column(columnDefinition = "bytea")
-    private byte[] logo;
+    @Column(name = "logo_path")
+    private String logoPath;
 
     @Enumerated(EnumType.STRING)
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
@@ -59,14 +59,14 @@ public class Application {
 
     @CreationTimestamp
     @Column(name = "created_at")
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "last_modified")
-    private OffsetDateTime lastModified;
+    @Column(name = "updated")
+    private LocalDateTime updated;
 
-    @OneToMany(mappedBy = "application")
-    private List<Implementation> implementations;
+    @OneToMany(mappedBy = "application", fetch = FetchType.EAGER)
+    private List<IntegrationMethod> integrationMethods;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationApplicationTag> applicationApplicationTags;
@@ -74,12 +74,18 @@ public class Application {
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationOrigin> applicationOrigins;
 
-    public Application addImplementation(Implementation implementation) {
-        if (implementations == null) {
-            implementations = new ArrayList<>();
+    @Transient
+    private List<String> origins;
+
+    @Transient
+    private List<ApplicationTagDto> tags;
+
+    public Application addIntegrationMethod(IntegrationMethod integrationMethod) {
+        if (integrationMethods == null) {
+            integrationMethods = new ArrayList<>();
         }
-        implementation.setApplication(this);
-        implementations.add(implementation);
+        integrationMethod.setApplication(this);
+        integrationMethods.add(integrationMethod);
         return this;
     }
 }

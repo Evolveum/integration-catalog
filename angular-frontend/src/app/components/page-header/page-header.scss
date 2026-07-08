@@ -1,0 +1,136 @@
+@use 'variables' as *;
+
+.page-header {
+  background-color: #36538B;
+  height: 86px;
+  border-bottom: 30px solid rgba(255, 255, 255, 1);
+
+  &.page-header-no-border {
+    border-bottom: none;
+    height: 56px;
+  }
+}
+
+.page-header-breadcrumb {
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.page-header-breadcrumb-text {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.breadcrumb-link {
+  font-size: 0.8125rem;
+  color: $color-dark-blue;
+  text-decoration: none;
+
+  &:link,
+  &:visited {
+    color: $color-dark-blue;
+  }
+
+  &:hover {
+    color: $color-dark-blue;
+    text-decoration: underline;
+  }
+}
+
+.breadcrumb-sep {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.breadcrumb-app-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+.breadcrumb-letter-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #0078d4 0%, #50e6ff 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.header-globe-icon {
+  font-size: 22px;
+  color: $color-white;
+}
+
+.header-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: $color-white;
+  line-height: 1.2;
+}
+
+.header-subtitle {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.2;
+}
+
+.header-user-icon {
+  font-size: 24px;
+  color: $color-white;
+}
+
+.header-username {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-white;
+  line-height: 1.2;
+}
+
+.header-role {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.2;
+}
+
+.header-divider {
+  width: 1px;
+  height: 28px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.header-btn-logout {
+  background: none;
+  border: none;
+  color: $color-white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 6px;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.header-btn-login {
+  background: none;
+  border: none;
+  color: $color-white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 1;
+  }
+}

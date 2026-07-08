@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,4 +20,5 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID>,
         JpaSpecificationExecutor<Application> {
     Optional<Application> findByName(String name);
     Page<Application> findByNameContainingIgnoreCase(String q, Pageable pageable);
+    List<Application> findByLifecycleState(Application.ApplicationLifecycleType lifecycleState);
 }

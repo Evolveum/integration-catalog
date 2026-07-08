@@ -4,31 +4,61 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, signal, computed, ViewChild, ViewChildren, ElementRef, AfterViewInit, QueryList } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ViewChildren, ElementRef, AfterViewInit, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
-import { Application } from '../../models/application.model';
+import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
-import { LoginModal } from '../login-modal/login-modal';
+import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
+import { PageHeader } from '../page-header/page-header';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, LoginModal],
+  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader],
   templateUrl: './applications-list.html',
-  styleUrls: ['./applications-list.css']
+  styleUrls: ['./applications-list.scss']
 })
-export class ApplicationsList implements OnInit, AfterViewInit {
+export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('scrollContainerMore') scrollContainerMore!: ElementRef<HTMLDivElement>;
   @ViewChildren('featuredCard') featuredCards!: QueryList<ElementRef<HTMLDivElement>>;
 
-  protected readonly applications = signal<Application[]>([]);
+  protected applications = signal<Application[]>([]);
   protected readonly categories = signal<CategoryCount[]>([]);
+  protected readonly totalDownloadsCount = signal<number>(0);
+
+  protected readonly allCapabilities = [
+    'CREATE',
+    'GET',
+    'UPDATE',
+    'DELETE',
+    'TEST',
+    'SCRIPT_ON_CONNECTOR',
+    'SCRIPT_ON_RESOURCE',
+    'AUTHENTICATION',
+    'SEARCH',
+    'VALIDATE',
+    'SYNC',
+    'LIVE_SYNC',
+    'SCHEMA',
+    'DISCOVER_CONFIGURATION',
+    'RESOLVE_USERNAME',
+    'PARTIAL_SCHEMA',
+    'COMPLEX_UPDATE_DELTA',
+    'UPDATE_DELTA'
+  ];
+
+  protected readonly allAppStatuses = [
+    'ACTIVE',
+    'REQUESTED',
+    'WITH_ERROR',
+    'IN_REVIEW'
+  ];
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
   protected readonly searchQuery = signal('');
@@ -37,19 +67,47 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 12;
   protected readonly sortBy = signal<'alphabetical' | 'popularity' | 'activity'>('alphabetical');
-  protected readonly viewMode = signal<'grid' | 'list'>('grid');
   protected readonly activeTab = signal<string>('all');
-  protected readonly isRequestModalOpen = signal<boolean>(false);
-  protected readonly isLoginModalOpen = signal<boolean>(false);
+  protected isRequestModalOpen = signal<boolean>(false);
+
+  protected isFilterModalOpen = signal<boolean>(false);
+  protected openDropdown = signal<string | null>(null);
+  protected showLoginRequiredMessage = signal<boolean>(false);
+  protected showPermissionDeniedMessage = signal<boolean>(false);
+  protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
+
+  private activeChipElement: HTMLElement | null = null;
+  private scrollListener: (() => void) | null = null;
+
+  protected filterState = signal<FilterState>({
+    trending: false,
+    categories: [],
+    capabilities: [],
+    appStatus: [],
+    midpointVersions: [],
+    integrationMethods: [],
+    maintainers: []
+  });
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
+  protected readonly canVote = () => this.authService.canVote();
+  protected readonly canRequest = () => this.authService.canRequest();
+  protected readonly canUpload = () => this.authService.canUpload();
 
   protected readonly featuredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
+    const filters = this.filterState();
     const apps = this.applications();
-    // Don't show featured apps when searching or filtering by category
-    if (query || activeTab !== 'all') {
+
+    // Don't show featured apps when searching or filtering
+    const hasActiveFilters = filters.trending ||
+                            filters.categories.length > 0 ||
+                            filters.capabilities.length > 0 ||
+                            filters.appStatus.length > 0 ||
+                            filters.midpointVersions.length > 0;
+
+    if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
     }
     return apps;
@@ -58,27 +116,10 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   protected readonly moreApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
-    let apps = [...this.applications()];
+    const filters = this.filterState();
 
-    // Filter by category tab (if not 'all')
-    if (activeTab !== 'all') {
-      apps = apps.filter(app =>
-        app.categories?.some((category: any) => category.displayName === activeTab)
-      );
-    }
-
-    // When searching, show all matching apps. When not searching, show all apps
-    if (query) {
-      apps = apps.filter(app =>
-        app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query) ||
-        app.lifecycleState?.toLowerCase().includes(query) ||
-        app.tags?.some(tag =>
-          tag.name.toLowerCase().includes(query) ||
-          tag.displayName.toLowerCase().includes(query)
-        )
-      );
-    }
+    // Apply shared filtering logic
+    let apps = this.applyFilters([...this.applications()], query, activeTab, filters);
 
     // Sort based on selected option
     const sortOption = this.sortBy();
@@ -103,32 +144,80 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     return apps.slice(start, end);
   });
 
+  protected readonly activeIntegrationsCount = computed(() => {
+    return this.applications().filter(app => app.lifecycleState === 'ACTIVE').length;
+  });
+
   protected readonly filteredCount = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const activeTab = this.activeTab();
-    let apps = this.applications();
+    const filters = this.filterState();
+
+    return this.applyFilters(this.applications(), query, activeTab, filters).length;
+  });
+
+  /**
+   * Applies all filters to the applications list.
+   * Shared by moreApplications and filteredCount computed signals.
+   */
+  private applyFilters(apps: Application[], query: string, activeTab: string, filters: FilterState): Application[] {
+    let filtered = apps;
 
     // Filter by category tab (if not 'all')
     if (activeTab !== 'all') {
-      apps = apps.filter(app =>
-        app.categories?.some((category: any) => category.displayName === activeTab)
+      filtered = filtered.filter(app =>
+        app.categories?.some((category: ApplicationTag) => category.displayName === activeTab)
       );
     }
 
+    // Filter by search query
     if (query) {
-      apps = apps.filter(app =>
-        app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query) ||
-        app.lifecycleState?.toLowerCase().includes(query) ||
-        app.tags?.some(tag =>
-          tag.name.toLowerCase().includes(query) ||
-          tag.displayName.toLowerCase().includes(query)
+      filtered = filtered.filter(app =>
+        app.displayName.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply advanced filters
+    if (filters.trending) {
+      filtered = filtered.filter(app => app.tags?.some(tag => tag.name === 'popular'));
+    }
+
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter(app => {
+        const allTags = [...(app.categories || []), ...(app.tags || [])];
+        return filters.categories.every(selectedCat =>
+          allTags.some(tag =>
+            tag.name === selectedCat &&
+            (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
+          )
+        );
+      });
+    }
+
+    if (filters.capabilities.length > 0) {
+      filtered = filtered.filter(app =>
+        filters.capabilities.every((capability: string) =>
+          app.capabilities?.includes(capability)
         )
       );
     }
 
-    return apps.length;
-  });
+    if (filters.appStatus.length > 0) {
+      filtered = filtered.filter(app =>
+        app.lifecycleState && filters.appStatus.includes(app.lifecycleState)
+      );
+    }
+
+    if (filters.midpointVersions.length > 0) {
+      filtered = filtered.filter(app =>
+        filters.midpointVersions.every((versionId: number) =>
+          app.midpointVersions?.includes(String(versionId))
+        )
+      );
+    }
+
+    return filtered;
+  }
 
   protected readonly totalPages = computed(() => {
     return Math.ceil(this.filteredCount() / this.itemsPerPage);
@@ -143,6 +232,11 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.loadApplications();
     this.loadCategories();
+    this.loadTotalDownloadsCount();
+    this.applicationService.getMidpointVersions().subscribe({
+      next: (versions) => this.allMidpointVersions.set(versions),
+      error: (err) => console.error('Failed to load MidPoint versions', err)
+    });
   }
 
   ngAfterViewInit(): void {
@@ -158,14 +252,359 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     this.currentPage.set(0);
   }
 
+  protected resetFilter(): void {
+    this.searchQuery.set('');
+    this.filterState.set({
+      trending: false,
+      categories: [],
+      capabilities: [],
+      appStatus: [],
+      midpointVersions: [],
+      integrationMethods: [],
+      maintainers: []
+    });
+    this.currentPage.set(0);
+  }
+
+  protected toggleDropdown(filterType: string, event: MouseEvent): void {
+    if (this.openDropdown() === filterType) {
+      this.closeDropdown();
+    } else {
+      const target = event.currentTarget as HTMLElement;
+      const chip = target.closest('.filter-chip') as HTMLElement | null;
+
+      if (chip) {
+        this.activeChipElement = chip;
+        this.updateDropdownPosition();
+        this.attachScrollListener();
+      }
+      this.openDropdown.set(filterType);
+    }
+  }
+
+  protected closeDropdown(): void {
+    this.openDropdown.set(null);
+    this.dropdownPosition.set(null);
+    this.activeChipElement = null;
+    this.detachScrollListener();
+  }
+
+  private updateDropdownPosition(): void {
+    if (!this.activeChipElement) return;
+    const rect = this.activeChipElement.getBoundingClientRect();
+    const header = document.querySelector('app-page-header');
+    const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+    if (rect.top < headerBottom) {
+      this.closeDropdown();
+      return;
+    }
+    this.dropdownPosition.set({
+      top: rect.bottom + 8,
+      left: rect.left
+    });
+  }
+
+  private attachScrollListener(): void {
+    this.detachScrollListener();
+    this.scrollListener = () => this.updateDropdownPosition();
+    window.addEventListener('scroll', this.scrollListener, true);
+  }
+
+  private detachScrollListener(): void {
+    if (this.scrollListener) {
+      window.removeEventListener('scroll', this.scrollListener, true);
+      this.scrollListener = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.detachScrollListener();
+  }
+
+  protected clearTrendingFilter(): void {
+    this.filterState.update(state => ({ ...state, trending: false }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearCategoriesFilter(): void {
+    this.filterState.update(state => ({ ...state, categories: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearCapabilitiesFilter(): void {
+    this.filterState.update(state => ({ ...state, capabilities: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearAppStatusFilter(): void {
+    this.filterState.update(state => ({ ...state, appStatus: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearMidpointVersionsFilter(): void {
+    this.filterState.update(state => ({ ...state, midpointVersions: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearIntegrationMethodsFilter(): void {
+    this.filterState.update(state => ({ ...state, integrationMethods: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearMaintainersFilter(): void {
+    this.filterState.update(state => ({ ...state, maintainers: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected removeCategoryFilter(category: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      categories: state.categories.filter(c => c !== category)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeCapabilityFilter(capability: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      capabilities: state.capabilities.filter(c => c !== capability)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeAppStatusFilter(status: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      appStatus: state.appStatus.filter(s => s !== status)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeMidpointVersionFilter(versionId: number): void {
+    this.filterState.update(state => ({
+      ...state,
+      midpointVersions: state.midpointVersions.filter(v => v !== versionId)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected toggleCategoryInFilter(category: string): void {
+    const categories = this.filterState().categories;
+    if (categories.includes(category)) {
+      this.removeCategoryFilter(category);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        categories: [...state.categories, category]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleCapabilityInFilter(capability: string): void {
+    const capabilities = this.filterState().capabilities;
+    if (capabilities.includes(capability)) {
+      this.removeCapabilityFilter(capability);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        capabilities: [...state.capabilities, capability]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleAppStatusInFilter(status: string): void {
+    const statuses = this.filterState().appStatus;
+    if (statuses.includes(status)) {
+      this.removeAppStatusFilter(status);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        appStatus: [...state.appStatus, status]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleMidpointVersionInFilter(versionId: number): void {
+    const versions = this.filterState().midpointVersions;
+    if (versions.includes(versionId)) {
+      this.removeMidpointVersionFilter(versionId);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        midpointVersions: [...state.midpointVersions, versionId]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleIntegrationMethodInFilter(method: string): void {
+    const methods = this.filterState().integrationMethods;
+    if (methods.includes(method)) {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: state.integrationMethods.filter(m => m !== method)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        integrationMethods: [...state.integrationMethods, method]
+      }));
+    }
+    this.currentPage.set(0);
+  }
+
+  protected toggleMaintainerInFilter(maintainer: string): void {
+    const maintainers = this.filterState().maintainers;
+    if (maintainers.includes(maintainer)) {
+      this.filterState.update(state => ({
+        ...state,
+        maintainers: state.maintainers.filter(m => m !== maintainer)
+      }));
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        maintainers: [...state.maintainers, maintainer]
+      }));
+    }
+    this.currentPage.set(0);
+  }
+
+  protected getFilteredCountForCategory(category: string): number {
+    const apps = this.applications();
+    return apps.filter(app => {
+      const allTags = [...(app.categories || []), ...(app.tags || [])];
+      return allTags.some(tag =>
+        tag.name === category && (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
+      );
+    }).length;
+  }
+
+  protected getFilteredCountForCapability(capability: string): number {
+    const apps = this.applications();
+    return apps.filter(app =>
+      app.capabilities?.includes(capability)
+    ).length;
+  }
+
+  protected getFilteredCountForAppStatus(status: string): number {
+    const apps = this.applications();
+    return apps.filter(app =>
+      app.lifecycleState === status
+    ).length;
+  }
+
+  protected getTrendingCount(): number {
+    const apps = this.applications();
+    return apps.filter(app =>
+      app.tags?.some(tag => tag.name === 'popular')
+    ).length;
+  }
+
+  protected formatCapability(capability: string): string {
+    return capability
+      .split('_')
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  protected formatAppStatus(status: string): string {
+    return this.formatLifecycleState(status);
+  }
+
+  protected getAvatarGradient(name: string): string {
+    const gradients = [
+      'linear-gradient(135deg, #0078d4 0%, #50e6ff 100%)',
+      'linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)',
+      'linear-gradient(135deg, #0d9488 0%, #5eead4 100%)',
+      'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)',
+      'linear-gradient(135deg, #be185d 0%, #f472b6 100%)',
+    ];
+    const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % gradients.length;
+    return gradients[index];
+  }
+
+  protected getCategoryDisplayName(categoryName: string): string {
+    // Find the display name by looking through all applications' tags
+    for (const app of this.applications()) {
+      const allTags = [...(app.categories || []), ...(app.tags || [])];
+      const tag = allTags.find(t => t.name === categoryName);
+      if (tag) {
+        return tag.displayName;
+      }
+    }
+    return categoryName;
+  }
+
+  protected getAllAvailableCategories(): Array<{name: string, displayName: string}> {
+    const categoriesMap = new Map<string, string>();
+
+    for (const app of this.applications()) {
+      const allTags = [...(app.categories || []), ...(app.tags || [])];
+      for (const tag of allTags) {
+        if (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT') {
+          categoriesMap.set(tag.name, tag.displayName);
+        }
+      }
+    }
+
+    return Array.from(categoriesMap.entries())
+      .map(([name, displayName]) => ({ name, displayName }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  protected isCategorySelected(category: string): boolean {
+    return this.filterState().categories.includes(category);
+  }
+
+  protected isCapabilitySelected(capability: string): boolean {
+    return this.filterState().capabilities.includes(capability);
+  }
+
+  protected isAppStatusSelected(status: string): boolean {
+    return this.filterState().appStatus.includes(status);
+  }
+
+  protected isMidpointVersionSelected(versionId: number): boolean {
+    return this.filterState().midpointVersions.includes(versionId);
+  }
+
+  protected isIntegrationMethodSelected(method: string): boolean {
+    return this.filterState().integrationMethods.includes(method);
+  }
+
+  protected isMaintainerSelected(maintainer: string): boolean {
+    return this.filterState().maintainers.includes(maintainer);
+  }
+
+  protected readonly allMidpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
+
+  protected readonly allIntegrationMethods: string[] = [
+    'SCIM',
+    'openLDAP',
+    'REST API',
+    'CSV file import'
+  ];
+
+  protected readonly allMaintainers: string[] = [
+    'Evolveum',
+    'Community',
+    'Partner'
+  ];
+
   protected onSortChange(event: Event): void {
     const value = (event.target as HTMLSelectElement).value as 'alphabetical' | 'popularity' | 'activity';
     this.sortBy.set(value);
     this.currentPage.set(0);
-  }
-
-  protected setViewMode(mode: 'grid' | 'list'): void {
-    this.viewMode.set(mode);
   }
 
   protected setActiveTab(tab: string): void {
@@ -236,7 +675,7 @@ export class ApplicationsList implements OnInit, AfterViewInit {
       const visibilityRatio = visibleWidth / cardWidth;
 
       // If card is fully visible (or almost fully), opacity is 1, otherwise 0.5
-      if (visibilityRatio >= 0.95) {
+      if (visibilityRatio >= 0.99) {
         card.style.opacity = '1';
       } else {
         card.style.opacity = '0.5';
@@ -249,29 +688,64 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   }
 
   protected openRequestModal(): void {
+    if (!this.authService.canRequest()) {
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+      this.authService.openLoginModal();
+      return;
+    }
     this.isRequestModalOpen.set(true);
+  }
+
+  protected closeLoginRequiredMessage(): void {
+    this.showLoginRequiredMessage.set(false);
+  }
+
+  protected closePermissionDeniedMessage(): void {
+    this.showPermissionDeniedMessage.set(false);
   }
 
   protected closeRequestModal(): void {
     this.isRequestModalOpen.set(false);
   }
 
-  protected openLoginModal(): void {
-    this.isLoginModalOpen.set(true);
+  protected openUploadModal(): void {
+    if (!this.authService.canUpload()) {
+      if (!this.authService.isLoggedIn()) {
+        this.showLoginRequiredMessage.set(true);
+        setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+        this.authService.openLoginModal();
+      } else {
+        this.showPermissionDeniedMessage.set(true);
+        setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
+      }
+      return;
+    }
+    this.router.navigate(['/publish']);
   }
 
-  protected closeLoginModal(): void {
-    this.isLoginModalOpen.set(false);
+  protected reloadApplications(): void {
+    this.loading.set(true);
+    this.loadApplications();
   }
 
-  protected logout(): void {
-    this.authService.logout();
+  protected openFilterModal(): void {
+    this.isFilterModalOpen.set(true);
+  }
+
+  protected closeFilterModal(): void {
+    this.isFilterModalOpen.set(false);
+  }
+
+  protected applyFilter(filterState: FilterState): void {
+    this.filterState.set(filterState);
+    this.currentPage.set(0);
   }
 
   protected voteForRequest(app: Application): void {
     const currentUser = this.currentUser();
 
-    if (!currentUser) {
+    if (!currentUser || !this.authService.canVote()) {
       alert('Please log in to vote');
       return;
     }
@@ -297,6 +771,12 @@ export class ApplicationsList implements OnInit, AfterViewInit {
     });
   }
 
+  protected isPopular(app: Application): boolean {
+    return app.tags?.some(tag => tag.name === 'popular' || tag.name === 'POPULAR') ||
+           app.categories?.some(tag => tag.name === 'popular' || tag.name === 'POPULAR') ||
+           false;
+  }
+
   protected formatLifecycleState(state: string | null): string {
     if (!state) return '';
 
@@ -307,8 +787,8 @@ export class ApplicationsList implements OnInit, AfterViewInit {
         return 'Active';
       case 'WITH_ERROR':
         return 'With error';
-      case 'IN_PUBLISH_PROCESS':
-        return 'Publishing...';
+      case 'IN_REVIEW':
+        return 'In review';
       default:
         return state;
     }
@@ -317,8 +797,6 @@ export class ApplicationsList implements OnInit, AfterViewInit {
   private loadApplications(): void {
     this.applicationService.getAll().subscribe({
       next: (data) => {
-        // console.log('Received applications:', data);
-        // console.log('First app lifecycle_state:', data[0]?.lifecycle_state);
         this.applications.set(data);
         this.loading.set(false);
         setTimeout(() => {
@@ -343,5 +821,49 @@ export class ApplicationsList implements OnInit, AfterViewInit {
         console.error('Error loading categories:', err);
       }
     });
+  }
+
+  private loadTotalDownloadsCount(): void {
+    this.applicationService.getTotalDownloadsCount().subscribe({
+      next: (count) => {
+        this.totalDownloadsCount.set(count);
+      },
+      error: (err) => {
+        console.error('Error loading total downloads count:', err);
+      }
+    });
+  }
+
+  // ==================== Logo Methods ====================
+
+  // Track logo load errors per application
+  protected logoLoadErrors = new Set<string>();
+
+  /**
+   * Check if an application has a logo
+   */
+  protected appHasLogo(app: Application): boolean {
+    return hasLogo(app);
+  }
+
+  /**
+   * Get the logo URL for an application
+   */
+  protected getAppLogoUrl(app: Application): string {
+    return this.applicationService.getLogoUrl(app.id);
+  }
+
+  /**
+   * Handle logo load error - marks the app to show fallback
+   */
+  protected onAppLogoError(appId: string): void {
+    this.logoLoadErrors.add(appId);
+  }
+
+  /**
+   * Check if should show letter avatar for an app
+   */
+  protected shouldShowAppLetterAvatar(app: Application): boolean {
+    return !this.appHasLogo(app) || this.logoLoadErrors.has(app.id);
   }
 }

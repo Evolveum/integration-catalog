@@ -7,9 +7,8 @@
 package com.evolveum.midpoint.integration.catalog.integration;
 
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
-
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
-import com.evolveum.midpoint.integration.catalog.object.ImplementationVersion;
+import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 
 import org.kohsuke.github.*;
 import org.springframework.stereotype.Service;
@@ -29,41 +28,35 @@ public class GithubClient {
         this.properties = properties;
     }
 
-    public GHRepository createProject(String nameOfProject, ImplementationVersion newVersion, List<ItemFile> files) throws Exception {
+    public GHRepository createProjectForConnectorVersion(String nameOfProject, ConnectorVersion connectorVersion,
+                                                          List<ItemFile> files) throws Exception {
         GitHub github = new GitHubBuilder()
                 .withOAuthToken(properties.apiToken())
                 .build();
 
+        String description = connectorVersion.getFullyQualifiedClassName() != null
+                ? connectorVersion.getFullyQualifiedClassName() : nameOfProject;
+
         GHRepository repo = github.createRepository(nameOfProject)
-                .description(newVersion.getDescription())
+                .description(description)
                 .private_(false)
                 .autoInit(true)
                 .create();
-
-//        // create a new branch (named connidVersion of an implementation version) if the branch does not exist
-//        // if exist the branch new implementation version push to the existing branch
-//        try {
-//            repo.getBranch(newVersion.getConnidVersion());
-//            branchRef = repo.getRef("heads/" + newVersion.getConnidVersion());
-//        } catch (IOException e) {
-//            GHBranch baseBranch = repo.getBranch("main"); // or "master"
-//            branchRef = repo.createRef("refs/heads/" + newVersion.getConnidVersion(), baseBranch.getSHA1());
-//        }
 
         GHRef branchRef = repo.getRef("heads/main");
         GHCommit latestCommit = repo.getCommit(branchRef.getObject().getSha());
         GHTreeBuilder treeBuilder = repo.createTree().baseTree(latestCommit.getSHA1());
 
         for (ItemFile file : files) {
-//            GHBlob blob = repo.createBlob().textContent(file.content()).create();
             treeBuilder.add(file.path(), file.content(), false);
         }
 
-        createTag(repo, latestCommit.getSHA1(), newVersion);
+        String bundleVersion = resolveBundleVersion(connectorVersion);
+        createTag(repo, latestCommit.getSHA1(), description, bundleVersion);
 
         GHTree tree = treeBuilder.create();
         GHCommit commit = repo.createCommit()
-                .message(newVersion.getDescription())
+                .message(description)
                 .tree(tree.getSha())
                 .parent(latestCommit.getSHA1())
                 .create();
@@ -73,22 +66,21 @@ public class GithubClient {
         return repo;
     }
 
-    private void createTag(GHRepository repo, String sha, ImplementationVersion newVersion) {
-
-        if (newVersion.getBundleVersion() == null || newVersion.getBundleVersion().getConnectorVersion() == null) {
-            throw new IllegalArgumentException("Bundle version and connector version must not be null");
+    private String resolveBundleVersion(ConnectorVersion connectorVersion) {
+        if (connectorVersion.getConnectorBundleVersion() != null
+                && connectorVersion.getConnectorBundleVersion().getBundleVersion() != null) {
+            return connectorVersion.getConnectorBundleVersion().getBundleVersion();
         }
+        return "1.0.0";
+    }
 
-        String connectorVersion = newVersion.getBundleVersion().getConnectorVersion();
-        String tagVersion = "v" + connectorVersion;
-
+    private void createTag(GHRepository repo, String sha, String description, String version) {
+        String tagVersion = "v" + version;
         try {
-            GHTagObject tagObject = repo.createTag(tagVersion,
-                    newVersion.getDescription(), sha, "commit");
+            GHTagObject tagObject = repo.createTag(tagVersion, description, sha, "commit");
             repo.createRef("refs/tags/" + tagVersion, tagObject.getSha());
-
         } catch (IOException e) {
-            throw new RuntimeException("Exception occurred during tag creation: "+ e);
+            throw new RuntimeException("Exception occurred during tag creation: " + e);
         }
     }
 }
