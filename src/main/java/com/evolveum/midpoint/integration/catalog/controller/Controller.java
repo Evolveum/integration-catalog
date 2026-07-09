@@ -76,11 +76,13 @@ public class Controller {
     })
     @GetMapping("/applications/{id}")
     public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id) {
+        log.debug("getApplication id={}", id);
         try {
             Application app = applicationService.getApplication(id);
             ApplicationDto dto = applicationMapper.mapToApplicationDto(app);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
+            log.error("getApplication failed id={}: {}", id, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Failed to load application: " + ex.getMessage(), ex);
         }
@@ -94,9 +96,11 @@ public class Controller {
     })
     @GetMapping("/application-tags")
     public ResponseEntity<List<ApplicationTagDto>> getApplicationTags() {
+        log.debug("getApplicationTags");
         try {
             return ResponseEntity.ok(applicationService.getApplicationTags());
         } catch (RuntimeException ex) {
+            log.warn("getApplicationTags failed: {}", ex.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
@@ -106,6 +110,7 @@ public class Controller {
     @ApiResponse(responseCode = "200", description = "Integration method types retrieved successfully")
     @GetMapping("/integration-method-types")
     public ResponseEntity<List<IntegrationMethodType>> getIntegrationMethodTypes() {
+        log.debug("getIntegrationMethodTypes");
         return ResponseEntity.ok(applicationService.getIntegrationMethodTypes());
     }
 
@@ -114,6 +119,7 @@ public class Controller {
     @ApiResponse(responseCode = "200", description = "MidPoint versions retrieved successfully")
     @GetMapping("/midpoint-versions")
     public ResponseEntity<List<MidpointVersionDto>> getMidpointVersions() {
+        log.debug("getMidpointVersions");
         return ResponseEntity.ok(applicationService.getMidpointVersions());
     }
 
@@ -125,9 +131,11 @@ public class Controller {
     })
     @GetMapping("/countries-of-origin")
     public ResponseEntity<List<CountryOfOrigin>> getCountriesOfOrigin() {
+        log.debug("getCountriesOfOrigin");
         try {
             return ResponseEntity.ok(applicationService.getCountriesOfOrigin());
         } catch (RuntimeException ex) {
+            log.warn("getCountriesOfOrigin failed: {}", ex.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
@@ -135,6 +143,7 @@ public class Controller {
     @Operation(summary = "Check if connector bundle name exists", description = "Returns true if the specified bundle name is already taken")
     @GetMapping("/upload/check-bundle-name")
     public ResponseEntity<Boolean> checkBundleNameExists(@RequestParam String bundleName) {
+        log.debug("checkBundleNameExists bundleName={}", bundleName);
         boolean exists = applicationService.checkBundleNameExists(bundleName);
         return ResponseEntity.ok(exists);
     }
@@ -144,11 +153,14 @@ public class Controller {
     public ResponseEntity<String> uploadConnector(
             @RequestBody UploadImplementationDto dto,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        log.info("uploadConnector user={}", username);
         try {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, username));
         } catch (IllegalArgumentException e) {
+            log.warn("uploadConnector rejected user={}: {}", username, e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("uploadConnector data conflict user={}: {}", username, e.getMostSpecificCause().getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Publish failed due to a data conflict (e.g. duplicate bundle version). " +
                 "Please ensure the database migration 03_fix_bundle_version_unique_constraint.sql has been applied. " +
@@ -163,6 +175,7 @@ public class Controller {
     })
     @PostMapping("/upload/continue/{oid}")
     public ResponseEntity<Void> completeBuildSuccessfully(@RequestBody ContinueForm continueForm, @PathVariable UUID oid) {
+        log.info("completeBuildSuccessfully oid={}", oid);
         applicationService.successBuild(oid, continueForm);
         return ResponseEntity.ok().build();
     }
@@ -174,6 +187,7 @@ public class Controller {
     })
     @PostMapping("/upload/continue/fail/{oid}")
     public ResponseEntity<Void> completeBuildWithFailure(@RequestBody FailForm failForm, @PathVariable UUID oid) {
+        log.info("completeBuildWithFailure oid={}", oid);
         applicationService.failBuild(oid, failForm);
         return ResponseEntity.ok().build();
     }
@@ -188,9 +202,11 @@ public class Controller {
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
             @PathVariable int page) {
+        log.debug("searchApplication page={} size={}", page, size);
         try {
             return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
         } catch (RuntimeException ex) {
+            log.warn("searchApplication failed page={} size={}: {}", page, size, ex.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
@@ -205,9 +221,11 @@ public class Controller {
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
             @PathVariable int page) {
+        log.debug("searchIntegrationMethods page={} size={}", page, size);
         try {
             return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size));
         } catch (RuntimeException ex) {
+            log.warn("searchIntegrationMethods failed page={} size={}: {}", page, size, ex.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
@@ -219,6 +237,7 @@ public class Controller {
     })
     @GetMapping("/requests/{id}")
     public ResponseEntity<Request> getRequest(@PathVariable Long id) {
+        log.debug("getRequest id={}", id);
         return applicationService.getRequest(id)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
@@ -231,6 +250,7 @@ public class Controller {
     })
     @GetMapping("/applications/{appId}/request")
     public ResponseEntity<Request> getRequestForApplication(@PathVariable UUID appId) {
+        log.debug("getRequestForApplication appId={}", appId);
         return applicationService.getRequestForApplication(appId)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found for application"));
@@ -244,12 +264,16 @@ public class Controller {
     })
     @PostMapping("/requests")
     public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
+        log.info("createRequest");
         try {
             Request created = applicationService.createRequestFromForm(dto);
+            log.info("createRequest created id={}", created.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException ex) {
+            log.warn("createRequest rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (Exception ex) {
+            log.error("createRequest failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create request: " + ex.getMessage());
         }
     }
@@ -262,12 +286,15 @@ public class Controller {
     })
     @DeleteMapping("/requests/{requestId}")
     public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId) {
+        log.info("cancelRequest requestId={}", requestId);
         try {
             applicationService.cancelRequest(requestId);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("cancelRequest not found requestId={}: {}", requestId, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (Exception ex) {
+            log.error("cancelRequest failed requestId={}: {}", requestId, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to cancel request: " + ex.getMessage());
         }
@@ -281,10 +308,12 @@ public class Controller {
     })
     @PostMapping("/requests/{requestId}/vote")
     public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, @RequestParam String voter) {
+        log.info("submitVote requestId={} voter={}", requestId, voter);
         try {
             Vote vote = applicationService.submitVote(requestId, voter);
             return ResponseEntity.status(HttpStatus.CREATED).body(vote);
         } catch (IllegalArgumentException ex) {
+            log.warn("submitVote rejected requestId={} voter={}: {}", requestId, voter, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
     }
@@ -296,6 +325,7 @@ public class Controller {
     })
     @GetMapping("/requests/{requestId}/votes/count")
     public ResponseEntity<Long> getVoteCount(@PathVariable Long requestId) {
+        log.debug("getVoteCount requestId={}", requestId);
         long count = applicationService.getVoteCount(requestId);
         return ResponseEntity.ok(count);
     }
@@ -307,6 +337,7 @@ public class Controller {
     })
     @GetMapping("/requests/{requestId}/votes/check")
     public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, @RequestParam String voter) {
+        log.debug("hasUserVoted requestId={} voter={}", requestId, voter);
         boolean hasVoted = applicationService.hasUserVoted(requestId, voter);
         return ResponseEntity.ok(hasVoted);
     }
@@ -318,6 +349,7 @@ public class Controller {
     })
     @GetMapping("/categories/counts")
     public ResponseEntity<List<CategoryCountDto>> getCategoryCounts() {
+        log.debug("getCategoryCounts");
         return ResponseEntity.ok(applicationService.getCategoryCounts());
     }
 
@@ -329,6 +361,7 @@ public class Controller {
     })
     @GetMapping("/applications")
     public ResponseEntity<List<ApplicationCardDto>> getAllApplications() {
+        log.debug("getAllApplications");
         Page<ApplicationCardDto> page = applicationService.list(Pageable.unpaged(), null, null);
         return ResponseEntity.ok(page.getContent());
     }
@@ -340,6 +373,7 @@ public class Controller {
     })
     @GetMapping("/connectors/active")
     public ResponseEntity<List<ActiveConnectorDto>> getActiveConnectors() {
+        log.debug("getActiveConnectors");
         return ResponseEntity.ok(applicationService.listActiveConnectors());
     }
 
@@ -350,6 +384,7 @@ public class Controller {
     })
     @GetMapping("/connectors/catalog")
     public ResponseEntity<List<CatalogConnectorDto>> getCatalogConnectors() {
+        log.debug("getCatalogConnectors");
         return ResponseEntity.ok(applicationService.listCatalogConnectors());
     }
 
@@ -360,6 +395,7 @@ public class Controller {
     })
     @GetMapping("/capabilities")
     public ResponseEntity<List<CapabilityDto>> getCapabilities() {
+        log.debug("getCapabilities");
         return ResponseEntity.ok(applicationService.getCapabilities());
     }
 
@@ -370,6 +406,7 @@ public class Controller {
     })
     @GetMapping("/statistics/downloads-count")
     public ResponseEntity<Long> getTotalDownloadsCount() {
+        log.debug("getTotalDownloadsCount");
         return ResponseEntity.ok(applicationService.getTotalDownloadsCount());
     }
 
@@ -380,6 +417,7 @@ public class Controller {
     })
     @GetMapping("/applications/{applicationId}/downloads-count")
     public ResponseEntity<Long> getApplicationDownloadsCount(@PathVariable UUID applicationId) {
+        log.debug("getApplicationDownloadsCount applicationId={}", applicationId);
         return ResponseEntity.ok(applicationService.countDownloadsForApplication(applicationId));
     }
 
@@ -392,9 +430,11 @@ public class Controller {
     })
     @PostMapping("/upload/verify")
     public ResponseEntity<Boolean> verify(@RequestBody VerifyBundleInformationForm verifyPayload) {
+        log.info("verify bundle");
         try {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.verify(verifyPayload));
         } catch (IllegalArgumentException e) {
+            log.warn("verify rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
@@ -407,6 +447,7 @@ public class Controller {
     })
     @GetMapping("/applications/{applicationId}/implementations")
     public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(@PathVariable UUID applicationId) {
+        log.debug("getIntegrationMethodsByApplicationId applicationId={}", applicationId);
         List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId);
         return ResponseEntity.ok(items);
     }
@@ -418,12 +459,16 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String currentRevision,
             @RequestBody EditIntegrationMethodDto dto) {
+        log.info("editIntegrationMethod appId={} methodId={} currentRevision={}", appId, methodId, currentRevision);
         try {
             String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto);
+            log.info("editIntegrationMethod saved methodId={} newRevision={}", methodId, newRevision);
             return ResponseEntity.ok(newRevision);
         } catch (IllegalStateException e) {
+            log.warn("editIntegrationMethod conflict methodId={}: {}", methodId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.warn("editIntegrationMethod not found methodId={}: {}", methodId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -442,12 +487,15 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        log.info("publishIntegrationMethod appId={} methodId={} revision={} user={}", appId, methodId, revision, username);
         try {
             applicationService.publishIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (IllegalStateException e) {
+            log.warn("publishIntegrationMethod conflict methodId={} revision={}: {}", methodId, revision, e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.warn("publishIntegrationMethod not found methodId={} revision={}: {}", methodId, revision, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -466,12 +514,15 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        log.info("rejectIntegrationMethod appId={} methodId={} revision={} user={}", appId, methodId, revision, username);
         try {
             applicationService.rejectIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (IllegalStateException e) {
+            log.warn("rejectIntegrationMethod conflict methodId={} revision={}: {}", methodId, revision, e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.warn("rejectIntegrationMethod not found methodId={} revision={}: {}", methodId, revision, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -489,10 +540,12 @@ public class Controller {
             @PathVariable String revision,
             @RequestBody AddConnectorDto dto,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        log.info("addConnectorToIntegrationMethod appId={} methodId={} revision={} user={}", appId, methodId, revision, username);
         try {
             applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
+            log.warn("addConnectorToIntegrationMethod not found methodId={} revision={}: {}", methodId, revision, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -503,6 +556,7 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision) {
+        log.debug("getConnectorsForIntegrationMethod methodId={} revision={}", methodId, revision);
         return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision));
     }
 
@@ -519,10 +573,12 @@ public class Controller {
             @PathVariable String revision,
             @PathVariable Integer connectorId,
             @RequestBody EditConnectorDto dto) {
+        log.info("updateConnector appId={} methodId={} revision={} connectorId={}", appId, methodId, revision, connectorId);
         try {
             applicationService.updateConnector(methodId, revision, connectorId, dto);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
+            log.warn("updateConnector not found methodId={} connectorId={}: {}", methodId, connectorId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -540,11 +596,13 @@ public class Controller {
             @PathVariable String revision,
             @PathVariable Integer connectorId,
             @RequestBody UpdateConnectorCompatibilityDto dto) {
+        log.info("updateConnectorCompatibility appId={} methodId={} revision={} connectorId={}", appId, methodId, revision, connectorId);
         try {
             applicationService.updateConnectorCompatibility(methodId, revision, connectorId,
                     dto.connectorVersionFrom(), dto.connectorVersionTo());
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
+            log.warn("updateConnectorCompatibility not found methodId={} connectorId={}: {}", methodId, connectorId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -561,10 +619,12 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId) {
+        log.info("deleteConnectorFromIntegrationMethod appId={} methodId={} revision={} connectorId={}", appId, methodId, revision, connectorId);
         try {
             applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
+            log.warn("deleteConnectorFromIntegrationMethod not found methodId={} connectorId={}: {}", methodId, connectorId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -583,19 +643,24 @@ public class Controller {
     public ResponseEntity<Void> uploadLogo(
             @PathVariable UUID id,
             @RequestParam("file") MultipartFile file) {
+        log.info("uploadLogo id={} filename={} size={}", id, file.getOriginalFilename(), file.getSize());
         try {
             Application application = applicationService.getApplication(id);
             logoStorageService.saveLogo(application, file);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadLogo rejected id={}: {}", id, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadLogo not found id={}: {}", id, ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadLogo failed id={}: {}", id, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload logo: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadLogo file save failed id={}: {}", id, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save logo file: " + ex.getMessage(), ex);
         }
@@ -613,18 +678,23 @@ public class Controller {
     public ResponseEntity<Void> uploadTutorial(
             @PathVariable UUID id,
             @RequestParam("file") MultipartFile file) {
+        log.info("uploadTutorial methodId={} filename={} size={}", id, file.getOriginalFilename(), file.getSize());
         try {
             tutorialStorageService.saveTutorial(id, file);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadTutorial rejected methodId={}: {}", id, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadTutorial not found methodId={}: {}", id, ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadTutorial failed methodId={}: {}", id, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload tutorial: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadTutorial file save failed methodId={}: {}", id, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save tutorial file: " + ex.getMessage(), ex);
         }
@@ -637,18 +707,24 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestParam("file") MultipartFile file) {
+        log.info("uploadTutorialForRevision appId={} methodId={} revision={} filename={} size={}",
+                appId, methodId, revision, file.getOriginalFilename(), file.getSize());
         try {
             tutorialStorageService.saveTutorialForRevision(methodId, revision, file);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadTutorialForRevision rejected methodId={} revision={}: {}", methodId, revision, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadTutorialForRevision not found methodId={} revision={}: {}", methodId, revision, ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadTutorialForRevision failed methodId={} revision={}: {}", methodId, revision, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload tutorial: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadTutorialForRevision file save failed methodId={} revision={}: {}", methodId, revision, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save tutorial file: " + ex.getMessage(), ex);
         }
@@ -660,6 +736,7 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision) {
+        log.debug("listTutorialFiles methodId={} revision={}", methodId, revision);
         return ResponseEntity.ok(tutorialStorageService.listTutorialFiles(methodId, revision));
     }
 
@@ -670,6 +747,7 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestParam("name") String name) {
+        log.debug("downloadTutorialFile methodId={} revision={} name={}", methodId, revision, name);
         try {
             Path file = tutorialStorageService.resolveTutorialFile(methodId, revision, name);
             byte[] bytes = Files.readAllBytes(file);
@@ -679,10 +757,13 @@ public class Controller {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + "\"")
                     .body(bytes);
         } catch (IllegalArgumentException ex) {
+            log.warn("downloadTutorialFile rejected methodId={} name={}: {}", methodId, name, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
+            log.warn("downloadTutorialFile not found methodId={} name={}: {}", methodId, name, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (IOException ex) {
+            log.error("downloadTutorialFile read failed methodId={} name={}: {}", methodId, name, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to read tutorial file: " + ex.getMessage(), ex);
         }
@@ -701,6 +782,7 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             HttpServletRequest request) {
+        log.info("downloadBundle appId={} methodId={} revision={}", appId, methodId, revision);
         try {
             BundleService.Bundle bundle = bundleService.buildBundle(methodId, revision);
             try {
@@ -717,8 +799,10 @@ public class Controller {
             }
             return responseBuilder.body(bundle.data());
         } catch (IllegalArgumentException ex) {
+            log.warn("downloadBundle not found methodId={} revision={}: {}", methodId, revision, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (IOException ex) {
+            log.error("downloadBundle build failed methodId={} revision={}: {}", methodId, revision, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to build bundle: " + ex.getMessage(), ex);
         }
@@ -731,12 +815,15 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestParam("name") String name) {
+        log.info("deleteTutorialFile methodId={} revision={} name={}", methodId, revision, name);
         try {
             tutorialStorageService.deleteTutorialFile(methodId, revision, name);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("deleteTutorialFile rejected methodId={} name={}: {}", methodId, name, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (IOException ex) {
+            log.error("deleteTutorialFile failed methodId={} name={}: {}", methodId, name, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to delete tutorial file: " + ex.getMessage(), ex);
         }
@@ -753,10 +840,12 @@ public class Controller {
     public ResponseEntity<byte[]> getLogo(
             @PathVariable UUID id,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
+        log.debug("getLogo id={}", id);
         Application application;
         try {
             application = applicationService.getApplication(id);
         } catch (RuntimeException ex) {
+            log.warn("getLogo application not found id={}: {}", id, ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
         }
 
@@ -802,14 +891,17 @@ public class Controller {
     })
     @DeleteMapping("/applications/{id}/logo")
     public ResponseEntity<Void> deleteLogo(@PathVariable UUID id) {
+        log.info("deleteLogo id={}", id);
         try {
             Application application = applicationService.getApplication(id);
             logoStorageService.deleteLogo(application);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("deleteLogo not found id={}: {}", id, ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("deleteLogo failed id={}: {}", id, ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to delete logo: " + ex.getMessage(), ex);
         }
@@ -824,6 +916,7 @@ public class Controller {
     })
     @GetMapping("/recently-used")
     public ResponseEntity<List<ApplicationDto>> getRecentlyUsed() {
+        log.debug("getRecentlyUsed");
         return ResponseEntity.ok(applicationService.getRecentlyUsedApplications());
     }
 
@@ -836,6 +929,7 @@ public class Controller {
     public ResponseEntity<Void> recordRecentlyUsed(
             @PathVariable UUID applicationId,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        log.info("recordRecentlyUsed applicationId={} user={}", applicationId, username);
         applicationService.recordRecentlyUsed(applicationId, username);
         return ResponseEntity.noContent().build();
     }

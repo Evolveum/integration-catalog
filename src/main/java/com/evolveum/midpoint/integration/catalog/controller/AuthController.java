@@ -14,12 +14,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Auth", description = "Authentication endpoints")
@@ -38,20 +40,29 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
+        log.info("login attempt username={}", request.username());
         return authService.login(request.username(), request.password())
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+                .map(response -> {
+                    log.info("login successful username={}", request.username());
+                    return ResponseEntity.ok(response);
+                })
+                .orElseGet(() -> {
+                    log.warn("login failed username={}", request.username());
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                });
     }
 
     @Operation(summary = "Get organization members", description = "Returns all usernames in the same organization as the given user")
     @GetMapping("/organization/members")
     public ResponseEntity<List<String>> getOrganizationMembers(@RequestParam String username) {
+        log.debug("getOrganizationMembers username={}", username);
         return ResponseEntity.ok(authService.getOrganizationMembers(username));
     }
 
     @Operation(summary = "Get all maintainers", description = "Returns all usernames and organization names — for superuser use")
     @GetMapping("/all-maintainers")
     public ResponseEntity<List<String>> getAllMaintainers() {
+        log.debug("getAllMaintainers");
         return ResponseEntity.ok(authService.getAllMaintainers());
     }
 }

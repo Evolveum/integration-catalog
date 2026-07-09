@@ -18,7 +18,9 @@ import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
+import ch.qos.logback.classic.Logger;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +43,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ApplicationService {
+
+    private static final Logger LOG
+            = (Logger) LoggerFactory.getLogger(ApplicationService.class);
 
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagRepository applicationTagRepository;
@@ -169,43 +174,52 @@ public class ApplicationService {
 
     @Transactional
     public String uploadConnector(UploadImplementationDto dto, String username) {
+        LOG.info("uploadConnector user={}", username);
         return connectorUploadService.uploadConnector(dto, username);
     }
 
     @Transactional
     public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
+        LOG.info("editIntegrationMethod methodId={} currentRevision={}", methodId, currentRevision);
         return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
     }
 
     @Transactional
     public void publishIntegrationMethod(UUID methodId, String revision, String username) {
+        LOG.info("publishIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         connectorUploadService.publishIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
     public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
+        LOG.info("rejectIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         connectorUploadService.rejectIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
     public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
                                                 AddConnectorDto dto, String username) {
+        LOG.info("addConnectorToIntegrationMethod appId={} methodId={} revision={} user={}", appId, methodId, revision, username);
         connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
     }
 
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+        LOG.info("updateConnector methodId={} revision={} connectorId={}", methodId, revision, connectorId);
         connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
     }
 
     @Transactional
     public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
+        LOG.info("deleteConnectorFromIntegrationMethod methodId={} revision={} connectorId={}", methodId, revision, connectorId);
         connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
     }
 
     @Transactional
     public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
                                              String connectorVersionFrom, String connectorVersionTo) {
+        LOG.info("updateConnectorCompatibility methodId={} revision={} connectorId={} from={} to={}",
+                methodId, revision, connectorId, connectorVersionFrom, connectorVersionTo);
         connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
                 connectorVersionFrom, connectorVersionTo);
     }
@@ -219,11 +233,13 @@ public class ApplicationService {
 
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
+        LOG.info("successBuild oid={}", oid);
         buildCallbackService.successBuild(oid, continueForm);
     }
 
     @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
+        LOG.info("failBuild oid={}", oid);
         buildCallbackService.failBuild(oid, failForm);
     }
 
@@ -281,6 +297,7 @@ public class ApplicationService {
 
     @Transactional
     public Request createRequestFromForm(RequestFormDto dto) {
+        LOG.info("createRequestFromForm");
         return requestVotingService.createRequestFromForm(dto);
     }
 
@@ -293,6 +310,7 @@ public class ApplicationService {
     }
 
     public Vote submitVote(Long requestId, String voter) {
+        LOG.info("submitVote requestId={} voter={}", requestId, voter);
         return requestVotingService.submitVote(requestId, voter);
     }
 
@@ -305,10 +323,12 @@ public class ApplicationService {
     }
 
     public void cancelRequest(Long requestId) {
+        LOG.info("cancelRequest requestId={}", requestId);
         requestVotingService.cancelRequest(requestId);
     }
 
     public void recordMethodDownload(UUID methodId, String revision, String ip, String userAgent) {
+        LOG.info("recordMethodDownload methodId={} revision={} ip={}", methodId, revision, ip);
         connectorDownloadService.recordMethodDownload(methodId, revision, ip, userAgent);
     }
 
@@ -410,6 +430,7 @@ public class ApplicationService {
 
     @Transactional
     public void recordRecentlyUsed(UUID applicationId, String userId) {
+        LOG.info("recordRecentlyUsed applicationId={} user={}", applicationId, userId);
         recentlyUsedApplicationRepository.deleteByUserIdAndApplicationId(userId, applicationId);
         recentlyUsedApplicationRepository.flush();
         RecentlyUsedApplication entry = new RecentlyUsedApplication()
