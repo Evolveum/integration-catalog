@@ -33,6 +33,10 @@
 		<tag/>
 		<url/>
 	</scm>
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/Evolveum/integration-catalog/issues</url>
+	</issueManagement>
 	<properties>
 		<java.version>21</java.version>
 	</properties>
@@ -109,10 +113,55 @@
     </dependencies>
 
 	<build>
+		<!--
+			Filter only banner.txt so Maven substitutes @project.version@,
+			@project.issueManagement.url@ and the git.* properties (provided by the
+			git-commit-id plugin below). Everything else is copied verbatim, so
+			application.properties' own ${...} placeholders are left untouched.
+		-->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>banner.txt</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+				<excludes>
+					<exclude>banner.txt</exclude>
+				</excludes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!--
+				Exposes git.branch and git.commit.id.describe as build properties (and a
+				git.properties file) so the banner can show the real branch and build.
+				Requires a Maven build to run; see note below about IntelliJ.
+			-->
+			<plugin>
+				<groupId>io.github.git-commit-id</groupId>
+				<artifactId>git-commit-id-maven-plugin</artifactId>
+				<version>9.0.1</version>
+				<executions>
+					<execution>
+						<id>get-git-info</id>
+						<phase>initialize</phase>
+						<goals>
+							<goal>revision</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<failOnNoGitDirectory>false</failOnNoGitDirectory>
+					<generateGitPropertiesFile>true</generateGitPropertiesFile>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

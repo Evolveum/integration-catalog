@@ -51,6 +51,7 @@ rebel.xml
 # Backup, log and other files
 *~
 *.log
+logs/
 *.versionsBackup
 .DS_Store
 Thumbs.db
