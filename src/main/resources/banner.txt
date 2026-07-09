@@ -9,7 +9,7 @@
                       |___/                                                            |___/  by Evolveum and partners
 
   Licensed under the EUPL-1.2 or later.
-  Version: ${project.version}
-  Sources: https://github.com/Evolveum/integration-catalog, branch: ${git.branch}, build: ${git.describe}
-  Bug reporting system: ${project.issueManagement.url}
+  Version: @project.version@
+  Sources: https://github.com/Evolveum/integration-catalog, branch: @git.branch@, build: @git.commit.id.describe@
+  Bug reporting system: @project.issueManagement.url@
   Product information: https://midpoint.evolveum.com
