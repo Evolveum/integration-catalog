@@ -550,6 +550,19 @@ public class ConnectorUploadService {
 
         draft.setLifecycleState(LifecycleType.ACTIVE);
         // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+
+        // Promote the parent application to ACTIVE as well. The homepage application card badge
+        // reads the application's OWN lifecycle state, so a newly created app that was IN_REVIEW
+        // would keep showing "In Review" even after its method is approved (the detail page reads
+        // the per-method state, which is why only the homepage looked stale).
+        Application application = draft.getApplication();
+        if (application.getLifecycleState() != Application.ApplicationLifecycleType.ACTIVE) {
+            application.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
+            applicationRepository.save(application);
+            log.info("Promoted application {} to ACTIVE after publishing method {}/{}",
+                    application.getId(), methodId, revision);
+        }
+
         log.info("Published integration method {}/{} by {}; superseded {} active revision(s) of major {}",
                 methodId, revision, username, superseded.size(), major);
     }

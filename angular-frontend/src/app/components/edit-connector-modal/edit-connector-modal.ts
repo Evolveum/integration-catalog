@@ -91,7 +91,6 @@ export class EditConnectorModal implements OnInit {
     if (!base) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
-      && !!this.devProjectFolderPath().trim()
       && !this.isGitCloneUrlInvalid();
     const javaOk = !this.isJavaBased
       || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());

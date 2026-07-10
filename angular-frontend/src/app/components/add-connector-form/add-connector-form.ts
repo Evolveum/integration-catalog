@@ -138,7 +138,6 @@ export class AddConnectorForm implements OnInit {
     if (!base || this.isConnectorVersionInvalid() || this.bundleNameTaken()) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
-      && !!this.devProjectFolderPath().trim()
       && !this.isGitCloneUrlInvalid();
     const javaOk = !this.isJavaBasedConnector
       || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());

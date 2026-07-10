@@ -87,7 +87,7 @@
         <div class="connector-existing-link">
           Do you want to use an existing connector?
           <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openCatalogModal()">
-            Select one from the catalog. <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
+            Select one from the catalog.
           </button>
         </div>
       </div>
@@ -369,7 +369,7 @@
                          [value]="devCommitTag()"
                          (input)="devCommitTag.set($any($event.target).value)"
                          [disabled]="isExistingConnector"
-                         placeholder="e.g. a3F8c31">
+                         placeholder="e.g. 35e32b6a00dec02ae7d7c45c6b7106779a1246aa">
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
@@ -382,7 +382,7 @@
               <!-- Project folder path -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">
-                  Project folder path@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  Project folder path
                   <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Relative path from the repository root to the connector module.">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
