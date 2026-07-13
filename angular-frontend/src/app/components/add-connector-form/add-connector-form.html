@@ -138,9 +138,11 @@
                       <i class="fa-solid fa-circle-info info-icon-sm"></i>
                     </button>
                   </label>
-                  <input type="text" class="form-control input-disabled"
+                  <input type="text" class="form-control"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="connectorVersion()"
-                         disabled
+                         (input)="connectorVersion.set($any($event.target).value)"
+                         [disabled]="isExistingConnector"
                          placeholder="e.g. 1.0.0">
                   @if (isConnectorVersionInvalid() && !isExistingConnector) {
                     <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>

@@ -12,8 +12,10 @@
     [appName]="appName()"
     [appHasLogo]="appHasLogo()"
     [logoUrl]="getLogoUrl()"
-    (close)="showAddConnector.set(false)"
-    (saved)="onConnectorSaved()">
+    [deferSave]="isPublished()"
+    (close)="closeAddConnector()"
+    (saved)="onConnectorSaved($event)"
+    (staged)="onConnectorStaged($event)">
   </app-add-connector-form>
 } @else {
 
@@ -187,7 +189,7 @@
         <div class="edit-connectors-header">
           <span class="edit-connectors-title">CONNECTORS</span>
           <button type="button" class="btn btn-sm edit-add-connector-btn"
-                  (click)="showAddConnector.set(true)">
+                  (click)="openAddConnector()">
             <i class="fa-solid fa-plus me-1"></i>Add new connector
           </button>
         </div>
@@ -365,6 +367,46 @@
             </div>
           </div>
         }
+
+        <!-- Staged (not yet persisted) connectors: added while on a published version, committed on Save -->
+        @for (sc of stagedConnectors(); track $index; let si = $index) {
+          <div class="edit-connector-card edit-connector-card-pending">
+            <div class="edit-connector-card-header">
+              <span class="edit-connector-name d-flex align-items-center gap-2">
+                {{ sc.displayName || 'New connector' }}
+                <span class="edit-connector-pending-badge">Pending — added on save</span>
+              </span>
+              <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
+                      (click)="removeStagedConnector(si)">
+                <i class="fa-solid fa-trash-can"></i>Remove
+              </button>
+            </div>
+            <div class="edit-connector-details">
+              <div class="edit-connector-row">
+                <span class="edit-connector-label">Connector version:</span>
+                <span class="edit-connector-value"><span class="im-version-badge">{{ sc.version || '—' }}</span></span>
+              </div>
+              @if (sc.maintainer) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Maintainer:</span>
+                  <span class="edit-connector-value">{{ formatMaintainer(sc.maintainer) }}</span>
+                </div>
+              }
+              @if (sc.license) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">License type:</span>
+                  <span class="edit-connector-value">{{ fmtLicense(sc.license) }}</span>
+                </div>
+              }
+              @if (sc.description) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Connector description:</span>
+                  <span class="edit-connector-value">{{ sc.description }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
 
       <!-- License / publishing notice -->
@@ -375,13 +417,27 @@
         </p>
       </div>
 
+      @if (saveError()) {
+        <div class="edit-save-error" role="alert">
+          <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ saveError() }}
+        </div>
+      }
+
       <!-- Footer actions -->
       <div class="edit-footer">
         <button type="button" class="btn btn-link edit-cancel-btn" (click)="cancel()">Cancel</button>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn edit-save-btn" [disabled]="!isMidpointRangeValid()" (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+        <div class="d-flex align-items-center gap-2">
+          @if (hasStagedConnectors()) {
+            <span class="edit-save-hint text-muted me-1">Connector staged — save as a new version to add it.</span>
+          } @else if (connectorAdded()) {
+            <span class="edit-save-hint text-muted me-1">Connector added to version {{ methodVersion() }} — click Save to keep your changes.</span>
+          }
+          <button type="button" class="btn edit-save-btn"
+                  [disabled]="!isMidpointRangeValid() || isSaving() || hasStagedConnectors()"
+                  [title]="hasStagedConnectors() ? 'A connector is staged — save it as a new version.' : ''"
+                  (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
           @if (!isInReview()) {
-            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid()" (click)="saveAsNewVersion()">
+            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid() || isSaving()" (click)="saveAsNewVersion()">
               <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
             </button>
           }
@@ -469,8 +525,6 @@
         </div>
         <ul class="new-version-list">
           <li>Configuration metadata updated</li>
-          <li>Build artifacts generated and stored</li>
-          <li>Commit tag {{ methodVersion() }} created in repository</li>
         </ul>
         <hr class="saved-modal-separator">
         <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">

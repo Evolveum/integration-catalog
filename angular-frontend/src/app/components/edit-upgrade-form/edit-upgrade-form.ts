@@ -8,13 +8,14 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin, Observable } from 'rxjs';
+import { concat, forkJoin, of, Observable } from 'rxjs';
+import { toArray } from 'rxjs/operators';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
-import { AddConnectorForm } from '../add-connector-form/add-connector-form';
+import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
 import { EditConnectorModal } from '../edit-connector-modal/edit-connector-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
@@ -29,12 +30,21 @@ import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../mod
 export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly loading = signal<boolean>(true);
   protected readonly showAddConnector = signal<boolean>(false);
+  // Set once a connector is added directly to a mutable (in-review/rejected) revision this session.
+  protected readonly connectorAdded = signal<boolean>(false);
+  // Connectors added while on a PUBLISHED version: held here, unpersisted, until the user saves a new
+  // version. Nothing touches the backend (and no version is created) unless/until that save happens.
+  protected readonly stagedConnectors = signal<StagedConnector[]>([]);
+  protected readonly hasStagedConnectors = computed(() => this.stagedConnectors().length > 0);
   // protected readonly licenseExpanded = signal<boolean>(false);
   protected readonly appId = signal<string>('');
   protected readonly appName = signal<string>('');
   protected readonly appHasLogo = signal<boolean>(false);
   protected readonly logoLoadError = signal<boolean>(false);
   protected readonly versionId = signal<string>('');
+  // Surfaced when a Save / Save-as-new-version request fails, so the failure isn't silent.
+  protected readonly saveError = signal<string>('');
+  protected readonly isSaving = signal<boolean>(false);
 
   // Form fields
   protected readonly methodName = signal<string>('');
@@ -320,9 +330,65 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.router.navigate(['/applications', this.appId()]);
   }
 
-  protected onConnectorSaved(): void {
+  protected openAddConnector(): void {
+    // The add-connector form replaces the edit form in the DOM, tearing out the tutorial textarea.
+    // Dispose the EasyMDE instance first (keeping its content) so we can cleanly rebuild it on return.
+    this.teardownEditor();
+    this.showAddConnector.set(true);
+  }
+
+  protected closeAddConnector(): void {
     this.showAddConnector.set(false);
+    // The tutorial textarea is back in the DOM now; rebuild the editor over it.
+    setTimeout(() => this.initEditor(), 50);
+  }
+
+  protected onConnectorSaved(newRevision: string): void {
+    this.showAddConnector.set(false);
+    this.connectorAdded.set(true);
+    // The backend returns the revision the connector landed on. Adding to a published version forks a
+    // fresh in-review draft (a new revision); adding to an existing draft returns the same revision.
+    // When it changed, move the form onto the draft so the connector shows and Save edits the draft.
+    // Method-level form fields are left as-is so any in-progress edits aren't lost.
+    if (newRevision && newRevision !== this.methodVersion()) {
+      this.methodVersion.set(newRevision);
+      this.methodLifecycleState.set('IN_REVIEW');
+      this.loadTutorialFiles(this.appId(), this.versionId(), newRevision);
+    }
     this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
+    // loadConnectors -> finishLoading rebuilds the editor, but rebuild explicitly too so the tutorial
+    // field never shows as a bare textarea.
+    setTimeout(() => this.initEditor(), 50);
+  }
+
+  /** A published (ACTIVE) revision is immutable, so connectors added to it must be staged, not persisted. */
+  protected isPublished(): boolean {
+    return this.methodLifecycleState() === 'ACTIVE';
+  }
+
+  protected onConnectorStaged(sc: StagedConnector): void {
+    // Hold the connector in the form. It is persisted only when the user saves a new version; until
+    // then the published revision is untouched and no new version exists.
+    this.stagedConnectors.update(list => [...list, sc]);
+    this.showAddConnector.set(false);
+    setTimeout(() => this.initEditor(), 50);
+  }
+
+  protected removeStagedConnector(index: number): void {
+    this.stagedConnectors.update(list => list.filter((_, i) => i !== index));
+  }
+
+  /**
+   * Capture the current tutorial content and dispose the EasyMDE instance before its textarea is
+   * removed from the DOM. Without this, the stale instance reference blocks re-initialisation and
+   * the field renders as an unstyled textarea when the edit form comes back.
+   */
+  private teardownEditor(): void {
+    if (this.easyMde) {
+      this.methodTutorial.set(this.easyMde.value());
+      this.easyMde.toTextArea();
+      this.easyMde = null;
+    }
   }
 
   protected openEditConnector(connector: ImplementationListItem): void {
@@ -490,6 +556,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   private doSave(major: boolean): void {
+    if (this.isSaving()) { return; }
+    this.saveError.set('');
+    this.isSaving.set(true);
     const tutorial = this.easyMde ? this.easyMde.value() : this.methodTutorial();
     const capabilities = this.imCapabilities().length > 0
       ? this.imCapabilities()
@@ -517,25 +586,56 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     ).subscribe({
       next: (savedRevision) => {
         this.methodVersion.set(savedRevision);
-        // The new revision starts with the previous revision's files copied forward by the backend;
-        // here we delete the files the user removed and upload the ones they added.
-        const ops: Observable<void>[] = [
-          ...removedNames.map(n => this.applicationService.deleteTutorialFile(this.appId(), this.versionId(), savedRevision, n)),
-          ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), savedRevision, f))
-        ];
-        if (ops.length === 0) {
-          this.afterSave(major);
-          return;
-        }
-        forkJoin(ops).subscribe({
-          next: () => this.afterSave(major),
+        const staged = this.stagedConnectors();
+        // Staged connectors (added while on the published version) are persisted only now, onto the
+        // freshly created revision. Run them sequentially since they all mutate the same method row.
+        const connectors$: Observable<string[]> = staged.length
+          ? concat(...staged.map(sc =>
+              this.applicationService.addConnectorToIntegrationMethod(this.appId(), this.versionId(), savedRevision, sc.payload)
+            )).pipe(toArray())
+          : of<string[]>([]);
+
+        connectors$.subscribe({
+          next: () => {
+            this.stagedConnectors.set([]);
+            // The new revision starts with the previous revision's files copied forward by the backend;
+            // here we delete the files the user removed and upload the ones they added.
+            const ops: Observable<void>[] = [
+              ...removedNames.map(n => this.applicationService.deleteTutorialFile(this.appId(), this.versionId(), savedRevision, n)),
+              ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), savedRevision, f))
+            ];
+            if (ops.length === 0) {
+              this.isSaving.set(false);
+              this.afterSave(major);
+              return;
+            }
+            forkJoin(ops).subscribe({
+              next: () => { this.isSaving.set(false); this.afterSave(major); },
+              error: (err) => {
+                console.error('Tutorial file sync failed', err);
+                this.isSaving.set(false);
+                this.afterSave(major);
+              }
+            });
+          },
           error: (err) => {
-            console.error('Tutorial file sync failed', err);
-            this.afterSave(major);
+            console.error('Persisting staged connectors failed', err);
+            this.isSaving.set(false);
+            this.saveError.set(
+              err?.error?.message || err?.error || err?.message ||
+              'The new version was created, but adding a staged connector failed. Please review the connectors.'
+            );
           }
         });
       },
-      error: (err) => console.error('Save failed', err)
+      error: (err) => {
+        console.error('Save failed', err);
+        this.isSaving.set(false);
+        this.saveError.set(
+          err?.error?.message || err?.error || err?.message ||
+          'Saving failed. Please try again — if it keeps failing, reload the page and retry.'
+        );
+      }
     });
   }
 }

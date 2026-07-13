@@ -209,6 +209,15 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return `${id}|${revision ?? ''}`;
   }
 
+  /**
+   * Unique key for a single version row's collapsible state. The method id is shared across
+   * revisions, so it must be combined with the revision — otherwise expanding a section in one
+   * version row expands it in every other row of the same method.
+   */
+  protected rowKey(version: IntegrationMethod): string {
+    return this.versionKey(version.id, version.revision);
+  }
+
   protected cancelRequest(): void {
     this.pendingCancelType = 'request';
     this.pendingCancelVersionId = null;
