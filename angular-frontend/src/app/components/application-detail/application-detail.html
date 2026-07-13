@@ -107,17 +107,25 @@
 
           <!-- Stats Row -->
           <div class="d-flex align-items-center gap-4 text-body text-sm">
-            <!-- Star Rating (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
+            <!-- Star Rating (Placeholder) - hidden for now, will be used later -->
+            <div class="d-flex align-items-center gap-1" style="display: none !important;">
               <i class="fa-solid fa-star star-icon"></i>
               <span class="font-weight-medium"><b>"4.4</b> (404 reviews)"</span>
             </div>
 
-            <!-- Installations (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
-              <i class="fa-solid fa-download icon-md"></i>
-              <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
-            </div>
+            @if (application()!.lifecycleState === 'REQUESTED') {
+              <!-- Votes (Requested apps) -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-thumbs-up icon-md"></i>
+                <span class="font-weight-medium">{{ application()!.voteCount ?? 0 }} vote(s)</span>
+              </div>
+            } @else {
+              <!-- Installations -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-download icon-md"></i>
+                <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
+              </div>
+            }
 
             <!-- Updated Date -->
             <div class="d-flex align-items-center gap-1">
