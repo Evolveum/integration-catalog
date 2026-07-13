@@ -355,15 +355,26 @@
 
 .edit-connector-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+.edit-connector-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
 }
 
 .edit-connector-name {
   font-weight: 600;
   font-size: 0.9375rem;
   color: #1a202c;
+}
+
+.edit-connector-subtitle {
+  font-size: 0.8125rem;
+  color: #6c757d;
 }
 
 .edit-connector-edit-btn {

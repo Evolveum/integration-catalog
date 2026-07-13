@@ -197,7 +197,10 @@
         @for (c of connectors(); track $index; let ci = $index) {
           <div class="edit-connector-card">
             <div class="edit-connector-card-header">
-              <span class="edit-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <div class="edit-connector-title-group">
+                <span class="edit-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+                <span class="edit-connector-subtitle">v{{ c.version || '—' }} — configured</span>
+              </div>
               <div class="d-flex align-items-center gap-3">
                 <button type="button" class="edit-connector-see-compat d-flex align-items-center gap-2"
                         (click)="openCompatibility(c)" title="Set up connector compatibility">
@@ -262,106 +265,57 @@
                 </div>
               }
 
-              <!-- Repository & documentation -->
-              @if (c.browseLink || c.ticketingLink) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-repo')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-repo')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-repo')"></i>
-                    <span>Repository &amp; Documentation</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-repo')) {
-                    @if (c.browseLink) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Project homepage:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
-                        </span>
-                      </div>
-                    }
-                    @if (c.ticketingLink) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Support portal:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
-                        </span>
-                      </div>
-                    }
-                  }
+              <!-- Flat rows (old design): every field shown directly, no collapsible subsections -->
+              @if (c.browseLink) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project homepage:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                  </span>
                 </div>
               }
-
-              <!-- Framework setting -->
+              @if (c.ticketingLink) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Support portal:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
+                  </span>
+                </div>
+              }
               @if (c.buildFramework) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-framework')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-framework')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-framework')"></i>
-                    <span>Framework Setting</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-framework')) {
-                    <div class="edit-connector-row">
-                      <span class="edit-connector-label">Build tool:</span>
-                      <span class="edit-connector-value">{{ formatBuildTool(c.buildFramework) }}</span>
-                    </div>
-                  }
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Build tool:</span>
+                  <span class="edit-connector-value">{{ formatBuildTool(c.buildFramework) }}</span>
                 </div>
               }
-
-              <!-- Source code access -->
-              <div class="edit-subsection">
-                <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-source')">
-                  <i class="fa-solid icon-sm"
-                     [class.fa-chevron-up]="isSectionExpanded(ci + '-source')"
-                     [class.fa-chevron-down]="!isSectionExpanded(ci + '-source')"></i>
-                  <span>Source Code Access</span>
-                </button>
-                @if (isSectionExpanded(ci + '-source')) {
-                  @if (c.gitCloneUrl) {
-                    <div class="edit-connector-row">
-                      <span class="edit-connector-label">Git clone URL:</span>
-                      <span class="edit-connector-value">
-                        <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
-                      </span>
-                    </div>
-                  }
-                  <!-- Commit hash always shown, even when empty -->
-                  <div class="edit-connector-row">
-                    <span class="edit-connector-label">Commit hash:</span>
-                    <span class="edit-connector-value">
-                      <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag || '—' }}
-                    </span>
-                  </div>
-                }
-              </div>
-
-              <!-- Implementation details -->
-              @if (c.pathToProjectDirectory || c.className) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-impl')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-impl')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-impl')"></i>
-                    <span>Implementation Details</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-impl')) {
-                    @if (c.pathToProjectDirectory) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Project folder path:</span>
-                        <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
-                      </div>
-                    }
-                    @if (c.className) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Class name:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
-                        </span>
-                      </div>
-                    }
-                  }
+              @if (c.gitCloneUrl) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Git clone URL:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
+                  </span>
+                </div>
+              }
+              @if (c.commitTag) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Commit tag:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag }}
+                  </span>
+                </div>
+              }
+              @if (c.pathToProjectDirectory) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project folder path:</span>
+                  <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
+                </div>
+              }
+              @if (c.className) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Class name:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
+                  </span>
                 </div>
               }
             </div>
