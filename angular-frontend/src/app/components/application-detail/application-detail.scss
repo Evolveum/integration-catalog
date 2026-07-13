@@ -969,7 +969,7 @@
 }
 
 .im-col-status {
-  flex: 0 0 220px;
+  flex: 0 0 260px;
 }
 
 .im-table-header {
@@ -989,11 +989,18 @@
   cursor: default;
   transition: background-color 0.15s;
   // Reserve room for the hover-revealed action buttons so the row height
-  // stays constant whether or not it is hovered.
-  min-height: 14.5rem;
+  // stays constant whether or not it is hovered. Published/rejected rows only
+  // stack up to three buttons, so they need far less than the review case.
+  min-height: 10rem;
 
   &:hover {
     background-color: #f8fbff;
+  }
+
+  // IN_REVIEW rows for superusers also render an always-visible Reject/Accept
+  // row beneath the hover actions, so they need the taller reserve.
+  &.im-version-row-review {
+    min-height: 12rem;
   }
 }
 
@@ -1033,7 +1040,9 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.75rem;
-  margin-top: 0.6rem;
+  // Pull the stack up so the first button sits on the same horizontal line as
+  // the state badge (badge is left-aligned, buttons right-aligned).
+  margin-top: -1.7rem;
 }
 
 /* Always-visible actions (approve/reject) — not gated on hover */
@@ -1083,6 +1092,8 @@
   background: none;
   border: none;
   color: #dc3545;
+  // Nudge down so it sits slightly below the state-badge line.
+  margin-top: 0.25rem;
 
   &:hover {
     background: none;

@@ -444,7 +444,7 @@
                           </div>
 
                           @for (version of method.versions; track version.revision) {
-                            <div class="im-version-row d-flex">
+                            <div class="im-version-row d-flex" [class.im-version-row-review]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
                               <!-- VERSION -->
                               <div class="im-col-version">
                                 <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
