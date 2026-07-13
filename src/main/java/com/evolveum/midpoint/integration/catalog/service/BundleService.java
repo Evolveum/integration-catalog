@@ -83,8 +83,9 @@ public class BundleService {
 
     /**
      * A built ZIP bundle together with a suggested download file name and an optional warning.
-     * {@code warning} is {@code null} on success; when non-null it describes why the connector JAR
-     * could not be included (so callers can surface it to the user) — the ZIP is still valid.
+     * {@code warning} is {@code null} when the bundle is complete; otherwise it is a short summary of
+     * how many errors/warnings were found (detailed in the ZIP's ERROR.txt / WARNING.txt), so callers
+     * can surface it to the user — the ZIP is still valid either way.
      */
     public record Bundle(String fileName, byte[] data, String warning) {}
 
@@ -99,16 +100,23 @@ public class BundleService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Integration method not found: " + methodId + "/" + revision));
 
-        String warning;
+        // Problems found while assembling the bundle are split by severity: ERROR.txt collects important
+        // gaps (a missing connector build JAR), WARNING.txt collects minor ones (no tutorial text or no
+        // sample files). Both are advisory — the ZIP is still produced.
+        List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {
-            addTutorialXml(zip, method);
-            addTutorialFiles(zip, methodId, revision);
+            addTutorialXml(zip, method, warnings);
+            addTutorialFiles(zip, methodId, revision, warnings);
             addMetadata(zip, method);
-            warning = addConnectorJars(zip, method);
+            addConnectorJars(zip, method, errors);
+            writeIssues(zip, "ERROR.txt", "important problems", errors);
+            writeIssues(zip, "WARNING.txt", "minor problems", warnings);
         }
-        log.info("Built bundle for integration method {}/{}: {} bytes{}", methodId, revision, baos.size(),
-                warning == null ? "" : " (warning: " + warning + ")");
+        String warning = summarizeIssues(errors, warnings);
+        log.info("Built bundle for integration method {}/{}: {} bytes ({} error(s), {} warning(s))",
+                methodId, revision, baos.size(), errors.size(), warnings.size());
         return new Bundle(buildFileName(method), baos.toByteArray(), warning);
     }
 
@@ -123,10 +131,11 @@ public class BundleService {
         return safe + ".zip";
     }
 
-    private void addTutorialXml(ZipOutputStream zip, IntegrationMethod method) throws IOException {
+    private void addTutorialXml(ZipOutputStream zip, IntegrationMethod method, List<String> warnings) throws IOException {
         String tutorial = method.getTutorial();
         if (tutorial == null || tutorial.isBlank()) {
             log.debug("No tutorial text for {}/{}; skipping tutorial.adoc", method.getId(), method.getRevision());
+            warnings.add("No tutorial text: tutorial.adoc was not included.");
             return;
         }
         // The tutorial is authored as Markdown; convert it to AsciiDoc for the bundle.
@@ -136,8 +145,12 @@ public class BundleService {
         zip.closeEntry();
     }
 
-    private void addTutorialFiles(ZipOutputStream zip, UUID methodId, String revision) throws IOException {
+    private void addTutorialFiles(ZipOutputStream zip, UUID methodId, String revision, List<String> warnings) throws IOException {
         List<String> files = tutorialStorageService.listTutorialFiles(methodId, revision);
+        if (files.isEmpty()) {
+            warnings.add("No additional tutorial/sample files were included (the files/ folder is empty).");
+            return;
+        }
         for (String name : files) {
             Path file = tutorialStorageService.resolveTutorialFile(methodId, revision, name);
             zip.putNextEntry(new ZipEntry("files/" + name));
@@ -148,19 +161,18 @@ public class BundleService {
 
     /**
      * Adds a build JAR for every connector linked to the method, each resolved from that connector's
-     * latest bundle version artifact URL. Never throws on a missing or unreachable artifact: connectors
-     * without a build file are collected into a {@code NOTICE.txt} and a combined warning message is
-     * returned (or {@code null} when every connector's JAR was bundled). Duplicate JAR file names are
-     * de-duplicated so the ZIP never has clashing entries.
+     * latest bundle version artifact URL. Never throws on a missing or unreachable artifact: the JAR is
+     * an important part of the bundle, so any connector without one is recorded as an error (surfaced in
+     * ERROR.txt). Duplicate JAR file names are de-duplicated so the ZIP never has clashing entries.
      */
-    private String addConnectorJars(ZipOutputStream zip, IntegrationMethod method) throws IOException {
+    private void addConnectorJars(ZipOutputStream zip, IntegrationMethod method, List<String> errors) throws IOException {
         List<IntegrationMethodConnector> links = method.getConnectors();
         if (links == null || links.isEmpty()) {
-            return null;
+            errors.add("No connector is linked to this integration method, so no build file (.jar) is included.");
+            return;
         }
 
         Set<String> usedEntryNames = new HashSet<>();
-        List<String> missing = new ArrayList<>();
 
         for (IntegrationMethodConnector link : links) {
             Connector connector = link.getConnector();
@@ -170,7 +182,7 @@ public class BundleService {
             String label = connectorLabel(connector);
             String artifactUrl = resolveArtifactUrl(connector);
             if (artifactUrl == null || artifactUrl.isBlank()) {
-                missing.add(label + " (no build file available)");
+                errors.add("Missing build file (.jar) for connector " + label + ": no build file available.");
                 continue;
             }
             try {
@@ -182,25 +194,47 @@ public class BundleService {
             } catch (IOException e) {
                 log.warn("Failed to fetch connector artifact {} for {}/{}: {}",
                         artifactUrl, method.getId(), method.getRevision(), e.getMessage());
-                missing.add(label + " (build file could not be retrieved: " + e.getMessage() + ")");
+                errors.add("Missing build file (.jar) for connector " + label
+                        + ": could not be retrieved (" + e.getMessage() + ").");
             }
         }
-
-        if (missing.isEmpty()) {
-            return null;
-        }
-
-        String warning = "Some connector build files could not be included in this bundle. "
-                + "Missing: " + String.join("; ", missing) + ".";
-        writeNotice(zip, warning);
-        return warning;
     }
 
-    /** Writes a human-readable ERROR.txt explaining which connector JARs are missing. */
-    private void writeNotice(ZipOutputStream zip, String warning) throws IOException {
-        zip.putNextEntry(new ZipEntry("ERROR.txt"));
-        zip.write(warning.getBytes(StandardCharsets.UTF_8));
+    /**
+     * Writes a severity file (ERROR.txt / WARNING.txt) listing the collected issues, or nothing when
+     * there are none. {@code kind} is a short phrase used in the file's header line.
+     */
+    private void writeIssues(ZipOutputStream zip, String entryName, String kind, List<String> issues) throws IOException {
+        if (issues.isEmpty()) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("The following ").append(kind).append(" were found while building this bundle:\n\n");
+        for (int i = 0; i < issues.size(); i++) {
+            sb.append(i + 1).append(". ").append(issues.get(i)).append('\n');
+        }
+        zip.putNextEntry(new ZipEntry(entryName));
+        zip.write(sb.toString().getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
+    }
+
+    /** Short user-facing download warning summarising the collected issues (null when there are none). */
+    private String summarizeIssues(List<String> errors, List<String> warnings) {
+        if (errors.isEmpty() && warnings.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder("This bundle has ");
+        if (!errors.isEmpty()) {
+            sb.append(errors.size()).append(errors.size() == 1 ? " error" : " errors").append(" (see ERROR.txt)");
+        }
+        if (!warnings.isEmpty()) {
+            if (!errors.isEmpty()) {
+                sb.append(" and ");
+            }
+            sb.append(warnings.size()).append(warnings.size() == 1 ? " warning" : " warnings").append(" (see WARNING.txt)");
+        }
+        sb.append('.');
+        return sb.toString();
     }
 
     private String connectorLabel(Connector connector) {
