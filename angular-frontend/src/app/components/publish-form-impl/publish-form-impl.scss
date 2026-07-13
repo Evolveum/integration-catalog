@@ -98,6 +98,11 @@
   opacity: 1;
 }
 
+/* Bold heading line inside the 5 tooltips that use <strong>…</strong><br><br>. */
+.info-icon-wrapper .info-tooltip strong {
+  font-weight: 700;
+}
+
 .info-icon {
   font-size: 14px;
   color: $text-publishing-blue;
@@ -130,7 +135,7 @@
   color: $color-gray-secondary;
 }
 
-/* "How to find it →" helper link under Commit tag */
+/* "How to find it →" helper link under Commit hash */
 .commit-help-link {
   color: $color-dark-blue;
   text-decoration: none;
@@ -285,7 +290,12 @@
   .form-control.input-disabled,
   .form-select.input-disabled,
   .license-select-trigger.input-disabled,
-  .method-link-wrapper:has(.method-link-input:disabled) {
+  .method-link-wrapper:has(.method-link-input:disabled),
+  // Maintainer combobox input needs its own disabled selector: the white
+  // `.maintainer-combobox input` rule above otherwise out-specifies the
+  // generic `.form-select.input-disabled` and keeps the field white.
+  .maintainer-combobox input:disabled,
+  .maintainer-combobox input.input-disabled {
     background-color: $color-bg-muted;
     color: $color-gray-secondary;
   }

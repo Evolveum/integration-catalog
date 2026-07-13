@@ -483,15 +483,17 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Integration method or connector not found")
     })
     @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors")
-    public ResponseEntity<Void> addConnectorToIntegrationMethod(
+    public ResponseEntity<String> addConnectorToIntegrationMethod(
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestBody AddConnectorDto dto,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
-            return ResponseEntity.ok().build();
+            // Returns the revision the connector landed on: the same revision for a mutable draft, or a
+            // freshly forked draft revision when the source was a published (immutable) version.
+            String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+            return ResponseEntity.ok(savedRevision);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

@@ -358,7 +358,7 @@
                          (dragleave)="tutorialDragOver.set(false)"
                          (drop)="onTutorialFileDrop($event)"
                          (click)="tutorialFileInput.click()">
-                      <input #tutorialFileInput type="file" class="d-none"
+                      <input #tutorialFileInput type="file" class="d-none" multiple
                              accept=".pdf,.xml,.json,.yaml,.yml,.txt" (change)="onTutorialFileSelect($event)">
                       <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
                       <div class="tutorial-dropzone-text">
@@ -461,7 +461,7 @@
                   <div class="connector-existing-link">
                     Do you want already existing connector?
                     <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openConnectorCatalogModal()">
-                      Select one from the catalog. <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
+                      Select one from the catalog.
                     </button>
                   </div>
                 </div>
@@ -529,7 +529,10 @@
                         <h6 class="mb-1 app-title">{{ displayName() || 'New application' }}</h6>
                         <p class="mb-0 text-muted app-description selected-app-description">{{ description() }}</p>
                       </div>
-                      <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
+                      <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="editDefineNewApp()" aria-label="Edit application">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button type="button" class="btn btn-link p-0 ms-2 text-muted flex-shrink-0" (click)="removeSelectedApplication()" aria-label="Remove application">
                         <i class="fa-regular fa-trash-can"></i>
                       </button>
                     </div>

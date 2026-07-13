@@ -986,7 +986,7 @@
 .im-version-row {
   border-top: 1px solid #e9ecef;
   padding: 1rem 1.25rem;
-  cursor: pointer;
+  cursor: default;
   transition: background-color 0.15s;
   // Reserve room for the hover-revealed action buttons so the row height
   // stays constant whether or not it is hovered.

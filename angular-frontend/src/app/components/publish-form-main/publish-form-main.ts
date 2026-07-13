@@ -36,6 +36,9 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly selectedApplication = signal<Application | null>(null);
   protected readonly isDefineNewMode = signal<boolean>(false);
   protected readonly showDetailsForm = signal<boolean>(false);
+  // True while the define-new modal is reopened to EDIT an already-defined app
+  // (vs. creating a fresh one). Controls whether Cancel clears the fields.
+  protected readonly isEditingDefinedApp = signal<boolean>(false);
 
   // Step 2 - Application Details
   protected readonly displayName = signal<string>('');
@@ -102,11 +105,15 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   protected readonly filteredCatalogConnectors = computed<CatalogConnector[]>(() => {
     const query = this.connectorCatalogSearch().toLowerCase().trim();
-    if (!query) return this.catalogConnectors();
-    return this.catalogConnectors().filter(c =>
-      c.displayName?.toLowerCase().includes(query) ||
-      c.description?.toLowerCase().includes(query)
-    );
+    const all = this.catalogConnectors();
+    // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
+    const matched = query.length < 2
+      ? all
+      : all.filter(c =>
+          c.displayName?.toLowerCase().includes(query) ||
+          c.description?.toLowerCase().includes(query)
+        );
+    return matched.slice(0, 10);
   });
   protected readonly selectedIntegrationMethod = signal<string[]>([]);
   protected readonly childInternalStep = signal<number>(5);
@@ -232,7 +239,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
     category: this.category(),
     deploymentType: this.deploymentType(),
     logoFile: this.logoFile(),
-    tutorialFile: this.tutorialFiles()[0]?.file ?? null,
+    tutorialFiles: this.tutorialFiles().map(f => f.file),
     imCapabilities: this.imCapabilities()
   }));
 
@@ -442,6 +449,11 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.currentStep.set(step);
     this.childInternalStep.set(5);
     this.childConnectorName.set('');
+    // If the app was defined new (not picked from the catalog), reopen the
+    // define-new modal on step 1 so the user can edit the data they entered.
+    if (step === 1 && this.isDefineNewMode()) {
+      this.editDefineNewApp();
+    }
   }
 
   protected handleChildInternalStepChange(step: number): void {
@@ -486,26 +498,36 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.tutorialDragOver.set(false);
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
-      this.addTutorialFile(files[0]);
+      this.addTutorialFiles(files);
     }
   }
 
   protected onTutorialFileSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.addTutorialFile(input.files[0]);
+      this.addTutorialFiles(input.files);
     }
     input.value = '';
+  }
+
+  private addTutorialFiles(files: FileList): void {
+    for (const file of Array.from(files)) {
+      this.addTutorialFile(file);
+    }
   }
 
   private addTutorialFile(file: File): void {
     const allowed = ['.pdf', '.xml', '.json', '.yaml', '.yml', '.txt'];
     const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!allowed.includes(ext)) {
-      alert('Invalid file type. Allowed formats: PDF, XML, JSON, YAML, TXT.');
+      alert(`Invalid file type: ${file.name}. Allowed formats: PDF, XML, JSON, YAML, TXT.`);
       return;
     }
-    this.tutorialFiles.set([{ name: file.name, file, isNew: true }]);
+    // Append, skipping any file already staged under the same name.
+    if (this.tutorialFiles().some(f => f.name === file.name)) {
+      return;
+    }
+    this.tutorialFiles.update(files => [...files, { name: file.name, file, isNew: true }]);
   }
 
   protected removeTutorialFile(index: number): void {
@@ -513,13 +535,28 @@ export class PublishFormMain implements OnInit, OnDestroy {
   }
 
   protected enterDefineNewMode(): void {
+    this.isEditingDefinedApp.set(false);
     this.clearApplicationDetailsFields();
+    this.showDefineNewModal.set(true);
+  }
+
+  /**
+   * Reopens the define-new modal to edit an already-defined app WITHOUT clearing
+   * the fields, so the previously entered data is preserved for editing.
+   */
+  protected editDefineNewApp(): void {
+    this.isEditingDefinedApp.set(true);
     this.showDefineNewModal.set(true);
   }
 
   protected cancelDefineNewModal(): void {
     this.showDefineNewModal.set(false);
-    this.clearApplicationDetailsFields();
+    // When editing an existing defined app, keep the data — only a fresh
+    // "Define new" that is cancelled should discard the (empty) fields.
+    if (!this.isEditingDefinedApp()) {
+      this.clearApplicationDetailsFields();
+    }
+    this.isEditingDefinedApp.set(false);
   }
 
   protected confirmDefineNew(): void {
@@ -527,7 +564,12 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.isDefineNewMode.set(true);
     this.selectedApplication.set(null);
     this.showDetailsForm.set(true);
-    this.nextStep();
+    // Editing keeps the user on the current step; a fresh definition advances.
+    if (this.isEditingDefinedApp()) {
+      this.isEditingDefinedApp.set(false);
+    } else {
+      this.nextStep();
+    }
   }
 
   private populateApplicationDetails(): void {
