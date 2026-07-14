@@ -134,8 +134,8 @@
               </div>
             </div>
 
-            <!-- Collaborate checkbox -->
-            <div class="mb-3">
+            <!-- Collaborate checkbox - hidden for now, will be used later -->
+            <div class="mb-3" style="display: none !important;">
               <label class="d-flex align-items-center collaborate-label">
                 <input type="checkbox" class="collaborate-checkbox" [(ngModel)]="formData.openToCollaborate">
                 <span class="form-label-black">I'm open to collaborate with the community.</span>
@@ -168,7 +168,7 @@
 
             <!-- Configure capabilities -->
             <div class="mb-3">
-              <label class="form-label form-label-bold">Configure capabilities for:</label>
+              <label class="form-label form-label-bold">Configure requested capabilities for:</label>
               <app-capability-picker (capabilitiesChange)="onCapabilitiesChange($event)"></app-capability-picker>
             </div>
 

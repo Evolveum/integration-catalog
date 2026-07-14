@@ -107,17 +107,25 @@
 
           <!-- Stats Row -->
           <div class="d-flex align-items-center gap-4 text-body text-sm">
-            <!-- Star Rating (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
+            <!-- Star Rating (Placeholder) - hidden for now, will be used later -->
+            <div class="d-flex align-items-center gap-1" style="display: none !important;">
               <i class="fa-solid fa-star star-icon"></i>
               <span class="font-weight-medium"><b>"4.4</b> (404 reviews)"</span>
             </div>
 
-            <!-- Installations (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
-              <i class="fa-solid fa-download icon-md"></i>
-              <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
-            </div>
+            @if (application()!.lifecycleState === 'REQUESTED') {
+              <!-- Votes (Requested apps) -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-thumbs-up icon-md"></i>
+                <span class="font-weight-medium">{{ application()!.voteCount ?? 0 }} vote(s)</span>
+              </div>
+            } @else {
+              <!-- Installations -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-download icon-md"></i>
+                <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
+              </div>
+            }
 
             <!-- Updated Date -->
             <div class="d-flex align-items-center gap-1">
@@ -436,7 +444,7 @@
                           </div>
 
                           @for (version of method.versions; track version.revision) {
-                            <div class="im-version-row d-flex">
+                            <div class="im-version-row d-flex" [class.im-version-row-review]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
                               <!-- VERSION -->
                               <div class="im-col-version">
                                 <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
@@ -689,23 +697,19 @@
             }
           </div>
 
-          <!-- Maintainer Location -->
-          <div class="mb-5">
-            <h6 class="text-muted small mb-1">Maintainer Location</h6>
-            @if (application()!.origins && application()!.origins!.length > 0) {
-              @for (origin of application()!.origins!; track origin.id) {
-                <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>
+          <!-- Maintainer Location (hidden for requested apps) -->
+          @if (application()!.lifecycleState !== 'REQUESTED') {
+            <div class="mb-0">
+              <h6 class="text-muted small mb-1">Maintainer Location</h6>
+              @if (application()!.origins && application()!.origins!.length > 0) {
+                @for (origin of application()!.origins!; track origin.id) {
+                  <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>
+                }
+              } @else {
+                <p class="mb-0 text-muted text-sm">Not available</p>
               }
-            } @else {
-              <p class="mb-0 text-muted text-sm">Not available</p>
-            }
-          </div>
-
-          <!-- Installations -->
-          <div class="mb-0">
-            <h6 class="text-muted small mb-1">Installations</h6>
-            <p class="mb-0 fw-semibold text-body stat-value">0</p>
-          </div>
+            </div>
+          }
 
         </div>
       </div>

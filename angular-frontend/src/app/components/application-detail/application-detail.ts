@@ -65,7 +65,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   private pendingCancelType: 'request' | 'version' | null = null;
   private pendingCancelVersionId: string | null = null;
   protected readonly currentPage = signal<number>(0);
-  protected readonly itemsPerPage = 5;
+  protected readonly itemsPerPage = 3;
   protected readonly expandedMethods = signal<Set<string>>(new Set());
 
   // Group the flat version list into method cards, keyed by the shared method UUID
@@ -154,6 +154,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
+      this.restoreFilters(id);
       this.loadApplication(id);
       this.loadApplicationDownloadsCount(id);
     } else {
@@ -611,6 +612,39 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     if (app && app.integrationMethods) {
       this.groupVersionsByLifecycleState(app.integrationMethods);
     }
+    this.persistFilters();
+  }
+
+  private filterStorageKey(id: string): string {
+    return `app-detail-filters:${id}`;
+  }
+
+  /** Persist the current filter selection so it survives navigating into an IM's details and back. */
+  private persistFilters(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+    const payload = {
+      filterState: this.filterState(),
+      methodTypeFilter: this.methodTypeFilter(),
+      methodSearchQuery: this.methodSearchQuery(),
+      versionSearchQuery: this.versionSearchQuery()
+    };
+    try {
+      sessionStorage.setItem(this.filterStorageKey(id), JSON.stringify(payload));
+    } catch { /* storage unavailable — ignore */ }
+  }
+
+  /** Restore a previously persisted filter selection for this application, if any. */
+  private restoreFilters(id: string): void {
+    try {
+      const raw = sessionStorage.getItem(this.filterStorageKey(id));
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved.filterState) this.filterState.set(saved.filterState);
+      if (typeof saved.methodTypeFilter === 'string') this.methodTypeFilter.set(saved.methodTypeFilter);
+      if (typeof saved.methodSearchQuery === 'string') this.methodSearchQuery.set(saved.methodSearchQuery);
+      if (typeof saved.versionSearchQuery === 'string') this.versionSearchQuery.set(saved.versionSearchQuery);
+    } catch { /* malformed — ignore */ }
   }
 
   protected getTotalVersionsCount(): number {

@@ -326,7 +326,44 @@ public class ApplicationMapper {
         }
 
         List<String> frameworks = extractFrameworks(app);
-        List<String> midpointVersions = new ArrayList<>(); // ConnidVersion removed; revisit if re-added
+
+        // Covered midPoint version IDs = union of each integration method's
+        // [midpoint_minVersion, midpoint_maxVersion] range, so the "MidPoint version"
+        // filter matches any selected version within range. A null bound is open-ended
+        // (clamped to the lowest/highest known version), matching the app detail view.
+        List<String> midpointVersions = new ArrayList<>();
+        if (app.getIntegrationMethods() != null) {
+            List<Integer> allVersionIds = midpointVersionRepository.findAll().stream()
+                    .map(MidpointVersion::getId)
+                    .sorted()
+                    .toList();
+            if (!allVersionIds.isEmpty()) {
+                int globalMin = allVersionIds.get(0);
+                int globalMax = allVersionIds.get(allVersionIds.size() - 1);
+                Set<Integer> coveredIds = new TreeSet<>();
+                for (IntegrationMethod method : app.getIntegrationMethods()) {
+                    // Only active integration methods count toward supported versions.
+                    if (LifecycleType.ACTIVE != method.getLifecycleState()) {
+                        continue;
+                    }
+                    Integer min = method.getMidpointMinVersionId();
+                    Integer max = method.getMidpointMaxVersionId();
+                    int lo = (min != null) ? min : globalMin;
+                    int hi = (max != null) ? max : globalMax;
+                    if (lo > hi) {
+                        int tmp = lo; lo = hi; hi = tmp;
+                    }
+                    for (Integer vid : allVersionIds) {
+                        if (vid >= lo && vid <= hi) {
+                            coveredIds.add(vid);
+                        }
+                    }
+                }
+                for (Integer id : coveredIds) {
+                    midpointVersions.add(String.valueOf(id));
+                }
+            }
+        }
 
         String currentMidpointVersion = null;
         Optional<MidpointVersion> currentVersionOpt = midpointVersionRepository.findByIsCurrentTrue();
@@ -337,6 +374,41 @@ public class ApplicationMapper {
                                && currentVersionId.equals(m.getMidpointMinVersionId()));
             if (hasCurrentVersion) {
                 currentMidpointVersion = currentVersionOpt.get().getVersion();
+            }
+        }
+
+        // Distinct integration method type display names across the app's methods,
+        // used by the catalog's "Integration method" filter.
+        List<String> integrationMethodTypes = null;
+        if (app.getIntegrationMethods() != null) {
+            integrationMethodTypes = app.getIntegrationMethods().stream()
+                    .filter(m -> LifecycleType.ACTIVE == m.getLifecycleState())
+                    .filter(m -> m.getIntegMethodTypes() != null)
+                    .flatMap(m -> m.getIntegMethodTypes().stream())
+                    .map(IntegrationMethodType::getDisplayName)
+                    .filter(name -> name != null)
+                    .distinct()
+                    .toList();
+            if (integrationMethodTypes.isEmpty()) {
+                integrationMethodTypes = null;
+            }
+        }
+
+        // Distinct maintainer categories (Evolveum/Partner/Community) derived from the
+        // role of each integration method's author, for the "Maintainer" filter. We use
+        // `author` (the publishing catalog_user's username) rather than `maintainer`,
+        // which is a free-text field that does not link to catalog_users.
+        List<String> maintainers = null;
+        if (app.getIntegrationMethods() != null) {
+            maintainers = app.getIntegrationMethods().stream()
+                    .map(IntegrationMethod::getAuthor)
+                    .filter(username -> username != null)
+                    .map(this::maintainerCategoryForUser)
+                    .filter(category -> category != null)
+                    .distinct()
+                    .toList();
+            if (maintainers.isEmpty()) {
+                maintainers = null;
             }
         }
 
@@ -354,8 +426,34 @@ public class ApplicationMapper {
                 voteCount,
                 frameworks,
                 midpointVersions.isEmpty() ? null : midpointVersions,
-                currentMidpointVersion
+                currentMidpointVersion,
+                integrationMethodTypes,
+                maintainers
         );
+    }
+
+    /** Maps an integration method's maintainer username to its maintainer category. */
+    private String maintainerCategoryForUser(String username) {
+        return catalogUserRepository.findByUsername(username)
+                .map(CatalogUser::getRole)
+                .map(ApplicationMapper::roleToMaintainerCategory)
+                .orElse(null);
+    }
+
+    /**
+     * Maps a catalog_users.role to the maintainer category shown in the catalog:
+     * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
+     */
+    private static String roleToMaintainerCategory(String role) {
+        if (role == null) {
+            return null;
+        }
+        return switch (role) {
+            case "Superuser" -> "Evolveum";
+            case "OrganizationContributor" -> "Partner";
+            case "IndividualContributor" -> "Community";
+            default -> null;
+        };
     }
 
     // ── ActiveConnectorDto mapping ────────────────────────────────────────────
