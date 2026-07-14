@@ -11,6 +11,7 @@ import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 
 interface MethodGroup {
   id: string;
@@ -23,7 +24,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -94,10 +95,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const result = Array.from(groups.values());
     result.forEach(g => {
       g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision));
-      // The card header reflects the most recent revision's name, so a rename in a new version shows.
-      const latest = g.versions[g.versions.length - 1];
-      g.name = latest.displayName || latest.connectorDisplayName || 'Integration method';
+      // For a method with multiple versions, represent it by its OLDEST version so its
+      // name/identity stays stable (matching its fixed, creation-order position).
+      const oldest = g.versions[0];
+      g.name = oldest.displayName || oldest.connectorDisplayName || 'Integration method';
     });
+    // Unified list in creation order (map insertion order = backend created_at ASC), independent of
+    // lifecycle state — so a method keeps its position even when its state changes (e.g. on approval).
     return result;
   });
 
@@ -186,22 +190,69 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
-  /** Reject an in-review revision (superuser only): marks it REJECTED and records the reviewer. */
-  protected rejectVersion(id: string, revision: string | null): void {
-    const appId = this.application()?.id;
-    if (!appId) return;
-    this.applicationService.rejectIntegrationMethod(appId, id, revision ?? '').subscribe({
-      next: () => this.loadApplication(appId),
-      error: (err) => console.error('Failed to reject version', err)
-    });
+  // ── Approve/Reject confirmation modal ─────────────────────────────────────
+  // The version pending confirmation, and which action; the shared modal component
+  // owns the two-step flow, and the actual publish/reject happens on its confirm.
+  protected readonly confirmVersion = signal<IntegrationMethod | null>(null);
+  protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
+  protected readonly isProcessingApproval = signal<boolean>(false);
+  protected readonly approvalError = signal<string>('');
+  private readonly submittedDate = 'May 20, 2026';
+
+  protected readonly confirmConnectorName = computed(() => {
+    const v = this.confirmVersion();
+    return v ? (v.connectorDisplayName || v.displayName || 'Integration method') : '';
+  });
+  protected readonly confirmVersionLabel = computed(() => this.versionBadge(this.confirmVersion()?.revision ?? ''));
+  protected readonly confirmSubmittedBy = computed(() => {
+    const v = this.confirmVersion();
+    return v ? `${v.author || '—'} · ${this.submittedDate}` : '';
+  });
+
+  protected openApproveConfirm(version: IntegrationMethod): void {
+    this.openConfirm(version, 'approve');
   }
 
-  protected approveVersion(id: string, revision: string | null): void {
+  protected openRejectConfirm(version: IntegrationMethod): void {
+    this.openConfirm(version, 'reject');
+  }
+
+  private openConfirm(version: IntegrationMethod, mode: 'approve' | 'reject'): void {
+    this.approvalError.set('');
+    this.confirmVersion.set(version);
+    this.confirmMode.set(mode);
+  }
+
+  protected closeConfirm(): void {
+    if (this.isProcessingApproval()) return;
+    this.confirmMode.set(null);
+    this.confirmVersion.set(null);
+  }
+
+  protected submitConfirm(): void {
     const appId = this.application()?.id;
-    if (!appId) return;
-    this.applicationService.publishIntegrationMethod(appId, id, revision ?? '').subscribe({
-      next: () => this.loadApplication(appId),
-      error: (err) => console.error('Failed to approve version', err)
+    const version = this.confirmVersion();
+    const mode = this.confirmMode();
+    if (!appId || !version || !mode || this.isProcessingApproval()) return;
+    this.approvalError.set('');
+    this.isProcessingApproval.set(true);
+    const action$ = mode === 'approve'
+      ? this.applicationService.publishIntegrationMethod(appId, version.id, version.revision ?? '')
+      : this.applicationService.rejectIntegrationMethod(appId, version.id, version.revision ?? '');
+    action$.subscribe({
+      next: () => {
+        this.isProcessingApproval.set(false);
+        this.confirmMode.set(null);
+        this.confirmVersion.set(null);
+        this.loadApplication(appId);
+      },
+      error: (err) => {
+        console.error('Approval action failed', err);
+        this.isProcessingApproval.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.approvalError.set(message || 'The action failed. Please try again.');
+      }
     });
   }
 

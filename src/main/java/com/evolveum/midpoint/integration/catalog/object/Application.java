@@ -65,7 +65,10 @@ public class Application {
     @Column(name = "updated")
     private LocalDateTime updated;
 
+    // Ordered by creation time (inherited across revisions) then revision, so a method
+    // keeps a stable position in the detail list even after edits/approvals.
     @OneToMany(mappedBy = "application", fetch = FetchType.EAGER)
+    @OrderBy("createdAt ASC, revision ASC")
     private List<IntegrationMethod> integrationMethods;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)

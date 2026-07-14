@@ -9,8 +9,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import Asciidoctor from 'asciidoctor';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 
@@ -21,7 +22,7 @@ const asciidoctor = Asciidoctor();
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
-  imports: [CommonModule, PageHeader],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -47,6 +48,23 @@ export class IntegrationMethodDetail implements OnInit {
   // are only offered for published (ACTIVE) methods.
   protected readonly methodLifecycleState = signal<string | null>(null);
   protected readonly isActive = computed(() => this.methodLifecycleState() === 'ACTIVE');
+  // An in-review ("Awaiting approval") method offers Approve/Reject to superusers.
+  protected readonly isInReview = computed(() => this.methodLifecycleState() === 'IN_REVIEW');
+  protected readonly isProcessingApproval = signal<boolean>(false);
+  protected readonly approvalError = signal<string>('');
+
+  // Which confirmation modal is open (null = none); the modal component owns the two-step flow.
+  protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
+  protected readonly methodAuthor = signal<string>('');
+  private readonly submittedDate = 'May 20, 2026';
+
+  protected readonly confirmConnectorName = computed(() => {
+    const c = this.connectors()[0];
+    return c?.bundleDisplayName || c?.name || this.methodName() || '—';
+  });
+  protected readonly submittedByLabel = computed(() =>
+    `${this.methodAuthor() || '—'} · ${this.submittedDate}`
+  );
 
   // Supported midPoint version range
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
@@ -104,6 +122,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodName.set(ver.displayName ?? '');
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
+          this.methodAuthor.set(ver.author ?? '');
           this.methodDescription.set(ver.description ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
@@ -273,6 +292,66 @@ export class IntegrationMethodDetail implements OnInit {
 
   protected editAndUpgrade(): void {
     this.router.navigate(['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit']);
+  }
+
+  /** Only superusers may approve/reject an in-review revision. */
+  protected isSuperuser(): boolean {
+    return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  // ── Approve/Reject confirmation modal ─────────────────────────────────────
+  protected openApproveConfirm(): void {
+    this.openConfirm('approve');
+  }
+
+  protected openRejectConfirm(): void {
+    this.openConfirm('reject');
+  }
+
+  private openConfirm(mode: 'approve' | 'reject'): void {
+    this.approvalError.set('');
+    this.confirmMode.set(mode);
+  }
+
+  protected closeConfirm(): void {
+    if (this.isProcessingApproval()) return;
+    this.confirmMode.set(null);
+  }
+
+  protected submitConfirm(): void {
+    if (this.confirmMode() === 'approve') {
+      this.approve();
+    } else if (this.confirmMode() === 'reject') {
+      this.reject();
+    }
+  }
+
+  protected approve(): void {
+    if (this.isProcessingApproval()) return;
+    this.approvalError.set('');
+    this.isProcessingApproval.set(true);
+    this.applicationService.publishIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+      next: () => this.goBack(),
+      error: (err) => this.handleApprovalError(err)
+    });
+  }
+
+  protected reject(): void {
+    if (this.isProcessingApproval()) return;
+    this.approvalError.set('');
+    this.isProcessingApproval.set(true);
+    this.applicationService.rejectIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+      next: () => this.goBack(),
+      error: (err) => this.handleApprovalError(err)
+    });
+  }
+
+  private handleApprovalError(err: unknown): void {
+    console.error('Approval action failed', err);
+    this.isProcessingApproval.set(false);
+    const e = err as { error?: { message?: string } | string; message?: string };
+    const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+    this.approvalError.set(message || 'The action failed. Please try again.');
   }
 
   protected downloadConnector(): void {

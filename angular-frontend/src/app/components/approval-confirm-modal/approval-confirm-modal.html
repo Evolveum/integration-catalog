@@ -1,0 +1,106 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<div class="approval-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onCancel()"></div>
+<div class="approval-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="approval-modal-dialog" (click)="$event.stopPropagation()">
+    <div class="approval-modal-header d-flex align-items-center justify-content-between">
+      <span class="approval-modal-title d-flex align-items-center gap-2">
+        @if (mode === 'approve') {
+          <i class="fa-solid fa-check"></i>Approve this version?
+        } @else {
+          <i class="fa-solid fa-paper-plane"></i>Reject this version
+        }
+      </span>
+      <button type="button" class="btn p-0 approval-modal-close" (click)="onCancel()" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="approval-modal-body">
+      <!-- Info card -->
+      <div class="approval-info-card">
+        <div class="approval-info-row">
+          <span class="approval-info-label">Connector</span>
+          <span class="approval-info-value">{{ connectorName }}</span>
+        </div>
+        <div class="approval-info-row">
+          <span class="approval-info-label">Version</span>
+          <span class="im-version-badge">{{ versionLabel }}</span>
+        </div>
+        <div class="approval-info-row">
+          <span class="approval-info-label">Submitted by</span>
+          <span class="approval-info-value">{{ submittedBy }}</span>
+        </div>
+      </div>
+
+      @if (mode === 'approve') {
+        <p class="approval-modal-desc">The version will be published to the catalog and available for download. This action can't be undone.</p>
+      } @else {
+        <p class="approval-modal-section-title">Reason for rejection</p>
+      }
+
+      @if (step() === 1) {
+        <!-- Step 1: pending notice + refresh -->
+        <div class="approval-notice approval-notice-warning">
+          <i class="fa-solid fa-triangle-exclamation approval-notice-icon"></i>
+          <div class="approval-notice-content">
+            @if (mode === 'approve') {
+              <strong>Support ticket still open</strong>
+              <div>Close ticket <strong>#{{ ticketId }}</strong> in the support portal before approving.</div>
+            } @else {
+              <strong>Reason not added yet</strong>
+              <div>Add reason to ticket <strong>#{{ ticketId }}</strong> in the support portal. It'll show here once saved.</div>
+            }
+            <a class="approval-ticket-link d-inline-flex align-items-center gap-2 mt-2" [href]="ticketUrl" target="_blank" rel="noopener">
+              <i class="fa-solid fa-ticket"></i>Open ticket #{{ ticketId }}<i class="fa-solid fa-arrow-up-right-from-square approval-ticket-ext"></i>
+            </a>
+          </div>
+        </div>
+        <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refresh()">
+          <i class="fa-solid fa-arrows-rotate"></i>Refresh to check again
+        </button>
+      } @else if (!successDismissed()) {
+        <!-- Step 2: ready notice -->
+        <div class="approval-notice approval-notice-success">
+          <i class="fa-solid fa-circle-check approval-notice-icon-success"></i>
+          <div class="approval-notice-content">
+            @if (mode === 'approve') {
+              <strong>Support ticket closed</strong>
+              <div>Ticket #{{ relatedTicketId }} was closed on {{ ticketClosedDate }}.</div>
+            } @else {
+              <strong>Reason added - ticket #{{ ticketId }}</strong>
+              <div>The maintainer will see this in ticket #{{ relatedTicketId }} and can fix the issues before resubmitting.</div>
+            }
+          </div>
+          <button type="button" class="btn p-0 approval-notice-close" (click)="dismissSuccess()" aria-label="Dismiss">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      }
+
+      @if (error) {
+        <div class="approval-modal-error">{{ error }}</div>
+      }
+    </div>
+
+    <div class="approval-modal-footer d-flex align-items-center justify-content-between">
+      <button type="button" class="btn approval-modal-cancel" (click)="onCancel()">Cancel</button>
+      <button type="button"
+              class="btn d-flex align-items-center gap-2"
+              [class.approval-confirm-approve]="mode === 'approve'"
+              [class.approval-confirm-reject]="mode === 'reject'"
+              [disabled]="step() === 1 || processing"
+              (click)="onConfirm()">
+        @if (mode === 'approve') {
+          <i class="fa-solid fa-check"></i>Confirm approval
+        } @else {
+          <i class="fa-solid fa-paper-plane"></i>Confirm rejection
+        }
+      </button>
+    </div>
+  </div>
+</div>

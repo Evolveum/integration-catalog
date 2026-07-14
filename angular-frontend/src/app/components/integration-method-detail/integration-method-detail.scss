@@ -561,3 +561,29 @@
   font-size: 18px;
   line-height: 1;
 }
+
+/* Approve / Reject actions for an in-review method (superuser only) */
+.btn-im-reject {
+  background: none;
+  border: none;
+  color: #dc3545;
+
+  &:hover:not(:disabled) {
+    background: none;
+    color: #b02a37;
+  }
+}
+
+.btn-im-approve {
+  background-color: #fff;
+  border: 1px solid #198754;
+  color: #198754;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background-color: #f0fdf4;
+    border-color: #146c43;
+    color: #146c43;
+  }
+}
+

@@ -16,7 +16,7 @@ import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
-import { EditConnectorModal } from '../edit-connector-modal/edit-connector-modal';
+import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 
@@ -91,6 +91,66 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly connectorCapsExpanded = signal<Set<string>>(new Set());
   protected readonly editingConnector = signal<ImplementationListItem | null>(null);
   protected readonly pendingDeleteConnector = signal<ImplementationListItem | null>(null);
+
+  // Staged connector changes to existing connectors — held in memory and applied only on
+  // Save / Save as new version (keyed by connectorId), never persisted immediately.
+  private readonly stagedEdits = signal<Map<number, ConnectorEditPayload>>(new Map());
+  private readonly stagedDeletes = signal<Set<number>>(new Set());
+  private readonly stagedCompat = signal<Map<number, { from: string; to: string | null }>>(new Map());
+
+  // Connector list the user sees: backend connectors minus staged deletes, with staged edits merged in.
+  protected readonly displayConnectors = computed<ImplementationListItem[]>(() => {
+    const deletes = this.stagedDeletes();
+    const edits = this.stagedEdits();
+    return this.connectors()
+      .filter(c => c.connectorId == null || !deletes.has(c.connectorId))
+      .map(c => (c.connectorId != null && edits.has(c.connectorId))
+        ? this.mergeConnectorEdit(c, edits.get(c.connectorId)!)
+        : c);
+  });
+
+  protected readonly hasPendingConnectorChanges = computed(() =>
+    this.stagedConnectors().length > 0 || this.stagedEdits().size > 0 ||
+    this.stagedDeletes().size > 0 || this.stagedCompat().size > 0
+  );
+
+  // Any connector change (add/edit/delete/compatibility) to a PUBLISHED revision must create a new
+  // version, so plain "Save" is disabled and only "Save as new version" applies it. On an in-review
+  // draft (only "Save" is shown) staged connector changes are fine, so this stays false there.
+  protected readonly requiresNewVersionForConnectorChange = computed(() =>
+    this.hasPendingConnectorChanges() &&
+    this.methodLifecycleState() !== 'IN_REVIEW' && this.methodLifecycleState() !== 'REJECTED'
+  );
+
+  protected isConnectorPending(connectorId: number | null): boolean {
+    if (connectorId == null) return false;
+    return this.stagedEdits().has(connectorId) || this.stagedCompat().has(connectorId);
+  }
+
+  /** Overlay a staged edit payload onto a connector so the card previews the pending values. */
+  private mergeConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): ImplementationListItem {
+    return {
+      ...c,
+      name: p.displayName,
+      displayName: p.displayName,
+      bundleDisplayName: p.displayName,
+      implementationDescription: p.description,
+      maintainer: p.maintainer,
+      licenseType: p.license ?? '',
+      browseLink: p.browseLink ?? '',
+      ticketingLink: p.supportPortal ?? '',
+      gitCloneUrl: p.gitCloneUrl ?? '',
+      buildFramework: p.buildFramework ?? '',
+      pathToProjectDirectory: p.pathToProject ?? '',
+      className: p.className ?? '',
+      bundleName: p.bundleName ?? '',
+      commitTag: p.commitTag ?? '',
+      objectClassCapabilities: p.connectorCapabilities.map(g => ({
+        objectName: g.objectClass,
+        capabilities: g.capabilityNames
+      }))
+    };
+  }
 
   private easyMde: EasyMDE | null = null;
   private editorPreviewActivated = false;
@@ -399,9 +459,13 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.editingConnector.set(null);
   }
 
-  protected onConnectorEdited(): void {
+  /** Stage a connector edit; it is persisted only on Save / Save as new version. */
+  protected onConnectorEditStaged(payload: ConnectorEditPayload): void {
+    const connector = this.editingConnector();
     this.editingConnector.set(null);
-    this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
+    if (!connector || connector.connectorId == null) return;
+    const id = connector.connectorId;
+    this.stagedEdits.update(m => new Map(m).set(id, payload));
   }
 
   protected deleteConnector(connector: ImplementationListItem): void {
@@ -412,22 +476,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.pendingDeleteConnector.set(null);
   }
 
+  /** Stage the deletion; the connector is removed from the backend only on save. */
   protected confirmDeleteConnector(): void {
     const connector = this.pendingDeleteConnector();
-    if (!connector || connector.connectorId == null) {
-      this.pendingDeleteConnector.set(null);
-      return;
-    }
-    this.applicationService.deleteConnector(this.appId(), this.versionId(), this.methodVersion(), connector.connectorId).subscribe({
-      next: () => {
-        this.pendingDeleteConnector.set(null);
-        this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
-      },
-      error: (err) => {
-        console.error('Failed to delete connector', err);
-        this.pendingDeleteConnector.set(null);
-      }
-    });
+    this.pendingDeleteConnector.set(null);
+    if (!connector || connector.connectorId == null) return;
+    const id = connector.connectorId;
+    this.stagedDeletes.update(s => new Set(s).add(id));
+    // A deleted connector shouldn't carry pending edits/compat.
+    this.stagedEdits.update(m => { const n = new Map(m); n.delete(id); return n; });
+    this.stagedCompat.update(m => { const n = new Map(m); n.delete(id); return n; });
   }
 
   // ── "Set up connector compatibility" modal (connector version range) ──────────
@@ -470,10 +528,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   protected openCompatibility(connector: ImplementationListItem): void {
     this.compatConnector.set(connector);
-    // Prefill strictly from the IM↔connector link's version range (connector_minVersion /
-    // connector_maxVersion) — never the connector bundle version or the midPoint range.
-    this.compatFrom.set(connector.connectorMinVersion ?? '');
-    this.compatTo.set(connector.connectorMaxVersion ?? '');
+    // Prefill from a staged compatibility change if one exists, else from the IM↔connector link's
+    // range (connector_minVersion / connector_maxVersion) — never the bundle or midPoint range.
+    const staged = connector.connectorId != null ? this.stagedCompat().get(connector.connectorId) : undefined;
+    this.compatFrom.set(staged ? staged.from : (connector.connectorMinVersion ?? ''));
+    this.compatTo.set(staged ? (staged.to ?? '') : (connector.connectorMaxVersion ?? ''));
     this.compatInfoDismissed.set(false);
   }
 
@@ -481,35 +540,28 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.compatConnector.set(null);
   }
 
+  /** Stage the compatibility range; it is persisted only on Save / Save as new version. */
   protected applyCompatibility(): void {
     const connector = this.compatConnector();
     if (!connector || connector.connectorId == null || !this.isCompatValid()) return;
+    const id = connector.connectorId;
     const from = this.compatFrom().trim();
     const to = this.compatTo().trim() || null;
-    this.compatSaving.set(true);
-    this.applicationService.updateConnectorCompatibility(
-      this.appId(), this.versionId(), this.methodVersion(), connector.connectorId,
-      { connectorVersionFrom: from, connectorVersionTo: to }
-    ).subscribe({
-      next: () => {
-        // Reflect the change locally so the card shows the new range without a full reload.
-        this.connectors.update(list => list.map(c =>
-          c.connectorId === connector.connectorId
-            ? { ...c, connectorMinVersion: from, connectorMaxVersion: to }
-            : c
-        ));
-        this.compatSaving.set(false);
-        this.compatConnector.set(null);
-      },
-      error: (err) => {
-        console.error('Failed to update connector compatibility', err);
-        this.compatSaving.set(false);
-      }
-    });
+    this.stagedCompat.update(m => new Map(m).set(id, { from, to }));
+    this.compatConnector.set(null);
   }
 
   protected isInReview(): boolean {
     return this.methodLifecycleState() === 'IN_REVIEW';
+  }
+
+  /**
+   * Draft (non-published) states editable in place with only "Save" — no "Save as new version".
+   * REJECTED is treated like IN_REVIEW here so a rejected method is fixed and resubmitted via Save.
+   */
+  protected isDraftState(): boolean {
+    const state = this.methodLifecycleState();
+    return state === 'IN_REVIEW' || state === 'REJECTED';
   }
   
   // A minor "Save" shows a confirmation modal; a major "Save as new version" shows an upgrade modal.
@@ -545,6 +597,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     } else {
       this.showSavedModal.set(true);
     }
+  }
+
+  protected dismissSaveError(): void {
+    this.saveError.set('');
   }
 
   protected save(): void {
@@ -586,18 +642,34 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     ).subscribe({
       next: (savedRevision) => {
         this.methodVersion.set(savedRevision);
-        const staged = this.stagedConnectors();
-        // Staged connectors (added while on the published version) are persisted only now, onto the
-        // freshly created revision. Run them sequentially since they all mutate the same method row.
-        const connectors$: Observable<string[]> = staged.length
-          ? concat(...staged.map(sc =>
-              this.applicationService.addConnectorToIntegrationMethod(this.appId(), this.versionId(), savedRevision, sc.payload)
-            )).pipe(toArray())
-          : of<string[]>([]);
+        // All staged connector changes are persisted only now, onto the freshly created revision
+        // (connector ids are carried forward by the backend fork). Run them sequentially since they
+        // all mutate the same method row: adds → edits → compatibility → deletes.
+        const adds = this.stagedConnectors();
+        const edits = Array.from(this.stagedEdits().entries());
+        const compat = Array.from(this.stagedCompat().entries());
+        const deletes = Array.from(this.stagedDeletes());
+        const connectorOps: Observable<unknown>[] = [
+          ...adds.map(sc =>
+            this.applicationService.addConnectorToIntegrationMethod(this.appId(), this.versionId(), savedRevision, sc.payload)),
+          ...edits.map(([connectorId, payload]) =>
+            this.applicationService.updateConnector(this.appId(), this.versionId(), savedRevision, connectorId, payload)),
+          ...compat.map(([connectorId, range]) =>
+            this.applicationService.updateConnectorCompatibility(this.appId(), this.versionId(), savedRevision, connectorId,
+              { connectorVersionFrom: range.from, connectorVersionTo: range.to })),
+          ...deletes.map(connectorId =>
+            this.applicationService.deleteConnector(this.appId(), this.versionId(), savedRevision, connectorId))
+        ];
+        const connectors$: Observable<unknown[]> = connectorOps.length
+          ? concat(...connectorOps).pipe(toArray())
+          : of<unknown[]>([]);
 
         connectors$.subscribe({
           next: () => {
             this.stagedConnectors.set([]);
+            this.stagedEdits.set(new Map());
+            this.stagedCompat.set(new Map());
+            this.stagedDeletes.set(new Set());
             // The new revision starts with the previous revision's files copied forward by the backend;
             // here we delete the files the user removed and upload the ones they added.
             const ops: Observable<void>[] = [
@@ -619,11 +691,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             });
           },
           error: (err) => {
-            console.error('Persisting staged connectors failed', err);
+            console.error('Persisting staged connector changes failed', err);
             this.isSaving.set(false);
             this.saveError.set(
               err?.error?.message || err?.error || err?.message ||
-              'The new version was created, but adding a staged connector failed. Please review the connectors.'
+              'The new version was created, but applying a staged connector change failed. Please review the connectors.'
             );
           }
         });
