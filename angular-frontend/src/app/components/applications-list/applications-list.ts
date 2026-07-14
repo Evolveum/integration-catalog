@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
+import { ApplicationsListStateService } from '../../services/applications-list-state.service';
 import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
 import { RequestForm } from '../request-form/request-form';
@@ -210,8 +211,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (filters.midpointVersions.length > 0) {
+      // app.midpointVersions holds the version ids covered by its methods' ranges;
+      // match apps supporting ANY of the selected versions.
       filtered = filtered.filter(app =>
-        filters.midpointVersions.every((versionId: number) =>
+        filters.midpointVersions.some((versionId: number) =>
           app.midpointVersions?.includes(String(versionId))
         )
       );
@@ -245,10 +248,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private applicationService: ApplicationService,
     private router: Router,
-    protected authService: AuthService
+    protected authService: AuthService,
+    private listState: ApplicationsListStateService
   ) {}
 
   ngOnInit(): void {
+    this.restoreViewState();
     this.loadApplications();
     this.loadCategories();
     this.loadTotalDownloadsCount();
@@ -356,6 +361,30 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.detachScrollListener();
+    this.saveViewState();
+  }
+
+  /** Restore filters/search/paging saved before navigating away (e.g. to app detail). */
+  private restoreViewState(): void {
+    const saved = this.listState.restore();
+    if (!saved) return;
+    this.filterState.set(saved.filterState);
+    this.visibleChips.set(new Set(saved.visibleChips));
+    this.searchQuery.set(saved.searchQuery);
+    this.currentPage.set(saved.currentPage);
+    this.sortBy.set(saved.sortBy);
+    this.activeTab.set(saved.activeTab);
+  }
+
+  private saveViewState(): void {
+    this.listState.save({
+      filterState: this.filterState(),
+      visibleChips: Array.from(this.visibleChips()),
+      searchQuery: this.searchQuery(),
+      currentPage: this.currentPage(),
+      sortBy: this.sortBy(),
+      activeTab: this.activeTab()
+    });
   }
 
   // "Clear filter" link: clears the selections and closes the popover, but the
