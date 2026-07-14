@@ -35,10 +35,8 @@ CREATE TYPE LifecycleType AS ENUM (
 	'ACTIVE',
 	'DEPRECATED',
 	'ARCHIVED',
-	'WITH_ERROR'
-	-- Temporarily disabled, see ConnectorUploadService.rejectIntegrationMethod. Re-enable together with the
-	-- setLifecycleState(REJECTED) write (add a trailing comma to 'WITH_ERROR' above when uncommenting):
-	-- ,'REJECTED'
+	'WITH_ERROR',
+	'REJECTED'
 );
 
 CREATE TYPE BuildFrameworkType AS ENUM (

@@ -590,10 +590,10 @@
                                 <!-- Always-visible approve/reject (IN_REVIEW, superuser) -->
                                 @if (version.lifecycleState === 'IN_REVIEW' && isSuperuser()) {
                                   <div class="im-row-actions-always d-flex align-items-center justify-content-end gap-2">
-                                    <button type="button" class="btn btn-im-reject" (click)="rejectVersion(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-reject" (click)="openRejectConfirm(version); $event.stopPropagation()">
                                       <i class="fa-solid fa-xmark"></i>Reject
                                     </button>
-                                    <button type="button" class="btn btn-im-approve" (click)="approveVersion(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-approve" (click)="openApproveConfirm(version); $event.stopPropagation()">
                                       <i class="fa-solid fa-check"></i>Approve
                                     </button>
                                   </div>
@@ -785,6 +785,20 @@
         </div>
       </div>
     </div>
+  }
+
+  <!-- Approve / Reject confirmation modal (shared component) -->
+  @if (confirmMode(); as mode) {
+    <app-approval-confirm-modal
+      [mode]="mode"
+      [connectorName]="confirmConnectorName()"
+      [versionLabel]="confirmVersionLabel()"
+      [submittedBy]="confirmSubmittedBy()"
+      [processing]="isProcessingApproval()"
+      [error]="approvalError()"
+      (confirm)="submitConfirm()"
+      (cancel)="closeConfirm()">
+    </app-approval-confirm-modal>
   }
   }
 </div>

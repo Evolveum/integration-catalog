@@ -15,6 +15,23 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 
+/** Payload sent to updateConnector — also emitted for staging when deferSave is on. */
+export interface ConnectorEditPayload {
+  displayName: string;
+  description: string;
+  maintainer: string;
+  license: string | null;
+  browseLink: string | null;
+  supportPortal: string | null;
+  gitCloneUrl: string | null;
+  buildFramework: string | null;
+  pathToProject: string | null;
+  className: string | null;
+  bundleName: string | null;
+  commitTag: string | null;
+  connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+}
+
 @Component({
   selector: 'app-edit-connector-modal',
   standalone: true,
@@ -27,8 +44,11 @@ export class EditConnectorModal implements OnInit {
   @Input() methodId = '';
   @Input() revision = '';
   @Input({ required: true }) connector!: ImplementationListItem;
+  /** When true, the modal does not persist; it emits the edit for the parent to stage. */
+  @Input() deferSave = false;
   @Output() close = new EventEmitter<void>();
   @Output() saved = new EventEmitter<void>();
+  @Output() stagedEdit = new EventEmitter<ConnectorEditPayload>();
 
   protected readonly isSaving = signal<boolean>(false);
   protected readonly saveError = signal<string>('');
@@ -196,10 +216,9 @@ export class EditConnectorModal implements OnInit {
       this.saveError.set('This connector cannot be edited (missing identifier).');
       return;
     }
-    this.isSaving.set(true);
     this.saveError.set('');
 
-    const payload = {
+    const payload: ConnectorEditPayload = {
       displayName: this.connectorName(),
       description: this.connectorDescription(),
       maintainer: this.connectorMaintainer(),
@@ -218,6 +237,13 @@ export class EditConnectorModal implements OnInit {
       }))
     };
 
+    // Deferred: hand the edit to the parent to stage; nothing is persisted here.
+    if (this.deferSave) {
+      this.stagedEdit.emit(payload);
+      return;
+    }
+
+    this.isSaving.set(true);
     this.appService.updateConnector(this.appId, this.methodId, this.revision, connectorId, payload)
       .subscribe({
         next: () => { this.isSaving.set(false); this.saved.emit(); },

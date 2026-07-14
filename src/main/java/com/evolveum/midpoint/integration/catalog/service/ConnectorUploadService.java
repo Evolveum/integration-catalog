@@ -408,11 +408,14 @@ public class ConnectorUploadService {
         IntegrationMethod existing = integrationMethodRepository.findById(new IntegrationMethodId(methodId, currentRevision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + currentRevision));
 
-        boolean editingDraft = existing.getLifecycleState() == LifecycleType.IN_REVIEW;
+        // A rejected revision is resubmitted in place (like an in-review draft), not forked into a new
+        // instance: it is rewritten and flipped back to IN_REVIEW so a single record evolves.
+        boolean editingDraft = existing.getLifecycleState() == LifecycleType.IN_REVIEW
+                || existing.getLifecycleState() == LifecycleType.REJECTED;
 
         if (dto.minorBump() && editingDraft) {
-            // "Save" on an in-review draft: a small correction. Bump in place (2.1 -> 2.2), replacing
-            // the draft row so a draft keeps a single record while it is being revised.
+            // "Save" on an in-review/rejected draft: a small correction. Bump in place (2.1 -> 2.2),
+            // replacing the draft row so a draft keeps a single record while it is being revised.
             return rewriteWithMinorBump(existing, methodId, currentRevision, dto);
         }
 
@@ -452,6 +455,8 @@ public class ConnectorUploadService {
         updated.setId(methodId);
         updated.setRevision(newRevision);
         updated.setApplication(existing.getApplication());
+        // Inherit the source revision's creation time so the method keeps its list position.
+        updated.setCreatedAt(existing.getCreatedAt());
         // A revision produced by the edit-upgrade flow always starts unpublished, pending review.
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
         updated.setAuthor(existing.getAuthor());
@@ -491,17 +496,22 @@ public class ConnectorUploadService {
     /**
      * Rewrites a revision in place with a minor bump (1.1 -> 1.2): builds the bumped revision from the
      * edited data, moves the tutorial folder across, then deletes the superseded revision so only one
-     * record survives. The lifecycle state is preserved (a published fix stays published).
+     * record survives. An in-review draft stays in review; a rejected revision is flipped back to
+     * IN_REVIEW (resubmission), and its connectors are un-rejected too.
      */
     private String rewriteWithMinorBump(IntegrationMethod existing, UUID methodId,
                                         String currentRevision, EditIntegrationMethodDto dto) {
         String newRevision = bumpMinorRevision(currentRevision);
+        // Resubmitting a rejected revision flips it back to IN_REVIEW; an in-review draft stays as-is.
+        boolean wasRejected = existing.getLifecycleState() == LifecycleType.REJECTED;
 
         IntegrationMethod updated = new IntegrationMethod();
         updated.setId(methodId);
         updated.setRevision(newRevision);
         updated.setApplication(existing.getApplication());
-        updated.setLifecycleState(existing.getLifecycleState());
+        // Inherit the source revision's creation time so the method keeps its list position.
+        updated.setCreatedAt(existing.getCreatedAt());
+        updated.setLifecycleState(wasRejected ? LifecycleType.IN_REVIEW : existing.getLifecycleState());
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
@@ -520,6 +530,12 @@ public class ConnectorUploadService {
 
         integrationMethodRepository.save(updated);
         saveIntegrationMethodCapabilities(dto.capabilities(), updated);
+
+        // A resubmitted rejected revision had its connectors marked REJECTED; put them back to
+        // IN_REVIEW so they are re-reviewed with this revision (and can be re-activated on approval).
+        if (wasRejected) {
+            resetRejectedConnectorsToInReview(updated);
+        }
 
         // Drop the superseded revision; its capabilities and connector links cascade away.
         integrationMethodRepository.delete(existing);
@@ -633,6 +649,70 @@ public class ConnectorUploadService {
     }
 
     /**
+     * Mark the connectors introduced with a rejected method revision as REJECTED — the mirror of
+     * promoteConnectorsToActive. Only IN_REVIEW records (newly introduced with this revision) are
+     * rejected; existing ACTIVE catalog connectors reused by the method are left untouched.
+     */
+    private void rejectConnectorsOfMethod(IntegrationMethod method) {
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            Connector connector = link.getConnector();
+            if (connector == null) continue;
+
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle != null) {
+                if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                    bundle.setLifecycleState(LifecycleType.REJECTED);
+                    connectorBundleRepository.save(bundle);
+                }
+                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
+                    if (cbv.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                        cbv.setLifecycleState(LifecycleType.REJECTED);
+                        connectorBundleVersionRepository.save(cbv);
+                    }
+                }
+            }
+            for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                if (cv.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                    cv.setLifecycleState(LifecycleType.REJECTED);
+                    connectorVersionRepository.save(cv);
+                }
+            }
+        }
+    }
+
+    /**
+     * Undo a rejection on the connectors of a method: flip REJECTED records back to IN_REVIEW.
+     * Used when a rejected revision is resubmitted (edited + saved) so its connectors are re-reviewed
+     * again. ACTIVE connectors reused by the method are left untouched.
+     */
+    private void resetRejectedConnectorsToInReview(IntegrationMethod method) {
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            Connector connector = link.getConnector();
+            if (connector == null) continue;
+
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle != null) {
+                if (bundle.getLifecycleState() == LifecycleType.REJECTED) {
+                    bundle.setLifecycleState(LifecycleType.IN_REVIEW);
+                    connectorBundleRepository.save(bundle);
+                }
+                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
+                    if (cbv.getLifecycleState() == LifecycleType.REJECTED) {
+                        cbv.setLifecycleState(LifecycleType.IN_REVIEW);
+                        connectorBundleVersionRepository.save(cbv);
+                    }
+                }
+            }
+            for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                if (cv.getLifecycleState() == LifecycleType.REJECTED) {
+                    cv.setLifecycleState(LifecycleType.IN_REVIEW);
+                    connectorVersionRepository.save(cv);
+                }
+            }
+        }
+    }
+
+    /**
      * Reject an in-review integration method revision: mark it REJECTED and record the reviewer.
      * The revision is kept (not deleted) so the rejection and its author remain auditable.
      */
@@ -644,10 +724,10 @@ public class ConnectorUploadService {
             throw new IllegalStateException("Only in-review revisions can be rejected: " + methodId + "/" + revision);
         }
 
-        // Temporarily disabled: the current (non-local) DB's LifecycleType enum has no 'REJECTED' label,
-        // so persisting it fails. Re-enable together with 'REJECTED' in 01_schema.sql once the DB enum has it.
-        // draft.setLifecycleState(LifecycleType.REJECTED);
+        draft.setLifecycleState(LifecycleType.REJECTED);
         // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+        // Reject the connectors introduced with this revision too (mirrors promoteConnectorsToActive).
+        rejectConnectorsOfMethod(draft);
         log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
     }
 
@@ -750,6 +830,8 @@ public class ConnectorUploadService {
         draft.setId(methodId);
         draft.setRevision(newRevision);
         draft.setApplication(source.getApplication());
+        // Inherit the source revision's creation time so the method keeps its list position.
+        draft.setCreatedAt(source.getCreatedAt());
         draft.setLifecycleState(LifecycleType.IN_REVIEW);
         draft.setAuthor(source.getAuthor());
         draft.setMaintainer(source.getMaintainer());

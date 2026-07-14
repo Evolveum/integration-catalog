@@ -31,6 +31,7 @@
     "@angular/router": "^20.3.0",
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@ng-select/ng-select": "^20.7.0",
+    "asciidoctor": "^3.0.4",
     "bootstrap": "^5.3.8",
     "easymde": "^2.18.0",
     "rxjs": "~7.8.0",
