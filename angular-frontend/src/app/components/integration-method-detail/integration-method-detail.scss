@@ -201,14 +201,34 @@
   border-radius: 4px;
   overflow: hidden;
 
-  .EasyMDEContainer {
-    border: none;
-  }
-
-  .CodeMirror {
-    border: none;
+  // Rendered AsciiDoc tutorial (read-only).
+  .view-tutorial-content {
+    padding: 1rem;
     min-height: 200px;
     font-size: 0.875rem;
+    overflow-x: auto;
+
+    > :first-child { margin-top: 0; }
+    > :last-child { margin-bottom: 0; }
+
+    img { max-width: 100%; }
+
+    pre {
+      background: #f6f8fa;
+      padding: 0.75rem;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+
+      th, td {
+        border: 1px solid #dee2e6;
+        padding: 0.4rem 0.6rem;
+      }
+    }
   }
 }
 

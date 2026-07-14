@@ -54,31 +54,15 @@
         </div>
         <div class="view-row">
           <span class="view-label">Version:</span>
-          <span class="view-value">
-            @if (methodVersion()) {
-              <span class="im-version-badge">{{ versionBadge(methodVersion()) }}</span>
-            } @else { — }
-          </span>
+          <span class="view-value">{{ methodVersion() ? versionBadge(methodVersion()) : '—' }}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Supported midPoint version:</span>
-          <span class="view-value d-flex align-items-center flex-wrap gap-2">
-            <span class="midpoint-range-label">From</span>
-            <span class="im-method-tag im-method-tag-range">{{ midpointMinVersion() || '—' }}</span>
-            <span class="midpoint-range-dash">—</span>
-            <span class="midpoint-range-label">To</span>
-            <span class="im-method-tag im-method-tag-range">{{ midpointMaxVersion() || '—' }}</span>
-          </span>
+          <span class="view-value">From {{ midpointMinVersion() || '—' }} to {{ midpointMaxVersion() || 'Not specified' }}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Integration method type:</span>
-          <span class="view-value d-flex align-items-center gap-2 flex-wrap">
-            @if (methodTypes().length > 0) {
-              @for (type of methodTypes(); track type) {
-                <span class="im-version-badge">{{ type }}</span>
-              }
-            } @else { — }
-          </span>
+          <span class="view-value">{{ methodTypes().length > 0 ? methodTypes().join(', ') : '—' }}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Description:</span>
@@ -146,9 +130,13 @@
 
       <!-- Integration tutorial (read-only preview) -->
       <div class="mb-4">
-        <label class="view-section-label">Integration tutorial</label>
+        <label class="view-section-label">Integration tutorial <span class="text-muted fw-normal">(In ASCII DOC format)</span></label>
         <div class="view-tutorial-wrapper">
-          <textarea id="view-tutorial-editor"></textarea>
+          @if (methodTutorial().trim()) {
+            <div class="view-tutorial-content asciidoc" [innerHTML]="tutorialHtml()"></div>
+          } @else {
+            <div class="view-tutorial-content text-muted">No tutorial provided.</div>
+          }
         </div>
       </div>
 
@@ -326,9 +314,7 @@
                       @if (c.className) {
                         <div class="view-connector-row">
                           <span class="view-connector-label">Class name:</span>
-                          <span class="view-connector-value">
-                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
-                          </span>
+                          <span class="view-connector-value">{{ c.className }}</span>
                         </div>
                       }
                     }

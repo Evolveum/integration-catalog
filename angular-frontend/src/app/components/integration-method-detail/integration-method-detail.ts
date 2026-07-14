@@ -4,15 +4,19 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import EasyMDE from 'easymde';
+import Asciidoctor from 'asciidoctor';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+
+// Single Asciidoctor engine instance shared by the component; the tutorial is
+// authored in AsciiDoc and rendered read-only here.
+const asciidoctor = Asciidoctor();
 
 @Component({
   selector: 'app-integration-method-detail',
@@ -21,7 +25,7 @@ import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../mod
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
-export class IntegrationMethodDetail implements OnInit, OnDestroy {
+export class IntegrationMethodDetail implements OnInit {
   protected readonly loading = signal<boolean>(true);
   protected readonly appId = signal<string>('');
   protected readonly appName = signal<string>('');
@@ -58,7 +62,13 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   // Bundle download warning toast (stays until dismissed)
   protected readonly bundleWarning = signal<string | null>(null);
 
-  private easyMde: EasyMDE | null = null;
+  // Tutorial (AsciiDoc source) rendered to embeddable HTML for read-only display.
+  // Angular sanitizes the bound HTML; Asciidoctor's default 'secure' mode also
+  // disables includes and scripts.
+  protected readonly tutorialHtml = computed(() => {
+    const content = this.methodTutorial().trim();
+    return content ? String(asciidoctor.convert(content)) : '';
+  });
 
   constructor(
     private route: ActivatedRoute,
@@ -153,33 +163,6 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
 
   private finishLoading(): void {
     this.loading.set(false);
-    setTimeout(() => this.initEditor(), 50);
-  }
-
-  ngOnDestroy(): void {
-    if (this.easyMde) {
-      this.easyMde.toTextArea();
-      this.easyMde = null;
-    }
-  }
-
-  private initEditor(): void {
-    const el = document.getElementById('view-tutorial-editor') as HTMLTextAreaElement | null;
-    if (!el || this.easyMde) return;
-    this.easyMde = new EasyMDE({
-      element: el,
-      spellChecker: false,
-      autosave: { enabled: false, uniqueId: 'view-tutorial-' + this.versionId() },
-      toolbar: ['bold', 'italic', 'strikethrough', '|',
-                'heading-1', 'heading-2', '|',
-                'unordered-list', 'ordered-list', '|',
-                'link', '|', 'preview', 'side-by-side'],
-      placeholder: 'No tutorial provided.',
-    });
-    this.easyMde.value(this.methodTutorial());
-    // Lock content: read-only, preview by default
-    this.easyMde.codemirror.setOption('readOnly', 'nocursor');
-    EasyMDE.togglePreview(this.easyMde);
   }
 
   // Connector detail sub-sections (Repository, Framework, Source, Implementation).
