@@ -33,6 +33,8 @@ export interface Application {
   frameworks?: string[] | null;            // connector_bundle.framework
   midpointVersions?: string[] | null;      // midpoint_version.version
   currentMidpointVersion?: string | null;  // midpoint_version.version (where is_current = true)
+  integrationMethodTypes?: string[] | null; // integration_method_type.display_name via integration_method
+  maintainers?: string[] | null;           // Evolveum/Partner/Community, derived from catalog_users.role
 }
 
 export function hasLogo(app: Application): boolean {

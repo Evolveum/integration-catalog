@@ -340,6 +340,40 @@ public class ApplicationMapper {
             }
         }
 
+        // Distinct integration method type display names across the app's methods,
+        // used by the catalog's "Integration method" filter.
+        List<String> integrationMethodTypes = null;
+        if (app.getIntegrationMethods() != null) {
+            integrationMethodTypes = app.getIntegrationMethods().stream()
+                    .filter(m -> m.getIntegMethodTypes() != null)
+                    .flatMap(m -> m.getIntegMethodTypes().stream())
+                    .map(IntegrationMethodType::getDisplayName)
+                    .filter(name -> name != null)
+                    .distinct()
+                    .toList();
+            if (integrationMethodTypes.isEmpty()) {
+                integrationMethodTypes = null;
+            }
+        }
+
+        // Distinct maintainer categories (Evolveum/Partner/Community) derived from the
+        // role of each integration method's author, for the "Maintainer" filter. We use
+        // `author` (the publishing catalog_user's username) rather than `maintainer`,
+        // which is a free-text field that does not link to catalog_users.
+        List<String> maintainers = null;
+        if (app.getIntegrationMethods() != null) {
+            maintainers = app.getIntegrationMethods().stream()
+                    .map(IntegrationMethod::getAuthor)
+                    .filter(username -> username != null)
+                    .map(this::maintainerCategoryForUser)
+                    .filter(category -> category != null)
+                    .distinct()
+                    .toList();
+            if (maintainers.isEmpty()) {
+                maintainers = null;
+            }
+        }
+
         return new ApplicationCardDto(
                 app.getId(),
                 app.getDisplayName(),
@@ -354,8 +388,34 @@ public class ApplicationMapper {
                 voteCount,
                 frameworks,
                 midpointVersions.isEmpty() ? null : midpointVersions,
-                currentMidpointVersion
+                currentMidpointVersion,
+                integrationMethodTypes,
+                maintainers
         );
+    }
+
+    /** Maps an integration method's maintainer username to its maintainer category. */
+    private String maintainerCategoryForUser(String username) {
+        return catalogUserRepository.findByUsername(username)
+                .map(CatalogUser::getRole)
+                .map(ApplicationMapper::roleToMaintainerCategory)
+                .orElse(null);
+    }
+
+    /**
+     * Maps a catalog_users.role to the maintainer category shown in the catalog:
+     * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
+     */
+    private static String roleToMaintainerCategory(String role) {
+        if (role == null) {
+            return null;
+        }
+        return switch (role) {
+            case "Superuser" -> "Evolveum";
+            case "OrganizationContributor" -> "Partner";
+            case "IndividualContributor" -> "Community";
+            default -> null;
+        };
     }
 
     // ── ActiveConnectorDto mapping ────────────────────────────────────────────

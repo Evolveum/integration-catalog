@@ -156,10 +156,12 @@ export class PublishFormMain implements OnInit, OnDestroy {
     if (!query) return [];
 
     if (this.currentStep() === 1) {
+      // Only start filtering once at least 2 characters are typed; cap the list at 10 entries.
+      if (query.length < 2) return [];
       return this.applications().filter(app =>
         app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query)
-      );
+      ).slice(0, 10);
     }
 
     const connectorType = this.selectedConnectorType();

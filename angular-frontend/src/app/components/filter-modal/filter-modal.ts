@@ -7,11 +7,13 @@
 import { Component, signal, Output, EventEmitter, Input, OnInit, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ApplicationService } from '../../services/application.service';
 
 export interface FilterState {
   trending: boolean;
   categories: string[];
+  deploymentTypes: string[];
   capabilities: string[];
   appStatus: string[];
   midpointVersions: number[];
@@ -37,6 +39,7 @@ export class FilterModal implements OnInit {
   @Input() currentFilterState = signal<FilterState>({
     trending: false,
     categories: [],
+    deploymentTypes: [],
     capabilities: [],
     appStatus: [],
     midpointVersions: [],
@@ -51,6 +54,7 @@ export class FilterModal implements OnInit {
   // Filter state
   protected trending = signal<boolean>(false);
   protected selectedCategories = signal<Set<string>>(new Set());
+  protected selectedDeploymentTypes = signal<Set<string>>(new Set());
   protected selectedCapabilities = signal<Set<string>>(new Set());
   protected selectedAppStatus = signal<Set<string>>(new Set());
   protected selectedMidpointVersions = signal<Set<number>>(new Set());
@@ -59,39 +63,19 @@ export class FilterModal implements OnInit {
 
   // Data for filters
   protected readonly categories = signal<CategoryCount[]>([]);
+  protected readonly deploymentTypes = signal<CategoryCount[]>([]);
   protected readonly midpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
-  protected readonly capabilities: string[] = [
-    'CREATE',
-    'GET',
-    'UPDATE',
-    'DELETE',
-    'TEST',
-    'SCRIPT_ON_CONNECTOR',
-    'SCRIPT_ON_RESOURCE',
-    'AUTHENTICATION',
-    'SEARCH',
-    'VALIDATE',
-    'SYNC',
-    'LIVE_SYNC',
-    'SCHEMA',
-    'DISCOVER_CONFIGURATION',
-    'RESOLVE_USERNAME',
-    'PARTIAL_SCHEMA',
-    'COMPLEX_UPDATE_DELTA',
-    'UPDATE_DELTA'
-  ];
+  // Loaded from the capability table via the backend.
+  protected readonly capabilities = signal<string[]>([]);
   protected readonly appStatuses = [
     { name: 'IN_REVIEW', displayName: 'In review' },
     { name: 'ACTIVE', displayName: 'Active' },
     { name: 'REQUESTED', displayName: 'Requested' },
     { name: 'WITH_ERROR', displayName: 'With error' }
   ];
-  protected readonly integrationMethods: string[] = [
-    'SCIM',
-    'openLDAP',
-    'REST API',
-    'CSV file import'
-  ];
+  // Loaded from the backend so the modal shows every integration method type,
+  // not just a hardcoded subset.
+  protected readonly integrationMethods = signal<string[]>([]);
   protected readonly maintainers: string[] = [
     'Evolveum',
     'Community',
@@ -104,6 +88,7 @@ export class FilterModal implements OnInit {
       const filterState = this.currentFilterState();
       this.trending.set(filterState.trending);
       this.selectedCategories.set(new Set(filterState.categories));
+      this.selectedDeploymentTypes.set(new Set(filterState.deploymentTypes));
       this.selectedCapabilities.set(new Set(filterState.capabilities));
       this.selectedAppStatus.set(new Set(filterState.appStatus));
       this.selectedMidpointVersions.set(new Set(filterState.midpointVersions));
@@ -115,6 +100,8 @@ export class FilterModal implements OnInit {
   ngOnInit(): void {
     this.loadCategories();
     this.loadMidpointVersions();
+    this.loadIntegrationMethods();
+    this.loadCapabilities();
   }
 
   protected selectSection(section: string): void {
@@ -135,6 +122,21 @@ export class FilterModal implements OnInit {
     }
     this.selectedCategories.set(current);
     this.closeModal();
+  }
+
+  protected toggleDeploymentType(name: string): void {
+    const current = new Set(this.selectedDeploymentTypes());
+    if (current.has(name)) {
+      current.delete(name);
+    } else {
+      current.add(name);
+    }
+    this.selectedDeploymentTypes.set(current);
+    this.closeModal();
+  }
+
+  protected isDeploymentTypeSelected(name: string): boolean {
+    return this.selectedDeploymentTypes().has(name);
   }
 
   protected toggleCapability(capability: string): void {
@@ -228,6 +230,7 @@ export class FilterModal implements OnInit {
     const filterState: FilterState = {
       trending: this.trending(),
       categories: Array.from(this.selectedCategories()),
+      deploymentTypes: Array.from(this.selectedDeploymentTypes()),
       capabilities: Array.from(this.selectedCapabilities()),
       appStatus: Array.from(this.selectedAppStatus()),
       midpointVersions: Array.from(this.selectedMidpointVersions()),
@@ -239,30 +242,48 @@ export class FilterModal implements OnInit {
   }
 
   private loadCategories(): void {
-    // Load categories with counts from applications
-    this.applicationService.getAll().subscribe({
-      next: (apps) => {
+    // Seed the list from ALL category tags (so unused ones still show with a 0
+    // count), then add the actual usage counts from the applications.
+    forkJoin({
+      tags: this.applicationService.getAllTags(),
+      apps: this.applicationService.getAll()
+    }).subscribe({
+      next: ({ tags, apps }) => {
+        // Category and Deployment Type are separate filters, keyed off tagType.
         const categoryMap = new Map<string, CategoryCount>();
+        const deploymentMap = new Map<string, CategoryCount>();
+        const mapFor = (tagType: string | null) =>
+          tagType === 'DEPLOYMENT' ? deploymentMap
+          : tagType === 'CATEGORY' ? categoryMap
+          : null;
+
+        // Seed both lists from ALL tags so unused entries still show with a 0 count.
+        tags.forEach(tag => {
+          const map = mapFor(tag.tagType);
+          if (map) {
+            map.set(tag.name, { name: tag.name, displayName: tag.displayName, count: 0 });
+          }
+        });
+
+        // Add the actual usage counts from the applications.
         apps.forEach(app => {
-          // Check both categories and tags fields
           const allTags = [...(app.categories || []), ...(app.tags || [])];
           allTags.forEach(tag => {
-            if (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT') {
-              if (categoryMap.has(tag.name)) {
-                const existing = categoryMap.get(tag.name)!;
-                existing.count++;
-              } else {
-                categoryMap.set(tag.name, {
-                  name: tag.name,
-                  displayName: tag.displayName,
-                  count: 1
-                });
-              }
+            const map = mapFor(tag.tagType);
+            if (!map) return;
+            const existing = map.get(tag.name);
+            if (existing) {
+              existing.count++;
+            } else {
+              // Present on an app but missing from the tag list — include it too.
+              map.set(tag.name, { name: tag.name, displayName: tag.displayName, count: 1 });
             }
           });
         });
-        this.categories.set(Array.from(categoryMap.values()));
-        console.log('Loaded categories:', Array.from(categoryMap.values()));
+
+        const sortByName = (a: CategoryCount, b: CategoryCount) => a.displayName.localeCompare(b.displayName);
+        this.categories.set(Array.from(categoryMap.values()).sort(sortByName));
+        this.deploymentTypes.set(Array.from(deploymentMap.values()).sort(sortByName));
       },
       error: (err) => {
         console.error('Error loading categories:', err);
@@ -274,6 +295,24 @@ export class FilterModal implements OnInit {
     this.applicationService.getMidpointVersions().subscribe({
       next: (versions) => this.midpointVersions.set(versions),
       error: (err) => console.error('Error loading MidPoint versions:', err)
+    });
+  }
+
+  private loadIntegrationMethods(): void {
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.integrationMethods.set(types.map(t => t.displayName)),
+      error: (err) => console.error('Error loading integration methods:', err)
+    });
+  }
+
+  private loadCapabilities(): void {
+    this.applicationService.getCapabilities().subscribe({
+      next: (caps) => this.capabilities.set(
+        [...caps]
+          .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER))
+          .map(c => c.name)
+      ),
+      error: (err) => console.error('Error loading capabilities:', err)
     });
   }
 }
