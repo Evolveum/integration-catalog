@@ -26,7 +26,6 @@ export class ToastService {
     message: string,
     type: ToastType = 'info'
   ): void {
-    console.log(message)
     this.toast.set({
       title,
       message,

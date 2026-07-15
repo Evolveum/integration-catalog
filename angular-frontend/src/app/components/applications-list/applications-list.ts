@@ -1018,7 +1018,6 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected downloadActiveConnectors(): void {
     this.applicationService.downloadActiveConnectors().subscribe({
       next: (error) => {
-        console.log(error);
         if (error) {
           this.showDownloadToast(error);
         }
