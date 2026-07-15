@@ -33,12 +33,13 @@ INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM
 	(2, 'hr_systems',                       	'HR Systems',                       	'CATEGORY'),
 	(3, 'office_and_email_systems',         	'Office and Email Systems',         	'CATEGORY'),
 	(4, 'security_and_access_control_systems',	'Security and Access Control Systems',	'CATEGORY'),
-    (5, 'on-premise',   						'On Premise',   						'DEPLOYMENT'),
-    (6, 'cloud-based', 							'Cloud based', 							'DEPLOYMENT'),
-    (7, 'popular', 								'Popular', 								'COMMON'),
-    (8, 'us', 									'USA based', 							'LOCALITY');
+	(5, 'other',	                            'Other',	                            'CATEGORY'),
+    (6, 'on-premise',   						'On Premise',   						'DEPLOYMENT'),
+    (7, 'cloud-based', 							'Cloud based', 							'DEPLOYMENT'),
+    (8, 'popular', 								'Popular', 								'COMMON'),
+    (9, 'us', 									'USA based', 							'LOCALITY');
 
-SELECT setval('application_tag_id_seq', 8);
+SELECT setval('application_tag_id_seq', 9);
 
 INSERT INTO country_of_origin (id, name, display_name) OVERRIDING SYSTEM VALUE VALUES
     (1, 'czech_republic', 'Czech Republic'),

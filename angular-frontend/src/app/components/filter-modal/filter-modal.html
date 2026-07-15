@@ -33,6 +33,14 @@
 
             <div
               class="filter-option d-flex align-items-center gap-3"
+              [class.active]="selectedSection() === 'deployment'"
+              (click)="selectSection('deployment')">
+              <i class="fa-solid fa-server filter-option-icon"></i>
+              <span class="filter-option-label">Deployment Type</span>
+            </div>
+
+            <div
+              class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'capabilities'"
               (click)="selectSection('capabilities')">
               <i class="fa-solid fa-puzzle-piece filter-option-icon"></i>
@@ -111,12 +119,32 @@
               </div>
             }
 
+            <!-- Deployment Type -->
+            @if (selectedSection() === 'deployment') {
+              <div>
+                <h5 class="mb-4">Deployment Type</h5>
+                <div class="category-list">
+                  @for (deployment of deploymentTypes(); track deployment.name) {
+                    <div
+                      class="category-item d-flex justify-content-between align-items-center py-2 px-3"
+                      [class.selected]="isDeploymentTypeSelected(deployment.name)"
+                      (click)="toggleDeploymentType(deployment.name)">
+                      <span>{{ deployment.displayName }}</span>
+                      <span class="text-muted">{{ deployment.count }}</span>
+                    </div>
+                  } @empty {
+                    <p class="text-muted">No deployment types available</p>
+                  }
+                </div>
+              </div>
+            }
+
             <!-- Capabilities -->
             @if (selectedSection() === 'capabilities') {
               <div>
                 <h5 class="mb-4">Capabilities</h5>
                 <div class="d-flex flex-wrap gap-2">
-                  @for (capability of capabilities; track capability) {
+                  @for (capability of capabilities(); track capability) {
                     <span
                       class="badge filter-badge rounded-pill"
                       [class.selected]="isCapabilitySelected(capability)"
@@ -169,7 +197,7 @@
               <div>
                 <h5 class="mb-4">Integration method</h5>
                 <div class="d-flex flex-wrap gap-2">
-                  @for (method of integrationMethods; track method) {
+                  @for (method of integrationMethods(); track method) {
                     <span
                       class="badge filter-badge rounded-pill"
                       [class.selected]="isIntegrationMethodSelected(method)"

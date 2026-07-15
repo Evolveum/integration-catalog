@@ -11,6 +11,7 @@ import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { ToastService } from '../../services/toast.service';
 
 interface MethodGroup {
@@ -24,7 +25,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -65,7 +66,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   private pendingCancelType: 'request' | 'version' | null = null;
   private pendingCancelVersionId: string | null = null;
   protected readonly currentPage = signal<number>(0);
-  protected readonly itemsPerPage = 5;
+  protected readonly itemsPerPage = 3;
   protected readonly expandedMethods = signal<Set<string>>(new Set());
 
   // Group the flat version list into method cards, keyed by the shared method UUID
@@ -94,10 +95,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const result = Array.from(groups.values());
     result.forEach(g => {
       g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision));
-      // The card header reflects the most recent revision's name, so a rename in a new version shows.
-      const latest = g.versions[g.versions.length - 1];
-      g.name = latest.displayName || latest.connectorDisplayName || 'Integration method';
+      // For a method with multiple versions, represent it by its OLDEST version so its
+      // name/identity stays stable (matching its fixed, creation-order position).
+      const oldest = g.versions[0];
+      g.name = oldest.displayName || oldest.connectorDisplayName || 'Integration method';
     });
+    // Unified list in creation order (map insertion order = backend created_at ASC), independent of
+    // lifecycle state — so a method keeps its position even when its state changes (e.g. on approval).
     return result;
   });
 
@@ -155,6 +159,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
+      this.restoreFilters(id);
       this.loadApplication(id);
       this.loadApplicationDownloadsCount(id);
     } else {
@@ -186,28 +191,84 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
-  /** Reject an in-review revision (superuser only): marks it REJECTED and records the reviewer. */
-  protected rejectVersion(id: string, revision: string | null): void {
-    const appId = this.application()?.id;
-    if (!appId) return;
-    this.applicationService.rejectIntegrationMethod(appId, id, revision ?? '').subscribe({
-      next: () => this.loadApplication(appId),
-      error: (err) => console.error('Failed to reject version', err)
-    });
+  // ── Approve/Reject confirmation modal ─────────────────────────────────────
+  // The version pending confirmation, and which action; the shared modal component
+  // owns the two-step flow, and the actual publish/reject happens on its confirm.
+  protected readonly confirmVersion = signal<IntegrationMethod | null>(null);
+  protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
+  protected readonly isProcessingApproval = signal<boolean>(false);
+  protected readonly approvalError = signal<string>('');
+  private readonly submittedDate = 'May 20, 2026';
+
+  protected readonly confirmConnectorName = computed(() => {
+    const v = this.confirmVersion();
+    return v ? (v.connectorDisplayName || v.displayName || 'Integration method') : '';
+  });
+  protected readonly confirmVersionLabel = computed(() => this.versionBadge(this.confirmVersion()?.revision ?? ''));
+  protected readonly confirmSubmittedBy = computed(() => {
+    const v = this.confirmVersion();
+    return v ? `${v.author || '—'} · ${this.submittedDate}` : '';
+  });
+
+  protected openApproveConfirm(version: IntegrationMethod): void {
+    this.openConfirm(version, 'approve');
   }
 
-  protected approveVersion(id: string, revision: string | null): void {
+  protected openRejectConfirm(version: IntegrationMethod): void {
+    this.openConfirm(version, 'reject');
+  }
+
+  private openConfirm(version: IntegrationMethod, mode: 'approve' | 'reject'): void {
+    this.approvalError.set('');
+    this.confirmVersion.set(version);
+    this.confirmMode.set(mode);
+  }
+
+  protected closeConfirm(): void {
+    if (this.isProcessingApproval()) return;
+    this.confirmMode.set(null);
+    this.confirmVersion.set(null);
+  }
+
+  protected submitConfirm(): void {
     const appId = this.application()?.id;
-    if (!appId) return;
-    this.applicationService.publishIntegrationMethod(appId, id, revision ?? '').subscribe({
-      next: () => this.loadApplication(appId),
-      error: (err) => console.error('Failed to approve version', err)
+    const version = this.confirmVersion();
+    const mode = this.confirmMode();
+    if (!appId || !version || !mode || this.isProcessingApproval()) return;
+    this.approvalError.set('');
+    this.isProcessingApproval.set(true);
+    const action$ = mode === 'approve'
+      ? this.applicationService.publishIntegrationMethod(appId, version.id, version.revision ?? '')
+      : this.applicationService.rejectIntegrationMethod(appId, version.id, version.revision ?? '');
+    action$.subscribe({
+      next: () => {
+        this.isProcessingApproval.set(false);
+        this.confirmMode.set(null);
+        this.confirmVersion.set(null);
+        this.loadApplication(appId);
+      },
+      error: (err) => {
+        console.error('Approval action failed', err);
+        this.isProcessingApproval.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.approvalError.set(message || 'The action failed. Please try again.');
+      }
     });
   }
 
   /** Unique key for a single version (the method id is shared across revisions). */
   private versionKey(id: string, revision: string | null): string {
     return `${id}|${revision ?? ''}`;
+  }
+
+  /**
+   * Unique key for a single version row's collapsible state. The method id is shared across
+   * revisions, so it must be combined with the revision — otherwise expanding a section in one
+   * version row expands it in every other row of the same method.
+   */
+  protected rowKey(version: IntegrationMethod): string {
+    return this.versionKey(version.id, version.revision);
   }
 
   protected cancelRequest(): void {
@@ -603,6 +664,39 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     if (app && app.integrationMethods) {
       this.groupVersionsByLifecycleState(app.integrationMethods);
     }
+    this.persistFilters();
+  }
+
+  private filterStorageKey(id: string): string {
+    return `app-detail-filters:${id}`;
+  }
+
+  /** Persist the current filter selection so it survives navigating into an IM's details and back. */
+  private persistFilters(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+    const payload = {
+      filterState: this.filterState(),
+      methodTypeFilter: this.methodTypeFilter(),
+      methodSearchQuery: this.methodSearchQuery(),
+      versionSearchQuery: this.versionSearchQuery()
+    };
+    try {
+      sessionStorage.setItem(this.filterStorageKey(id), JSON.stringify(payload));
+    } catch { /* storage unavailable — ignore */ }
+  }
+
+  /** Restore a previously persisted filter selection for this application, if any. */
+  private restoreFilters(id: string): void {
+    try {
+      const raw = sessionStorage.getItem(this.filterStorageKey(id));
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved.filterState) this.filterState.set(saved.filterState);
+      if (typeof saved.methodTypeFilter === 'string') this.methodTypeFilter.set(saved.methodTypeFilter);
+      if (typeof saved.methodSearchQuery === 'string') this.methodSearchQuery.set(saved.methodSearchQuery);
+      if (typeof saved.versionSearchQuery === 'string') this.versionSearchQuery.set(saved.versionSearchQuery);
+    } catch { /* malformed — ignore */ }
   }
 
   protected getTotalVersionsCount(): number {

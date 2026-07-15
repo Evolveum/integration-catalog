@@ -334,17 +334,47 @@
   }
 }
 
+// A staged (not yet persisted) connector: dashed outline + tinted background to read as "pending".
+.edit-connector-card-pending {
+  border-style: dashed;
+  border-color: $midpoint-special-color;
+  background: #f8fbff;
+}
+
+.edit-connector-pending-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: $color-dark-blue;
+  background: #e3f0ff;
+}
+
 .edit-connector-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+.edit-connector-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
 }
 
 .edit-connector-name {
   font-weight: 600;
   font-size: 0.9375rem;
   color: #1a202c;
+}
+
+.edit-connector-subtitle {
+  font-size: 0.8125rem;
+  color: #6c757d;
 }
 
 .edit-connector-edit-btn {
@@ -554,6 +584,52 @@
     background-color: $color-dark-blue;
     border-color: $color-dark-blue;
   }
+}
+
+.edit-save-hint {
+  font-size: 0.8125rem;
+}
+
+.edit-save-error {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #f5c2c7;
+  background: #fdf2f2;
+  color: #b02a37;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* Error toast (shown when a Save / Save-as-new-version fails) */
+.toast-container {
+  z-index: 100000;
+  // Bootstrap's .toast-container sets pointer-events: none; re-enable so the close X is clickable.
+  pointer-events: auto;
+}
+
+.toast-box {
+  min-width: 350px;
+  max-width: 420px;
+  border: 1px solid $toast-danger-border;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.toast-header-danger {
+  background-color: $toast-danger-header;
+  color: $toast-danger-header-text;
+  font-size: 1rem;
+}
+
+.toast-body-danger {
+  background-color: $toast-danger-body;
+  color: $toast-danger-text;
+  line-height: 1.4;
+}
+
+.toast-icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 /* ========================================

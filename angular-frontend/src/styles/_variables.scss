@@ -74,6 +74,13 @@ $toast-warning-body: #FFF3CD;
 $toast-warning-border: $toast-warning-header;
 $toast-warning-text: #353A41;
 
+// Error toast — red header + light-red body
+$toast-danger-header: #DC3545;
+$toast-danger-body: #F8D7DA;
+$toast-danger-border: $toast-danger-header;
+$toast-danger-header-text: #FFFFFF;
+$toast-danger-text: #842029;
+
 // Info Colors
 $color-info-bg: #d1ecf1;
 $color-info-border: #bee5eb;

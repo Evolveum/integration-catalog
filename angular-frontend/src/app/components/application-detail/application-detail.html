@@ -89,17 +89,25 @@
 
           <!-- Stats Row -->
           <div class="d-flex align-items-center gap-4 text-body text-sm">
-            <!-- Star Rating (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
+            <!-- Star Rating (Placeholder) - hidden for now, will be used later -->
+            <div class="d-flex align-items-center gap-1" style="display: none !important;">
               <i class="fa-solid fa-star star-icon"></i>
               <span class="font-weight-medium"><b>"4.4</b> (404 reviews)"</span>
             </div>
 
-            <!-- Installations (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
-              <i class="fa-solid fa-download icon-md"></i>
-              <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
-            </div>
+            @if (application()!.lifecycleState === 'REQUESTED') {
+              <!-- Votes (Requested apps) -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-thumbs-up icon-md"></i>
+                <span class="font-weight-medium">{{ application()!.voteCount ?? 0 }} vote(s)</span>
+              </div>
+            } @else {
+              <!-- Installations -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-download icon-md"></i>
+                <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
+              </div>
+            }
 
             <!-- Updated Date -->
             <div class="d-flex align-items-center gap-1">
@@ -418,7 +426,7 @@
                           </div>
 
                           @for (version of method.versions; track version.revision) {
-                            <div class="im-version-row d-flex" role="button" (click)="navigateToDetails(version.id, version.revision)">
+                            <div class="im-version-row d-flex" [class.im-version-row-review]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
                               <!-- VERSION -->
                               <div class="im-col-version">
                                 <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
@@ -440,7 +448,7 @@
                                     @if (isGlobalMethod(version)) {
                                       @let allCaps = version.objectClassCapabilities[0].capabilities;
                                       @let remaining = allCaps.length - 10;
-                                      @let visibleCaps = isMethodGlobalCapabilitiesExpanded(version.id) ? allCaps : allCaps.slice(0, 10);
+                                      @let visibleCaps = isMethodGlobalCapabilitiesExpanded(rowKey(version)) ? allCaps : allCaps.slice(0, 10);
                                       <p class="text-sm mb-2 im-capabilities-header">
                                         Global capabilities: <span class="text-muted fw-normal">(All object classes)</span>
                                       </p>
@@ -449,8 +457,8 @@
                                           <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
                                         }
                                         @if (remaining > 0) {
-                                          <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleMethodGlobalCapabilities(version.id); $event.stopPropagation()">
-                                            @if (isMethodGlobalCapabilitiesExpanded(version.id)) {
+                                          <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleMethodGlobalCapabilities(rowKey(version)); $event.stopPropagation()">
+                                            @if (isMethodGlobalCapabilitiesExpanded(rowKey(version))) {
                                               <i class="fa-solid fa-eye-slash icon-sm"></i> Show less
                                             } @else {
                                               <i class="fa-solid fa-eye icon-sm"></i> + {{ remaining }} more
@@ -459,24 +467,24 @@
                                         }
                                       </div>
                                     } @else if (isCombinedMethod(version)) {
-                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-global'); $event.stopPropagation()" style="cursor:pointer;">
-                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-global')"></i>
+                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(rowKey(version) + '-combo-global'); $event.stopPropagation()" style="cursor:pointer;">
+                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(rowKey(version) + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(rowKey(version) + '-combo-global')"></i>
                                         <p class="text-sm mb-0 im-capabilities-header">Global capabilities: <span class="text-muted fw-normal">(All object classes)</span></p>
                                       </div>
-                                      @if (isComboSectionExpanded(version.id + '-combo-global')) {
+                                      @if (isComboSectionExpanded(rowKey(version) + '-combo-global')) {
                                         <div class="d-flex flex-wrap gap-2 ms-3 mb-2">
                                           @for (cap of getGlobalCaps(version); track cap) {
                                             <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
                                           }
                                         </div>
                                       }
-                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-specific'); $event.stopPropagation()" style="cursor:pointer;">
-                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-specific')"></i>
+                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(rowKey(version) + '-combo-specific'); $event.stopPropagation()" style="cursor:pointer;">
+                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(rowKey(version) + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(rowKey(version) + '-combo-specific')"></i>
                                         <p class="text-sm mb-0 im-capabilities-header">Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span></p>
                                       </div>
-                                      @if (isComboSectionExpanded(version.id + '-combo-specific')) {
+                                      @if (isComboSectionExpanded(rowKey(version) + '-combo-specific')) {
                                         @for (occ of getSpecificOccs(version); track occ.objectName) {
-                                          @let expandKey = version.id + '-' + occ.objectName;
+                                          @let expandKey = rowKey(version) + '-' + occ.objectName;
                                           <div class="mb-2 ms-3">
                                             <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
                                               <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
@@ -498,7 +506,7 @@
                                         Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
                                       </p>
                                       @for (occ of version.objectClassCapabilities; track occ.objectName) {
-                                        @let expandKey = version.id + '-' + occ.objectName;
+                                        @let expandKey = rowKey(version) + '-' + occ.objectName;
                                         <div class="mb-2">
                                           <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
                                             <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
@@ -564,10 +572,10 @@
                                 <!-- Always-visible approve/reject (IN_REVIEW, superuser) -->
                                 @if (version.lifecycleState === 'IN_REVIEW' && isSuperuser()) {
                                   <div class="im-row-actions-always d-flex align-items-center justify-content-end gap-2">
-                                    <button type="button" class="btn btn-im-reject" (click)="rejectVersion(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-reject" (click)="openRejectConfirm(version); $event.stopPropagation()">
                                       <i class="fa-solid fa-xmark"></i>Reject
                                     </button>
-                                    <button type="button" class="btn btn-im-approve" (click)="approveVersion(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-approve" (click)="openApproveConfirm(version); $event.stopPropagation()">
                                       <i class="fa-solid fa-check"></i>Approve
                                     </button>
                                   </div>
@@ -671,23 +679,19 @@
             }
           </div>
 
-          <!-- Maintainer Location -->
-          <div class="mb-5">
-            <h6 class="text-muted small mb-1">Maintainer Location</h6>
-            @if (application()!.origins && application()!.origins!.length > 0) {
-              @for (origin of application()!.origins!; track origin.id) {
-                <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>
+          <!-- Maintainer Location (hidden for requested apps) -->
+          @if (application()!.lifecycleState !== 'REQUESTED') {
+            <div class="mb-0">
+              <h6 class="text-muted small mb-1">Maintainer Location</h6>
+              @if (application()!.origins && application()!.origins!.length > 0) {
+                @for (origin of application()!.origins!; track origin.id) {
+                  <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>
+                }
+              } @else {
+                <p class="mb-0 text-muted text-sm">Not available</p>
               }
-            } @else {
-              <p class="mb-0 text-muted text-sm">Not available</p>
-            }
-          </div>
-
-          <!-- Installations -->
-          <div class="mb-0">
-            <h6 class="text-muted small mb-1">Installations</h6>
-            <p class="mb-0 fw-semibold text-body stat-value">0</p>
-          </div>
+            </div>
+          }
 
         </div>
       </div>
@@ -763,6 +767,20 @@
         </div>
       </div>
     </div>
+  }
+
+  <!-- Approve / Reject confirmation modal (shared component) -->
+  @if (confirmMode(); as mode) {
+    <app-approval-confirm-modal
+      [mode]="mode"
+      [connectorName]="confirmConnectorName()"
+      [versionLabel]="confirmVersionLabel()"
+      [submittedBy]="confirmSubmittedBy()"
+      [processing]="isProcessingApproval()"
+      [error]="approvalError()"
+      (confirm)="submitConfirm()"
+      (cancel)="closeConfirm()">
+    </app-approval-confirm-modal>
   }
   }
 </div>

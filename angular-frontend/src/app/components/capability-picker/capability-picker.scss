@@ -5,21 +5,63 @@
 @use 'variables' as *;
 
 /* Read-only state: blocks the custom div triggers (mouse) and greys the picker.
-   Native inputs/buttons additionally carry [disabled] for keyboard. */
+   Native inputs/buttons additionally carry [disabled] for keyboard. The trigger
+   boxes are plain <div>s, so [disabled] can't grey them — fill them with the same
+   muted background the other disabled fields use (connector name, maintainer). */
 :host(.cp-disabled) {
   pointer-events: none;
-  opacity: 0.6;
 }
 
-/* Info icon */
-.btn-info-icon {
-  border: none;
-  position: relative;
-  top: -3px;
+:host(.cp-disabled) .cp-trigger,
+:host(.cp-disabled) .cp-oc-field {
+  background-color: $color-bg-muted;
+  cursor: not-allowed;
 }
 
-.info-icon-sm {
-  font-size: 12px;
+/* Info icon tooltip — unified with the styled tooltip used across the publish form. */
+.info-icon-wrapper {
+  vertical-align: middle;
+}
+
+.info-icon-wrapper .info-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -2px;
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  width: 400px;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.info-icon-wrapper .info-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 5px;
+  border: 6px solid transparent;
+  border-width: 8px 4px;
+  border-bottom-color: $color-text-dark;
+}
+
+.info-icon-wrapper:hover .info-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-icon {
+  font-size: 14px;
   color: $text-publishing-blue;
 }
 

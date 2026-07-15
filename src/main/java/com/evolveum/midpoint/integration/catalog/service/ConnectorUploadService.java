@@ -408,21 +408,38 @@ public class ConnectorUploadService {
         IntegrationMethod existing = integrationMethodRepository.findById(new IntegrationMethodId(methodId, currentRevision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + currentRevision));
 
-        boolean editingDraft = existing.getLifecycleState() == LifecycleType.IN_REVIEW;
+        // A rejected revision is resubmitted in place (like an in-review draft), not forked into a new
+        // instance: it is rewritten and flipped back to IN_REVIEW so a single record evolves.
+        boolean editingDraft = existing.getLifecycleState() == LifecycleType.IN_REVIEW
+                || existing.getLifecycleState() == LifecycleType.REJECTED;
 
         if (dto.minorBump() && editingDraft) {
-            // "Save" on an in-review draft: a small correction. Bump in place (2.1 -> 2.2), replacing
-            // the draft row so a draft keeps a single record while it is being revised.
+            // "Save" on an in-review/rejected draft: a small correction. Bump in place (2.1 -> 2.2),
+            // replacing the draft row so a draft keeps a single record while it is being revised.
             return rewriteWithMinorBump(existing, methodId, currentRevision, dto);
         }
 
         // Otherwise spawn a fresh in-review draft, leaving the edited revision intact:
         //   - "Save" on a published revision -> minor draft (2.0 -> 2.1); on publish it replaces 2.0;
-        //   - "Save as new version"          -> major draft (2.x -> 3.0), kept as a separate version.
-        String newRevision = dto.minorBump() ? bumpMinorRevision(currentRevision) : bumpMajorRevision(currentRevision);
-        if (integrationMethodRepository.existsById(new IntegrationMethodId(methodId, newRevision))) {
-            throw new IllegalStateException("Revision " + newRevision + " already exists for this method; "
-                    + "edit that draft instead of creating another.");
+        //   - "Save as new version"          -> a brand-new major version. The number is the next
+        //     available major across ALL of this method's revisions, not simply currentMajor + 1 -
+        //     so "Save as new version" from 1.0 while 2.0 already exists creates 3.0, not a 2.0 clash.
+        String newRevision = dto.minorBump()
+                ? bumpMinorRevision(currentRevision)
+                : nextMajorRevision(methodId, existing.getApplication().getId());
+        IntegrationMethod clash = integrationMethodRepository
+                .findById(new IntegrationMethodId(methodId, newRevision))
+                .orElse(null);
+        if (clash != null) {
+            // A minor "Save" from a published revision whose target minor draft already exists
+            // (e.g. 1.0 -> 1.1 while a 1.1 review draft is present) overwrites that in-review draft
+            // with the latest edit instead of failing. A published/active clash is still refused.
+            if (dto.minorBump() && clash.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                deleteDraft(clash, methodId);
+            } else {
+                throw new IllegalStateException("Revision " + newRevision + " already exists for this method; "
+                        + "edit that draft instead of creating another.");
+            }
         }
         return createDraft(existing, methodId, currentRevision, dto, newRevision);
     }
@@ -438,6 +455,8 @@ public class ConnectorUploadService {
         updated.setId(methodId);
         updated.setRevision(newRevision);
         updated.setApplication(existing.getApplication());
+        // Inherit the source revision's creation time so the method keeps its list position.
+        updated.setCreatedAt(existing.getCreatedAt());
         // A revision produced by the edit-upgrade flow always starts unpublished, pending review.
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
         updated.setAuthor(existing.getAuthor());
@@ -464,19 +483,35 @@ public class ConnectorUploadService {
     }
 
     /**
+     * Removes an in-review draft revision and its tutorial folder so its revision number can be
+     * reused. Capabilities and connector links cascade away with the entity. The flush makes the
+     * delete visible before the replacement draft is saved under the same (methodId, revision) key.
+     */
+    private void deleteDraft(IntegrationMethod draft, UUID methodId) {
+        tutorialStorageService.deleteTutorialFolder(methodId, draft.getRevision());
+        integrationMethodRepository.delete(draft);
+        integrationMethodRepository.flush();
+    }
+
+    /**
      * Rewrites a revision in place with a minor bump (1.1 -> 1.2): builds the bumped revision from the
      * edited data, moves the tutorial folder across, then deletes the superseded revision so only one
-     * record survives. The lifecycle state is preserved (a published fix stays published).
+     * record survives. An in-review draft stays in review; a rejected revision is flipped back to
+     * IN_REVIEW (resubmission), and its connectors are un-rejected too.
      */
     private String rewriteWithMinorBump(IntegrationMethod existing, UUID methodId,
                                         String currentRevision, EditIntegrationMethodDto dto) {
         String newRevision = bumpMinorRevision(currentRevision);
+        // Resubmitting a rejected revision flips it back to IN_REVIEW; an in-review draft stays as-is.
+        boolean wasRejected = existing.getLifecycleState() == LifecycleType.REJECTED;
 
         IntegrationMethod updated = new IntegrationMethod();
         updated.setId(methodId);
         updated.setRevision(newRevision);
         updated.setApplication(existing.getApplication());
-        updated.setLifecycleState(existing.getLifecycleState());
+        // Inherit the source revision's creation time so the method keeps its list position.
+        updated.setCreatedAt(existing.getCreatedAt());
+        updated.setLifecycleState(wasRejected ? LifecycleType.IN_REVIEW : existing.getLifecycleState());
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
@@ -495,6 +530,12 @@ public class ConnectorUploadService {
 
         integrationMethodRepository.save(updated);
         saveIntegrationMethodCapabilities(dto.capabilities(), updated);
+
+        // A resubmitted rejected revision had its connectors marked REJECTED; put them back to
+        // IN_REVIEW so they are re-reviewed with this revision (and can be re-activated on approval).
+        if (wasRejected) {
+            resetRejectedConnectorsToInReview(updated);
+        }
 
         // Drop the superseded revision; its capabilities and connector links cascade away.
         integrationMethodRepository.delete(existing);
@@ -550,8 +591,125 @@ public class ConnectorUploadService {
 
         draft.setLifecycleState(LifecycleType.ACTIVE);
         // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+
+        // Publishing the method also makes its connectors catalog-visible: the "select connector"
+        // catalog only lists connectors whose bundle is ACTIVE (and whose capabilities come from an
+        // ACTIVE connector version). Newly added connectors are created IN_REVIEW, so promote each
+        // linked connector's bundle, bundle versions and connector versions here. Existing catalog
+        // connectors are already ACTIVE and are left untouched.
+        promoteConnectorsToActive(draft);
+
+        // Promote the parent application to ACTIVE as well. The homepage application card badge
+        // reads the application's OWN lifecycle state, so a newly created app that was IN_REVIEW
+        // would keep showing "In Review" even after its method is approved (the detail page reads
+        // the per-method state, which is why only the homepage looked stale).
+        Application application = draft.getApplication();
+        if (application.getLifecycleState() != Application.ApplicationLifecycleType.ACTIVE) {
+            application.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
+            applicationRepository.save(application);
+            log.info("Promoted application {} to ACTIVE after publishing method {}/{}",
+                    application.getId(), methodId, revision);
+        }
+
         log.info("Published integration method {}/{} by {}; superseded {} active revision(s) of major {}",
                 methodId, revision, username, superseded.size(), major);
+    }
+
+    /**
+     * Activates the bundle, bundle versions and connector versions of every connector linked to a
+     * method revision, so a published method's connectors become visible in the connector catalog.
+     * Only IN_REVIEW records are promoted; already-ACTIVE ones (existing catalog connectors) are left
+     * as they are.
+     */
+    private void promoteConnectorsToActive(IntegrationMethod method) {
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            Connector connector = link.getConnector();
+            if (connector == null) continue;
+
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle != null) {
+                if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                    bundle.setLifecycleState(LifecycleType.ACTIVE);
+                    connectorBundleRepository.save(bundle);
+                }
+                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
+                    if (cbv.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                        cbv.setLifecycleState(LifecycleType.ACTIVE);
+                        connectorBundleVersionRepository.save(cbv);
+                    }
+                }
+            }
+            for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                if (cv.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                    cv.setLifecycleState(LifecycleType.ACTIVE);
+                    connectorVersionRepository.save(cv);
+                }
+            }
+        }
+    }
+
+    /**
+     * Mark the connectors introduced with a rejected method revision as REJECTED — the mirror of
+     * promoteConnectorsToActive. Only IN_REVIEW records (newly introduced with this revision) are
+     * rejected; existing ACTIVE catalog connectors reused by the method are left untouched.
+     */
+    private void rejectConnectorsOfMethod(IntegrationMethod method) {
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            Connector connector = link.getConnector();
+            if (connector == null) continue;
+
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle != null) {
+                if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                    bundle.setLifecycleState(LifecycleType.REJECTED);
+                    connectorBundleRepository.save(bundle);
+                }
+                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
+                    if (cbv.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                        cbv.setLifecycleState(LifecycleType.REJECTED);
+                        connectorBundleVersionRepository.save(cbv);
+                    }
+                }
+            }
+            for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                if (cv.getLifecycleState() == LifecycleType.IN_REVIEW) {
+                    cv.setLifecycleState(LifecycleType.REJECTED);
+                    connectorVersionRepository.save(cv);
+                }
+            }
+        }
+    }
+
+    /**
+     * Undo a rejection on the connectors of a method: flip REJECTED records back to IN_REVIEW.
+     * Used when a rejected revision is resubmitted (edited + saved) so its connectors are re-reviewed
+     * again. ACTIVE connectors reused by the method are left untouched.
+     */
+    private void resetRejectedConnectorsToInReview(IntegrationMethod method) {
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            Connector connector = link.getConnector();
+            if (connector == null) continue;
+
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle != null) {
+                if (bundle.getLifecycleState() == LifecycleType.REJECTED) {
+                    bundle.setLifecycleState(LifecycleType.IN_REVIEW);
+                    connectorBundleRepository.save(bundle);
+                }
+                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
+                    if (cbv.getLifecycleState() == LifecycleType.REJECTED) {
+                        cbv.setLifecycleState(LifecycleType.IN_REVIEW);
+                        connectorBundleVersionRepository.save(cbv);
+                    }
+                }
+            }
+            for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                if (cv.getLifecycleState() == LifecycleType.REJECTED) {
+                    cv.setLifecycleState(LifecycleType.IN_REVIEW);
+                    connectorVersionRepository.save(cv);
+                }
+            }
+        }
     }
 
     /**
@@ -566,10 +724,10 @@ public class ConnectorUploadService {
             throw new IllegalStateException("Only in-review revisions can be rejected: " + methodId + "/" + revision);
         }
 
-        // Temporarily disabled: the current (non-local) DB's LifecycleType enum has no 'REJECTED' label,
-        // so persisting it fails. Re-enable together with 'REJECTED' in 01_schema.sql once the DB enum has it.
-        // draft.setLifecycleState(LifecycleType.REJECTED);
+        draft.setLifecycleState(LifecycleType.REJECTED);
         // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+        // Reject the connectors introduced with this revision too (mirrors promoteConnectorsToActive).
+        rejectConnectorsOfMethod(draft);
         log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
     }
 
@@ -595,10 +753,18 @@ public class ConnectorUploadService {
     }
 
     @Transactional
-    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+    public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
                                                 AddConnectorDto dto, String username) {
-        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+        IntegrationMethod target = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+
+        // A published (ACTIVE) revision is immutable: never attach a connector to it. Fork a fresh
+        // in-review draft (next available major) that carries the published version forward and add the
+        // connector there, leaving the published revision untouched. In-review/rejected drafts are
+        // mutable, so a connector is added to them directly.
+        if (target.getLifecycleState() == LifecycleType.ACTIVE) {
+            target = clonePublishedAsDraft(target, methodId);
+        }
 
         Connector connector;
         String connectorMinVersion;
@@ -637,8 +803,8 @@ public class ConnectorUploadService {
             saveConnectorVersionCapabilities(dto.connectorCapabilities(), connectorVersion);
         }
 
-        if (dto.midpointMinVersion() != null) method.setMidpointMinVersionId(dto.midpointMinVersion());
-        if (dto.midpointMaxVersion() != null) method.setMidpointMaxVersionId(dto.midpointMaxVersion());
+        if (dto.midpointMinVersion() != null) target.setMidpointMinVersionId(dto.midpointMinVersion());
+        if (dto.midpointMaxVersion() != null) target.setMidpointMaxVersionId(dto.midpointMaxVersion());
 
         // Append a new connector link, leaving any existing connectors on this integration
         // method revision untouched (a method revision may hold multiple connectors).
@@ -646,10 +812,58 @@ public class ConnectorUploadService {
         imc.setConnector(connector);
         imc.setConnectorMinVersion(connectorMinVersion);
         imc.setConnectorMaxVersion(emptyToNull(dto.connectorVersionTo()));
-        imc.setIntegrationMethod(method);
-        method.getConnectors().add(imc);
+        imc.setIntegrationMethod(target);
+        target.getConnectors().add(imc);
 
-        integrationMethodRepository.save(method);
+        integrationMethodRepository.save(target);
+        return target.getRevision();
+    }
+
+    /**
+     * Forks a published integration-method revision into a fresh in-review draft at the next available
+     * major version, carrying its metadata, tutorial files, connector links and capabilities forward.
+     * The published source revision is left untouched so it stays immutable.
+     */
+    private IntegrationMethod clonePublishedAsDraft(IntegrationMethod source, UUID methodId) {
+        String newRevision = nextMajorRevision(methodId, source.getApplication().getId());
+        IntegrationMethod draft = new IntegrationMethod();
+        draft.setId(methodId);
+        draft.setRevision(newRevision);
+        draft.setApplication(source.getApplication());
+        // Inherit the source revision's creation time so the method keeps its list position.
+        draft.setCreatedAt(source.getCreatedAt());
+        draft.setLifecycleState(LifecycleType.IN_REVIEW);
+        draft.setAuthor(source.getAuthor());
+        draft.setMaintainer(source.getMaintainer());
+        draft.setMidpointMinVersionId(source.getMidpointMinVersionId());
+        draft.setMidpointMaxVersionId(source.getMidpointMaxVersionId());
+        draft.setAppVersion(source.getAppVersion());
+        draft.setDisplayName(source.getDisplayName());
+        draft.setDescription(source.getDescription());
+        draft.setTutorial(source.getTutorial());
+        draft.setIntegMethodTypes(new ArrayList<>(source.getIntegMethodTypes()));
+        draft.setFilePath(tutorialStorageService.copyTutorialFolder(methodId, source.getRevision(), newRevision));
+
+        copyConnectorLinks(source, draft);
+        integrationMethodRepository.save(draft);
+        copyCapabilities(source, draft);
+        return draft;
+    }
+
+    /** Deep-copies a method's object-class capabilities (and their capability items) onto another revision. */
+    private void copyCapabilities(IntegrationMethod from, IntegrationMethod to) {
+        for (IntegrationMethodCapability oldCap : from.getCapabilities()) {
+            IntegrationMethodCapability newCap = new IntegrationMethodCapability();
+            newCap.setObjectClass(oldCap.getObjectClass());
+            newCap.setIntegrationMethod(to);
+            IntegrationMethodCapability saved = integrationMethodCapabilityRepository.save(newCap);
+            for (IntegrationMethodCapabilityItem oldItem : oldCap.getItems()) {
+                IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
+                item.setIntegrationMethodCapabilityId(saved.getId());
+                item.setCapabilityId(oldItem.getCapabilityId());
+                integrationMethodCapabilityItemRepository.save(item);
+            }
+        }
     }
 
     /**
@@ -784,9 +998,18 @@ public class ConnectorUploadService {
         return (value == null || value.isBlank()) ? null : value;
     }
 
-    /** Major bump: increments the major segment and resets the minor to 0 (1.x -> 2.0, "1" -> "2.0"). */
-    private String bumpMajorRevision(String revision) {
-        return (parseMajor(revision) + 1) + ".0";
+    /**
+     * Next available major version for a method: one higher than the largest major across ALL of the
+     * method's existing revisions, with the minor reset to 0. Creating a new version from any base
+     * revision therefore never collides with an existing major (1.0 + 2.0 present -> 3.0).
+     */
+    private String nextMajorRevision(UUID methodId, UUID applicationId) {
+        int maxMajor = integrationMethodRepository.findByApplicationId(applicationId).stream()
+                .filter(m -> m.getId().equals(methodId))
+                .mapToInt(m -> parseMajor(m.getRevision()))
+                .max()
+                .orElse(0);
+        return (maxMajor + 1) + ".0";
     }
 
     /** Minor bump: keeps the major segment and increments the minor (1.1 -> 1.2, "1" -> "1.1"). */

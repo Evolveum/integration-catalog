@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
 import { MidpointVersion } from '../../models/application-detail.model';
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
@@ -35,7 +35,7 @@ export interface ReviewSummary {
   category: string;
   deploymentType: string;
   logoFile: File | null;
-  tutorialFile: File | null;
+  tutorialFiles: File[];
   imCapabilities: IntegrationMethodCapabilityGroup[];
 }
 
@@ -89,7 +89,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   // Basic info
   protected readonly connectorName = signal<string>('');
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
-  protected readonly connectorVersion = signal<string>('1.0.0');
+  protected readonly connectorVersion = signal<string>('');
   protected readonly connectorMaintainer = signal<string>('');
   protected readonly maintainerOptions = signal<string[]>([]);
   protected readonly maintainerSearch = signal<string>('');
@@ -216,7 +216,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     if (this.isConnectorVersionInvalid()) return false;
     if (this.bundleNameTaken()) return false;
     if (this.connectorType !== 'evolveum-hosted') {
-      if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
+      if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim()) return false;
       if (this.isGitCloneUrlInvalid()) return false;
     }
     if (this.connectorType === 'java-based') {
@@ -321,7 +321,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   private resetFields(): void {
     this.connectorName.set('');
-    this.connectorVersion.set('1.0.0');
+    this.connectorVersion.set('');
     this.connectorVersionFrom.set('');
     this.connectorVersionTo.set('');
     this.connectorMaintainer.set(this.authService.currentUser() ?? '');
@@ -441,8 +441,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
           ? this.applicationService.uploadLogo(applicationId, summary.logoFile)
           : of(null);
 
-        const tutorialUpload$: Observable<unknown> = (integrationMethodId && summary?.tutorialFile)
-          ? this.applicationService.uploadTutorial(integrationMethodId, summary.tutorialFile)
+        const tutorialFiles = summary?.tutorialFiles ?? [];
+        const tutorialUpload$: Observable<unknown> = (integrationMethodId && tutorialFiles.length > 0)
+          ? forkJoin(tutorialFiles.map(file => this.applicationService.uploadTutorial(integrationMethodId, file)))
           : of(null);
 
         return logoUpload$.pipe(

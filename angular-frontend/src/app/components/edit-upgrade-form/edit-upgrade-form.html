@@ -12,8 +12,10 @@
     [appName]="appName()"
     [appHasLogo]="appHasLogo()"
     [logoUrl]="getLogoUrl()"
-    (close)="showAddConnector.set(false)"
-    (saved)="onConnectorSaved()">
+    [deferSave]="true"
+    (close)="closeAddConnector()"
+    (saved)="onConnectorSaved($event)"
+    (staged)="onConnectorStaged($event)">
   </app-add-connector-form>
 } @else {
 
@@ -187,15 +189,23 @@
         <div class="edit-connectors-header">
           <span class="edit-connectors-title">CONNECTORS</span>
           <button type="button" class="btn btn-sm edit-add-connector-btn"
-                  (click)="showAddConnector.set(true)">
+                  (click)="openAddConnector()">
             <i class="fa-solid fa-plus me-1"></i>Add new connector
           </button>
         </div>
 
-        @for (c of connectors(); track $index; let ci = $index) {
-          <div class="edit-connector-card">
+        @for (c of displayConnectors(); track $index; let ci = $index) {
+          <div class="edit-connector-card" [class.edit-connector-card-pending]="isConnectorPending(c.connectorId)">
             <div class="edit-connector-card-header">
-              <span class="edit-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <div class="edit-connector-title-group">
+                <span class="edit-connector-name d-flex align-items-center gap-2">
+                  {{ c.bundleDisplayName || c.name }}
+                  @if (isConnectorPending(c.connectorId)) {
+                    <span class="edit-connector-pending-badge">Pending</span>
+                  }
+                </span>
+                <span class="edit-connector-subtitle">v{{ c.version || '—' }} — configured</span>
+              </div>
               <div class="d-flex align-items-center gap-3">
                 <button type="button" class="edit-connector-see-compat d-flex align-items-center gap-2"
                         (click)="openCompatibility(c)" title="Set up connector compatibility">
@@ -260,106 +270,97 @@
                 </div>
               }
 
-              <!-- Repository & documentation -->
-              @if (c.browseLink || c.ticketingLink) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-repo')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-repo')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-repo')"></i>
-                    <span>Repository &amp; Documentation</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-repo')) {
-                    @if (c.browseLink) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Project homepage:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
-                        </span>
-                      </div>
-                    }
-                    @if (c.ticketingLink) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Support portal:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
-                        </span>
-                      </div>
-                    }
-                  }
+              <!-- Flat rows (old design): every field shown directly, no collapsible subsections -->
+              @if (c.browseLink) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project homepage:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                  </span>
                 </div>
               }
-
-              <!-- Framework setting -->
+              @if (c.ticketingLink) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Support portal:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
+                  </span>
+                </div>
+              }
               @if (c.buildFramework) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-framework')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-framework')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-framework')"></i>
-                    <span>Framework Setting</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-framework')) {
-                    <div class="edit-connector-row">
-                      <span class="edit-connector-label">Build tool:</span>
-                      <span class="edit-connector-value">{{ formatBuildTool(c.buildFramework) }}</span>
-                    </div>
-                  }
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Build tool:</span>
+                  <span class="edit-connector-value">{{ formatBuildTool(c.buildFramework) }}</span>
                 </div>
               }
+              @if (c.gitCloneUrl) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Git clone URL:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
+                  </span>
+                </div>
+              }
+              @if (c.commitTag) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Commit tag:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag }}
+                  </span>
+                </div>
+              }
+              @if (c.pathToProjectDirectory) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project folder path:</span>
+                  <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
+                </div>
+              }
+              @if (c.className) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Class name:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+        }
 
-              <!-- Source code access -->
-              <div class="edit-subsection">
-                <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-source')">
-                  <i class="fa-solid icon-sm"
-                     [class.fa-chevron-up]="isSectionExpanded(ci + '-source')"
-                     [class.fa-chevron-down]="!isSectionExpanded(ci + '-source')"></i>
-                  <span>Source Code Access</span>
-                </button>
-                @if (isSectionExpanded(ci + '-source')) {
-                  @if (c.gitCloneUrl) {
-                    <div class="edit-connector-row">
-                      <span class="edit-connector-label">Git clone URL:</span>
-                      <span class="edit-connector-value">
-                        <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
-                      </span>
-                    </div>
-                  }
-                  <!-- Commit hash always shown, even when empty -->
-                  <div class="edit-connector-row">
-                    <span class="edit-connector-label">Commit hash:</span>
-                    <span class="edit-connector-value">
-                      <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag || '—' }}
-                    </span>
-                  </div>
-                }
+        <!-- Staged (not yet persisted) connectors: added while on a published version, committed on Save -->
+        @for (sc of stagedConnectors(); track $index; let si = $index) {
+          <div class="edit-connector-card edit-connector-card-pending">
+            <div class="edit-connector-card-header">
+              <span class="edit-connector-name d-flex align-items-center gap-2">
+                {{ sc.displayName || 'New connector' }}
+                <span class="edit-connector-pending-badge">Pending</span>
+              </span>
+              <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
+                      (click)="removeStagedConnector(si)">
+                <i class="fa-solid fa-trash-can"></i>Remove
+              </button>
+            </div>
+            <div class="edit-connector-details">
+              <div class="edit-connector-row">
+                <span class="edit-connector-label">Connector version:</span>
+                <span class="edit-connector-value"><span class="im-version-badge">{{ sc.version || '—' }}</span></span>
               </div>
-
-              <!-- Implementation details -->
-              @if (c.pathToProjectDirectory || c.className) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-impl')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-impl')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-impl')"></i>
-                    <span>Implementation Details</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-impl')) {
-                    @if (c.pathToProjectDirectory) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Project folder path:</span>
-                        <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
-                      </div>
-                    }
-                    @if (c.className) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Class name:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
-                        </span>
-                      </div>
-                    }
-                  }
+              @if (sc.maintainer) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Maintainer:</span>
+                  <span class="edit-connector-value">{{ formatMaintainer(sc.maintainer) }}</span>
+                </div>
+              }
+              @if (sc.license) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">License type:</span>
+                  <span class="edit-connector-value">{{ fmtLicense(sc.license) }}</span>
+                </div>
+              }
+              @if (sc.description) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Connector description:</span>
+                  <span class="edit-connector-value">{{ sc.description }}</span>
                 </div>
               }
             </div>
@@ -375,13 +376,38 @@
         </p>
       </div>
 
+      @if (saveError()) {
+        <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 100000;">
+          <div class="toast-box rounded-2 overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-danger">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation toast-icon"></i>
+                <strong>Save failed</strong>
+              </div>
+              <button type="button" class="btn-close btn-close-white" (click)="dismissSaveError()" aria-label="Close"></button>
+            </div>
+            <div class="px-3 py-2 toast-body-danger">
+              {{ saveError() }}
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Footer actions -->
       <div class="edit-footer">
         <button type="button" class="btn btn-link edit-cancel-btn" (click)="cancel()">Cancel</button>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn edit-save-btn" [disabled]="!isMidpointRangeValid()" (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
-          @if (!isInReview()) {
-            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid()" (click)="saveAsNewVersion()">
+        <div class="d-flex align-items-center gap-2">
+          @if (requiresNewVersionForConnectorChange()) {
+            <span class="edit-save-hint text-muted me-1">Connector changes staged — save as a new version to apply them.</span>
+          } @else if (hasPendingConnectorChanges()) {
+            <span class="edit-save-hint text-muted me-1">You have unsaved connector changes — click Save to apply them.</span>
+          }
+          <button type="button" class="btn edit-save-btn"
+                  [disabled]="!isMidpointRangeValid() || isSaving() || requiresNewVersionForConnectorChange()"
+                  [title]="requiresNewVersionForConnectorChange() ? 'Connector changes are staged — save them as a new version.' : ''"
+                  (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+          @if (!isDraftState()) {
+            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid() || isSaving()" (click)="saveAsNewVersion()">
               <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
             </button>
           }
@@ -398,8 +424,9 @@
       [methodId]="versionId()"
       [revision]="methodVersion()"
       [connector]="editingConnector()!"
+      [deferSave]="true"
       (close)="closeEditConnector()"
-      (saved)="onConnectorEdited()">
+      (stagedEdit)="onConnectorEditStaged($event)">
     </app-edit-connector-modal>
   }
 
@@ -469,8 +496,6 @@
         </div>
         <ul class="new-version-list">
           <li>Configuration metadata updated</li>
-          <li>Build artifacts generated and stored</li>
-          <li>Commit tag {{ methodVersion() }} created in repository</li>
         </ul>
         <hr class="saved-modal-separator">
         <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">

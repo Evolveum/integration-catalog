@@ -8,9 +8,10 @@
 <div class="mb-4">
   <label class="form-label form-label-upload">
     All object classes (Global)
-    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Capabilities that apply to all object classes regardless of type.">
-      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-    </button>
+    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+      <i class="fa-solid fa-circle-info info-icon"></i>
+      <span class="info-tooltip">Capabilities that apply to all object classes regardless of type.</span>
+    </span>
   </label>
   <div class="position-relative">
     <div class="form-control d-flex flex-wrap align-items-center gap-2 cp-trigger"
@@ -56,9 +57,10 @@
 <div>
   <label class="form-label form-label-upload">
     Specific object classes
-    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Capabilities that apply to a specific object class (e.g. Account, Group).">
-      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-    </button>
+    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+      <i class="fa-solid fa-circle-info info-icon"></i>
+      <span class="info-tooltip">Capabilities that apply to a specific object class (e.g. Account, Group).</span>
+    </span>
   </label>
   @for (entry of entries(); track $index; let i = $index) {
     <div class="cp-oc-card">

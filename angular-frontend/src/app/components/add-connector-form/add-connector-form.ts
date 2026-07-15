@@ -19,6 +19,39 @@ import { CatalogConnector } from '../../models/catalog-connector.model';
 
 type Step = 1 | 2;
 
+/** The exact payload sent to the add-connector endpoint. */
+export interface AddConnectorPayload {
+  existingConnectorId: number | null;
+  displayName: string;
+  description: string;
+  maintainer: string;
+  framework: string;
+  license: string | null;
+  browseLink: string | null;
+  gitCloneUrl: string | null;
+  buildFramework: string | null;
+  pathToProject: string | null;
+  className: string | null;
+  bundleName: string | null;
+  version: string | null;
+  commitTag: string | null;
+  midpointMinVersion: number | null;
+  midpointMaxVersion: number | null;
+  connectorVersionFrom: string | null;
+  connectorVersionTo: string | null;
+  connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+}
+
+/** A connector held in the parent form (not yet persisted) until the user saves a new version. */
+export interface StagedConnector {
+  payload: AddConnectorPayload;
+  displayName: string;
+  version: string;
+  description: string;
+  maintainer: string;
+  license: string | null;
+}
+
 @Component({
   selector: 'app-add-connector-form',
   standalone: true,
@@ -33,8 +66,11 @@ export class AddConnectorForm implements OnInit {
   @Input() appName = '';
   @Input() appHasLogo = false;
   @Input() logoUrl = '';
+  /** When true, saving the form does not persist anything; it stages the connector back to the parent. */
+  @Input() deferSave = false;
   @Output() close = new EventEmitter<void>();
-  @Output() saved = new EventEmitter<void>();
+  @Output() saved = new EventEmitter<string>();
+  @Output() staged = new EventEmitter<StagedConnector>();
 
   protected readonly step = signal<Step>(1);
   protected readonly isSaving = signal<boolean>(false);
@@ -54,11 +90,15 @@ export class AddConnectorForm implements OnInit {
 
   protected readonly filteredCatalogConnectors = computed(() => {
     const q = this.catalogSearch().toLowerCase().trim();
-    return this.catalogConnectors().filter(c =>
-      !q ||
-      c.displayName.toLowerCase().includes(q) ||
-      (c.bundleDisplayName ?? '').toLowerCase().includes(q)
-    );
+    const all = this.catalogConnectors();
+    // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
+    const matched = q.length < 2
+      ? all
+      : all.filter(c =>
+          c.displayName.toLowerCase().includes(q) ||
+          (c.bundleDisplayName ?? '').toLowerCase().includes(q)
+        );
+    return matched.slice(0, 10);
   });
 
   // ── Step 2: Connector details ─────────────────────────────
@@ -138,7 +178,6 @@ export class AddConnectorForm implements OnInit {
     if (!base || this.isConnectorVersionInvalid() || this.bundleNameTaken()) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
-      && !!this.devProjectFolderPath().trim()
       && !this.isGitCloneUrlInvalid();
     const javaOk = !this.isJavaBasedConnector
       || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
@@ -324,7 +363,7 @@ export class AddConnectorForm implements OnInit {
     this.isSaving.set(true);
     this.saveError.set('');
     const cc = this.selectedCatalogConnector();
-    const payload = {
+    const payload: AddConnectorPayload = {
       existingConnectorId: cc ? cc.id : null,
       displayName: this.connectorName(),
       description: this.connectorDescription(),
@@ -352,8 +391,23 @@ export class AddConnectorForm implements OnInit {
       }))
     };
 
+    if (this.deferSave) {
+      // Adding a connector to a published version must not persist anything yet. Hand the payload back
+      // to the parent so it can stage the connector and only commit it when saving a new version.
+      this.isSaving.set(false);
+      this.staged.emit({
+        payload,
+        displayName: cc ? cc.displayName : this.connectorName(),
+        version: payload.version ?? '',
+        description: payload.description ?? '',
+        maintainer: payload.maintainer,
+        license: payload.license
+      });
+      return;
+    }
+
     this.appService.addConnectorToIntegrationMethod(this.appId, this.versionId, this.revision, payload).subscribe({
-      next: () => { this.isSaving.set(false); this.saved.emit(); },
+      next: (savedRevision) => { this.isSaving.set(false); this.saved.emit(savedRevision); },
       error: err => {
         this.isSaving.set(false);
         console.error('Add connector failed', err);

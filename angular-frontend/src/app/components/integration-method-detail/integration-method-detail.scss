@@ -201,14 +201,34 @@
   border-radius: 4px;
   overflow: hidden;
 
-  .EasyMDEContainer {
-    border: none;
-  }
-
-  .CodeMirror {
-    border: none;
+  // Rendered AsciiDoc tutorial (read-only).
+  .view-tutorial-content {
+    padding: 1rem;
     min-height: 200px;
     font-size: 0.875rem;
+    overflow-x: auto;
+
+    > :first-child { margin-top: 0; }
+    > :last-child { margin-bottom: 0; }
+
+    img { max-width: 100%; }
+
+    pre {
+      background: #f6f8fa;
+      padding: 0.75rem;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+
+      th, td {
+        border: 1px solid #dee2e6;
+        padding: 0.4rem 0.6rem;
+      }
+    }
   }
 }
 
@@ -541,3 +561,29 @@
   font-size: 18px;
   line-height: 1;
 }
+
+/* Approve / Reject actions for an in-review method (superuser only) */
+.btn-im-reject {
+  background: none;
+  border: none;
+  color: #dc3545;
+
+  &:hover:not(:disabled) {
+    background: none;
+    color: #b02a37;
+  }
+}
+
+.btn-im-approve {
+  background-color: #fff;
+  border: 1px solid #198754;
+  color: #198754;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background-color: #f0fdf4;
+    border-color: #146c43;
+    color: #146c43;
+  }
+}
+

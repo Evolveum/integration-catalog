@@ -80,6 +80,16 @@
       <div class="step-content">
         <h5 class="step-title">Add connector</h5>
 
+        <!-- Note alert -->
+        @if (isExistingConnector) {
+          <div class="alert-info-note d-flex gap-2 align-items-start mt-2 mb-3">
+            <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+            <span class="alert-text">
+              <strong>Note</strong>&nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
+            </span>
+          </div>
+        }
+
         <!-- Accordion: Basic Information & Capabilities -->
         <div class="accordion-panel mb-3">
           <div class="accordion-panel-header" (click)="basicInfoExpanded.set(!basicInfoExpanded())">
@@ -102,8 +112,10 @@
                     </span>
                   </label>
                   <input type="text" class="form-control"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="connectorName()"
                          (input)="connectorName.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
                          placeholder="Enter connector name">
                 </div>
                 <div class="col-4">
@@ -116,10 +128,11 @@
                   </label>
                   <input type="text"
                          [class.form-control]="true"
-                         [class.input-disabled]="true"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="connectorVersion()"
-                         disabled
-                         placeholder="e.g. 1.0.0">
+                         (input)="connectorVersion.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. 5.0.3">
                   @if (isConnectorVersionInvalid() && !isExistingConnector) {
                     <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
                   }
@@ -396,7 +409,7 @@
                   Git clone URL@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">The technical address used by the build system (Jenkins) to download the source code. Copy the 'Clone' URL from your repository.</span>
+                    <span class="info-tooltip">The technical address used by the build system to download the source code. Copy the 'Clone' URL from your repository.</span>
                   </span>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center"
@@ -430,7 +443,7 @@
                          [value]="devCommitTag()"
                          (input)="devCommitTag.set($any($event.target).value); onFieldChange()"
                          [disabled]="isExistingConnector"
-                         placeholder="e.g. a3F8c31">
+                         placeholder="e.g. 35e32b6a00dec02ae7d7c45c6b7106779a1246aa">
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
@@ -446,7 +459,7 @@
               <!-- Project folder path -->
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
-                  Project folder path@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  Project folder path
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
                     <span class="info-tooltip"><strong>Location of the connector within the repository</strong><br><br>Specify the folder where the connector source code is located. Leave this field empty if the code is in the main (root) directory of the repository.</span>
@@ -492,16 +505,6 @@
             </div>
           }
         </div>
-
-        <!-- Note alert -->
-        @if (isExistingConnector) {
-          <div class="alert-info-note d-flex gap-2 align-items-start mt-2">
-            <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
-            <span class="alert-text">
-              <strong>Note</strong>&nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
-            </span>
-          </div>
-        }
       </div>
     }
 

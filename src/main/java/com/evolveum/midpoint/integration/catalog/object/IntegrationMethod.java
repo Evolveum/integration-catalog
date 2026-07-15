@@ -11,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
@@ -40,11 +39,17 @@ public class IntegrationMethod implements Persistable<UUID> {
     private boolean isNew = true;
 
     @PrePersist
-    void assignIdIfMissing() {
+    void assignDefaults() {
         // A new revision of an existing method keeps that method's id (set explicitly);
         // a genuinely new method has no id yet, so we generate one here.
         if (this.id == null) {
             this.id = UUID.randomUUID();
+        }
+        // Default the creation time for genuinely new methods, but let a forked
+        // revision inherit its source's created_at (set explicitly) so the method
+        // keeps its original position when ordered by created_at.
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
         }
     }
 
@@ -93,7 +98,8 @@ public class IntegrationMethod implements Persistable<UUID> {
     private String author;
     private String maintainer;
 
-    @CreationTimestamp
+    // Not @CreationTimestamp: a forked revision inherits its source's created_at
+    // (see assignDefaults / createDraft) so a method keeps its original ordering.
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

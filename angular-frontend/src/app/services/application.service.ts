@@ -237,10 +237,13 @@ export class ApplicationService {
       connectorVersionFrom: string | null; connectorVersionTo: string | null;
       connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
     }
-  ): Observable<void> {
-    return this.http.post<void>(
+  ): Observable<string> {
+    // Returns the revision the connector was added to: the current revision, or a newly forked draft
+    // revision when the source was a published version.
+    return this.http.post(
       `${environment.apiUrl}/applications/${appId}/integration-method/${versionId}/${encodeURIComponent(revision)}/connectors`,
-      payload
+      payload,
+      { responseType: 'text' }
     );
   }
 

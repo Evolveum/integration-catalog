@@ -194,9 +194,9 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+    public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
                                                 AddConnectorDto dto, String username) {
-        connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+        return connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
     }
 
     @Transactional
