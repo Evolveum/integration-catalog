@@ -15,6 +15,7 @@ import { RequestForm } from '../request-form/request-form';
 import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-applications-list',
@@ -226,7 +227,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private applicationService: ApplicationService,
     private router: Router,
-    protected authService: AuthService
+    protected authService: AuthService,
+    protected toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -865,5 +867,28 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
    */
   protected shouldShowAppLetterAvatar(app: Application): boolean {
     return !this.appHasLogo(app) || this.logoLoadErrors.has(app.id);
+  }
+
+  /**
+   * Download the active containers and display a toast with the error message if necessary.
+   */
+  protected downloadActiveConnectors(): void {
+    this.applicationService.downloadActiveConnectors().subscribe({
+      next: (error) => {
+        console.log(error);
+        if (error) {
+          this.showDownloadToast(error);
+        }
+      },
+      error: () => this.showDownloadToast('Download of active connectors failed.')
+    });
+  }
+
+  private showDownloadToast(message: string): void {
+    this.toastService.show(
+      'Download error',
+      message,
+      'danger'
+    );
   }
 }

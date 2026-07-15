@@ -11,6 +11,7 @@ import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { ToastService } from '../../services/toast.service';
 
 interface MethodGroup {
   id: string;
@@ -33,7 +34,6 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
   // Bundle download warning toast (stays until dismissed)
-  protected readonly bundleWarning = signal<string | null>(null);
   protected readonly expandedVersions = new Set<number>();
   protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
   protected readonly expandedGlobalCapabilities = signal<Set<string>>(new Set());
@@ -145,7 +145,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private applicationService: ApplicationService,
-    private authService: AuthService
+    private authService: AuthService,
+    protected toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -675,14 +676,22 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const appId = this.application()?.id;
     if (appId) {
       this.applicationService.downloadBundle(appId, methodId, revision ?? '').subscribe({
-        next: (warning) => this.bundleWarning.set(warning),
-        error: () => this.bundleWarning.set('Failed to download the bundle. Please try again.')
-      });
+        next: (warning) => {
+          if (warning) {
+            this.toastService.show(
+              'Download warning',
+              warning,
+              'warning'
+            )
+          }
+        },
+        error: () => this.toastService.show(
+          'Download error',
+          'Failed to download the bundle. Please try again.',
+          'danger')
+      }
+      );
     }
-  }
-
-  protected closeBundleWarning(): void {
-    this.bundleWarning.set(null);
   }
 
   // ==================== Logo Methods ====================

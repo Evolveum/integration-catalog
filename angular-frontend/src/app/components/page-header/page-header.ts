@@ -4,10 +4,11 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, inject, Input } from '@angular/core';
+import {Component, inject, Input, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { LoginModal } from '../login-modal/login-modal';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-page-header',
@@ -22,6 +23,7 @@ export class PageHeader {
   @Input() hideBorder: boolean = false;
 
   protected readonly authService = inject(AuthService);
+  protected readonly toastService = inject(ToastService);
 
   protected readonly currentUser = this.authService.currentUser;
   protected readonly loginModalOpen = this.authService.loginModalOpen;
@@ -29,4 +31,8 @@ export class PageHeader {
   protected openLoginModal(): void { this.authService.openLoginModal(); }
   protected closeLoginModal(): void { this.authService.closeLoginModal(); }
   protected logout(): void { this.authService.logout(); }
+
+  protected closeToast(): void {
+    this.toastService.close();
+  }
 }

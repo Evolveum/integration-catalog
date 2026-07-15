@@ -86,3 +86,6 @@ yarn-error.log*
 
 # Docker secrets
 docker/secrets/
+
+# Home data directory
+integration-catalog

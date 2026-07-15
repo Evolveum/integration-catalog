@@ -5,8 +5,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import {HttpClient, HttpErrorResponse, HttpResponse} from '@angular/common/http';
+import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
@@ -16,6 +16,7 @@ import { ImplementationListItem } from '../models/implementation-list-item.model
 import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
+import { ProblemDetail } from '../models/problem-detail';
 
 @Injectable({
   providedIn: 'root'
@@ -135,6 +136,35 @@ export class ApplicationService {
           this.saveBlob(response.body, this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'bundle.zip');
         }
         return response.headers.get('X-Bundle-Warning');
+      })
+    );
+  }
+
+  /**
+   * Downloads the integration-method bundle ZIP and triggers a browser save.
+   * Emits the value of the `X-Bundle-Warning` response header (or `null`) so callers can notify
+   * the user when the connector build file could not be included.
+   */
+  downloadActiveConnectors(): Observable<string | null> {
+    const url = `${environment.apiUrl}/connectors/active`;
+    return this.http.get(url, { observe: 'response', responseType: 'blob' }).pipe(
+      map((response: HttpResponse<Blob>) => {
+        if (response.body) {
+          this.saveBlob(response.body, this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'active-connectors.json');
+        }
+        return null;
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.error instanceof Blob) {
+          return from(error.error.text()).pipe(
+            map(text => {
+              const problem = JSON.parse(text) as ProblemDetail;
+              return problem.detail;
+            })
+          );
+        }
+
+        return of('Download of active connectors failed.');
       })
     );
   }

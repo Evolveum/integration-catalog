@@ -358,50 +358,6 @@ public class ApplicationMapper {
         );
     }
 
-    // ── ActiveConnectorDto mapping ────────────────────────────────────────────
-
-    public ActiveConnectorDto toActiveConnectorDto(Application app) {
-        List<CountryOfOriginDto> origins = mapOrigins(app);
-        List<ApplicationTagDto> categories = null;
-        List<ApplicationTagDto> tags = null;
-        if (app.getApplicationApplicationTags() != null) {
-            categories = app.getApplicationApplicationTags().stream()
-                    .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()))
-                    .toList();
-            tags = app.getApplicationApplicationTags().stream()
-                    .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()))
-                    .toList();
-        }
-
-        List<String> capabilities = new ArrayList<>();
-        if (app.getIntegrationMethods() != null) {
-            app.getIntegrationMethods().stream()
-                    .flatMap(m -> collectCapabilities(m) != null ? collectCapabilities(m).stream() : Stream.empty())
-                    .distinct()
-                    .forEach(capabilities::add);
-        }
-
-        List<String> frameworks = extractFrameworks(app);
-
-        return new ActiveConnectorDto(
-                app.getId(),
-                app.getDisplayName(),
-                app.getDescription(),
-                origins,
-                categories,
-                tags,
-                capabilities.isEmpty() ? null : capabilities,
-                frameworks,
-                null
-        );
-    }
-
     // ── IntegrationMethod list item ───────────────────────────────────────────
 
     public ImplementationListItemDto mapToIntegrationMethodListItemDto(IntegrationMethod method) {

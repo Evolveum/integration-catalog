@@ -1,3 +1,33 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<!-- Toast -->
+@if (toastService.toast(); as toast) {
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+  <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header"
+      [ngClass]="{
+        'text-bg-success': toast.type === 'success',
+        'text-bg-warning': toast.type === 'warning',
+        'text-bg-danger': toast.type === 'danger',
+        'text-bg-info': toast.type === 'info'
+      }">
+      <strong class="me-auto">
+        {{ toast.title }}
+      </strong>
+      <button type="button" class="btn-close" [class.btn-close-white]="toast.type !== 'warning'" (click)="closeToast()">
+      </button>
+    </div>
+    <div class="toast-body">
+      {{ toast.message }}
+    </div>
+  </div>
+</div>
+}
+
 <div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder">
   <!-- Left: logo + title -->
   <div class="d-flex align-items-center gap-2 header-brand">

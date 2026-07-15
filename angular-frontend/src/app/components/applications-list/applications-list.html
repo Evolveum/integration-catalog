@@ -495,13 +495,32 @@
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
-              <h5 class="mb-1 fw-600">Upload and publish</h5>
+              <h5 class="mb-1">Upload and publish</h5>
               <p class="text mb-0">Upload a configuration file to create and publish a brand new integration method<br> in the catalog.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
               <button class="btn btn-option" (click)="openUploadModal()">
                 <i class="fa-solid fa-upload icon-xl"></i>
                 Upload and publish
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Integration Sheet -->
+        <div class="d-flex align-items-stretch mb-3 options-box overflow-hidden">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-purple bg-primary-subtle">
+            <i class="fa-solid fa-download options-icon"></i>
+          </div>
+          <div class="flex-grow-1 p-4 d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h5 class="mb-1">Download Integrations Sheet</h5>
+              <p class="text mb-0">Lists all midPoint connectors and helps verify which are open-source and listed in the <br> integration catalog.</p>
+            </div>
+            <div class="flex-shrink-0 ms-4">
+              <button class="btn btn-option" (click)="downloadActiveConnectors()">
+                <i class="fa-solid fa-download icon-xl"></i>
+                Download Sheet
               </button>
             </div>
           </div>

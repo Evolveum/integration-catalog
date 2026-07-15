@@ -339,8 +339,12 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Active connectors retrieved successfully")
     })
     @GetMapping("/connectors/active")
-    public ResponseEntity<List<ActiveConnectorDto>> getActiveConnectors() {
-        return ResponseEntity.ok(applicationService.listActiveConnectors());
+    public ResponseEntity<List<SignedActiveConnectorDto>> getActiveConnectors() {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"active-connectors.json\"")
+                .body(applicationService.listActiveConnectors());
     }
 
     @Operation(summary = "Get catalog connectors",

@@ -8,12 +8,14 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
+import com.evolveum.midpoint.integration.catalog.exception.ConnectorSigningException;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
+import com.evolveum.midpoint.integration.catalog.mapper.ConnectorMapper;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
@@ -27,7 +29,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,6 +57,7 @@ public class ApplicationService {
     private final VoteRepository voteRepository;
     private final ApplicationReadPort applicationReadPort;
     private final ApplicationMapper applicationMapper;
+    private final ConnectorMapper connectorMapper;
     private final ConnectorBundleRepository connectorBundleRepository;
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
     private final ApplicationTagService applicationTagService;
@@ -66,6 +68,7 @@ public class ApplicationService {
     private final BuildCallbackService buildCallbackService;
     private final ConnectorUploadService connectorUploadService;
     private final CapabilityRepository capabilityRepository;
+    private final ConnectorVersionRepository connectorVersionRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -81,7 +84,7 @@ public class ApplicationService {
                               RequestRepository requestRepository,
                               VoteRepository voteRepository,
                               ApplicationReadPort applicationReadPort,
-                              ApplicationMapper applicationMapper,
+                              ApplicationMapper applicationMapper, ConnectorMapper connectorMapper,
                               ApplicationApplicationTagRepository applicationApplicationTagRepository,
                               ApplicationTagService applicationTagService,
                               BundleMergeService bundleMergeService,
@@ -90,7 +93,8 @@ public class ApplicationService {
                               BuildCallbackService buildCallbackService,
                               ConnectorUploadService connectorUploadService,
                               RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
-                              CapabilityRepository capabilityRepository) {
+                              CapabilityRepository capabilityRepository,
+                              ConnectorVersionRepository connectorVersionRepository) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
@@ -106,6 +110,7 @@ public class ApplicationService {
         this.applicationReadPort = applicationReadPort;
         this.applicationMapper = applicationMapper;
         this.connectorBundleRepository = connectorBundleRepository;
+        this.connectorMapper = connectorMapper;
         this.applicationApplicationTagRepository = applicationApplicationTagRepository;
         this.applicationTagService = applicationTagService;
         this.bundleMergeService = bundleMergeService;
@@ -115,6 +120,7 @@ public class ApplicationService {
         this.connectorUploadService = connectorUploadService;
         this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
         this.capabilityRepository = capabilityRepository;
+        this.connectorVersionRepository = connectorVersionRepository;
     }
 
     public Application getApplication(UUID uuid) {
@@ -341,9 +347,16 @@ public class ApplicationService {
         return page.map(applicationMapper::toCardDto);
     }
 
-    public List<ActiveConnectorDto> listActiveConnectors() {
-        return applicationReadPort.findByLifecycleState(Application.ApplicationLifecycleType.ACTIVE).stream()
-                .map(applicationMapper::toActiveConnectorDto)
+
+    public List<SignedActiveConnectorDto> listActiveConnectors() {
+        return connectorVersionRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .map(connectorVersion -> {
+                    try {
+                        return connectorMapper.toActiveConnectorDto(connectorVersion);
+                    } catch (Exception e) {
+                        throw new ConnectorSigningException("Failed to sign connector data", e);
+                    }
+                })
                 .toList();
     }
 

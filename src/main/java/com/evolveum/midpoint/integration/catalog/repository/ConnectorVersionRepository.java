@@ -20,4 +20,6 @@ public interface ConnectorVersionRepository extends JpaRepository<ConnectorVersi
     List<ConnectorVersion> findByConnectorId(Integer connectorId);
 
     List<ConnectorVersion> findByConnectorIdAndLifecycleState(Integer connectorId, LifecycleType lifecycleState);
+
+    List<ConnectorVersion> findByLifecycleState(LifecycleType lifecycleState);
 }
