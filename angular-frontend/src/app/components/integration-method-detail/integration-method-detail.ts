@@ -14,6 +14,7 @@ import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { ToastService } from '../../services/toast.service';
 
 // Single Asciidoctor engine instance shared by the component; the tutorial is
 // authored in AsciiDoc and rendered read-only here.
@@ -77,9 +78,6 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly connectors = signal<ImplementationListItem[]>([]);
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
-  // Bundle download warning toast (stays until dismissed)
-  protected readonly bundleWarning = signal<string | null>(null);
-
   // Tutorial (AsciiDoc source) rendered to embeddable HTML for read-only display.
   // Angular sanitizes the bound HTML; Asciidoctor's default 'secure' mode also
   // disables includes and scripts.
@@ -92,7 +90,8 @@ export class IntegrationMethodDetail implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private applicationService: ApplicationService,
-    private authService: AuthService
+    private authService: AuthService,
+    protected toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -356,12 +355,19 @@ export class IntegrationMethodDetail implements OnInit {
 
   protected downloadConnector(): void {
     this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion()).subscribe({
-      next: (warning) => this.bundleWarning.set(warning),
-      error: () => this.bundleWarning.set('Failed to download the bundle. Please try again.')
+      next: (warning) => {
+        if (warning) {
+          this.toastService.show(
+            'Download warning',
+            warning,
+            'warning'
+          )
+        }
+      },
+      error: () => this.toastService.show(
+        'Download error',
+        'Failed to download the bundle. Please try again.',
+        'danger')
     });
-  }
-
-  protected closeBundleWarning(): void {
-    this.bundleWarning.set(null);
   }
 }
