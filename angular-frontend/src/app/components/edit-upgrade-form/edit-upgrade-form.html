@@ -117,7 +117,7 @@
       <!-- Capabilities -->
       <div class="mb-4">
         <label class="form-label form-label-upload">
-          Define capabilities for: <span class="text-danger">*</span>          
+          Define capabilities for: <span class="text-danger">*</span>
         </label>
         <app-capability-picker [initialCapabilities]="initialCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
       </div>
@@ -318,9 +318,7 @@
               @if (c.className) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Class name:</span>
-                  <span class="edit-connector-value">
-                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
-                  </span>
+                  <span class="edit-connector-value">{{ c.className }}</span>
                 </div>
               }
             </div>
