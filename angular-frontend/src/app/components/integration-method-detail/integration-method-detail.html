@@ -325,11 +325,11 @@
           </div>
         } @else if (isInReview() && isSuperuser()) {
           <div class="d-flex align-items-center gap-3">
-            <button type="button" class="btn btn-im-reject d-flex align-items-center gap-2"
+            <button type="button" class="btn btn-outline-danger border-0 d-flex align-items-center gap-2"
                     (click)="openRejectConfirm()">
               <i class="fa-solid fa-xmark"></i>Reject
             </button>
-            <button type="button" class="btn btn-im-approve d-flex align-items-center gap-2"
+            <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2"
                     (click)="openApproveConfirm()">
               <i class="fa-solid fa-check"></i>Approve
             </button>
