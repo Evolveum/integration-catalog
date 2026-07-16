@@ -339,7 +339,7 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Active connectors retrieved successfully")
     })
     @GetMapping("/connectors/active")
-    public ResponseEntity<List<SignedActiveConnectorDto>> getActiveConnectors() {
+    public ResponseEntity<AllowedConnectorsListDto> getActiveConnectors() {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.CONTENT_DISPOSITION,

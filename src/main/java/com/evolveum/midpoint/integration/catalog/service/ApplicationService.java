@@ -348,8 +348,8 @@ public class ApplicationService {
     }
 
 
-    public List<SignedActiveConnectorDto> listActiveConnectors() {
-        return connectorVersionRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+    public AllowedConnectorsListDto listActiveConnectors() {
+        List<SignedActiveConnectorDto> list = connectorVersionRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
                 .map(connectorVersion -> {
                     try {
                         return connectorMapper.toActiveConnectorDto(connectorVersion);
@@ -358,6 +358,11 @@ public class ApplicationService {
                     }
                 })
                 .toList();
+
+        return new AllowedConnectorsListDto(
+                new SignedActiveConnectorsListDto(
+                        "Connectors from Integration catalog",
+                        list));
     }
 
     @Transactional(readOnly = true)
