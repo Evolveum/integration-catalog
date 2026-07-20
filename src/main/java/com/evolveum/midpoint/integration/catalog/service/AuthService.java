@@ -63,6 +63,71 @@ public class AuthService {
         return result;
     }
 
+    /**
+     * Whether {@code username} may see/modify an item designated by {@code maintainer} and
+     * uploaded by {@code author}.
+     * <p>
+     * This is the authoritative access check, mirrored (for UX only) on the client:
+     * <ul>
+     *   <li>Superuser may access anything;</li>
+     *   <li>the designated maintainer may access it — matched either by username
+     *       (maintainer == username) or by organization (maintainer == the caller's
+     *       organization name, i.e. the item is maintained by the caller's org);</li>
+     *   <li>the uploader may access items they authored (author == username);</li>
+     *   <li>an Organization contributor may access any item authored by a member of their
+     *       own organization.</li>
+     * </ul>
+     * The {@code maintainer} is the primary ownership signal: it is explicitly set when
+     * publishing (e.g. a superuser may attribute an item to another user or org), whereas
+     * {@code author} merely records who uploaded it. An unknown or anonymous user is never
+     * granted access (except a superuser).
+     */
+    public boolean canEdit(String username, String author, String maintainer) {
+        if (username == null || username.isBlank()) {
+            return false;
+        }
+        CatalogUser caller = catalogUserRepository.findByUsername(username).orElse(null);
+        if (caller == null) {
+            return false;
+        }
+        if ("Superuser".equals(caller.getRole())) {
+            return true;
+        }
+        // Maintainer designates ownership: match by the caller's username or by their org name.
+        if (maintainer != null && !maintainer.isBlank()) {
+            if (maintainer.equalsIgnoreCase(username)) {
+                return true;
+            }
+            if (caller.getOrganization() != null && caller.getOrganization().getName() != null
+                    && maintainer.equalsIgnoreCase(caller.getOrganization().getName())) {
+                return true;
+            }
+        }
+        // The uploader keeps access, as do organization contributors over their org's uploads.
+        if (author != null && author.equalsIgnoreCase(username)) {
+            return true;
+        }
+        if ("OrganizationContributor".equals(caller.getRole())
+                && caller.getOrganization() != null && author != null) {
+            CatalogUser owner = catalogUserRepository.findByUsername(author).orElse(null);
+            if (owner != null && owner.getOrganization() != null
+                    && caller.getOrganization().getId().equals(owner.getOrganization().getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether {@code username} resolves to a Superuser. Used to gate approval actions. */
+    public boolean isSuperuser(String username) {
+        if (username == null || username.isBlank()) {
+            return false;
+        }
+        return catalogUserRepository.findByUsername(username)
+                .map(u -> "Superuser".equals(u.getRole()))
+                .orElse(false);
+    }
+
     public List<String> getOrganizationMembers(String username) {
         return catalogUserRepository.findByUsername(username)
                 .map(user -> {

@@ -34,6 +34,7 @@ export interface IntegrationMethod {
   releasedDate: string | null;             // connector_bundle_version.released_date
   author: string | null;                   // connector.author
   organizationId: number | null;           // connector.organization_id
+  maintainer: string | null;               // integration_method.maintainer
   lifecycleState: string | null;           // integration_method.lifecycle_state
   downloadLink: string | null;             // generated download URL
   framework: string | null;               // connector_bundle.framework

@@ -26,8 +26,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Objects;
@@ -69,6 +71,7 @@ public class ApplicationService {
     private final ConnectorUploadService connectorUploadService;
     private final CapabilityRepository capabilityRepository;
     private final ConnectorVersionRepository connectorVersionRepository;
+    private final AuthService authService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -94,7 +97,8 @@ public class ApplicationService {
                               ConnectorUploadService connectorUploadService,
                               RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
                               CapabilityRepository capabilityRepository,
-                              ConnectorVersionRepository connectorVersionRepository) {
+                              ConnectorVersionRepository connectorVersionRepository,
+                              AuthService authService) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
@@ -121,6 +125,47 @@ public class ApplicationService {
         this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
         this.capabilityRepository = capabilityRepository;
         this.connectorVersionRepository = connectorVersionRepository;
+        this.authService = authService;
+    }
+
+    /**
+     * Enforces that {@code username} may modify the integration-method revision (and its
+     * connectors). Throws 404 if the revision does not exist, or 403 if the caller does not
+     * own it (see {@link AuthService#canEdit}). Server-side counterpart of the client's
+     * edit-button gating — this is the check that actually protects the data.
+     */
+    private void assertCanEditMethod(String username, UUID methodId, String revision) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException(
+                        "Integration method not found: " + methodId + "/" + revision));
+        if (!authService.canEdit(username, method.getAuthor(), method.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to modify this integration method.");
+        }
+    }
+
+    /**
+     * Enforces that {@code username} may edit a specific connector's content. Unlike
+     * {@link #assertCanEditMethod}, this gates on the <em>connector's</em> own owner, not the
+     * integration method's: a connector may be maintained by someone other than the IM
+     * maintainer, in which case the IM maintainer must not be able to edit it (only its
+     * maintainer, or a superuser, may). Throws 404 if the method/connector is missing, 403 otherwise.
+     */
+    private void assertCanEditConnector(String username, UUID methodId, String revision, Integer connectorId) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException(
+                        "Integration method not found: " + methodId + "/" + revision));
+        Connector connector = method.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .filter(c -> connectorId.equals(c.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+        if (!authService.canEdit(username, connector.getAuthor(), connector.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to modify this connector.");
+        }
     }
 
     public Application getApplication(UUID uuid) {
@@ -179,39 +224,60 @@ public class ApplicationService {
     }
 
     @Transactional
-    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
+    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto,
+                                        String username) {
+        assertCanEditMethod(username, methodId, currentRevision);
         return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
     }
 
     @Transactional
     public void publishIntegrationMethod(UUID methodId, String revision, String username) {
+        // Approving a revision is a superuser-only action (the client already restricts it to
+        // superusers; this is the server-side enforcement).
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may publish an integration method.");
+        }
         connectorUploadService.publishIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
     public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may reject an integration method.");
+        }
         connectorUploadService.rejectIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
     public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
                                                 AddConnectorDto dto, String username) {
+        assertCanEditMethod(username, methodId, revision);
         return connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
     }
 
     @Transactional
-    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
+                                String username) {
+        // A connector is gated on its own maintainer, not the IM's: the IM maintainer must not
+        // be able to edit a connector maintained by someone else (a superuser still can).
+        assertCanEditConnector(username, methodId, revision, connectorId);
         connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
     }
 
     @Transactional
-    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
+    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId,
+                                                     String username) {
+        assertCanEditMethod(username, methodId, revision);
         connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
     }
 
     @Transactional
     public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
-                                             String connectorVersionFrom, String connectorVersionTo) {
+                                             String connectorVersionFrom, String connectorVersionTo,
+                                             String username) {
+        assertCanEditMethod(username, methodId, revision);
         connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
                 connectorVersionFrom, connectorVersionTo);
     }

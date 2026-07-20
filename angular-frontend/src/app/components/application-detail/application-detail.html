@@ -540,29 +540,37 @@
                                 <!-- Hover-revealed actions (set depends on lifecycle state) -->
                                 <div class="im-row-actions" [class.im-row-actions-reserved]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
                                   @if (version.lifecycleState === 'IN_REVIEW') {
-                                    <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-trash-can"></i>Cancel request
-                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-trash-can"></i>Cancel request
+                                      </button>
+                                    }
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
-                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
                                   } @else if (version.lifecycleState === 'REJECTED') {
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
-                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
                                   } @else {
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
-                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
                                     <button type="button" class="btn btn-im-download" (click)="downloadBundle(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-download"></i>Download
                                     </button>

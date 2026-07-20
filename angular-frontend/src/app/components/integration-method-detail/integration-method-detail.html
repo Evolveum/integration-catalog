@@ -316,9 +316,11 @@
         </button>
         @if (isActive()) {
           <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
-              <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-            </button>
+            @if (canEdit()) {
+              <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
+                <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+              </button>
+            }
             <button type="button" class="btn view-download-btn d-flex align-items-center gap-2" (click)="downloadConnector()">
               <i class="fa-solid fa-download"></i>Download
             </button>

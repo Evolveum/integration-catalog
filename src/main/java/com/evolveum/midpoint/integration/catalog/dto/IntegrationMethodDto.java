@@ -34,5 +34,6 @@ public record IntegrationMethodDto(
         String displayName,                                         // integration_method.display_name
         String tutorial,                                            // integration_method.tutorial
         String filePath,                                            // integration_method.file_path
-        String reviewedBy                                           // integration_method.reviewed_by
+        String reviewedBy,                                          // integration_method.reviewed_by
+        String maintainer                                           // integration_method.maintainer
 ) {}

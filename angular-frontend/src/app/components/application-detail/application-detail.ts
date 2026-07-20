@@ -191,6 +191,14 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
+  /**
+   * Whether the current user may edit this method revision (own item, same-org item for
+   * organization contributors, or anything for superusers). The server enforces the same rule.
+   */
+  protected canEdit(version: { author?: string | null; organizationId?: number | null; maintainer?: string | null }): boolean {
+    return this.authService.canEdit(version.author, version.organizationId, version.maintainer);
+  }
+
   // ── Approve/Reject confirmation modal ─────────────────────────────────────
   // The version pending confirmation, and which action; the shared modal component
   // owns the two-step flow, and the actual publish/reject happens on its confirm.
@@ -871,24 +879,14 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       return;
     }
 
-    // Filter IN_REVIEW visibility: not logged in → hide all; Superuser → see all;
-    // OrganizationContributor → own + same org; others → own only
-    const currentUser = this.authService.currentUser();
-    const isLoggedIn = this.authService.isLoggedIn();
-    const role = this.authService.currentRole();
-    const isSuperuser = role === UserRole.Superuser;
-    const isOrgContributor = role === UserRole.OrganizationContributor;
-    const currentOrgId = this.authService.currentOrganizationId();
-
+    // IN_REVIEW and REJECTED share the same restricted visibility, which is exactly the
+    // edit-ownership rule: only someone who may edit a draft can see it. Not logged in →
+    // hidden; Superuser → all; the designated maintainer (by username or org) → own;
+    // the uploader → own; OrganizationContributor → same-org uploads. Published (ACTIVE)
+    // revisions are visible to everyone.
     let filteredVersions = versions.filter(version => {
-      // IN_REVIEW and REJECTED share the same restricted visibility: not logged in → hidden;
-      // Superuser → all; author → own; OrganizationContributor → own + same org.
       if (version.lifecycleState !== 'IN_REVIEW' && version.lifecycleState !== 'REJECTED') return true;
-      if (!isLoggedIn) return false;
-      if (isSuperuser) return true;
-      if (version.author === currentUser) return true;
-      if (isOrgContributor && currentOrgId !== null && version.organizationId === currentOrgId) return true;
-      return false;
+      return this.authService.canEdit(version.author, version.organizationId, version.maintainer);
     });
 
     // Apply filters

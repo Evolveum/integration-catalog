@@ -145,6 +145,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       className: p.className ?? '',
       bundleName: p.bundleName ?? '',
       commitTag: p.commitTag ?? '',
+      version: p.version ?? c.version,
       objectClassCapabilities: p.connectorCapabilities.map(g => ({
         objectName: g.objectClass,
         capabilities: g.capabilityNames
@@ -355,6 +356,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return user && user.trim().toLowerCase() === maintainer.trim().toLowerCase()
       ? `${maintainer} (you)`
       : maintainer;
+  }
+
+  /**
+   * Whether the current user may edit this connector's content. A connector is gated on its
+   * own maintainer (not the IM's): the IM maintainer must not edit connectors maintained by
+   * someone else. The server enforces the same rule. (Compatibility/delete/add remain IM-level
+   * actions, available to anyone who could open this edit form.)
+   */
+  protected canEditConnector(c: ImplementationListItem): boolean {
+    return this.authService.canEdit(null, null, c.maintainer);
   }
 
   protected formatCapabilityText(text: string): string {
