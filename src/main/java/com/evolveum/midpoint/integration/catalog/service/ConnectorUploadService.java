@@ -927,7 +927,11 @@ public class ConnectorUploadService {
         bundle.setRevision(uniqueBundleRevision(srcBundle.getBundleName(), srcBundle.getRevision()));
         bundle.setAuthor(srcBundle.getAuthor());
         bundle.setMaintainer(srcBundle.getMaintainer());
-        bundle.setLifecycleState(srcBundle.getLifecycleState());
+        // The copy belongs to the in-review revision being edited, so it starts IN_REVIEW regardless of
+        // the source's state — publishIntegrationMethod promotes it to ACTIVE (and reject marks it
+        // REJECTED). This keeps the edited connector out of the catalog until the revision is approved,
+        // while the shared original (e.g. the still-published connector) is untouched.
+        bundle.setLifecycleState(LifecycleType.IN_REVIEW);
         bundle.setBundleName(srcBundle.getBundleName());
         bundle.setDisplayName(srcBundle.getDisplayName());
         bundle.setDescription(srcBundle.getDescription());
@@ -958,7 +962,7 @@ public class ConnectorUploadService {
                 cbv.setRevision(srcCbv.getRevision());
                 cbv.setAuthor(srcCbv.getAuthor());
                 cbv.setMaintainer(srcCbv.getMaintainer());
-                cbv.setLifecycleState(srcCbv.getLifecycleState());
+                cbv.setLifecycleState(LifecycleType.IN_REVIEW);
                 cbv.setConnectorBundle(bundle);
                 cbv.setBundleVersion(srcCbv.getBundleVersion());
                 cbv.setBrowseLink(srcCbv.getBrowseLink());
@@ -977,7 +981,7 @@ public class ConnectorUploadService {
             cv.setRevision(srcCv.getRevision());
             cv.setAuthor(srcCv.getAuthor());
             cv.setMaintainer(srcCv.getMaintainer());
-            cv.setLifecycleState(srcCv.getLifecycleState());
+            cv.setLifecycleState(LifecycleType.IN_REVIEW);
             cv.setFullyQualifiedClassName(srcCv.getFullyQualifiedClassName());
             cv.setErrorMessage(srcCv.getErrorMessage());
             connectorVersionRepository.save(cv);
