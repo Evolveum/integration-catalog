@@ -33,6 +33,8 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
   protected readonly searchQuery = signal<string>('');
+  // True when the application search box holds a single character: prompt for at least 2.
+  protected readonly applicationSearchTooShort = computed(() => this.searchQuery().trim().length === 1);
   protected readonly selectedApplication = signal<Application | null>(null);
   protected readonly isDefineNewMode = signal<boolean>(false);
   protected readonly showDetailsForm = signal<boolean>(false);
@@ -101,6 +103,8 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly catalogConnectors = signal<CatalogConnector[]>([]);
   protected readonly isCatalogLoading = signal<boolean>(false);
   protected readonly connectorCatalogSearch = signal<string>('');
+  // True when the connector search box holds a single character: prompt for at least 2.
+  protected readonly connectorCatalogSearchTooShort = computed(() => this.connectorCatalogSearch().trim().length === 1);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
 
   protected readonly filteredCatalogConnectors = computed<CatalogConnector[]>(() => {
@@ -153,15 +157,16 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return [];
+    // Search needs at least 2 characters; a single character shows a hint instead (see
+    // applicationSearchTooShort) and yields no results.
+    if (query.length < 2) return [];
 
     if (this.currentStep() === 1) {
-      // Only start filtering once at least 2 characters are typed; cap the list at 10 entries.
-      if (query.length < 2) return [];
+      // Cap the list at 5 entries.
       return this.applications().filter(app =>
         app.displayName.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query)
-      ).slice(0, 10);
+      ).slice(0, 5);
     }
 
     const connectorType = this.selectedConnectorType();

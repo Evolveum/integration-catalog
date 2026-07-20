@@ -85,6 +85,8 @@ export class AddConnectorForm implements OnInit {
   protected readonly catalogConnectors = signal<CatalogConnector[]>([]);
   protected readonly isCatalogLoading = signal<boolean>(false);
   protected readonly catalogSearch = signal<string>('');
+  // True when the connector search box holds a single character: prompt for at least 2.
+  protected readonly catalogSearchTooShort = computed(() => this.catalogSearch().trim().length === 1);
   protected readonly pendingCatalogConnector = signal<CatalogConnector | null>(null);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
 
