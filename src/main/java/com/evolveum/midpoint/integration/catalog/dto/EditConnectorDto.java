@@ -29,5 +29,6 @@ public record EditConnectorDto(
         String className,                                            // connector.fully_qualified_class_name
         String bundleName,                                           // connector_bundle.bundle_name
         String commitTag,                                            // connector_bundle_version.commit_tag
+        String version,                                              // connector_bundle_version.bundle_version + connector.revision
         List<IntegrationMethodCapabilityGroupDto> connectorCapabilities // conn_version_capability + items (replaced)
 ) {}

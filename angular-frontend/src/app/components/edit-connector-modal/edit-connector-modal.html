@@ -44,12 +44,14 @@
               <div class="col-4">
                 <label class="form-label form-label-upload">
                   Connector version
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector. To publish a new version, use “Save as new version” on the integration method.">
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector (e.g. 1.0.0). When you save the integration method as a new version, this becomes the version of the new connector.">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
                 </label>
-                <input type="text" class="form-control input-disabled"
-                       [value]="connectorVersion()" disabled>
+                <input type="text" class="form-control"
+                       [value]="connectorVersion()"
+                       (input)="connectorVersion.set($any($event.target).value)"
+                       placeholder="e.g. 1.0.0">
               </div>
             </div>
 

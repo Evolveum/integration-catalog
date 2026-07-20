@@ -519,7 +519,8 @@ public class ApplicationMapper {
                     .findFirst();
             if (latestCv.isPresent()) {
                 ConnectorBundleVersion cbv = latestCv.get().getConnectorBundleVersion();
-                connectorVersion = cbv.getRevision();
+                // bundle_version is the editable, user-facing version; fall back to the PK revision.
+                connectorVersion = cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cbv.getRevision();
                 browseLink = cbv.getBrowseLink();
                 gitCloneUrl = cbv.getGitCloneUrl();
                 buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;

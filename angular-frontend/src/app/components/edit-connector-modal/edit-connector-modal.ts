@@ -29,6 +29,7 @@ export interface ConnectorEditPayload {
   className: string | null;
   bundleName: string | null;
   commitTag: string | null;
+  version: string | null;
   connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
 }
 
@@ -231,6 +232,7 @@ export class EditConnectorModal implements OnInit {
       className: this.devClassName() || null,
       bundleName: this.connectorBundleName() || null,
       commitTag: this.devCommitTag() || null,
+      version: this.connectorVersion().trim() || null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
         capabilityNames: g.capabilityNames

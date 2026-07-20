@@ -257,7 +257,7 @@ export class ApplicationService {
       license: string | null; browseLink: string | null; supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
       pathToProject: string | null; className: string | null; bundleName: string | null;
-      commitTag: string | null;
+      commitTag: string | null; version: string | null;
       connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
     }
   ): Observable<void> {

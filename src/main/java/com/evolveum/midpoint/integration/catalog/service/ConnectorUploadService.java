@@ -60,6 +60,7 @@ public class ConnectorUploadService {
     private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
     private final ConnVersionCapabilityItemRepository connVersionCapabilityItemRepository;
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
+    private final IntegrationMethodConnectorRepository integrationMethodConnectorRepository;
     private final TutorialStorageService tutorialStorageService;
 
     private record ApplicationResolution(Application application, boolean isNew,
@@ -914,28 +915,151 @@ public class ConnectorUploadService {
     }
 
     /**
+     * Deep-copies a connector and everything beneath it — its bundle, and every bundle version and
+     * connector version (with their capabilities) — into brand-new rows. Used for copy-on-write when a
+     * connector is shared across revisions and one revision edits it: the edit then lands on the copy and
+     * leaves the shared original (e.g. a published revision) untouched. The cloned bundle keeps its name
+     * but takes a fresh revision so the (bundle_name, revision) uniqueness constraint still holds.
+     */
+    private Connector cloneConnectorGraph(Connector src) {
+        ConnectorBundle srcBundle = src.getConnectorBundle();
+        ConnectorBundle bundle = new ConnectorBundle();
+        bundle.setRevision(uniqueBundleRevision(srcBundle.getBundleName(), srcBundle.getRevision()));
+        bundle.setAuthor(srcBundle.getAuthor());
+        bundle.setMaintainer(srcBundle.getMaintainer());
+        bundle.setLifecycleState(srcBundle.getLifecycleState());
+        bundle.setBundleName(srcBundle.getBundleName());
+        bundle.setDisplayName(srcBundle.getDisplayName());
+        bundle.setDescription(srcBundle.getDescription());
+        bundle.setFramework(srcBundle.getFramework());
+        bundle.setLicense(srcBundle.getLicense());
+        bundle.setTicketingLink(srcBundle.getTicketingLink());
+        bundle.setProjectHomepage(srcBundle.getProjectHomepage());
+        bundle.setGitCloneUrl(srcBundle.getGitCloneUrl());
+        bundle.setPathToProject(srcBundle.getPathToProject());
+        bundle.setBuildFramework(srcBundle.getBuildFramework());
+        connectorBundleRepository.save(bundle);
+
+        Connector clone = new Connector();
+        clone.setRevision(src.getRevision());
+        clone.setAuthor(src.getAuthor());
+        clone.setMaintainer(src.getMaintainer());
+        clone.setDisplayName(src.getDisplayName());
+        clone.setFullyQualifiedClassName(src.getFullyQualifiedClassName());
+        clone.setDescription(src.getDescription());
+        clone.setConnectorBundle(bundle);
+        connectorRepository.save(clone);
+
+        for (ConnectorVersion srcCv : src.getConnectorVersions()) {
+            ConnectorBundleVersion srcCbv = srcCv.getConnectorBundleVersion();
+            ConnectorBundleVersion cbv = null;
+            if (srcCbv != null) {
+                cbv = new ConnectorBundleVersion();
+                cbv.setRevision(srcCbv.getRevision());
+                cbv.setAuthor(srcCbv.getAuthor());
+                cbv.setMaintainer(srcCbv.getMaintainer());
+                cbv.setLifecycleState(srcCbv.getLifecycleState());
+                cbv.setConnectorBundle(bundle);
+                cbv.setBundleVersion(srcCbv.getBundleVersion());
+                cbv.setBrowseLink(srcCbv.getBrowseLink());
+                cbv.setGitCloneUrl(srcCbv.getGitCloneUrl());
+                cbv.setPathToProject(srcCbv.getPathToProject());
+                cbv.setBuildFramework(srcCbv.getBuildFramework());
+                cbv.setCommitTag(srcCbv.getCommitTag());
+                cbv.setArtifactUrl(srcCbv.getArtifactUrl());
+                cbv.setErrorMessage(srcCbv.getErrorMessage());
+                connectorBundleVersionRepository.save(cbv);
+            }
+
+            ConnectorVersion cv = new ConnectorVersion();
+            cv.setConnector(clone);
+            cv.setConnectorBundleVersion(cbv);
+            cv.setRevision(srcCv.getRevision());
+            cv.setAuthor(srcCv.getAuthor());
+            cv.setMaintainer(srcCv.getMaintainer());
+            cv.setLifecycleState(srcCv.getLifecycleState());
+            cv.setFullyQualifiedClassName(srcCv.getFullyQualifiedClassName());
+            cv.setErrorMessage(srcCv.getErrorMessage());
+            connectorVersionRepository.save(cv);
+
+            for (ConnVersionCapability srcCap : srcCv.getCapabilities()) {
+                ConnVersionCapability cap = new ConnVersionCapability();
+                cap.setObjectClass(srcCap.getObjectClass());
+                cap.setConnectorVersion(cv);
+                ConnVersionCapability savedCap = connVersionCapabilityRepository.save(cap);
+                for (ConnVersionCapabilityItem srcItem : srcCap.getItems()) {
+                    ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
+                    item.setConnVersionCapabilityId(savedCap.getId());
+                    item.setCapabilityId(srcItem.getCapabilityId());
+                    connVersionCapabilityItemRepository.save(item);
+                    savedCap.getItems().add(item);
+                }
+                // Keep the in-memory collection in sync with what was persisted, so a later
+                // replaceConnectorVersionCapabilities on this version actually removes these
+                // cloned capabilities instead of adding a second set alongside them.
+                cv.getCapabilities().add(savedCap);
+            }
+
+            clone.getConnectorVersions().add(cv);
+        }
+        return clone;
+    }
+
+    /** Picks a bundle revision that keeps (bundle_name, revision) unique for a freshly cloned bundle. */
+    private String uniqueBundleRevision(String bundleName, String baseRevision) {
+        String base = baseRevision != null ? baseRevision : "1.0.0";
+        if (bundleName == null) {
+            return base;
+        }
+        String candidate = base;
+        int suffix = 1;
+        while (connectorBundleRepository.existsByBundleNameAndRevision(bundleName, candidate)) {
+            candidate = base + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    /**
      * Updates an existing connector (and its bundle / latest version) in place, replacing the
      * fields edited via the "Edit connector" modal. The connector must be linked to the given
-     * integration method revision.
+     * integration method revision. If the connector is shared with another revision it is first
+     * cloned (see {@link #cloneConnectorGraph}) so the edit does not affect that other revision.
      */
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
 
-        Connector connector = method.getConnectors().stream()
-                .map(IntegrationMethodConnector::getConnector)
-                .filter(Objects::nonNull)
-                .filter(c -> connectorId.equals(c.getId()))
+        IntegrationMethodConnector link = method.getConnectors().stream()
+                .filter(l -> l.getConnector() != null && connectorId.equals(l.getConnector().getId()))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException(
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+
+        Connector connector = link.getConnector();
+
+        // Copy-on-write: forking a published revision (createDraft / clonePublishedAsDraft) makes the new
+        // revision's link point at the SAME Connector row as the source. Editing it in place would corrupt
+        // the revision it was forked from (e.g. the still-published one). So if this connector is linked by
+        // more than one revision, deep-clone the whole connector graph and repoint THIS revision's link at
+        // the copy before applying the edit — the shared original is then left untouched.
+        if (integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
+            connector = cloneConnectorGraph(connector);
+            link.setConnector(connector);
+            integrationMethodRepository.save(method);
+        }
 
         // Connector
         connector.setDisplayName(dto.displayName());
         connector.setMaintainer(dto.maintainer());
         connector.setDescription(dto.description());
         connector.setFullyQualifiedClassName(dto.className());
+        // The connector version is stored in the (non-PK) bundle_version column and mirrored on
+        // connector.revision; the PK revision columns are left as-is (they are internal identifiers).
+        if (dto.version() != null && !dto.version().isBlank()) {
+            connector.setRevision(dto.version().trim());
+        }
 
         // Connector bundle
         ConnectorBundle bundle = connector.getConnectorBundle();
@@ -968,6 +1092,7 @@ public class ConnectorUploadService {
             cbv.setPathToProject(dto.pathToProject());
             cbv.setCommitTag(dto.commitTag());
             if (dto.buildFramework() != null) cbv.setBuildFramework(dto.buildFramework());
+            if (dto.version() != null && !dto.version().isBlank()) cbv.setBundleVersion(dto.version().trim());
             connectorBundleVersionRepository.save(cbv);
             connectorVersionRepository.save(cv);
 

@@ -145,6 +145,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       className: p.className ?? '',
       bundleName: p.bundleName ?? '',
       commitTag: p.commitTag ?? '',
+      version: p.version ?? c.version,
       objectClassCapabilities: p.connectorCapabilities.map(g => ({
         objectName: g.objectClass,
         capabilities: g.capabilityNames
