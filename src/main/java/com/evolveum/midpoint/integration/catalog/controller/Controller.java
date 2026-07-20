@@ -421,10 +421,13 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String currentRevision,
-            @RequestBody EditIntegrationMethodDto dto) {
+            @RequestBody EditIntegrationMethodDto dto,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto);
+            String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto, username);
             return ResponseEntity.ok(newRevision);
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
@@ -449,6 +452,8 @@ public class Controller {
         try {
             applicationService.publishIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
@@ -473,6 +478,8 @@ public class Controller {
         try {
             applicationService.rejectIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (IllegalStateException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
@@ -498,6 +505,8 @@ public class Controller {
             // freshly forked draft revision when the source was a published (immutable) version.
             String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
             return ResponseEntity.ok(savedRevision);
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
@@ -524,10 +533,13 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
-            @RequestBody EditConnectorDto dto) {
+            @RequestBody EditConnectorDto dto,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.updateConnector(methodId, revision, connectorId, dto);
+            applicationService.updateConnector(methodId, revision, connectorId, dto, username);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
@@ -545,11 +557,14 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
-            @RequestBody UpdateConnectorCompatibilityDto dto) {
+            @RequestBody UpdateConnectorCompatibilityDto dto,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
             applicationService.updateConnectorCompatibility(methodId, revision, connectorId,
-                    dto.connectorVersionFrom(), dto.connectorVersionTo());
+                    dto.connectorVersionFrom(), dto.connectorVersionTo(), username);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
@@ -566,10 +581,13 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @PathVariable Integer connectorId) {
+            @PathVariable Integer connectorId,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
+            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId, username);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

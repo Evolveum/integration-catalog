@@ -211,10 +211,12 @@
                         (click)="openCompatibility(c)" title="Set up connector compatibility">
                   <i class="fa-solid fa-screwdriver-wrench"></i>Set up compatibility
                 </button>
-                <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
-                        (click)="openEditConnector(c)">
-                  <i class="fa-solid fa-pencil"></i>Edit
-                </button>
+                @if (canEditConnector(c)) {
+                  <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
+                          (click)="openEditConnector(c)">
+                    <i class="fa-solid fa-pencil"></i>Edit
+                  </button>
+                }
                 <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
                         (click)="deleteConnector(c)">
                   <i class="fa-solid fa-trash-can"></i>Delete

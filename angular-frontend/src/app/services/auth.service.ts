@@ -134,4 +134,40 @@ export class AuthService {
            role === UserRole.OrganizationContributor ||
            role === UserRole.Superuser;
   }
+
+  /**
+   * Whether the current user may see/edit an item designated by the given maintainer and
+   * uploaded by the given author/organization. Mirrors the server-side `AuthService.canEdit`:
+   * a Superuser may access anything; the designated maintainer may access it (matched by
+   * username, or by the user's organization name when the item is maintained by their org);
+   * the uploader may access items they authored; and an Organization contributor may access
+   * any item authored by a member of their own organization (same organizationId).
+   *
+   * The maintainer is the primary ownership signal — it is explicitly set at publish time,
+   * so e.g. a superuser can attribute an item to another user, who then gains access to it.
+   *
+   * This only decides which controls/rows are shown — the backend re-enforces the same rule.
+   */
+  canEdit(
+    author: string | null | undefined,
+    organizationId: number | null | undefined,
+    maintainer?: string | null,
+  ): boolean {
+    const user = this._currentUser();
+    if (!user) return false;
+    const role = this._currentRole();
+    if (role === UserRole.Superuser) return true;
+    if (maintainer) {
+      const m = maintainer.trim().toLowerCase();
+      if (m === user.trim().toLowerCase()) return true;
+      const orgName = this._currentOrganizationName();
+      if (orgName && m === orgName.trim().toLowerCase()) return true;
+    }
+    if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
+    if (role === UserRole.OrganizationContributor) {
+      const orgId = this._currentOrganizationId();
+      if (orgId !== null && organizationId != null && orgId === organizationId) return true;
+    }
+    return false;
+  }
 }

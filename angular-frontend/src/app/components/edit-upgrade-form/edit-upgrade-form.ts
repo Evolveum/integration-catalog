@@ -357,6 +357,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       : maintainer;
   }
 
+  /**
+   * Whether the current user may edit this connector's content. A connector is gated on its
+   * own maintainer (not the IM's): the IM maintainer must not edit connectors maintained by
+   * someone else. The server enforces the same rule. (Compatibility/delete/add remain IM-level
+   * actions, available to anyone who could open this edit form.)
+   */
+  protected canEditConnector(c: ImplementationListItem): boolean {
+    return this.authService.canEdit(null, null, c.maintainer);
+  }
+
   protected formatCapabilityText(text: string): string {
     if (!text) return '';
     const withSpaces = text.replace(/_/g, ' ').toLowerCase();
