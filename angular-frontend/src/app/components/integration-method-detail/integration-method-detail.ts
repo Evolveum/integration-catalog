@@ -6,12 +6,13 @@
 
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import Asciidoctor from 'asciidoctor';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
+import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { ToastService } from '../../services/toast.service';
@@ -23,7 +24,7 @@ const asciidoctor = Asciidoctor();
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -49,22 +50,28 @@ export class IntegrationMethodDetail implements OnInit {
   // are only offered for published (ACTIVE) methods.
   protected readonly methodLifecycleState = signal<string | null>(null);
   protected readonly isActive = computed(() => this.methodLifecycleState() === 'ACTIVE');
-  // An in-review ("Awaiting approval") method offers Approve/Reject to superusers.
+  // An in-review ("Awaiting approval") method offers Start review to superusers; once a review is
+  // started the revision is REVIEWING and offers Approve/Reject instead.
   protected readonly isInReview = computed(() => this.methodLifecycleState() === 'IN_REVIEW');
+  protected readonly isReviewing = computed(() => this.methodLifecycleState() === 'REVIEWING');
   protected readonly isProcessingApproval = signal<boolean>(false);
   protected readonly approvalError = signal<string>('');
 
   // Which confirmation modal is open (null = none); the modal component owns the two-step flow.
   protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
   protected readonly methodAuthor = signal<string>('');
-  private readonly submittedDate = 'May 20, 2026';
+  // Submitted-for-review date = integration_method.created_at, formatted like "May 20, 2026".
+  protected readonly methodCreatedAt = signal<string | null>(null);
+  private readonly datePipe = new DatePipe('en-US');
+  protected readonly submittedDate = computed(() =>
+    this.datePipe.transform(this.methodCreatedAt(), 'MMMM d, yyyy') || '—');
 
   protected readonly confirmConnectorName = computed(() => {
     const c = this.connectors()[0];
     return c?.bundleDisplayName || c?.name || this.methodName() || '—';
   });
   protected readonly submittedByLabel = computed(() =>
-    `${this.methodAuthor() || '—'} · ${this.submittedDate}`
+    `${this.methodAuthor() || '—'} · ${this.submittedDate()}`
   );
 
   // Ownership of the opened revision, used to gate the "Edit and upgrade" action. The server
@@ -130,6 +137,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodAuthor.set(ver.author ?? '');
+          this.methodCreatedAt.set(ver.createdAt ?? null);
           this.methodOrganizationId.set(ver.organizationId ?? null);
           this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
@@ -361,6 +369,43 @@ export class IntegrationMethodDetail implements OnInit {
     const e = err as { error?: { message?: string } | string; message?: string };
     const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
     this.approvalError.set(message || 'The action failed. Please try again.');
+  }
+
+  // ── Start-review confirmation modal ───────────────────────────────────────
+  // Flips IN_REVIEW -> REVIEWING (locking it for editing); only then do Approve/Reject appear.
+  protected readonly isStartReviewOpen = signal<boolean>(false);
+  protected readonly isProcessingStartReview = signal<boolean>(false);
+  protected readonly startReviewError = signal<string>('');
+
+  protected openStartReview(): void {
+    this.startReviewError.set('');
+    this.isStartReviewOpen.set(true);
+  }
+
+  protected closeStartReview(): void {
+    if (this.isProcessingStartReview()) return;
+    this.isStartReviewOpen.set(false);
+  }
+
+  protected submitStartReview(): void {
+    if (this.isProcessingStartReview()) return;
+    this.startReviewError.set('');
+    this.isProcessingStartReview.set(true);
+    this.applicationService.startReviewIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+      next: () => {
+        this.isProcessingStartReview.set(false);
+        this.isStartReviewOpen.set(false);
+        // The page is read-only; flip the local state so the footer swaps to Approve/Reject.
+        this.methodLifecycleState.set('REVIEWING');
+      },
+      error: (err) => {
+        console.error('Start review failed', err);
+        this.isProcessingStartReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.startReviewError.set(message || 'The action failed. Please try again.');
+      }
+    });
   }
 
   protected downloadConnector(): void {

@@ -12,6 +12,7 @@ import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, Integration
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
+import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ToastService } from '../../services/toast.service';
 
 interface MethodGroup {
@@ -25,7 +26,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -90,7 +91,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       }
       group.versions.push(v);
       if (v.lifecycleState === 'ACTIVE') group.publishedCount++;
-      else if (v.lifecycleState === 'IN_REVIEW') group.pendingCount++;
+      // A revision under active review (REVIEWING) is still pending, not yet published.
+      else if (v.lifecycleState === 'IN_REVIEW' || v.lifecycleState === 'REVIEWING') group.pendingCount++;
     }
     const result = Array.from(groups.values());
     result.forEach(g => {
@@ -207,6 +209,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly isProcessingApproval = signal<boolean>(false);
   protected readonly approvalError = signal<string>('');
   private readonly submittedDate = 'May 20, 2026';
+  // Placeholder link to the review's support ticket (to be wired to the support portal later).
+  protected readonly ticketUrl = 'https://support.evolveum.com/tickets/1239';
 
   protected readonly confirmConnectorName = computed(() => {
     const v = this.confirmVersion();
@@ -261,6 +265,47 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         const e = err as { error?: { message?: string } | string; message?: string };
         const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
         this.approvalError.set(message || 'The action failed. Please try again.');
+      }
+    });
+  }
+
+  // ── Start-review confirmation modal ───────────────────────────────────────
+  // Flips an IN_REVIEW revision to REVIEWING (locking it for editing); only then do the
+  // approve/reject actions become available. Superuser-only, gated the same as approve/reject.
+  protected readonly startReviewVersion = signal<IntegrationMethod | null>(null);
+  protected readonly isProcessingStartReview = signal<boolean>(false);
+  protected readonly startReviewError = signal<string>('');
+  protected readonly startReviewVersionLabel = computed(() =>
+    this.versionBadge(this.startReviewVersion()?.revision ?? ''));
+
+  protected openStartReview(version: IntegrationMethod): void {
+    this.startReviewError.set('');
+    this.startReviewVersion.set(version);
+  }
+
+  protected closeStartReview(): void {
+    if (this.isProcessingStartReview()) return;
+    this.startReviewVersion.set(null);
+  }
+
+  protected submitStartReview(): void {
+    const appId = this.application()?.id;
+    const version = this.startReviewVersion();
+    if (!appId || !version || this.isProcessingStartReview()) return;
+    this.startReviewError.set('');
+    this.isProcessingStartReview.set(true);
+    this.applicationService.startReviewIntegrationMethod(appId, version.id, version.revision ?? '').subscribe({
+      next: () => {
+        this.isProcessingStartReview.set(false);
+        this.startReviewVersion.set(null);
+        this.loadApplication(appId);
+      },
+      error: (err) => {
+        console.error('Start review failed', err);
+        this.isProcessingStartReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.startReviewError.set(message || 'The action failed. Please try again.');
       }
     });
   }
@@ -723,6 +768,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         return 'With error';
       case 'IN_REVIEW':
         return 'In review';
+      case 'REVIEWING':
+        return 'Under review';
       case 'REJECTED':
         return 'Rejected';
       default:
@@ -879,13 +926,15 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       return;
     }
 
-    // IN_REVIEW and REJECTED share the same restricted visibility, which is exactly the
+    // IN_REVIEW, REVIEWING and REJECTED share the same restricted visibility, which is exactly the
     // edit-ownership rule: only someone who may edit a draft can see it. Not logged in →
     // hidden; Superuser → all; the designated maintainer (by username or org) → own;
     // the uploader → own; OrganizationContributor → same-org uploads. Published (ACTIVE)
     // revisions are visible to everyone.
     let filteredVersions = versions.filter(version => {
-      if (version.lifecycleState !== 'IN_REVIEW' && version.lifecycleState !== 'REJECTED') return true;
+      if (version.lifecycleState !== 'IN_REVIEW'
+          && version.lifecycleState !== 'REVIEWING'
+          && version.lifecycleState !== 'REJECTED') return true;
       return this.authService.canEdit(version.author, version.organizationId, version.maintainer);
     });
 

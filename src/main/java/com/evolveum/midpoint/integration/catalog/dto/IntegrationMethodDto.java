@@ -35,5 +35,6 @@ public record IntegrationMethodDto(
         String tutorial,                                            // integration_method.tutorial
         String filePath,                                            // integration_method.file_path
         String reviewedBy,                                          // integration_method.reviewed_by
-        String maintainer                                           // integration_method.maintainer
+        String maintainer,                                          // integration_method.maintainer
+        LocalDate createdAt                                         // integration_method.created_at
 ) {}

@@ -201,6 +201,13 @@ export class ApplicationService {
     );
   }
 
+  startReviewIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/start-review`,
+      {}
+    );
+  }
+
   publishIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/publish`,

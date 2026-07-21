@@ -1,0 +1,91 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.start-review-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1050;
+}
+
+.start-review-container {
+  z-index: 1055;
+}
+
+.start-review-dialog {
+  background: #fff;
+  border-radius: 12px;
+  width: 560px;
+  max-width: calc(100vw - 2rem);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.start-review-body {
+  padding: 1.5rem;
+}
+
+.start-review-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #22a7bf;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.start-review-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2733;
+  margin: 0.15rem 0 0.65rem 0;
+}
+
+.start-review-desc {
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.start-review-error {
+  color: #b02a37;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.start-review-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #eceef1;
+}
+
+.start-review-cancel {
+  border: none;
+  background: none;
+  color: #1f2733;
+  font-weight: 500;
+  padding: 0;
+
+  &:hover:not(:disabled) { text-decoration: underline; }
+  &:disabled { color: #9aa1ab; cursor: not-allowed; }
+}
+
+.start-review-confirm {
+  background: $midpoint-special-color;
+  border: 1px solid $midpoint-special-color;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+
+  &:hover:not(:disabled) {
+    background: $color-dark-blue;
+    border-color: $color-dark-blue;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

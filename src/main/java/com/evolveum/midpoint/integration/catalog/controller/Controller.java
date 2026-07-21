@@ -435,6 +435,32 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Start review of an in-review integration method revision",
+            description = "Moves an in-review revision to REVIEWING and locks it for editing until the "
+                    + "review is resolved (approve, reject, or stop). Superuser only.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Review started"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
+            @ApiResponse(responseCode = "409", description = "Revision is not in review")
+    })
+    @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/start-review")
+    public ResponseEntity<Void> startReviewIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        try {
+            applicationService.startReviewIntegrationMethod(methodId, revision, username);
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     @Operation(summary = "Publish (approve) an in-review integration method revision",
             description = "Activates an in-review revision. A minor revision replaces its same-major "
                     + "published baseline; a new major version is kept alongside earlier majors.")

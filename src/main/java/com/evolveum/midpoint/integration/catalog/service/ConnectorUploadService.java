@@ -557,6 +557,22 @@ public class ConnectorUploadService {
     }
 
     /**
+     * Starts a review on an in-review revision: flips IN_REVIEW -> REVIEWING. While REVIEWING the
+     * revision is locked for editing (see ApplicationService#assertCanEditMethod) so no changes can
+     * land under the reviewer, and only from this state do the approve/reject actions become available.
+     */
+    @Transactional
+    public void startReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+            throw new IllegalStateException("Only in-review revisions can be put under review: " + methodId + "/" + revision);
+        }
+        draft.setLifecycleState(LifecycleType.REVIEWING);
+        log.info("Started review of integration method {}/{} by {}", methodId, revision, username);
+    }
+
+    /**
      * Publishes (approves) an in-review revision: activates it and then removes any other ACTIVE
      * revision of the same method that shares its major version. A minor draft therefore supersedes
      * its published baseline (e.g. activating 2.1 drops the active 2.0), while a new major leaves
@@ -567,7 +583,8 @@ public class ConnectorUploadService {
     public void publishIntegrationMethod(UUID methodId, String revision, String username) {
         IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
-        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW
+                && draft.getLifecycleState() != LifecycleType.REVIEWING) {
             throw new IllegalStateException("Only in-review revisions can be published: " + methodId + "/" + revision);
         }
 
@@ -721,7 +738,8 @@ public class ConnectorUploadService {
     public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
         IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
-        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW
+                && draft.getLifecycleState() != LifecycleType.REVIEWING) {
             throw new IllegalStateException("Only in-review revisions can be rejected: " + methodId + "/" + revision);
         }
 

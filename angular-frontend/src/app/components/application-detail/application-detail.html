@@ -426,7 +426,7 @@
                           </div>
 
                           @for (version of method.versions; track version.revision) {
-                            <div class="im-version-row d-flex" [class.im-version-row-review]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
+                            <div class="im-version-row d-flex" [class.im-version-row-review]="(version.lifecycleState === 'IN_REVIEW' || version.lifecycleState === 'REVIEWING') && isSuperuser()">
                               <!-- VERSION -->
                               <div class="im-col-version">
                                 <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
@@ -531,6 +531,11 @@
                               <div class="im-col-status">
                                 @if (version.lifecycleState === 'IN_REVIEW') {
                                   <span class="badge im-badge-awaiting"><i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval</span>
+                                } @else if (version.lifecycleState === 'REVIEWING') {
+                                  <span class="badge im-badge-reviewing"><i class="fa-solid fa-lock me-1"></i>Under review</span>
+                                  <!-- <a class="im-ticket-link d-inline-flex align-items-center gap-2" [href]="ticketUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket
+                                  </a> -->
                                 } @else if (version.lifecycleState === 'ACTIVE') {
                                   <span class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
                                 } @else if (version.lifecycleState === 'REJECTED') {
@@ -538,7 +543,7 @@
                                 }
 
                                 <!-- Hover-revealed actions (set depends on lifecycle state) -->
-                                <div class="im-row-actions" [class.im-row-actions-reserved]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
+                                <div class="im-row-actions" [class.im-row-actions-reserved]="version.lifecycleState === 'REVIEWING' && isSuperuser()">
                                   @if (version.lifecycleState === 'IN_REVIEW') {
                                     @if (canEdit(version)) {
                                       <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
@@ -550,6 +555,29 @@
                                     </button>
                                     @if (canEdit(version)) {
                                       <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
+                                    <!-- Superuser starts the review here; this replaces the immediate approve/reject.
+                                         Once started (REVIEWING) the approve/reject pair appears at the row bottom. -->
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-start-review" (click)="openStartReview(version); $event.stopPropagation()">
+                                        <i class="fa-solid fa-play"></i>Start review
+                                      </button>
+                                    }
+                                  } @else if (version.lifecycleState === 'REVIEWING') {
+                                    <!-- Locked while under review: editing actions stay visible but disabled;
+                                         View details remains active. -->
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-cancel" disabled>
+                                        <i class="fa-solid fa-trash-can"></i>Cancel request
+                                      </button>
+                                    }
+                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-eye"></i>View details
+                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" disabled>
                                         <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                       </button>
                                     }
@@ -577,8 +605,8 @@
                                   }
                                 </div>
 
-                                <!-- Always-visible approve/reject (IN_REVIEW, superuser) -->
-                                @if (version.lifecycleState === 'IN_REVIEW' && isSuperuser()) {
+                                <!-- Always-visible approve/reject (REVIEWING, superuser) -->
+                                @if (version.lifecycleState === 'REVIEWING' && isSuperuser()) {
                                   <div class="im-row-actions-always d-flex align-items-center justify-content-end gap-2">
                                     <button type="button" class="btn btn-im-reject" (click)="openRejectConfirm(version); $event.stopPropagation()">
                                       <i class="fa-solid fa-xmark"></i>Reject
@@ -789,6 +817,17 @@
       (confirm)="submitConfirm()"
       (cancel)="closeConfirm()">
     </app-approval-confirm-modal>
+  }
+
+  <!-- Start review confirmation modal (shared component) -->
+  @if (startReviewVersion()) {
+    <app-start-review-modal
+      [versionLabel]="startReviewVersionLabel()"
+      [processing]="isProcessingStartReview()"
+      [error]="startReviewError()"
+      (confirm)="submitStartReview()"
+      (cancel)="closeStartReview()">
+    </app-start-review-modal>
   }
   }
 </div>

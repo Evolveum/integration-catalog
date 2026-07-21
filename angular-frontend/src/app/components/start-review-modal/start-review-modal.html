@@ -1,0 +1,35 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<div class="start-review-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onCancel()"></div>
+<div class="start-review-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="start-review-dialog" (click)="$event.stopPropagation()">
+    <div class="start-review-body d-flex align-items-start gap-3">
+      <span class="start-review-icon d-flex align-items-center justify-content-center flex-shrink-0">
+        <i class="fa-solid fa-info"></i>
+      </span>
+      <div class="start-review-content">
+        <h2 class="start-review-title">Start review of version {{ versionLabel }}?</h2>
+        <p class="start-review-desc">
+          Starting the review will change this version's status to &ldquo;Under review&rdquo; and lock
+          it for editing. Other users will not be able to make changes until you approve, reject, or
+          stop the review.
+        </p>
+        @if (error) {
+          <div class="start-review-error">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    <div class="start-review-footer d-flex align-items-center justify-content-between">
+      <button type="button" class="btn start-review-cancel" [disabled]="processing" (click)="onCancel()">Cancel</button>
+      <button type="button" class="btn start-review-confirm d-flex align-items-center gap-2"
+              [disabled]="processing" (click)="onConfirm()">
+        <i class="fa-solid fa-play"></i>Start review
+      </button>
+    </div>
+  </div>
+</div>

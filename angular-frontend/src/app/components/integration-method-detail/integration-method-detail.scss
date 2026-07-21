@@ -72,6 +72,53 @@
 }
 
 /* ========================================
+   IN-REVIEW CONTEXT (banner + submission meta)
+   ======================================== */
+.review-banner {
+  background: #fdf6e3;
+  border: 1px solid #f5e2b8;
+  color: #7a5b00;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin-bottom: 1.5rem;
+}
+
+.review-banner-icon {
+  color: #d9a300;
+  margin-top: 0.15rem;
+}
+
+/* Pull the meta row up under the title (the title keeps its 2rem bottom margin
+   for the non-review layout), leaving a comfortable gap below the name. */
+.review-meta {
+  margin-top: -0.5rem;
+  font-size: 0.875rem;
+}
+
+.review-badge-awaiting {
+  background-color: #fff3cd;
+  color: #7a4f00;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.3rem 0.55rem;
+  border-radius: 4px;
+}
+
+/* Vertical divider before each meta item (badge | date | submitted-by). */
+.review-meta-item {
+  color: #6c757d;
+  border-left: 1px solid #dee2e6;
+  padding-left: 1rem;
+}
+
+.review-meta-author {
+  color: $color-dark-blue;
+  font-weight: 500;
+}
+
+/* ========================================
    METHOD SUMMARY (read-only label/value)
    ======================================== */
 .view-summary {
@@ -491,6 +538,20 @@
 }
 
 .view-download-btn {
+  font-size: 0.875rem;
+  background-color: $midpoint-special-color;
+  border: 1px solid $midpoint-special-color;
+  color: #fff;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: $color-dark-blue;
+    border-color: $color-dark-blue;
+  }
+}
+
+.view-start-review-btn {
   font-size: 0.875rem;
   background-color: $midpoint-special-color;
   border: 1px solid $midpoint-special-color;

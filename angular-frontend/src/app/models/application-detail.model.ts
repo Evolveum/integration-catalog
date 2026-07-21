@@ -50,6 +50,7 @@ export interface IntegrationMethod {
   tutorial: string | null;               // integration_method.tutorial
   filePath: string | null;               // integration_method.file_path
   reviewedBy: string | null;             // integration_method.reviewed_by (approver/rejecter)
+  createdAt: string | null;              // integration_method.created_at (submitted-for-review date)
 }
 
 export interface ObjectClassCapability {

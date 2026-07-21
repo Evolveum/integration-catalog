@@ -26,7 +26,29 @@
 } @else {
   <div class="view-page">
     <div class="view-page-content">
+      <!-- In-review context for the reviewer: banner + submission meta around the title. -->
+      @if (isInReview()) {
+        <div class="review-banner d-flex align-items-start gap-2">
+          <i class="fa-solid fa-triangle-exclamation review-banner-icon"></i>
+          <span>This version is <strong>awaiting approval</strong> — submitted for review on {{ submittedDate() }} by {{ methodAuthor() || '—' }}. Review the details below before making a decision.</span>
+        </div>
+      }
+
       <h2 class="view-page-title">{{ methodName() }}</h2>
+
+      @if (isInReview()) {
+        <div class="review-meta d-flex align-items-center flex-wrap gap-3 mb-4">
+          <span class="badge review-badge-awaiting d-inline-flex align-items-center">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval
+          </span>
+          <span class="review-meta-item d-inline-flex align-items-center">
+            <i class="fa-regular fa-calendar-days me-2"></i>Submitted {{ submittedDate() }}
+          </span>
+          <span class="review-meta-item d-inline-flex align-items-center">
+            <i class="fa-solid fa-user me-2"></i>Submitted by&nbsp;<span class="review-meta-author">{{ methodAuthor() || '—' }}</span>
+          </span>
+        </div>
+      }
 
       <!-- Method summary -->
       <div class="view-summary mb-4">
@@ -326,6 +348,14 @@
             </button>
           </div>
         } @else if (isInReview() && isSuperuser()) {
+          <!-- Superuser starts the review here; this replaces the immediate approve/reject. -->
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn view-start-review-btn d-flex align-items-center gap-2"
+                    (click)="openStartReview()">
+              <i class="fa-solid fa-play"></i>Start review
+            </button>
+          </div>
+        } @else if (isReviewing() && isSuperuser()) {
           <div class="d-flex align-items-center gap-3">
             <button type="button" class="btn btn-outline-danger border-0 d-flex align-items-center gap-2"
                     (click)="openRejectConfirm()">
@@ -402,5 +432,16 @@
       (confirm)="submitConfirm()"
       (cancel)="closeConfirm()">
     </app-approval-confirm-modal>
+  }
+
+  <!-- Start review confirmation modal (shared component) -->
+  @if (isStartReviewOpen()) {
+    <app-start-review-modal
+      [versionLabel]="versionBadge(methodVersion())"
+      [processing]="isProcessingStartReview()"
+      [error]="startReviewError()"
+      (confirm)="submitStartReview()"
+      (cancel)="closeStartReview()">
+    </app-start-review-modal>
   }
 }

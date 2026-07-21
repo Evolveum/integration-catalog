@@ -180,7 +180,8 @@ public class ApplicationMapper {
                             method.getTutorial(),
                             method.getFilePath(),
                             null, // method.getReviewedBy() temporarily disabled - see IntegrationMethod.reviewedBy
-                            method.getMaintainer()
+                            method.getMaintainer(),
+                            method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null
                     );
                 })
                 .toList();
