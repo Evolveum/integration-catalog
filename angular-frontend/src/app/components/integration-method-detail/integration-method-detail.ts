@@ -65,6 +65,15 @@ export class IntegrationMethodDetail implements OnInit {
   private readonly datePipe = new DatePipe('en-US');
   protected readonly submittedDate = computed(() =>
     this.datePipe.transform(this.methodCreatedAt(), 'MMMM d, yyyy') || '—');
+  // Hardcoded ticket details for now (to be wired to the support portal later).
+  protected readonly ticketId = '1239';
+  protected readonly ticketUrl = 'https://support.evolveum.com/tickets/1239';
+  // Reviewer of a REVIEWING revision: reviewed_by is set at start-review, and updated is
+  // bumped by that same state flip (the row is then edit-locked, so it stays = review start).
+  protected readonly reviewerName = signal<string>('');
+  protected readonly methodUpdated = signal<string | null>(null);
+  protected readonly reviewStartDate = computed(() =>
+    this.datePipe.transform(this.methodUpdated(), 'MMMM d, yyyy') || '—');
 
   protected readonly confirmConnectorName = computed(() => {
     const c = this.connectors()[0];
@@ -138,6 +147,8 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodAuthor.set(ver.author ?? '');
           this.methodCreatedAt.set(ver.createdAt ?? null);
+          this.reviewerName.set(ver.reviewedBy ?? '');
+          this.methodUpdated.set(ver.updated ?? null);
           this.methodOrganizationId.set(ver.organizationId ?? null);
           this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
@@ -360,6 +371,29 @@ export class IntegrationMethodDetail implements OnInit {
     this.applicationService.rejectIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
       next: () => this.goBack(),
       error: (err) => this.handleApprovalError(err)
+    });
+  }
+
+  // Stops an ongoing review: flips REVIEWING back to IN_REVIEW (no confirmation modal).
+  protected readonly isProcessingStopReview = signal<boolean>(false);
+
+  protected stopReview(): void {
+    if (this.isProcessingStopReview()) return;
+    this.isProcessingStopReview.set(true);
+    this.applicationService.stopReviewIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+      next: () => {
+        this.isProcessingStopReview.set(false);
+        // Mirror the backend: back to IN_REVIEW with no reviewer, so the footer swaps to Start review.
+        this.methodLifecycleState.set('IN_REVIEW');
+        this.reviewerName.set('');
+      },
+      error: (err) => {
+        console.error('Stop review failed', err);
+        this.isProcessingStopReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.toastService.show('Stop review failed', message || 'The action failed. Please try again.', 'danger');
+      }
     });
   }
 

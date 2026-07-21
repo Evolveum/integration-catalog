@@ -256,6 +256,16 @@ public class ApplicationService {
     }
 
     @Transactional
+    public void stopReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        // Stopping a review is a superuser-only action, mirroring start-review.
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may stop a review of an integration method.");
+        }
+        connectorUploadService.stopReviewIntegrationMethod(methodId, revision, username);
+    }
+
+    @Transactional
     public void publishIntegrationMethod(UUID methodId, String revision, String username) {
         // Approving a revision is a superuser-only action (the client already restricts it to
         // superusers; this is the server-side enforcement).

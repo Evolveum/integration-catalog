@@ -36,5 +36,6 @@ public record IntegrationMethodDto(
         String filePath,                                            // integration_method.file_path
         String reviewedBy,                                          // integration_method.reviewed_by
         String maintainer,                                          // integration_method.maintainer
-        LocalDate createdAt                                         // integration_method.created_at
+        LocalDate createdAt,                                        // integration_method.created_at
+        LocalDate updated                                           // integration_method.updated (= review start date while REVIEWING)
 ) {}

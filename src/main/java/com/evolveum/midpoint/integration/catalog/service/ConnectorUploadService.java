@@ -569,7 +569,24 @@ public class ConnectorUploadService {
             throw new IllegalStateException("Only in-review revisions can be put under review: " + methodId + "/" + revision);
         }
         draft.setLifecycleState(LifecycleType.REVIEWING);
+        draft.setReviewedBy(username);
         log.info("Started review of integration method {}/{} by {}", methodId, revision, username);
+    }
+
+    /**
+     * Stops an ongoing review: flips REVIEWING -> IN_REVIEW and clears the reviewer, so the
+     * revision is editable again and a review can later be restarted from scratch.
+     */
+    @Transactional
+    public void stopReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+        if (draft.getLifecycleState() != LifecycleType.REVIEWING) {
+            throw new IllegalStateException("Only revisions under review can have the review stopped: " + methodId + "/" + revision);
+        }
+        draft.setLifecycleState(LifecycleType.IN_REVIEW);
+        draft.setReviewedBy(null);
+        log.info("Stopped review of integration method {}/{} by {}", methodId, revision, username);
     }
 
     /**
@@ -608,7 +625,7 @@ public class ConnectorUploadService {
         }
 
         draft.setLifecycleState(LifecycleType.ACTIVE);
-        // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+        draft.setReviewedBy(username);
 
         // Publishing the method also makes its connectors catalog-visible: the "select connector"
         // catalog only lists connectors whose bundle is ACTIVE (and whose capabilities come from an
@@ -744,7 +761,7 @@ public class ConnectorUploadService {
         }
 
         draft.setLifecycleState(LifecycleType.REJECTED);
-        // draft.setReviewedBy(username); // temporarily disabled - see IntegrationMethod.reviewedBy
+        draft.setReviewedBy(username);
         // Reject the connectors introduced with this revision too (mirrors promoteConnectorsToActive).
         rejectConnectorsOfMethod(draft);
         log.info("Rejected integration method {}/{} by {}", methodId, revision, username);

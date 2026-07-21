@@ -32,20 +32,36 @@
           <i class="fa-solid fa-triangle-exclamation review-banner-icon"></i>
           <span>This version is <strong>awaiting approval</strong> — submitted for review on {{ submittedDate() }} by {{ methodAuthor() || '—' }}. Review the details below before making a decision.</span>
         </div>
+      } @else if (isReviewing()) {
+        <div class="reviewing-banner d-flex align-items-start gap-2">
+          <i class="fa-solid fa-lock reviewing-banner-icon"></i>
+          <span>This version is <strong>under review</strong> — started by {{ reviewerName() || '—' }} on {{ reviewStartDate() }} and is locked until the review is complete.</span>
+        </div>
       }
 
       <h2 class="view-page-title">{{ methodName() }}</h2>
 
-      @if (isInReview()) {
+      @if (isInReview() || isReviewing()) {
         <div class="review-meta d-flex align-items-center flex-wrap gap-3 mb-4">
-          <span class="badge review-badge-awaiting d-inline-flex align-items-center">
-            <i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval
-          </span>
+          @if (isInReview()) {
+            <span class="badge review-badge-awaiting d-inline-flex align-items-center">
+              <i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval
+            </span>
+          } @else {
+            <span class="badge review-badge-reviewing d-inline-flex align-items-center">
+              <i class="fa-solid fa-lock me-1"></i>Under review
+            </span>
+          }
           <span class="review-meta-item d-inline-flex align-items-center">
             <i class="fa-regular fa-calendar-days me-2"></i>Submitted {{ submittedDate() }}
           </span>
           <span class="review-meta-item d-inline-flex align-items-center">
             <i class="fa-solid fa-user me-2"></i>Submitted by&nbsp;<span class="review-meta-author">{{ methodAuthor() || '—' }}</span>
+          </span>
+          <span class="review-meta-item d-inline-flex align-items-center">
+            <a class="review-meta-ticket d-inline-flex align-items-center" [href]="ticketUrl" target="_blank" rel="noopener">
+              <i class="fa-solid fa-ticket me-2"></i><span class="review-meta-ticket-text">Open ticket #{{ ticketId }}</span><i class="fa-solid fa-arrow-right ms-2"></i>
+            </a>
           </span>
         </div>
       }
@@ -360,6 +376,10 @@
             <button type="button" class="btn btn-outline-danger border-0 d-flex align-items-center gap-2"
                     (click)="openRejectConfirm()">
               <i class="fa-solid fa-xmark"></i>Reject
+            </button>
+            <button type="button" class="btn view-stop-review-btn d-flex align-items-center gap-2"
+                    [disabled]="isProcessingStopReview()" (click)="stopReview()">
+              <i class="fa-solid fa-stop"></i>Stop review
             </button>
             <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2"
                     (click)="openApproveConfirm()">

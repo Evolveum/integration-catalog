@@ -533,9 +533,9 @@
                                   <span class="badge im-badge-awaiting"><i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval</span>
                                 } @else if (version.lifecycleState === 'REVIEWING') {
                                   <span class="badge im-badge-reviewing"><i class="fa-solid fa-lock me-1"></i>Under review</span>
-                                  <!-- <a class="im-ticket-link d-inline-flex align-items-center gap-2" [href]="ticketUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">
+                                  <a class="im-ticket-link d-inline-flex align-items-center gap-2" [href]="ticketUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket
-                                  </a> -->
+                                  </a>
                                 } @else if (version.lifecycleState === 'ACTIVE') {
                                   <span class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
                                 } @else if (version.lifecycleState === 'REJECTED') {

@@ -179,9 +179,10 @@ public class ApplicationMapper {
                             method.getDisplayName(),
                             method.getTutorial(),
                             method.getFilePath(),
-                            null, // method.getReviewedBy() temporarily disabled - see IntegrationMethod.reviewedBy
+                            method.getReviewedBy(),
                             method.getMaintainer(),
-                            method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null
+                            method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
+                            method.getUpdated() != null ? method.getUpdated().toLocalDate() : null
                     );
                 })
                 .toList();

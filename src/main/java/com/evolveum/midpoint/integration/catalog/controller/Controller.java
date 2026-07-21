@@ -461,6 +461,32 @@ public class Controller {
         }
     }
 
+    @Operation(summary = "Stop the review of a revision under review",
+            description = "Moves a REVIEWING revision back to IN_REVIEW, clearing the reviewer and "
+                    + "unlocking it for editing. Superuser only.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Review stopped"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
+            @ApiResponse(responseCode = "409", description = "Revision is not under review")
+    })
+    @PostMapping("/applications/{appId}/integration-method/{methodId}/{revision}/stop-review")
+    public ResponseEntity<Void> stopReviewIntegrationMethod(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        try {
+            applicationService.stopReviewIntegrationMethod(methodId, revision, username);
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
     @Operation(summary = "Publish (approve) an in-review integration method revision",
             description = "Activates an in-review revision. A minor revision replaces its same-major "
                     + "published baseline; a new major version is kept alongside earlier majors.")
