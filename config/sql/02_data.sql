@@ -200,12 +200,12 @@ SELECT setval('connector_version_id_seq', 3);
 -- ============================================================
 
 INSERT INTO integration_method (id, application_id, display_name, description,
-     tutorial, file_path,  midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version)
+     tutorial, file_path,  midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version, reviewed_by)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
-	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1'),
+	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1',NULL),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111', 'Test 2 - Integration method','Test 2 - Integration method description',
-	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','IM author 2','IM maintainer 2',NOW(),NOW(),'2024.2');
+	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','IM author 2','IM maintainer 2',NOW(),NOW(),'2024.2',NULL);
 
 -- ============================================================
 -- INTEGRATION METHOD → CONNECTOR links

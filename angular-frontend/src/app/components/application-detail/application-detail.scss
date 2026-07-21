@@ -873,6 +873,27 @@
   font-weight: 500;
 }
 
+.im-badge-reviewing {
+  background-color: #cfe2f3;
+  color: #0b3d66;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* "View ticket" link shown under the Under-review badge. */
+.im-ticket-link {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: $color-dark-blue;
+  text-decoration: underline;
+
+  &:hover {
+    color: $midpoint-special-color-20;
+  }
+}
+
 .im-badge-published {
   background-color: #d1e7dd;
   color: #0a3622;
@@ -970,6 +991,16 @@
 
 .im-col-status {
   flex: 0 0 260px;
+  // Full-height flex column so the always-visible approve/reject block can be
+  // pinned to the bottom of the row (see .im-row-actions-always).
+  display: flex;
+  flex-direction: column;
+
+  // Keep the state badge at its natural width; as a flex child it would
+  // otherwise stretch to the full column width.
+  > .badge {
+    align-self: flex-start;
+  }
 }
 
 .im-table-header {
@@ -1045,9 +1076,11 @@
   margin-top: -1.7rem;
 }
 
-/* Always-visible actions (approve/reject) — not gated on hover */
+/* Always-visible actions (approve/reject) — not gated on hover.
+   Pinned to the bottom of the row, separated from the hover actions above. */
 .im-row-actions-always {
-  margin-top: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
 }
 
 .im-row-actions .btn,
@@ -1060,6 +1093,13 @@
   justify-content: center;
   gap: 0.4rem;
   white-space: nowrap;
+}
+
+/* Locked (under review) actions stay visible but non-interactive. */
+.im-row-actions .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* When approve/reject sit below, reserve the hover buttons' space (blank at rest)
@@ -1157,6 +1197,33 @@
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+.btn-im-start-review {
+  background-color: $midpoint-special-color;
+  border: 1px solid $midpoint-special-color;
+  color: white;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background-color: $color-dark-blue;
+    border-color: $color-dark-blue;
+    color: white;
+  }
+}
+
+/* "Stop review" on a REVIEWING row — same slot/look as Start review on an IN_REVIEW row. */
+.btn-im-stop-review {
+  background-color: $color-dark-blue;
+  border: 1px solid $color-dark-blue;
+  color: white;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background-color: $midpoint-special-color;
+    border-color: $midpoint-special-color;
+    color: white;
   }
 }
 

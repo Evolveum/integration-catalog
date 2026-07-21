@@ -32,6 +32,7 @@ CREATE TYPE LicenseType AS ENUM (
 
 CREATE TYPE LifecycleType AS ENUM (
 	'IN_REVIEW',
+	'REVIEWING',
 	'ACTIVE',
 	'DEPRECATED',
 	'ARCHIVED',
@@ -360,10 +361,8 @@ CREATE TABLE integration_method (
 	maintainer character varying(255),
 	created_at timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
-	app_version character varying(255)
-	-- Temporarily disabled, see IntegrationMethod.reviewedBy. Re-enable together with the entity field
-	-- (add a trailing comma to app_version above when uncommenting):
-	-- ,reviewed_by character varying(255)
+	app_version character varying(255),
+	reviewed_by character varying(255)
 );
 
 CREATE TABLE integration_method_type (

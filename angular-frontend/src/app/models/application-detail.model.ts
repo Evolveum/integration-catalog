@@ -49,7 +49,9 @@ export interface IntegrationMethod {
   displayName: string | null;             // integration_method.display_name
   tutorial: string | null;               // integration_method.tutorial
   filePath: string | null;               // integration_method.file_path
-  reviewedBy: string | null;             // integration_method.reviewed_by (approver/rejecter)
+  reviewedBy: string | null;             // integration_method.reviewed_by (set at start-review, kept on approve/reject)
+  createdAt: string | null;              // integration_method.created_at (submitted-for-review date)
+  updated: string | null;                // integration_method.updated (= review start date while REVIEWING)
 }
 
 export interface ObjectClassCapability {

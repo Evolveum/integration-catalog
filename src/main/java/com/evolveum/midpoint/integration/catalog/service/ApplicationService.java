@@ -142,6 +142,19 @@ public class ApplicationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this integration method.");
         }
+        assertNotUnderReview(method);
+    }
+
+    /**
+     * Blocks any edit while a revision is REVIEWING: once a superuser starts a review the revision is
+     * locked until the review is resolved, so no one (including the author) may change it underneath
+     * the reviewer. Mirrors the client, which disables the edit controls for this state.
+     */
+    private void assertNotUnderReview(IntegrationMethod method) {
+        if (method.getLifecycleState() == LifecycleType.REVIEWING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This integration method is locked while it is under review.");
+        }
     }
 
     /**
@@ -166,6 +179,7 @@ public class ApplicationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this connector.");
         }
+        assertNotUnderReview(method);
     }
 
     public Application getApplication(UUID uuid) {
@@ -228,6 +242,27 @@ public class ApplicationService {
                                         String username) {
         assertCanEditMethod(username, methodId, currentRevision);
         return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
+    }
+
+    @Transactional
+    public void startReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        // Starting a review is a superuser-only action, mirroring approve/reject (the client already
+        // restricts it to superusers; this is the server-side enforcement).
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may start a review of an integration method.");
+        }
+        connectorUploadService.startReviewIntegrationMethod(methodId, revision, username);
+    }
+
+    @Transactional
+    public void stopReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        // Stopping a review is a superuser-only action, mirroring start-review.
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may stop a review of an integration method.");
+        }
+        connectorUploadService.stopReviewIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
