@@ -242,25 +242,20 @@ export class PublishFormImpl implements OnInit, OnChanges {
     private authService: AuthService,
     private router: Router
   ) {
-    const currentUser = this.authService.currentUser();
-    const role = this.authService.currentRole();
-    const orgName = this.authService.currentOrganizationName();
-
-    if (role === UserRole.Superuser) {
+    if (this.authService.currentRole() === UserRole.Superuser) {
+      const currentUser = this.authService.currentUser();
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
         error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
       });
-    } else if (role === UserRole.OrganizationContributor && orgName) {
-      this.maintainerOptions.set([orgName]);
-    } else if (currentUser) {
-      this.maintainerOptions.set([currentUser]);
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
     }
   }
 
   ngOnInit(): void {
     if (!this.connectorMaintainer()) {
-      this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+      this.connectorMaintainer.set(this.authService.defaultMaintainer());
     }
     this.applicationService.getMidpointVersions().subscribe({
       next: (versions) => this.midpointVersions.set(versions)
@@ -324,7 +319,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorVersion.set('');
     this.connectorVersionFrom.set('');
     this.connectorVersionTo.set('');
-    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(this.authService.defaultMaintainer());
     this.connectorLicense.set('');
     this.connectorDescription.set('');
     this.connectorBundleName.set('');
@@ -353,7 +348,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorName.set(connector.displayName ?? '');
     this.connectorVersion.set(connector.version ?? '');
     this.connectorVersionFrom.set(connector.version ?? '');
-    this.connectorMaintainer.set(connector.maintainer ?? this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(connector.maintainer ?? this.authService.defaultMaintainer());
     this.connectorLicense.set(connector.licenseType ?? '');
     this.connectorDescription.set(connector.description ?? '');
     this.connectorBundleName.set(connector.bundleDisplayName ?? '');

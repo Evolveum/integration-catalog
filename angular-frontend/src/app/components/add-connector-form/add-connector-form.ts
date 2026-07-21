@@ -193,24 +193,19 @@ export class AddConnectorForm implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(this.authService.defaultMaintainer());
     this.initMaintainerOptions();
   }
 
   private initMaintainerOptions(): void {
-    const currentUser = this.authService.currentUser();
-    const role = this.authService.currentRole();
-    const orgName = this.authService.currentOrganizationName();
-
-    if (role === UserRole.Superuser) {
+    if (this.authService.currentRole() === UserRole.Superuser) {
+      const currentUser = this.authService.currentUser();
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
         error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
       });
-    } else if (role === UserRole.OrganizationContributor && orgName) {
-      this.maintainerOptions.set([orgName]);
-    } else if (currentUser) {
-      this.maintainerOptions.set([currentUser]);
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
     }
   }
 
@@ -290,7 +285,7 @@ export class AddConnectorForm implements OnInit {
   private resetConnectorFields(): void {
     this.connectorName.set('');
     this.connectorVersion.set('1.0.0');
-    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(this.authService.defaultMaintainer());
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
     this.connectorLicense.set('');
@@ -312,7 +307,7 @@ export class AddConnectorForm implements OnInit {
   private populateFromCatalogConnector(c: CatalogConnector): void {
     this.connectorName.set(c.displayName ?? '');
     this.connectorVersion.set(c.version ?? '');
-    this.connectorMaintainer.set(c.maintainer ?? this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(c.maintainer ?? this.authService.defaultMaintainer());
     this.connectorLicense.set(c.licenseType ?? '');
     this.devProjectHomepage.set(c.browseLink ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');

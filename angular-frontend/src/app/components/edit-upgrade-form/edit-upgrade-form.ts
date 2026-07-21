@@ -136,6 +136,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       bundleDisplayName: p.displayName,
       implementationDescription: p.description,
       maintainer: p.maintainer,
+      // The staged maintainer's organization is only known locally for the current user;
+      // other picks (superuser) preview plain until the save reloads server data.
+      maintainerOrganization:
+        p.maintainer === c.maintainer ? c.maintainerOrganization
+          : p.maintainer === this.authService.currentUser() ? this.authService.currentOrganizationName()
+          : null,
       licenseType: p.license ?? '',
       browseLink: p.browseLink ?? '',
       ticketingLink: p.supportPortal ?? '',
@@ -349,13 +355,17 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 
-  /** Append " (you)" when the maintainer matches the logged-in user. */
-  protected formatMaintainer(maintainer: string): string {
+  /** A maintainer belonging to an organization is shown as "org (username)". */
+  protected formatMaintainer(maintainer: string, maintainerOrganization?: string | null): string {
     if (!maintainer) return '—';
-    const user = this.authService.currentUser();
-    return user && user.trim().toLowerCase() === maintainer.trim().toLowerCase()
-      ? `${maintainer} (you)`
-      : maintainer;
+    return maintainerOrganization ? `${maintainerOrganization} (${maintainer})` : maintainer;
+  }
+
+  /** Org of a locally staged maintainer: only resolvable when it is the current user. */
+  protected localMaintainerOrg(maintainer: string): string | null {
+    return maintainer === this.authService.currentUser()
+      ? this.authService.currentOrganizationName()
+      : null;
   }
 
   /**

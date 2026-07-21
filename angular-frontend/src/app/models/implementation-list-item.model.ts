@@ -18,6 +18,7 @@ export interface ImplementationListItem {
   version: string;                // connector_bundle_version.revision
   displayName: string;            // integration_method.display_name
   maintainer: string;             // connector.maintainer
+  maintainerOrganization: string | null; // organization.name of the maintainer user (null if none)
   licenseType: string;            // connector_bundle.license
   implementationDescription: string; // connector.description
   browseLink: string;             // connector_bundle_version.browse_link

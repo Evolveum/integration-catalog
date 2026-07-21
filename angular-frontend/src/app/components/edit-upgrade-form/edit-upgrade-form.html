@@ -227,7 +227,7 @@
             <div class="edit-connector-details">
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Maintainer:</span>
-                <span class="edit-connector-value">{{ formatMaintainer(c.maintainer) }}</span>
+                <span class="edit-connector-value">{{ formatMaintainer(c.maintainer, c.maintainerOrganization) }}</span>
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Connector version:</span>
@@ -348,7 +348,7 @@
               @if (sc.maintainer) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Maintainer:</span>
-                  <span class="edit-connector-value">{{ formatMaintainer(sc.maintainer) }}</span>
+                  <span class="edit-connector-value">{{ formatMaintainer(sc.maintainer, localMaintainerOrg(sc.maintainer)) }}</span>
                 </div>
               }
               @if (sc.license) {
