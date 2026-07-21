@@ -581,6 +581,14 @@
                                         <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                       </button>
                                     }
+                                    <!-- Superuser can hand the review back: REVIEWING -> IN_REVIEW
+                                         (replaces Start review, which only shows for IN_REVIEW). -->
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-stop-review" [disabled]="isProcessingStopReview()"
+                                              (click)="stopReview(version); $event.stopPropagation()">
+                                        <i class="fa-solid fa-stop"></i>Stop review
+                                      </button>
+                                    }
                                   } @else if (version.lifecycleState === 'REJECTED') {
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details

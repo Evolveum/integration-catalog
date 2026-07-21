@@ -310,6 +310,28 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     });
   }
 
+  // Stops an ongoing review: flips REVIEWING back to IN_REVIEW (direct action, no modal).
+  protected readonly isProcessingStopReview = signal<boolean>(false);
+
+  protected stopReview(version: IntegrationMethod): void {
+    const appId = this.application()?.id;
+    if (!appId || this.isProcessingStopReview()) return;
+    this.isProcessingStopReview.set(true);
+    this.applicationService.stopReviewIntegrationMethod(appId, version.id, version.revision ?? '').subscribe({
+      next: () => {
+        this.isProcessingStopReview.set(false);
+        this.loadApplication(appId);
+      },
+      error: (err) => {
+        console.error('Stop review failed', err);
+        this.isProcessingStopReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.toastService.show('Stop review failed', message || 'The action failed. Please try again.', 'danger');
+      }
+    });
+  }
+
   /** Unique key for a single version (the method id is shared across revisions). */
   private versionKey(id: string, revision: string | null): string {
     return `${id}|${revision ?? ''}`;

@@ -1213,6 +1213,20 @@
   }
 }
 
+/* "Stop review" on a REVIEWING row — same slot/look as Start review on an IN_REVIEW row. */
+.btn-im-stop-review {
+  background-color: $color-dark-blue;
+  border: 1px solid $color-dark-blue;
+  color: white;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background-color: $midpoint-special-color;
+    border-color: $midpoint-special-color;
+    color: white;
+  }
+}
+
 .btn-im-download {
   background-color: $midpoint-special-color;
   border: 1px solid $midpoint-special-color;
