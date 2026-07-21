@@ -283,13 +283,10 @@ export class IntegrationMethodDetail implements OnInit {
     return this.licenseLabels[value] ?? value;
   }
 
-  /** Append " (you)" when the maintainer matches the logged-in user. */
-  protected formatMaintainer(maintainer: string): string {
+  /** A maintainer belonging to an organization is shown as "org (username)". */
+  protected formatMaintainer(maintainer: string, maintainerOrganization?: string | null): string {
     if (!maintainer) return '—';
-    const user = this.authService.currentUser();
-    return user && user.trim().toLowerCase() === maintainer.trim().toLowerCase()
-      ? `${maintainer} (you)`
-      : maintainer;
+    return maintainerOrganization ? `${maintainerOrganization} (${maintainer})` : maintainer;
   }
 
   protected formatCapabilityText(text: string): string {

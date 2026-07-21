@@ -108,6 +108,32 @@ export class AuthService {
     return this.http.get<string[]>(`${environment.apiUrl}/auth/all-maintainers`);
   }
 
+  /**
+   * Default value for the maintainer combobox: an organization contributor maintains on
+   * behalf of their organization; everyone else (including superusers) as themselves.
+   */
+  defaultMaintainer(): string {
+    if (this._currentRole() === UserRole.OrganizationContributor) {
+      const orgName = this._currentOrganizationName();
+      if (orgName) return orgName;
+    }
+    return this._currentUser() ?? '';
+  }
+
+  /**
+   * Options for the maintainer combobox of a non-superuser: the organization plus the
+   * user themselves for an organization contributor, otherwise just the user. Superusers
+   * load the full list asynchronously via getAllMaintainers() instead.
+   */
+  maintainerOptions(): string[] {
+    const user = this._currentUser();
+    if (this._currentRole() === UserRole.OrganizationContributor) {
+      const orgName = this._currentOrganizationName();
+      if (orgName) return user ? [orgName, user] : [orgName];
+    }
+    return user ? [user] : [];
+  }
+
   isLoggedIn(): boolean {
     return this._currentUser() !== null;
   }

@@ -532,6 +532,14 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
+        // When the maintainer is a user belonging to an organization, expose that organization
+        // so the client can render "org (username)". Null when the maintainer is not a known
+        // user (e.g. it is an organization itself) or has no organization.
+        String maintainerOrganization = maintainer == null ? null
+                : catalogUserRepository.findByUsername(maintainer)
+                        .map(u -> u.getOrganization() != null ? u.getOrganization().getName() : null)
+                        .orElse(null);
+
         return new ImplementationListItemDto(
                 method.getId(),
                 connectorId,
@@ -541,6 +549,7 @@ public class ApplicationMapper {
                 connectorVersion,
                 method.getDisplayName(),
                 maintainer,
+                maintainerOrganization,
                 licenseType,
                 connectorDescription,
                 browseLink,

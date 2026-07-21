@@ -22,6 +22,7 @@ public record ImplementationListItemDto(
         String version,                    // connector_bundle_version.revision
         String displayName,                // integration_method.display_name
         String maintainer,                 // connector.maintainer
+        String maintainerOrganization,     // organization.name of the maintainer user (null if none)
         String licenseType,                // connector_bundle.license
         String implementationDescription,  // connector.description
         String browseLink,                 // connector_bundle_version.browse_link
