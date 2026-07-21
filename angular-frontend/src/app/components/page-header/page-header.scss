@@ -62,6 +62,18 @@
   flex-shrink: 0;
 }
 
+/* The brand block is a link to the homepage, but must look exactly like the plain
+   header it used to be — no link styling in any state. */
+.header-brand {
+  text-decoration: none;
+  color: inherit;
+
+  &:hover, &:focus, &:active, &:visited {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
 .header-globe-icon {
   font-size: 22px;
   color: $color-white;

@@ -563,6 +563,10 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.emitChange();
   }
 
+  protected maintainerOptionLabel(option: string): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
   protected onLicenseBlur(): void {
     setTimeout(() => this.isLicenseDropdownOpen.set(false), 150);
   }

@@ -114,13 +114,59 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.stagedDeletes().size > 0 || this.stagedCompat().size > 0
   );
 
-  // Any connector change (add/edit/delete/compatibility) to a PUBLISHED revision must create a new
-  // version, so plain "Save" is disabled and only "Save as new version" applies it. On an in-review
-  // draft (only "Save" is shown) staged connector changes are fine, so this stays false there.
+  // Staged edits that only touch a connector's identity fields (name, description, maintainer)
+  // may be applied by a plain minor Save. Any other change — version, license, bundle name,
+  // capabilities, any Development & Build field, and (as before) adds, deletes or compatibility
+  // changes — is a content change and requires a new major version.
+  protected readonly hasMajorConnectorChanges = computed(() => {
+    if (this.stagedConnectors().length > 0 || this.stagedDeletes().size > 0 || this.stagedCompat().size > 0) {
+      return true;
+    }
+    const byId = new Map(this.connectors()
+      .filter(c => c.connectorId != null)
+      .map(c => [c.connectorId!, c] as const));
+    return Array.from(this.stagedEdits().entries()).some(([id, p]) => {
+      const original = byId.get(id);
+      return !original || this.isMajorConnectorEdit(original, p);
+    });
+  });
+
+  // Major connector changes to a PUBLISHED revision must create a new version, so plain "Save"
+  // is disabled and only "Save as new version" applies them. Minor-safe edits (see
+  // hasMajorConnectorChanges) keep plain Save available. On an in-review draft (only "Save" is
+  // shown) staged connector changes are fine, so this stays false there.
   protected readonly requiresNewVersionForConnectorChange = computed(() =>
-    this.hasPendingConnectorChanges() &&
+    this.hasMajorConnectorChanges() &&
     this.methodLifecycleState() !== 'IN_REVIEW' && this.methodLifecycleState() !== 'REJECTED'
   );
+
+  /** Whether a staged edit changes anything beyond name, description and maintainer. */
+  private isMajorConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): boolean {
+    const norm = (v: string | null | undefined): string => (v ?? '').trim();
+    return norm(p.version) !== norm(c.version)
+      || norm(p.license) !== norm(c.licenseType)
+      || norm(p.bundleName) !== norm(c.bundleName)
+      || norm(p.browseLink) !== norm(c.browseLink)
+      || norm(p.supportPortal) !== norm(c.ticketingLink)
+      || norm(p.gitCloneUrl) !== norm(c.gitCloneUrl)
+      || norm(p.buildFramework).toLowerCase() !== norm(c.buildFramework).toLowerCase()
+      || norm(p.pathToProject) !== norm(c.pathToProjectDirectory)
+      || norm(p.className) !== norm(c.className)
+      || norm(p.commitTag) !== norm(c.commitTag)
+      || this.capabilitiesKey(p.connectorCapabilities)
+        !== this.capabilitiesKey((c.objectClassCapabilities ?? [])
+          .map(o => ({ objectClass: o.objectName, capabilityNames: o.capabilities })));
+  }
+
+  /** Order-insensitive canonical form of a capability selection, for change detection. */
+  private capabilitiesKey(groups: { objectClass: string; capabilityNames: string[] }[]): string {
+    return groups
+      .map(g => ({ oc: g.objectClass, caps: [...g.capabilityNames].sort() }))
+      .filter(g => g.caps.length > 0)
+      .sort((a, b) => a.oc.localeCompare(b.oc))
+      .map(g => `${g.oc}:${g.caps.join(',')}`)
+      .join('|');
+  }
 
   protected isConnectorPending(connectorId: number | null): boolean {
     if (connectorId == null) return false;
@@ -375,7 +421,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
    * actions, available to anyone who could open this edit form.)
    */
   protected canEditConnector(c: ImplementationListItem): boolean {
-    return this.authService.canEdit(null, null, c.maintainer);
+    return this.authService.canEdit(null, null, c.maintainer, c.maintainerOrganization);
   }
 
   protected formatCapabilityText(text: string): string {

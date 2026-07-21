@@ -134,6 +134,14 @@ export class AuthService {
     return user ? [user] : [];
   }
 
+  /** Display label for a maintainer dropdown option: the logged-in user is marked "(me)". */
+  maintainerOptionLabel(option: string): string {
+    const user = this._currentUser();
+    return user && option.trim().toLowerCase() === user.trim().toLowerCase()
+      ? `${option} (me)`
+      : option;
+  }
+
   isLoggedIn(): boolean {
     return this._currentUser() !== null;
   }
@@ -166,8 +174,11 @@ export class AuthService {
    * uploaded by the given author/organization. Mirrors the server-side `AuthService.canEdit`:
    * a Superuser may access anything; the designated maintainer may access it (matched by
    * username, or by the user's organization name when the item is maintained by their org);
-   * the uploader may access items they authored; and an Organization contributor may access
-   * any item authored by a member of their own organization (same organizationId).
+   * an item maintained by a member of the user's organization is accessible to the whole
+   * organization (pass the maintainer's org as `maintainerOrganization`; a maintainer
+   * without an organization stays personal); the uploader may access items they authored;
+   * and an Organization contributor may access any item authored by a member of their own
+   * organization (same organizationId).
    *
    * The maintainer is the primary ownership signal — it is explicitly set at publish time,
    * so e.g. a superuser can attribute an item to another user, who then gains access to it.
@@ -178,16 +189,22 @@ export class AuthService {
     author: string | null | undefined,
     organizationId: number | null | undefined,
     maintainer?: string | null,
+    maintainerOrganization?: string | null,
   ): boolean {
     const user = this._currentUser();
     if (!user) return false;
     const role = this._currentRole();
     if (role === UserRole.Superuser) return true;
+    const orgName = this._currentOrganizationName();
     if (maintainer) {
       const m = maintainer.trim().toLowerCase();
       if (m === user.trim().toLowerCase()) return true;
-      const orgName = this._currentOrganizationName();
       if (orgName && m === orgName.trim().toLowerCase()) return true;
+    }
+    // An organization acts as a team: a member maintainer grants access to all org-mates.
+    if (orgName && maintainerOrganization
+        && orgName.trim().toLowerCase() === maintainerOrganization.trim().toLowerCase()) {
+      return true;
     }
     if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
     if (role === UserRole.OrganizationContributor) {

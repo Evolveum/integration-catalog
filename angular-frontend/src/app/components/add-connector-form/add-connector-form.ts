@@ -229,6 +229,10 @@ export class AddConnectorForm implements OnInit {
     this.isMaintainerDropdownOpen.set(false);
   }
 
+  protected maintainerOptionLabel(option: string): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
   protected fmtLicense(key: string): string {
     return this.licenseLabels[key] ?? key;
   }

@@ -187,6 +187,10 @@ export class EditConnectorModal implements OnInit {
     this.isMaintainerDropdownOpen.set(false);
   }
 
+  protected maintainerOptionLabel(option: string): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
   // ── License combobox ──────────────────────────────────────
   protected fmtLicense(key: string): string {
     return this.licenseLabels[key] ?? key;

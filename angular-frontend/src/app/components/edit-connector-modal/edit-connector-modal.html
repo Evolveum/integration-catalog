@@ -44,7 +44,7 @@
               <div class="col-4">
                 <label class="form-label form-label-upload">
                   Connector version
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector (e.g. 1.0.0). When you save the integration method as a new version, this becomes the version of the new connector.">
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector (e.g. 1.0.0). When you save the integration method as a new version,&#013;this becomes the version of the new connector. Take note that value is still just informative,&#013;real value will be assigned during build phase from .pom file.">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
                 </label>
@@ -73,7 +73,7 @@
                 @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                   <div class="maintainer-dropdown">
                     @for (option of filteredMaintainerOptions(); track option) {
-                      <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ option }}</div>
+                      <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                     }
                   </div>
                 }

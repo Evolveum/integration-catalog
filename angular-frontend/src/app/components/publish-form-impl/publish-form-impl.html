@@ -160,7 +160,7 @@
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
                       @for (option of filteredMaintainerOptions(); track option) {
-                        <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ option }}</div>
+                        <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                       }
                     </div>
                   }

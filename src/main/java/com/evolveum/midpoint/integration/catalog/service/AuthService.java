@@ -73,6 +73,9 @@ public class AuthService {
      *   <li>the designated maintainer may access it — matched either by username
      *       (maintainer == username) or by organization (maintainer == the caller's
      *       organization name, i.e. the item is maintained by the caller's org);</li>
+     *   <li>an Organization contributor may access any item maintained by a member of
+     *       their own organization (an organization acts as a team; a maintainer without
+     *       an organization stays personal);</li>
      *   <li>the uploader may access items they authored (author == username);</li>
      *   <li>an Organization contributor may access any item authored by a member of their
      *       own organization.</li>
@@ -100,6 +103,16 @@ public class AuthService {
             }
             if (caller.getOrganization() != null && caller.getOrganization().getName() != null
                     && maintainer.equalsIgnoreCase(caller.getOrganization().getName())) {
+                return true;
+            }
+        }
+        // An organization acts as a team: an item maintained by an org member is editable by
+        // every member of that organization (a maintainer without an org stays personal).
+        if ("OrganizationContributor".equals(caller.getRole())
+                && caller.getOrganization() != null && maintainer != null && !maintainer.isBlank()) {
+            CatalogUser maintainerUser = catalogUserRepository.findByUsername(maintainer).orElse(null);
+            if (maintainerUser != null && maintainerUser.getOrganization() != null
+                    && caller.getOrganization().getId().equals(maintainerUser.getOrganization().getId())) {
                 return true;
             }
         }
