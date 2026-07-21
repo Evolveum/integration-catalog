@@ -1213,16 +1213,17 @@
   }
 }
 
-/* "Stop review" on a REVIEWING row — same slot/look as Start review on an IN_REVIEW row. */
+/* "Stop review" on a REVIEWING row — outline variant: white with dark-blue border/text,
+   filling dark blue on hover. */
 .btn-im-stop-review {
-  background-color: $color-dark-blue;
+  background-color: white;
   border: 1px solid $color-dark-blue;
-  color: white;
+  color: $color-dark-blue;
   font-size: 0.8rem;
 
   &:hover:not(:disabled) {
-    background-color: $midpoint-special-color;
-    border-color: $midpoint-special-color;
+    background-color: $color-dark-blue;
+    border-color: $color-dark-blue;
     color: white;
   }
 }

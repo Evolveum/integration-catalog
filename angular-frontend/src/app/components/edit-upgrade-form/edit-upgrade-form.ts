@@ -375,7 +375,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
    * actions, available to anyone who could open this edit form.)
    */
   protected canEditConnector(c: ImplementationListItem): boolean {
-    return this.authService.canEdit(null, null, c.maintainer);
+    return this.authService.canEdit(null, null, c.maintainer, c.maintainerOrganization);
   }
 
   protected formatCapabilityText(text: string): string {

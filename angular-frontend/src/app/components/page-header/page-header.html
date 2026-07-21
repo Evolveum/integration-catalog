@@ -29,14 +29,14 @@
 }
 
 <div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder">
-  <!-- Left: logo + title -->
-  <div class="d-flex align-items-center gap-2 header-brand">
+  <!-- Left: logo + title (links back to the homepage) -->
+  <a class="d-flex align-items-center gap-2 header-brand" routerLink="/applications">
     <i class="fa-solid fa-globe header-globe-icon"></i>
     <div class="d-flex flex-column">
       <span class="header-title">Integration catalog</span>
       <span class="header-subtitle">by Evolveum</span>
     </div>
-  </div>
+  </a>
 
   <!-- Right: user info or login -->
   <div class="ms-auto d-flex align-items-center gap-3">

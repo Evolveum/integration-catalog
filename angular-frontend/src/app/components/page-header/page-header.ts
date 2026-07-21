@@ -6,6 +6,7 @@
 
 import {Component, inject, Input, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { LoginModal } from '../login-modal/login-modal';
 import { ToastService } from '../../services/toast.service';
@@ -13,7 +14,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-page-header',
   standalone: true,
-  imports: [CommonModule, LoginModal],
+  imports: [CommonModule, RouterLink, LoginModal],
   templateUrl: './page-header.html',
   styleUrls: ['./page-header.scss'],
   host: { style: 'display: block; position: sticky; top: 0; z-index: 1000;' }
