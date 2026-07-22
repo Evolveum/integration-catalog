@@ -515,10 +515,12 @@ public class ApplicationMapper {
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
             }
-            // Get latest CBV
+            // The connector's CURRENT version = the newest version row (ids are sequence-assigned,
+            // so max id is the latest). Every connector edit adds a new version row, and the IM must
+            // show that edit — findFirst() would keep returning the oldest row instead.
             Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
-                    .findFirst();
+                    .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
             if (latestCv.isPresent()) {
                 ConnectorBundleVersion cbv = latestCv.get().getConnectorBundleVersion();
                 // bundle_version is the editable, user-facing version; fall back to the PK revision.
@@ -573,8 +575,10 @@ public class ApplicationMapper {
      * grouped by object class, so the edit form can pre-fill the capability picker.
      */
     private List<ObjectClassCapabilityDto> mapConnectorVersionCapabilities(Connector connector) {
+        // Newest version row = the connector's current version (see buildIntegrationMethodListItem),
+        // so the capabilities shown match the version shown.
         return connector.getConnectorVersions().stream()
-                .findFirst()
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                 .map(this::mapCapabilitiesOf)
                 .orElseGet(List::of);
     }

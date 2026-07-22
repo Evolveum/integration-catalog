@@ -1040,7 +1040,11 @@ public class ConnectorUploadService {
                     ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
                     item.setConnVersionCapabilityId(savedCap.getId());
                     item.setCapabilityId(srcItem.getCapabilityId());
-                    connVersionCapabilityItemRepository.save(item);
+                    // Persisted via the items collection's cascade on flush. An explicit
+                    // repository.save() here would merge a MANAGED COPY into the session while this
+                    // detached instance sits in the cascading collection — two instances with the
+                    // same composite id, failing the flush with "A different object with the same
+                    // identifier value was already associated with the session".
                     savedCap.getItems().add(item);
                 }
                 // Keep the in-memory collection in sync with what was persisted, so later reads of
@@ -1070,15 +1074,15 @@ public class ConnectorUploadService {
 
     /**
      * Applies an "Edit connector" modal save. Connector- and bundle-level metadata is updated in
-     * place — it is the same connector on every revision linking it. The version-level data always
-     * lands as a NEW connector version (+ bundle version) row, keeping the edited one intact, so the
-     * reviewer sees both the original and the edit. When the edit keeps the same build (className,
-     * bundleName and commit hash unchanged) or the entered version collides with an existing one,
-     * the new row's version is auto-bumped by a patch (1.1.1 -> 1.1.2) to keep versions unique and
-     * its error_message records the duplicate for the reviewer — duplicates are never blocked, the
-     * reviewer resolves them with the author. Only an edit changing the connector's own identity
-     * (className/bundleName) of a connector shared with another revision clones the graph first
-     * (see {@link #cloneConnectorGraph}) so the other revision keeps the original identity.
+     * place; the version-level data always lands as a NEW connector version (+ bundle version) row,
+     * keeping the edited one intact, so the reviewer sees both the original and the edit. When the
+     * edit keeps the same build (className, bundleName and commit hash unchanged) or the entered
+     * version collides with an existing one, the new row's version is auto-bumped by a patch
+     * (1.1.1 -> 1.1.2) to keep versions unique and its error_message records the duplicate for the
+     * reviewer — duplicates are never blocked, the reviewer resolves them with the author. A
+     * connector shared with another revision (typically the still-published one this draft was
+     * forked from) is cloned first (see {@link #cloneConnectorGraph}) and the edit lands on the
+     * copy: nothing may show on a published revision before the draft is approved.
      */
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
@@ -1094,8 +1098,12 @@ public class ConnectorUploadService {
 
         Connector connector = link.getConnector();
 
-        if (changesConnectorIdentity(connector, dto)
-                && integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
+        // Copy-on-write: a draft forked from a published revision shares its Connector rows with it.
+        // ANY edit landing on the shared rows (in-place metadata or a new version row picked up by
+        // the newest-version display) would show on the published revision before approval, so the
+        // whole graph is cloned and this revision's link repointed at the copy first. The published
+        // revision keeps the original untouched until the draft is approved and supersedes it.
+        if (integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
             connector = cloneConnectorGraph(connector);
             link.setConnector(connector);
             integrationMethodRepository.save(method);
@@ -1103,11 +1111,13 @@ public class ConnectorUploadService {
 
         ConnectorBundle bundle = connector.getConnectorBundle();
 
-        // The version the edit is based on: the same row the modal displayed (first with a bundle
-        // version, matching the previous in-place update's selection).
+        // The version the edit is based on: the connector's current (newest) version row — the same
+        // one the edit modal displayed (see ApplicationMapper#buildIntegrationMethodListItem). Ids
+        // are sequence-assigned, so max id is the latest; consecutive edits thus compare against
+        // the previous edit's row, not the original.
         ConnectorVersion baseCv = connector.getConnectorVersions().stream()
                 .filter(cv -> cv.getConnectorBundleVersion() != null)
-                .findFirst()
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                 .orElse(null);
         ConnectorBundleVersion baseCbv = baseCv != null ? baseCv.getConnectorBundleVersion() : null;
 
@@ -1200,19 +1210,6 @@ public class ConnectorUploadService {
         saveConnectorVersionCapabilities(dto.connectorCapabilities(), cv);
 
         connectorRepository.save(connector);
-    }
-
-    /**
-     * Whether the edit changes the connector's own identity — className or bundleName. Version is
-     * deliberately NOT part of this: a version change just adds a new version row under the same
-     * connector (see {@link #updateConnector}), while a className/bundleName change makes it a
-     * different connector, which must not leak onto other revisions sharing the rows. A blank
-     * incoming value means "unchanged".
-     */
-    private boolean changesConnectorIdentity(Connector connector, EditConnectorDto dto) {
-        ConnectorBundle bundle = connector.getConnectorBundle();
-        return identifierDiffers(dto.className(), connector.getFullyQualifiedClassName())
-                || identifierDiffers(dto.bundleName(), bundle != null ? bundle.getBundleName() : null);
     }
 
     private static boolean identifierDiffers(String incoming, String current) {
