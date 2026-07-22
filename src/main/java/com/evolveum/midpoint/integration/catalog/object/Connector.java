@@ -46,6 +46,15 @@ public class Connector {
     @Column(name = "fully_qualified_class_name")
     private String fullyQualifiedClassName;
 
+    /**
+     * Id of the connector this row was copy-on-write cloned from (null for connectors created
+     * directly). Set by the edit flow when a shared connector is cloned so a draft's changes stay
+     * invisible until approval; the approve step uses it to fold a same-version metadata edit back
+     * into the original connector, so every integration method linking it sees the correction.
+     */
+    @Column(name = "cloned_from")
+    private Integer clonedFrom;
+
     @ManyToOne
     @JoinColumn(name = "connector_bundle_id", nullable = false)
     private ConnectorBundle connectorBundle;

@@ -30,8 +30,10 @@ public interface ConnectorVersionRepository extends JpaRepository<ConnectorVersi
      * version on ANOTHER connector row. The version is matched against both the version row's own
      * revision and the bundle version it points to, since edits keep the latter current. The class
      * name may live on the version row or only on the connector, so both are consulted; a null
-     * className (low-code connectors) skips that part of the identity. Used to warn the reviewer
-     * about a duplicate version — never to block it.
+     * className (low-code connectors) skips that part of the identity. Besides the excluded connector
+     * itself, the connector it was copy-on-write cloned from is ignored too — a pending metadata-edit
+     * clone matches its own original by definition and is folded back into it on approval, so that
+     * pair is not a duplicate. Used to warn the reviewer about a duplicate version — never to block it.
      */
     @Query("""
             select count(cv) > 0 from ConnectorVersion cv
@@ -41,7 +43,11 @@ public interface ConnectorVersionRepository extends JpaRepository<ConnectorVersi
                    or cv.fullyQualifiedClassName = :className
                    or cv.connector.fullyQualifiedClassName = :className)
               and (cv.revision = :version or cbv.bundleVersion = :version)
-              and (:excludeConnectorId is null or cv.connector.id <> :excludeConnectorId)
+              and (:excludeConnectorId is null or (
+                   cv.connector.id <> :excludeConnectorId
+                   and cv.connector.id not in (
+                       select c.clonedFrom from Connector c
+                       where c.id = :excludeConnectorId and c.clonedFrom is not null)))
             """)
     boolean existsDuplicateVersion(@Param("bundleName") String bundleName,
                                    @Param("className") String className,

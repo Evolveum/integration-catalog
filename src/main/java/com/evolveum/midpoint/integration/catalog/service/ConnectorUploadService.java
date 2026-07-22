@@ -669,6 +669,11 @@ public class ConnectorUploadService {
             Connector connector = link.getConnector();
             if (connector == null) continue;
 
+            // A copy-on-write clone holding a same-version metadata edit is folded back into the
+            // shared original here, so the approved correction shows on EVERY method linking that
+            // connector; a changed-version clone stays a separate connector and is promoted below.
+            connector = mergeMetadataCloneIntoOriginal(method, link, connector);
+
             ConnectorBundle bundle = connector.getConnectorBundle();
             if (bundle != null) {
                 if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
@@ -995,6 +1000,9 @@ public class ConnectorUploadService {
         clone.setFullyQualifiedClassName(src.getFullyQualifiedClassName());
         clone.setDescription(src.getDescription());
         clone.setConnectorBundle(bundle);
+        // Remember the ultimate original (a clone of a clone keeps pointing at the root), so the
+        // approve step can fold a same-version metadata edit back into the shared original.
+        clone.setClonedFrom(src.getClonedFrom() != null ? src.getClonedFrom() : src.getId());
         connectorRepository.save(clone);
 
         for (ConnectorVersion srcCv : src.getConnectorVersions()) {
@@ -1074,17 +1082,19 @@ public class ConnectorUploadService {
      * Applies an "Edit connector" modal save. The connector version is NEVER changed automatically —
      * it has to match the Maven artifact, and catching duplicates is the reviewer's job.
      *
-     * <p>An edit that keeps the version and the connector identity (className, bundleName) updates
-     * the ORIGINAL rows in place: it is the same connector version, so every integration method
-     * linking this connector — including other published majors — sees the correction.
+     * <p>A connector shared with another revision is always cloned first (see
+     * {@link #cloneConnectorGraph}): nothing may show anywhere before this draft is approved. What
+     * happens on approval depends on the edit (see {@link #promoteConnectorsToActive}): a
+     * same-version metadata edit is folded back into the shared original — it is the same connector
+     * version, so every integration method linking it sees the correction — while a version- or
+     * identity-changing edit keeps the clone as a separate connector, leaving revisions pinned to
+     * the old version untouched.
      *
-     * <p>An edit that changes the version (or the identity) is a different connector version. The
-     * shared rows are cloned first (see {@link #cloneConnectorGraph}) so revisions pinned to the old
-     * version keep it and nothing shows on them before this draft is approved; the edit then lands
-     * as a new version row on the copy. If the entered version is already used on this connector,
-     * that existing row is rewritten instead (the (bundle, bundle_version) pair must stay unique)
-     * and error_message records "Duplicate version with (...)" for the reviewer; the same flag marks
-     * a new version whose build (className, bundleName, commit hash) is identical to the current one.
+     * <p>A version-changing edit lands as a new version row. If the entered version is already used
+     * on this connector, that existing row is rewritten instead (the (bundle, bundle_version) pair
+     * must stay unique) and error_message records "Duplicate version with (...)" for the reviewer;
+     * the same flag marks a new version whose build (className, bundleName, commit hash) is
+     * identical to the current one.
      */
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
@@ -1099,6 +1109,18 @@ public class ConnectorUploadService {
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
 
         Connector connector = link.getConnector();
+
+        // Copy-on-write: a connector shared with another revision (typically the still-published one
+        // this draft was forked from) is never edited directly — no change may show outside this
+        // draft before approval. The edit lands on a clone; the approve step folds a same-version
+        // metadata edit back into the original (making it visible to every method linking it) and
+        // keeps a changed-version clone as a separate connector.
+        if (integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
+            connector = cloneConnectorGraph(connector);
+            link.setConnector(connector);
+            integrationMethodRepository.save(method);
+        }
+
         ConnectorBundle bundle = connector.getConnectorBundle();
 
         // The version the edit is based on: the connector's current (newest) version row — the same
@@ -1120,20 +1142,6 @@ public class ConnectorUploadService {
                 || identifierDiffers(dto.bundleName(), bundle != null ? bundle.getBundleName() : null);
         boolean buildChanged = identityChanged
                 || identifierDiffers(dto.commitTag(), baseCbv != null ? baseCbv.getCommitTag() : null);
-
-        // Copy-on-write, only when the edit produces a DIFFERENT connector version: revisions
-        // sharing the rows stay pinned to the old version, so the new one must not appear on them
-        // (e.g. on a still-published revision) before this draft is approved. A same-version edit
-        // deliberately skips this — it corrects the shared original for everyone.
-        if ((versionChanged || identityChanged)
-                && integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
-            connector = cloneConnectorGraph(connector);
-            link.setConnector(connector);
-            integrationMethodRepository.save(method);
-            bundle = connector.getConnectorBundle();
-            baseCv = newestVersionOf(connector);
-            baseCbv = baseCv != null ? baseCv.getConnectorBundleVersion() : null;
-        }
 
         // Connector metadata — it is the same connector for everyone linking it.
         connector.setDisplayName(dto.displayName());
@@ -1159,7 +1167,9 @@ public class ConnectorUploadService {
         }
 
         if (!versionChanged && !identityChanged) {
-            // Same connector version: correct the original row in place, no new version anywhere.
+            // Same connector version: a metadata correction, no new version anywhere. It lands on
+            // the current row (of the clone when shared) and the approve step folds it back into
+            // the shared original so every method linking the connector sees it.
             if (baseCv != null) {
                 applyVersionEdit(baseCv, baseCbv, dto, null);
             }
@@ -1229,6 +1239,122 @@ public class ConnectorUploadService {
                 .filter(cv -> cv.getConnectorBundleVersion() != null)
                 .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                 .orElse(null);
+    }
+
+    /**
+     * If the given connector is a copy-on-write clone whose current version AND identity (className,
+     * bundleName) still match its original, the clone only carries a metadata correction of the same
+     * connector version. On approval that correction belongs to everyone: it is copied onto the
+     * original, this method's link is repointed at the original, and the clone graph is deleted.
+     * Returns the connector the method is linked to afterwards — the original when merged, the
+     * unchanged clone otherwise (a changed-version/identity clone stays a separate connector).
+     */
+    private Connector mergeMetadataCloneIntoOriginal(IntegrationMethod method,
+                                                     IntegrationMethodConnector link, Connector clone) {
+        Integer originId = clone.getClonedFrom();
+        if (originId == null) return clone;
+        Connector original = connectorRepository.findById(originId).orElse(null);
+        if (original == null || original.getId().equals(clone.getId())) {
+            // The original is gone (e.g. superseded and cleaned up) — the clone stands on its own.
+            clone.setClonedFrom(null);
+            connectorRepository.save(clone);
+            return clone;
+        }
+
+        ConnectorVersion cloneCv = newestVersionOf(clone);
+        ConnectorVersion origCv = newestVersionOf(original);
+        String cloneVersion = firstNonBlank(
+                cloneCv != null && cloneCv.getConnectorBundleVersion() != null
+                        ? cloneCv.getConnectorBundleVersion().getBundleVersion() : null,
+                cloneCv != null ? cloneCv.getRevision() : null, clone.getRevision());
+        String origVersion = firstNonBlank(
+                origCv != null && origCv.getConnectorBundleVersion() != null
+                        ? origCv.getConnectorBundleVersion().getBundleVersion() : null,
+                origCv != null ? origCv.getRevision() : null, original.getRevision());
+
+        ConnectorBundle cloneBundle = clone.getConnectorBundle();
+        ConnectorBundle origBundle = original.getConnectorBundle();
+        boolean sameIdentity = Objects.equals(cloneVersion, origVersion)
+                && Objects.equals(clone.getFullyQualifiedClassName(), original.getFullyQualifiedClassName())
+                && Objects.equals(cloneBundle != null ? cloneBundle.getBundleName() : null,
+                        origBundle != null ? origBundle.getBundleName() : null);
+        if (cloneVersion == null || !sameIdentity) {
+            // A new version (or a different connector identity) was created on the clone — it is
+            // promoted as its own connector; revisions pinned to the old version keep the original.
+            return clone;
+        }
+
+        // Metadata-only clone: copy its values onto the shared original.
+        original.setDisplayName(clone.getDisplayName());
+        original.setMaintainer(clone.getMaintainer());
+        original.setDescription(clone.getDescription());
+        original.setFullyQualifiedClassName(clone.getFullyQualifiedClassName());
+        original.setRevision(clone.getRevision());
+        if (origBundle != null && cloneBundle != null) {
+            origBundle.setDisplayName(cloneBundle.getDisplayName());
+            origBundle.setDescription(cloneBundle.getDescription());
+            origBundle.setMaintainer(cloneBundle.getMaintainer());
+            origBundle.setLicense(cloneBundle.getLicense());
+            origBundle.setTicketingLink(cloneBundle.getTicketingLink());
+            origBundle.setProjectHomepage(cloneBundle.getProjectHomepage());
+            origBundle.setGitCloneUrl(cloneBundle.getGitCloneUrl());
+            origBundle.setPathToProject(cloneBundle.getPathToProject());
+            origBundle.setBuildFramework(cloneBundle.getBuildFramework());
+            connectorBundleRepository.save(origBundle);
+        }
+        if (origCv != null && cloneCv != null) {
+            origCv.setMaintainer(cloneCv.getMaintainer());
+            origCv.setFullyQualifiedClassName(cloneCv.getFullyQualifiedClassName());
+            ConnectorBundleVersion origCbv = origCv.getConnectorBundleVersion();
+            ConnectorBundleVersion cloneCbv = cloneCv.getConnectorBundleVersion();
+            if (origCbv != null && cloneCbv != null) {
+                origCbv.setMaintainer(cloneCbv.getMaintainer());
+                origCbv.setBrowseLink(cloneCbv.getBrowseLink());
+                origCbv.setGitCloneUrl(cloneCbv.getGitCloneUrl());
+                origCbv.setPathToProject(cloneCbv.getPathToProject());
+                origCbv.setCommitTag(cloneCbv.getCommitTag());
+                origCbv.setBuildFramework(cloneCbv.getBuildFramework());
+                connectorBundleVersionRepository.save(origCbv);
+            }
+            copyVersionCapabilities(cloneCv, origCv);
+            connectorVersionRepository.save(origCv);
+        }
+        connectorRepository.save(original);
+
+        // Repoint this method at the original, then drop the now-redundant clone graph: the
+        // connector delete cascades its versions (and their capabilities), the bundle delete its
+        // bundle versions.
+        link.setConnector(original);
+        integrationMethodRepository.save(method);
+        connectorRepository.delete(clone);
+        if (cloneBundle != null) {
+            connectorBundleRepository.delete(cloneBundle);
+        }
+        log.info("Folded metadata-edit clone {} back into connector {} on approval", clone.getId(), original.getId());
+        return original;
+    }
+
+    /** Replaces {@code to}'s capabilities with a copy of {@code from}'s. */
+    private void copyVersionCapabilities(ConnectorVersion from, ConnectorVersion to) {
+        if (to.getCapabilities() != null && !to.getCapabilities().isEmpty()) {
+            connVersionCapabilityRepository.deleteAll(to.getCapabilities());
+            to.getCapabilities().clear();
+        }
+        for (ConnVersionCapability srcCap : from.getCapabilities()) {
+            ConnVersionCapability cap = new ConnVersionCapability();
+            cap.setObjectClass(srcCap.getObjectClass());
+            cap.setConnectorVersion(to);
+            ConnVersionCapability saved = connVersionCapabilityRepository.save(cap);
+            for (ConnVersionCapabilityItem srcItem : srcCap.getItems()) {
+                ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
+                item.setConnVersionCapabilityId(saved.getId());
+                item.setCapabilityId(srcItem.getCapabilityId());
+                // Persisted via the items collection's cascade on flush (an explicit save would put
+                // a second instance with the same composite id into the session).
+                saved.getItems().add(item);
+            }
+            to.getCapabilities().add(saved);
+        }
     }
 
     /** Rewrites an existing connector version (+ its bundle version) with the edited values. */
