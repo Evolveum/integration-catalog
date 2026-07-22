@@ -142,16 +142,18 @@ public class ApplicationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this integration method.");
         }
-        assertNotUnderReview(method);
+        assertNotUnderReview(username, method);
     }
 
     /**
-     * Blocks any edit while a revision is REVIEWING: once a superuser starts a review the revision is
-     * locked until the review is resolved, so no one (including the author) may change it underneath
-     * the reviewer. Mirrors the client, which disables the edit controls for this state.
+     * Blocks edits by non-superusers while a revision is REVIEWING: once a review starts the revision
+     * is locked for its author until the review is resolved, so nothing changes underneath the
+     * reviewer. Superusers are exempt — the reviewer may fix findings directly during the review
+     * (or hand the revision back via stop-review for the author to fix). Mirrors the client, which
+     * disables the edit controls for this state for everyone but superusers.
      */
-    private void assertNotUnderReview(IntegrationMethod method) {
-        if (method.getLifecycleState() == LifecycleType.REVIEWING) {
+    private void assertNotUnderReview(String username, IntegrationMethod method) {
+        if (method.getLifecycleState() == LifecycleType.REVIEWING && !authService.isSuperuser(username)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This integration method is locked while it is under review.");
         }
@@ -179,7 +181,7 @@ public class ApplicationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this connector.");
         }
-        assertNotUnderReview(method);
+        assertNotUnderReview(username, method);
     }
 
     public Application getApplication(UUID uuid) {
@@ -223,6 +225,20 @@ public class ApplicationService {
     public boolean checkBundleNameExists(String bundleName) {
         if (bundleName == null || bundleName.isBlank()) return false;
         return connectorBundleRepository.existsByBundleName(bundleName);
+    }
+
+    /**
+     * Whether the given connector version already exists in the catalog on another connector with
+     * the same identity (bundle name + class name). Duplicate versions are never blocked — the
+     * connector version must match the Maven artifact, so it is the reviewer's call; this check
+     * only feeds the warning telling them a matching version exists and should be reused.
+     */
+    public boolean checkConnectorVersionExists(String bundleName, String className, String version,
+                                               Integer excludeConnectorId) {
+        if (bundleName == null || bundleName.isBlank() || version == null || version.isBlank()) return false;
+        String normalizedClassName = (className == null || className.isBlank()) ? null : className.trim();
+        return connectorVersionRepository.existsDuplicateVersion(
+                bundleName.trim(), normalizedClassName, version.trim(), excludeConnectorId);
     }
 
     public List<CapabilityDto> getCapabilities() {

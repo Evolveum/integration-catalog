@@ -566,8 +566,9 @@
                                       </button>
                                     }
                                   } @else if (version.lifecycleState === 'REVIEWING') {
-                                    <!-- Locked while under review: editing actions stay visible but disabled;
-                                         View details remains active. -->
+                                    <!-- Locked while under review for the author: their editing actions stay
+                                         visible but disabled; View details remains active. The reviewing
+                                         superuser may still edit — the reviewer can fix findings directly. -->
                                     @if (canEdit(version)) {
                                       <button type="button" class="btn btn-im-cancel" disabled>
                                         <i class="fa-solid fa-trash-can"></i>Cancel request
@@ -576,7 +577,11 @@
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
-                                    @if (canEdit(version)) {
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    } @else if (canEdit(version)) {
                                       <button type="button" class="btn btn-im-edit-upgrade" disabled>
                                         <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                       </button>

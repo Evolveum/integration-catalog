@@ -411,8 +411,12 @@ public class ConnectorUploadService {
 
         // A rejected revision is resubmitted in place (like an in-review draft), not forked into a new
         // instance: it is rewritten and flipped back to IN_REVIEW so a single record evolves.
+        // REVIEWING counts as a draft too: only a superuser gets past the edit lock in that state
+        // (see ApplicationService#assertNotUnderReview), and the reviewer's fixes must land on the
+        // revision under review, not fork a fresh draft next to it.
         boolean editingDraft = existing.getLifecycleState() == LifecycleType.IN_REVIEW
-                || existing.getLifecycleState() == LifecycleType.REJECTED;
+                || existing.getLifecycleState() == LifecycleType.REJECTED
+                || existing.getLifecycleState() == LifecycleType.REVIEWING;
 
         if (dto.minorBump() && editingDraft) {
             // "Save" on an in-review/rejected draft: a small correction. Bump in place (2.1 -> 2.2),
@@ -513,6 +517,9 @@ public class ConnectorUploadService {
         // Inherit the source revision's creation time so the method keeps its list position.
         updated.setCreatedAt(existing.getCreatedAt());
         updated.setLifecycleState(wasRejected ? LifecycleType.IN_REVIEW : existing.getLifecycleState());
+        // Keep the reviewer on a revision edited during its review (REVIEWING survives the rewrite);
+        // a resubmitted rejected revision starts a fresh review cycle with no reviewer.
+        updated.setReviewedBy(wasRejected ? null : existing.getReviewedBy());
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
@@ -558,8 +565,9 @@ public class ConnectorUploadService {
 
     /**
      * Starts a review on an in-review revision: flips IN_REVIEW -> REVIEWING. While REVIEWING the
-     * revision is locked for editing (see ApplicationService#assertCanEditMethod) so no changes can
-     * land under the reviewer, and only from this state do the approve/reject actions become available.
+     * revision is locked for its author (see ApplicationService#assertCanEditMethod) so no changes
+     * land under the reviewer — superusers stay exempt so the reviewer can fix findings directly —
+     * and only from this state do the approve/reject actions become available.
      */
     @Transactional
     public void startReviewIntegrationMethod(UUID methodId, String revision, String username) {
@@ -1062,8 +1070,10 @@ public class ConnectorUploadService {
     /**
      * Updates an existing connector (and its bundle / latest version) in place, replacing the
      * fields edited via the "Edit connector" modal. The connector must be linked to the given
-     * integration method revision. If the connector is shared with another revision it is first
-     * cloned (see {@link #cloneConnectorGraph}) so the edit does not affect that other revision.
+     * integration method revision. An edit that keeps the connector identity (version, className,
+     * bundleName) always lands on the original rows — it is the same connector on every revision
+     * linking it. Only an identity-changing edit of a connector shared with another revision is
+     * first cloned (see {@link #cloneConnectorGraph}) so the other revision keeps the original.
      */
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
@@ -1078,12 +1088,15 @@ public class ConnectorUploadService {
 
         Connector connector = link.getConnector();
 
-        // Copy-on-write: forking a published revision (createDraft / clonePublishedAsDraft) makes the new
-        // revision's link point at the SAME Connector row as the source. Editing it in place would corrupt
-        // the revision it was forked from (e.g. the still-published one). So if this connector is linked by
-        // more than one revision, deep-clone the whole connector graph and repoint THIS revision's link at
-        // the copy before applying the edit — the shared original is then left untouched.
-        if (integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
+        // A connector is identified by (version, className, bundleName). While the edit keeps that
+        // identity, it is still the SAME connector everywhere it is linked, so the original rows are
+        // updated in place and the metadata change intentionally shows on every revision sharing it.
+        // Only an edit that CHANGES the identity is a different connector build; then, if the current
+        // rows are shared with another revision, the whole connector graph is deep-cloned and this
+        // revision's link is repointed at the copy first, so the other revision (e.g. the still-
+        // published one) keeps the original identity untouched.
+        if (changesConnectorIdentity(connector, dto)
+                && integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
             connector = cloneConnectorGraph(connector);
             link.setConnector(connector);
             integrationMethodRepository.save(method);
@@ -1096,6 +1109,8 @@ public class ConnectorUploadService {
         connector.setFullyQualifiedClassName(dto.className());
         // The connector version is stored in the (non-PK) bundle_version column and mirrored on
         // connector.revision; the PK revision columns are left as-is (they are internal identifiers).
+        // The value itself is never adjusted here — it has to match the Maven artifact, and catching
+        // a duplicate is the reviewer's job (see checkConnectorVersionExists).
         if (dto.version() != null && !dto.version().isBlank()) {
             connector.setRevision(dto.version().trim());
         }
@@ -1139,6 +1154,24 @@ public class ConnectorUploadService {
         }
 
         connectorRepository.save(connector);
+    }
+
+    /**
+     * Whether the edit changes the connector's identity — version, className or bundleName. These
+     * three identify a concrete connector build (they must match the Maven artifact); an edit that
+     * keeps all of them is a metadata correction of the same connector. A blank incoming value means
+     * "unchanged", mirroring how {@link #updateConnector} skips blank version/bundleName on write.
+     */
+    private boolean changesConnectorIdentity(Connector connector, EditConnectorDto dto) {
+        ConnectorBundle bundle = connector.getConnectorBundle();
+        return identifierDiffers(dto.version(), connector.getRevision())
+                || identifierDiffers(dto.className(), connector.getFullyQualifiedClassName())
+                || identifierDiffers(dto.bundleName(), bundle != null ? bundle.getBundleName() : null);
+    }
+
+    private static boolean identifierDiffers(String incoming, String current) {
+        if (incoming == null || incoming.isBlank()) return false;
+        return !incoming.trim().equals(current == null ? "" : current.trim());
     }
 
     private void replaceConnectorVersionCapabilities(ConnectorVersion connectorVersion,

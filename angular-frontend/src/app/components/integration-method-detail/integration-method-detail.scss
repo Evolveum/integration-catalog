@@ -90,6 +90,24 @@
   margin-top: 0.15rem;
 }
 
+/* Amber inline warning inside a connector card: the connector's version already exists in the
+   catalog, so the reviewer should consider reusing the existing version. Informational only. */
+.version-exists-warning {
+  background: #fdf6e3;
+  border: 1px solid #f5e2b8;
+  color: #7a5b00;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.version-exists-warning-icon {
+  color: #d9a300;
+  margin-top: 0.15rem;
+}
+
 /* Cyan variant of the banner for the locked REVIEWING state. */
 .reviewing-banner {
   background: #d1f0f5;

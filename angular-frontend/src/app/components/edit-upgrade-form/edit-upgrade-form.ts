@@ -114,10 +114,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.stagedDeletes().size > 0 || this.stagedCompat().size > 0
   );
 
-  // Staged edits that only touch a connector's identity fields (name, description, maintainer)
-  // may be applied by a plain minor Save. Any other change — version, license, bundle name,
-  // capabilities, any Development & Build field, and (as before) adds, deletes or compatibility
-  // changes — is a content change and requires a new major version.
+  // A staged edit that keeps the connector's identity — version, className and bundleName, the
+  // triple that must match the Maven artifact — is the same connector and may be applied by a
+  // plain minor Save, whatever other fields it touches. Changing any identity field means a
+  // different connector build; that (and, as before, adds, deletes or compatibility changes)
+  // requires a new major version.
   protected readonly hasMajorConnectorChanges = computed(() => {
     if (this.stagedConnectors().length > 0 || this.stagedDeletes().size > 0 || this.stagedCompat().size > 0) {
       return true;
@@ -133,39 +134,18 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   // Major connector changes to a PUBLISHED revision must create a new version, so plain "Save"
   // is disabled and only "Save as new version" applies them. Minor-safe edits (see
-  // hasMajorConnectorChanges) keep plain Save available. On an in-review draft (only "Save" is
-  // shown) staged connector changes are fine, so this stays false there.
+  // hasMajorConnectorChanges) keep plain Save available. On a draft revision (only "Save" is
+  // shown — see isDraftState) staged connector changes are fine, so this stays false there.
   protected readonly requiresNewVersionForConnectorChange = computed(() =>
-    this.hasMajorConnectorChanges() &&
-    this.methodLifecycleState() !== 'IN_REVIEW' && this.methodLifecycleState() !== 'REJECTED'
+    this.hasMajorConnectorChanges() && !this.isDraftState()
   );
 
-  /** Whether a staged edit changes anything beyond name, description and maintainer. */
+  /** Whether a staged edit changes the connector identity (version, className, bundleName). */
   private isMajorConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): boolean {
     const norm = (v: string | null | undefined): string => (v ?? '').trim();
     return norm(p.version) !== norm(c.version)
-      || norm(p.license) !== norm(c.licenseType)
-      || norm(p.bundleName) !== norm(c.bundleName)
-      || norm(p.browseLink) !== norm(c.browseLink)
-      || norm(p.supportPortal) !== norm(c.ticketingLink)
-      || norm(p.gitCloneUrl) !== norm(c.gitCloneUrl)
-      || norm(p.buildFramework).toLowerCase() !== norm(c.buildFramework).toLowerCase()
-      || norm(p.pathToProject) !== norm(c.pathToProjectDirectory)
       || norm(p.className) !== norm(c.className)
-      || norm(p.commitTag) !== norm(c.commitTag)
-      || this.capabilitiesKey(p.connectorCapabilities)
-        !== this.capabilitiesKey((c.objectClassCapabilities ?? [])
-          .map(o => ({ objectClass: o.objectName, capabilityNames: o.capabilities })));
-  }
-
-  /** Order-insensitive canonical form of a capability selection, for change detection. */
-  private capabilitiesKey(groups: { objectClass: string; capabilityNames: string[] }[]): string {
-    return groups
-      .map(g => ({ oc: g.objectClass, caps: [...g.capabilityNames].sort() }))
-      .filter(g => g.caps.length > 0)
-      .sort((a, b) => a.oc.localeCompare(b.oc))
-      .map(g => `${g.oc}:${g.caps.join(',')}`)
-      .join('|');
+      || norm(p.bundleName) !== norm(c.bundleName);
   }
 
   protected isConnectorPending(connectorId: number | null): boolean {
@@ -625,10 +605,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   /**
    * Draft (non-published) states editable in place with only "Save" — no "Save as new version".
    * REJECTED is treated like IN_REVIEW here so a rejected method is fixed and resubmitted via Save.
+   * REVIEWING too: only a superuser (the reviewer) can open this form then, and their fixes must
+   * land on the revision under review, not fork a new draft.
    */
   protected isDraftState(): boolean {
     const state = this.methodLifecycleState();
-    return state === 'IN_REVIEW' || state === 'REJECTED';
+    return state === 'IN_REVIEW' || state === 'REJECTED' || state === 'REVIEWING';
   }
   
   // A minor "Save" shows a confirmation modal; a major "Save as new version" shows an upgrade modal.

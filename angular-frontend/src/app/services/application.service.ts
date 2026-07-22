@@ -5,7 +5,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import {HttpClient, HttpErrorResponse, HttpResponse} from '@angular/common/http';
+import {HttpClient, HttpErrorResponse, HttpParams, HttpResponse} from '@angular/common/http';
 import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
@@ -70,8 +70,17 @@ export class ApplicationService {
     return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
   }
 
-  checkVersionExists(version: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version?version=${encodeURIComponent(version)}`);
+  /**
+   * Whether another connector with the same identity (bundle name + class name) already carries
+   * this version. Informational only — duplicates are never blocked; the reviewer decides whether
+   * the existing version should be reused.
+   */
+  checkVersionExists(bundleName: string, className: string | null, version: string,
+                     excludeConnectorId?: number | null): Observable<boolean> {
+    let params = new HttpParams().set('bundleName', bundleName).set('version', version);
+    if (className) params = params.set('className', className);
+    if (excludeConnectorId != null) params = params.set('excludeConnectorId', excludeConnectorId);
+    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version`, { params });
   }
 
   checkBundleNameExists(bundleName: string): Observable<boolean> {

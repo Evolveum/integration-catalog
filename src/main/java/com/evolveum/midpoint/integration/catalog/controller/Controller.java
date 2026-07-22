@@ -139,6 +139,20 @@ public class Controller {
         return ResponseEntity.ok(exists);
     }
 
+    @Operation(summary = "Check if a connector version already exists",
+            description = "Returns true when another connector with the same bundle name and class name "
+                    + "already carries the given version. Informational only — duplicates are not blocked; "
+                    + "the reviewer decides whether the existing version should be reused.")
+    @GetMapping("/upload/check-version")
+    public ResponseEntity<Boolean> checkConnectorVersionExists(
+            @RequestParam String bundleName,
+            @RequestParam(required = false) String className,
+            @RequestParam String version,
+            @RequestParam(required = false) Integer excludeConnectorId) {
+        return ResponseEntity.ok(applicationService.checkConnectorVersionExists(
+                bundleName, className, version, excludeConnectorId));
+    }
+
     @Operation(summary = "Upload connector implementation")
     @PostMapping("/upload/connector")
     public ResponseEntity<String> uploadConnector(

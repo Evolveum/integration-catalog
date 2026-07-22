@@ -202,10 +202,37 @@ export class IntegrationMethodDetail implements OnInit {
     this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
+        this.checkDuplicateVersions(connectors);
         this.finishLoading();
       },
       error: () => this.finishLoading()
     });
+  }
+
+  // ── Duplicate connector-version warning (reviewer aid) ────────────────────
+  // Connector ids whose version already exists in the catalog on another connector with the same
+  // identity (bundle name + class name). Duplicates are never blocked — the version must match the
+  // Maven artifact — so this only feeds the reviewer's warning that the existing version should be
+  // reused. Checked for superusers on revisions awaiting or under review.
+  protected readonly duplicateVersionIds = signal<Set<number>>(new Set());
+
+  private checkDuplicateVersions(connectors: ImplementationListItem[]): void {
+    this.duplicateVersionIds.set(new Set());
+    if (!this.isSuperuser() || (!this.isInReview() && !this.isReviewing())) return;
+    for (const c of connectors) {
+      if (c.connectorId == null || !c.bundleName || !c.version) continue;
+      const id = c.connectorId;
+      this.applicationService.checkVersionExists(c.bundleName, c.className || null, c.version, id).subscribe({
+        next: (exists) => {
+          if (exists) this.duplicateVersionIds.update(s => new Set(s).add(id));
+        },
+        error: () => { /* informational check only; a failure just leaves the warning off */ }
+      });
+    }
+  }
+
+  protected hasDuplicateVersion(c: ImplementationListItem): boolean {
+    return c.connectorId != null && this.duplicateVersionIds().has(c.connectorId);
   }
 
   private finishLoading(): void {
