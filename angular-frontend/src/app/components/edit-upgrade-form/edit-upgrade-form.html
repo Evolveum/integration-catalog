@@ -397,14 +397,13 @@
       <div class="edit-footer">
         <button type="button" class="btn btn-link edit-cancel-btn" (click)="cancel()">Cancel</button>
         <div class="d-flex align-items-center gap-2">
-          @if (requiresNewVersionForConnectorChange()) {
-            <span class="edit-save-hint text-muted me-1">Connector changes staged — save as a new version to apply them.</span>
+          @if (suggestsNewVersionForConnectorChange()) {
+            <span class="edit-save-hint text-muted me-1"></span>
           } @else if (hasPendingConnectorChanges()) {
-            <span class="edit-save-hint text-muted me-1">You have unsaved connector changes — click Save to apply them.</span>
+            <span class="edit-save-hint text-muted me-1">You have unsaved connector changes</span>
           }
           <button type="button" class="btn edit-save-btn"
-                  [disabled]="!isMidpointRangeValid() || isSaving() || requiresNewVersionForConnectorChange()"
-                  [title]="requiresNewVersionForConnectorChange() ? 'Connector changes are staged — save them as a new version.' : ''"
+                  [disabled]="!isMidpointRangeValid() || isSaving()"
                   (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
           @if (!isDraftState()) {
             <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid() || isSaving()" (click)="saveAsNewVersion()">

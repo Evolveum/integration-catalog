@@ -314,7 +314,7 @@ public class ApplicationService {
         // A connector is gated on its own maintainer, not the IM's: the IM maintainer must not
         // be able to edit a connector maintained by someone else (a superuser still can).
         assertCanEditConnector(username, methodId, revision, connectorId);
-        connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
+        connectorUploadService.updateConnector(methodId, revision, connectorId, dto, username);
     }
 
     @Transactional

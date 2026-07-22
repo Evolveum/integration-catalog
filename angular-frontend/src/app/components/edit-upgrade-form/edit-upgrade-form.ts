@@ -114,11 +114,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.stagedDeletes().size > 0 || this.stagedCompat().size > 0
   );
 
-  // A staged edit that keeps the connector's identity — version, className and bundleName, the
-  // triple that must match the Maven artifact — is the same connector and may be applied by a
-  // plain minor Save, whatever other fields it touches. Changing any identity field means a
-  // different connector build; that (and, as before, adds, deletes or compatibility changes)
-  // requires a new major version.
+  // A staged edit changing a connector's identity — version, className or bundleName, the triple
+  // that must match the Maven artifact — or an add/delete/compatibility change SUGGESTS saving as
+  // a new version, but never forces it: Save stays enabled, and the Save vs "Save as new version"
+  // choice is simply the author's signal to the reviewer of how they want the change treated
+  // (e.g. a wording fix may deliberately stay on the same IM version). The reviewer decides.
   protected readonly hasMajorConnectorChanges = computed(() => {
     if (this.stagedConnectors().length > 0 || this.stagedDeletes().size > 0 || this.stagedCompat().size > 0) {
       return true;
@@ -132,11 +132,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
   });
 
-  // Major connector changes to a PUBLISHED revision must create a new version, so plain "Save"
-  // is disabled and only "Save as new version" applies them. Minor-safe edits (see
-  // hasMajorConnectorChanges) keep plain Save available. On a draft revision (only "Save" is
-  // shown — see isDraftState) staged connector changes are fine, so this stays false there.
-  protected readonly requiresNewVersionForConnectorChange = computed(() =>
+  // Purely informational (see hasMajorConnectorChanges): shows the footer hint on a published
+  // revision, where both save buttons are offered. On a draft revision (only "Save" is shown —
+  // see isDraftState) the hint is pointless, so this stays false there.
+  protected readonly suggestsNewVersionForConnectorChange = computed(() =>
     this.hasMajorConnectorChanges() && !this.isDraftState()
   );
 

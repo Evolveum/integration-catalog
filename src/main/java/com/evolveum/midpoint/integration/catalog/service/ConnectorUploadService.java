@@ -34,10 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -1041,9 +1043,8 @@ public class ConnectorUploadService {
                     connVersionCapabilityItemRepository.save(item);
                     savedCap.getItems().add(item);
                 }
-                // Keep the in-memory collection in sync with what was persisted, so a later
-                // replaceConnectorVersionCapabilities on this version actually removes these
-                // cloned capabilities instead of adding a second set alongside them.
+                // Keep the in-memory collection in sync with what was persisted, so later reads of
+                // this version's capabilities see the cloned set without a refetch.
                 cv.getCapabilities().add(savedCap);
             }
 
@@ -1068,15 +1069,20 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Updates an existing connector (and its bundle / latest version) in place, replacing the
-     * fields edited via the "Edit connector" modal. The connector must be linked to the given
-     * integration method revision. An edit that keeps the connector identity (version, className,
-     * bundleName) always lands on the original rows — it is the same connector on every revision
-     * linking it. Only an identity-changing edit of a connector shared with another revision is
-     * first cloned (see {@link #cloneConnectorGraph}) so the other revision keeps the original.
+     * Applies an "Edit connector" modal save. Connector- and bundle-level metadata is updated in
+     * place — it is the same connector on every revision linking it. The version-level data always
+     * lands as a NEW connector version (+ bundle version) row, keeping the edited one intact, so the
+     * reviewer sees both the original and the edit. When the edit keeps the same build (className,
+     * bundleName and commit hash unchanged) or the entered version collides with an existing one,
+     * the new row's version is auto-bumped by a patch (1.1.1 -> 1.1.2) to keep versions unique and
+     * its error_message records the duplicate for the reviewer — duplicates are never blocked, the
+     * reviewer resolves them with the author. Only an edit changing the connector's own identity
+     * (className/bundleName) of a connector shared with another revision clones the graph first
+     * (see {@link #cloneConnectorGraph}) so the other revision keeps the original identity.
      */
     @Transactional
-    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
+                                String username) {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
 
@@ -1088,13 +1094,6 @@ public class ConnectorUploadService {
 
         Connector connector = link.getConnector();
 
-        // A connector is identified by (version, className, bundleName). While the edit keeps that
-        // identity, it is still the SAME connector everywhere it is linked, so the original rows are
-        // updated in place and the metadata change intentionally shows on every revision sharing it.
-        // Only an edit that CHANGES the identity is a different connector build; then, if the current
-        // rows are shared with another revision, the whole connector graph is deep-cloned and this
-        // revision's link is repointed at the copy first, so the other revision (e.g. the still-
-        // published one) keeps the original identity untouched.
         if (changesConnectorIdentity(connector, dto)
                 && integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
             connector = cloneConnectorGraph(connector);
@@ -1102,21 +1101,60 @@ public class ConnectorUploadService {
             integrationMethodRepository.save(method);
         }
 
-        // Connector
+        ConnectorBundle bundle = connector.getConnectorBundle();
+
+        // The version the edit is based on: the same row the modal displayed (first with a bundle
+        // version, matching the previous in-place update's selection).
+        ConnectorVersion baseCv = connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getConnectorBundleVersion() != null)
+                .findFirst()
+                .orElse(null);
+        ConnectorBundleVersion baseCbv = baseCv != null ? baseCv.getConnectorBundleVersion() : null;
+
+        // Same build = className, bundleName and commit hash all unchanged by the edit (a blank
+        // incoming value means "unchanged"). Such an edit duplicates the base version's content
+        // (e.g. a wording fix), which the reviewer must resolve — flagged via error_message below.
+        boolean sameBuild = !identifierDiffers(dto.className(),
+                        firstNonBlank(baseCv != null ? baseCv.getFullyQualifiedClassName() : null,
+                                connector.getFullyQualifiedClassName()))
+                && !identifierDiffers(dto.bundleName(), bundle != null ? bundle.getBundleName() : null)
+                && !identifierDiffers(dto.commitTag(), baseCbv != null ? baseCbv.getCommitTag() : null);
+
+        String currentVersion = firstNonBlank(
+                baseCbv != null ? baseCbv.getBundleVersion() : null,
+                baseCv != null ? baseCv.getRevision() : null,
+                connector.getRevision(), "1.0.0");
+        String requestedVersion = (dto.version() != null && !dto.version().isBlank())
+                ? dto.version().trim() : currentVersion;
+
+        // Versions already taken on this connector/bundle; the new row must not repeat any of them.
+        Set<String> takenVersions = new HashSet<>();
+        connector.getConnectorVersions().forEach(v -> takenVersions.add(v.getRevision()));
+        if (bundle != null) {
+            for (ConnectorBundleVersion v : bundle.getBundleVersions()) {
+                takenVersions.add(v.getRevision());
+                takenVersions.add(v.getBundleVersion());
+            }
+        }
+
+        String newVersion = requestedVersion;
+        String errorMessage = null;
+        if (takenVersions.contains(requestedVersion)) {
+            newVersion = bumpPatchUntilFree(requestedVersion, takenVersions);
+            errorMessage = "Duplicate version with (" + connector.getDisplayName() + " " + requestedVersion + ")";
+        } else if (sameBuild) {
+            errorMessage = "Duplicate version with (" + connector.getDisplayName() + " " + currentVersion + ")";
+        }
+
+        // Connector metadata — shared, updated in place.
         connector.setDisplayName(dto.displayName());
         connector.setMaintainer(dto.maintainer());
         connector.setDescription(dto.description());
         connector.setFullyQualifiedClassName(dto.className());
-        // The connector version is stored in the (non-PK) bundle_version column and mirrored on
-        // connector.revision; the PK revision columns are left as-is (they are internal identifiers).
-        // The value itself is never adjusted here — it has to match the Maven artifact, and catching
-        // a duplicate is the reviewer's job (see checkConnectorVersionExists).
-        if (dto.version() != null && !dto.version().isBlank()) {
-            connector.setRevision(dto.version().trim());
-        }
+        // connector.revision mirrors the connector's current version.
+        connector.setRevision(newVersion);
 
-        // Connector bundle
-        ConnectorBundle bundle = connector.getConnectorBundle();
+        // Connector bundle metadata — shared, updated in place.
         if (bundle != null) {
             bundle.setDisplayName(dto.displayName());
             bundle.setDescription(dto.description());
@@ -1131,41 +1169,49 @@ public class ConnectorUploadService {
             connectorBundleRepository.save(bundle);
         }
 
-        // Latest connector version + its bundle version
-        Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
-                .filter(cv -> cv.getConnectorBundleVersion() != null)
-                .findFirst();
-        if (latestCv.isPresent()) {
-            ConnectorVersion cv = latestCv.get();
-            cv.setMaintainer(dto.maintainer());
-            cv.setFullyQualifiedClassName(dto.className());
+        // The edit's version-level data: a fresh bundle version + connector version pair.
+        ConnectorBundleVersion cbv = new ConnectorBundleVersion();
+        cbv.setRevision(newVersion);
+        cbv.setBundleVersion(newVersion);
+        cbv.setConnectorBundle(bundle);
+        cbv.setAuthor(username);
+        cbv.setMaintainer(dto.maintainer());
+        cbv.setLifecycleState(LifecycleType.IN_REVIEW);
+        cbv.setBrowseLink(dto.browseLink());
+        cbv.setGitCloneUrl(dto.gitCloneUrl());
+        cbv.setPathToProject(dto.pathToProject());
+        cbv.setCommitTag(dto.commitTag());
+        cbv.setBuildFramework(dto.buildFramework() != null ? dto.buildFramework()
+                : (baseCbv != null ? baseCbv.getBuildFramework() : null));
+        connectorBundleVersionRepository.save(cbv);
 
-            ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
-            cbv.setBrowseLink(dto.browseLink());
-            cbv.setGitCloneUrl(dto.gitCloneUrl());
-            cbv.setPathToProject(dto.pathToProject());
-            cbv.setCommitTag(dto.commitTag());
-            if (dto.buildFramework() != null) cbv.setBuildFramework(dto.buildFramework());
-            if (dto.version() != null && !dto.version().isBlank()) cbv.setBundleVersion(dto.version().trim());
-            connectorBundleVersionRepository.save(cbv);
-            connectorVersionRepository.save(cv);
+        ConnectorVersion cv = new ConnectorVersion();
+        cv.setConnector(connector);
+        cv.setConnectorBundleVersion(cbv);
+        cv.setRevision(newVersion);
+        cv.setAuthor(username);
+        cv.setMaintainer(dto.maintainer());
+        cv.setFullyQualifiedClassName(dto.className());
+        cv.setLifecycleState(LifecycleType.IN_REVIEW);
+        cv.setErrorMessage(errorMessage);
+        connectorVersionRepository.save(cv);
+        connector.getConnectorVersions().add(cv);
 
-            replaceConnectorVersionCapabilities(cv, dto.connectorCapabilities());
-        }
+        saveConnectorVersionCapabilities(dto.connectorCapabilities(), cv);
 
         connectorRepository.save(connector);
     }
 
     /**
-     * Whether the edit changes the connector's identity — version, className or bundleName. These
-     * three identify a concrete connector build (they must match the Maven artifact); an edit that
-     * keeps all of them is a metadata correction of the same connector. A blank incoming value means
-     * "unchanged", mirroring how {@link #updateConnector} skips blank version/bundleName on write.
+     * Whether the edit changes the connector's own identity — className or bundleName. Version is
+     * deliberately NOT part of this: a version change just adds a new version row under the same
+     * connector (see {@link #updateConnector}), while a className/bundleName change makes it a
+     * different connector, which must not leak onto other revisions sharing the rows. A blank
+     * incoming value means "unchanged".
      */
     private boolean changesConnectorIdentity(Connector connector, EditConnectorDto dto) {
         ConnectorBundle bundle = connector.getConnectorBundle();
-        return identifierDiffers(dto.version(), connector.getRevision())
-                || identifierDiffers(dto.className(), connector.getFullyQualifiedClassName())
+        return identifierDiffers(dto.className(), connector.getFullyQualifiedClassName())
                 || identifierDiffers(dto.bundleName(), bundle != null ? bundle.getBundleName() : null);
     }
 
@@ -1174,14 +1220,27 @@ public class ConnectorUploadService {
         return !incoming.trim().equals(current == null ? "" : current.trim());
     }
 
-    private void replaceConnectorVersionCapabilities(ConnectorVersion connectorVersion,
-                                                     List<IntegrationMethodCapabilityGroupDto> groups) {
-        // Remove existing capabilities (items cascade away via orphanRemoval)
-        if (connectorVersion.getCapabilities() != null && !connectorVersion.getCapabilities().isEmpty()) {
-            connVersionCapabilityRepository.deleteAll(connectorVersion.getCapabilities());
-            connectorVersion.getCapabilities().clear();
+    /** Patch bump: 1.1.1 -> 1.1.2; a version without a numeric patch segment gets one appended. */
+    private static String bumpPatchVersion(String version) {
+        String[] parts = version.split("\\.");
+        if (parts.length >= 3) {
+            try {
+                parts[parts.length - 1] = String.valueOf(Integer.parseInt(parts[parts.length - 1]) + 1);
+                return String.join(".", parts);
+            } catch (NumberFormatException e) {
+                // fall through — non-numeric patch segment, append instead
+            }
         }
-        saveConnectorVersionCapabilities(groups, connectorVersion);
+        return version + ".1";
+    }
+
+    /** Bumps the patch segment until the version is not taken (1.1.1 -> 1.1.2 -> 1.1.3 ...). */
+    private static String bumpPatchUntilFree(String version, Set<String> takenVersions) {
+        String candidate = bumpPatchVersion(version);
+        while (takenVersions.contains(candidate)) {
+            candidate = bumpPatchVersion(candidate);
+        }
+        return candidate;
     }
 
     private static String firstNonBlank(String... values) {
