@@ -28,16 +28,8 @@ INSERT INTO catalog_users (username, password, role, organization_id) VALUES
 -- LOOKUP TABLES
 -- ============================================================
 
-INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM VALUE VALUES
-    (1, 'directory_systems',                	'Directory Systems',                	'CATEGORY'),
-	(2, 'hr_systems',                       	'HR Systems',                       	'CATEGORY'),
-	(3, 'office_and_email_systems',         	'Office and Email Systems',         	'CATEGORY'),
-	(4, 'security_and_access_control_systems',	'Security and Access Control Systems',	'CATEGORY'),
-	(5, 'other',	                            'Other',	                            'CATEGORY'),
-    (6, 'on-premise',   						'On Premise',   						'DEPLOYMENT'),
-    (7, 'cloud-based', 							'Cloud based', 							'DEPLOYMENT'),
-    (8, 'popular', 								'Popular', 								'COMMON'),
-    (9, 'us', 									'USA based', 							'LOCALITY');
+INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM VALUE VALUES    
+    (9, 'us', 'USA based', 'LOCALITY');
 
 SELECT setval('application_tag_id_seq', 9);
 
@@ -47,58 +39,6 @@ INSERT INTO country_of_origin (id, name, display_name) OVERRIDING SYSTEM VALUE V
     (3, 'germany', 'Germany');
 
 SELECT setval('country_of_origin_id_seq', 3);
-
-INSERT INTO integration_method_type (id, display_name, description) OVERRIDING SYSTEM VALUE VALUES
-    (1, 'SCIM',          'Standards-based provisioning of users and groups using the SCIM 2.0 protocol.'),
-    (2, 'REST API',      'Integrate directly with the application''s REST API endpoints.'),
-    (3, 'OpenLDAP',      'Connect to an OpenLDAP directory to read and manage identities.'),
-    (4, 'Manual / ITSM', 'Fulfil provisioning requests manually through an ITSM ticketing workflow.'),
-    (5, 'Database',      'Read and write identity data directly in a relational database.'),
-    (6, 'CSV',           'Exchange identity data through CSV file import and export.');
-
-SELECT setval('integration_method_type_id_seq', 6);
-
-INSERT INTO connector_tag (id, name, display_name) OVERRIDING SYSTEM VALUE VALUES
-    (1,'ai_generated','AI Generated');
-
-SELECT setval('connector_tag_id_seq', 1);
-
-INSERT INTO capability (id, name, description, display_order, globality) VALUES
-    (1,  'TEST',                    'Test connection to resource',        1, 'GLOBAL'),
-    (2,  'SCHEMA',                  'Retrieve resource schema',           2, 'GLOBAL'),
-    (3,  'PARTIAL_SCHEMA',          'Retrieve partial resource schema',   3, 'GLOBAL'),
-    (4,  'DISCOVER_CONFIGURATION',  'Discover Configuration',             4, 'GLOBAL'),
-    (5,  'AUTHENTICATION',          'Authenticate users',                 5, 'GLOBAL'),
-    (6,  'SCRIPT_ON_CONNECTOR',     'Script on Connector',                6, 'GLOBAL'),
-    (7,  'SCRIPT_ON_RESOURCE',      'Script on resource',                 7, 'GLOBAL'),
-    (8,  'RESOLVE_USERNAME',        'Resolve Username',                   8, 'GLOBAL'),
-    (9,  'SEARCH',                  'Search and list objects',            1, 'SPECIFIC'),
-    (10, 'GET',                     'Read individual objects',            2, 'SPECIFIC'),
-    (11, 'CREATE',                  'Create new objects',                 3, 'SPECIFIC'),
-    (12, 'UPDATE',                  'Modify existing objects',            4, 'SPECIFIC'),
-    (13, 'UPDATE_DELTA',            'Update the delta',                   5, 'SPECIFIC'),
-    (14, 'COMPLEX_UPDATE_DELTA',    'Update the complex delta',           6, 'SPECIFIC'),
-    (15, 'DELETE',                  'Remove objects',                     7, 'SPECIFIC'),
-    (16, 'LIVE_SYNC',               'Receive live change notifications',  8, 'SPECIFIC'),
-    (17, 'SYNC',                    'Synchronize objects periodically',   9, 'SPECIFIC'),
-    (18, 'VALIDATE',                'Validate',                          10, 'SPECIFIC');
-	
-SELECT setval('capability_id_seq', 18);
-
-
-INSERT INTO midpoint_version (id, version, version_name, is_current) values
-	(1, '4.2', 'Version 4.2', false),
-	(2, '4.3', 'Version 4.3', false),
-	(3, '4.4', 'Version 4.4', false),
-	(4, '4.5', 'Version 4.5', false),
-	(5, '4.6', 'Version 4.6', false),
-	(6, '4.7', 'Version 4.7', false),
-	(7, '4.8', 'Version 4.8', false),
-	(8, '4.9', 'Version 4.9', true),
-    (9, '4.10', 'Version 4.10', false),
-    (10, '4.11', 'Version 4.11', false);
-	
-SELECT setval('midpoint_version_id_seq', 10);
 
 -- ============================================================
 -- APPLICATIONS
