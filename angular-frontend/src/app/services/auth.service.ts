@@ -134,6 +134,18 @@ export class AuthService {
     return user ? [user] : [];
   }
 
+  /**
+   * Organization shown next to the current user when they are a maintainer: only an
+   * organization contributor is displayed under their org. An individual contributor who
+   * belongs to an organization publishes as themselves, so no organization is shown
+   * (mirrors the server-side maintainerOrganization resolution in ApplicationMapper).
+   */
+  displayedOrganization(): string | null {
+    return this._currentRole() === UserRole.OrganizationContributor
+      ? this._currentOrganizationName()
+      : null;
+  }
+
   /** Display label for a maintainer dropdown option: the logged-in user is marked "(me)". */
   maintainerOptionLabel(option: string): string {
     const user = this._currentUser();
@@ -178,7 +190,9 @@ export class AuthService {
    * organization (pass the maintainer's org as `maintainerOrganization`; a maintainer
    * without an organization stays personal); the uploader may access items they authored;
    * and an Organization contributor may access any item authored by a member of their own
-   * organization (same organizationId).
+   * organization (same organizationId). The server only exposes `maintainerOrganization`\
+   * `organizationId` when that maintainer\author is an Organization contributor, so items
+   * of an Individual contributor who belongs to an org stay personal on both sides.
    *
    * The maintainer is the primary ownership signal — it is explicitly set at publish time,
    * so e.g. a superuser can attribute an item to another user, who then gains access to it.

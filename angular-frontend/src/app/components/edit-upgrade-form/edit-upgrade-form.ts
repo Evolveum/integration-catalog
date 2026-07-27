@@ -165,7 +165,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       // other picks (superuser) preview plain until the save reloads server data.
       maintainerOrganization:
         p.maintainer === c.maintainer ? c.maintainerOrganization
-          : p.maintainer === this.authService.currentUser() ? this.authService.currentOrganizationName()
+          : p.maintainer === this.authService.currentUser() ? this.authService.displayedOrganization()
           : null,
       licenseType: p.license ?? '',
       browseLink: p.browseLink ?? '',
@@ -389,7 +389,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   /** Org of a locally staged maintainer: only resolvable when it is the current user. */
   protected localMaintainerOrg(maintainer: string): string | null {
     return maintainer === this.authService.currentUser()
-      ? this.authService.currentOrganizationName()
+      ? this.authService.displayedOrganization()
       : null;
   }
 

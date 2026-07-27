@@ -80,9 +80,13 @@ public class ApplicationMapper {
                     String lifecycleState = method.getLifecycleState() != null
                             ? method.getLifecycleState().name() : null;
 
+                    // Author's organization drives the org-mate access checks; an
+                    // IndividualContributor's uploads stay personal even when they belong
+                    // to an organization, so the org is only exposed for org contributors.
                     Integer organizationId = null;
                     if (method.getAuthor() != null) {
                         organizationId = catalogUserRepository.findByUsername(method.getAuthor())
+                                .filter(u -> "OrganizationContributor".equals(u.getRole()))
                                 .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
                                 .orElse(null);
                     }
@@ -534,11 +538,14 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
-        // When the maintainer is a user belonging to an organization, expose that organization
-        // so the client can render "org (username)". Null when the maintainer is not a known
-        // user (e.g. it is an organization itself) or has no organization.
+        // When the maintainer is an organization contributor, expose their organization so the
+        // client can render "org (username)". Null when the maintainer is not a known user
+        // (e.g. it is an organization itself), has no organization, or is an individual
+        // contributor — an IndividualContributor who belongs to an organization still publishes
+        // and is displayed as themselves, without the organization.
         String maintainerOrganization = maintainer == null ? null
                 : catalogUserRepository.findByUsername(maintainer)
+                        .filter(u -> "OrganizationContributor".equals(u.getRole()))
                         .map(u -> u.getOrganization() != null ? u.getOrganization().getName() : null)
                         .orElse(null);
 

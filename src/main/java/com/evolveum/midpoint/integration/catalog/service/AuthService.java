@@ -73,12 +73,13 @@ public class AuthService {
      *   <li>the designated maintainer may access it — matched either by username
      *       (maintainer == username) or by organization (maintainer == the caller's
      *       organization name, i.e. the item is maintained by the caller's org);</li>
-     *   <li>an Organization contributor may access any item maintained by a member of
-     *       their own organization (an organization acts as a team; a maintainer without
-     *       an organization stays personal);</li>
+     *   <li>an Organization contributor may access any item maintained by a fellow
+     *       Organization contributor of their own organization (an organization acts as a
+     *       team; a maintainer without an organization stays personal, and so does an
+     *       Individual contributor even when they belong to an organization);</li>
      *   <li>the uploader may access items they authored (author == username);</li>
-     *   <li>an Organization contributor may access any item authored by a member of their
-     *       own organization.</li>
+     *   <li>an Organization contributor may access any item authored by a fellow
+     *       Organization contributor of their own organization.</li>
      * </ul>
      * The {@code maintainer} is the primary ownership signal: it is explicitly set when
      * publishing (e.g. a superuser may attribute an item to another user or org), whereas
@@ -106,12 +107,14 @@ public class AuthService {
                 return true;
             }
         }
-        // An organization acts as a team: an item maintained by an org member is editable by
-        // every member of that organization (a maintainer without an org stays personal).
+        // An organization acts as a team: an item maintained by an org contributor is editable
+        // by every member of that organization. A maintainer without an org stays personal, as
+        // does an IndividualContributor who belongs to an org — they act as themselves.
         if ("OrganizationContributor".equals(caller.getRole())
                 && caller.getOrganization() != null && maintainer != null && !maintainer.isBlank()) {
             CatalogUser maintainerUser = catalogUserRepository.findByUsername(maintainer).orElse(null);
-            if (maintainerUser != null && maintainerUser.getOrganization() != null
+            if (maintainerUser != null && "OrganizationContributor".equals(maintainerUser.getRole())
+                    && maintainerUser.getOrganization() != null
                     && caller.getOrganization().getId().equals(maintainerUser.getOrganization().getId())) {
                 return true;
             }
@@ -123,7 +126,8 @@ public class AuthService {
         if ("OrganizationContributor".equals(caller.getRole())
                 && caller.getOrganization() != null && author != null) {
             CatalogUser owner = catalogUserRepository.findByUsername(author).orElse(null);
-            if (owner != null && owner.getOrganization() != null
+            if (owner != null && "OrganizationContributor".equals(owner.getRole())
+                    && owner.getOrganization() != null
                     && caller.getOrganization().getId().equals(owner.getOrganization().getId())) {
                 return true;
             }
