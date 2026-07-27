@@ -1,0 +1,54 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<!-- Backdrop intentionally has no click handler: the modal closes only via Understood or the X. -->
+<div class="download-info-backdrop position-fixed top-0 start-0 w-100 h-100"></div>
+<div class="download-info-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="download-info-dialog">
+    <button type="button" class="download-info-close" title="Close" (click)="onClose()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="download-info-header d-flex flex-column align-items-center text-center">
+      <span class="download-info-check d-flex align-items-center justify-content-center">
+        <i class="fa-solid fa-check"></i>
+      </span>
+      <h2 class="download-info-title">Download starting shortly</h2>
+      @if (fileName) {
+        <span class="download-info-file">
+          {{ fileName }}@if (formattedSize(); as size) {&nbsp;&middot;&nbsp;{{ size }}}
+        </span>
+      }
+    </div>
+
+    <div class="download-info-body">
+      <p class="download-info-lead">To complete setup, follow these steps:</p>
+
+      @for (step of steps; track $index) {
+        <div class="download-info-step d-flex gap-3">
+          <span class="download-info-step-number d-flex align-items-center justify-content-center flex-shrink-0">{{ $index + 1 }}</span>
+          <div>
+            <div class="download-info-step-title">{{ step.title }}</div>
+            @if (step.description) {
+              <div class="download-info-step-desc">{{ step.description }}</div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (note) {
+        <div class="download-info-note d-flex align-items-start gap-2">
+          <i class="fa-solid fa-circle-info download-info-note-icon"></i>
+          <span>{{ note }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="download-info-footer">
+      <button type="button" class="btn download-info-understood w-100" (click)="onClose()">Understood</button>
+    </div>
+  </div>
+</div>
