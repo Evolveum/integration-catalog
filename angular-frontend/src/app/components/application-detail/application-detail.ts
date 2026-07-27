@@ -13,6 +13,7 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { ToastService } from '../../services/toast.service';
 
 interface MethodGroup {
@@ -26,7 +27,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -843,18 +844,26 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return framework;
   }
 
+  // Post-download help modal (where to copy the connectors in midPoint home)
+  protected readonly isDownloadInfoOpen = signal<boolean>(false);
+  protected readonly downloadInfoFileName = signal<string>('');
+  protected readonly downloadInfoFileSize = signal<number | null>(null);
+
   protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
       this.applicationService.downloadBundle(appId, methodId, revision ?? '').subscribe({
-        next: (warning) => {
-          if (warning) {
+        next: (result) => {
+          if (result.warning) {
             this.toastService.show(
               'Download warning',
-              warning,
+              result.warning,
               'warning'
             )
           }
+          this.downloadInfoFileName.set(result.fileName);
+          this.downloadInfoFileSize.set(result.size);
+          this.isDownloadInfoOpen.set(true);
         },
         error: () => this.toastService.show(
           'Download error',

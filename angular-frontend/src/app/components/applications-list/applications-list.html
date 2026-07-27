@@ -702,5 +702,16 @@
     @if (openDropdown()) {
       <div (click)="closeDropdown()" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
     }
+
+    <!-- Post-download help modal for the connectors sheet (import the JSON into midPoint) -->
+    @if (isSheetInfoOpen()) {
+      <app-download-info-modal
+        [fileName]="sheetInfoFileName()"
+        [fileSize]="sheetInfoFileSize()"
+        [steps]="sheetDownloadSteps"
+        [note]="''"
+        (closed)="isSheetInfoOpen.set(false)">
+      </app-download-info-modal>
+    }
   </div>
 </div>

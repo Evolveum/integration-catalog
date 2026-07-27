@@ -16,12 +16,13 @@ import { RequestForm } from '../request-form/request-form';
 import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/download-info-modal';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader],
+  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })
@@ -1012,14 +1013,31 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     return !this.appHasLogo(app) || this.logoLoadErrors.has(app.id);
   }
 
+  // Post-download help modal for the connectors sheet (import the JSON into midPoint)
+  protected readonly isSheetInfoOpen = signal<boolean>(false);
+  protected readonly sheetInfoFileName = signal<string>('');
+  protected readonly sheetInfoFileSize = signal<number | null>(null);
+  protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
+    {
+      title: 'Import the downloaded JSON file into midPoint',
+      description: 'The imported list will be used to verify which connectors are allowed to '
+        + 'run in a production environment.'
+    }
+  ];
+
   /**
-   * Download the active containers and display a toast with the error message if necessary.
+   * Download the active connectors sheet and show the post-download help modal, or a toast
+   * with the error message if the download failed.
    */
   protected downloadActiveConnectors(): void {
     this.applicationService.downloadActiveConnectors().subscribe({
-      next: (error) => {
-        if (error) {
-          this.showDownloadToast(error);
+      next: (result) => {
+        if (result.error) {
+          this.showDownloadToast(result.error);
+        } else {
+          this.sheetInfoFileName.set(result.fileName ?? '');
+          this.sheetInfoFileSize.set(result.size);
+          this.isSheetInfoOpen.set(true);
         }
       },
       error: () => this.showDownloadToast('Download of active connectors failed.')
