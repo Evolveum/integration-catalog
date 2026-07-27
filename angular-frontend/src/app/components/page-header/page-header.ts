@@ -10,11 +10,12 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { LoginModal } from '../login-modal/login-modal';
 import { ToastService } from '../../services/toast.service';
+import { StagingBanner } from '../staging-banner/staging-banner';
 
 @Component({
   selector: 'app-page-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, LoginModal],
+  imports: [CommonModule, RouterLink, LoginModal, StagingBanner],
   templateUrl: './page-header.html',
   styleUrls: ['./page-header.scss'],
   host: { style: 'display: block; position: sticky; top: 0; z-index: 1000;' }
