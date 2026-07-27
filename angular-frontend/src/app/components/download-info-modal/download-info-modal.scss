@@ -1,0 +1,143 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.download-info-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1050;
+}
+
+.download-info-container {
+  z-index: 1055;
+}
+
+.download-info-dialog {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  width: 640px;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.download-info-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  border: none;
+  background: none;
+  color: #6b7280;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+
+  &:hover {
+    color: #1f2733;
+  }
+}
+
+.download-info-header {
+  padding: 2.25rem 2rem 1.5rem;
+  border-bottom: 1px solid #eceef1;
+}
+
+.download-info-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #d8ecdf;
+  color: #2e9e6b;
+  font-size: 1.6rem;
+}
+
+.download-info-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2733;
+  margin: 1.25rem 0 0.35rem;
+}
+
+.download-info-file {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.download-info-body {
+  padding: 1.5rem 2rem;
+}
+
+.download-info-lead {
+  color: #4b5563;
+  font-size: 0.95rem;
+  margin: 0 0 1.25rem;
+}
+
+.download-info-step {
+  background: $color-bg-light;
+  border: 1px solid $color-bg-muted;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.download-info-step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eceef1;
+  color: #1f2733;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.download-info-step-title {
+  font-weight: 700;
+  color: #1f2733;
+  font-size: 0.95rem;
+  line-height: 28px;
+}
+
+.download-info-step-desc {
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin-top: 0.15rem;
+}
+
+.download-info-note {
+  background: #d9f0f7;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  color: #0c5460;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.download-info-note-icon {
+  color: #22a7bf;
+  margin-top: 3px;
+}
+
+.download-info-footer {
+  padding: 0 2rem 1.5rem;
+}
+
+.download-info-understood {
+  background: $midpoint-special-color;
+  border: 1px solid $midpoint-special-color;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+
+  &:hover {
+    background: $color-dark-blue;
+    border-color: $color-dark-blue;
+    color: #fff;
+  }
+}

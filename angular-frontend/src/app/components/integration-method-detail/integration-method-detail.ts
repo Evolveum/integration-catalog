@@ -13,6 +13,7 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { ToastService } from '../../services/toast.service';
@@ -24,7 +25,7 @@ const asciidoctor = Asciidoctor();
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -466,16 +467,24 @@ export class IntegrationMethodDetail implements OnInit {
     });
   }
 
+  // Post-download help modal (where to copy the connectors in midPoint home)
+  protected readonly isDownloadInfoOpen = signal<boolean>(false);
+  protected readonly downloadInfoFileName = signal<string>('');
+  protected readonly downloadInfoFileSize = signal<number | null>(null);
+
   protected downloadConnector(): void {
     this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion()).subscribe({
-      next: (warning) => {
-        if (warning) {
+      next: (result) => {
+        if (result.warning) {
           this.toastService.show(
             'Download warning',
-            warning,
+            result.warning,
             'warning'
           )
         }
+        this.downloadInfoFileName.set(result.fileName);
+        this.downloadInfoFileSize.set(result.size);
+        this.isDownloadInfoOpen.set(true);
       },
       error: () => this.toastService.show(
         'Download error',

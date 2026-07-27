@@ -18,6 +18,20 @@ import { IntegrationRequest, UploadConnectorPayload } from '../models/request.mo
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
 
+/** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
+export interface BundleDownloadResult {
+  warning: string | null;
+  fileName: string;
+  size: number | null;
+}
+
+/** Outcome of an active-connectors sheet download: help-modal data, or an error message. */
+export interface SheetDownloadResult {
+  error: string | null;
+  fileName: string | null;
+  size: number | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -134,46 +148,57 @@ export class ApplicationService {
 
   /**
    * Downloads the integration-method bundle ZIP and triggers a browser save.
-   * Emits the value of the `X-Bundle-Warning` response header (or `null`) so callers can notify
-   * the user when the connector build file could not be included.
+   * Emits the saved file name and size (for the post-download help modal) plus the value of the
+   * `X-Bundle-Warning` response header (or `null`) so callers can notify the user when the
+   * connector build file could not be included.
    */
-  downloadBundle(appId: string, methodId: string, revision: string): Observable<string | null> {
+  downloadBundle(appId: string, methodId: string, revision: string): Observable<BundleDownloadResult> {
     const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
     return this.http.get(url, { observe: 'response', responseType: 'blob' }).pipe(
       map((response: HttpResponse<Blob>) => {
+        const fileName = this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'bundle.zip';
         if (response.body) {
-          this.saveBlob(response.body, this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'bundle.zip');
+          this.saveBlob(response.body, fileName);
         }
-        return response.headers.get('X-Bundle-Warning');
+        return {
+          warning: response.headers.get('X-Bundle-Warning'),
+          fileName,
+          size: response.body?.size ?? null
+        };
       })
     );
   }
 
   /**
-   * Downloads the integration-method bundle ZIP and triggers a browser save.
-   * Emits the value of the `X-Bundle-Warning` response header (or `null`) so callers can notify
-   * the user when the connector build file could not be included.
+   * Downloads the active-connectors sheet (JSON) and triggers a browser save.
+   * Emits the saved file name and size (for the post-download help modal), or an error
+   * message when the download failed.
    */
-  downloadActiveConnectors(): Observable<string | null> {
+  downloadActiveConnectors(): Observable<SheetDownloadResult> {
     const url = `${environment.apiUrl}/connectors/active`;
     return this.http.get(url, { observe: 'response', responseType: 'blob' }).pipe(
       map((response: HttpResponse<Blob>) => {
+        const fileName = this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'active-connectors.json';
         if (response.body) {
-          this.saveBlob(response.body, this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'active-connectors.json');
+          this.saveBlob(response.body, fileName);
         }
-        return null;
+        return {
+          error: null,
+          fileName,
+          size: response.body?.size ?? null
+        };
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.error instanceof Blob) {
           return from(error.error.text()).pipe(
             map(text => {
               const problem = JSON.parse(text) as ProblemDetail;
-              return problem.detail;
+              return { error: problem.detail ?? 'Download of active connectors failed.', fileName: null, size: null };
             })
           );
         }
 
-        return of('Download of active connectors failed.');
+        return of({ error: 'Download of active connectors failed.', fileName: null, size: null });
       })
     );
   }

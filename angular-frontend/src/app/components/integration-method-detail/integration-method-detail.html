@@ -478,4 +478,13 @@
       (cancel)="closeStartReview()">
     </app-start-review-modal>
   }
+
+  <!-- Post-download help modal (where to copy the connectors in midPoint home) -->
+  @if (isDownloadInfoOpen()) {
+    <app-download-info-modal
+      [fileName]="downloadInfoFileName()"
+      [fileSize]="downloadInfoFileSize()"
+      (closed)="isDownloadInfoOpen.set(false)">
+    </app-download-info-modal>
+  }
 }
