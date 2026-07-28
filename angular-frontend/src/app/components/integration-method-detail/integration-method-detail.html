@@ -78,7 +78,7 @@
         </div>
         <div class="view-row">
           <span class="view-label">Supported midPoint version:</span>
-          <span class="view-value">From {{ midpointMinVersion() || '—' }} to {{ midpointMaxVersion() || 'Not specified' }}</span>
+          <span class="view-value">From {{ midpointMinVersion() || '—' }}@if (midpointMaxVersion()) { to {{ midpointMaxVersion() }}}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Integration method type:</span>

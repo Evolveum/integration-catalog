@@ -57,6 +57,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   // Supported midPoint version range (loaded from DB, editable)
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
+  /* newest version first in the dropdowns; range validation uses the ascending midpointVersions order */
+  protected readonly midpointVersionsDesc = computed(() => [...this.midpointVersions()].reverse());
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
   protected readonly isMidpointVersionRangeInvalid = computed(() => {

@@ -370,6 +370,7 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
   line-height: 1.4;
   min-height: calc(1.4em * 3);
 }

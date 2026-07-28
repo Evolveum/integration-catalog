@@ -80,7 +80,7 @@
                   [ngModel]="midpointMinVersionId()"
                   (ngModelChange)="midpointMinVersionId.set($event)">
             <option [ngValue]="null">Select version</option>
-            @for (v of midpointVersions(); track v.id) {
+            @for (v of midpointVersionsDesc(); track v.id) {
               <option [ngValue]="v.id">{{ v.version }}</option>
             }
           </select>
@@ -90,7 +90,7 @@
                   [ngModel]="midpointMaxVersionId()"
                   (ngModelChange)="midpointMaxVersionId.set($event)">
             <option [ngValue]="null">Select version</option>
-            @for (v of midpointVersions(); track v.id) {
+            @for (v of midpointVersionsDesc(); track v.id) {
               <option [ngValue]="v.id">{{ v.version }}</option>
             }
           </select>

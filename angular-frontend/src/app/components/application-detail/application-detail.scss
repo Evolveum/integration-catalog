@@ -1063,6 +1063,11 @@
 .im-row-desc {
   color: #000;
   margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.app-description-text {
+  overflow-wrap: anywhere;
 }
 
 /* Hover-revealed per-version actions in the STATUS column */

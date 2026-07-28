@@ -443,6 +443,7 @@
 
 .app-description {
   font-size: 0.875rem;
+  overflow-wrap: anywhere;
 }
 
 .search-results .card:hover {
@@ -722,6 +723,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .cc-modal-footer {
@@ -979,6 +981,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 /* Step 3 – copyright / documentation license notice */

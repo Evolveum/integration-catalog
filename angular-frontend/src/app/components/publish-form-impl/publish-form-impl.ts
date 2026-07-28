@@ -135,6 +135,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   // Compatibility step
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
+  /* newest version first in the dropdowns; range validation uses the ascending midpointVersions order */
+  protected readonly midpointVersionsDesc = computed(() => [...this.midpointVersions()].reverse());
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
   protected readonly compatInfoDismissed = signal<boolean>(false);
