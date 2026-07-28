@@ -9,5 +9,9 @@ package com.evolveum.midpoint.integration.catalog.repository;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 public interface OrganizationRepository extends JpaRepository<Organization, Integer> {
+
+    Optional<Organization> findByNameIgnoreCase(String name);
 }

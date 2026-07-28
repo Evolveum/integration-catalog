@@ -6,17 +6,19 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import com.evolveum.midpoint.integration.catalog.dto.LoginResponseDto;
+import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.evolveum.midpoint.integration.catalog.security.CatalogOidcUserService;
+import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,32 +26,32 @@ public class AuthService {
 
     private final CatalogUserRepository catalogUserRepository;
     private final OrganizationRepository organizationRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
 
     public AuthService(CatalogUserRepository catalogUserRepository, OrganizationRepository organizationRepository) {
         this.catalogUserRepository = catalogUserRepository;
         this.organizationRepository = organizationRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
-    public Optional<LoginResponseDto> login(String username, String password) {
-        Optional<CatalogUser> userOpt = catalogUserRepository.findByUsername(username);
-        if (userOpt.isEmpty()) {
-            return Optional.empty();
+    /**
+     * The authenticated user's profile: identity claims from the Keycloak tokens combined
+     * with the role/organization mirrored into catalog_users at login.
+     */
+    public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
+        CatalogUser user = catalogUserRepository.findByUsername(username).orElse(null);
+        Organization org = user != null ? user.getOrganization() : null;
+        List<String> groups = List.of();
+        if (oidcUser != null && oidcUser.getClaim(CatalogOidcUserService.GROUPS_CLAIM) instanceof Collection<?> values) {
+            groups = values.stream().map(String::valueOf).toList();
         }
-
-        CatalogUser user = userOpt.get();
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            return Optional.empty();
-        }
-
-        Organization org = user.getOrganization();
-        return Optional.of(new LoginResponseDto(
-                user.getUsername(),
-                user.getRole(),
+        return new CurrentUserDto(
+                username,
+                oidcUser != null ? oidcUser.getFullName() : null,
+                oidcUser != null ? oidcUser.getEmail() : null,
+                user != null ? user.getRole() : CatalogRole.READ_ONLY,
                 org != null ? org.getId() : null,
-                org != null ? org.getName() : null
-        ));
+                org != null ? org.getName() : null,
+                groups
+        );
     }
 
     public List<String> getAllMaintainers() {

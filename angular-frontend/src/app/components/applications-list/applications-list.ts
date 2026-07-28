@@ -824,7 +824,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     if (!this.authService.canRequest()) {
       this.showLoginRequiredMessage.set(true);
       setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-      this.authService.openLoginModal();
+      this.authService.login();
       return;
     }
     this.isRequestModalOpen.set(true);
@@ -847,7 +847,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);
         setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-        this.authService.openLoginModal();
+        this.authService.login();
       } else {
         this.showPermissionDeniedMessage.set(true);
         setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
@@ -901,7 +901,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    this.applicationService.submitVote(app.requestId, currentUser).subscribe({
+    this.applicationService.submitVote(app.requestId).subscribe({
       next: () => {
         // Increment vote count locally
         app.voteCount = (app.voteCount || 0) + 1;

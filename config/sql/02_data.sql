@@ -17,12 +17,15 @@ SELECT setval('organizations_id_seq', 2);
 -- ============================================================
 -- CATALOG USERS
 -- ============================================================
+-- Authentication is done by Keycloak (OIDC): no local passwords. These rows mirror the
+-- test users of keycloak_for_auth/import/integration-catalog-realm.json; any Keycloak user missing
+-- here is provisioned automatically on first login.
 INSERT INTO catalog_users (username, password, role, organization_id) VALUES
-	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
-	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
-	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
-	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
-	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
+	('u1', NULL, 'OrganizationContributor', 1),
+	('u2', NULL, 'ReadOnly',                NULL),
+	('u3', NULL, 'IndividualContributor',   NULL),
+	('u4', NULL, 'IndividualContributor',   1),
+	('u5', NULL, 'Superuser',               2);
 
 -- ============================================================
 -- LOOKUP TABLES

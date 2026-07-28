@@ -87,5 +87,8 @@ yarn-error.log*
 # Docker secrets
 docker/secrets/
 
+# Keycloak dev instance runtime state (bind-mounted Postgres data, see keycloak_for_auth/docker-compose.yml)
+keycloak_for_auth/data/
+
 # Home data directory
 integration-catalog

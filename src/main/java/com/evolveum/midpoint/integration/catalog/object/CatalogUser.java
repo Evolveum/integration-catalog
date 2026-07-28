@@ -21,7 +21,8 @@ public class CatalogUser {
     @Column(nullable = false)
     private String username;
 
-    @Column(nullable = false)
+    /** Unused since OIDC login; kept for historical rows. Authentication is done by Keycloak. */
+    @Column
     private String password;
 
     @Column(nullable = false)
