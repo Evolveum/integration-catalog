@@ -104,14 +104,14 @@ SELECT setval('connector_bundle_version_id_seq', 4);
 -- ============================================================
 
 INSERT INTO connector (id, revision, author, maintainer, created_at, updated, display_name,
-    fully_qualified_class_name, connector_bundle_id, description)
+    fully_qualified_class_name, connector_bundle_id, description, cloned_from)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0.0', 'Conn author 1', 'Conn maintainer 1', NOW(), NOW(), 'Display name Connector Java-based',
-	'Fully.qualified.conn.class.name.1', 1, 'Description Connector 1'),
+	'Fully.qualified.conn.class.name.1', 1, 'Description Connector 1', NUll),
     (2, '1.0.0', 'Conn author 2', 'Conn maintainer 2', NOW(), NOW(), 'Display name Connector LOW CODE',
-	'Fully.qualified.conn.class.name.2', 2, 'Description connector 2'),
+	'Fully.qualified.conn.class.name.2', 2, 'Description connector 2', NUll),
     (3, '1.0.0', 'Conn author 3', 'Conn maintainer 3', NOW(), NOW(), 'CSV File Connector',
-	'com.evolveum.polygon.connector.csv.CsvConnector', 3, 'CSV file connector');
+	'com.evolveum.polygon.connector.csv.CsvConnector', 3, 'CSV file connector', NUll);
 
 SELECT setval('connector_id_seq', 3);
 
