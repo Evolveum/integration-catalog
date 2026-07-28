@@ -536,6 +536,33 @@ CREATE TABLE database_version (
     applied_at timestamp without time zone DEFAULT now() NOT NULL,
     CONSTRAINT database_version_pkey PRIMARY KEY (version)
 );
+
+-- Applies one schema change from config/sql/upgrade/upgrade.sql exactly once per database:
+-- the change runs only when the database version (MAX(version)) is lower than changeVersion,
+-- then its version row is recorded and the transaction committed. Because of the internal
+-- COMMIT the upgrade script must run outside a transaction block (plain psql, not pgAdmin).
+-- Keep this definition in sync with the "version 4" section of upgrade.sql.
+CREATE OR REPLACE PROCEDURE apply_change(changeVersion int, changeDescription text, change TEXT, force boolean = false)
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+    currentVersion int;
+BEGIN
+    SELECT max(version) INTO currentVersion FROM database_version;
+
+    -- the change is executed only if its version is newer than the database version - or if forced
+    IF currentVersion IS NULL OR currentVersion < changeVersion OR force THEN
+        EXECUTE change;
+        RAISE NOTICE 'Schema version % (%) applied', changeVersion, changeDescription;
+
+        INSERT INTO database_version (version, description)
+        VALUES (changeVersion, changeDescription)
+        ON CONFLICT (version) DO NOTHING;
+        COMMIT;
+    ELSE
+        RAISE NOTICE 'Schema version % skipped - database is already at version %', changeVersion, currentVersion;
+    END IF;
+END $$;
 -- end of region
 
 -- region tables CONSTRAINTs
@@ -848,5 +875,5 @@ SELECT setval('midpoint_version_id_seq', 10);
 -- A fresh installation is already at the current schema version. Keep this in sync with
 -- the newest script in config/sql/upgrade/ and with DatabaseSchemaVersionValidator.REQUIRED_VERSION.
 INSERT INTO database_version (version, description)
-VALUES (3, 'Initial installation (schema created at version 3)');
+VALUES (4, 'Initial installation (schema created at version 4)');
 -- end of region
