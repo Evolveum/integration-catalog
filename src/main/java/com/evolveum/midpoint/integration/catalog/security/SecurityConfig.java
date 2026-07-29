@@ -72,14 +72,13 @@ public class SecurityConfig {
                         // shared-secret JenkinsCallbackFilter above, not by a user session.
                         .requestMatchers(JenkinsCallbackFilter.CALLBACK_PATH_PATTERNS).permitAll()
 
-                        // Superuser only: the review/approval workflow, user directory, request removal.
+                        // Superuser only: the review/approval workflow and the user directory.
                         .requestMatchers("/api/auth/all-maintainers").hasRole(SUPERUSER)
                         .requestMatchers(HttpMethod.POST,
                                 "/api/applications/*/integration-method/*/*/start-review",
                                 "/api/applications/*/integration-method/*/*/stop-review",
                                 "/api/applications/*/integration-method/*/*/publish",
                                 "/api/applications/*/integration-method/*/*/reject").hasRole(SUPERUSER)
-                        .requestMatchers(HttpMethod.DELETE, "/api/requests/*").hasRole(SUPERUSER)
 
                         // Contributors: publishing and editing catalog content. Ownership of the
                         // individual item is enforced on top of this by AuthService.canEdit.
@@ -98,13 +97,20 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/applications/*/logo")
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
 
-                        // Any authenticated user (including ReadOnly): profile, requests, voting,
-                        // recently-used tracking.
-                        .requestMatchers("/api/auth/me", "/api/auth/organization/members").authenticated()
+                        // Contributors: requests and voting. ReadOnly may only browse and
+                        // download. Cancelling a request is further restricted to the requester
+                        // or a superuser in ApplicationService.cancelRequest.
                         .requestMatchers(HttpMethod.POST,
                                 "/api/requests",
-                                "/api/requests/*/vote",
-                                "/api/recently-used/*").authenticated()
+                                "/api/requests/*/vote")
+                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
+                        .requestMatchers(HttpMethod.DELETE, "/api/requests/*")
+                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
+
+                        // Any authenticated user (including ReadOnly): profile and
+                        // recently-used tracking.
+                        .requestMatchers("/api/auth/me", "/api/auth/organization/members").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/recently-used/*").authenticated()
 
                         // Anonymous catalog browsing: all remaining reads and the two search POSTs.
                         .requestMatchers(HttpMethod.GET, "/api/**").permitAll()

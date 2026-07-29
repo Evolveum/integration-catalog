@@ -159,10 +159,10 @@ export class AuthService {
     return this._currentRole();
   }
 
+  /** Voting and creating requests require a contributor role — ReadOnly only browses. */
   canVote(): boolean {
     const role = this.currentRole();
-    return role === UserRole.ReadOnly ||
-           role === UserRole.IndividualContributor ||
+    return role === UserRole.IndividualContributor ||
            role === UserRole.OrganizationContributor ||
            role === UserRole.Superuser;
   }

@@ -822,9 +822,14 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   protected openRequestModal(): void {
     if (!this.authService.canRequest()) {
-      this.showLoginRequiredMessage.set(true);
-      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-      this.authService.login();
+      if (!this.authService.isLoggedIn()) {
+        this.showLoginRequiredMessage.set(true);
+        setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+        this.authService.login();
+      } else {
+        this.showPermissionDeniedMessage.set(true);
+        setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
+      }
       return;
     }
     this.isRequestModalOpen.set(true);

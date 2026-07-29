@@ -343,16 +343,17 @@ class ControllerTest {
                 List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("GET", "SEARCH")))
         );
 
-        when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
+        when(applicationService.createRequestFromForm(any(RequestFormDto.class), anyString()))
                 .thenReturn(testRequest);
 
         mockMvc.perform(post("/api/requests")
+                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1));
 
-        verify(applicationService).createRequestFromForm(any(RequestFormDto.class));
+        verify(applicationService).createRequestFromForm(any(RequestFormDto.class), anyString());
     }
 
     @Test
@@ -373,7 +374,7 @@ class ControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
+        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class), anyString());
     }
 
     // ===== POST /api/requests/{requestId}/vote =====

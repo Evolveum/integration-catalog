@@ -226,8 +226,8 @@
 
                   }
 
-                  <!-- Cancel request (server allows this for superusers only) -->
-                  @if (isSuperuser()) {
+                  <!-- Cancel request (server allows this for the requester and superusers) -->
+                  @if (canCancelRequest()) {
                     <div class="mt-3">
                       <button type="button" class="btn-cancel-request d-inline-flex align-items-center gap-2" (click)="cancelRequest()">
                         <i class="fa-solid fa-trash-can"></i>Cancel request

@@ -258,9 +258,10 @@ public class Controller {
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
     @PostMapping("/requests")
-    public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
+    public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto,
+                                                 Authentication authentication) {
         try {
-            Request created = applicationService.createRequestFromForm(dto);
+            Request created = applicationService.createRequestFromForm(dto, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -276,10 +277,12 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Request not found")
     })
     @DeleteMapping("/requests/{requestId}")
-    public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId) {
+    public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId, Authentication authentication) {
         try {
-            applicationService.cancelRequest(requestId);
+            applicationService.cancelRequest(requestId, authentication.getName());
             return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (Exception ex) {

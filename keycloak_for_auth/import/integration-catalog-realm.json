@@ -76,38 +76,6 @@
       "clientRole" : false,
       "containerId" : "427668a4-c5fc-403d-98e0-4f48ed628ae2",
       "attributes" : { }
-    }, {
-      "id" : "a1b0e6d1-0001-4c5a-9f57-1a2b3c4d5e01",
-      "name" : "ReadOnly",
-      "description" : "Integration catalog: may browse the catalog, vote and create requests",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "427668a4-c5fc-403d-98e0-4f48ed628ae2",
-      "attributes" : { }
-    }, {
-      "id" : "a1b0e6d1-0002-4c5a-9f57-1a2b3c4d5e02",
-      "name" : "IndividualContributor",
-      "description" : "Integration catalog: may publish and maintain connectors as themselves",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "427668a4-c5fc-403d-98e0-4f48ed628ae2",
-      "attributes" : { }
-    }, {
-      "id" : "a1b0e6d1-0003-4c5a-9f57-1a2b3c4d5e03",
-      "name" : "OrganizationContributor",
-      "description" : "Integration catalog: may publish and maintain connectors on behalf of their organization",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "427668a4-c5fc-403d-98e0-4f48ed628ae2",
-      "attributes" : { }
-    }, {
-      "id" : "a1b0e6d1-0004-4c5a-9f57-1a2b3c4d5e04",
-      "name" : "Superuser",
-      "description" : "Integration catalog: administrator — may review, publish and edit anything",
-      "composite" : false,
-      "clientRole" : false,
-      "containerId" : "427668a4-c5fc-403d-98e0-4f48ed628ae2",
-      "attributes" : { }
     } ],
     "client" : {
       "realm-management" : [ {
@@ -368,23 +336,7 @@
       } ]
     }
   },
-  "groups" : [ {
-    "id" : "b2c1f7e2-0001-4d6b-8a68-2b3c4d5e6f01",
-    "name" : "Partner",
-    "path" : "/Partner",
-    "attributes" : { },
-    "realmRoles" : [ ],
-    "clientRoles" : { },
-    "subGroups" : [ ]
-  }, {
-    "id" : "b2c1f7e2-0002-4d6b-8a68-2b3c4d5e6f02",
-    "name" : "Subscriber",
-    "path" : "/Subscriber",
-    "attributes" : { },
-    "realmRoles" : [ ],
-    "clientRoles" : { },
-    "subGroups" : [ ]
-  } ],
+  "groups" : [ ],
   "defaultRole" : {
     "id" : "d702c5c7-5fb6-433e-8bf2-20281841dcd7",
     "name" : "default-roles-integration-catalog",
@@ -446,9 +398,10 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Evolveum" ]
+      "organization" : [ "Evolveum" ],
+      "role" : [ "Superuser" ]
     },
-    "realmRoles" : [ "default-roles-integration-catalog", "Superuser" ],
+    "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
     "groups" : [ ]
   }, {
@@ -468,11 +421,13 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Acme co." ]
+      "organization" : [ "Acme co." ],
+      "role" : [ "OrganizationContributor" ],
+      "group" : [ "Partner" ]
     },
-    "realmRoles" : [ "default-roles-integration-catalog", "OrganizationContributor" ],
+    "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
-    "groups" : [ "/Partner" ]
+    "groups" : [ ]
   }, {
     "id" : "c3d2e8f3-0002-4e7c-9b79-3c4d5e6f7a02",
     "username" : "u2",
@@ -489,7 +444,10 @@
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-integration-catalog", "ReadOnly" ],
+    "attributes" : {
+      "role" : [ "ReadOnly" ]
+    },
+    "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
     "groups" : [ ]
   }, {
@@ -508,7 +466,10 @@
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-integration-catalog", "IndividualContributor" ],
+    "attributes" : {
+      "role" : [ "IndividualContributor" ]
+    },
+    "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
     "groups" : [ ]
   }, {
@@ -528,11 +489,13 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Acme co." ]
+      "organization" : [ "Acme co." ],
+      "role" : [ "IndividualContributor" ],
+      "group" : [ "Subscriber" ]
     },
-    "realmRoles" : [ "default-roles-integration-catalog", "IndividualContributor" ],
+    "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
-    "groups" : [ "/Subscriber" ]
+    "groups" : [ ]
   }, {
     "id" : "c3d2e8f3-0005-4e7c-9b79-3c4d5e6f7a05",
     "username" : "u5",
@@ -550,9 +513,10 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Evolveum" ]
+      "organization" : [ "Evolveum" ],
+      "role" : [ "Superuser" ]
     },
-    "realmRoles" : [ "default-roles-integration-catalog", "Superuser" ],
+    "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
     "groups" : [ ]
   } ],
@@ -739,30 +703,33 @@
     "nodeReRegistrationTimeout" : -1,
     "protocolMappers" : [ {
       "id" : "e4f3a9b4-0001-4f8d-8c8a-4d5e6f7a8b01",
-      "name" : "catalog-realm-roles",
+      "name" : "catalog-role",
       "protocol" : "openid-connect",
-      "protocolMapper" : "oidc-usermodel-realm-role-mapper",
+      "protocolMapper" : "oidc-usermodel-attribute-mapper",
       "consentRequired" : false,
       "config" : {
         "multivalued" : "true",
         "userinfo.token.claim" : "true",
         "id.token.claim" : "true",
         "access.token.claim" : "true",
+        "user.attribute" : "role",
         "claim.name" : "roles",
         "jsonType.label" : "String"
       }
     }, {
       "id" : "e4f3a9b4-0002-4f8d-8c8a-4d5e6f7a8b02",
-      "name" : "catalog-groups",
+      "name" : "catalog-group",
       "protocol" : "openid-connect",
-      "protocolMapper" : "oidc-group-membership-mapper",
+      "protocolMapper" : "oidc-usermodel-attribute-mapper",
       "consentRequired" : false,
       "config" : {
-        "full.path" : "false",
+        "multivalued" : "true",
         "userinfo.token.claim" : "true",
         "id.token.claim" : "true",
         "access.token.claim" : "true",
-        "claim.name" : "groups"
+        "user.attribute" : "group",
+        "claim.name" : "groups",
+        "jsonType.label" : "String"
       }
     }, {
       "id" : "e4f3a9b4-0003-4f8d-8c8a-4d5e6f7a8b03",

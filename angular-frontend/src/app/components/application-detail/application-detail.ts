@@ -194,6 +194,14 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
+  /** The requester may cancel their own request; a superuser may cancel any (server-enforced). */
+  protected canCancelRequest(): boolean {
+    if (this.isSuperuser()) return true;
+    const requester = this.application()?.requester;
+    const user = this.authService.currentUser();
+    return !!user && !!requester && requester.trim().toLowerCase() === user.trim().toLowerCase();
+  }
+
   /**
    * Whether the current user may edit this method revision (own item, same-org item for
    * organization contributors, or anything for superusers). The server enforces the same rule.

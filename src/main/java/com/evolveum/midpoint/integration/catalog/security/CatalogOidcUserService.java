@@ -23,10 +23,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Turns the identity Keycloak asserts into the application's security context:
+ * Turns the identity Keycloak asserts into the application's security context. All three
+ * catalog claims are sourced from plain Keycloak <em>user attributes</em> ({@code role},
+ * {@code group}, {@code organization}) exposed by attribute protocol mappers on the client —
+ * the realm carries no catalog-specific role or group objects:
  * <ul>
- *   <li>the "roles" claim (Keycloak realm roles) becomes {@code ROLE_*} authorities and the
- *       strongest known catalog role becomes the user's effective role (default: ReadOnly);</li>
+ *   <li>the "roles" claim becomes {@code ROLE_*} authorities and the strongest known
+ *       catalog role becomes the user's effective role (default: ReadOnly);</li>
  *   <li>the "groups" claim (e.g. Partner, Subscriber) becomes {@code GROUP_*} authorities;</li>
  *   <li>the "organization" claim is mirrored, with the user row, into the local database so
  *       the DB-driven ownership logic keeps working.</li>

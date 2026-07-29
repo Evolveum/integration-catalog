@@ -45,18 +45,25 @@ with protocol mappers that put the following into the ID token / userinfo:
 | `preferred_username` | username | principal name (`Authentication.getName()`), `catalog_users.username` |
 | `name` / `given_name` / `family_name` | user profile | full name in `/api/auth/me` |
 | `email` | user profile | email in `/api/auth/me` |
-| `roles` | realm roles | application role → `ROLE_*` authorities + `catalog_users.role` |
-| `groups` | group membership | `Partner` / `Subscriber` → `GROUP_*` authorities, shown in `/api/auth/me` |
+| `roles` | user attribute `role` | application role → `ROLE_*` authorities + `catalog_users.role` |
+| `groups` | user attribute `group` | `Partner` / `Subscriber` → `GROUP_*` authorities, shown in `/api/auth/me` |
 | `organization` | user attribute `organization` | linked/created `organizations` row → `catalog_users.organization_id` |
 
-**Roles** (realm roles, names must match `catalog_users.role` literals):
-`ReadOnly`, `IndividualContributor`, `OrganizationContributor`, `Superuser`.
-If a user carries several, the strongest wins (Superuser > OrganizationContributor >
-IndividualContributor > ReadOnly); a user with none is treated as `ReadOnly`.
+The catalog deliberately does **not** use Keycloak-native realm roles or group objects:
+everything application-specific lives in plain **user attributes** (`role`, `group`,
+`organization`) that `oidc-usermodel-attribute-mapper` mappers on the client copy into the
+tokens/userinfo. Keycloak stays a vanilla identity provider; to onboard a user an admin just
+fills in three attributes on the user's *Attributes* tab.
 
-**Groups:** top-level groups `Partner` and `Subscriber`. They are carried into the security
-context as `GROUP_Partner` / `GROUP_Subscriber` authorities and exposed by `/api/auth/me`;
-no endpoint restriction is currently keyed off them.
+**Role** (attribute `role`, value must match the `catalog_users.role` literals):
+`ReadOnly`, `IndividualContributor`, `OrganizationContributor`, `Superuser`.
+If the attribute carries several values, the strongest wins (Superuser >
+OrganizationContributor > IndividualContributor > ReadOnly); a user without the attribute
+is treated as `ReadOnly`.
+
+**Group** (attribute `group`): `Partner` or `Subscriber`. Carried into the security context
+as `GROUP_Partner` / `GROUP_Subscriber` authorities and exposed by `/api/auth/me`; no
+endpoint restriction is currently keyed off them.
 
 **Provisioning:** every successful login upserts the `catalog_users` row (role,
 organization) and creates the `organizations` row on first sight
@@ -110,12 +117,16 @@ review-state rules stay enforced in the service layer.
 ### Any authenticated user (including ReadOnly)
 
 - `GET /api/auth/me`, `GET /api/auth/organization/members`
-- `POST /api/requests` — create a request
-- `POST /api/requests/{id}/vote` — vote (identity from the session)
 - `POST /api/recently-used/{applicationId}`
+
+ReadOnly stops here: beyond these, it may only browse and download (the anonymous set).
 
 ### Contributors (IndividualContributor, OrganizationContributor, Superuser)
 
+- `POST /api/requests` — create a request (the session user is recorded as requester)
+- `DELETE /api/requests/{requestId}` — cancel a request; the service allows only the
+  recorded requester or a superuser (403 otherwise)
+- `POST /api/requests/{id}/vote` — vote (identity from the session)
 - `POST /api/upload/connector`,
   `GET /api/upload/check-bundle-name`, `GET /api/upload/check-version`
 - `PUT`/`POST`/`DELETE` under `/api/applications/{appId}/integration-method/...`
@@ -126,8 +137,6 @@ review-state rules stay enforced in the service layer.
 
 - Review workflow: `POST .../start-review`, `.../stop-review`, `.../publish`, `.../reject`
 - `GET /api/auth/all-maintainers`
-- `DELETE /api/requests/{requestId}` — cancel a request (requests carry no author, so
-  removal is an administrative action)
 
 ### Machine (shared secret, no session)
 
