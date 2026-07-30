@@ -7,61 +7,74 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
-import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
-import com.evolveum.midpoint.integration.catalog.object.Organization;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
-import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogOidcUserService;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService;
+import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService.KeycloakUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
+/**
+ * Identity questions, answered exclusively from Keycloak: the logged-in user's own
+ * profile comes from the session's token claims, and anything about <em>other</em>
+ * users (ownership checks, maintainer lists, organization members) is looked up
+ * through the {@link KeycloakUserService} admin-API directory. The catalog database
+ * holds no user, role or organization data.
+ */
 @Service
 public class AuthService {
 
-    private final CatalogUserRepository catalogUserRepository;
-    private final OrganizationRepository organizationRepository;
+    private final KeycloakUserService keycloakUserService;
 
-    public AuthService(CatalogUserRepository catalogUserRepository, OrganizationRepository organizationRepository) {
-        this.catalogUserRepository = catalogUserRepository;
-        this.organizationRepository = organizationRepository;
+    public AuthService(KeycloakUserService keycloakUserService) {
+        this.keycloakUserService = keycloakUserService;
     }
 
-    /**
-     * The authenticated user's profile: identity claims from the Keycloak tokens combined
-     * with the role/organization mirrored into catalog_users at login.
-     */
+    /** The authenticated user's profile, read entirely from the Keycloak token claims. */
     public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
-        CatalogUser user = catalogUserRepository.findByUsername(username).orElse(null);
-        Organization org = user != null ? user.getOrganization() : null;
+        String role = CatalogRole.READ_ONLY;
+        String organization = null;
         List<String> groups = List.of();
-        if (oidcUser != null && oidcUser.getClaim(CatalogOidcUserService.GROUPS_CLAIM) instanceof Collection<?> values) {
-            groups = values.stream().map(String::valueOf).toList();
+        if (oidcUser != null) {
+            List<String> claimedRoles = stringList(oidcUser.getClaim(CatalogOidcUserService.ROLES_CLAIM));
+            role = CatalogRole.BY_PRECEDENCE.stream()
+                    .filter(claimedRoles::contains)
+                    .findFirst()
+                    .orElse(CatalogRole.READ_ONLY);
+            organization = stringList(oidcUser.getClaim(CatalogOidcUserService.ORGANIZATION_CLAIM)).stream()
+                    .findFirst()
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .orElse(null);
+            groups = stringList(oidcUser.getClaim(CatalogOidcUserService.GROUPS_CLAIM));
         }
         return new CurrentUserDto(
                 username,
                 oidcUser != null ? oidcUser.getFullName() : null,
                 oidcUser != null ? oidcUser.getEmail() : null,
-                user != null ? user.getRole() : CatalogRole.READ_ONLY,
-                org != null ? org.getId() : null,
-                org != null ? org.getName() : null,
+                role,
+                organization,
                 groups
         );
     }
 
+    /** Maintainer options for a superuser: every Keycloak user plus every organization. */
     public List<String> getAllMaintainers() {
+        List<KeycloakUser> users = keycloakUserService.listUsers();
         List<String> result = new ArrayList<>();
-        catalogUserRepository.findAll().stream()
-                .map(CatalogUser::getUsername)
-                .forEach(result::add);
-        organizationRepository.findAll().stream()
-                .map(Organization::getName)
-                .forEach(result::add);
+        users.forEach(u -> result.add(u.username()));
+        Set<String> organizations = new LinkedHashSet<>();
+        users.stream()
+                .map(KeycloakUser::organization)
+                .filter(org -> org != null && !org.isBlank())
+                .forEach(organizations::add);
+        result.addAll(organizations);
         return result;
     }
 
@@ -92,11 +105,11 @@ public class AuthService {
         if (username == null || username.isBlank()) {
             return false;
         }
-        CatalogUser caller = catalogUserRepository.findByUsername(username).orElse(null);
+        KeycloakUser caller = keycloakUserService.findUser(username).orElse(null);
         if (caller == null) {
             return false;
         }
-        if ("Superuser".equals(caller.getRole())) {
+        if (CatalogRole.SUPERUSER.equals(caller.role())) {
             return true;
         }
         // Maintainer designates ownership: match by the caller's username or by their org name.
@@ -104,37 +117,33 @@ public class AuthService {
             if (maintainer.equalsIgnoreCase(username)) {
                 return true;
             }
-            if (caller.getOrganization() != null && caller.getOrganization().getName() != null
-                    && maintainer.equalsIgnoreCase(caller.getOrganization().getName())) {
+            if (caller.organization() != null && maintainer.equalsIgnoreCase(caller.organization())) {
                 return true;
             }
         }
         // An organization acts as a team: an item maintained by an org contributor is editable
         // by every member of that organization. A maintainer without an org stays personal, as
         // does an IndividualContributor who belongs to an org — they act as themselves.
-        if ("OrganizationContributor".equals(caller.getRole())
-                && caller.getOrganization() != null && maintainer != null && !maintainer.isBlank()) {
-            CatalogUser maintainerUser = catalogUserRepository.findByUsername(maintainer).orElse(null);
-            if (maintainerUser != null && "OrganizationContributor".equals(maintainerUser.getRole())
-                    && maintainerUser.getOrganization() != null
-                    && caller.getOrganization().getId().equals(maintainerUser.getOrganization().getId())) {
-                return true;
-            }
+        if (CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(caller.role())
+                && caller.organization() != null && maintainer != null && !maintainer.isBlank()
+                && isOrgMate(caller, maintainer)) {
+            return true;
         }
         // The uploader keeps access, as do organization contributors over their org's uploads.
         if (author != null && author.equalsIgnoreCase(username)) {
             return true;
         }
-        if ("OrganizationContributor".equals(caller.getRole())
-                && caller.getOrganization() != null && author != null) {
-            CatalogUser owner = catalogUserRepository.findByUsername(author).orElse(null);
-            if (owner != null && "OrganizationContributor".equals(owner.getRole())
-                    && owner.getOrganization() != null
-                    && caller.getOrganization().getId().equals(owner.getOrganization().getId())) {
-                return true;
-            }
-        }
-        return false;
+        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(caller.role())
+                && caller.organization() != null && author != null
+                && isOrgMate(caller, author);
+    }
+
+    /** Whether {@code otherUsername} is an OrganizationContributor of the caller's org. */
+    private boolean isOrgMate(KeycloakUser caller, String otherUsername) {
+        KeycloakUser other = keycloakUserService.findUser(otherUsername).orElse(null);
+        return other != null && CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(other.role())
+                && other.organization() != null
+                && caller.organization().equalsIgnoreCase(other.organization());
     }
 
     /** Whether {@code username} resolves to a Superuser. Used to gate approval actions. */
@@ -142,23 +151,28 @@ public class AuthService {
         if (username == null || username.isBlank()) {
             return false;
         }
-        return catalogUserRepository.findByUsername(username)
-                .map(u -> "Superuser".equals(u.getRole()))
+        return keycloakUserService.findUser(username)
+                .map(u -> CatalogRole.SUPERUSER.equals(u.role()))
                 .orElse(false);
     }
 
+    /** Usernames sharing the caller's organization attribute; just the caller when org-less. */
     public List<String> getOrganizationMembers(String username) {
-        return catalogUserRepository.findByUsername(username)
-                .map(user -> {
-                    if (user.getOrganization() == null) {
-                        return List.of(username);
-                    }
-                    return catalogUserRepository
-                            .findByOrganizationId(user.getOrganization().getId())
-                            .stream()
-                            .map(CatalogUser::getUsername)
-                            .collect(Collectors.toList());
-                })
-                .orElse(List.of(username));
+        String organization = keycloakUserService.findUser(username)
+                .map(KeycloakUser::organization)
+                .orElse(null);
+        if (organization == null || organization.isBlank()) {
+            return List.of(username);
+        }
+        return keycloakUserService.findUsersByOrganization(organization).stream()
+                .map(KeycloakUser::username)
+                .toList();
+    }
+
+    private static List<String> stringList(Object claim) {
+        if (claim instanceof Collection<?> values) {
+            return values.stream().map(String::valueOf).toList();
+        }
+        return claim != null ? List.of(String.valueOf(claim)) : List.of();
     }
 }

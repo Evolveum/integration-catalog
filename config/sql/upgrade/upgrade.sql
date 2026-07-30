@@ -103,6 +103,17 @@ ALTER TABLE catalog_users ALTER COLUMN password DROP NOT NULL;
 $aa$);
 -- end of region
 
+-- region version 6: user data moved entirely to Keycloak
+-- The catalog keeps no user, role or organization rows anymore: the logged-in user's
+-- identity comes from the OIDC token claims and lookups about other users (ownership
+-- checks, maintainer lists, organization members) go through the Keycloak Admin API.
+-- The author/maintainer columns on catalog items are plain text and are unaffected.
+call apply_change(6, 'user data moved entirely to Keycloak: drop catalog_users and organizations', $aa$
+DROP TABLE IF EXISTS catalog_users;
+DROP TABLE IF EXISTS organizations;
+$aa$);
+-- end of region
+
 -- Append new version sections above this line. For every new version N (6 and higher):
 --   1. add a "-- region version N: <name>" section here containing
 --        call apply_change(N, '<short description>', $aa$

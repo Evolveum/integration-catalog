@@ -206,8 +206,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
    * Whether the current user may edit this method revision (own item, same-org item for
    * organization contributors, or anything for superusers). The server enforces the same rule.
    */
-  protected canEdit(version: { author?: string | null; organizationId?: number | null; maintainer?: string | null }): boolean {
-    return this.authService.canEdit(version.author, version.organizationId, version.maintainer);
+  protected canEdit(version: { author?: string | null; authorOrganization?: string | null; maintainer?: string | null }): boolean {
+    return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
   }
 
   // ── Approve/Reject confirmation modal ─────────────────────────────────────
@@ -974,7 +974,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       if (version.lifecycleState !== 'IN_REVIEW'
           && version.lifecycleState !== 'REVIEWING'
           && version.lifecycleState !== 'REJECTED') return true;
-      return this.authService.canEdit(version.author, version.organizationId, version.maintainer);
+      return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
     });
 
     // Apply filters

@@ -18,7 +18,7 @@ Keycloak  http://localhost:8081/realms/integration-catalog
    │  3. user logs in, redirects back with code
    ▼
 Backend /login/oauth2/code/keycloak — exchanges code, validates ID token,
-   maps claims to authorities, provisions the user, starts a session (cookie)
+   maps claims to authorities, starts a session (cookie)
    │  4. redirect to /
    ▼
 SPA — GET /api/auth/me returns the profile; all /api calls carry the session cookie
@@ -42,12 +42,12 @@ with protocol mappers that put the following into the ID token / userinfo:
 
 | Claim | Source in Keycloak | Used for |
 |---|---|---|
-| `preferred_username` | username | principal name (`Authentication.getName()`), `catalog_users.username` |
+| `preferred_username` | username | principal name (`Authentication.getName()`), recorded as author/maintainer |
 | `name` / `given_name` / `family_name` | user profile | full name in `/api/auth/me` |
 | `email` | user profile | email in `/api/auth/me` |
-| `roles` | user attribute `role` | application role → `ROLE_*` authorities + `catalog_users.role` |
+| `roles` | user attribute `role` | application role → `ROLE_*` authorities |
 | `groups` | user attribute `group` | `Partner` / `Subscriber` → `GROUP_*` authorities, shown in `/api/auth/me` |
-| `organization` | user attribute `organization` | linked/created `organizations` row → `catalog_users.organization_id` |
+| `organization` | user attribute `organization` | organization shown in `/api/auth/me` and used by the ownership rules |
 
 The catalog deliberately does **not** use Keycloak-native realm roles or group objects:
 everything application-specific lives in plain **user attributes** (`role`, `group`,
@@ -55,7 +55,7 @@ everything application-specific lives in plain **user attributes** (`role`, `gro
 tokens/userinfo. Keycloak stays a vanilla identity provider; to onboard a user an admin just
 fills in three attributes on the user's *Attributes* tab.
 
-**Role** (attribute `role`, value must match the `catalog_users.role` literals):
+**Role** (attribute `role`, value must be one of the catalog role literals):
 `ReadOnly`, `IndividualContributor`, `OrganizationContributor`, `Superuser`.
 If the attribute carries several values, the strongest wins (Superuser >
 OrganizationContributor > IndividualContributor > ReadOnly); a user without the attribute
@@ -65,10 +65,14 @@ is treated as `ReadOnly`.
 as `GROUP_Partner` / `GROUP_Subscriber` authorities and exposed by `/api/auth/me`; no
 endpoint restriction is currently keyed off them.
 
-**Provisioning:** every successful login upserts the `catalog_users` row (role,
-organization) and creates the `organizations` row on first sight
-(`service/UserProvisioningService`). The DB row is what the ownership logic
-(`AuthService.canEdit`, organization members, maintainer options) queries.
+**No local user data:** the catalog database has no user, role or organization tables.
+The logged-in user's identity is read from the session's token claims; anything about
+*other* users — the ownership logic (`AuthService.canEdit`), organization members,
+maintainer options — is looked up live through the **Keycloak Admin REST API**
+(`security/KeycloakUserService`, short-lived cache). For that, the
+`integration-catalog` client has its **service account** enabled and carries the
+`realm-management / view-users` role; the lookups use the client-credentials grant
+with the same client id/secret the login flow uses.
 
 ## 3. Backend configuration
 
@@ -92,8 +96,9 @@ Key classes (package `security`):
 
 - `SecurityConfig` — filter chain: endpoint matrix, `oauth2Login()`, RP-initiated logout,
   SPA CSRF, 401 entry point for `/api/**`.
-- `CatalogOidcUserService` — maps `roles`/`groups` claims to authorities, triggers
-  provisioning.
+- `CatalogOidcUserService` — maps `roles`/`groups` claims to authorities.
+- `KeycloakUserService` — read-only user directory over the Keycloak Admin API
+  (service-account client-credentials; used for ownership checks and user listings).
 - `JenkinsCallbackFilter` — shared-secret check for `/api/upload/continue/**`; rejects
   everything while `jenkins.callbackToken` is unset.
 
@@ -118,15 +123,17 @@ review-state rules stay enforced in the service layer.
 
 - `GET /api/auth/me`, `GET /api/auth/organization/members`
 - `POST /api/recently-used/{applicationId}`
+- `POST /api/requests/{id}/vote` — vote (identity from the session; one vote per user).
+  Anonymous visitors cannot vote.
 
-ReadOnly stops here: beyond these, it may only browse and download (the anonymous set).
+ReadOnly stops here: beyond these, it may only browse, download and vote (the anonymous
+set plus voting).
 
 ### Contributors (IndividualContributor, OrganizationContributor, Superuser)
 
 - `POST /api/requests` — create a request (the session user is recorded as requester)
 - `DELETE /api/requests/{requestId}` — cancel a request; the service allows only the
   recorded requester or a superuser (403 otherwise)
-- `POST /api/requests/{id}/vote` — vote (identity from the session)
 - `POST /api/upload/connector`,
   `GET /api/upload/check-bundle-name`, `GET /api/upload/check-version`
 - `PUT`/`POST`/`DELETE` under `/api/applications/{appId}/integration-method/...`
@@ -167,7 +174,8 @@ Keycloak admin console: http://localhost:8081 (`admin` / `VeryStrongAdminPasswor
 
 ## 6. Database
 
-Schema version **5**: `catalog_users.password` is nullable and unused (authentication moved
-to Keycloak). Existing databases: run `config/sql/upgrade/upgrade.sql`. The seed users in
-`config/sql/02_data.sql` mirror the Keycloak test users; any other Keycloak user is
-provisioned automatically on first login.
+Schema version **6**: the `catalog_users` and `organizations` tables are **dropped** — all
+user, role and organization data lives in Keycloak only (token claims for the current
+user, Admin API for everyone else). The `author`/`maintainer` columns on catalog items
+are plain text usernames/org names and are unaffected. Existing databases: run
+`config/sql/upgrade/upgrade.sql`.

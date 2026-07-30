@@ -5,27 +5,9 @@
 --
 -- 
 
--- ============================================================
--- ORGANIZATIONS
--- ============================================================
-INSERT INTO organizations (id, name, description) VALUES
-	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
-	(2, 'Evolveum', 'Evolveum — application administrators');
-
-SELECT setval('organizations_id_seq', 2);
-
--- ============================================================
--- CATALOG USERS
--- ============================================================
--- Authentication is done by Keycloak (OIDC): no local passwords. These rows mirror the
--- test users of keycloak_for_auth/import/integration-catalog-realm.json; any Keycloak user missing
--- here is provisioned automatically on first login.
-INSERT INTO catalog_users (username, password, role, organization_id) VALUES
-	('u1', NULL, 'OrganizationContributor', 1),
-	('u2', NULL, 'ReadOnly',                NULL),
-	('u3', NULL, 'IndividualContributor',   NULL),
-	('u4', NULL, 'IndividualContributor',   1),
-	('u5', NULL, 'Superuser',               2);
+-- Users, roles and organizations live entirely in Keycloak (see
+-- keycloak_for_auth/import/integration-catalog-realm.json for the dev test users);
+-- the catalog database stores no user data.
 
 -- ============================================================
 -- LOOKUP TABLES

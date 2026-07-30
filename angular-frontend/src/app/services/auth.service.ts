@@ -23,7 +23,6 @@ interface CurrentUserResponse {
   fullName: string | null;
   email: string | null;
   role: string;
-  organizationId: number | null;
   organizationName: string | null;
   groups: string[];
 }
@@ -41,7 +40,6 @@ interface CurrentUserResponse {
 export class AuthService {
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
-  private readonly _currentOrganizationId = signal<number | null>(null);
   private readonly _currentOrganizationName = signal<string | null>(null);
   private readonly _currentFullName = signal<string | null>(null);
   private readonly _currentEmail = signal<string | null>(null);
@@ -54,7 +52,6 @@ export class AuthService {
       next: user => {
         this._currentUser.set(user.username);
         this._currentRole.set(UserRole[user.role as keyof typeof UserRole] ?? null);
-        this._currentOrganizationId.set(user.organizationId);
         this._currentOrganizationName.set(user.organizationName);
         this._currentFullName.set(user.fullName);
         this._currentEmail.set(user.email);
@@ -78,10 +75,6 @@ export class AuthService {
   /** The backend origin the OAuth endpoints live on (apiUrl minus the /api suffix). */
   private backendBaseUrl(): string {
     return environment.apiUrl.replace(/\/api\/?$/, '');
-  }
-
-  currentOrganizationId(): number | null {
-    return this._currentOrganizationId();
   }
 
   currentOrganizationName(): string | null {
@@ -159,16 +152,17 @@ export class AuthService {
     return this._currentRole();
   }
 
-  /** Voting and creating requests require a contributor role — ReadOnly only browses. */
+  /** Any logged-in user may vote, including ReadOnly; anonymous visitors may not. */
   canVote(): boolean {
+    return this.isLoggedIn();
+  }
+
+  /** Creating requests requires a contributor role — ReadOnly only browses and votes. */
+  canRequest(): boolean {
     const role = this.currentRole();
     return role === UserRole.IndividualContributor ||
            role === UserRole.OrganizationContributor ||
            role === UserRole.Superuser;
-  }
-
-  canRequest(): boolean {
-    return this.canVote();
   }
 
   canUpload(): boolean {
@@ -187,8 +181,8 @@ export class AuthService {
    * organization (pass the maintainer's org as `maintainerOrganization`; a maintainer
    * without an organization stays personal); the uploader may access items they authored;
    * and an Organization contributor may access any item authored by a member of their own
-   * organization (same organizationId). The server only exposes `maintainerOrganization`\
-   * `organizationId` when that maintainer\author is an Organization contributor, so items
+   * organization (same organization name). The server only exposes `maintainerOrganization`\
+   * `authorOrganization` when that maintainer\author is an Organization contributor, so items
    * of an Individual contributor who belongs to an org stay personal on both sides.
    *
    * The maintainer is the primary ownership signal — it is explicitly set at publish time,
@@ -198,7 +192,7 @@ export class AuthService {
    */
   canEdit(
     author: string | null | undefined,
-    organizationId: number | null | undefined,
+    authorOrganization: string | null | undefined,
     maintainer?: string | null,
     maintainerOrganization?: string | null,
   ): boolean {
@@ -218,9 +212,9 @@ export class AuthService {
       return true;
     }
     if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
-    if (role === UserRole.OrganizationContributor) {
-      const orgId = this._currentOrganizationId();
-      if (orgId !== null && organizationId != null && orgId === organizationId) return true;
+    if (role === UserRole.OrganizationContributor && orgName && authorOrganization
+        && orgName.trim().toLowerCase() === authorOrganization.trim().toLowerCase()) {
+      return true;
     }
     return false;
   }

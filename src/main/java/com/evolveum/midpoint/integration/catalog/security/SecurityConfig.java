@@ -97,18 +97,17 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/applications/*/logo")
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
 
-                        // Contributors: requests and voting. ReadOnly may only browse and
-                        // download. Cancelling a request is further restricted to the requester
-                        // or a superuser in ApplicationService.cancelRequest.
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/requests",
-                                "/api/requests/*/vote")
+                        // Contributors: creating and cancelling requests. Cancelling is
+                        // further restricted to the requester or a superuser in
+                        // ApplicationService.cancelRequest.
+                        .requestMatchers(HttpMethod.POST, "/api/requests")
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
                         .requestMatchers(HttpMethod.DELETE, "/api/requests/*")
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
 
-                        // Any authenticated user (including ReadOnly): profile and
-                        // recently-used tracking.
+                        // Any authenticated user (including ReadOnly): voting, profile and
+                        // recently-used tracking. Anonymous visitors cannot vote.
+                        .requestMatchers(HttpMethod.POST, "/api/requests/*/vote").authenticated()
                         .requestMatchers("/api/auth/me", "/api/auth/organization/members").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/recently-used/*").authenticated()
 

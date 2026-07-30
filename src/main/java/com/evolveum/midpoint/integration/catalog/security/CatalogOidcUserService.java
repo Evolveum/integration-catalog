@@ -6,7 +6,6 @@
 
 package com.evolveum.midpoint.integration.catalog.security;
 
-import com.evolveum.midpoint.integration.catalog.service.UserProvisioningService;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -31,9 +30,10 @@ import java.util.Set;
  *   <li>the "roles" claim becomes {@code ROLE_*} authorities and the strongest known
  *       catalog role becomes the user's effective role (default: ReadOnly);</li>
  *   <li>the "groups" claim (e.g. Partner, Subscriber) becomes {@code GROUP_*} authorities;</li>
- *   <li>the "organization" claim is mirrored, with the user row, into the local database so
- *       the DB-driven ownership logic keeps working.</li>
+ *   <li>the "organization" claim is served as-is via /api/auth/me.</li>
  * </ul>
+ * Nothing is persisted — the catalog keeps no user data; questions about other users are
+ * answered by {@link KeycloakUserService} against the Keycloak Admin API.
  */
 @Service
 public class CatalogOidcUserService extends OidcUserService {
@@ -42,12 +42,6 @@ public class CatalogOidcUserService extends OidcUserService {
     public static final String GROUPS_CLAIM = "groups";
     public static final String ORGANIZATION_CLAIM = "organization";
     public static final String GROUP_AUTHORITY_PREFIX = "GROUP_";
-
-    private final UserProvisioningService userProvisioningService;
-
-    public CatalogOidcUserService(UserProvisioningService userProvisioningService) {
-        this.userProvisioningService = userProvisioningService;
-    }
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
@@ -68,9 +62,6 @@ public class CatalogOidcUserService extends OidcUserService {
         catalogRoles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
         groups.forEach(group -> authorities.add(new SimpleGrantedAuthority(GROUP_AUTHORITY_PREFIX + group)));
 
-        userProvisioningService.provision(
-                oidcUser.getName(), effectiveRole, singleString(claims.get(ORGANIZATION_CLAIM)));
-
         String userNameAttribute = userRequest.getClientRegistration()
                 .getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
         return new DefaultOidcUser(authorities, oidcUser.getIdToken(), oidcUser.getUserInfo(), userNameAttribute);
@@ -81,10 +72,5 @@ public class CatalogOidcUserService extends OidcUserService {
             return values.stream().map(String::valueOf).toList();
         }
         return claim != null ? List.of(String.valueOf(claim)) : List.of();
-    }
-
-    private static String singleString(Object claim) {
-        List<String> values = stringList(claim);
-        return values.isEmpty() ? null : values.get(0);
     }
 }

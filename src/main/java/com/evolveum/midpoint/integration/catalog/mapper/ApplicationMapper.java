@@ -8,11 +8,12 @@ package com.evolveum.midpoint.integration.catalog.mapper;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.object.*;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
+import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -25,16 +26,16 @@ public class ApplicationMapper {
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
-    private final CatalogUserRepository catalogUserRepository;
+    private final KeycloakUserService keycloakUserService;
     private final MidpointVersionRepository midpointVersionRepository;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
-                             DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository,
+                             DownloadRepository downloadRepository, KeycloakUserService keycloakUserService,
                              MidpointVersionRepository midpointVersionRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
-        this.catalogUserRepository = catalogUserRepository;
+        this.keycloakUserService = keycloakUserService;
         this.midpointVersionRepository = midpointVersionRepository;
     }
 
@@ -83,11 +84,11 @@ public class ApplicationMapper {
                     // Author's organization drives the org-mate access checks; an
                     // IndividualContributor's uploads stay personal even when they belong
                     // to an organization, so the org is only exposed for org contributors.
-                    Integer organizationId = null;
+                    String authorOrganization = null;
                     if (method.getAuthor() != null) {
-                        organizationId = catalogUserRepository.findByUsername(method.getAuthor())
-                                .filter(u -> "OrganizationContributor".equals(u.getRole()))
-                                .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
+                        authorOrganization = keycloakUserService.findUser(method.getAuthor())
+                                .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(u.role()))
+                                .map(KeycloakUserService.KeycloakUser::organization)
                                 .orElse(null);
                     }
 
@@ -169,7 +170,7 @@ public class ApplicationMapper {
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
                             method.getAuthor(),
-                            organizationId,
+                            authorOrganization,
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -441,14 +442,14 @@ public class ApplicationMapper {
 
     /** Maps an integration method's maintainer username to its maintainer category. */
     private String maintainerCategoryForUser(String username) {
-        return catalogUserRepository.findByUsername(username)
-                .map(CatalogUser::getRole)
+        return keycloakUserService.findUser(username)
+                .map(KeycloakUserService.KeycloakUser::role)
                 .map(ApplicationMapper::roleToMaintainerCategory)
                 .orElse(null);
     }
 
     /**
-     * Maps a catalog_users.role to the maintainer category shown in the catalog:
+     * Maps a Keycloak "role" attribute to the maintainer category shown in the catalog:
      * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
      */
     private static String roleToMaintainerCategory(String role) {
@@ -544,9 +545,9 @@ public class ApplicationMapper {
         // contributor — an IndividualContributor who belongs to an organization still publishes
         // and is displayed as themselves, without the organization.
         String maintainerOrganization = maintainer == null ? null
-                : catalogUserRepository.findByUsername(maintainer)
-                        .filter(u -> "OrganizationContributor".equals(u.getRole()))
-                        .map(u -> u.getOrganization() != null ? u.getOrganization().getName() : null)
+                : keycloakUserService.findUser(maintainer)
+                        .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(u.role()))
+                        .map(KeycloakUserService.KeycloakUser::organization)
                         .orElse(null);
 
         return new ImplementationListItemDto(

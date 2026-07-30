@@ -9,16 +9,15 @@ package com.evolveum.midpoint.integration.catalog.dto;
 import java.util.List;
 
 /**
- * The authenticated user's profile as the frontend sees it: identity claims from
- * Keycloak (username, full name, email, groups) merged with the provisioned local
- * data (role, organization).
+ * The authenticated user's profile as the frontend sees it — every field comes from
+ * the Keycloak token claims (username, full name, email, role, organization, groups);
+ * the catalog stores no user data of its own.
  */
 public record CurrentUserDto(
         String username,
         String fullName,
         String email,
         String role,
-        Integer organizationId,
         String organizationName,
         List<String> groups
 ) {
