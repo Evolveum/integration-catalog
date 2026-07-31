@@ -36,11 +36,14 @@ public class ConnectorMapper {
         );
 
         String signature = sign(activeConnector);
+        List<SignatureDto> signatures = new ArrayList<>();
+        signatures.add(new SignatureDto(
+                "key-2026-01",
+                signature));
 
         return new SignedActiveConnectorDto(
                 activeConnector,
-                "key-2026-01",
-                signature
+                signatures
         );
     }
 

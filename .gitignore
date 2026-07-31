@@ -92,3 +92,4 @@ keycloak_for_auth/data/
 
 # Home data directory
 integration-catalog
+/keycloak_for_auth/data/postgres/

@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.exception.DatabaseSchemaVersion
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -25,12 +26,14 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link DatabaseSchemaVersionValidator}. The JdbcTemplate is mocked,
- * so no database is needed; each test simulates one state the database_version table
- * can be in and asserts whether startup validation passes or fails with the right message.
+ * so no database is needed; each test simulates one state the 'schemaChangeNumber' row
+ * of the m_global_metadata table can be in and asserts whether startup validation passes
+ * or fails with the right message.
  */
 class DatabaseSchemaVersionValidatorTest {
 
-    private static final String VERSION_QUERY = "SELECT max(version) FROM database_version";
+    private static final String VERSION_QUERY =
+            "SELECT value FROM m_global_metadata WHERE name = 'schemaChangeNumber'";
 
     private JdbcTemplate jdbcTemplate;
     private DatabaseSchemaVersionValidator validator;
@@ -42,7 +45,8 @@ class DatabaseSchemaVersionValidatorTest {
     }
 
     private void databaseVersionIs(Integer version) {
-        when(jdbcTemplate.queryForObject(VERSION_QUERY, Integer.class)).thenReturn(version);
+        when(jdbcTemplate.queryForObject(VERSION_QUERY, String.class))
+                .thenReturn(version == null ? null : String.valueOf(version));
     }
 
     @Test
@@ -54,13 +58,33 @@ class DatabaseSchemaVersionValidatorTest {
     }
 
     @Test
-    void emptyVersionTableFailsWithUpgradeInstruction() {
+    void missingVersionRowFailsWithUpgradeInstruction() {
+        when(jdbcTemplate.queryForObject(VERSION_QUERY, String.class))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        assertThatThrownBy(() -> validator.validateSchemaVersion())
+                .isInstanceOf(DatabaseSchemaVersionException.class)
+                .hasMessageContaining("no 'schemaChangeNumber' row")
+                .hasMessageContaining("upgrade.sql");
+    }
+
+    @Test
+    void nullVersionValueFailsWithUpgradeInstruction() {
         databaseVersionIs(null);
 
         assertThatThrownBy(() -> validator.validateSchemaVersion())
                 .isInstanceOf(DatabaseSchemaVersionException.class)
-                .hasMessageContaining("table 'database_version' is empty")
+                .hasMessageContaining("no 'schemaChangeNumber' row")
                 .hasMessageContaining("upgrade.sql");
+    }
+
+    @Test
+    void nonNumericVersionValueFailsWithClearMessage() {
+        when(jdbcTemplate.queryForObject(VERSION_QUERY, String.class)).thenReturn("garbage");
+
+        assertThatThrownBy(() -> validator.validateSchemaVersion())
+                .isInstanceOf(DatabaseSchemaVersionException.class)
+                .hasMessageContaining("non-numeric value 'garbage'");
     }
 
     @Test
@@ -86,15 +110,15 @@ class DatabaseSchemaVersionValidatorTest {
     }
 
     @Test
-    void missingVersionTableFailsWithUpgradeInstruction() {
+    void missingMetadataTableFailsWithUpgradeInstruction() {
         BadSqlGrammarException missingTable = new BadSqlGrammarException(
                 "StatementCallback", VERSION_QUERY,
-                new SQLException("relation \"database_version\" does not exist", "42P01"));
-        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class))).thenThrow(missingTable);
+                new SQLException("relation \"m_global_metadata\" does not exist", "42P01"));
+        when(jdbcTemplate.queryForObject(anyString(), eq(String.class))).thenThrow(missingTable);
 
         assertThatThrownBy(() -> validator.validateSchemaVersion())
                 .isInstanceOf(DatabaseSchemaVersionException.class)
-                .hasMessageContaining("table 'database_version' does not exist")
+                .hasMessageContaining("table 'm_global_metadata' does not exist")
                 .hasMessageContaining("upgrade.sql")
                 .hasCause(missingTable);
     }
@@ -103,8 +127,8 @@ class DatabaseSchemaVersionValidatorTest {
     void otherSqlGrammarErrorIsRethrownUnchanged() {
         BadSqlGrammarException otherError = new BadSqlGrammarException(
                 "StatementCallback", VERSION_QUERY,
-                new SQLException("column \"version\" does not exist", "42703"));
-        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class))).thenThrow(otherError);
+                new SQLException("column \"value\" does not exist", "42703"));
+        when(jdbcTemplate.queryForObject(anyString(), eq(String.class))).thenThrow(otherError);
 
         assertThatThrownBy(() -> validator.validateSchemaVersion())
                 .isSameAs(otherError);

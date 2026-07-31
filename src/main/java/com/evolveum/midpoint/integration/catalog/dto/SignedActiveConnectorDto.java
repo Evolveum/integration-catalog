@@ -6,8 +6,9 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import java.util.List;
+
 public record SignedActiveConnectorDto(
         ActiveConnectorDto connector,
-        String keyId,
-        String signature
+        List<SignatureDto> signature
 ) {}
