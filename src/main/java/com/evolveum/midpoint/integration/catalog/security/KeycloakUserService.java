@@ -7,14 +7,19 @@
 package com.evolveum.midpoint.integration.catalog.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -32,19 +37,30 @@ import java.util.concurrent.ConcurrentHashMap;
  * client the login flow uses; its service account carries the {@code realm-management /
  * view-users} role. Lookups are cached for a short time because list/detail screens ask
  * about the same few users repeatedly (one mapper pass can trigger a lookup per row).
+ * <p>
+ * <b>Fail-soft:</b> a Keycloak outage must not take the catalog down with it. Every
+ * lookup that cannot reach Keycloak falls back to the (possibly stale) cached answer,
+ * or to "unknown user" / empty list when there is none, and lookups are suspended for
+ * a short backoff so an unreachable Keycloak is not re-probed on every request.
+ * Anonymous browsing then works fully; only ownership checks and maintainer listings
+ * degrade until Keycloak is back.
  */
 @Service
 public class KeycloakUserService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(KeycloakUserService.class);
+
     /** How long a user lookup may be served from cache. */
     private static final long CACHE_TTL_MILLIS = 60_000;
+    /** How long to suspend Keycloak calls after a failed one. */
+    private static final long FAILURE_BACKOFF_MILLIS = 15_000;
     private static final int PAGE_SIZE = 100;
 
     /** A catalog-relevant view of a Keycloak user: effective role + organization attribute. */
     public record KeycloakUser(String username, String role, String organization) {
     }
 
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient = buildRestClient();
     private final String tokenEndpoint;
     private final String adminUsersEndpoint;
     private final String clientId;
@@ -60,6 +76,8 @@ public class KeycloakUserService {
     private volatile CachedList listCache;
     private volatile String accessToken;
     private volatile long tokenExpiresAt;
+    /** Until this instant Keycloak is considered unreachable and no calls are attempted. */
+    private volatile long unavailableUntil;
 
     public KeycloakUserService(
             @Value("${spring.security.oauth2.client.provider.keycloak.issuer-uri}") String issuerUri,
@@ -82,18 +100,26 @@ public class KeycloakUserService {
         if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > System.currentTimeMillis()) {
             return cached.user();
         }
-        List<UserRepresentation> found = restClient.get()
-                .uri(adminUsersEndpoint + "?exact=true&username={username}", key)
-                .header("Authorization", "Bearer " + adminToken())
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
-        Optional<KeycloakUser> user = found == null ? Optional.empty() : found.stream()
-                .filter(u -> key.equalsIgnoreCase(u.username()))
-                .findFirst()
-                .map(UserRepresentation::toKeycloakUser);
-        userCache.put(key, new CachedUser(user, System.currentTimeMillis()));
-        return user;
+        if (backingOff()) {
+            return cached != null ? cached.user() : Optional.empty();
+        }
+        try {
+            List<UserRepresentation> found = restClient.get()
+                    .uri(adminUsersEndpoint + "?exact=true&username={username}", key)
+                    .header("Authorization", "Bearer " + adminToken())
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+            Optional<KeycloakUser> user = found == null ? Optional.empty() : found.stream()
+                    .filter(u -> key.equalsIgnoreCase(u.username()))
+                    .findFirst()
+                    .map(UserRepresentation::toKeycloakUser);
+            userCache.put(key, new CachedUser(user, System.currentTimeMillis()));
+            return user;
+        } catch (RestClientException | IllegalStateException e) {
+            markUnavailable(e);
+            return cached != null ? cached.user() : Optional.empty();
+        }
     }
 
     /**
@@ -105,28 +131,36 @@ public class KeycloakUserService {
         if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > System.currentTimeMillis()) {
             return cached.users();
         }
-        List<KeycloakUser> users = new ArrayList<>();
-        for (int first = 0; ; first += PAGE_SIZE) {
-            List<UserRepresentation> page = restClient.get()
-                    .uri(adminUsersEndpoint + "?first={first}&max={max}", first, PAGE_SIZE)
-                    .header("Authorization", "Bearer " + adminToken())
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<>() {
-                    });
-            if (page == null || page.isEmpty()) {
-                break;
-            }
-            page.stream()
-                    .filter(u -> u.username() != null && !u.username().startsWith("service-account-"))
-                    .map(UserRepresentation::toKeycloakUser)
-                    .forEach(users::add);
-            if (page.size() < PAGE_SIZE) {
-                break;
-            }
+        if (backingOff()) {
+            return cached != null ? cached.users() : List.of();
         }
-        List<KeycloakUser> result = List.copyOf(users);
-        listCache = new CachedList(result, System.currentTimeMillis());
-        return result;
+        try {
+            List<KeycloakUser> users = new ArrayList<>();
+            for (int first = 0; ; first += PAGE_SIZE) {
+                List<UserRepresentation> page = restClient.get()
+                        .uri(adminUsersEndpoint + "?first={first}&max={max}", first, PAGE_SIZE)
+                        .header("Authorization", "Bearer " + adminToken())
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<>() {
+                        });
+                if (page == null || page.isEmpty()) {
+                    break;
+                }
+                page.stream()
+                        .filter(u -> u.username() != null && !u.username().startsWith("service-account-"))
+                        .map(UserRepresentation::toKeycloakUser)
+                        .forEach(users::add);
+                if (page.size() < PAGE_SIZE) {
+                    break;
+                }
+            }
+            List<KeycloakUser> result = List.copyOf(users);
+            listCache = new CachedList(result, System.currentTimeMillis());
+            return result;
+        } catch (RestClientException | IllegalStateException e) {
+            markUnavailable(e);
+            return cached != null ? cached.users() : List.of();
+        }
     }
 
     /** Users whose {@code organization} attribute equals the given name (case-insensitive). */
@@ -139,6 +173,29 @@ public class KeycloakUserService {
         return listUsers().stream()
                 .filter(u -> organizationName.trim().equalsIgnoreCase(u.organization()))
                 .toList();
+    }
+
+    private boolean backingOff() {
+        return unavailableUntil > System.currentTimeMillis();
+    }
+
+    /**
+     * Records a failed Keycloak call: suspends further calls for
+     * {@value #FAILURE_BACKOFF_MILLIS} ms so page rendering does not wait for a connect
+     * timeout per row. Logged once per backoff window (the failure itself is the trigger).
+     */
+    private void markUnavailable(Exception e) {
+        unavailableUntil = System.currentTimeMillis() + FAILURE_BACKOFF_MILLIS;
+        LOG.warn("Keycloak admin API unavailable ({}); serving cached/empty user data for the next {} s",
+                e.getMessage(), FAILURE_BACKOFF_MILLIS / 1000);
+    }
+
+    /** Short timeouts: a dead Keycloak must degrade pages, not hang them. */
+    private static RestClient buildRestClient() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(2));
+        requestFactory.setReadTimeout(Duration.ofSeconds(5));
+        return RestClient.builder().requestFactory(requestFactory).build();
     }
 
     private synchronized String adminToken() {

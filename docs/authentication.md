@@ -89,16 +89,26 @@ spring.security.oauth2.client.provider.keycloak.user-name-attribute=preferred_us
 jenkins.callbackToken=
 ```
 
-> The issuer is resolved at startup, so **Keycloak must be running before the backend
-> starts** (see `keycloak_for_auth/` — `docker compose up -d`).
+> The backend **starts and runs without Keycloak**. OIDC discovery of the `issuer-uri`
+> is deferred to the first login/logout (`LazyClientRegistrationRepository`), and the
+> admin-API lookups degrade gracefully (see below). While Keycloak is down the catalog
+> runs in **anonymous mode**: browsing, search, downloads and vote counts all work;
+> logging in fails (retried on every attempt — nothing is cached on failure); already
+> logged-in sessions keep their identity from the session, but ownership checks deny and
+> maintainer listings come back empty until Keycloak returns. A typo in `issuer-uri`
+> therefore surfaces at the first login attempt, not at startup.
 
 Key classes (package `security`):
 
 - `SecurityConfig` — filter chain: endpoint matrix, `oauth2Login()`, RP-initiated logout,
   SPA CSRF, 401 entry point for `/api/**`.
+- `LazyClientRegistrationRepository` — builds the client registration from the same
+  properties on first use instead of at startup, so the backend boots without Keycloak.
 - `CatalogOidcUserService` — maps `roles`/`groups` claims to authorities.
 - `KeycloakUserService` — read-only user directory over the Keycloak Admin API
   (service-account client-credentials; used for ownership checks and user listings).
+  Fail-soft: short connect/read timeouts, a 15 s backoff after a failed call, and stale
+  cache entries (or empty results) served while Keycloak is unreachable.
 - `JenkinsCallbackFilter` — shared-secret check for `/api/upload/continue/**`; rejects
   everything while `jenkins.callbackToken` is unset.
 
