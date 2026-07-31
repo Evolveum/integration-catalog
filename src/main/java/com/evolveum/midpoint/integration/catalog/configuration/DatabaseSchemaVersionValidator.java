@@ -11,6 +11,7 @@ import com.evolveum.midpoint.integration.catalog.exception.DatabaseSchemaVersion
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -20,18 +21,19 @@ import org.springframework.stereotype.Component;
  * this application build and aborts the startup with a clear error message when it does
  * not (missing version table, outdated database, or database newer than the application).
  *
- * The version is tracked in the database_version table maintained by the cumulative
- * config/sql/upgrade/upgrade.sql script; the current version is MAX(version).
+ * The version is tracked as the 'schemaChangeNumber' row of the m_global_metadata table
+ * (the same mechanism midPoint's native repository uses), maintained by the cumulative
+ * config/sql/upgrade/upgrade.sql script.
  */
 @Component
 public class DatabaseSchemaVersionValidator {
 
     /**
-     * Schema version required by this build. Bump together with every new section appended
-     * to config/sql/upgrade/upgrade.sql and the version inserted at the end of
-     * config/sql/01_schema.sql.
+     * Schema change number required by this build. Bump together with every new
+     * apply_change section appended to config/sql/upgrade/upgrade.sql and the number in
+     * the apply_change call at the end of config/sql/01_schema.sql.
      */
-    public static final int REQUIRED_VERSION = 4;
+    public static final int REQUIRED_VERSION = 2;
 
     private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
 
@@ -49,8 +51,8 @@ public class DatabaseSchemaVersionValidator {
 
         if (currentVersion == null) {
             throw new DatabaseSchemaVersionException(
-                    "Database schema version cannot be determined: table 'database_version' is empty. "
-                            + "The required database update has not been applied. "
+                    "Database schema version cannot be determined: table 'm_global_metadata' has no "
+                            + "'schemaChangeNumber' row. The required database update has not been applied. "
                             + "Run the config/sql/upgrade/upgrade.sql script against the database.");
         }
         if (currentVersion < REQUIRED_VERSION) {
@@ -69,18 +71,33 @@ public class DatabaseSchemaVersionValidator {
     }
 
     private Integer readCurrentVersion() {
+        String value;
         try {
-            return jdbcTemplate.queryForObject("SELECT max(version) FROM database_version", Integer.class);
+            value = jdbcTemplate.queryForObject(
+                    "SELECT value FROM m_global_metadata WHERE name = 'schemaChangeNumber'", String.class);
+        } catch (EmptyResultDataAccessException e) {
+            // no 'schemaChangeNumber' row - same situation as a NULL value
+            return null;
         } catch (BadSqlGrammarException e) {
             if (e.getSQLException() != null
                     && UNDEFINED_TABLE_SQL_STATE.equals(e.getSQLException().getSQLState())) {
                 throw new DatabaseSchemaVersionException(
-                        "Database schema version cannot be determined: table 'database_version' does not exist. "
+                        "Database schema version cannot be determined: table 'm_global_metadata' does not exist. "
                                 + "The required database update has not been applied. "
                                 + "Run the config/sql/upgrade/upgrade.sql script against the database.",
                         e);
             }
             throw e;
+        }
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            throw new DatabaseSchemaVersionException(
+                    "Database schema version cannot be determined: the 'schemaChangeNumber' row of "
+                            + "table 'm_global_metadata' holds non-numeric value '" + value + "'.", e);
         }
     }
 }
