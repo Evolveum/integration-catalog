@@ -31,7 +31,7 @@ public class DatabaseSchemaVersionValidator {
      * to config/sql/upgrade/upgrade.sql and the version inserted at the end of
      * config/sql/01_schema.sql.
      */
-    public static final int REQUIRED_VERSION = 3;
+    public static final int REQUIRED_VERSION = 4;
 
     private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
 

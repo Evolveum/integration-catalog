@@ -7,15 +7,24 @@
 -- Cumulative database upgrade script.
 --
 -- Contains one section per schema version; every new schema change is APPENDED here as a
--- new section that ends by inserting its version row into database_version. The current
--- schema version is MAX(version) in that table.
+-- new section. The current schema version is MAX(version) in the database_version table.
 --
 -- Always re-run the WHOLE file against an existing database:
 --
---   psql -U integration_catalog -d integration_catalog -f config/sql/upgrade/upgrade.sql
+--   psql -v ON_ERROR_STOP=1 -U integration_catalog -d integration_catalog -f config/sql/upgrade/upgrade.sql
 --
--- Every section must stay idempotent (IF NOT EXISTS / ON CONFLICT DO NOTHING), so
--- already-applied sections are harmless no-ops and only the new ones take effect.
+-- It is safe to run this script repeatedly. Sections up to version 4 are idempotent
+-- statements; from version 5 on, every section is a `call apply_change(N, ...)` which
+-- executes only when the database version is lower than N, so already-applied sections
+-- are skipped and only the new ones take effect. The SQL inside apply_change does NOT
+-- have to be idempotent.
+--
+-- Use plain psql, NOT tools with their own transaction handling (pgAdmin): apply_change
+-- COMMITs internally, which fails inside a wrapping transaction block. For the same
+-- reason never put an explicit COMMIT inside a change. If a later statement depends on
+-- an earlier one being committed (typically ALTER TYPE ... ADD VALUE followed by a use
+-- of the new value), split them into two apply_change calls.
+--
 -- Fresh installations do not need this file: config/sql/01_schema.sql already creates
 -- the schema at the current version.
 
@@ -54,9 +63,44 @@ VALUES (3, 'connector.cloned_from for copy-on-write connector clones')
 ON CONFLICT (version) DO NOTHING;
 -- end of region
 
--- Append new version sections above this line. For every new version N:
---   1. add a "-- region version N: <name>" section here with idempotent statements,
---      ending with the INSERT of row N into database_version,
+-- region version 4: apply_change procedure for repeatable, non-idempotent upgrades
+-- Inspired by midPoint's native repository upgrade mechanism (postgres-upgrade.sql).
+-- This section itself stays in the old idempotent style (CREATE OR REPLACE) because the
+-- procedure cannot be used to install itself; every section AFTER this one uses it.
+CREATE OR REPLACE PROCEDURE apply_change(changeVersion int, changeDescription text, change TEXT, force boolean = false)
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+    currentVersion int;
+BEGIN
+    SELECT max(version) INTO currentVersion FROM database_version;
+
+    -- the change is executed only if its version is newer than the database version - or if forced
+    IF currentVersion IS NULL OR currentVersion < changeVersion OR force THEN
+        EXECUTE change;
+        RAISE NOTICE 'Schema version % (%) applied', changeVersion, changeDescription;
+
+        INSERT INTO database_version (version, description)
+        VALUES (changeVersion, changeDescription)
+        ON CONFLICT (version) DO NOTHING;
+        COMMIT;
+    ELSE
+        RAISE NOTICE 'Schema version % skipped - database is already at version %', changeVersion, currentVersion;
+    END IF;
+END $$;
+
+INSERT INTO database_version (version, description)
+VALUES (4, 'apply_change procedure for repeatable non-idempotent upgrades')
+ON CONFLICT (version) DO NOTHING;
+-- end of region
+
+-- Append new version sections above this line. For every new version N (5 and higher):
+--   1. add a "-- region version N: <name>" section here containing
+--        call apply_change(N, '<short description>', $aa$
+--        <any SQL, does not have to be idempotent>
+--        $aa$);
+--      ($aa$ dollar-quoting keeps inner $$ function bodies intact; the procedure
+--      records version N in database_version and commits by itself),
 --   2. make the same change in config/sql/01_schema.sql and bump the version inserted
 --      at the end of that script to N,
 --   3. bump REQUIRED_VERSION in DatabaseSchemaVersionValidator to N.
