@@ -6,9 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-import java.util.List;
-
-public record SignedActiveConnectorsListDto(
-        String name,
-        List<SignedActiveConnectorDto> signedConnector
+public record SignatureDto(
+        String keyId,
+        String value
 ) {}
