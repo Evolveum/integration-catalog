@@ -23,6 +23,8 @@ interface CurrentUserResponse {
   fullName: string | null;
   email: string | null;
   role: string;
+  /** Keycloak organization alias — stable across organization renames. */
+  organizationId: string | null;
   organizationName: string | null;
   groups: string[];
 }

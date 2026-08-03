@@ -398,7 +398,6 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Evolveum" ],
       "role" : [ "Superuser" ]
     },
     "realmRoles" : [ "default-roles-integration-catalog" ],
@@ -421,7 +420,6 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Acme co." ],
       "role" : [ "OrganizationContributor" ],
       "group" : [ "Partner" ]
     },
@@ -489,7 +487,6 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Acme co." ],
       "role" : [ "IndividualContributor" ],
       "group" : [ "Subscriber" ]
     },
@@ -513,7 +510,6 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "organization" : [ "Evolveum" ],
       "role" : [ "Superuser" ]
     },
     "realmRoles" : [ "default-roles-integration-catalog" ],
@@ -531,10 +527,47 @@
     "requiredActions" : [ ],
     "realmRoles" : [ "default-roles-integration-catalog" ],
     "clientRoles" : {
-      "realm-management" : [ "view-users" ]
+      "realm-management" : [ "view-users", "manage-realm" ]
     },
     "notBefore" : 0,
     "groups" : [ ]
+  } ],
+  "organizations" : [ {
+    "id" : "b7a1c2d3-0001-4a5b-8c9d-0e1f2a3b4c01",
+    "name" : "Evolveum",
+    "alias" : "evolveum",
+    "enabled" : true,
+    "description" : "Maintainer of midPoint and the Integration catalog",
+    "attributes" : { },
+    "domains" : [ {
+      "name" : "evolveum.com",
+      "verified" : false
+    } ],
+    "members" : [ {
+      "username" : "kcuser",
+      "membershipType" : "UNMANAGED"
+    }, {
+      "username" : "u5",
+      "membershipType" : "UNMANAGED"
+    } ]
+  }, {
+    "id" : "b7a1c2d3-0002-4a5b-8c9d-0e1f2a3b4c02",
+    "name" : "Acme co.",
+    "alias" : "acme",
+    "enabled" : true,
+    "description" : "Demo partner organization",
+    "attributes" : { },
+    "domains" : [ {
+      "name" : "acme.example",
+      "verified" : false
+    } ],
+    "members" : [ {
+      "username" : "u1",
+      "membershipType" : "UNMANAGED"
+    }, {
+      "username" : "u4",
+      "membershipType" : "UNMANAGED"
+    } ]
   } ],
   "scopeMappings" : [ {
     "clientScope" : "offline_access",
@@ -747,23 +780,9 @@
         "claim.name" : "groups",
         "jsonType.label" : "String"
       }
-    }, {
-      "id" : "e4f3a9b4-0003-4f8d-8c8a-4d5e6f7a8b03",
-      "name" : "catalog-organization",
-      "protocol" : "openid-connect",
-      "protocolMapper" : "oidc-usermodel-attribute-mapper",
-      "consentRequired" : false,
-      "config" : {
-        "userinfo.token.claim" : "true",
-        "id.token.claim" : "true",
-        "access.token.claim" : "true",
-        "user.attribute" : "organization",
-        "claim.name" : "organization",
-        "jsonType.label" : "String"
-      }
     } ],
-    "defaultClientScopes" : [ "web-origins", "acr", "profile", "roles", "basic", "email" ],
-    "optionalClientScopes" : [ "address", "phone", "organization", "offline_access", "microprofile-jwt" ]
+    "defaultClientScopes" : [ "web-origins", "acr", "profile", "roles", "basic", "email", "organization" ],
+    "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
   }, {
     "id" : "d1521e17-e182-4391-9eb3-249bab7260d7",
     "clientId" : "realm-management",
@@ -1879,7 +1898,7 @@
       "userSetupAllowed" : false
     }, {
       "authenticatorFlow" : true,
-      "requirement" : "ALTERNATIVE",
+      "requirement" : "DISABLED",
       "priority" : 26,
       "autheticatorFlow" : true,
       "flowAlias" : "Organization",
@@ -2253,7 +2272,7 @@
   },
   "keycloakVersion" : "26.2.5",
   "userManagedAccessAllowed" : false,
-  "organizationsEnabled" : false,
+  "organizationsEnabled" : true,
   "verifiableCredentialsEnabled" : false,
   "adminPermissionsEnabled" : false,
   "clientProfiles" : {

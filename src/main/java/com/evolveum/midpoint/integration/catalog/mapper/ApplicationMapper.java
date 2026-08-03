@@ -88,7 +88,7 @@ public class ApplicationMapper {
                     if (method.getAuthor() != null) {
                         authorOrganization = keycloakUserService.findUser(method.getAuthor())
                                 .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(u.role()))
-                                .map(KeycloakUserService.KeycloakUser::organization)
+                                .map(KeycloakUserService.KeycloakUser::organizationName)
                                 .orElse(null);
                     }
 
@@ -547,7 +547,7 @@ public class ApplicationMapper {
         String maintainerOrganization = maintainer == null ? null
                 : keycloakUserService.findUser(maintainer)
                         .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(u.role()))
-                        .map(KeycloakUserService.KeycloakUser::organization)
+                        .map(KeycloakUserService.KeycloakUser::organizationName)
                         .orElse(null);
 
         return new ImplementationListItemDto(

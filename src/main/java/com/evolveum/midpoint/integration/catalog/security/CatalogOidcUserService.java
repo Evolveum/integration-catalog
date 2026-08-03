@@ -22,15 +22,17 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Turns the identity Keycloak asserts into the application's security context. All three
- * catalog claims are sourced from plain Keycloak <em>user attributes</em> ({@code role},
- * {@code group}, {@code organization}) exposed by attribute protocol mappers on the client —
- * the realm carries no catalog-specific role or group objects:
+ * Turns the identity Keycloak asserts into the application's security context. The role
+ * and group claims are sourced from plain Keycloak <em>user attributes</em> ({@code role},
+ * {@code group}) exposed by attribute protocol mappers on the client; the organization
+ * comes from Keycloak's first-class Organizations via the {@code organization} client
+ * scope — the realm carries no catalog-specific role or group objects:
  * <ul>
  *   <li>the "roles" claim becomes {@code ROLE_*} authorities and the strongest known
  *       catalog role becomes the user's effective role (default: ReadOnly);</li>
  *   <li>the "groups" claim (e.g. Partner, Subscriber) becomes {@code GROUP_*} authorities;</li>
- *   <li>the "organization" claim is served as-is via /api/auth/me.</li>
+ *   <li>the "organization" claim carries the organization's immutable alias; /api/auth/me
+ *       resolves it to the current display name.</li>
  * </ul>
  * Nothing is persisted — the catalog keeps no user data; questions about other users are
  * answered by {@link KeycloakUserService} against the Keycloak Admin API.

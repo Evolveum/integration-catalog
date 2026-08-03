@@ -47,13 +47,29 @@ with protocol mappers that put the following into the ID token / userinfo:
 | `email` | user profile | email in `/api/auth/me` |
 | `roles` | user attribute `role` | application role → `ROLE_*` authorities |
 | `groups` | user attribute `group` | `Partner` / `Subscriber` → `GROUP_*` authorities, shown in `/api/auth/me` |
-| `organization` | user attribute `organization` | organization shown in `/api/auth/me` and used by the ownership rules |
+| `organization` | **Keycloak Organizations** membership (via the built-in `organization` client scope) | organization identity in `/api/auth/me` and the ownership rules |
 
-The catalog deliberately does **not** use Keycloak-native realm roles or group objects:
-everything application-specific lives in plain **user attributes** (`role`, `group`,
-`organization`) that `oidc-usermodel-attribute-mapper` mappers on the client copy into the
-tokens/userinfo. Keycloak stays a vanilla identity provider; to onboard a user an admin just
-fills in three attributes on the user's *Attributes* tab.
+The role and group stay plain **user attributes** (`role`, `group`) copied into the
+tokens by `oidc-usermodel-attribute-mapper` mappers on the client — the realm carries no
+catalog-specific role or group objects. The **organization**, however, is a first-class
+Keycloak *Organization* (realm → *Organizations*): each organization has an immutable
+**alias** (the stable identifier the catalog uses) and a freely renameable display
+**name**, and users are made members of it. The `organization` claim (emitted by the
+built-in `organization` client scope, set as a default scope of the client) carries the
+alias of the organization(s) the user belongs to; the backend resolves the alias to the
+current display name through the Admin API. Renaming an organization therefore changes
+what is displayed, while everything keyed to the alias keeps working.
+
+To onboard a user an admin fills in the `role` (and optionally `group`) attribute on the
+user's *Attributes* tab and, if the user belongs to an organization, adds them as a
+member on the organization's *Members* tab.
+
+Enabling Organizations normally switches Keycloak's login page to identifier-first
+(username first, password on the next step) so it can route members of an organization
+to that organization's own identity provider. The catalog's organizations have no
+identity providers, so the *Organization* step of the `browser` authentication flow is
+**disabled** in the realm import and the login page stays a single
+username-and-password form. Re-enable that step if organization IdPs are ever added.
 
 **Role** (attribute `role`, value must be one of the catalog role literals):
 `ReadOnly`, `IndividualContributor`, `OrganizationContributor`, `Superuser`.
@@ -71,8 +87,9 @@ The logged-in user's identity is read from the session's token claims; anything 
 maintainer options — is looked up live through the **Keycloak Admin REST API**
 (`security/KeycloakUserService`, short-lived cache). For that, the
 `integration-catalog` client has its **service account** enabled and carries the
-`realm-management / view-users` role; the lookups use the client-credentials grant
-with the same client id/secret the login flow uses.
+`realm-management / view-users` role (user endpoints) and the `realm-management /
+manage-realm` role (Keycloak requires it for the organization endpoints); the lookups
+use the client-credentials grant with the same client id/secret the login flow uses.
 
 ## 3. Backend configuration
 
@@ -81,7 +98,7 @@ with the same client id/secret the login flow uses.
 ```properties
 spring.security.oauth2.client.registration.keycloak.client-id=integration-catalog
 spring.security.oauth2.client.registration.keycloak.client-secret=...
-spring.security.oauth2.client.registration.keycloak.scope=openid,profile,email
+spring.security.oauth2.client.registration.keycloak.scope=openid,profile,email,organization
 spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8081/realms/integration-catalog
 spring.security.oauth2.client.provider.keycloak.user-name-attribute=preferred_username
 
@@ -105,8 +122,9 @@ Key classes (package `security`):
 - `LazyClientRegistrationRepository` — builds the client registration from the same
   properties on first use instead of at startup, so the backend boots without Keycloak.
 - `CatalogOidcUserService` — maps `roles`/`groups` claims to authorities.
-- `KeycloakUserService` — read-only user directory over the Keycloak Admin API
-  (service-account client-credentials; used for ownership checks and user listings).
+- `KeycloakUserService` — read-only user and organization directory over the Keycloak
+  Admin API (service-account client-credentials; used for ownership checks, user
+  listings and resolving organization aliases to display names).
   Fail-soft: short connect/read timeouts, a 15 s backoff after a failed call, and stale
   cache entries (or empty results) served while Keycloak is unreachable.
 - `JenkinsCallbackFilter` — shared-secret check for `/api/upload/continue/**`; rejects
@@ -176,11 +194,18 @@ Everything not matched above under `/api/**` requires authentication (deny-by-de
 | `u4` | `u4` | IndividualContributor | Acme co. | Subscriber |
 | `u5` | `u5` | Superuser | Evolveum | — |
 
+Organizations in the realm import (membership per the table above):
+
+| Organization (name) | Alias (stable id) |
+|---|---|
+| Evolveum | `evolveum` |
+| Acme co. | `acme` |
+
 Keycloak admin console: http://localhost:8081 (`admin` / `VeryStrongAdminPassword`).
 
 > The realm is imported on first start only. If you already have a `keycloak_for_auth/data`
 > volume from an earlier run, wipe it (or re-import the realm manually) to pick up the
-> roles/groups/mappers added for the catalog.
+> mappers, organizations and service-account roles added for the catalog.
 
 ## 6. Database
 
