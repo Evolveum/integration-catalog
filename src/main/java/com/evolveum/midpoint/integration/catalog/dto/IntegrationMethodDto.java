@@ -37,5 +37,6 @@ public record IntegrationMethodDto(
         String reviewedBy,                                          // integration_method.reviewed_by
         String maintainer,                                          // integration_method.maintainer
         LocalDate createdAt,                                        // integration_method.created_at
-        LocalDate updated                                           // integration_method.updated (= review start date while REVIEWING)
+        LocalDate updated,                                          // integration_method.updated (= review start date while REVIEWING)
+        List<IncludedConnectorDto> connectors                       // connectors linked via integration_method_connector
 ) {}

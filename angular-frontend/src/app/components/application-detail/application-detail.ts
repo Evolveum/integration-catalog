@@ -8,7 +8,7 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IncludedConnector, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
@@ -416,6 +416,29 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected isComboSectionExpanded(key: string): boolean {
     return this.expandedComboSections().has(key);
+  }
+
+  // Connectors section is expanded by default, so the set tracks COLLAPSED rows.
+  protected readonly collapsedConnectorSections = signal<Set<string>>(new Set());
+
+  protected toggleConnectorsSection(key: string): void {
+    this.collapsedConnectorSections.update(set => {
+      const next = new Set(set);
+      if (next.has(key)) { next.delete(key); } else { next.add(key); }
+      return next;
+    });
+  }
+
+  protected isConnectorsSectionExpanded(key: string): boolean {
+    return !this.collapsedConnectorSections().has(key);
+  }
+
+  /** Chip label: fully qualified class name plus the connector version, e.g. "…CsvConnector v2.9". */
+  protected connectorChipLabel(c: IncludedConnector): string {
+    const name = c.className || c.displayName || '';
+    if (!c.version) return name;
+    const version = c.version.toLowerCase().startsWith('v') ? c.version : 'v' + c.version;
+    return `${name} ${version}`;
   }
 
   protected getGlobalCaps(version: IntegrationMethod): string[] {

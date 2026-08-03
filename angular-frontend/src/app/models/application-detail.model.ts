@@ -52,11 +52,19 @@ export interface IntegrationMethod {
   reviewedBy: string | null;             // integration_method.reviewed_by (set at start-review, kept on approve/reject)
   createdAt: string | null;              // integration_method.created_at (submitted-for-review date)
   updated: string | null;                // integration_method.updated (= review start date while REVIEWING)
+  connectors: IncludedConnector[] | null; // connectors linked via integration_method_connector
 }
 
 export interface ObjectClassCapability {
   objectName: string;     // object_class_capabilities.object_name
   capabilities: string[]; // capability.name items
+}
+
+export interface IncludedConnector {
+  className: string | null;    // connector.fully_qualified_class_name
+  displayName: string | null;  // connector.display_name
+  version: string | null;      // connector_bundle_version.bundle_version of the current version
+  description: string | null;  // connector.description
 }
 
 export interface ApplicationDetail {
