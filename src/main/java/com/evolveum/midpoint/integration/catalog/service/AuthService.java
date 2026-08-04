@@ -6,59 +6,95 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import com.evolveum.midpoint.integration.catalog.dto.LoginResponseDto;
-import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
-import com.evolveum.midpoint.integration.catalog.object.Organization;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
-import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.security.CatalogOidcUserService;
+import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService;
+import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService.KeycloakOrganization;
+import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService.KeycloakUser;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Map;
 
+/**
+ * Identity questions, answered exclusively from Keycloak: the logged-in user's own
+ * profile comes from the session's token claims, and anything about <em>other</em>
+ * users (ownership checks, maintainer lists, organization members) is looked up
+ * through the {@link KeycloakUserService} admin-API directory. The catalog database
+ * holds no user, role or organization data.
+ */
 @Service
 public class AuthService {
 
-    private final CatalogUserRepository catalogUserRepository;
-    private final OrganizationRepository organizationRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final KeycloakUserService keycloakUserService;
 
-    public AuthService(CatalogUserRepository catalogUserRepository, OrganizationRepository organizationRepository) {
-        this.catalogUserRepository = catalogUserRepository;
-        this.organizationRepository = organizationRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder();
+    public AuthService(KeycloakUserService keycloakUserService) {
+        this.keycloakUserService = keycloakUserService;
     }
 
-    public Optional<LoginResponseDto> login(String username, String password) {
-        Optional<CatalogUser> userOpt = catalogUserRepository.findByUsername(username);
-        if (userOpt.isEmpty()) {
-            return Optional.empty();
+    /**
+     * The authenticated user's profile, read from the Keycloak token claims. The
+     * organization claim carries the organization's immutable <em>alias</em>; the display
+     * name is resolved live against Keycloak (falling back to the alias while Keycloak
+     * is unreachable), so an organization rename shows up without re-login.
+     */
+    public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
+        String role = CatalogRole.READ_ONLY;
+        String organizationId = null;
+        String organizationName = null;
+        List<String> groups = List.of();
+        if (oidcUser != null) {
+            List<String> claimedRoles = stringList(oidcUser.getClaim(CatalogOidcUserService.ROLES_CLAIM));
+            role = CatalogRole.BY_PRECEDENCE.stream()
+                    .filter(claimedRoles::contains)
+                    .findFirst()
+                    .orElse(CatalogRole.READ_ONLY);
+            organizationId = organizationAliases(oidcUser.getClaim(CatalogOidcUserService.ORGANIZATION_CLAIM))
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+            organizationName = keycloakUserService.findOrganizationByAlias(organizationId)
+                    .map(KeycloakOrganization::name)
+                    .orElse(organizationId);
+            groups = stringList(oidcUser.getClaim(CatalogOidcUserService.GROUPS_CLAIM));
         }
-
-        CatalogUser user = userOpt.get();
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            return Optional.empty();
-        }
-
-        Organization org = user.getOrganization();
-        return Optional.of(new LoginResponseDto(
-                user.getUsername(),
-                user.getRole(),
-                org != null ? org.getId() : null,
-                org != null ? org.getName() : null
-        ));
+        return new CurrentUserDto(
+                username,
+                oidcUser != null ? oidcUser.getFullName() : null,
+                oidcUser != null ? oidcUser.getEmail() : null,
+                role,
+                organizationId,
+                organizationName,
+                groups
+        );
     }
 
+    /**
+     * Organization aliases from the token's organization claim. The Keycloak organization
+     * membership mapper emits either a list of aliases (jsonType String) or an object
+     * keyed by alias (jsonType JSON); both shapes are accepted here.
+     */
+    private static List<String> organizationAliases(Object claim) {
+        List<String> raw = claim instanceof Map<?, ?> byAlias
+                ? byAlias.keySet().stream().map(String::valueOf).toList()
+                : stringList(claim);
+        return raw.stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
+
+    /** Maintainer options for a superuser: every Keycloak user plus every organization. */
     public List<String> getAllMaintainers() {
         List<String> result = new ArrayList<>();
-        catalogUserRepository.findAll().stream()
-                .map(CatalogUser::getUsername)
-                .forEach(result::add);
-        organizationRepository.findAll().stream()
-                .map(Organization::getName)
+        keycloakUserService.listUsers().forEach(u -> result.add(u.username()));
+        keycloakUserService.listOrganizations().stream()
+                .map(KeycloakOrganization::name)
+                .filter(name -> name != null && !name.isBlank())
                 .forEach(result::add);
         return result;
     }
@@ -90,11 +126,11 @@ public class AuthService {
         if (username == null || username.isBlank()) {
             return false;
         }
-        CatalogUser caller = catalogUserRepository.findByUsername(username).orElse(null);
+        KeycloakUser caller = keycloakUserService.findUser(username).orElse(null);
         if (caller == null) {
             return false;
         }
-        if ("Superuser".equals(caller.getRole())) {
+        if (CatalogRole.SUPERUSER.equals(caller.role())) {
             return true;
         }
         // Maintainer designates ownership: match by the caller's username or by their org name.
@@ -102,37 +138,33 @@ public class AuthService {
             if (maintainer.equalsIgnoreCase(username)) {
                 return true;
             }
-            if (caller.getOrganization() != null && caller.getOrganization().getName() != null
-                    && maintainer.equalsIgnoreCase(caller.getOrganization().getName())) {
+            if (caller.organizationName() != null && maintainer.equalsIgnoreCase(caller.organizationName())) {
                 return true;
             }
         }
         // An organization acts as a team: an item maintained by an org contributor is editable
         // by every member of that organization. A maintainer without an org stays personal, as
         // does an IndividualContributor who belongs to an org — they act as themselves.
-        if ("OrganizationContributor".equals(caller.getRole())
-                && caller.getOrganization() != null && maintainer != null && !maintainer.isBlank()) {
-            CatalogUser maintainerUser = catalogUserRepository.findByUsername(maintainer).orElse(null);
-            if (maintainerUser != null && "OrganizationContributor".equals(maintainerUser.getRole())
-                    && maintainerUser.getOrganization() != null
-                    && caller.getOrganization().getId().equals(maintainerUser.getOrganization().getId())) {
-                return true;
-            }
+        if (CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(caller.role())
+                && caller.organizationAlias() != null && maintainer != null && !maintainer.isBlank()
+                && isOrgMate(caller, maintainer)) {
+            return true;
         }
         // The uploader keeps access, as do organization contributors over their org's uploads.
         if (author != null && author.equalsIgnoreCase(username)) {
             return true;
         }
-        if ("OrganizationContributor".equals(caller.getRole())
-                && caller.getOrganization() != null && author != null) {
-            CatalogUser owner = catalogUserRepository.findByUsername(author).orElse(null);
-            if (owner != null && "OrganizationContributor".equals(owner.getRole())
-                    && owner.getOrganization() != null
-                    && caller.getOrganization().getId().equals(owner.getOrganization().getId())) {
-                return true;
-            }
-        }
-        return false;
+        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(caller.role())
+                && caller.organizationAlias() != null && author != null
+                && isOrgMate(caller, author);
+    }
+
+    /** Whether {@code otherUsername} is an OrganizationContributor of the caller's org. */
+    private boolean isOrgMate(KeycloakUser caller, String otherUsername) {
+        KeycloakUser other = keycloakUserService.findUser(otherUsername).orElse(null);
+        return other != null && CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(other.role())
+                && other.organizationAlias() != null
+                && caller.organizationAlias().equalsIgnoreCase(other.organizationAlias());
     }
 
     /** Whether {@code username} resolves to a Superuser. Used to gate approval actions. */
@@ -140,23 +172,28 @@ public class AuthService {
         if (username == null || username.isBlank()) {
             return false;
         }
-        return catalogUserRepository.findByUsername(username)
-                .map(u -> "Superuser".equals(u.getRole()))
+        return keycloakUserService.findUser(username)
+                .map(u -> CatalogRole.SUPERUSER.equals(u.role()))
                 .orElse(false);
     }
 
+    /** Usernames sharing the caller's organization; just the caller when org-less. */
     public List<String> getOrganizationMembers(String username) {
-        return catalogUserRepository.findByUsername(username)
-                .map(user -> {
-                    if (user.getOrganization() == null) {
-                        return List.of(username);
-                    }
-                    return catalogUserRepository
-                            .findByOrganizationId(user.getOrganization().getId())
-                            .stream()
-                            .map(CatalogUser::getUsername)
-                            .collect(Collectors.toList());
-                })
-                .orElse(List.of(username));
+        String organizationAlias = keycloakUserService.findUser(username)
+                .map(KeycloakUser::organizationAlias)
+                .orElse(null);
+        if (organizationAlias == null || organizationAlias.isBlank()) {
+            return List.of(username);
+        }
+        return keycloakUserService.findUsersByOrganization(organizationAlias).stream()
+                .map(KeycloakUser::username)
+                .toList();
+    }
+
+    private static List<String> stringList(Object claim) {
+        if (claim instanceof Collection<?> values) {
+            return values.stream().map(String::valueOf).toList();
+        }
+        return claim != null ? List.of(String.valueOf(claim)) : List.of();
     }
 }
