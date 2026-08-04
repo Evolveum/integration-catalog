@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.security;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -27,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 
 /**
  * Read-only user directory backed by the Keycloak Admin REST API. Since the catalog keeps
@@ -72,7 +74,9 @@ public class KeycloakUserService {
     public record KeycloakOrganization(String id, String alias, String name) {
     }
 
-    private final RestClient restClient = buildRestClient();
+    private final RestClient restClient;
+    /** Time source; a test seam so cache TTL and backoff expiry are testable without sleeping. */
+    private final LongSupplier clock;
     private final String tokenEndpoint;
     private final String adminUsersEndpoint;
     private final String adminOrganizationsEndpoint;
@@ -98,10 +102,21 @@ public class KeycloakUserService {
     /** Until this instant Keycloak is considered unreachable and no calls are attempted. */
     private volatile long unavailableUntil;
 
+    // @Autowired is required here: with the test-seam constructor below the class has two
+    // constructors, and Spring only picks one implicitly when there is exactly one.
+    @Autowired
     public KeycloakUserService(
             @Value("${spring.security.oauth2.client.provider.keycloak.issuer-uri}") String issuerUri,
             @Value("${spring.security.oauth2.client.registration.keycloak.client-id}") String clientId,
             @Value("${spring.security.oauth2.client.registration.keycloak.client-secret}") String clientSecret) {
+        this(issuerUri, clientId, clientSecret, buildRestClient(), System::currentTimeMillis);
+    }
+
+    /** Test seam: lets tests supply a mock-bound {@link RestClient} and a controllable clock. */
+    KeycloakUserService(String issuerUri, String clientId, String clientSecret,
+            RestClient restClient, LongSupplier clock) {
+        this.restClient = restClient;
+        this.clock = clock;
         this.tokenEndpoint = issuerUri + "/protocol/openid-connect/token";
         // http://host/realms/<realm> -> http://host/admin/realms/<realm>/users
         String adminRealmBase = issuerUri.replaceFirst("/realms/", "/admin/realms/");
@@ -118,7 +133,7 @@ public class KeycloakUserService {
         }
         String key = username.trim().toLowerCase(Locale.ROOT);
         CachedUser cached = userCache.get(key);
-        if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > System.currentTimeMillis()) {
+        if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > clock.getAsLong()) {
             return cached.user();
         }
         if (backingOff()) {
@@ -136,7 +151,7 @@ public class KeycloakUserService {
                     .filter(u -> key.equalsIgnoreCase(u.username()))
                     .findFirst()
                     .map(u -> u.toKeycloakUser(membership));
-            userCache.put(key, new CachedUser(user, System.currentTimeMillis()));
+            userCache.put(key, new CachedUser(user, clock.getAsLong()));
             return user;
         } catch (RestClientException | IllegalStateException e) {
             markUnavailable(e);
@@ -150,7 +165,7 @@ public class KeycloakUserService {
      */
     public List<KeycloakUser> listUsers() {
         CachedList cached = listCache;
-        if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > System.currentTimeMillis()) {
+        if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > clock.getAsLong()) {
             return cached.users();
         }
         if (backingOff()) {
@@ -178,7 +193,7 @@ public class KeycloakUserService {
                 }
             }
             List<KeycloakUser> result = List.copyOf(users);
-            listCache = new CachedList(result, System.currentTimeMillis());
+            listCache = new CachedList(result, clock.getAsLong());
             return result;
         } catch (RestClientException | IllegalStateException e) {
             markUnavailable(e);
@@ -225,7 +240,7 @@ public class KeycloakUserService {
      */
     private CachedOrgs organizations() {
         CachedOrgs cached = orgsCache;
-        if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > System.currentTimeMillis()) {
+        if (cached != null && cached.loadedAt() + CACHE_TTL_MILLIS > clock.getAsLong()) {
             return cached;
         }
         if (backingOff()) {
@@ -250,7 +265,7 @@ public class KeycloakUserService {
                 }
             }
             CachedOrgs result = new CachedOrgs(List.copyOf(organizations),
-                    Map.copyOf(byMember), System.currentTimeMillis());
+                    Map.copyOf(byMember), clock.getAsLong());
             orgsCache = result;
             return result;
         } catch (RestClientException | IllegalStateException e) {
@@ -279,7 +294,7 @@ public class KeycloakUserService {
     }
 
     private boolean backingOff() {
-        return unavailableUntil > System.currentTimeMillis();
+        return unavailableUntil > clock.getAsLong();
     }
 
     /**
@@ -288,7 +303,7 @@ public class KeycloakUserService {
      * timeout per row. Logged once per backoff window (the failure itself is the trigger).
      */
     private void markUnavailable(Exception e) {
-        unavailableUntil = System.currentTimeMillis() + FAILURE_BACKOFF_MILLIS;
+        unavailableUntil = clock.getAsLong() + FAILURE_BACKOFF_MILLIS;
         LOG.warn("Keycloak admin API unavailable ({}); serving cached/empty user data for the next {} s",
                 e.getMessage(), FAILURE_BACKOFF_MILLIS / 1000);
     }
@@ -302,7 +317,7 @@ public class KeycloakUserService {
     }
 
     private synchronized String adminToken() {
-        if (accessToken != null && tokenExpiresAt > System.currentTimeMillis()) {
+        if (accessToken != null && tokenExpiresAt > clock.getAsLong()) {
             return accessToken;
         }
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
@@ -320,7 +335,7 @@ public class KeycloakUserService {
         }
         accessToken = token.access_token();
         // Renew slightly early so an almost-expired token is never sent.
-        tokenExpiresAt = System.currentTimeMillis() + (token.expires_in() - 10) * 1000L;
+        tokenExpiresAt = clock.getAsLong() + (token.expires_in() - 10) * 1000L;
         return accessToken;
     }
 
