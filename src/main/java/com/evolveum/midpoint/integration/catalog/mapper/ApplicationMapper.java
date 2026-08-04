@@ -134,6 +134,28 @@ public class ApplicationMapper {
                         }
                     }
 
+                    // Every linked connector, so the card can list them all (the flattened
+                    // connector fields above only carry the first link).
+                    List<IncludedConnectorDto> includedConnectors = method.getConnectors().stream()
+                            .map(IntegrationMethodConnector::getConnector)
+                            .filter(Objects::nonNull)
+                            .map(c -> new IncludedConnectorDto(
+                                    c.getFullyQualifiedClassName(),
+                                    c.getDisplayName(),
+                                    // Newest version row = the connector's current version
+                                    // (see buildIntegrationMethodListItem).
+                                    c.getConnectorVersions().stream()
+                                            .filter(cv -> cv.getConnectorBundleVersion() != null)
+                                            .max(Comparator.comparingInt(ConnectorVersion::getId))
+                                            .map(cv -> {
+                                                ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+                                                return cbv.getBundleVersion() != null
+                                                        ? cbv.getBundleVersion() : cbv.getRevision();
+                                            })
+                                            .orElse(null),
+                                    c.getDescription()))
+                            .toList();
+
                     List<String> integMethodTypes = method.getIntegMethodTypes().stream()
                             .map(IntegrationMethodType::getDisplayName)
                             .toList();
@@ -187,7 +209,8 @@ public class ApplicationMapper {
                             method.getReviewedBy(),
                             method.getMaintainer(),
                             method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
-                            method.getUpdated() != null ? method.getUpdated().toLocalDate() : null
+                            method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
+                            includedConnectors
                     );
                 })
                 .toList();

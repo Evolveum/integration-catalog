@@ -527,6 +527,28 @@
                                     }
                                   </div>
                                 }
+
+                                @if (version.connectors && version.connectors.length > 0) {
+                                  @if (!version.objectClassCapabilities || version.objectClassCapabilities.length === 0) {
+                                    <hr class="im-divider">
+                                  }
+                                  <div class="d-flex align-items-center gap-2 object-class-row mt-2 mb-2" (click)="toggleConnectorsSection(rowKey(version)); $event.stopPropagation()" style="cursor:pointer;">
+                                    <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isConnectorsSectionExpanded(rowKey(version))" [class.fa-chevron-down]="isConnectorsSectionExpanded(rowKey(version))"></i>
+                                    <p class="text-sm mb-0 im-capabilities-header">Connectors <span class="text-muted fw-normal">({{ version.connectors.length }})</span></p>
+                                  </div>
+                                  @if (isConnectorsSectionExpanded(rowKey(version))) {
+                                    <div class="d-flex flex-wrap gap-2">
+                                      @for (connector of version.connectors; track connector.className) {
+                                        <span class="badge badge-capability badge-connector" (click)="$event.stopPropagation()">
+                                          {{ connectorChipLabel(connector) }}
+                                          @if (connector.description) {
+                                            <span class="connector-tooltip">{{ connector.description }}</span>
+                                          }
+                                        </span>
+                                      }
+                                    </div>
+                                  }
+                                }
                               </div>
 
                               <!-- STATUS -->
