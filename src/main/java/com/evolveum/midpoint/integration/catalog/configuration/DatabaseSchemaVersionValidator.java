@@ -76,7 +76,7 @@ public class DatabaseSchemaVersionValidator {
             value = jdbcTemplate.queryForObject(
                     "SELECT value FROM m_global_metadata WHERE name = 'schemaChangeNumber'", String.class);
         } catch (EmptyResultDataAccessException e) {
-            // no 'schemaChangeNumber' row - same situation as a NULL value
+            // no 'schemaChangeNumber' row
             return null;
         } catch (BadSqlGrammarException e) {
             if (e.getSQLException() != null
@@ -90,7 +90,11 @@ public class DatabaseSchemaVersionValidator {
             throw e;
         }
         if (value == null) {
-            return null;
+            throw new DatabaseSchemaVersionException(
+                    "Database schema version cannot be determined: the 'schemaChangeNumber' row of "
+                            + "table 'm_global_metadata' holds NULL value. The required database update "
+                            + "has not been applied correctly. "
+                            + "Run the config/sql/upgrade/upgrade.sql script against the database.");
         }
         try {
             return Integer.valueOf(value.trim());
