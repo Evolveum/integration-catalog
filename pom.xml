@@ -164,6 +164,15 @@
 						<artifactId>cyclonedx-maven-plugin</artifactId>
 						<version>2.9.1</version>
 						<executions>
+							<!-- Spring Boot's parent manages this plugin and contributes an execution
+							     of its own (id "default") that writes an SBOM into the jar at
+							     META-INF/sbom/application.cdx.json. Unbinding it keeps the BOM being
+							     built once, at the single documented location below. Bind it back by
+							     removing this block if the jar embedded SBOM is wanted as well. -->
+							<execution>
+								<id>default</id>
+								<phase>none</phase>
+							</execution>
 							<execution>
 								<id>backend-sbom</id>
 								<phase>package</phase>
