@@ -7,18 +7,15 @@
 package com.evolveum.midpoint.integration.catalog.common;
 
 import ch.qos.logback.classic.Logger;
-import com.evolveum.midpoint.integration.catalog.IntegrationCatalogApplication;
-import com.evolveum.midpoint.integration.catalog.configuration.SigningProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.ConnectorSigningProperties;
 import lombok.Getter;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
-import java.security.cert.CertificateException;
 
 @Getter
 @Component
@@ -29,11 +26,11 @@ public class PrivateKeyProvider {
 
     private final PrivateKey privateKey;
 
-    public PrivateKeyProvider(SigningProperties properties) throws Exception {
+    public PrivateKeyProvider(ConnectorSigningProperties properties) {
         privateKey = loadPrivateKey(properties);
     }
 
-    private PrivateKey loadPrivateKey(SigningProperties properties) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
+    private PrivateKey loadPrivateKey(ConnectorSigningProperties properties) {
         try {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
 
