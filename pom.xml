@@ -214,6 +214,11 @@
 										<argument>--package-lock-only</argument>
 										<argument>--omit</argument>
 										<argument>dev</argument>
+										<!-- "npm ls" exits non zero on unsatisfied optional peer
+										     dependencies (nunjucks wants chokidar 3.x while the tree
+										     resolves 4.x). That is harmless but would otherwise fail
+										     the build, so the SBOM is still produced. -->
+										<argument>--ignore-npm-errors</argument>
 										<argument>--output-format</argument>
 										<argument>JSON</argument>
 										<argument>--output-file</argument>
