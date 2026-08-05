@@ -54,6 +54,17 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+
+		<!-- Spring Boot 4 auto-configures Jackson 3, whose ObjectMapper lives in
+		     tools.jackson.databind. This module restores the auto-configured
+		     com.fasterxml.jackson.databind.ObjectMapper bean that BundleService
+		     injects. Kept on Jackson 2 deliberately: ConnectorMapper serialises a
+		     DTO and signs the resulting bytes, so a serialiser swap could change
+		     signatures for connectors that were already signed. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-jackson2</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
