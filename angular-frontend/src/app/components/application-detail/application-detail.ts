@@ -8,7 +8,7 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IncludedConnector, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
@@ -194,12 +194,20 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
+  /** The requester may cancel their own request; a superuser may cancel any (server-enforced). */
+  protected canCancelRequest(): boolean {
+    if (this.isSuperuser()) return true;
+    const requester = this.application()?.requester;
+    const user = this.authService.currentUser();
+    return !!user && !!requester && requester.trim().toLowerCase() === user.trim().toLowerCase();
+  }
+
   /**
    * Whether the current user may edit this method revision (own item, same-org item for
    * organization contributors, or anything for superusers). The server enforces the same rule.
    */
-  protected canEdit(version: { author?: string | null; organizationId?: number | null; maintainer?: string | null }): boolean {
-    return this.authService.canEdit(version.author, version.organizationId, version.maintainer);
+  protected canEdit(version: { author?: string | null; authorOrganization?: string | null; maintainer?: string | null }): boolean {
+    return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
   }
 
   // ── Approve/Reject confirmation modal ─────────────────────────────────────
@@ -408,6 +416,29 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected isComboSectionExpanded(key: string): boolean {
     return this.expandedComboSections().has(key);
+  }
+
+  // Connectors section is expanded by default, so the set tracks COLLAPSED rows.
+  protected readonly collapsedConnectorSections = signal<Set<string>>(new Set());
+
+  protected toggleConnectorsSection(key: string): void {
+    this.collapsedConnectorSections.update(set => {
+      const next = new Set(set);
+      if (next.has(key)) { next.delete(key); } else { next.add(key); }
+      return next;
+    });
+  }
+
+  protected isConnectorsSectionExpanded(key: string): boolean {
+    return !this.collapsedConnectorSections().has(key);
+  }
+
+  /** Chip label: fully qualified class name plus the connector version, e.g. "…CsvConnector v2.9". */
+  protected connectorChipLabel(c: IncludedConnector): string {
+    const name = c.className || c.displayName || '';
+    if (!c.version) return name;
+    const version = c.version.toLowerCase().startsWith('v') ? c.version : 'v' + c.version;
+    return `${name} ${version}`;
   }
 
   protected getGlobalCaps(version: IntegrationMethod): string[] {
@@ -966,7 +997,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       if (version.lifecycleState !== 'IN_REVIEW'
           && version.lifecycleState !== 'REVIEWING'
           && version.lifecycleState !== 'REJECTED') return true;
-      return this.authService.canEdit(version.author, version.organizationId, version.maintainer);
+      return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
     });
 
     // Apply filters

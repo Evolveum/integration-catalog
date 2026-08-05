@@ -4,7 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { EnvironmentService } from '../../services/environment.service';
 
 @Component({
   selector: 'app-staging-banner',
@@ -12,4 +13,6 @@ import { Component } from '@angular/core';
   templateUrl: './staging-banner.html',
   styleUrls: ['./staging-banner.scss']
 })
-export class StagingBanner {}
+export class StagingBanner {
+  protected readonly environmentService = inject(EnvironmentService);
+}

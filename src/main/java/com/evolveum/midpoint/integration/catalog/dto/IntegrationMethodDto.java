@@ -20,7 +20,7 @@ public record IntegrationMethodDto(
         String systemVersion,                                       // integration_method.system_version
         LocalDate releasedDate,                                     // connector_bundle_version.created_at
         String author,                                              // connector.author
-        Integer organizationId,                                     // connector.organization_id
+        String authorOrganization,                                  // Keycloak "organization" attribute of the author (org contributors only)
         String lifecycleState,                                      // integration_method.lifecycle_state
         String downloadLink,                                        // generated download URL
         String framework,                                           // connector_bundle.framework
@@ -37,5 +37,6 @@ public record IntegrationMethodDto(
         String reviewedBy,                                          // integration_method.reviewed_by
         String maintainer,                                          // integration_method.maintainer
         LocalDate createdAt,                                        // integration_method.created_at
-        LocalDate updated                                           // integration_method.updated (= review start date while REVIEWING)
+        LocalDate updated,                                          // integration_method.updated (= review start date while REVIEWING)
+        List<IncludedConnectorDto> connectors                       // connectors linked via integration_method_connector
 ) {}

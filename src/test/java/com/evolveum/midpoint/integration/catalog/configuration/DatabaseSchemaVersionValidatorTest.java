@@ -74,7 +74,8 @@ class DatabaseSchemaVersionValidatorTest {
 
         assertThatThrownBy(() -> validator.validateSchemaVersion())
                 .isInstanceOf(DatabaseSchemaVersionException.class)
-                .hasMessageContaining("no 'schemaChangeNumber' row")
+                .hasMessageContaining("'schemaChangeNumber' row")
+                .hasMessageContaining("holds NULL value")
                 .hasMessageContaining("upgrade.sql");
     }
 

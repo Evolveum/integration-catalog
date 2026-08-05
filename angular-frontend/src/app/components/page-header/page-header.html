@@ -64,7 +64,7 @@
         <i class="fa-solid fa-chevron-down header-chevron"></i>
       </button>
     } @else {
-      <button class="header-btn-login d-flex align-items-center gap-2" (click)="openLoginModal()">
+      <button class="header-btn-login d-flex align-items-center gap-2" (click)="login()">
         <i class="fa-solid fa-user header-user-icon"></i>
         <span>Login</span>
       </button>
@@ -79,5 +79,3 @@
     <ng-content select="[breadcrumb]"></ng-content>
   </div>
 }
-
-<app-login-modal [isOpen]="loginModalOpen()" (modalClosed)="closeLoginModal()"></app-login-modal>

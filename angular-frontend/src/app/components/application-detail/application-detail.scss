@@ -920,6 +920,56 @@
   margin-bottom: 0.5rem;
 }
 
+/* Connector chip in the "Connectors" section; hovering it reveals the
+   connector's description in a tooltip above the chip. */
+.badge-connector {
+  position: relative;
+  overflow-wrap: anywhere;
+  text-align: left;
+  cursor: default;
+}
+
+.badge-connector .connector-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  width: max-content;
+  max-width: 320px;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.badge-connector .connector-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-width: 8px 4px;
+  border-top-color: $color-text-dark;
+}
+
+.badge-connector:hover .connector-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
 .im-method-tag {
   font-size: 0.8rem;
   color: #495057;

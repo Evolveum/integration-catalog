@@ -48,6 +48,16 @@ ALTER TABLE connector ADD COLUMN IF NOT EXISTS cloned_from integer;
 $aa$);
 -- end of region
 
+-- region change 3: user data moved entirely to Keycloak
+-- Users, roles and organizations live in Keycloak (user attributes 'role', 'group',
+-- 'organization'); the application reads them from token claims and the Keycloak Admin
+-- API. The author/maintainer columns on catalog items are plain text and stay.
+call apply_change(3, $aa$
+DROP TABLE IF EXISTS catalog_users;
+DROP TABLE IF EXISTS organizations;
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$
