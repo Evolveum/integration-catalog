@@ -18,34 +18,62 @@ CREATE TABLE m_global_metadata (
 -- the change runs only when its number is higher than the stored 'schemaChangeNumber',
 -- which is then advanced and the transaction committed. Because of the internal COMMIT
 -- the script must run outside a transaction block (plain psql, not pgAdmin).
+--
+-- To prevent two instances from applying the same change concurrently, the procedure
+-- acquires a PostgreSQL advisory lock BEFORE reading the schema change number. This
+-- guarantees that only one session can evaluate and apply a change at a time; any other
+-- session blocks until the lock is released, then re-evaluates the (now updated) change
+-- number and skips the already-applied change.
+--
 -- Taken from midPoint's native repository (postgres.sql); keep this definition in sync
 -- with config/sql/upgrade/upgrade.sql.
-CREATE OR REPLACE PROCEDURE apply_change(changeNumber int, change TEXT, force boolean = false)
-    LANGUAGE plpgsql
-AS $$
+CREATE OR REPLACE PROCEDURE apply_change(
+    changeNumber int,
+    change TEXT,
+    force boolean DEFAULT false
+)
+LANGUAGE plpgsql
+AS $proc$
 DECLARE
     lastChange int;
+    lock_key bigint := hashtext('integration_catalog_schema_upgrade');
 BEGIN
-    SELECT value INTO lastChange FROM m_global_metadata WHERE name = 'schemaChangeNumber';
+    -- Only one session may apply schema changes at a time.
+    PERFORM pg_advisory_xact_lock(lock_key);
 
-    -- change is executed if the changeNumber is newer - or if forced
+    -- Re-read after acquiring the lock.
+    SELECT value
+      INTO lastChange
+      FROM m_global_metadata
+     WHERE name = 'schemaChangeNumber';
+
+    -- Apply only newer changes (or force).
     IF lastChange IS NULL OR lastChange < changeNumber OR force THEN
         EXECUTE change;
         RAISE NOTICE 'Change #% executed!', changeNumber;
 
         IF lastChange IS NULL THEN
-            INSERT INTO m_global_metadata (name, value) VALUES ('schemaChangeNumber', changeNumber);
+            INSERT INTO m_global_metadata(name, value)
+            VALUES ('schemaChangeNumber', changeNumber);
         ELSIF changeNumber > lastChange THEN
-            -- even with force we never want to set lower-or-equal change number, hence the IF above
-            UPDATE m_global_metadata SET value = changeNumber WHERE name = 'schemaChangeNumber';
+            UPDATE m_global_metadata
+               SET value = changeNumber
+             WHERE name = 'schemaChangeNumber';
         ELSE
             RAISE NOTICE 'Last change number left unchanged: #%', lastChange;
         END IF;
-        COMMIT;
     ELSE
-        RAISE NOTICE 'Change #% skipped - not newer than the last change #%!', changeNumber, lastChange;
+        RAISE NOTICE
+            'Change #% skipped - not newer than the last change #%!',
+            changeNumber,
+            lastChange;
     END IF;
-END $$;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE;
+END;
+$proc$;
 -- end of region
 
 CREATE TYPE ApplicationLifecycleType AS ENUM (

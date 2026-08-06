@@ -25,6 +25,9 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /integration-catalog
 COPY --from=backend-build /integration-catalog/backend/target/integration-catalog-*.jar integration-catalog.jar
 
+# Copy config directory (sql scripts) to image
+COPY config /integration-catalog/config
+
 # Copy entrypoint script to handle secrets
 COPY docker/entrypoint.sh /integration-catalog/entrypoint.sh
 RUN chmod +x /integration-catalog/entrypoint.sh
