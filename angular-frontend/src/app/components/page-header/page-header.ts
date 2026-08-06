@@ -8,13 +8,14 @@ import {Component, inject, Input, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { LoginModal } from '../login-modal/login-modal';
 import { ToastService } from '../../services/toast.service';
 import { StagingBanner } from '../staging-banner/staging-banner';
 
 @Component({
   selector: 'app-page-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, StagingBanner],
+  imports: [CommonModule, RouterLink, LoginModal, StagingBanner],
   templateUrl: './page-header.html',
   styleUrls: ['./page-header.scss'],
   host: { style: 'display: block; position: sticky; top: 0; z-index: 1000;' }
@@ -27,8 +28,10 @@ export class PageHeader {
   protected readonly toastService = inject(ToastService);
 
   protected readonly currentUser = this.authService.currentUser;
+  protected readonly loginModalOpen = this.authService.loginModalOpen;
 
-  protected login(): void { this.authService.login(); }
+  protected openLoginModal(): void { this.authService.openLoginModal(); }
+  protected closeLoginModal(): void { this.authService.closeLoginModal(); }
   protected logout(): void { this.authService.logout(); }
 
   protected closeToast(): void {

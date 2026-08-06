@@ -5,9 +5,24 @@
 --
 -- 
 
--- Users, roles and organizations live entirely in Keycloak (see
--- keycloak_for_auth/import/integration-catalog-realm.json for the dev test users);
--- the catalog database stores no user data.
+-- ============================================================
+-- ORGANIZATIONS
+-- ============================================================
+INSERT INTO organizations (id, name, description) VALUES
+	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
+	(2, 'Evolveum', 'Evolveum — application administrators');
+
+SELECT setval('organizations_id_seq', 2);
+
+-- ============================================================
+-- CATALOG USERS
+-- ============================================================
+INSERT INTO catalog_users (username, password, role, organization_id) VALUES
+	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
+	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
+	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
+	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
+	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
 
 -- ============================================================
 -- LOOKUP TABLES

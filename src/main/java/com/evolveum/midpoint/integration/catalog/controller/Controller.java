@@ -31,7 +31,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -158,9 +157,9 @@ public class Controller {
     @PostMapping("/upload/connector")
     public ResponseEntity<String> uploadConnector(
             @RequestBody UploadImplementationDto dto,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, authentication.getName()));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, username));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -258,10 +257,9 @@ public class Controller {
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
     @PostMapping("/requests")
-    public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto,
-                                                 Authentication authentication) {
+    public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
         try {
-            Request created = applicationService.createRequestFromForm(dto, authentication.getName());
+            Request created = applicationService.createRequestFromForm(dto);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -277,12 +275,10 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Request not found")
     })
     @DeleteMapping("/requests/{requestId}")
-    public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId, Authentication authentication) {
+    public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId) {
         try {
-            applicationService.cancelRequest(requestId, authentication.getName());
+            applicationService.cancelRequest(requestId);
             return ResponseEntity.noContent().build();
-        } catch (ResponseStatusException ex) {
-            throw ex;
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (Exception ex) {
@@ -298,9 +294,9 @@ public class Controller {
             @ApiResponse(responseCode = "400", description = "User already voted or request not found")
     })
     @PostMapping("/requests/{requestId}/vote")
-    public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, Authentication authentication) {
+    public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, @RequestParam String voter) {
         try {
-            Vote vote = applicationService.submitVote(requestId, authentication.getName());
+            Vote vote = applicationService.submitVote(requestId, voter);
             return ResponseEntity.status(HttpStatus.CREATED).body(vote);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -324,10 +320,8 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Check completed successfully")
     })
     @GetMapping("/requests/{requestId}/votes/check")
-    public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, Authentication authentication) {
-        // Anonymous callers may ask; they have trivially not voted.
-        boolean hasVoted = authentication != null
-                && applicationService.hasUserVoted(requestId, authentication.getName());
+    public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, @RequestParam String voter) {
+        boolean hasVoted = applicationService.hasUserVoted(requestId, voter);
         return ResponseEntity.ok(hasVoted);
     }
 
@@ -442,9 +436,9 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String currentRevision,
             @RequestBody EditIntegrationMethodDto dto,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto, authentication.getName());
+            String newRevision = applicationService.editIntegrationMethod(methodId, currentRevision, dto, username);
             return ResponseEntity.ok(newRevision);
         } catch (ResponseStatusException e) {
             throw e;
@@ -468,9 +462,9 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.startReviewIntegrationMethod(methodId, revision, authentication.getName());
+            applicationService.startReviewIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -494,9 +488,9 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.stopReviewIntegrationMethod(methodId, revision, authentication.getName());
+            applicationService.stopReviewIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -520,9 +514,9 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.publishIntegrationMethod(methodId, revision, authentication.getName());
+            applicationService.publishIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -546,9 +540,9 @@ public class Controller {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.rejectIntegrationMethod(methodId, revision, authentication.getName());
+            applicationService.rejectIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -571,11 +565,11 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestBody AddConnectorDto dto,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
             // Returns the revision the connector landed on: the same revision for a mutable draft, or a
             // freshly forked draft revision when the source was a published (immutable) version.
-            String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, authentication.getName());
+            String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
             return ResponseEntity.ok(savedRevision);
         } catch (ResponseStatusException e) {
             throw e;
@@ -606,9 +600,9 @@ public class Controller {
             @PathVariable String revision,
             @PathVariable Integer connectorId,
             @RequestBody EditConnectorDto dto,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.updateConnector(methodId, revision, connectorId, dto, authentication.getName());
+            applicationService.updateConnector(methodId, revision, connectorId, dto, username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -630,10 +624,10 @@ public class Controller {
             @PathVariable String revision,
             @PathVariable Integer connectorId,
             @RequestBody UpdateConnectorCompatibilityDto dto,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
             applicationService.updateConnectorCompatibility(methodId, revision, connectorId,
-                    dto.connectorVersionFrom(), dto.connectorVersionTo(), authentication.getName());
+                    dto.connectorVersionFrom(), dto.connectorVersionTo(), username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -654,9 +648,9 @@ public class Controller {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
-            Authentication authentication) {
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId, authentication.getName());
+            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId, username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -931,8 +925,8 @@ public class Controller {
     @PostMapping("/recently-used/{applicationId}")
     public ResponseEntity<Void> recordRecentlyUsed(
             @PathVariable UUID applicationId,
-            Authentication authentication) {
-        applicationService.recordRecentlyUsed(applicationId, authentication.getName());
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        applicationService.recordRecentlyUsed(applicationId, username);
         return ResponseEntity.noContent().build();
     }
 }

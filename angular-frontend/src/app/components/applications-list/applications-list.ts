@@ -822,14 +822,9 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   protected openRequestModal(): void {
     if (!this.authService.canRequest()) {
-      if (!this.authService.isLoggedIn()) {
-        this.showLoginRequiredMessage.set(true);
-        setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-        this.authService.login();
-      } else {
-        this.showPermissionDeniedMessage.set(true);
-        setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
-      }
+      this.showLoginRequiredMessage.set(true);
+      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+      this.authService.openLoginModal();
       return;
     }
     this.isRequestModalOpen.set(true);
@@ -852,7 +847,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);
         setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-        this.authService.login();
+        this.authService.openLoginModal();
       } else {
         this.showPermissionDeniedMessage.set(true);
         setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
@@ -906,7 +901,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    this.applicationService.submitVote(app.requestId).subscribe({
+    this.applicationService.submitVote(app.requestId, currentUser).subscribe({
       next: () => {
         // Increment vote count locally
         app.voteCount = (app.voteCount || 0) + 1;

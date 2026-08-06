@@ -1,0 +1,42 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+@if (isOpen) {
+  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
+  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-login">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header modal-header-login">
+          <h5 class="modal-title mb-0">Login</h5>
+          <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
+        </div>
+        <div class="modal-body modal-body-login">
+          <form (ngSubmit)="login()">
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" [(ngModel)]="username" name="username" required>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control" id="password" [(ngModel)]="password" name="password" required>
+            </div>
+
+            @if (errorMessage()) {
+              <div class="alert alert-danger" role="alert">
+                {{ errorMessage() }}
+              </div>
+            }
+
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+              <button type="submit" class="btn btn-primary">Login</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+}

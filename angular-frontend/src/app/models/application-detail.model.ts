@@ -33,7 +33,7 @@ export interface IntegrationMethod {
   systemVersion: string | null;            // integration_method.system_version
   releasedDate: string | null;             // connector_bundle_version.released_date
   author: string | null;                   // connector.author
-  authorOrganization: string | null;       // Keycloak "organization" attribute of the author (org contributors only)
+  organizationId: number | null;           // connector.organization_id
   maintainer: string | null;               // integration_method.maintainer
   lifecycleState: string | null;           // integration_method.lifecycle_state
   downloadLink: string | null;             // generated download URL

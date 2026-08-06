@@ -403,8 +403,8 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Request createRequestFromForm(RequestFormDto dto, String requester) {
-        return requestVotingService.createRequestFromForm(dto, requester);
+    public Request createRequestFromForm(RequestFormDto dto) {
+        return requestVotingService.createRequestFromForm(dto);
     }
 
     public Optional<Request> getRequest(Long id) {
@@ -427,16 +427,7 @@ public class ApplicationService {
         return requestVotingService.hasUserVoted(requestId, voter);
     }
 
-    /** The requester may cancel their own request; a superuser may cancel any. */
-    public void cancelRequest(Long requestId, String username) {
-        Request request = requestVotingService.getRequest(requestId)
-                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
-        boolean isRequester = request.getRequester() != null
-                && request.getRequester().equalsIgnoreCase(username);
-        if (!isRequester && !authService.isSuperuser(username)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Only the requester or a superuser may cancel this request");
-        }
+    public void cancelRequest(Long requestId) {
         requestVotingService.cancelRequest(requestId);
     }
 

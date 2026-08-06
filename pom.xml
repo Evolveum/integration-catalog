@@ -35,9 +35,6 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-		<!-- Override Spring Boot's managed 1.21.x: Docker Engine 29+ needs Testcontainers 2.x
-		     (the 1.x line speaks Docker API 1.32, below the engine's minimum of 1.44). -->
-		<testcontainers.version>2.0.5</testcontainers.version>
 		<!-- Overridden to npx.cmd by the npx-windows profile -->
 		<npx.executable>npx</npx.executable>
 	</properties>
@@ -51,17 +48,8 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-client</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
-			<scope>test</scope>
+			<artifactId>spring-security-crypto</artifactId>
 		</dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -118,16 +106,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Runs a real Keycloak in Docker for KeycloakRealmIT (opt-in via -Dit.keycloak=true).
-             2.x is required: the 1.x line Spring Boot manages speaks Docker API 1.32,
-             which Docker Engine 29+ rejects (minimum is 1.44). -->
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-junit-jupiter</artifactId>
-            <version>2.0.5</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

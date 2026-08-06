@@ -11,7 +11,6 @@ import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
-import com.evolveum.midpoint.integration.catalog.security.SecurityConfig;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,12 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -44,18 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Integration tests for the REST Controller.
  * Tests all endpoints using MockMvc and mocked ApplicationService.
- * <p>
- * The security layer is deliberately switched off (SecurityConfig excluded, filters
- * disabled): these tests exercise the MVC layer only, and the caller identity is passed
- * as a request principal where an endpoint needs one.
  */
-@WebMvcTest(controllers = Controller.class,
-        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class))
-@AutoConfigureMockMvc(addFilters = false)
+@WebMvcTest(Controller.class)
 class ControllerTest {
-
-    private static final Authentication VOTER_AUTH =
-            new UsernamePasswordAuthenticationToken("voter@example.com", "n/a");
 
     @Autowired
     private MockMvc mockMvc;
@@ -343,17 +328,16 @@ class ControllerTest {
                 List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("GET", "SEARCH")))
         );
 
-        when(applicationService.createRequestFromForm(any(RequestFormDto.class), anyString()))
+        when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
                 .thenReturn(testRequest);
 
         mockMvc.perform(post("/api/requests")
-                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1));
 
-        verify(applicationService).createRequestFromForm(any(RequestFormDto.class), anyString());
+        verify(applicationService).createRequestFromForm(any(RequestFormDto.class));
     }
 
     @Test
@@ -374,7 +358,7 @@ class ControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class), anyString());
+        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
     }
 
     // ===== POST /api/requests/{requestId}/vote =====
@@ -384,7 +368,7 @@ class ControllerTest {
         when(applicationService.submitVote(1L, "voter@example.com")).thenReturn(testVote);
 
         mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
-                        .principal(VOTER_AUTH))
+                        .param("voter", "voter@example.com"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requestId").value(1))
                 .andExpect(jsonPath("$.voter").value("voter@example.com"));
@@ -398,7 +382,7 @@ class ControllerTest {
                 .thenThrow(new IllegalArgumentException("User has already voted"));
 
         mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
-                        .principal(VOTER_AUTH))
+                        .param("voter", "voter@example.com"))
                 .andExpect(status().isBadRequest());
 
         verify(applicationService).submitVote(1L, "voter@example.com");
@@ -424,7 +408,7 @@ class ControllerTest {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(true);
 
         mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
-                        .principal(VOTER_AUTH))
+                        .param("voter", "voter@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
 
@@ -436,7 +420,7 @@ class ControllerTest {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(false);
 
         mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
-                        .principal(VOTER_AUTH))
+                        .param("voter", "voter@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));
 
@@ -620,7 +604,6 @@ class ControllerTest {
                 .thenReturn("app-uuid|method-uuid");
 
         mockMvc.perform(post("/api/upload/connector")
-                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk());
@@ -634,7 +617,6 @@ class ControllerTest {
                 .thenThrow(new IllegalArgumentException("Framework must be specified"));
 
         mockMvc.perform(post("/api/upload/connector")
-                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
@@ -648,7 +630,6 @@ class ControllerTest {
                 .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
 
         mockMvc.perform(post("/api/upload/connector")
-                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isConflict());

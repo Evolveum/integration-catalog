@@ -72,44 +72,6 @@ docker-compose up --build
 
 ---
 
-## Database schema versioning
-
-The database schema version is tracked in the `database_version` table (the current version
-is the highest `version` row). On startup the application compares it with the version it
-requires (`DatabaseSchemaVersionValidator.REQUIRED_VERSION`) and refuses to start with a clear
-error message when the database is outdated (or newer than the application build).
-
-* **Fresh database:** `config/sql/01_schema.sql` + `02_data.sql` create the schema already at
-  the current version. In Docker this happens automatically on the first start of the `db`
-  container.
-* **Existing database:** re-run the whole cumulative upgrade script:
-```bash
-psql -v ON_ERROR_STOP=1 -U integration_catalog -d integration_catalog -f config/sql/upgrade/upgrade.sql
-```
-  The script has one section per schema version and is safe to run repeatedly. From
-  version 5 on, each section is a `call apply_change(N, ...)` that executes only when the
-  database version is lower than `N`, records the version row and commits — the SQL inside
-  no longer has to be idempotent. Use plain `psql` (not pgAdmin or other tools with their
-  own transaction handling): `apply_change` commits internally, which fails inside a
-  wrapping transaction block.
-
-### Adding a schema change
-
-1. Append a new `-- region version N: <name>` section to `config/sql/upgrade/upgrade.sql`:
-   ```sql
-   call apply_change(N, '<short description>', $aa$
-   <any SQL, does not have to be idempotent>
-   $aa$);
-   ```
-   If a statement depends on a previous one being committed (typically
-   `ALTER TYPE ... ADD VALUE` followed by a use of the new value), split them into two
-   `apply_change` calls (two versions).
-2. Make the same change in `config/sql/01_schema.sql` and bump the version inserted at the
-   end of that script.
-3. Bump `REQUIRED_VERSION` in `DatabaseSchemaVersionValidator`.
-
----
-
 ## License
 
 This project is licensed under **European Union Public License**. 

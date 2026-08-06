@@ -6,7 +6,7 @@
 
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map, catchError, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export enum UserRole {
@@ -17,83 +17,91 @@ export enum UserRole {
   Superuser = 'Superuser'
 }
 
-/** Profile served by GET /api/auth/me for the authenticated session. */
-interface CurrentUserResponse {
+interface LoginResponse {
   username: string;
-  fullName: string | null;
-  email: string | null;
   role: string;
-  /** Keycloak organization alias — stable across organization renames. */
-  organizationId: string | null;
+  organizationId: number | null;
   organizationName: string | null;
-  groups: string[];
 }
 
-/**
- * Session state for the OIDC login. Authentication is done by Keycloak through the
- * backend (Spring Security OIDC client): login/logout are full-page redirects, the
- * browser carries a session cookie, and this service only mirrors the profile that
- * GET /api/auth/me reports for that session. Nothing identity-related is kept in
- * localStorage anymore — the backend session is the single source of truth.
- */
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
+  private readonly _currentOrganizationId = signal<number | null>(null);
   private readonly _currentOrganizationName = signal<string | null>(null);
-  private readonly _currentFullName = signal<string | null>(null);
-  private readonly _currentEmail = signal<string | null>(null);
-  private readonly _currentGroups = signal<string[]>([]);
+  private readonly _loginModalOpen = signal<boolean>(false);
 
   readonly currentUser = this._currentUser.asReadonly();
+  readonly loginModalOpen = this._loginModalOpen.asReadonly();
+
+  openLoginModal(): void { this._loginModalOpen.set(true); }
+  closeLoginModal(): void { this._loginModalOpen.set(false); }
 
   constructor(private http: HttpClient) {
-    this.http.get<CurrentUserResponse>(`${environment.apiUrl}/auth/me`).subscribe({
-      next: user => {
-        this._currentUser.set(user.username);
-        this._currentRole.set(UserRole[user.role as keyof typeof UserRole] ?? null);
-        this._currentOrganizationName.set(user.organizationName);
-        this._currentFullName.set(user.fullName);
-        this._currentEmail.set(user.email);
-        this._currentGroups.set(user.groups ?? []);
-      },
-      // 401 — no session; the visitor stays anonymous.
-      error: () => {}
-    });
+    const storedUser = localStorage.getItem('currentUser');
+    const storedRole = localStorage.getItem('currentRole');
+    const storedOrgId = localStorage.getItem('currentOrganizationId');
+    const storedOrgName = localStorage.getItem('currentOrganizationName');
+    if (storedUser) {
+      this._currentUser.set(storedUser);
+    }
+    if (storedRole) {
+      this._currentRole.set(UserRole[storedRole as keyof typeof UserRole] ?? null);
+    }
+    if (storedOrgId) {
+      this._currentOrganizationId.set(Number(storedOrgId));
+    }
+    if (storedOrgName) {
+      this._currentOrganizationName.set(storedOrgName);
+    }
   }
 
-  /** Starts the OIDC login flow: full-page redirect to Keycloak via the backend. */
-  login(): void {
-    window.location.href = `${this.backendBaseUrl()}/oauth2/authorization/keycloak`;
+  login(username: string, password: string): Observable<boolean> {
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, { username, password }).pipe(
+      map(response => {
+        const role = UserRole[response.role as keyof typeof UserRole] ?? null;
+        this._currentUser.set(response.username);
+        this._currentRole.set(role);
+        this._currentOrganizationId.set(response.organizationId);
+        this._currentOrganizationName.set(response.organizationName);
+        localStorage.setItem('currentUser', response.username);
+        if (role) {
+          localStorage.setItem('currentRole', response.role);
+        }
+        if (response.organizationId != null) {
+          localStorage.setItem('currentOrganizationId', String(response.organizationId));
+        }
+        if (response.organizationName != null) {
+          localStorage.setItem('currentOrganizationName', response.organizationName);
+        }
+        window.location.reload();
+        return true;
+      }),
+      catchError(() => of(false))
+    );
   }
 
-  /** Ends both the application session and the Keycloak SSO session, then returns to the app. */
   logout(): void {
-    window.location.href = `${this.backendBaseUrl()}/logout`;
+    this._currentUser.set(null);
+    this._currentRole.set(null);
+    this._currentOrganizationId.set(null);
+    this._currentOrganizationName.set(null);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentRole');
+    localStorage.removeItem('currentOrganizationId');
+    localStorage.removeItem('currentOrganizationName');
+    window.location.reload();
   }
 
-  /** The backend origin the OAuth endpoints live on (apiUrl minus the /api suffix). */
-  private backendBaseUrl(): string {
-    return environment.apiUrl.replace(/\/api\/?$/, '');
+  currentOrganizationId(): number | null {
+    return this._currentOrganizationId();
   }
 
   currentOrganizationName(): string | null {
     return this._currentOrganizationName();
-  }
-
-  currentFullName(): string | null {
-    return this._currentFullName();
-  }
-
-  currentEmail(): string | null {
-    return this._currentEmail();
-  }
-
-  /** Keycloak group membership (e.g. Partner, Subscriber); empty when logged out. */
-  currentGroups(): string[] {
-    return this._currentGroups();
   }
 
   getAllMaintainers(): Observable<string[]> {
@@ -154,17 +162,16 @@ export class AuthService {
     return this._currentRole();
   }
 
-  /** Any logged-in user may vote, including ReadOnly; anonymous visitors may not. */
   canVote(): boolean {
-    return this.isLoggedIn();
-  }
-
-  /** Creating requests requires a contributor role — ReadOnly only browses and votes. */
-  canRequest(): boolean {
     const role = this.currentRole();
-    return role === UserRole.IndividualContributor ||
+    return role === UserRole.ReadOnly ||
+           role === UserRole.IndividualContributor ||
            role === UserRole.OrganizationContributor ||
            role === UserRole.Superuser;
+  }
+
+  canRequest(): boolean {
+    return this.canVote();
   }
 
   canUpload(): boolean {
@@ -183,8 +190,8 @@ export class AuthService {
    * organization (pass the maintainer's org as `maintainerOrganization`; a maintainer
    * without an organization stays personal); the uploader may access items they authored;
    * and an Organization contributor may access any item authored by a member of their own
-   * organization (same organization name). The server only exposes `maintainerOrganization`\
-   * `authorOrganization` when that maintainer\author is an Organization contributor, so items
+   * organization (same organizationId). The server only exposes `maintainerOrganization`\
+   * `organizationId` when that maintainer\author is an Organization contributor, so items
    * of an Individual contributor who belongs to an org stay personal on both sides.
    *
    * The maintainer is the primary ownership signal — it is explicitly set at publish time,
@@ -194,7 +201,7 @@ export class AuthService {
    */
   canEdit(
     author: string | null | undefined,
-    authorOrganization: string | null | undefined,
+    organizationId: number | null | undefined,
     maintainer?: string | null,
     maintainerOrganization?: string | null,
   ): boolean {
@@ -214,9 +221,9 @@ export class AuthService {
       return true;
     }
     if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
-    if (role === UserRole.OrganizationContributor && orgName && authorOrganization
-        && orgName.trim().toLowerCase() === authorOrganization.trim().toLowerCase()) {
-      return true;
+    if (role === UserRole.OrganizationContributor) {
+      const orgId = this._currentOrganizationId();
+      if (orgId !== null && organizationId != null && orgId === organizationId) return true;
     }
     return false;
   }

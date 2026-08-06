@@ -52,18 +52,16 @@ export class ApplicationService {
     return this.http.get<CategoryCount[]>(`${environment.apiUrl}/categories/counts`);
   }
 
-  /** Votes as the authenticated user (the backend takes the identity from the session). */
-  submitVote(requestId: number): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/requests/${requestId}/vote`, {});
+  submitVote(requestId: number, voter: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
   }
 
   getVoteCount(requestId: number): Observable<number> {
     return this.http.get<number>(`${environment.apiUrl}/requests/${requestId}/votes/count`);
   }
 
-  /** Whether the authenticated user has voted; false for anonymous callers. */
-  hasUserVoted(requestId: number): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check`);
+  hasUserVoted(requestId: number, voter: string): Observable<boolean> {
+    return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check?voter=${voter}`);
   }
 
   submitRequest(request: IntegrationRequest): Observable<void> {
@@ -385,8 +383,11 @@ export class ApplicationService {
     return this.http.get<Application[]>(`${environment.apiUrl}/recently-used`);
   }
 
-  /** Records usage for the authenticated user (identity comes from the session). */
-  recordRecentlyUsed(applicationId: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/recently-used/${applicationId}`, {});
+  recordRecentlyUsed(applicationId: string, username: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/recently-used/${applicationId}`,
+      {},
+      { headers: { 'X-User-Name': username } }
+    );
   }
 }

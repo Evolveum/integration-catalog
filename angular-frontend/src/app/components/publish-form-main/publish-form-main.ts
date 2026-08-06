@@ -675,7 +675,8 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.isDefineNewMode.set(false);
     this.showDetailsForm.set(false);
     this.populateApplicationDetails();
-    this.applicationService.recordRecentlyUsed(app.id).subscribe({
+    const username = this.authService.currentUser() ?? 'anonymous';
+    this.applicationService.recordRecentlyUsed(app.id, username).subscribe({
       next: () => this.applicationService.getRecentlyUsed().subscribe({
         next: (data) => this.recentlyUsedApps.set(data)
       })
