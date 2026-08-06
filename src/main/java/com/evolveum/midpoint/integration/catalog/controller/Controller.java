@@ -347,8 +347,16 @@ public class Controller {
         return ResponseEntity.ok(page.getContent());
     }
 
-    @Operation(summary = "Get all active connectors",
-            description = "Returns a list of all connectors with ACTIVE lifecycle state")
+    @Operation(
+            summary = "Get all active connectors",
+            description = """
+                Provides a list of currently active connectors from the integration catalog.
+                
+                The endpoint is intended for consumers that need to discover and verify
+                available connectors. Returned connector data contains signed metadata
+                that can be used to validate the authenticity and integrity of the catalog data.
+                """
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Active connectors retrieved successfully")
     })

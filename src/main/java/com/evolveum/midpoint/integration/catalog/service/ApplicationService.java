@@ -71,6 +71,7 @@ public class ApplicationService {
     private final ConnectorUploadService connectorUploadService;
     private final CapabilityRepository capabilityRepository;
     private final ConnectorVersionRepository connectorVersionRepository;
+    private final ConnectorRepository connectorRepository;
     private final AuthService authService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
@@ -97,7 +98,7 @@ public class ApplicationService {
                               ConnectorUploadService connectorUploadService,
                               RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
                               CapabilityRepository capabilityRepository,
-                              ConnectorVersionRepository connectorVersionRepository,
+                              ConnectorVersionRepository connectorVersionRepository, ConnectorRepository connectorRepository,
                               AuthService authService) {
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -125,6 +126,7 @@ public class ApplicationService {
         this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
         this.capabilityRepository = capabilityRepository;
         this.connectorVersionRepository = connectorVersionRepository;
+        this.connectorRepository = connectorRepository;
         this.authService = authService;
     }
 
@@ -464,12 +466,21 @@ public class ApplicationService {
         return page.map(applicationMapper::toCardDto);
     }
 
-
+    /**
+     * Retrieves all active connectors from the integration catalog and maps them to signed connector DTOs.
+     *
+     * Only connectors with at least one version in {@link LifecycleType#ACTIVE} state are included.
+     * Each connector is transformed into a signed DTO before being returned.
+     *
+     * @return a list of allowed active connectors wrapped in {@link AllowedConnectorsListDto}
+     * @throws ConnectorSigningException if signing of connector data fails
+     */
     public AllowedConnectorsListDto listActiveConnectors() {
-        List<SignedActiveConnectorDto> list = connectorVersionRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
-                .map(connectorVersion -> {
+        List<SignedActiveConnectorDto> list = connectorRepository.findDistinctByConnectorVersionsLifecycleState(LifecycleType.ACTIVE)
+                .stream()
+                .map(connector -> {
                     try {
-                        return connectorMapper.toActiveConnectorDto(connectorVersion);
+                        return connectorMapper.toActiveConnectorDto(connector);
                     } catch (Exception e) {
                         throw new ConnectorSigningException("Failed to sign connector data", e);
                     }
