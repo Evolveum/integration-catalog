@@ -864,15 +864,15 @@ SELECT setval('capability_id_seq', 18);
 
 
 INSERT INTO midpoint_version (id, version, version_name, is_current) values
-	(1, '4.2', 'Version 4.2', false),
-	(2, '4.3', 'Version 4.3', false),
-	(3, '4.4', 'Version 4.4', false),
-	(4, '4.5', 'Version 4.5', false),
-	(5, '4.6', 'Version 4.6', false),
-	(6, '4.7', 'Version 4.7', false),
-	(7, '4.8', 'Version 4.8', false),
-	(8, '4.9', 'Version 4.9', true),
-    (9, '4.10', 'Version 4.10', false),
+	(1, '4.2',  'Maxwell',       false),
+    (2, '4.3',  'Faraday',       false),
+    (3, '4.4',  'Tesla (LTS)',   false),
+    (4, '4.5',  'Nightingale',   false),
+    (5, '4.6',  'Baumgarten',    false),
+    (6, '4.7',  'Johnson',       false),
+    (7, '4.8',  'Curie (LTS)',   false),
+    (8, '4.9',  'Verne',         false),
+    (9, '4.10', 'Braille',       true),
     (10, '4.11', 'Version 4.11', false);
 	
 SELECT setval('midpoint_version_id_seq', 10);
