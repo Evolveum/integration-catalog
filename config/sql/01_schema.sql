@@ -884,5 +884,5 @@ SELECT setval('midpoint_version_id_seq', 10);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(4, $$ SELECT 1 $$, true);
+call apply_change(2, $$ SELECT 1 $$, true);
 -- end of region
