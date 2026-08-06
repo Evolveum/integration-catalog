@@ -14,7 +14,7 @@ CREATE TABLE m_global_metadata (
     value TEXT
 );
 
--- Applies one schema change from config/sql/upgrade/upgrade.sql exactly once per database:
+-- Applies one schema change from config/sql/postgres-upgrade.sql exactly once per database:
 -- the change runs only when its number is higher than the stored 'schemaChangeNumber',
 -- which is then advanced and the transaction committed. Because of the internal COMMIT
 -- the script must run outside a transaction block (plain psql, not pgAdmin).
@@ -26,7 +26,7 @@ CREATE TABLE m_global_metadata (
 -- number and skips the already-applied change.
 --
 -- Taken from midPoint's native repository (postgres.sql); keep this definition in sync
--- with config/sql/upgrade/upgrade.sql.
+-- with config/sql/postgres-upgrade.sql.
 CREATE OR REPLACE PROCEDURE apply_change(
     changeNumber int,
     change TEXT,
@@ -908,7 +908,7 @@ SELECT setval('midpoint_version_id_seq', 10);
 -- end of region
 
 -- region schema version
--- Initializing the schema change number used in config/sql/upgrade/upgrade.sql: a fresh
+-- Initializing the schema change number used in config/sql/postgres-upgrade.sql: a fresh
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.

@@ -22,7 +22,7 @@ public class DatabaseSchemaVersionFailureAnalyzer extends AbstractFailureAnalyze
         return new FailureAnalysis(
                 cause.getMessage(),
                 "Run the cumulative upgrade script against the database, e.g. "
-                        + "psql -U integration_catalog -d integration_catalog -f config/sql/upgrade/upgrade.sql, "
+                        + "psql -U integration_catalog -d integration_catalog -f config/sql/postgres-upgrade.sql, "
                         + "then start the application again. The script is idempotent - "
                         + "already applied sections are skipped.",
                 cause);

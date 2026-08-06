@@ -23,15 +23,15 @@ import org.springframework.stereotype.Component;
  *
  * The version is tracked as the 'schemaChangeNumber' row of the m_global_metadata table
  * (the same mechanism midPoint's native repository uses), maintained by the cumulative
- * config/sql/upgrade/upgrade.sql script.
+ * config/sql/postgres-upgrade.sql script.
  */
 @Component
 public class DatabaseSchemaVersionValidator {
 
     /**
      * Schema change number required by this build. Bump together with every new
-     * apply_change section appended to config/sql/upgrade/upgrade.sql and the number in
-     * the apply_change call at the end of config/sql/01_schema.sql.
+     * apply_change section appended to config/sql/postgres-upgrade.sql and the number in
+     * the apply_change call at the end of config/sql/postgres.sql.
      */
     public static final int REQUIRED_VERSION = 2;
 
@@ -53,13 +53,13 @@ public class DatabaseSchemaVersionValidator {
             throw new DatabaseSchemaVersionException(
                     "Database schema version cannot be determined: table 'm_global_metadata' has no "
                             + "'schemaChangeNumber' row. The required database update has not been applied. "
-                            + "Run the config/sql/upgrade/upgrade.sql script against the database.");
+                            + "Run the config/sql/postgres-upgrade.sql script against the database.");
         }
         if (currentVersion < REQUIRED_VERSION) {
             throw new DatabaseSchemaVersionException(
                     "Database schema version " + currentVersion + " is older than version " + REQUIRED_VERSION
                             + " required by this application. The required database update has not been applied. "
-                            + "Run the config/sql/upgrade/upgrade.sql script against the database to apply versions "
+                            + "Run the config/sql/postgres-upgrade.sql script against the database to apply versions "
                             + (currentVersion + 1) + " to " + REQUIRED_VERSION + ".");
         }
         if (currentVersion > REQUIRED_VERSION) {
@@ -84,7 +84,7 @@ public class DatabaseSchemaVersionValidator {
                 throw new DatabaseSchemaVersionException(
                         "Database schema version cannot be determined: table 'm_global_metadata' does not exist. "
                                 + "The required database update has not been applied. "
-                                + "Run the config/sql/upgrade/upgrade.sql script against the database.",
+                                + "Run the config/sql/postgres-upgrade.sql script against the database.",
                         e);
             }
             throw e;
@@ -94,7 +94,7 @@ public class DatabaseSchemaVersionValidator {
                     "Database schema version cannot be determined: the 'schemaChangeNumber' row of "
                             + "table 'm_global_metadata' holds NULL value. The required database update "
                             + "has not been applied correctly. "
-                            + "Run the config/sql/upgrade/upgrade.sql script against the database.");
+                            + "Run the config/sql/postgres-upgrade.sql script against the database.");
         }
         try {
             return Integer.valueOf(value.trim());
