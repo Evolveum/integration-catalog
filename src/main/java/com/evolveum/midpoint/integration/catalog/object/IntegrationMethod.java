@@ -26,7 +26,7 @@ import java.util.UUID;
 @IdClass(IntegrationMethodId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class IntegrationMethod implements Persistable<UUID> {
+public class IntegrationMethod implements OwnedItem, Persistable<UUID> {
 
     @Id
     private UUID id;
@@ -97,6 +97,26 @@ public class IntegrationMethod implements Persistable<UUID> {
 
     private String author;
     private String maintainer;
+
+    /**
+     * Ownership as it stood when this row was written. A token only ever describes its own
+     * bearer, so the uploader's organization, the maintaining organization and the
+     * uploader's category are recorded here instead of being looked up per request.
+     */
+    @Column(name = "author_org_id")
+    private String authorOrgId;
+
+    /**
+     * Set when an organization rather than a person maintains the item; {@link #maintainer}
+     * then holds a username only. References organizations.id, so a rename of the
+     * organization needs no change here.
+     */
+    @Column(name = "maintainer_org_id")
+    private String maintainerOrgId;
+
+    /** The uploader's catalog category at the time of writing: Evolveum, Partner or Community. */
+    @Column(name = "author_category")
+    private String authorCategory;
 
     // Not @CreationTimestamp: a forked revision inherits its source's created_at
     // (see assignDefaults / createDraft) so a method keeps its original ordering.
