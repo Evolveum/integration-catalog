@@ -9,11 +9,11 @@ package com.evolveum.midpoint.integration.catalog.security;
 import java.util.List;
 
 /**
- * The application roles as assigned in Keycloak (realm roles) and stored in
- * catalog_users.role. The names must match both places exactly.
+ * The application roles, as carried by the identity provider's roles claim. The names
+ * must match what the provider emits exactly.
  * <p>
- * Ordered by precedence: when a Keycloak user carries several catalog roles,
- * the strongest one becomes their effective catalog_users.role.
+ * Ordered by precedence: when a user carries several catalog roles, the strongest one
+ * becomes their effective role.
  */
 public final class CatalogRole {
 
@@ -25,6 +25,24 @@ public final class CatalogRole {
     /** Strongest first. */
     public static final List<String> BY_PRECEDENCE =
             List.of(SUPERUSER, ORGANIZATION_CONTRIBUTOR, INDIVIDUAL_CONTRIBUTOR, READ_ONLY);
+
+    /**
+     * The maintainer category the catalog shows for an item, derived from the role of the
+     * user who uploaded it: Superuser → Evolveum, OrganizationContributor → Partner,
+     * IndividualContributor → Community. Null for anything else (e.g. ReadOnly), which is
+     * how an item without a category is rendered.
+     */
+    public static String categoryOf(String role) {
+        if (role == null) {
+            return null;
+        }
+        return switch (role) {
+            case SUPERUSER -> "Evolveum";
+            case ORGANIZATION_CONTRIBUTOR -> "Partner";
+            case INDIVIDUAL_CONTRIBUTOR -> "Community";
+            default -> null;
+        };
+    }
 
     private CatalogRole() {
     }

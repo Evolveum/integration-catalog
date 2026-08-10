@@ -20,11 +20,11 @@ import java.util.Map;
  * request that needs it (login or logout), instead of at application startup.
  * <p>
  * Spring Boot's auto-configured repository resolves the provider {@code issuer-uri}
- * (a call to Keycloak's {@code /.well-known/openid-configuration}) while the bean is
- * being created, which makes the whole application fail to start when Keycloak is not
+ * (a call to the provider's {@code /.well-known/openid-configuration}) while the bean is
+ * being created, which makes the whole application fail to start when the provider is not
  * running. Declaring this bean makes the auto-configuration back off; the registrations
  * are built from the exact same {@code spring.security.oauth2.client.*} properties via
- * Boot's own mapper, just lazily. A discovery failure is not cached: while Keycloak is
+ * Boot's own mapper, just lazily. A discovery failure is not cached: while the provider is
  * unreachable every login attempt retries, and the rest of the application (anonymous
  * browsing, existing sessions) keeps working.
  * <p>

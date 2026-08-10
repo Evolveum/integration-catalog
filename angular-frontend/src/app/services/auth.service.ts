@@ -23,15 +23,15 @@ interface CurrentUserResponse {
   fullName: string | null;
   email: string | null;
   role: string;
-  /** Keycloak organization alias — stable across organization renames. */
+  /** Organization identifier — stable across organization renames. */
   organizationId: string | null;
   organizationName: string | null;
   groups: string[];
 }
 
 /**
- * Session state for the OIDC login. Authentication is done by Keycloak through the
- * backend (Spring Security OIDC client): login/logout are full-page redirects, the
+ * Session state for the OIDC login. Authentication is done by the identity provider
+ * through the backend (Spring Security OIDC client): login/logout are full-page redirects, the
  * browser carries a session cookie, and this service only mirrors the profile that
  * GET /api/auth/me reports for that session. Nothing identity-related is kept in
  * localStorage anymore — the backend session is the single source of truth.
@@ -64,12 +64,12 @@ export class AuthService {
     });
   }
 
-  /** Starts the OIDC login flow: full-page redirect to Keycloak via the backend. */
+  /** Starts the OIDC login flow: full-page redirect to the provider via the backend. */
   login(): void {
-    window.location.href = `${this.backendBaseUrl()}/oauth2/authorization/keycloak`;
+    window.location.href = `${this.backendBaseUrl()}/oauth2/authorization/oidc`;
   }
 
-  /** Ends both the application session and the Keycloak SSO session, then returns to the app. */
+  /** Ends both the application session and the provider's SSO session, then returns to the app. */
   logout(): void {
     window.location.href = `${this.backendBaseUrl()}/logout`;
   }
@@ -91,7 +91,7 @@ export class AuthService {
     return this._currentEmail();
   }
 
-  /** Keycloak group membership (e.g. Partner, Subscriber); empty when logged out. */
+  /** Group membership (e.g. Partner, Subscriber); empty when logged out. */
   currentGroups(): string[] {
     return this._currentGroups();
   }

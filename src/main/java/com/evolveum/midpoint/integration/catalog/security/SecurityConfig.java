@@ -28,7 +28,7 @@ import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.ORG
 import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.SUPERUSER;
 
 /**
- * OIDC login against Keycloak (this application is the OIDC client) plus the endpoint
+ * OIDC login against the identity provider (this application is the OIDC client) plus the endpoint
  * authorization matrix.
  * <p>
  * The matrix in {@link #filterChain} is the authoritative list of what is public, what
@@ -40,7 +40,7 @@ import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.SUP
  * Sessions: the browser gets a session cookie after the OIDC code flow; the Angular app
  * calls /api with that cookie and mirrors the XSRF-TOKEN cookie into the X-XSRF-TOKEN
  * header for mutating requests. Unauthenticated /api requests get a plain 401 (no login
- * redirect); the SPA starts the login flow explicitly via /oauth2/authorization/keycloak.
+ * redirect); the SPA starts the login flow explicitly via /oauth2/authorization/oidc.
  */
 @Configuration
 @EnableWebSecurity
@@ -122,8 +122,8 @@ public class SecurityConfig {
 
                         // Everything outside /api: the SPA, its assets, and the OAuth endpoints.
                         .anyRequest().permitAll())
-                // XHR calls must see a 401, not a redirect to Keycloak; the SPA starts the
-                // login flow itself by navigating to /oauth2/authorization/keycloak.
+                // XHR calls must see a 401, not a redirect to the provider; the SPA starts the
+                // login flow itself by navigating to /oauth2/authorization/oidc.
                 .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                         PathPatternRequestMatcher.withDefaults().matcher("/api/**")))
@@ -137,7 +137,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** RP-initiated logout: also ends the Keycloak SSO session, then returns to the app. */
+    /** RP-initiated logout: also ends the provider's SSO session, then returns to the app. */
     private LogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
         OidcClientInitiatedLogoutSuccessHandler handler =
                 new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);

@@ -65,6 +65,7 @@ public class BundleService {
 
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
+    private final OrganizationService organizationService;
     private final ObjectWriter jsonWriter;
     private final HttpClient httpClient = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
@@ -75,9 +76,11 @@ public class BundleService {
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService,
+                         OrganizationService organizationService,
                          ObjectMapper objectMapper) {
         this.integrationMethodRepository = integrationMethodRepository;
         this.tutorialStorageService = tutorialStorageService;
+        this.organizationService = organizationService;
         this.jsonWriter = objectMapper.writerWithDefaultPrettyPrinter();
     }
 
@@ -345,7 +348,7 @@ public class BundleService {
         meta.put("description", method.getDescription());
         meta.put("lifecycleState", method.getLifecycleState());
         meta.put("author", method.getAuthor());
-        meta.put("maintainer", method.getMaintainer());
+        meta.put("maintainer", organizationService.maintainerLabel(method));
         meta.put("appVersion", method.getAppVersion());
         meta.put("midpointMinVersionId", method.getMidpointMinVersionId());
         meta.put("midpointMaxVersionId", method.getMidpointMaxVersionId());
@@ -388,7 +391,7 @@ public class BundleService {
             meta.put("fullyQualifiedClassName", connector.getFullyQualifiedClassName());
             meta.put("description", connector.getDescription());
             meta.put("author", connector.getAuthor());
-            meta.put("maintainer", connector.getMaintainer());
+            meta.put("maintainer", organizationService.maintainerLabel(connector));
             meta.put("revision", connector.getRevision());
             meta.put("connectorMinVersion", link.getConnectorMinVersion());
             meta.put("connectorMaxVersion", link.getConnectorMaxVersion());

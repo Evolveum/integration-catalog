@@ -62,6 +62,7 @@ public class ConnectorUploadService {
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
     private final IntegrationMethodConnectorRepository integrationMethodConnectorRepository;
     private final TutorialStorageService tutorialStorageService;
+    private final OwnershipService ownershipService;
 
     private record ApplicationResolution(Application application, boolean isNew,
                                           List<String> originNames, List<ApplicationTagDto> tagDtos) {}
@@ -75,8 +76,7 @@ public class ConnectorUploadService {
         UploadResolution uploadRes = resolveUpload(dto, appRes.application(), username);
 
         if (!uploadRes.isNewVersion()) {
-            uploadRes.integrationMethod().setAuthor(username);
-            uploadRes.integrationMethod().setMaintainer(dto.connector().maintainer());
+            ownershipService.stampNew(uploadRes.integrationMethod(), username, dto.connector().maintainer());
         }
 
         ConnectorBundleVersion bundleVersion = createBundleVersion(dto.connector(), uploadRes.bundle(), username);
@@ -154,8 +154,7 @@ public class ConnectorUploadService {
             connector = new Connector();
             connector.setDisplayName(connDto.displayName());
             connector.setRevision("1.0.0");
-            connector.setAuthor(username);
-            connector.setMaintainer(connDto.maintainer());
+            ownershipService.stampNew(connector, username, connDto.maintainer());
             connector.setDescription(connDto.description());
             connector.setFullyQualifiedClassName(connDto.className());
             connector.setConnectorBundle(bundle);
@@ -169,8 +168,7 @@ public class ConnectorUploadService {
             connector = new Connector();
             connector.setDisplayName(connDto.displayName());
             connector.setRevision("1.0.0");
-            connector.setAuthor(username);
-            connector.setMaintainer(connDto.maintainer());
+            ownershipService.stampNew(connector, username, connDto.maintainer());
             connector.setDescription(connDto.description());
             connector.setFullyQualifiedClassName(connDto.className());
             connector.setConnectorBundle(bundle);
@@ -216,14 +214,13 @@ public class ConnectorUploadService {
 
         ConnectorBundle bundle = new ConnectorBundle();
         bundle.setRevision("1.0.0");
-        bundle.setAuthor(username);
         bundle.setFramework(framework);
         bundle.setBuildFramework(buildFramework);
         bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
         bundle.setBundleName(dto.bundleName());
         bundle.setDisplayName(dto.bundleDisplayName());
         bundle.setDescription(dto.description());
-        bundle.setMaintainer(dto.maintainer());
+        ownershipService.stampNew(bundle, username, dto.maintainer());
         bundle.setTicketingLink(dto.ticketingSystemLink());
         bundle.setProjectHomepage(dto.browseLink());
         bundle.setGitCloneUrl(dto.gitCloneUrl());
@@ -246,14 +243,13 @@ public class ConnectorUploadService {
 
         ConnectorBundle bundle = new ConnectorBundle();
         bundle.setRevision("1.0.0");
-        bundle.setAuthor(username);
         bundle.setFramework(framework);
         bundle.setBuildFramework(buildFramework);
         bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
         bundle.setBundleName(dto.bundleName());
         bundle.setDisplayName(dto.bundleDisplayName());
         bundle.setDescription(dto.description());
-        bundle.setMaintainer(dto.maintainer());
+        ownershipService.stampNew(bundle, username, dto.maintainer());
         bundle.setTicketingLink(dto.ticketingSystemLink());
         bundle.setProjectHomepage(dto.browseLink());
         bundle.setGitCloneUrl(dto.gitCloneUrl());
@@ -275,8 +271,7 @@ public class ConnectorUploadService {
 
         ConnectorBundleVersion cbv = new ConnectorBundleVersion();
         cbv.setRevision(version);
-        cbv.setAuthor(username);
-        cbv.setMaintainer(dto.maintainer());
+        ownershipService.stampNew(cbv, username, dto.maintainer());
         cbv.setBundleVersion(version);
         cbv.setConnectorBundle(bundle);
         cbv.setBuildFramework(dto.buildFramework());
@@ -294,8 +289,7 @@ public class ConnectorUploadService {
         cv.setConnector(connector);
         cv.setConnectorBundleVersion(bundleVersion);
         cv.setRevision(dto.version() != null ? dto.version() : "1.0.0");
-        cv.setAuthor(username);
-        cv.setMaintainer(dto.maintainer());
+        ownershipService.stampNew(cv, username, dto.maintainer());
         cv.setFullyQualifiedClassName(dto.className());
         cv.setLifecycleState(LifecycleType.IN_REVIEW);
         return cv;
@@ -464,8 +458,7 @@ public class ConnectorUploadService {
         updated.setCreatedAt(existing.getCreatedAt());
         // A revision produced by the edit-upgrade flow always starts unpublished, pending review.
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
-        updated.setAuthor(existing.getAuthor());
-        updated.setMaintainer(existing.getMaintainer());
+        ownershipService.copyOwnership(existing, updated);
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
         updated.setMidpointMinVersionId(dto.midpointMinVersion());
         updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
@@ -520,8 +513,7 @@ public class ConnectorUploadService {
         // Keep the reviewer on a revision edited during its review (REVIEWING survives the rewrite);
         // a resubmitted rejected revision starts a fresh review cycle with no reviewer.
         updated.setReviewedBy(wasRejected ? null : existing.getReviewedBy());
-        updated.setAuthor(existing.getAuthor());
-        updated.setMaintainer(existing.getMaintainer());
+        ownershipService.copyOwnership(existing, updated);
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
         updated.setMidpointMinVersionId(dto.midpointMinVersion());
         updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
@@ -838,8 +830,7 @@ public class ConnectorUploadService {
             connector = new Connector();
             connector.setDisplayName(dto.displayName());
             connector.setRevision(dto.version() != null ? dto.version() : "1.0.0");
-            connector.setAuthor(username);
-            connector.setMaintainer(dto.maintainer());
+            ownershipService.stampNew(connector, username, dto.maintainer());
             connector.setDescription(dto.description());
             connector.setFullyQualifiedClassName(dto.className());
             connector.setConnectorBundle(bundle);
@@ -882,8 +873,7 @@ public class ConnectorUploadService {
         // Inherit the source revision's creation time so the method keeps its list position.
         draft.setCreatedAt(source.getCreatedAt());
         draft.setLifecycleState(LifecycleType.IN_REVIEW);
-        draft.setAuthor(source.getAuthor());
-        draft.setMaintainer(source.getMaintainer());
+        ownershipService.copyOwnership(source, draft);
         draft.setMidpointMinVersionId(source.getMidpointMinVersionId());
         draft.setMidpointMaxVersionId(source.getMidpointMaxVersionId());
         draft.setAppVersion(source.getAppVersion());
@@ -973,8 +963,7 @@ public class ConnectorUploadService {
         ConnectorBundle srcBundle = src.getConnectorBundle();
         ConnectorBundle bundle = new ConnectorBundle();
         bundle.setRevision(uniqueBundleRevision(srcBundle.getBundleName(), srcBundle.getRevision()));
-        bundle.setAuthor(srcBundle.getAuthor());
-        bundle.setMaintainer(srcBundle.getMaintainer());
+        ownershipService.copyOwnership(srcBundle, bundle);
         // The copy belongs to the in-review revision being edited, so it starts IN_REVIEW regardless of
         // the source's state — publishIntegrationMethod promotes it to ACTIVE (and reject marks it
         // REJECTED). This keeps the edited connector out of the catalog until the revision is approved,
@@ -994,8 +983,7 @@ public class ConnectorUploadService {
 
         Connector clone = new Connector();
         clone.setRevision(src.getRevision());
-        clone.setAuthor(src.getAuthor());
-        clone.setMaintainer(src.getMaintainer());
+        ownershipService.copyOwnership(src, clone);
         clone.setDisplayName(src.getDisplayName());
         clone.setFullyQualifiedClassName(src.getFullyQualifiedClassName());
         clone.setDescription(src.getDescription());
@@ -1011,8 +999,7 @@ public class ConnectorUploadService {
             if (srcCbv != null) {
                 cbv = new ConnectorBundleVersion();
                 cbv.setRevision(srcCbv.getRevision());
-                cbv.setAuthor(srcCbv.getAuthor());
-                cbv.setMaintainer(srcCbv.getMaintainer());
+                ownershipService.copyOwnership(srcCbv, cbv);
                 cbv.setLifecycleState(LifecycleType.IN_REVIEW);
                 cbv.setConnectorBundle(bundle);
                 cbv.setBundleVersion(srcCbv.getBundleVersion());
@@ -1030,8 +1017,7 @@ public class ConnectorUploadService {
             cv.setConnector(clone);
             cv.setConnectorBundleVersion(cbv);
             cv.setRevision(srcCv.getRevision());
-            cv.setAuthor(srcCv.getAuthor());
-            cv.setMaintainer(srcCv.getMaintainer());
+            ownershipService.copyOwnership(srcCv, cv);
             cv.setLifecycleState(LifecycleType.IN_REVIEW);
             cv.setFullyQualifiedClassName(srcCv.getFullyQualifiedClassName());
             cv.setErrorMessage(srcCv.getErrorMessage());
@@ -1145,7 +1131,7 @@ public class ConnectorUploadService {
 
         // Connector metadata — it is the same connector for everyone linking it.
         connector.setDisplayName(dto.displayName());
-        connector.setMaintainer(dto.maintainer());
+        ownershipService.assignMaintainer(connector, dto.maintainer());
         connector.setDescription(dto.description());
         connector.setFullyQualifiedClassName(dto.className());
         // connector.revision mirrors the connector's current user-facing version.
@@ -1155,7 +1141,7 @@ public class ConnectorUploadService {
         if (bundle != null) {
             bundle.setDisplayName(dto.displayName());
             bundle.setDescription(dto.description());
-            bundle.setMaintainer(dto.maintainer());
+            ownershipService.assignMaintainer(bundle, dto.maintainer());
             if (dto.license() != null) bundle.setLicense(dto.license());
             if (dto.bundleName() != null && !dto.bundleName().isBlank()) bundle.setBundleName(dto.bundleName());
             bundle.setTicketingLink(dto.supportPortal());
@@ -1204,8 +1190,7 @@ public class ConnectorUploadService {
             cbv.setRevision(requestedVersion);
             cbv.setBundleVersion(requestedVersion);
             cbv.setConnectorBundle(bundle);
-            cbv.setAuthor(username);
-            cbv.setMaintainer(dto.maintainer());
+            ownershipService.stampNew(cbv, username, dto.maintainer());
             cbv.setLifecycleState(LifecycleType.IN_REVIEW);
             cbv.setBrowseLink(dto.browseLink());
             cbv.setGitCloneUrl(dto.gitCloneUrl());
@@ -1219,8 +1204,7 @@ public class ConnectorUploadService {
             cv.setConnector(connector);
             cv.setConnectorBundleVersion(cbv);
             cv.setRevision(requestedVersion);
-            cv.setAuthor(username);
-            cv.setMaintainer(dto.maintainer());
+            ownershipService.stampNew(cv, username, dto.maintainer());
             cv.setFullyQualifiedClassName(dto.className());
             cv.setLifecycleState(LifecycleType.IN_REVIEW);
             cv.setErrorMessage(errorMessage);
@@ -1286,14 +1270,14 @@ public class ConnectorUploadService {
 
         // Metadata-only clone: copy its values onto the shared original.
         original.setDisplayName(clone.getDisplayName());
-        original.setMaintainer(clone.getMaintainer());
+        ownershipService.copyMaintainer(clone, original);
         original.setDescription(clone.getDescription());
         original.setFullyQualifiedClassName(clone.getFullyQualifiedClassName());
         original.setRevision(clone.getRevision());
         if (origBundle != null && cloneBundle != null) {
             origBundle.setDisplayName(cloneBundle.getDisplayName());
             origBundle.setDescription(cloneBundle.getDescription());
-            origBundle.setMaintainer(cloneBundle.getMaintainer());
+            ownershipService.copyMaintainer(cloneBundle, origBundle);
             origBundle.setLicense(cloneBundle.getLicense());
             origBundle.setTicketingLink(cloneBundle.getTicketingLink());
             origBundle.setProjectHomepage(cloneBundle.getProjectHomepage());
@@ -1303,12 +1287,12 @@ public class ConnectorUploadService {
             connectorBundleRepository.save(origBundle);
         }
         if (origCv != null && cloneCv != null) {
-            origCv.setMaintainer(cloneCv.getMaintainer());
+            ownershipService.copyMaintainer(cloneCv, origCv);
             origCv.setFullyQualifiedClassName(cloneCv.getFullyQualifiedClassName());
             ConnectorBundleVersion origCbv = origCv.getConnectorBundleVersion();
             ConnectorBundleVersion cloneCbv = cloneCv.getConnectorBundleVersion();
             if (origCbv != null && cloneCbv != null) {
-                origCbv.setMaintainer(cloneCbv.getMaintainer());
+                ownershipService.copyMaintainer(cloneCbv, origCbv);
                 origCbv.setBrowseLink(cloneCbv.getBrowseLink());
                 origCbv.setGitCloneUrl(cloneCbv.getGitCloneUrl());
                 origCbv.setPathToProject(cloneCbv.getPathToProject());
@@ -1360,11 +1344,11 @@ public class ConnectorUploadService {
     /** Rewrites an existing connector version (+ its bundle version) with the edited values. */
     private void applyVersionEdit(ConnectorVersion cv, ConnectorBundleVersion cbv,
                                   EditConnectorDto dto, String errorMessage) {
-        cv.setMaintainer(dto.maintainer());
+        ownershipService.assignMaintainer(cv, dto.maintainer());
         cv.setFullyQualifiedClassName(dto.className());
         cv.setErrorMessage(errorMessage);
         if (cbv != null) {
-            cbv.setMaintainer(dto.maintainer());
+            ownershipService.assignMaintainer(cbv, dto.maintainer());
             cbv.setBrowseLink(dto.browseLink());
             cbv.setGitCloneUrl(dto.gitCloneUrl());
             cbv.setPathToProject(dto.pathToProject());

@@ -26,7 +26,7 @@ import java.util.List;
 @IdClass(ConnectorBundleVersionId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorBundleVersion implements Persistable<Integer> {
+public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "connector_bundle_version_seq")
@@ -48,6 +48,26 @@ public class ConnectorBundleVersion implements Persistable<Integer> {
 
     private String author;
     private String maintainer;
+
+    /**
+     * Ownership as it stood when this row was written. A token only ever describes its own
+     * bearer, so the uploader's organization, the maintaining organization and the
+     * uploader's category are recorded here instead of being looked up per request.
+     */
+    @Column(name = "author_org_id")
+    private String authorOrgId;
+
+    /**
+     * Set when an organization rather than a person maintains the item; {@link #maintainer}
+     * then holds a username only. References organizations.id, so a rename of the
+     * organization needs no change here.
+     */
+    @Column(name = "maintainer_org_id")
+    private String maintainerOrgId;
+
+    /** The uploader's catalog category at the time of writing: Evolveum, Partner or Community. */
+    @Column(name = "author_category")
+    private String authorCategory;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)

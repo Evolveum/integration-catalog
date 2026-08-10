@@ -72,6 +72,7 @@ public class ApplicationService {
     private final CapabilityRepository capabilityRepository;
     private final ConnectorVersionRepository connectorVersionRepository;
     private final AuthService authService;
+    private final OrganizationService organizationService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -98,7 +99,9 @@ public class ApplicationService {
                               RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
                               CapabilityRepository capabilityRepository,
                               ConnectorVersionRepository connectorVersionRepository,
-                              AuthService authService) {
+                              AuthService authService,
+                              OrganizationService organizationService) {
+        this.organizationService = organizationService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
@@ -138,7 +141,8 @@ public class ApplicationService {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException(
                         "Integration method not found: " + methodId + "/" + revision));
-        if (!authService.canEdit(username, method.getAuthor(), method.getMaintainer())) {
+        if (!authService.canEdit(username, method.getAuthor(), method.getAuthorOrgId(),
+                method.getMaintainer(), method.getMaintainerOrgId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this integration method.");
         }
@@ -177,7 +181,8 @@ public class ApplicationService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException(
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
-        if (!authService.canEdit(username, connector.getAuthor(), connector.getMaintainer())) {
+        if (!authService.canEdit(username, connector.getAuthor(), connector.getAuthorOrgId(),
+                connector.getMaintainer(), connector.getMaintainerOrgId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this connector.");
         }
@@ -376,8 +381,16 @@ public class ApplicationService {
         Specification<IntegrationMethod> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchForm.getMaintainer() != null && !searchForm.getMaintainer().isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer().toLowerCase() + "%"));
+            // An item maintained by an organization carries no maintainer username, so the
+            // search has to match the organization's name as well as the username.
+            String pattern = "%" + searchForm.getMaintainer().toLowerCase() + "%";
+            List<String> organizationIds = organizationService.idsOfNamesContaining(searchForm.getMaintainer());
+            spec = spec.and((root, query, cb) -> {
+                var byUsername = cb.like(cb.lower(root.get("maintainer")), pattern);
+                return organizationIds.isEmpty()
+                        ? byUsername
+                        : cb.or(byUsername, root.get("maintainerOrgId").in(organizationIds));
+            });
         }
 
         if (searchForm.getLifecycleState() != null) {
@@ -514,7 +527,7 @@ public class ApplicationService {
                                     connector.getDescription(),
                                     connector.getRevision(),
                                     bundle.getDisplayName(),
-                                    connector.getMaintainer(),
+                                    organizationService.maintainerLabel(connector),
                                     bundle.getLicense() != null ? bundle.getLicense().name() : null,
                                     bundle.getBuildFramework() != null ? bundle.getBuildFramework().name() : null,
                                     bundle.getFramework() != null ? bundle.getFramework().name() : null,
