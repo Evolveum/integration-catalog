@@ -20,7 +20,7 @@ public record IntegrationMethodDto(
         String systemVersion,                                       // integration_method.system_version
         LocalDate releasedDate,                                     // connector_bundle_version.created_at
         String author,                                              // connector.author
-        String authorOrganization,                                  // Keycloak "organization" attribute of the author (org contributors only)
+        String authorOrganization,                                  // organization the author published for (org contributors only)
         String lifecycleState,                                      // integration_method.lifecycle_state
         String downloadLink,                                        // generated download URL
         String framework,                                           // connector_bundle.framework

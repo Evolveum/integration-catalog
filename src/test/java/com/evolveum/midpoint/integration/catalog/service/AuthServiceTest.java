@@ -7,14 +7,15 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
-import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService;
-import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService.KeycloakOrganization;
-import com.evolveum.midpoint.integration.catalog.security.KeycloakUserService.KeycloakUser;
+import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -22,52 +23,36 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for the identity logic: /api/auth/me claim parsing (organization claim in
- * both shapes the Keycloak organization membership mapper can emit) and the canEdit
- * ownership matrix, with the Keycloak directory mocked.
+ * Unit tests for the identity logic: /api/auth/me claim parsing (organization claim in both
+ * shapes a provider can emit) and the canEdit ownership matrix. The caller is taken from the
+ * security context and everything about them comes from their token — only the organization
+ * names and the catalog's known owners are read from the database, and those are mocked.
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    private static final KeycloakOrganization ACME =
-            new KeycloakOrganization("org-1", "acme", "Acme co.");
-    private static final KeycloakOrganization EVOLVEUM =
-            new KeycloakOrganization("org-2", "evolveum", "Evolveum");
-
-    private static final KeycloakUser SUPERUSER =
-            new KeycloakUser("boss", "Superuser", "evolveum", "Evolveum");
-    private static final KeycloakUser ORG_CONTRIBUTOR =
-            new KeycloakUser("olivia", "OrganizationContributor", "acme", "Acme co.");
-    private static final KeycloakUser ORG_MATE =
-            new KeycloakUser("amber", "OrganizationContributor", "acme", "Acme co.");
-    private static final KeycloakUser INDIVIDUAL_IN_ORG =
-            new KeycloakUser("dana", "IndividualContributor", "acme", "Acme co.");
-    private static final KeycloakUser OTHER_ORG_CONTRIBUTOR =
-            new KeycloakUser("eve", "OrganizationContributor", "evolveum", "Evolveum");
-    private static final KeycloakUser READ_ONLY =
-            new KeycloakUser("ben", "ReadOnly", null, null);
+    @Mock
+    private OrganizationService organizationService;
 
     @Mock
-    private KeycloakUserService keycloakUserService;
+    private CatalogOwnerDirectory catalogOwnerDirectory;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(keycloakUserService);
+        authService = new AuthService(organizationService, catalogOwnerDirectory,
+                new CatalogClaims("roles", "groups", "organization"));
     }
 
-    private void knownUsers(KeycloakUser... users) {
-        for (KeycloakUser user : users) {
-            lenient().when(keycloakUserService.findUser(user.username())).thenReturn(Optional.of(user));
-        }
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     private static OidcUser oidcUser(Map<String, Object> claims) {
@@ -79,11 +64,20 @@ class AuthServiceTest {
         return new DefaultOidcUser(List.of(), idToken.build());
     }
 
+    /** Puts a logged-in caller with the given role and organization into the security context. */
+    private static void callerIs(String role, String organizationId) {
+        Map<String, Object> claims = organizationId == null
+                ? Map.of("roles", List.of(role))
+                : Map.of("roles", List.of(role), "organization", List.of(organizationId));
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken(oidcUser(claims), null));
+    }
+
     // ---- getCurrentUser ----
 
     @Test
-    void currentUserWithOrganizationClaimAsAliasList() {
-        when(keycloakUserService.findOrganizationByAlias("acme")).thenReturn(Optional.of(ACME));
+    void currentUserWithOrganizationClaimAsIdentifierList() {
+        when(organizationService.displayName("acme")).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", List.of("acme"),
@@ -103,8 +97,8 @@ class AuthServiceTest {
     }
 
     @Test
-    void currentUserWithOrganizationClaimAsAliasKeyedMap() {
-        when(keycloakUserService.findOrganizationByAlias("acme")).thenReturn(Optional.of(ACME));
+    void currentUserWithOrganizationClaimAsIdentifierKeyedMap() {
+        when(organizationService.displayName("acme")).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", Map.of("acme", Map.of())));
@@ -116,11 +110,11 @@ class AuthServiceTest {
     }
 
     @Test
-    void currentUserOrganizationNameFallsBackToAliasWhileKeycloakUnavailable() {
-        when(keycloakUserService.findOrganizationByAlias("acme")).thenReturn(Optional.empty());
-        OidcUser oidcUser = oidcUser(Map.of("organization", List.of("acme")));
+    void currentUserOrganizationNameFallsBackToIdentifierWhenNotSeeded() {
+        when(organizationService.displayName("acme")).thenReturn(null);
 
-        CurrentUserDto user = authService.getCurrentUser("olivia", oidcUser);
+        CurrentUserDto user = authService.getCurrentUser("olivia",
+                oidcUser(Map.of("organization", List.of("acme"))));
 
         assertEquals("acme", user.organizationId());
         assertEquals("acme", user.organizationName());
@@ -156,99 +150,105 @@ class AuthServiceTest {
     // ---- canEdit ----
 
     @Test
-    void anonymousOrUnknownCallerCannotEdit() {
-        when(keycloakUserService.findUser("ghost")).thenReturn(Optional.empty());
+    void anonymousOrNamelessCallerCannotEdit() {
+        // No session at all.
+        assertFalse(authService.canEdit("ben", "ben", null, "ben", null));
 
-        assertFalse(authService.canEdit(null, "author", "maintainer"));
-        assertFalse(authService.canEdit("  ", "author", "maintainer"));
-        assertFalse(authService.canEdit("ghost", "author", "maintainer"));
+        callerIs("Superuser", null);
+        assertFalse(authService.canEdit(null, "author", null, "maintainer", null));
+        assertFalse(authService.canEdit("  ", "author", null, "maintainer", null));
     }
 
     @Test
     void superuserCanEditAnything() {
-        knownUsers(SUPERUSER);
+        callerIs("Superuser", "evolveum");
 
-        assertTrue(authService.canEdit("boss", "someone", "someone-else"));
-        assertTrue(authService.canEdit("boss", null, null));
+        assertTrue(authService.canEdit("boss", "someone", "acme", "someone-else", "acme"));
+        assertTrue(authService.canEdit("boss", null, null, null, null));
     }
 
     @Test
     void maintainerMatchesCallerUsernameCaseInsensitively() {
-        knownUsers(READ_ONLY);
+        callerIs("ReadOnly", null);
 
-        assertTrue(authService.canEdit("ben", null, "BEN"));
-        assertFalse(authService.canEdit("ben", null, "someone-else"));
+        assertTrue(authService.canEdit("ben", null, null, "BEN", null));
+        assertFalse(authService.canEdit("ben", null, null, "someone-else", null));
     }
 
     @Test
-    void maintainerMatchesCallerOrganizationName() {
-        knownUsers(INDIVIDUAL_IN_ORG);
+    void organizationActsAsTeamForWhateverItMaintains() {
+        callerIs("IndividualContributor", "acme");
 
-        assertTrue(authService.canEdit("dana", null, "acme CO."));
+        // Maintained by the caller's own organization -> every member may edit,
+        // whatever their role inside it.
+        assertTrue(authService.canEdit("dana", null, null, null, "acme"));
+        // Maintained by another organization -> off limits.
+        assertFalse(authService.canEdit("dana", null, null, null, "evolveum"));
     }
 
     @Test
-    void organizationActsAsTeamForOrganizationContributors() {
-        knownUsers(ORG_CONTRIBUTOR, ORG_MATE, INDIVIDUAL_IN_ORG, OTHER_ORG_CONTRIBUTOR);
-
-        // Maintained by an org-mate OrganizationContributor -> whole org may edit.
-        assertTrue(authService.canEdit("olivia", null, "amber"));
-        // A maintainer from another organization stays off limits.
-        assertFalse(authService.canEdit("olivia", null, "eve"));
-        // An IndividualContributor maintainer stays personal even inside the org.
-        assertFalse(authService.canEdit("olivia", null, "dana"));
-        // An IndividualContributor caller does not get the team access.
-        assertFalse(authService.canEdit("dana", null, "amber"));
-    }
-
-    @Test
-    void authorKeepsAccessAndOrgContributorsShareAuthoredItems() {
-        knownUsers(ORG_CONTRIBUTOR, ORG_MATE, INDIVIDUAL_IN_ORG, READ_ONLY);
+    void authorKeepsAccessAndOrgContributorsShareItemsAuthoredForTheOrganization() {
+        callerIs("OrganizationContributor", "acme");
 
         // The uploader keeps access to their own item.
-        assertTrue(authService.canEdit("ben", "ben", null));
-        // Authored by an org-mate OrganizationContributor -> team access.
-        assertTrue(authService.canEdit("olivia", "amber", null));
-        // Authored by an org-mate IndividualContributor -> stays personal.
-        assertFalse(authService.canEdit("olivia", "dana", null));
-        // No relation at all -> no access.
-        assertFalse(authService.canEdit("ben", "amber", "olivia"));
+        assertTrue(authService.canEdit("olivia", "olivia", null, null, null));
+        // Authored on behalf of the caller's organization -> team access.
+        assertTrue(authService.canEdit("olivia", "amber", "acme", null, null));
+        // Authored by an org-mate as an individual -> stays personal.
+        assertFalse(authService.canEdit("olivia", "dana", null, null, null));
+        // Authored for another organization -> no access.
+        assertFalse(authService.canEdit("olivia", "eve", "evolveum", null, null));
     }
 
-    // ---- directory-backed helpers ----
+    @Test
+    void individualContributorDoesNotInheritItemsAuthoredForTheirOrganization() {
+        callerIs("IndividualContributor", "acme");
+
+        assertFalse(authService.canEdit("dana", "amber", "acme", null, null));
+    }
+
+    // ---- claim- and catalog-backed helpers ----
 
     @Test
-    void isSuperuserChecksEffectiveRole() {
-        knownUsers(SUPERUSER, READ_ONLY);
-        when(keycloakUserService.findUser("ghost")).thenReturn(Optional.empty());
-
+    void isSuperuserChecksTheCallersEffectiveRole() {
+        callerIs("Superuser", null);
         assertTrue(authService.isSuperuser("boss"));
-        assertFalse(authService.isSuperuser("ben"));
-        assertFalse(authService.isSuperuser("ghost"));
         assertFalse(authService.isSuperuser(null));
+
+        callerIs("ReadOnly", null);
+        assertFalse(authService.isSuperuser("ben"));
     }
 
     @Test
     void organizationMembersOfOrganizationLessUserIsJustThemselves() {
-        knownUsers(READ_ONLY);
+        callerIs("IndividualContributor", null);
 
         assertEquals(List.of("ben"), authService.getOrganizationMembers("ben"));
     }
 
     @Test
-    void organizationMembersAreLookedUpByAlias() {
-        knownUsers(ORG_CONTRIBUTOR);
-        when(keycloakUserService.findUsersByOrganization("acme"))
-                .thenReturn(List.of(ORG_CONTRIBUTOR, ORG_MATE, INDIVIDUAL_IN_ORG));
+    void organizationMembersComeFromItemsPublishedForThatOrganization() {
+        callerIs("OrganizationContributor", "acme");
+        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
+                .thenReturn(List.of("amber", "olivia"));
 
-        assertEquals(List.of("olivia", "amber", "dana"), authService.getOrganizationMembers("olivia"));
+        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
     }
 
     @Test
-    void allMaintainersAreUsernamesPlusOrganizationNames() {
-        when(keycloakUserService.listUsers()).thenReturn(List.of(ORG_CONTRIBUTOR, READ_ONLY));
-        when(keycloakUserService.listOrganizations()).thenReturn(List.of(ACME, EVOLVEUM));
+    void organizationMembersAlwaysContainTheCallerThemselves() {
+        callerIs("OrganizationContributor", "acme");
+        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
+                .thenReturn(List.of("amber"));
 
-        assertEquals(List.of("olivia", "ben", "Acme co.", "Evolveum"), authService.getAllMaintainers());
+        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
+    }
+
+    @Test
+    void allMaintainersAreExistingMaintainersPlusOrganizationNames() {
+        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("ben", "olivia"));
+        when(organizationService.allNames()).thenReturn(List.of("Acme co.", "Evolveum"));
+
+        assertEquals(List.of("ben", "olivia", "Acme co.", "Evolveum"), authService.getAllMaintainers());
     }
 }

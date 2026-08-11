@@ -22,4 +22,10 @@ public interface ConnectorBundleVersionRepository extends JpaRepository<Connecto
     Optional<ConnectorBundleVersion> findByConnectorBundleIdAndBundleVersion(Integer connectorBundleId, String bundleVersion);
 
     boolean existsByConnectorBundleIdAndBundleVersion(Integer connectorBundleId, String bundleVersion);
+
+    /** Owners of items currently designated to a maintainer; feeds the maintainer options. */
+    List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
+
+    /** Owners of items uploaded on behalf of the given organization. */
+    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
 }

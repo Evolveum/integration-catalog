@@ -1,0 +1,256 @@
+= Identity and ownership
+:toc: macro
+:toclevels: 3
+:icons: font
+:source-highlighter: highlight.js
+
+Reference for the classes that decide *who a user is* and *who owns a catalog item*.
+
+The application names no identity provider. Everything it knows about the logged-in user
+arrives as OIDC token claims, and the only identity data it stores is a table of
+organizations — because the organization claim carries an identifier, not a display name.
+
+toc::[]
+
+== The idea in one paragraph
+
+A token describes only the user presenting it. It can answer "which organization am I in?"
+but never "which organization is the author of *that* item in?". The application used to
+answer the second question by calling the provider's administration API for every rendered
+row. It no longer does: the answer is recorded on the item at the moment it is written, so
+rendering a page needs no identity lookups at all, and the provider being unreachable
+cannot affect the catalog.
+
+== Reading the current user
+
+=== `security.CatalogClaims`
+
+Reads role, group membership and organization out of an `OidcUser`. Claim *names* are
+configuration, so adopting a provider that names them differently is a properties change.
+
+[source,properties]
+----
+catalog.oidc.claims.roles=roles
+catalog.oidc.claims.groups=groups
+catalog.oidc.claims.organization=organization
+----
+
+[cols="1,3"]
+|===
+| Method | Returns
+
+| `roles(OidcUser)`
+| The catalog roles the token carries, filtered to the known ones.
+
+| `effectiveRole(OidcUser)`
+| The strongest of them; `ReadOnly` when the token carries none.
+
+| `groups(OidcUser)`
+| Group membership (`Partner`, `Subscriber`, …); empty when absent.
+
+| `organizationId(OidcUser)`
+| The user's organization identifier, or `null`. A user publishes on behalf of at most one.
+
+| `organizationIds(OidcUser)`
+| All identifiers in the claim. Accepts both shapes providers emit — an array of
+identifiers, and an object keyed by identifier.
+|===
+
+=== `security.CatalogOidcUserService`
+
+Unchanged in behaviour: turns the claims into authorities (`ROLE_*`, `GROUP_*`) at login.
+It now asks `CatalogClaims` for the claim names instead of holding constants.
+
+=== `security.CatalogRole.categoryOf(String role)`
+
+Maps a role to the maintainer category the catalog displays:
+`Superuser` -> `Evolveum`, `OrganizationContributor` -> `Partner`,
+`IndividualContributor` -> `Community`, anything else -> `null`.
+Moved here from `ApplicationMapper`, because the category is now decided when an item is
+written rather than when it is rendered.
+
+== Organizations
+
+=== `object.Organization`
+
+The single identity table. `id` is the identifier from the organization claim — immutable
+across renames — and `name` is the display text, owned by the catalog because the claim
+cannot carry it.
+
+Catalog items reference `id`, never the name. That is what makes a rename one statement:
+
+[source,sql]
+----
+UPDATE organizations SET name = 'Acme Corporation' WHERE id = 'acme';
+----
+
+=== `service.OrganizationService`
+
+Resolves identifiers to names. The table is small and asked about repeatedly while
+rendering lists, so the whole of it is cached for `CACHE_TTL_MILLIS` (60 s); a rename
+becomes visible within that window without a restart.
+
+[cols="1,3"]
+|===
+| Method | Returns
+
+| `displayName(String organizationId)`
+| The display name, or `null` when the identifier is blank or not seeded. An item whose
+organization is unknown stays readable — it simply shows no organization.
+
+| `allNames()`
+| Every organization name, sorted. Feeds the superuser's maintainer options.
+
+| `idOfName(String name)`
+| The identifier behind a display name. Used when the publish form sends an organization
+as the chosen maintainer.
+
+| `maintainerLabel(OwnedItem item)`
+| What to show as an item's maintainer: the maintainer's username, or the organization's
+name when an organization maintains it.
+
+| `idsOfNamesContaining(String text)`
+| Identifiers whose name matches a search term, so searching for "Acme" also finds items
+maintained by that organization.
+|===
+
+NOTE: The class has two constructors — the public one carries `@Autowired` because the
+second exists only so tests can drive the cache clock without sleeping.
+
+== Ownership on catalog items
+
+=== `object.OwnedItem`
+
+Implemented by `Connector`, `ConnectorVersion`, `ConnectorBundle`,
+`ConnectorBundleVersion` and `IntegrationMethod`. It exposes the five owner columns so the
+stamping logic is written once instead of five times.
+
+[cols="1,3"]
+|===
+| Column | Meaning
+
+| `author`
+| Username of the uploader.
+
+| `authorOrgId`
+| The organization the uploader published *on behalf of*. Set only for organization
+contributors: an individual contributor who belongs to an organization still publishes as
+themselves, and their items stay personal.
+
+| `authorCategory`
+| The uploader's category at the time of writing, for the catalog's maintainer filter.
+
+| `maintainer`
+| Username of the designated maintainer. `null` when an organization maintains the item.
+
+| `maintainerOrgId`
+| The maintaining organization, or the organization of a maintainer who maintains on its
+behalf.
+|===
+
+TIP: The setters are declared as returning `Object` so that the entities' chained Lombok
+setters implement them by covariant return.
+
+=== `service.OwnershipService`
+
+The only place ownership is written.
+
+[cols="1,3"]
+|===
+| Method | Behaviour
+
+| `stampNew(OwnedItem, String username, String requestedMaintainer)`
+| A newly written item: author and the author's organization/category from the uploader's
+own claims, then the maintainer as below.
+
+| `assignMaintainer(OwnedItem, String requestedMaintainer)`
+| The publish form sends either a username or an organization's display name. An
+organization is stored as `maintainerOrgId` with no username, so renaming it needs no
+change to the item; a username is stored as-is, and carries the caller's organization when
+they maintain on its behalf.
+
+| `copyOwnership(OwnedItem from, OwnedItem to)`
+| Carries the whole ownership to a new revision, draft or clone. Every copy path in
+`ConnectorUploadService` uses this — an edit that dropped `authorOrgId` would silently
+orphan the item.
+
+| `copyMaintainer(OwnedItem from, OwnedItem to)`
+| Maintainer only, for the approve flow that folds a metadata clone back onto the original.
+|===
+
+.Known limit
+A superuser may name any user as maintainer. When that user is not the caller there is no
+directory to look their organization up in, so the item carries no maintaining organization
+until they publish something themselves.
+
+=== `service.CatalogOwnerDirectory`
+
+The users the catalog knows about, gathered from the owner columns of the five item tables
+and merged in plain Java. There is no user table and no administration API, so a user the
+catalog has never seen is invisible here — the accepted trade-off of keeping user data with
+the provider.
+
+[cols="1,3"]
+|===
+| Method | Returns
+
+| `findAllMaintainers()`
+| Everyone currently designated as a maintainer, de-duplicated and sorted. Authors are
+deliberately excluded: having uploaded an item does not make someone a candidate to
+maintain another.
+
+| `findAuthorsOfOrganization(String organizationId)`
+| Everyone who has authored an item on behalf of that organization.
+|===
+
+It is backed by two derived queries on each item repository, projected through
+`repository.ItemOwnerView` so only the two owner columns are fetched:
+
+[source,java]
+----
+List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
+List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
+----
+
+== Answering the questions
+
+=== `service.AuthService`
+
+[cols="1,3"]
+|===
+| Method | Behaviour
+
+| `getCurrentUser(String username, OidcUser)`
+| The `/api/auth/me` profile. Everything but the organization's display name comes from the
+token; the name is resolved from the organizations table, falling back to the identifier
+when it has not been seeded.
+
+| `canEdit(username, author, authorOrgId, maintainer, maintainerOrgId)`
+| The authoritative access check (the client mirrors it for UX only). A superuser may edit
+anything; the designated maintainer may; every member of a maintaining organization may;
+the uploader may; and an organization contributor may edit anything authored on behalf of
+their own organization. All of it is comparison of values already in hand — no lookups.
+
+| `isSuperuser(String username)`
+| The caller's effective role, from their token.
+
+| `getOrganizationMembers(String username)`
+| Usernames sharing the caller's organization, derived from what has been published for it;
+the caller is always included.
+
+| `getAllMaintainers()`
+| Existing maintainers plus every organization. Superuser only.
+|===
+
+NOTE: The caller is taken from the security context rather than from the `username`
+argument, because only the caller's own token can describe them.
+
+== Storage
+
+Schema change 4 adds the `organizations` table and the three owner columns to the five item
+tables, with foreign keys that refuse to delete an organization still owning something.
+
+Because change 4 creates the table empty, the one-off data conversion lives separately in
+`config/sql/upgrade/organization-backfill.sql`: seed the organizations, state which user
+belongs to which, then convert the old plain-text maintainer names into references. It is
+re-runnable and only touches rows that have not been converted.

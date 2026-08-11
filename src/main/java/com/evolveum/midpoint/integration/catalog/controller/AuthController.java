@@ -22,8 +22,8 @@ import java.util.List;
 
 /**
  * Identity endpoints. Authentication itself is handled by Spring Security's OIDC support:
- * the login flow starts at /oauth2/authorization/keycloak and logout at /logout — there is
- * no password login here anymore.
+ * the login flow starts at /oauth2/authorization/oidc and logout at /logout —
+ * there is no password login here anymore.
  */
 @RestController
 @RequestMapping("/api/auth")
