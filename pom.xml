@@ -162,10 +162,9 @@
 						<version>2.9.1</version>
 						<executions>
 							<!-- Spring Boot's parent manages this plugin and contributes an execution
-							     of its own (id "default") that writes an SBOM into the jar at
-							     META-INF/sbom/application.cdx.json. Unbinding it keeps the BOM being
-							     built once, at the single documented location below. Bind it back by
-							     removing this block if the jar embedded SBOM is wanted as well. -->
+                                 of its own (id "default") that writes an SBOM into the jar at
+                                 META-INF/sbom/application.cdx.json. Unbinding it keeps the BOM being
+                                 built once, at the single documented location below. -->
 							<execution>
 								<id>default</id>
 								<phase>none</phase>
@@ -184,43 +183,58 @@
 							<outputName>backend-sbom</outputName>
 							<outputDirectory>${project.build.directory}</outputDirectory>
 							<includeBomSerialNumber>true</includeBomSerialNumber>
-							<!-- Only what ships in the jar; build/test tooling is not part of the product. -->
 							<includeTestScope>false</includeTestScope>
 						</configuration>
 					</plugin>
-
-					<!-- The frontend is a separate npm project that Maven does not otherwise build,
-					     so its SBOM is produced by the official CycloneDX npm tool. -->
 					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>3.5.0</version>
+						<groupId>com.github.eirslett</groupId>
+						<artifactId>frontend-maven-plugin</artifactId>
+						<version>1.15.4</version>
+
+						<configuration>
+							<nodeDownloadRoot>
+								https://nexus.evolveum.com/nexus/repository/nodejs-dist/
+							</nodeDownloadRoot>
+							<npmDownloadRoot>
+								https://nexus.evolveum.com/nexus/repository/npmjs-dist/
+							</npmDownloadRoot>
+
+							<nodeVersion>v22.18.0</nodeVersion>
+							<npmVersion>10.9.3</npmVersion>
+							<installDirectory>${project.build.directory}</installDirectory>
+						</configuration>
+
 						<executions>
+
+							<execution>
+								<id>install-node-and-npm</id>
+								<goals>
+									<goal>install-node-and-npm</goal>
+								</goals>
+							</execution>
+
 							<execution>
 								<id>frontend-sbom</id>
 								<phase>package</phase>
 								<goals>
-									<goal>exec</goal>
+									<goal>npx</goal>
 								</goals>
 								<configuration>
-									<executable>${npx.executable}</executable>
-									<workingDirectory>${project.basedir}/angular-frontend</workingDirectory>
 									<arguments>
-										<argument>--yes</argument>
-										<argument>@cyclonedx/cyclonedx-npm</argument>
-										<argument>--package-lock-only</argument>
-										<argument>--omit</argument>
-										<argument>dev</argument>
-										<!-- "npm ls" exits non zero on unsatisfied optional peer
-										     dependencies (nunjucks wants chokidar 3.x while the tree
-										     resolves 4.x). That is harmless but would otherwise fail
-										     the build, so the SBOM is still produced. -->
-										<argument>--ignore-npm-errors</argument>
-										<argument>--output-format</argument>
-										<argument>JSON</argument>
-										<argument>--output-file</argument>
-										<argument>${project.build.directory}/frontend-sbom.json</argument>
+										--yes
+										@cyclonedx/cyclonedx-npm
+										--package-lock-only
+										--omit
+										dev
+										--ignore-npm-errors
+										--output-format
+										JSON
+										--output-file
+										${project.build.directory}/frontend-sbom.json
 									</arguments>
+									<workingDirectory>
+										${project.basedir}/angular-frontend
+									</workingDirectory>
 								</configuration>
 							</execution>
 						</executions>
@@ -272,8 +286,10 @@
 									<bomLocation>./target/frontend-sbom.json</bomLocation>
 								</configuration>
 							</execution>
+
 						</executions>
 					</plugin>
+
 				</plugins>
 			</build>
 		</profile>
