@@ -6,7 +6,7 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /integration-catalog/angular-frontend
 COPY angular-frontend/package*.json ./
-RUN npm ci --legacy-peer-deps || (cat ~/.npm/_logs/*-debug*.log && exit 1)
+RUN npm ci || (cat ~/.npm/_logs/*-debug*.log && exit 1)
 COPY angular-frontend/ ./
 RUN npm run build --prod
 
@@ -18,7 +18,6 @@ COPY src ./src
 RUN mkdir -p src/main/resources/static
 COPY --from=frontend-build /integration-catalog/angular-frontend/dist/ic-frontend-ngmodule/browser/. ./src/main/resources/static/
 
-RUN env | grep -i proxy || true
 RUN mvn clean package -DskipTests
 
 # --- Stage 3: Runtime image ---
