@@ -435,7 +435,8 @@ CREATE TABLE integration_method (
 	created_at timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	app_version character varying(255),
-	reviewed_by character varying(255)
+	reviewed_by character varying(255),
+	support_ticket_id integer
 );
 
 CREATE TABLE integration_method_type (
@@ -912,5 +913,5 @@ SELECT setval('midpoint_version_id_seq', 10);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(2, $$ SELECT 1 $$, true);
+call apply_change(3, $$ SELECT 1 $$, true);
 -- end of region

@@ -17,6 +17,7 @@ import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
+import { AuthService } from './auth.service';
 
 /** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
 export interface BundleDownloadResult {
@@ -32,13 +33,27 @@ export interface SheetDownloadResult {
   size: number | null;
 }
 
+/**
+ * The support-portal work package behind a revision's review (GET .../support-ticket).
+ * `approvalReady` is the backend's verdict — it compares the status against the one configured
+ * as the go-ahead, so the status name never has to be known here.
+ */
+export interface SupportTicket {
+  configured: boolean;
+  ticketId: number | null;
+  url: string | null;
+  status: string | null;
+  approvalReady: boolean;
+  error: string | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ApplicationService {
   private readonly apiUrl = `${environment.apiUrl}/applications`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private authService: AuthService) {}
 
   getAll(): Observable<Application[]> {
     return this.http.get<Application[]>(this.apiUrl);
@@ -232,6 +247,18 @@ export class ApplicationService {
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
       payload,
       { responseType: 'text' as 'json' }
+    );
+  }
+
+  /**
+   * State of the support-portal work package opened when this revision was submitted.
+   * The backend restricts this to the submitting side and the reviewer, and identifies the
+   * caller by the username sent along - the same way the other user-scoped endpoints do.
+   */
+  getSupportTicket(appId: string, methodId: string, revision: string): Observable<SupportTicket> {
+    return this.http.get<SupportTicket>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`,
+      { params: new HttpParams().set('username', this.authService.currentUser() ?? '') }
     );
   }
 

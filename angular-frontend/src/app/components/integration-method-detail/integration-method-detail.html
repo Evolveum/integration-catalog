@@ -58,11 +58,13 @@
           <span class="review-meta-item d-inline-flex align-items-center">
             <i class="fa-solid fa-user me-2"></i>Submitted by&nbsp;<span class="review-meta-author">{{ methodAuthor() || '—' }}</span>
           </span>
-          <span class="review-meta-item d-inline-flex align-items-center">
-            <a class="review-meta-ticket d-inline-flex align-items-center" [href]="ticketUrl" target="_blank" rel="noopener">
-              <i class="fa-solid fa-ticket me-2"></i><span class="review-meta-ticket-text">Open ticket #{{ ticketId }}</span><i class="fa-solid fa-arrow-right ms-2"></i>
-            </a>
-          </span>
+          @if (ticketUrl(); as url) {
+            <span class="review-meta-item d-inline-flex align-items-center">
+              <a class="review-meta-ticket d-inline-flex align-items-center" [href]="url" target="_blank" rel="noopener">
+                <i class="fa-solid fa-ticket me-2"></i><span class="review-meta-ticket-text">Open ticket #{{ ticketId() }}</span><i class="fa-solid fa-arrow-right ms-2"></i>
+              </a>
+            </span>
+          }
         </div>
       }
 
@@ -458,6 +460,9 @@
   @if (confirmMode(); as mode) {
     <app-approval-confirm-modal
       [mode]="mode"
+      [appId]="appId()"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
       [connectorName]="confirmConnectorName()"
       [versionLabel]="versionBadge(methodVersion())"
       [submittedBy]="submittedByLabel()"

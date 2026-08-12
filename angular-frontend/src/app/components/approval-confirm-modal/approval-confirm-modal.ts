@@ -4,8 +4,9 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ApplicationService, SupportTicket } from '../../services/application.service';
 
 /**
  * Reusable two-step confirmation modal for approving or rejecting an in-review
@@ -13,6 +14,15 @@ import { CommonModule } from '@angular/common';
  * @if), passes the display data + processing/error state, and performs the actual
  * approve/reject on the `confirm` output. This component owns the two-step flow
  * (pending notice → Refresh → ready → Confirm).
+ *
+ * The two steps are driven by the support portal: the work package opened when the version
+ * was submitted is read on open and again on every Refresh, and approval stays disabled until
+ * the portal reports the status the backend treats as the go-ahead. A version with no work
+ * package (submitted before the portal integration, or while the portal was down) has nothing
+ * to wait for and goes straight to the confirmable step.
+ *
+ * Rejection is deliberately not gated: Refresh advances it as before, and the ticket is shown
+ * only so the reviewer can follow the link to write the reason there.
  */
 @Component({
   selector: 'app-approval-confirm-modal',
@@ -21,8 +31,11 @@ import { CommonModule } from '@angular/common';
   templateUrl: './approval-confirm-modal.html',
   styleUrls: ['./approval-confirm-modal.scss']
 })
-export class ApprovalConfirmModal {
+export class ApprovalConfirmModal implements OnInit {
   @Input({ required: true }) mode!: 'approve' | 'reject';
+  @Input({ required: true }) appId!: string;
+  @Input({ required: true }) methodId!: string;
+  @Input({ required: true }) revision!: string;
   @Input() connectorName = '';
   @Input() versionLabel = '';
   @Input() submittedBy = '';
@@ -31,18 +44,58 @@ export class ApprovalConfirmModal {
   @Output() confirm = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
 
+  private readonly applicationService = inject(ApplicationService);
+
   protected readonly step = signal<number>(1);
   protected readonly successDismissed = signal<boolean>(false);
+  protected readonly ticket = signal<SupportTicket | null>(null);
+  protected readonly loading = signal<boolean>(false);
+  /** Set when the ticket itself could not be read, as opposed to the portal reporting a status. */
+  protected readonly lookupError = signal<string>('');
 
-  // Hardcoded ticket details for now (to be wired to the support portal later).
-  protected readonly ticketId = '1239';
-  protected readonly relatedTicketId = '10452';
-  protected readonly ticketClosedDate = 'Jun 3, 2026';
-  protected readonly ticketUrl = 'https://support.evolveum.com/tickets/1239';
+  protected readonly ticketId = computed(() => this.ticket()?.ticketId ?? null);
+  protected readonly ticketUrl = computed(() => this.ticket()?.url ?? null);
+  protected readonly ticketStatus = computed(() => this.ticket()?.status ?? null);
 
-  /** "Refresh to check again" advances the modal to its ready (confirmable) step. */
+  ngOnInit(): void {
+    this.loadTicket();
+  }
+
+  /**
+   * "Refresh to check again" re-reads the work package. For an approval that is the whole gate:
+   * the modal only advances once the portal reports the awaited status. A rejection advances
+   * regardless, keeping its original behaviour.
+   */
   protected refresh(): void {
-    this.step.set(2);
+    if (this.mode === 'reject') {
+      this.step.set(2);
+      return;
+    }
+    this.loadTicket();
+  }
+
+  private loadTicket(): void {
+    if (this.loading()) return;
+    this.loading.set(true);
+    this.lookupError.set('');
+    this.applicationService.getSupportTicket(this.appId, this.methodId, this.revision).subscribe({
+      next: (ticket) => {
+        this.loading.set(false);
+        this.ticket.set(ticket);
+        this.lookupError.set(ticket.error ?? '');
+        // Only the approval is gated; a rejection keeps its manual two-step flow.
+        if (this.mode === 'approve' && ticket.approvalReady) {
+          this.step.set(2);
+        }
+      },
+      error: (err) => {
+        this.loading.set(false);
+        console.error('Support ticket lookup failed', err);
+        // Leave the modal on step 1: without an answer from the portal the reviewer should not
+        // be waved through, but the reason is shown so it is clear why the button stays disabled.
+        this.lookupError.set('The support ticket could not be loaded.');
+      }
+    });
   }
 
   protected dismissSuccess(): void {

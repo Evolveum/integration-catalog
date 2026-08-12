@@ -22,7 +22,8 @@ import org.springframework.context.annotation.Bean;
 		JenkinsProperties.class,
 		LogoStorageProperties.class,
 		TutorialStorageProperties.class,
-		ConnectorSigningProperties.class
+		ConnectorSigningProperties.class,
+		OpenProjectProperties.class
 })
 public class IntegrationCatalogApplication {
 

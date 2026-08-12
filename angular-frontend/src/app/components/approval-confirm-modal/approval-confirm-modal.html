@@ -48,20 +48,30 @@
         <div class="approval-notice approval-notice-warning">
           <i class="fa-solid fa-triangle-exclamation approval-notice-icon"></i>
           <div class="approval-notice-content">
-            @if (mode === 'approve') {
+            @if (lookupError()) {
+              <strong>Support ticket unavailable</strong>
+              <div>{{ lookupError() }}</div>
+            } @else if (mode === 'approve') {
               <strong>Support ticket still open</strong>
-              <div>Close ticket <strong>#{{ ticketId }}</strong> in the support portal before approving.</div>
+              @if (ticketStatus()) {
+                <div>Ticket <strong>#{{ ticketId() }}</strong> is <strong>{{ ticketStatus() }}</strong>. Approval unlocks once the review is finished in the support portal.</div>
+              } @else {
+                <div>Finish the review of ticket <strong>#{{ ticketId() }}</strong> in the support portal before approving.</div>
+              }
             } @else {
               <strong>Reason not added yet</strong>
-              <div>Add reason to ticket <strong>#{{ ticketId }}</strong> in the support portal. It'll show here once saved.</div>
+              <div>Add reason to ticket <strong>#{{ ticketId() }}</strong> in the support portal. It'll show here once saved.</div>
             }
-            <a class="approval-ticket-link d-inline-flex align-items-center gap-2 mt-2" [href]="ticketUrl" target="_blank" rel="noopener">
-              <i class="fa-solid fa-ticket"></i>Open ticket #{{ ticketId }}<i class="fa-solid fa-arrow-up-right-from-square approval-ticket-ext"></i>
-            </a>
+            @if (ticketUrl(); as url) {
+              <a class="approval-ticket-link d-inline-flex align-items-center gap-2 mt-2" [href]="url" target="_blank" rel="noopener">
+                <i class="fa-solid fa-ticket"></i>Open ticket #{{ ticketId() }}<i class="fa-solid fa-arrow-up-right-from-square approval-ticket-ext"></i>
+              </a>
+            }
           </div>
         </div>
-        <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refresh()">
-          <i class="fa-solid fa-arrows-rotate"></i>Refresh to check again
+        <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2"
+                [disabled]="loading()" (click)="refresh()">
+          <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="loading()"></i>Refresh to check again
         </button>
       } @else if (!successDismissed()) {
         <!-- Step 2: ready notice -->
@@ -69,11 +79,16 @@
           <i class="fa-solid fa-circle-check approval-notice-icon-success"></i>
           <div class="approval-notice-content">
             @if (mode === 'approve') {
-              <strong>Support ticket closed</strong>
-              <div>Ticket #{{ relatedTicketId }} was closed on {{ ticketClosedDate }}.</div>
+              @if (ticketId()) {
+                <strong>Support ticket ready</strong>
+                <div>Ticket #{{ ticketId() }} is {{ ticketStatus() }}.</div>
+              } @else {
+                <strong>No support ticket</strong>
+                <div>This version has no support ticket, so there is nothing to resolve before approving.</div>
+              }
             } @else {
-              <strong>Reason added - ticket #{{ ticketId }}</strong>
-              <div>The maintainer will see this in ticket #{{ relatedTicketId }} and can fix the issues before resubmitting.</div>
+              <strong>Reason added - ticket #{{ ticketId() }}</strong>
+              <div>The maintainer will see this in ticket #{{ ticketId() }} and can fix the issues before resubmitting.</div>
             }
           </div>
           <button type="button" class="btn p-0 approval-notice-close" (click)="dismissSuccess()" aria-label="Dismiss">

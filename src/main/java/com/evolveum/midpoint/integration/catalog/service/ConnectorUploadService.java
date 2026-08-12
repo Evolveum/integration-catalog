@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.HttpException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +63,7 @@ public class ConnectorUploadService {
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
     private final IntegrationMethodConnectorRepository integrationMethodConnectorRepository;
     private final TutorialStorageService tutorialStorageService;
+    private final ApplicationEventPublisher events;
 
     private record ApplicationResolution(Application application, boolean isNew,
                                           List<String> originNames, List<ApplicationTagDto> tagDtos) {}
@@ -95,6 +97,9 @@ public class ConnectorUploadService {
         saveIntegrationMethodCapabilities(dto, uploadRes.integrationMethod());
         saveConnectorVersionCapabilities(dto, connectorVersion);
         triggerJenkinsPipeline(connectorVersion, uploadRes.integrationMethod(), uploadRes.bundle(), dto.connector());
+        // The revision is now in front of a reviewer; open its support work package once this commits.
+        events.publishEvent(new IntegrationMethodSubmittedEvent(
+                uploadRes.integrationMethod().getId(), uploadRes.integrationMethod().getRevision()));
 
         return appRes.application().getId() + "|" + uploadRes.integrationMethod().getId();
     }
@@ -484,6 +489,10 @@ public class ConnectorUploadService {
 
         saveIntegrationMethodCapabilities(dto.capabilities(), updated);
 
+        // A draft forked off another revision is a submission in its own right: support_ticket_id is
+        // deliberately not carried over from the source, so this gets a work package of its own.
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision));
+
         return newRevision;
     }
 
@@ -522,6 +531,9 @@ public class ConnectorUploadService {
         updated.setReviewedBy(wasRejected ? null : existing.getReviewedBy());
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
+        // The revision number changes but the submission does not: this is the same draft being
+        // corrected or resubmitted, so it keeps the work package the discussion is already in.
+        updated.setSupportTicketId(existing.getSupportTicketId());
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
         updated.setMidpointMinVersionId(dto.midpointMinVersion());
         updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
@@ -548,6 +560,11 @@ public class ConnectorUploadService {
         // Drop the superseded revision; its capabilities and connector links cascade away.
         integrationMethodRepository.delete(existing);
         integrationMethodRepository.flush();
+
+        // Normally a no-op, since the work package came across with the draft above. It matters for
+        // a draft that has none — submitted before the portal existed, or while it was unreachable —
+        // which picks one up on its next resubmission instead of staying without one forever.
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision));
 
         return newRevision;
     }
@@ -896,6 +913,10 @@ public class ConnectorUploadService {
         copyConnectorLinks(source, draft);
         integrationMethodRepository.save(draft);
         copyCapabilities(source, draft);
+
+        // Note what is NOT carried over: support_ticket_id. The source revision is published, so its
+        // review is over; this fork is a new submission and gets a work package of its own.
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision));
         return draft;
     }
 

@@ -6,8 +6,8 @@
 
 import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
-import { ApplicationService } from '../../services/application.service';
+import { CommonModule, DatePipe } from '@angular/common';
+import { ApplicationService, SupportTicket } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IncludedConnector, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
@@ -209,9 +209,24 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
   protected readonly isProcessingApproval = signal<boolean>(false);
   protected readonly approvalError = signal<string>('');
-  private readonly submittedDate = 'May 20, 2026';
-  // Placeholder link to the review's support ticket (to be wired to the support portal later).
-  protected readonly ticketUrl = 'https://support.evolveum.com/tickets/1239';
+  // Submitted-for-review date = integration_method.created_at, matching the method detail page.
+  private readonly datePipe = new DatePipe('en-US');
+
+  /**
+   * Support-portal work packages of the revisions awaiting or under review, keyed by
+   * {@link versionKey}. Only revisions the viewer may edit are ever fetched — and the version
+   * list is already filtered to those, so a rendered IN_REVIEW or REVIEWING row is always one
+   * of them.
+   */
+  protected readonly supportTickets = signal<Map<string, SupportTicket>>(new Map());
+
+  protected ticketIdFor(version: { id: string; revision: string | null }): number | null {
+    return this.supportTickets().get(this.versionKey(version.id, version.revision))?.ticketId ?? null;
+  }
+
+  protected ticketUrlFor(version: { id: string; revision: string | null }): string | null {
+    return this.supportTickets().get(this.versionKey(version.id, version.revision))?.url ?? null;
+  }
 
   protected readonly confirmConnectorName = computed(() => {
     const v = this.confirmVersion();
@@ -220,7 +235,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly confirmVersionLabel = computed(() => this.versionBadge(this.confirmVersion()?.revision ?? ''));
   protected readonly confirmSubmittedBy = computed(() => {
     const v = this.confirmVersion();
-    return v ? `${v.author || '—'} · ${this.submittedDate}` : '';
+    if (!v) return '';
+    const submitted = this.datePipe.transform(v.createdAt, 'MMMM d, yyyy') || '—';
+    return `${v.author || '—'} · ${submitted}`;
   });
 
   protected openApproveConfirm(version: IntegrationMethod): void {
@@ -946,6 +963,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       next: (data) => {
         this.application.set(data);
         this.groupVersionsByLifecycleState(data.integrationMethods);
+        this.loadSupportTickets(id, data.integrationMethods);
         // Start with only the first method card expanded.
         const firstId = this.groupedMethods()[0]?.id;
         this.expandedMethods.set(firstId ? new Set([firstId]) : new Set());
@@ -957,6 +975,32 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         console.error('Error loading application:', err);
       }
     });
+  }
+
+  /**
+   * Fetches the support ticket of every revision awaiting or under review that the viewer may
+   * edit, so the row can link to the real work package. IN_REVIEW is included deliberately: the
+   * ticket exists from the moment the revision is submitted, and that is exactly when the author
+   * may want to reach it — waiting for a reviewer to pick the revision up would be too late.
+   * A failure just leaves that row without a link rather than disturbing the page.
+   */
+  private loadSupportTickets(appId: string, versions: any[] | null): void {
+    this.supportTickets.set(new Map());
+    const underReview = (versions ?? []).filter(v =>
+      (v.lifecycleState === 'IN_REVIEW' || v.lifecycleState === 'REVIEWING')
+      && this.authService.canEdit(v.author, v.authorOrganization, v.maintainer));
+
+    for (const version of underReview) {
+      this.applicationService.getSupportTicket(appId, version.id, version.revision ?? '').subscribe({
+        next: (ticket) => {
+          // Replace the map rather than mutate it, so the signal notifies its readers.
+          const next = new Map(this.supportTickets());
+          next.set(this.versionKey(version.id, version.revision), ticket);
+          this.supportTickets.set(next);
+        },
+        error: () => { /* no link for this row */ }
+      });
+    }
   }
 
   private loadApplicationDownloadsCount(applicationId: string): void {

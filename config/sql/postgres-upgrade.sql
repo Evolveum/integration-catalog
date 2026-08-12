@@ -49,6 +49,23 @@ alter table connector add COLUMN IF NOT EXISTS cloned_from integer;
 $aa$);
 -- end of region
 
+-- region change 3: integration_method.support_ticket_id
+-- Links an in-review revision to the work package opened for it in the support portal, so the
+-- author and the reviewer discuss the submission there instead of in the catalog.
+--
+-- The column is deliberately not backfilled: revisions submitted before this change have no
+-- work package, and one cannot be invented for them. They keep NULL and behave as they do
+-- today - the reviewer approves without a ticket check.
+--
+-- A ticket belongs to the revision row, not to the method. Editing a published revision forks
+-- a new row (see ConnectorUploadService.clonePublishedAsDraft), which starts with NULL here and
+-- therefore gets its own work package; editing or resubmitting a revision that is still in
+-- review writes to the same row and so keeps the work package it already has.
+call apply_change(3, $aa$
+ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS support_ticket_id integer;
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$
