@@ -18,6 +18,7 @@ COPY src ./src
 RUN mkdir -p src/main/resources/static
 COPY --from=frontend-build /integration-catalog/angular-frontend/dist/ic-frontend-ngmodule/browser/. ./src/main/resources/static/
 
+RUN env | grep -i proxy || true
 RUN mvn clean package -DskipTests
 
 # --- Stage 3: Runtime image ---
