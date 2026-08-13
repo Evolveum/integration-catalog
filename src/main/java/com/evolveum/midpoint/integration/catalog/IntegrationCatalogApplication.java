@@ -23,7 +23,8 @@ import org.springframework.context.annotation.Bean;
 		LogoStorageProperties.class,
 		TutorialStorageProperties.class,
 		ConnectorSigningProperties.class,
-		OpenProjectProperties.class
+		OpenProjectProperties.class,
+		CatalogProperties.class
 })
 public class IntegrationCatalogApplication {
 

@@ -26,4 +26,11 @@ public class Organization {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    /**
+     * Shared contact address for the organization. Needed alongside {@link CatalogUser#getEmail()}
+     * because an organization contributor publishes on behalf of their organization, so the
+     * maintainer named on an integration method is not always a person.
+     */
+    private String email;
 }

@@ -66,6 +66,27 @@ ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS support_ticket_id intege
 $aa$);
 -- end of region
 
+-- region change 4: catalog_users.email and organizations.email
+-- Contact address for the people and organizations a submission names, so the support work package
+-- opened for a review can say who to write to instead of only who submitted. Until now the catalog
+-- held no e-mail for anyone: catalog_users carried a username, a password, a role and an
+-- organization, and organizations carried a name and a description.
+--
+-- Both are nullable and deliberately not backfilled - there is no address to invent for an existing
+-- row. A submission by someone without one renders as a bare name, exactly as every submission does
+-- today.
+--
+-- Organizations get their own column because integration_method.maintainer holds either a username
+-- or an organization name (an organization contributor publishes on behalf of their organization,
+-- see AuthService.maintainerOptions), so a maintainer is not always a person.
+--
+-- 320 = 64 local part + "@" + 255 domain, the longest address RFC 5321 allows.
+call apply_change(4, $aa$
+ALTER TABLE catalog_users ADD COLUMN IF NOT EXISTS email varchar(320);
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS email varchar(320);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

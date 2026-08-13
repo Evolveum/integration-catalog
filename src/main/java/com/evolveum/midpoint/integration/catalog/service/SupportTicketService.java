@@ -44,6 +44,7 @@ public class SupportTicketService {
     private final OpenProjectClient openProjectClient;
     private final OpenProjectProperties properties;
     private final AuthService authService;
+    private final SupportTicketDescriptionBuilder descriptionBuilder;
 
     /**
      * Opens a work package for a freshly submitted revision, unless it already has one or the
@@ -74,7 +75,7 @@ public class SupportTicketService {
 
         try {
             int workPackageId = openProjectClient.createWorkPackage(
-                    subjectFor(method), descriptionFor(method));
+                    subjectFor(method), descriptionBuilder.build(method));
             method.setSupportTicketId(workPackageId);
             log.info("Opened support work package {} for integration method {}/{}",
                     workPackageId, event.methodId(), event.revision());
@@ -152,36 +153,4 @@ public class SupportTicketService {
                 + methodName + " " + method.getRevision();
     }
 
-    /**
-     * The submission's details as markdown. The author is named here rather than added as a
-     * watcher: watchers are addressed by their portal user id, which the catalog has no way to
-     * resolve — its own users come from the identity provider.
-     */
-    private String descriptionFor(IntegrationMethod method) {
-        Application application = method.getApplication();
-        StringBuilder body = new StringBuilder();
-        body.append("An integration method has been submitted for review in the midPoint Integration Catalog.\n\n");
-        if (application != null) {
-            body.append("* **Application:** ").append(application.getDisplayName()).append('\n');
-        }
-        body.append("* **Integration method:** ")
-                .append(method.getDisplayName() != null ? method.getDisplayName() : "-").append('\n');
-        body.append("* **Revision:** ").append(method.getRevision()).append('\n');
-        body.append("* **Author:** ").append(authorLabel(method)).append('\n');
-        body.append("* **Submitted:** ").append(method.getCreatedAt()).append('\n');
-        if (method.getDescription() != null && !method.getDescription().isBlank()) {
-            body.append("\n").append(method.getDescription()).append('\n');
-        }
-        body.append("\nUse this work package to discuss the submission with the author.");
-        return body.toString();
-    }
-
-    /**
-     * The author as recorded on the revision. The submitter's e-mail used to be appended here,
-     * read from the OIDC principal; the catalog holds no e-mail for a user without it, so the
-     * ticket carries the username alone until an identity provider is back.
-     */
-    private String authorLabel(IntegrationMethod method) {
-        return method.getAuthor() != null ? method.getAuthor() : "unknown";
-    }
 }

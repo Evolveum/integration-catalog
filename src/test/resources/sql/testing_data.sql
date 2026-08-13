@@ -3,26 +3,36 @@
 --
 -- Licensed under the EUPL-1.2 or later.
 --
--- 
+-- Seed/demo data. Run it LAST, after both schema scripts:
+--
+--   psql ... -f config/sql/postgres.sql
+--   psql ... -f config/sql/postgres-upgrade.sql
+--   psql ... -f src/test/resources/sql/testing_data.sql
+--
+-- The upgrade script is not optional here even on a fresh database: schema changes go into it
+-- alone, so postgres.sql lands behind and lacks columns this file writes to (catalog_users.email
+-- and organizations.email, change 4). Skipping it fails with "column email does not exist".
 
 -- ============================================================
 -- ORGANIZATIONS
 -- ============================================================
-INSERT INTO organizations (id, name, description) VALUES
-	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
-	(2, 'Evolveum', 'Evolveum — application administrators');
+INSERT INTO organizations (id, name, description, email) VALUES
+	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users', 'acme@example.com'),
+	(2, 'Evolveum', 'Evolveum — application administrators',                                         'evolveum@example.com');
 
 SELECT setval('organizations_id_seq', 2);
 
 -- ============================================================
 -- CATALOG USERS
 -- ============================================================
-INSERT INTO catalog_users (username, password, role, organization_id) VALUES
-	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
-	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
-	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
-	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
-	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
+-- The e-mail addresses match openProject/seed/users.json, so the person named on a support work
+-- package is the same person as the portal account with that login.
+INSERT INTO catalog_users (username, password, role, organization_id, email) VALUES
+	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1,    'u1@example.com'),
+	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL, 'u2@example.com'),
+	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL, 'u3@example.com'),
+	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1,    'u4@example.com'),
+	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2,    'u5@example.com');
 
 -- ============================================================
 -- LOOKUP TABLES

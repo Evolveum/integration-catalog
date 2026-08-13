@@ -9,7 +9,6 @@ package com.evolveum.midpoint.integration.catalog.configuration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Connection to the support portal that holds the review conversation for a submitted
@@ -25,15 +24,24 @@ import java.util.Locale;
  *                            account's API token as the password.
  * @param password            service account secret matching {@link #username()}.
  * @param project             identifier of the project the work packages are created in.
- * @param typeId              work package type id to create ({@code /api/v3/types/{id}}); the
- *                            create call rejects a request without a type.
- * @param initialStatusId     status id a newly opened work package is created with
- *                            ({@code /api/v3/statuses/{id}}). An id rather than a name because
- *                            creating needs a link, and resolving a name would cost a lookup.
+ * @param type                work package type to create; the create call rejects a request
+ *                            without a type. Named rather than numbered so the choice is legible
+ *                            and a typo fails at startup instead of on the first submission. The
+ *                            type also has to be enabled in {@link #project()}, and its workflow
+ *                            decides which statuses the work package can later reach - see
+ *                            {@link OpenProjectType}.
+ * @param typeId              overrides the id of {@link #type()}, for a portal that numbers its
+ *                            types differently from a stock instance. Normally unset.
+ * @param initialStatus       status a newly opened work package is created with. Set explicitly
+ *                            rather than left to the project default, so a submission always
+ *                            lands in a known state.
+ * @param initialStatusId     overrides the id of {@link #initialStatus()}, for a portal that
+ *                            numbers its statuses differently. Normally unset.
  * @param approvalStatuses    work package statuses that release the reviewer's "Confirm approval"
- *                            button; any one of them is enough. Names rather than ids because
- *                            these are compared against what the portal reports for a work
- *                            package, which is the status title.
+ *                            button; any one of them is enough. Free text rather than
+ *                            {@link OpenProjectStatus} constants, because a portal may carry
+ *                            statuses this catalog has never heard of; both spellings work, as
+ *                            matching goes through {@link OpenProjectStatus#normalize(String)}.
  * @param trustAllCertificates disables TLS verification. For the local docker test instance,
  *                            which serves a self-signed certificate. Never enable in production.
  */
@@ -43,7 +51,9 @@ public record OpenProjectProperties(
         String username,
         String password,
         String project,
+        OpenProjectType type,
         Integer typeId,
+        OpenProjectStatus initialStatus,
         Integer initialStatusId,
         List<String> approvalStatuses,
         boolean trustAllCertificates
@@ -52,28 +62,33 @@ public record OpenProjectProperties(
     /**
      * Defaults for the values that have a sensible one, so a deployment that configures only the
      * URL, the token and the project still works rather than sending "types/null" to the portal.
+     *
+     * <p>The two numeric ids are resolved here as well: unset, they follow the chosen constant, so
+     * {@link #typeId()} and {@link #initialStatusId()} always answer with the id to actually send.
      */
     public OpenProjectProperties {
         username = (username == null || username.isBlank()) ? "apikey" : username;
-        typeId = typeId != null ? typeId : 1;
-        initialStatusId = initialStatusId != null ? initialStatusId : 1;
+        type = type != null ? type : OpenProjectType.TASK;
+        initialStatus = initialStatus != null ? initialStatus : OpenProjectStatus.NEW;
+        typeId = typeId != null ? typeId : type.id();
+        initialStatusId = initialStatusId != null ? initialStatusId : initialStatus.id();
         approvalStatuses = (approvalStatuses == null || approvalStatuses.isEmpty())
-                ? List.of("Tested", "Closed")
+                ? List.of(OpenProjectStatus.TESTED.title(), OpenProjectStatus.CLOSED.title())
                 : List.copyOf(approvalStatuses);
     }
 
     /**
-     * Whether a work package reporting {@code status} lets the reviewer approve. Compared by title
-     * and ignoring case and surrounding whitespace, so the configured value only has to match what
-     * the portal displays.
+     * Whether a work package reporting {@code status} lets the reviewer approve. Compared through
+     * {@link OpenProjectStatus#normalize(String)}, so the configured value only has to mean what the
+     * portal displays - {@code Tested}, {@code tested} and {@code TESTED} are all the same status.
      */
     public boolean isApprovalStatus(String status) {
         if (status == null) {
             return false;
         }
-        String normalized = status.trim().toLowerCase(Locale.ROOT);
-        return approvalStatuses.stream()
-                .anyMatch(candidate -> candidate.trim().toLowerCase(Locale.ROOT).equals(normalized));
+        String normalized = OpenProjectStatus.normalize(status);
+        return !normalized.isEmpty() && approvalStatuses.stream()
+                .anyMatch(candidate -> OpenProjectStatus.normalize(candidate).equals(normalized));
     }
 
     /** Whether the portal is configured at all; when false the catalog behaves as it did before. */
