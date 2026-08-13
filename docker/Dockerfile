@@ -6,7 +6,7 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /integration-catalog/angular-frontend
 COPY angular-frontend/package*.json ./
-RUN npm install
+RUN npm ci --legacy-peer-deps || (cat ~/.npm/_logs/*-debug*.log && exit 1)
 COPY angular-frontend/ ./
 RUN npm run build --prod
 
