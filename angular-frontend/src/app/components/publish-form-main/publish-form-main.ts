@@ -722,8 +722,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   }
 
   protected canSubmitForm(): boolean {
-    return this.displayName().trim() !== '' &&
-           this.logoFile() !== null;
+    return this.displayName().trim() !== '';
   }
 
   protected onLogoUpload(event: Event): void {
