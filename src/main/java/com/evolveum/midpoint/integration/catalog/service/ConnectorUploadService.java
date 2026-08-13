@@ -387,7 +387,6 @@ public class ConnectorUploadService {
 
             JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
             HttpResponse<String> response = jenkinsClient.triggerJob(
-                    "integration-catalog-upload-connid-connector",
                     Map.of("REPOSITORY_URL", gitCloneUrl,
                             "BRANCH_URL", browseLink,
                             "CONNECTOR_OID", method.getId().toString(),
