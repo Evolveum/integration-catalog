@@ -111,22 +111,33 @@ public class BuildCallbackService {
     }
 
     private ConnectorBundleVersion resolveConnectorBundleVersion(IntegrationMethod method) {
-        if (method.getConnectors() == null || method.getConnectors().isEmpty()) return null;
+        if (method.getConnectors() == null || method.getConnectors().isEmpty()) {
+            return null;
+        }
         IntegrationMethodConnector link = method.getConnectors().get(0);
-        if (link.getConnector() == null || link.getConnector().getConnectorVersions().isEmpty()) return null;
+        if (link.getConnector() == null || link.getConnector().getConnectorVersions().isEmpty()) {
+            return null;
+        }
         return link.getConnector().getConnectorVersions().get(0).getConnectorBundleVersion();
     }
 
     private ConnectorBundle resolveConnectorBundle(IntegrationMethod method) {
-        if (method.getConnectors() == null || method.getConnectors().isEmpty()) return null;
+        if (method.getConnectors() == null || method.getConnectors().isEmpty()) {
+            return null;
+        }
         IntegrationMethodConnector link = method.getConnectors().get(0);
-        if (link.getConnector() == null) return null;
+        if (link.getConnector() == null) {
+            return null;
+        }
         return link.getConnector().getConnectorBundle();
     }
 
     private void relinkConnectorToBundle(IntegrationMethod method, ConnectorBundle targetBundle) {
-        if (method.getConnectors() == null) return;
+        if (method.getConnectors() == null) {
+            return;
+        }
         for (IntegrationMethodConnector link : method.getConnectors()) {
+
             if (link.getConnector() != null) {
                 link.getConnector().setConnectorBundle(targetBundle);
             }
@@ -134,9 +145,16 @@ public class BuildCallbackService {
     }
 
     private void updateConnectorVersionClassName(IntegrationMethod method, String className) {
-        if (method.getConnectors() == null) return;
+        if (method.getConnectors() == null) {
+            return;
+        }
         for (IntegrationMethodConnector link : method.getConnectors()) {
-            if (link.getConnector() == null) continue;
+            if (link.getConnector() == null) {
+                continue;
+            }
+
+            link.getConnector().setFullyQualifiedClassName(className);
+
             for (ConnectorVersion cv : link.getConnector().getConnectorVersions()) {
                 cv.setFullyQualifiedClassName(className);
             }
@@ -145,9 +163,13 @@ public class BuildCallbackService {
 
     private void persistCapabilitiesOnConnectorVersions(IntegrationMethod method,
                                                          List<CapabilityType> capabilityTypes) {
-        if (method.getConnectors() == null) return;
+        if (method.getConnectors() == null) {
+            return;
+        }
         for (IntegrationMethodConnector link : method.getConnectors()) {
-            if (link.getConnector() == null) continue;
+            if (link.getConnector() == null) {
+                continue;
+            }
             for (ConnectorVersion cv : link.getConnector().getConnectorVersions()) {
                 ConnVersionCapability group = new ConnVersionCapability();
                 group.setObjectClass("__ACCOUNT__");
