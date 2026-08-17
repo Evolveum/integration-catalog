@@ -19,6 +19,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -27,6 +28,7 @@ import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 /**
  * Talks to the support portal's REST API (OpenProject API v3).
@@ -90,6 +92,115 @@ public class OpenProjectClient {
             throw new IOException("Support portal returned a work package without a numeric id: " + response.body());
         }
         return id.intValue();
+    }
+
+    /**
+     * Looks a portal user up by login, which is how {@link OpenProjectProperties#watchers()} names
+     * them - a login is exact and is what whoever configures the catalog can see in the portal.
+     * People the catalog knows only from its own database are found by
+     * {@link #findUserIdByEmail(String)} instead.
+     *
+     * @return the user's numeric id, or empty when the portal knows no such login
+     * @throws IOException if the portal answers with anything other than a 2xx. Listing users is an
+     * administrative call, so a service account without that privilege lands here rather than on an
+     * empty result.
+     */
+    public OptionalInt findUserIdByLogin(String login) throws IOException, InterruptedException {
+        JsonNode users = findUsers("login", "=", login);
+        if (users.isEmpty()) {
+            return OptionalInt.empty();
+        }
+        return idOf(users.get(0));
+    }
+
+    /**
+     * Looks a portal user up by e-mail address, which is what the catalog knows about the people
+     * named on a submission - {@code catalog_users.email} and {@code organizations.email}.
+     *
+     * <p>There is no filter on the address itself; the portal answers {@code "Filters Email filter
+     * does not exist"}. What does work is {@code any_name_attribute}, which searches the address
+     * along with the login and the names, but only as a substring - a search for
+     * {@code "@example.com"} returns everybody. The address is therefore compared here as well, and
+     * only an exact, unambiguous hit counts.
+     *
+     * @return the user's numeric id, or empty when no user carries exactly this address
+     * @throws IOException if the portal answers with anything other than a 2xx. Listing users is an
+     * administrative call, so a service account without that privilege lands here rather than on an
+     * empty result.
+     */
+    public OptionalInt findUserIdByEmail(String email) throws IOException, InterruptedException {
+        JsonNode users = findUsers("any_name_attribute", "~", email);
+        OptionalInt found = OptionalInt.empty();
+        for (JsonNode user : users) {
+            if (!email.equalsIgnoreCase(user.path("email").asText(null))) {
+                continue;
+            }
+            if (found.isPresent()) {
+                // Two accounts on one address: the portal allows it, and picking either would be a
+                // guess about who the submission's author actually is.
+                return OptionalInt.empty();
+            }
+            found = idOf(user);
+        }
+        return found;
+    }
+
+    /** Runs one filter over {@code /users} and returns the matched elements, possibly none. */
+    private JsonNode findUsers(String field, String operator, String value)
+            throws IOException, InterruptedException {
+        // Built through Jackson rather than concatenated: the value is a configured login or an
+        // address out of the database, and a quote in it would produce an unparseable filter.
+        ObjectNode condition = objectMapper.createObjectNode();
+        condition.put("operator", operator);
+        condition.putArray("values").add(value);
+        ObjectNode filter = objectMapper.createObjectNode();
+        filter.set(field, condition);
+        String filters = objectMapper.writeValueAsString(objectMapper.createArrayNode().add(filter));
+
+        HttpRequest request = authorized(properties.apiBase() + "/users?filters="
+                + URLEncoder.encode(filters, StandardCharsets.UTF_8))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal could not be queried for user '" + value
+                    + "' (HTTP " + response.statusCode() + "): " + response.body());
+        }
+        JsonNode elements = objectMapper.readTree(response.body()).path("_embedded").path("elements");
+        return elements.isArray() ? elements : objectMapper.createArrayNode();
+    }
+
+    private static OptionalInt idOf(JsonNode user) {
+        JsonNode id = user.path("id");
+        return id.isInt() ? OptionalInt.of(id.intValue()) : OptionalInt.empty();
+    }
+
+    /**
+     * Adds a user to a work package's watchers, so the portal notifies them of what happens to it.
+     *
+     * <p>A second call rather than part of {@link #createWorkPackage(String, String)}: watchers are
+     * not part of the work package's writable schema, they only exist as this sub-resource.
+     * Repeating it for a user who already watches is harmless.
+     *
+     * @throws IOException if the portal answers with anything other than a 2xx, which includes the
+     * user not being allowed to see the work package - a watcher has to be able to read what they
+     * are watching.
+     */
+    public void addWatcher(int workPackageId, int userId) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.putObject("user").put("href", "/api/v3/users/" + userId);
+
+        HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId + "/watchers")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal refused to add user " + userId + " as a watcher of "
+                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
+        }
     }
 
     /**

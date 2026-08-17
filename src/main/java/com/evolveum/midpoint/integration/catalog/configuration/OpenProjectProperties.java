@@ -42,6 +42,13 @@ import java.util.List;
  *                            {@link OpenProjectStatus} constants, because a portal may carry
  *                            statuses this catalog has never heard of; both spellings work, as
  *                            matching goes through {@link OpenProjectStatus#normalize(String)}.
+ * @param watchers            portal logins added as watchers of every work package the catalog
+ *                            opens, so the reviewing side is notified of a submission without
+ *                            anyone polling the catalog. Logins rather than e-mail addresses,
+ *                            because OpenProject offers no filter on the address; each has to be
+ *                            a member of {@link #project()} with permission to see the work
+ *                            package. Empty leaves the portal's own default - the account behind
+ *                            {@link #username()} watches what it creates.
  * @param trustAllCertificates disables TLS verification. For the local docker test instance,
  *                            which serves a self-signed certificate. Never enable in production.
  */
@@ -56,6 +63,7 @@ public record OpenProjectProperties(
         OpenProjectStatus initialStatus,
         Integer initialStatusId,
         List<String> approvalStatuses,
+        List<String> watchers,
         boolean trustAllCertificates
 ) {
 
@@ -75,6 +83,12 @@ public record OpenProjectProperties(
         approvalStatuses = (approvalStatuses == null || approvalStatuses.isEmpty())
                 ? List.of(OpenProjectStatus.TESTED.title(), OpenProjectStatus.CLOSED.title())
                 : List.copyOf(approvalStatuses);
+        // Trimmed and emptied out, because "openproject.watchers=" binds to a list holding one
+        // blank string rather than to no list at all, and a blank login would be looked up.
+        watchers = watchers == null ? List.of() : watchers.stream()
+                .filter(login -> login != null && !login.isBlank())
+                .map(String::trim)
+                .toList();
     }
 
     /**

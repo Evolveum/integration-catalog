@@ -9,7 +9,6 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.configuration.CatalogProperties;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.Capability;
-import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
 import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapability;
 import com.evolveum.midpoint.integration.catalog.object.Connector;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
@@ -21,10 +20,7 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnect
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.object.LifecycleType;
 import com.evolveum.midpoint.integration.catalog.object.MidpointVersion;
-import com.evolveum.midpoint.integration.catalog.object.Organization;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
-import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,11 +46,11 @@ import java.util.stream.Stream;
  * <p>Every section degrades to a "not provided" note rather than disappearing, so a reviewer can
  * tell an empty field from a field this builder forgot.
  *
- * <p>People are named in the body with their contact address rather than attached to the work package
- * as a watcher or an assignee: the portal addresses people by their own user id, which the catalog
- * cannot resolve from a username. The addresses come from {@code catalog_users.email} and
- * {@code organizations.email} via {@link #withEmail(String)}; a name with neither is written on its
- * own, as every name was before those columns existed.
+ * <p>People are named in the body with their contact address, resolved through
+ * {@link CatalogContactResolver}; a name with no address is written on its own, as every name was
+ * before those columns existed. Naming them here is independent of whether they also end up watching
+ * the work package - {@link SupportTicketService} adds the watchers it can, and the body has to
+ * carry the whole submission either way, including the people it could not attach.
  */
 @Slf4j
 @Component
@@ -73,8 +69,7 @@ public class SupportTicketDescriptionBuilder {
     private static final String NOT_PROVIDED = "_not provided_";
 
     private final MidpointVersionRepository midpointVersionRepository;
-    private final CatalogUserRepository catalogUserRepository;
-    private final OrganizationRepository organizationRepository;
+    private final CatalogContactResolver contactResolver;
     private final TutorialStorageService tutorialStorageService;
     private final CatalogProperties catalogProperties;
 
@@ -124,27 +119,16 @@ public class SupportTicketDescriptionBuilder {
      * A name with its contact address in brackets, e.g. {@code u1 (u1@example.com)}, falling back to
      * the bare name when none is known.
      *
-     * <p>The name is resolved as a person first and as an organization second, because
-     * {@code integration_method.author} and {@code .maintainer} are free-text columns holding either
-     * - an organization contributor publishes on behalf of their organization, so a maintainer is
-     * often an organization name rather than a username.
-     *
-     * <p>A name matching neither is left as it is rather than reported: these columns are stamped on
-     * the revision at write time and keep the value they had even after the user or the organization
-     * is renamed or removed, so a miss is expected rather than a fault.
+     * <p>A name the catalog cannot place is left as it is rather than reported - see
+     * {@link CatalogContactResolver} for why that is expected rather than a fault.
      */
     private String withEmail(String name) {
         if (name == null || name.isBlank()) {
             return null;
         }
-        String email = catalogUserRepository.findByUsername(name)
-                .map(CatalogUser::getEmail)
-                .filter(value -> !value.isBlank())
-                .or(() -> organizationRepository.findByNameIgnoreCase(name)
-                        .map(Organization::getEmail)
-                        .filter(value -> !value.isBlank()))
-                .orElse(null);
-        return email == null ? name : name + " (" + email + ")";
+        return contactResolver.emailOf(name)
+                .map(email -> name + " (" + email + ")")
+                .orElse(name);
     }
 
     private String integrationMethodTypes(IntegrationMethod method) {

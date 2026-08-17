@@ -17,22 +17,28 @@
 -- ORGANIZATIONS
 -- ============================================================
 INSERT INTO organizations (id, name, description, email) VALUES
-	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users', 'acme@example.com'),
-	(2, 'Evolveum', 'Evolveum — application administrators',                                         'evolveum@example.com');
+	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users', 'support@acme.com'),
+	(2, 'Evolveum', 'Evolveum — application administrators',                                         'support@evolveum.com');
 
 SELECT setval('organizations_id_seq', 2);
 
 -- ============================================================
 -- CATALOG USERS
 -- ============================================================
--- The e-mail addresses match openProject/seed/users.json, so the person named on a support work
--- package is the same person as the portal account with that login.
+-- The e-mail addresses must match openProject/seed/users.json exactly: a support work package is
+-- watched by the portal account carrying the address the catalog holds for that person, so an
+-- address that differs on either side means no watcher is attached. The domain follows the
+-- organization the member belongs to.
+-- Acme has three members with three different roles on purpose: only u1 and u6 act for the
+-- organization, while u4 belongs to it but contributes as an individual, so submissions maintained
+-- by Acme are u4's business no more than any other organization's are.
 INSERT INTO catalog_users (username, password, role, organization_id, email) VALUES
-	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1,    'u1@example.com'),
-	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL, 'u2@example.com'),
-	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL, 'u3@example.com'),
-	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1,    'u4@example.com'),
-	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2,    'u5@example.com');
+	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1,    'u1@acme.com'),
+	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL, 'u2@read.com'),
+	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL, 'u3@solo.com'),
+	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1,    'u4@acme.com'),
+	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2,    'u5@evolveum.com'),
+	('u6', crypt('u6', gen_salt('bf', 10)), 'OrganizationContributor', 1,    'u6@acme.com');
 
 -- ============================================================
 -- LOOKUP TABLES
