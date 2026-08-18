@@ -419,7 +419,10 @@ export class PublishFormImpl implements OnInit, OnChanges {
         version: versionOverride ?? this.connectorVersion() ?? null,
         commitTag: this.devCommitTag() || null,
         bundleDisplayName: this.connectorBundleName() || null,
-        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null
+        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
+        // Picking a published connector links it as it is; every field above is disabled in that case,
+        // so there is nothing to copy it for. Without this the backend would build a duplicate of it.
+        existingConnectorId: this.isExistingConnector ? (this.selectedCatalogConnector?.connectorId ?? null) : null
       },
       files: [],
       integrationMethodCapabilities: summary?.imCapabilities ?? [],

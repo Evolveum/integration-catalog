@@ -16,6 +16,8 @@ import java.util.UUID;
  *
  * @param methodId identifies the integration method
  * @param revision identifies the submitted revision of that method
+ * @param flow     which action the submitter took, which names the work package - see
+ *                 {@link SubmissionFlow} for why it is passed rather than derived
  */
-public record IntegrationMethodSubmittedEvent(UUID methodId, String revision) {
+public record IntegrationMethodSubmittedEvent(UUID methodId, String revision, SubmissionFlow flow) {
 }

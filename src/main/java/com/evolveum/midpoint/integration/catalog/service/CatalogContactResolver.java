@@ -6,119 +6,73 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.object.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
-import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Turns a name the catalog stamped on a revision into contact addresses.
+ * Turns a name the catalog stamped on a revision into a contact address.
  *
- * <p>{@code integration_method.author} and {@code .maintainer} are free-text columns holding either
- * a username or an organization name - an organization contributor publishes on behalf of their
- * organization, so a maintainer is often not a person. Every name is therefore resolved as a person
- * first and as an organization second.
+ * <p>{@code integration_method.author} and {@code .maintainer} are free-text columns holding either a
+ * username or an organization name - an organization contributor publishes on behalf of their
+ * organization, so a maintainer is often not a person. Only people have an address
+ * ({@code catalog_users.email}), so an organization name resolves to nothing here, and that costs the
+ * catalog nothing: a submission maintained by an organization is represented by its author, who is a
+ * member of that organization and the one who can act on what a review asks for.
  *
- * <p>A name matching neither resolves to nothing rather than to an error: these columns keep the
- * value they had when the revision was written, even after the user or the organization is renamed
- * or removed, so a miss is expected rather than a fault.
+ * <p>A name matching nobody resolves to nothing rather than to an error: these columns keep the value
+ * they had when the revision was written, even after the user is renamed or removed, so a miss is
+ * expected rather than a fault.
  */
 @Component
 @RequiredArgsConstructor
 public class CatalogContactResolver {
 
     private final CatalogUserRepository catalogUserRepository;
-    private final OrganizationRepository organizationRepository;
 
     /**
-     * Who should hear about work concerning one named party.
+     * The address to reach the named party at - both for writing it next to their name in a support
+     * work package and for subscribing them to one.
      *
-     * @param addresses everyone to notify in their own right. A person is their own single address;
-     *                  an organization contributes none, because the submission's author is the
-     *                  member who speaks for it
-     * @param fallback  address to fall back on when nobody on the submitting side could be reached,
-     *                  which is the organization's shared mailbox. Null for a person, who has no
-     *                  second address, and for an unknown name
-     */
-    public record NotificationTargets(List<String> addresses, String fallback) {
-
-        private static final NotificationTargets NONE = new NotificationTargets(List.of(), null);
-
-        /** Whether there is anyone at all to notify, by either route. */
-        public boolean isEmpty() {
-            return addresses.isEmpty() && fallback == null;
-        }
-    }
-
-    /**
-     * The address of the named party itself: their own for a person, the shared mailbox for an
-     * organization. This is the address written next to a name in a work package's body, so it
-     * answers "who is this" rather than "who should be notified" - use
-     * {@link #notificationTargets(String)} for the latter.
+     * @return their address, or empty for an organization, for somebody the catalog no longer knows,
+     * and for somebody who never had one
      */
     public Optional<String> emailOf(String name) {
         if (name == null || name.isBlank()) {
             return Optional.empty();
         }
-        return person(name)
+        return catalogUserRepository.findByUsername(name)
                 .map(CatalogUser::getEmail)
-                .flatMap(CatalogContactResolver::present)
-                .or(() -> organization(name)
-                        .map(Organization::getEmail)
-                        .flatMap(CatalogContactResolver::present));
+                // The column is nullable and free text, so an address only counts when it is there.
+                .filter(email -> !email.isBlank())
+                .map(String::trim);
     }
 
     /**
-     * The addresses to notify about work concerning {@code name}.
+     * The organization the named person publishes on behalf of, for naming them as
+     * {@code username (email), org}.
      *
-     * <p>A person is their own single address.
+     * <p>Only an {@link CatalogRole#ORGANIZATION_CONTRIBUTOR} has one to show. An
+     * {@code IndividualContributor} who belongs to an organization publishes as themselves, so naming
+     * their employer next to a submission would misattribute it - the same distinction
+     * {@code ApplicationMapper} makes when it decides whether to show "org (username)" in the catalog.
      *
-     * <p>An organization contributes no address of its own beyond a fallback, because a submission
-     * maintained by an organization is represented by its author - the member who actually submitted
-     * it, and the one who can act on what the review asks for. The membership at large is
-     * deliberately not subscribed: most of it has nothing to do with this submission, and it would
-     * include members who cannot even open it, since an {@code IndividualContributor} who belongs to
-     * an organization acts as themselves rather than for the team (see
-     * {@code AuthService#canEdit}).
-     *
-     * <p>The organization's own mailbox is therefore a last resort rather than one address among
-     * many: it matters only when the author cannot be reached at all.
+     * @return the organization's name, or empty for anyone else and for an organization name
      */
-    public NotificationTargets notificationTargets(String name) {
+    public Optional<String> organizationOf(String name) {
         if (name == null || name.isBlank()) {
-            return NotificationTargets.NONE;
+            return Optional.empty();
         }
-
-        Optional<String> personEmail = person(name).map(CatalogUser::getEmail).flatMap(CatalogContactResolver::present);
-        if (personEmail.isPresent()) {
-            return new NotificationTargets(List.of(personEmail.get()), null);
-        }
-
-        Organization organization = organization(name).orElse(null);
-        if (organization == null) {
-            // Either a person the catalog no longer knows, or one who never had an address. Nothing
-            // to notify; the name is still written in the work package's body.
-            return NotificationTargets.NONE;
-        }
-        return new NotificationTargets(List.of(), present(organization.getEmail()).orElse(null));
-    }
-
-    private Optional<CatalogUser> person(String name) {
-        return catalogUserRepository.findByUsername(name);
-    }
-
-    private Optional<Organization> organization(String name) {
-        return organizationRepository.findByNameIgnoreCase(name);
-    }
-
-    /** An address only counts when it is actually there: the column is nullable and free text. */
-    private static Optional<String> present(String email) {
-        return email == null || email.isBlank() ? Optional.empty() : Optional.of(email.trim());
+        return catalogUserRepository.findByUsername(name)
+                .filter(user -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(user.getRole()))
+                .map(CatalogUser::getOrganization)
+                .map(Organization::getName)
+                .filter(organizationName -> !organizationName.isBlank());
     }
 }

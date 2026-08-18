@@ -9,6 +9,11 @@ package com.evolveum.midpoint.integration.catalog.dto;
 import com.evolveum.midpoint.integration.catalog.object.BuildFrameworkType;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 
+/**
+ * The connector half of a publish. Describes a connector to create, unless
+ * {@code existingConnectorId} names one already in the catalog - then that connector is linked as it
+ * is and every other field here is ignored, because the publish form disables them all in that case.
+ */
 public record UploadConnectorDto(
         String displayName,                      // connector.display_name
         ConnectorBundle.FrameworkType framework,  // connector_bundle.framework
@@ -25,6 +30,7 @@ public record UploadConnectorDto(
         String pathToProject,                    // connector_bundle_version.path_to_project
         String commitTag,                        // connector_bundle_version.commit_tag
         String bundleDisplayName,                // connector_bundle.display_name
-        Integer connectorBundleId                // connector_bundle.id (when reusing existing bundle)
+        Integer connectorBundleId,               // connector_bundle.id (when reusing existing bundle)
+        Integer existingConnectorId              // connector.id (when linking a connector already published)
 ) {
 }

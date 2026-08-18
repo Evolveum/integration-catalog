@@ -8,7 +8,11 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.CatalogProperties;
 import com.evolveum.midpoint.integration.catalog.object.Application;
+import com.evolveum.midpoint.integration.catalog.object.ApplicationApplicationTag;
+import com.evolveum.midpoint.integration.catalog.object.ApplicationOrigin;
+import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
 import com.evolveum.midpoint.integration.catalog.object.Capability;
+import com.evolveum.midpoint.integration.catalog.object.CountryOfOrigin;
 import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapability;
 import com.evolveum.midpoint.integration.catalog.object.Connector;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
@@ -28,7 +32,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -68,6 +71,16 @@ public class SupportTicketDescriptionBuilder {
 
     private static final String NOT_PROVIDED = "_not provided_";
 
+    /**
+     * Stand-in for an empty build error. A version with no recorded error usually has none, but the
+     * build may also simply not have run yet, and "not provided" would be read as the former; the
+     * reviewer is pointed at the comments, where a later build failure is reported.
+     */
+    private static final String NO_BUILD_ERROR = "_check comments if any_";
+
+    /** Indent of a bullet nested under another one, wide enough for OpenProject's markdown. */
+    private static final String NESTED = "    ";
+
     private final MidpointVersionRepository midpointVersionRepository;
     private final CatalogContactResolver contactResolver;
     private final TutorialStorageService tutorialStorageService;
@@ -78,6 +91,7 @@ public class SupportTicketDescriptionBuilder {
         StringBuilder body = new StringBuilder();
         body.append("An integration method has been submitted for review in the Integration Catalog.\n");
 
+        appendApplication(body, method);
         appendSummary(body, method);
         appendDescription(body, method);
         appendCapabilities(body, method);
@@ -88,10 +102,109 @@ public class SupportTicketDescriptionBuilder {
         return body.toString();
     }
 
-    private void appendSummary(StringBuilder body, IntegrationMethod method) {
+    /**
+     * One connector as markdown, to be posted as a comment on the work package of a revision that is
+     * already under review.
+     *
+     * <p>Only the added connector, not the whole submission again: the description already covers the
+     * rest, and a reviewer scrolling a comment thread needs to see what changed, not what did not. The
+     * connector is rendered by the same two methods the description uses, so an added connector reads
+     * identically whether it arrived with the submission or after it.
+     */
+    public String buildConnectorAddendum(IntegrationMethod method, Integer connectorId) {
+        StringBuilder body = new StringBuilder();
+        body.append("A connector has been added to this submission since this work package was opened.\n");
+
+        IntegrationMethodConnector link = method.getConnectors() == null ? null
+                : method.getConnectors().stream()
+                        .filter(candidate -> candidate.getConnector() != null
+                                && Objects.equals(candidate.getConnector().getId(), connectorId))
+                        .findFirst()
+                        .orElse(null);
+        if (link == null) {
+            // Detached again between the add and this comment. Saying so beats describing nothing.
+            body.append("\nIt is no longer linked to the revision, so there is nothing to describe.\n");
+            return body.toString();
+        }
+
+        Connector connector = link.getConnector();
+        if (needsPublishing(connector)) {
+            appendConnectorForReview(body, link, connector);
+        } else {
+            appendPublishedConnector(body, link, connector);
+        }
+        body.append("\nEverything else about the submission is unchanged.\n");
+        return body.toString();
+    }
+
+    /**
+     * The application the method integrates, described in full only when this submission would publish
+     * it too.
+     *
+     * <p>An {@code ACTIVE} application is already in the catalog and is not what the reviewer is being
+     * asked about, so it is named and marked as needing no review. Anything else - a brand-new
+     * application, or one that existed only as a community request - becomes {@code ACTIVE} when this
+     * method is approved, so everything the reviewer would have to check is listed. The condition is
+     * the one the approve step itself uses, so the ticket cannot disagree with what approval does.
+     */
+    private void appendApplication(StringBuilder body, IntegrationMethod method) {
         Application application = method.getApplication();
+        body.append("\n## Application\n\n");
+        if (application == null) {
+            body.append(NOT_PROVIDED).append('\n');
+            return;
+        }
+
+        bullet(body, "App name", application.getDisplayName());
+        if (application.getLifecycleState() == Application.ApplicationLifecycleType.ACTIVE) {
+            body.append("\nAlready published in the catalog, so there is nothing to review here.\n");
+            return;
+        }
+
+        bullet(body, "App description", singleLine(application.getDescription()));
+        bullet(body, "Origin", origins(application));
+        bullet(body, "Category", tags(application, ApplicationTag.ApplicationTagType.CATEGORY));
+        bullet(body, "Deployment type", tags(application, ApplicationTag.ApplicationTagType.DEPLOYMENT));
+    }
+
+    /** Countries the application is marked as originating from, as chosen on the publish form. */
+    private String origins(Application application) {
+        if (application.getApplicationOrigins() == null) {
+            return null;
+        }
+        return application.getApplicationOrigins().stream()
+                .map(ApplicationOrigin::getCountryOfOrigin)
+                .filter(Objects::nonNull)
+                .map(CountryOfOrigin::getDisplayName)
+                .filter(name -> name != null && !name.isBlank())
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .distinct()
+                .reduce((a, b) -> a + ", " + b)
+                .orElse(null);
+    }
+
+    /**
+     * The application's tags of one kind. Tags of every kind share a table and are told apart only by
+     * {@code application_tag.tag_type}, so the category and the deployment type are the same query
+     * with a different filter.
+     */
+    private String tags(Application application, ApplicationTag.ApplicationTagType type) {
+        if (application.getApplicationApplicationTags() == null) {
+            return null;
+        }
+        return application.getApplicationApplicationTags().stream()
+                .map(ApplicationApplicationTag::getApplicationTag)
+                .filter(tag -> tag != null && tag.getTagType() == type)
+                .map(ApplicationTag::getDisplayName)
+                .filter(name -> name != null && !name.isBlank())
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .distinct()
+                .reduce((a, b) -> a + ", " + b)
+                .orElse(null);
+    }
+
+    private void appendSummary(StringBuilder body, IntegrationMethod method) {
         body.append("\n## Integration method\n\n");
-        bullet(body, "Application", application != null ? application.getDisplayName() : null);
         bullet(body, "Integration method", method.getDisplayName());
         bullet(body, "Revision", method.getRevision());
         bullet(body, "Integration method type", integrationMethodTypes(method));
@@ -99,7 +212,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Author", method.getAuthor() != null ? withEmail(method.getAuthor()) : "unknown");
         bullet(body, "Maintainer", withEmail(method.getMaintainer()));
         bullet(body, "Submitted", timestamp(method.getCreatedAt()));
-        appendCatalogLink(body, method, application);
+        appendCatalogLink(body, method, method.getApplication());
     }
 
     /**
@@ -116,19 +229,24 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * A name with its contact address in brackets, e.g. {@code u1 (u1@example.com)}, falling back to
-     * the bare name when none is known.
+     * A name with its contact address in brackets and, for someone publishing on behalf of an
+     * organization, that organization after it: {@code u1 (u1@acme.com), Acme co.}
      *
-     * <p>A name the catalog cannot place is left as it is rather than reported - see
-     * {@link CatalogContactResolver} for why that is expected rather than a fault.
+     * <p>Each part is added only if it is known, so the same method covers a person with an address and
+     * no organization, an organization named as maintainer in its own right, and a name the catalog can
+     * no longer place - see {@link CatalogContactResolver} for why the last one is expected rather than
+     * a fault.
      */
     private String withEmail(String name) {
         if (name == null || name.isBlank()) {
             return null;
         }
-        return contactResolver.emailOf(name)
+        String labelled = contactResolver.emailOf(name)
                 .map(email -> name + " (" + email + ")")
                 .orElse(name);
+        return contactResolver.organizationOf(name)
+                .map(organization -> labelled + ", " + organization)
+                .orElse(labelled);
     }
 
     private String integrationMethodTypes(IntegrationMethod method) {
@@ -165,7 +283,7 @@ public class SupportTicketDescriptionBuilder {
     }
 
     private void appendDescription(StringBuilder body, IntegrationMethod method) {
-        body.append("\n### Description\n\n")
+        body.append("\n### Integration method description\n\n")
                 .append(blankToNotProvided(method.getDescription()))
                 .append('\n');
     }
@@ -176,20 +294,14 @@ public class SupportTicketDescriptionBuilder {
      * them the way the detail page does rather than in insertion order.
      */
     private void appendCapabilities(StringBuilder body, IntegrationMethod method) {
-        body.append("\n### Capabilities\n\n");
+        body.append("\n### Integration method capabilities\n\n");
         List<IntegrationMethodCapability> groups = method.getCapabilities() == null
                 ? List.of()
                 : method.getCapabilities();
 
-        String global = groups.stream()
+        bullet(body, "Global", capabilityNames(groups.stream()
                 .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
-                .flatMap(this::capabilitiesOf)
-                .sorted(byDisplayOrder())
-                .map(Capability::getName)
-                .distinct()
-                .reduce((a, b) -> a + ", " + b)
-                .orElse(null);
-        bullet(body, "Global", global);
+                .flatMap(this::capabilitiesOf)));
 
         List<IntegrationMethodCapability> specific = groups.stream()
                 .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
@@ -202,14 +314,19 @@ public class SupportTicketDescriptionBuilder {
             return;
         }
         for (IntegrationMethodCapability group : specific) {
-            String names = capabilitiesOf(group)
-                    .sorted(byDisplayOrder())
-                    .map(Capability::getName)
-                    .distinct()
-                    .reduce((a, b) -> a + ", " + b)
-                    .orElse(null);
-            bullet(body, "Object class `" + group.getObjectClass() + "`", names);
+            bullet(body, "Object class `" + group.getObjectClass() + "`",
+                    capabilityNames(capabilitiesOf(group)));
         }
+    }
+
+    /** One group's capabilities as a single comma-separated value, in the catalog's own order. */
+    private String capabilityNames(Stream<Capability> capabilities) {
+        return capabilities
+                .sorted(byDisplayOrder())
+                .map(SupportTicketDescriptionBuilder::capabilityLabel)
+                .distinct()
+                .reduce((a, b) -> a + ", " + b)
+                .orElse(null);
     }
 
     private Stream<Capability> capabilitiesOf(IntegrationMethodCapability group) {
@@ -224,6 +341,46 @@ public class SupportTicketDescriptionBuilder {
                 .filter(capability -> capability != null && capability.getName() != null);
     }
 
+    /**
+     * A capability as a reader sees it. The catalog stores capability names as upper-case constants,
+     * which is what the ticket used to repeat; sentence casing them is what the integration method
+     * detail page does, so the two read alike.
+     */
+    private static String capabilityLabel(Capability capability) {
+        return sentenceCase(capability.getName());
+    }
+
+    /**
+     * An enum constant as a reader sees it: {@code JAVA_BASED} becomes "Java based". The stored
+     * constants are an implementation detail of the catalog, not something a reviewer should have to
+     * read, so they are cased the way the catalog UI cases them.
+     */
+    private static String enumLabel(Enum<?> value) {
+        return value == null ? null : sentenceCase(value.name());
+    }
+
+    /**
+     * Licenses are proper names rather than words, so casing rules do not help: they are spelled out
+     * the way the publish form offers them.
+     */
+    private static String licenseLabel(ConnectorBundle.LicenseType license) {
+        if (license == null) {
+            return null;
+        }
+        return switch (license) {
+            case MIT -> "MIT";
+            case APACHE_2 -> "Apache 2.0";
+            case BSD -> "BSD";
+            case EUPL -> "EUPL 1.2";
+        };
+    }
+
+    /** {@code PARTIAL_SCHEMA} to "Partial schema". */
+    private static String sentenceCase(String constant) {
+        String spaced = constant.replace('_', ' ').trim().toLowerCase();
+        return spaced.isEmpty() ? constant : Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1);
+    }
+
     private static Comparator<Capability> byDisplayOrder() {
         return Comparator
                 .comparing(Capability::getDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -231,13 +388,27 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The tutorial the author wrote, plus the names of the files uploaded alongside it. Names only:
-     * the files stay in the catalog, where the reviewer downloads them from the method's page.
+     * The tutorial the author wrote, plus the names of the files uploaded alongside it.
+     *
+     * <p>The tutorial is pointed at rather than reproduced: {@link SupportTicketService} attaches it to
+     * the work package, where the reviewer opens it from the Files tab. A tutorial has no length limit,
+     * so reproducing it here would bury every other field under it. A blank one is still reported as
+     * such - that is a fact about the submission a reviewer needs.
+     *
+     * <p>The uploaded samples are attached too, and named here as well so the reviewer can see what the
+     * submission is supposed to include. When the list is empty the line points at the Files tab rather
+     * than reporting nothing, because on a first submission there is no moment at which this description
+     * could see them - they are attached as they arrive, see {@link TutorialFileAddedEvent}.
      */
     private void appendTutorial(StringBuilder body, IntegrationMethod method) {
-        body.append("\n### Integration tutorial\n\n")
-                .append(blankToNotProvided(method.getTutorial()))
-                .append('\n');
+        body.append("\n### Integration tutorial\n\n");
+        if (method.getTutorial() == null || method.getTutorial().isBlank()) {
+            body.append(NOT_PROVIDED).append('\n');
+        } else {
+            body.append("Attached to this work package as `")
+                    .append(SupportTicketService.TUTORIAL_ATTACHMENT)
+                    .append("` - see the **Files** tab above.\n");
+        }
 
         String files;
         try {
@@ -250,7 +421,17 @@ public class SupportTicketDescriptionBuilder {
             files = null;
         }
         body.append('\n');
-        bullet(body, "Additional files", files);
+        if (files == null) {
+            // Empty right now does not mean empty for good: on a first submission the files are uploaded
+            // only after this description is written, and each one is then attached to this work package
+            // as it arrives. "Not provided" would be read as "the author uploaded nothing", which is
+            // wrong, so the line points at the tab they will appear in.
+            bullet(body, "Additional tutorials/samples", "See the **Files** tab above");
+        } else {
+            bullet(body, "Additional tutorials/samples", files);
+        }
+        body.append("\n_Uploaded files are attached to this work package; they also stay on the method's"
+                + " page in the catalog._\n");
     }
 
     /**
@@ -305,22 +486,25 @@ public class SupportTicketDescriptionBuilder {
 
     private void appendPublishedConnector(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - already published\n\n");
-        bullet(body, "Versions used", versionRange(link));
+        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Connector versions (from - to)", versionRange(link));
+        bullet(body, "Connector version", submittedVersion(connector));
+        bullet(body, "Maintainer", withEmail(connector.getMaintainer()));
         body.append("\nPublished in the catalog already and reused unchanged, so there is nothing to review here.\n");
     }
 
     private void appendConnectorForReview(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - to be published with this method\n\n");
-        bullet(body, "Versions used", versionRange(link));
-        bullet(body, "Connector revision", connector.getRevision());
-        bullet(body, "Fully qualified class name", connector.getFullyQualifiedClassName());
+        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Connector versions (from - to)", versionRange(link));
+        bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Author", withEmail(connector.getAuthor()));
         bullet(body, "Maintainer", withEmail(connector.getMaintainer()));
+        bullet(body, "Fully qualified class name", connector.getFullyQualifiedClassName());
         bullet(body, "Created", timestamp(connector.getCreatedAt()));
         if (connector.getClonedFrom() != null) {
             bullet(body, "Edit of", "an already published connector (id " + connector.getClonedFrom() + ")");
         }
-        bullet(body, "Description", singleLine(connector.getDescription()));
 
         appendBundle(body, connector.getConnectorBundle());
         appendConnectorVersions(body, connector);
@@ -331,16 +515,14 @@ public class SupportTicketDescriptionBuilder {
             return;
         }
         body.append("\n**Bundle**\n\n");
-        bullet(body, "Bundle name", bundle.getBundleName());
-        bullet(body, "Display name", bundle.getDisplayName());
-        bullet(body, "Lifecycle state", name(bundle.getLifecycleState()));
-        bullet(body, "Framework", name(bundle.getFramework()));
-        bullet(body, "Build framework", name(bundle.getBuildFramework()));
-        bullet(body, "License", name(bundle.getLicense()));
+        bullet(body, "Bundle name", bundle.getDisplayName());
+        bullet(body, "Framework", enumLabel(bundle.getFramework()));
+        bullet(body, "Build framework", enumLabel(bundle.getBuildFramework()));
+        bullet(body, "License", licenseLabel(bundle.getLicense()));
         bullet(body, "Git clone URL", bundle.getGitCloneUrl());
         bullet(body, "Path to project", bundle.getPathToProject());
         bullet(body, "Project homepage", bundle.getProjectHomepage());
-        bullet(body, "Ticketing link", bundle.getTicketingLink());
+        bullet(body, "Support portal", bundle.getTicketingLink());
         bullet(body, "Description", singleLine(bundle.getDescription()));
     }
 
@@ -358,14 +540,12 @@ public class SupportTicketDescriptionBuilder {
                                 Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                         .toList();
         for (ConnectorVersion version : versions) {
-            body.append("\n**Version ").append(blankToDash(version.getRevision())).append("**\n\n");
-            bullet(body, "Lifecycle state", name(version.getLifecycleState()));
-            bullet(body, "Fully qualified class name", version.getFullyQualifiedClassName());
+            body.append("\n## Connector version ").append(blankToDash(version.getRevision())).append("\n\n");
             bullet(body, "Author", withEmail(version.getAuthor()));
             bullet(body, "Maintainer", withEmail(version.getMaintainer()));
             bullet(body, "Created", timestamp(version.getCreatedAt()));
             appendBundleVersion(body, version.getConnectorBundleVersion());
-            bullet(body, "Build error", singleLine(version.getErrorMessage()));
+            bullet(body, "Build error", blankTo(singleLine(version.getErrorMessage()), NO_BUILD_ERROR));
             appendVersionCapabilities(body, version);
         }
     }
@@ -376,48 +556,46 @@ public class SupportTicketDescriptionBuilder {
         }
         bullet(body, "Bundle version", bundleVersion.getBundleVersion() != null
                 ? bundleVersion.getBundleVersion() : bundleVersion.getRevision());
-        bullet(body, "Bundle version lifecycle", name(bundleVersion.getLifecycleState()));
-        bullet(body, "Build framework", name(bundleVersion.getBuildFramework()));
         bullet(body, "Commit hash", bundleVersion.getCommitTag());
         bullet(body, "Git clone URL", bundleVersion.getGitCloneUrl());
         bullet(body, "Path to project", bundleVersion.getPathToProject());
         bullet(body, "Browse link", bundleVersion.getBrowseLink());
-        bullet(body, "Artifact URL", bundleVersion.getArtifactUrl());
-        bullet(body, "Bundle build error", singleLine(bundleVersion.getErrorMessage()));
     }
 
-    /** The version's capabilities, in the same global-then-per-object-class shape as the method's. */
+    /**
+     * The version's capabilities, written exactly the way the method's are - resource-wide ones first,
+     * then one line per object class - but nested under a single bullet so they stay part of the
+     * version's own list instead of breaking out of it.
+     */
     private void appendVersionCapabilities(StringBuilder body, ConnectorVersion version) {
         List<ConnVersionCapability> groups = version.getCapabilities() == null
                 ? List.of()
                 : version.getCapabilities();
-        if (groups.isEmpty()) {
+
+        String global = capabilityNames(groups.stream()
+                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .flatMap(this::capabilitiesOf));
+        List<ConnVersionCapability> specific = groups.stream()
+                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .filter(group -> capabilitiesOf(group).findAny().isPresent())
+                .sorted(Comparator.comparing(ConnVersionCapability::getObjectClass,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .toList();
+        if (global == null && specific.isEmpty()) {
             bullet(body, "Capabilities", null);
             return;
         }
-        List<String> lines = new ArrayList<>();
-        String global = groups.stream()
-                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
-                .flatMap(this::capabilitiesOf)
-                .sorted(byDisplayOrder())
-                .map(Capability::getName)
-                .distinct()
-                .reduce((a, b) -> a + ", " + b)
-                .orElse(null);
-        if (global != null) {
-            lines.add("Global: " + global);
+
+        body.append("* **Capabilities:**\n");
+        bullet(body, NESTED, "Global", global);
+        if (specific.isEmpty()) {
+            bullet(body, NESTED, "Object class specific", null);
+            return;
         }
-        groups.stream()
-                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
-                .sorted(Comparator.comparing(ConnVersionCapability::getObjectClass,
-                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                .forEach(group -> capabilitiesOf(group)
-                        .sorted(byDisplayOrder())
-                        .map(Capability::getName)
-                        .distinct()
-                        .reduce((a, b) -> a + ", " + b)
-                        .ifPresent(names -> lines.add("`" + group.getObjectClass() + "`: " + names)));
-        bullet(body, "Capabilities", lines.isEmpty() ? null : String.join("; ", lines));
+        for (ConnVersionCapability group : specific) {
+            bullet(body, NESTED, "Object class `" + group.getObjectClass() + "`",
+                    capabilityNames(capabilitiesOf(group)));
+        }
     }
 
     private String connectorLabel(Connector connector) {
@@ -428,29 +606,71 @@ public class SupportTicketDescriptionBuilder {
         return (label == null || label.isBlank()) ? "Connector id " + connector.getId() : label;
     }
 
-    /** The version window the method declares for a connector, as "1.0 - 1.2" or just "1.0". */
+    /**
+     * The version window the method declares for a connector, as "1.0 – 1.2", or "1.0 or newer" when
+     * no upper bound was given - the same open-ended wording {@link #midpointVersionRange} uses, since
+     * an uncapped range means the same thing in both places.
+     */
     private String versionRange(IntegrationMethodConnector link) {
         String min = link.getConnectorMinVersion();
         String max = link.getConnectorMaxVersion();
         if (min == null || min.isBlank()) {
             return (max == null || max.isBlank()) ? null : "up to " + max;
         }
-        return (max == null || max.isBlank() || max.equals(min)) ? min : min + " – " + max;
+        if (max == null || max.isBlank()) {
+            return min + " or newer";
+        }
+        return max.equals(min) ? min : min + " – " + max;
+    }
+
+    /**
+     * The version the author typed in the publish form. It is stored on the bundle version rather than
+     * on the connector row - {@code connector.revision} is seeded to {@code 1.0.0} and is not what was
+     * submitted - so the connector's revision is only a fallback for a row without a bundle version.
+     *
+     * <p>A connector edited with this submission carries its earlier versions too, so the one under
+     * review wins; on an already published connector there is none, and the newest version answers.
+     */
+    private String submittedVersion(Connector connector) {
+        List<ConnectorVersion> versions = connector.getConnectorVersions() == null
+                ? List.of()
+                : connector.getConnectorVersions();
+        String submitted = bundleRevision(versions.stream()
+                .filter(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW));
+        if (submitted == null) {
+            submitted = bundleRevision(versions.stream());
+        }
+        return submitted != null ? submitted : connector.getRevision();
+    }
+
+    private String bundleRevision(Stream<ConnectorVersion> versions) {
+        return versions
+                .map(ConnectorVersion::getConnectorBundleVersion)
+                .filter(Objects::nonNull)
+                .map(ConnectorBundleVersion::getRevision)
+                .filter(revision -> revision != null && !revision.isBlank())
+                .max(String.CASE_INSENSITIVE_ORDER)
+                .orElse(null);
     }
 
     /** A markdown bullet, with an explicit note when there is nothing to show. */
     private static void bullet(StringBuilder body, String label, String value) {
-        body.append("* **").append(label).append(":** ")
+        bullet(body, "", label, value);
+    }
+
+    /** The same bullet, indented to sit under the one above it. */
+    private static void bullet(StringBuilder body, String indent, String label, String value) {
+        body.append(indent).append("* **").append(label).append(":** ")
                 .append(value == null || value.isBlank() ? NOT_PROVIDED : value)
                 .append('\n');
     }
 
-    private static String timestamp(LocalDateTime value) {
-        return value == null ? null : TIMESTAMP.format(value);
+    private static String blankTo(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
-    private static String name(Enum<?> value) {
-        return value == null ? null : value.name();
+    private static String timestamp(LocalDateTime value) {
+        return value == null ? null : TIMESTAMP.format(value);
     }
 
     /** Keeps a multi-line value from breaking the bullet list it sits in. */

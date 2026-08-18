@@ -68,8 +68,14 @@ public class ConnectorUploadService {
     private record ApplicationResolution(Application application, boolean isNew,
                                           List<String> originNames, List<ApplicationTagDto> tagDtos) {}
 
+    /**
+     * @param linkedExisting whether {@link #connector()} is a connector already published in the
+     *                       catalog, linked as it is. Nothing about it is created or changed, so the
+     *                       publish skips everything that exists to get a new connector built and
+     *                       reviewed.
+     */
     private record UploadResolution(IntegrationMethod integrationMethod, Connector connector,
-                                     ConnectorBundle bundle, boolean isNewVersion) {}
+                                     ConnectorBundle bundle, boolean isNewVersion, boolean linkedExisting) {}
 
     @Transactional
     public String uploadConnector(UploadImplementationDto dto, String username) {
@@ -79,6 +85,10 @@ public class ConnectorUploadService {
         if (!uploadRes.isNewVersion()) {
             uploadRes.integrationMethod().setAuthor(username);
             uploadRes.integrationMethod().setMaintainer(dto.connector().maintainer());
+        }
+
+        if (uploadRes.linkedExisting()) {
+            return publishWithLinkedConnector(dto, appRes, uploadRes);
         }
 
         ConnectorBundleVersion bundleVersion = createBundleVersion(dto.connector(), uploadRes.bundle(), username);
@@ -99,9 +109,50 @@ public class ConnectorUploadService {
         triggerJenkinsPipeline(connectorVersion, uploadRes.integrationMethod(), uploadRes.bundle(), dto.connector());
         // The revision is now in front of a reviewer; open its support work package once this commits.
         events.publishEvent(new IntegrationMethodSubmittedEvent(
-                uploadRes.integrationMethod().getId(), uploadRes.integrationMethod().getRevision()));
+                uploadRes.integrationMethod().getId(), uploadRes.integrationMethod().getRevision(),
+                SubmissionFlow.CREATE));
 
         return appRes.application().getId() + "|" + uploadRes.integrationMethod().getId();
+    }
+
+    /**
+     * Publishes a method whose connector is already in the catalog: the connector is linked, not copied.
+     *
+     * <p>Everything the normal path does to a connector is skipped, because there is no new connector to
+     * do it to - no bundle, no bundle version, no connector version, so nothing to build on Jenkins, no
+     * repository to create and no connector capabilities to record. The connector keeps its own
+     * lifecycle state, which is what lets the reviewer be told there is nothing to review about it.
+     *
+     * <p>Only the method itself is new, so it is what gets saved and put in front of a reviewer.
+     */
+    private String publishWithLinkedConnector(UploadImplementationDto dto, ApplicationResolution appRes,
+                                              UploadResolution uploadRes) {
+        Application application = appRes.application();
+        applicationTagService.processOrigins(application, appRes.originNames(), appRes.isNew());
+        applicationTagService.processTags(application, appRes.tagDtos(), appRes.isNew());
+        if (application.getLifecycleState() == null) {
+            application.setLifecycleState(Application.ApplicationLifecycleType.IN_REVIEW);
+        }
+        applicationRepository.save(application);
+
+        IntegrationMethod method = uploadRes.integrationMethod();
+        Connector connector = uploadRes.connector();
+
+        IntegrationMethodConnector imc = new IntegrationMethodConnector();
+        imc.setConnector(connector);
+        imc.setConnectorMinVersion(firstNonBlank(dto.connector().version(), connector.getRevision(), "1.0.0"));
+        imc.setIntegrationMethod(method);
+        method.getConnectors().add(imc);
+
+        integrationMethodRepository.save(method);
+        saveIntegrationMethodCapabilities(dto, method);
+
+        log.info("Integration method {}/{} published with existing connector {} linked as it is",
+                method.getId(), method.getRevision(), connector.getId());
+        events.publishEvent(new IntegrationMethodSubmittedEvent(
+                method.getId(), method.getRevision(), SubmissionFlow.CREATE));
+
+        return application.getId() + "|" + method.getId();
     }
 
     private ApplicationResolution resolveApplication(UploadImplementationDto dto) {
@@ -131,6 +182,7 @@ public class ConnectorUploadService {
         UploadIntegrationMethodDto imDto = dto.integrationMethod();
         UploadConnectorDto connDto = dto.connector();
         boolean isNewVersion = false;
+        boolean linkedExisting = false;
 
         IntegrationMethod integrationMethod;
         Connector connector;
@@ -147,9 +199,24 @@ public class ConnectorUploadService {
             connector = integrationMethod.getConnectors().isEmpty() ? null
                     : integrationMethod.getConnectors().get(0).getConnector();
             bundle = connector != null ? connector.getConnectorBundle() : createNewConnectorBundle(connDto, username);
+        } else if (connDto.existingConnectorId() != null) {
+            // The author picked a connector already published in the catalog. It is linked as it is:
+            // the publish form disables every connector field in this case, so there is nothing that
+            // could differ from what is already there, and copying it would leave the catalog with a
+            // second connector identical to the first once this method is approved.
+            connector = connectorRepository.findById(connDto.existingConnectorId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Connector not found: " + connDto.existingConnectorId()));
+            bundle = connector.getConnectorBundle();
+            integrationMethod = new IntegrationMethod();
+            integrationMethod.setApplication(application);
+            integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
+            linkedExisting = true;
         } else if (connDto.connectorBundleId() != null) {
             // User chose an existing connector as a template — create a new independent bundle
-            // so the new IN_REVIEW connector is isolated from the existing ACTIVE one
+            // so the new IN_REVIEW connector is isolated from the existing ACTIVE one.
+            // Superseded by the branch above for the publish form; kept for any caller that still
+            // asks for a copy rather than a link.
             ConnectorBundle templateBundle = connectorBundleRepository.findById(connDto.connectorBundleId())
                     .orElseThrow(() -> new RuntimeException("Connector bundle not found: " + connDto.connectorBundleId()));
             bundle = createNewConnectorBundle(connDto, templateBundle, username);
@@ -203,7 +270,7 @@ public class ConnectorUploadService {
             }
         }
 
-        return new UploadResolution(integrationMethod, connector, bundle, isNewVersion);
+        return new UploadResolution(integrationMethod, connector, bundle, isNewVersion, linkedExisting);
     }
 
     private ConnectorBundle createNewConnectorBundle(UploadConnectorDto dto, String username) {
@@ -491,7 +558,10 @@ public class ConnectorUploadService {
 
         // A draft forked off another revision is a submission in its own right: support_ticket_id is
         // deliberately not carried over from the source, so this gets a work package of its own.
-        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision));
+        // minorBump is the button the user pressed - "Save" corrects the method, "Save as new version"
+        // raises a new one - and this is the only place that distinction has to be made.
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision,
+                dto.minorBump() ? SubmissionFlow.EDIT : SubmissionFlow.UPGRADE));
 
         return newRevision;
     }
@@ -564,7 +634,7 @@ public class ConnectorUploadService {
         // Normally a no-op, since the work package came across with the draft above. It matters for
         // a draft that has none — submitted before the portal existed, or while it was unreachable —
         // which picks one up on its next resubmission instead of staying without one forever.
-        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision));
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision, SubmissionFlow.EDIT));
 
         return newRevision;
     }
@@ -828,7 +898,11 @@ public class ConnectorUploadService {
         // in-review draft (next available major) that carries the published version forward and add the
         // connector there, leaving the published revision untouched. In-review/rejected drafts are
         // mutable, so a connector is added to them directly.
-        if (target.getLifecycleState() == LifecycleType.ACTIVE) {
+        // Whether this call forked a new draft decides how the support portal hears about it: a fork is
+        // a submission of its own and clonePublishedAsDraft opens a work package for it, while adding to
+        // a draft already in review only widens a review that is already under way.
+        boolean forkedNewDraft = target.getLifecycleState() == LifecycleType.ACTIVE;
+        if (forkedNewDraft) {
             target = clonePublishedAsDraft(target, methodId);
         }
 
@@ -844,7 +918,7 @@ public class ConnectorUploadService {
                     dto.displayName(), dto.framework(), dto.version(), dto.bundleName(), dto.license(),
                     dto.buildFramework(), dto.description(), dto.maintainer(), dto.browseLink(),
                     null, dto.gitCloneUrl(), dto.className(), dto.pathToProject(), dto.commitTag(),
-                    dto.displayName(), null);
+                    dto.displayName(), null, null);
 
             ConnectorBundle bundle = createNewConnectorBundle(connDto, username);
             connectorBundleRepository.save(bundle);
@@ -882,6 +956,12 @@ public class ConnectorUploadService {
         target.getConnectors().add(imc);
 
         integrationMethodRepository.save(target);
+
+        if (!forkedNewDraft) {
+            // The revision was already in review, so its work package exists and a reviewer may already
+            // be reading it. Append this connector to that conversation rather than opening a second one.
+            events.publishEvent(new ConnectorAddedToReviewEvent(methodId, target.getRevision(), connector.getId()));
+        }
         return target.getRevision();
     }
 
@@ -915,8 +995,9 @@ public class ConnectorUploadService {
         copyCapabilities(source, draft);
 
         // Note what is NOT carried over: support_ticket_id. The source revision is published, so its
-        // review is over; this fork is a new submission and gets a work package of its own.
-        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision));
+        // review is over; this fork is a new submission and gets a work package of its own. It is an
+        // upgrade rather than an edit: the published revision stays, and this major version joins it.
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision, SubmissionFlow.UPGRADE));
         return draft;
     }
 

@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.UUID;
 
 /**
  * Talks to the support portal's REST API (OpenProject API v3).
@@ -95,6 +96,87 @@ public class OpenProjectClient {
     }
 
     /**
+     * Attaches a text file to a work package, so it shows up under the work package's own Files tab.
+     *
+     * <p>For content that belongs with the review but would swamp the description if written into it -
+     * an integration tutorial, which has no length limit. The reviewer gets it in the portal, next to
+     * the submission, rather than having to open the catalog.
+     *
+     * <p>The request is multipart: a JSON {@code metadata} part naming the file, then the file itself.
+     * {@link HttpRequest} has no multipart support, so the body is assembled here.
+     *
+     * <p>The portal records an attachment in the work package's activity by itself ("File x added as
+     * attachment"), so a caller has no reason to also comment about it.
+     *
+     * @param fileName    name the attachment is stored and offered for download under
+     * @param content     raw file content, assembled into the request as-is - the allowed uploads
+     *                    include PDF, so this must stay bytes rather than text
+     * @param contentType MIME type declared for the file part
+     * @throws IOException if the portal answers with anything other than a 2xx, which includes the file
+     * exceeding the instance's attachment size limit
+     */
+    public void addAttachment(int workPackageId, String fileName, byte[] content, String contentType)
+            throws IOException, InterruptedException {
+        String boundary = "catalog-" + UUID.randomUUID();
+        ObjectNode metadata = objectMapper.createObjectNode();
+        metadata.put("fileName", fileName);
+
+        String preamble = "--" + boundary + "\r\n"
+                + "Content-Disposition: form-data; name=\"metadata\"\r\n"
+                + "Content-Type: application/json; charset=UTF-8\r\n\r\n"
+                + objectMapper.writeValueAsString(metadata) + "\r\n"
+                + "--" + boundary + "\r\n"
+                + "Content-Disposition: form-data; name=\"file\"; filename=\"" + fileName + "\"\r\n"
+                + "Content-Type: " + contentType + "\r\n\r\n";
+        String epilogue = "\r\n--" + boundary + "--\r\n";
+
+        // Concatenated as bytes, not as a string: the content may be binary, and decoding it to text
+        // would corrupt it.
+        byte[] head = preamble.getBytes(StandardCharsets.UTF_8);
+        byte[] tail = epilogue.getBytes(StandardCharsets.UTF_8);
+        byte[] body = new byte[head.length + content.length + tail.length];
+        System.arraycopy(head, 0, body, 0, head.length);
+        System.arraycopy(content, 0, body, head.length, content.length);
+        System.arraycopy(tail, 0, body, head.length + content.length, tail.length);
+
+        HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId + "/attachments")
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal rejected attachment '" + fileName + "' on work package "
+                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
+        }
+    }
+
+    /**
+     * Appends a comment to an existing work package, for something that grows a review already under
+     * way - a connector added to a revision that is still in front of a reviewer. Keeps one submission
+     * to one conversation instead of opening a second work package beside it.
+     *
+     * @param comment body, interpreted as markdown by the portal like a work package description
+     * @throws IOException if the portal answers with anything other than a 2xx, which includes the
+     * work package having been deleted in the portal after the catalog recorded its id
+     */
+    public void addComment(int workPackageId, String comment) throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode();
+        body.putObject("comment").put("raw", comment);
+
+        HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId + "/activities")
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal rejected a comment on work package " + workPackageId
+                    + " (HTTP " + response.statusCode() + "): " + response.body());
+        }
+    }
+
+    /**
      * Looks a portal user up by login, which is how {@link OpenProjectProperties#watchers()} names
      * them - a login is exact and is what whoever configures the catalog can see in the portal.
      * People the catalog knows only from its own database are found by
@@ -115,7 +197,7 @@ public class OpenProjectClient {
 
     /**
      * Looks a portal user up by e-mail address, which is what the catalog knows about the people
-     * named on a submission - {@code catalog_users.email} and {@code organizations.email}.
+     * named on a submission - {@code catalog_users.email}.
      *
      * <p>There is no filter on the address itself; the portal answers {@code "Filters Email filter
      * does not exist"}. What does work is {@code any_name_attribute}, which searches the address
@@ -210,6 +292,79 @@ public class OpenProjectClient {
      * deleted in the portal after the catalog recorded its id)
      */
     public Optional<String> readStatus(int workPackageId) throws IOException, InterruptedException {
+        Optional<JsonNode> workPackage = readWorkPackage(workPackageId);
+        if (workPackage.isEmpty()) {
+            return Optional.empty();
+        }
+        // The status is a link, carrying the human-readable name in its title.
+        JsonNode title = workPackage.get().path("_links").path("status").path("title");
+        return title.isTextual() ? Optional.of(title.asText()) : Optional.empty();
+    }
+
+    /**
+     * Reads a work package's current subject, so a caller rewriting it can keep whatever the portal
+     * already calls the review.
+     *
+     * @return the subject, or empty when the work package no longer exists
+     */
+    public Optional<String> readSubject(int workPackageId) throws IOException, InterruptedException {
+        return readWorkPackage(workPackageId)
+                .map(workPackage -> workPackage.path("subject"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::asText);
+    }
+
+    /**
+     * Rewrites an existing work package's subject and description, for a submission edited while it is
+     * still under review: what the reviewer reads has to be the submission as it stands now, not as it
+     * was first sent. The portal keeps the superseded text in the work package's activity, so the
+     * change is visible to everyone watching rather than silently swapped in.
+     *
+     * <p>The portal guards work packages with an optimistic lock, so the current {@code lockVersion} is
+     * read first and sent back with the change; a concurrent edit in the portal makes that stale and
+     * the write is refused rather than overwriting somebody.
+     *
+     * @return {@code false} when the work package no longer exists in the portal
+     * @throws IOException if the portal answers with anything other than a 2xx
+     */
+    public boolean updateWorkPackage(int workPackageId, String subject, String description)
+            throws IOException, InterruptedException {
+        Optional<JsonNode> current = readWorkPackage(workPackageId);
+        if (current.isEmpty()) {
+            return false;
+        }
+        JsonNode lockVersion = current.get().path("lockVersion");
+        if (!lockVersion.isInt()) {
+            throw new IOException("Support portal returned work package " + workPackageId
+                    + " without a lock version, so it cannot be updated");
+        }
+
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("lockVersion", lockVersion.intValue());
+        body.put("subject", subject);
+        body.putObject("description")
+                .put("format", "markdown")
+                .put("raw", description);
+
+        HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId)
+                .header("Content-Type", "application/json")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(
+                        objectMapper.writeValueAsString(body), StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 404) {
+            return false;
+        }
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal rejected an update of work package " + workPackageId
+                    + " (HTTP " + response.statusCode() + "): " + response.body());
+        }
+        return true;
+    }
+
+    /** One work package as the portal has it, or empty when it no longer exists. */
+    private Optional<JsonNode> readWorkPackage(int workPackageId) throws IOException, InterruptedException {
         HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId)
                 .GET()
                 .build();
@@ -222,9 +377,7 @@ public class OpenProjectClient {
             throw new IOException("Support portal could not be queried for work package " + workPackageId
                     + " (HTTP " + response.statusCode() + "): " + response.body());
         }
-        // The status is a link, carrying the human-readable name in its title.
-        JsonNode title = objectMapper.readTree(response.body()).path("_links").path("status").path("title");
-        return title.isTextual() ? Optional.of(title.asText()) : Optional.empty();
+        return Optional.of(objectMapper.readTree(response.body()));
     }
 
     private HttpRequest.Builder authorized(String uri) {

@@ -10,15 +10,15 @@
 --   psql ... -f src/test/resources/sql/testing_data.sql
 --
 -- The upgrade script is not optional here even on a fresh database: schema changes go into it
--- alone, so postgres.sql lands behind and lacks columns this file writes to (catalog_users.email
--- and organizations.email, change 4). Skipping it fails with "column email does not exist".
+-- alone, so postgres.sql lands behind and lacks a column this file writes to (catalog_users.email,
+-- change 4). Skipping it fails with "column email does not exist".
 
 -- ============================================================
 -- ORGANIZATIONS
 -- ============================================================
-INSERT INTO organizations (id, name, description, email) VALUES
-	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users', 'support@acme.com'),
-	(2, 'Evolveum', 'Evolveum — application administrators',                                         'support@evolveum.com');
+INSERT INTO organizations (id, name, description) VALUES
+	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
+	(2, 'Evolveum', 'Evolveum — application administrators');
 
 SELECT setval('organizations_id_seq', 2);
 
@@ -62,14 +62,6 @@ SELECT setval('country_of_origin_id_seq', 3);
 
 INSERT INTO application (id, name, display_name, description, lifecycle_state, created_at, updated, logo_path) VALUES
     ('11111111-1111-1111-1111-111111111111', 'my_test_app', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111111112', 'my_test_ap1', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111111122', 'my_test_ap2', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111111222', 'my_test_ap3', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111112222', 'my_test_ap4', 'My Test App',
      'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
     ('22222222-2222-2222-2222-222222222222', 'sap_hr', 'SAP HR',
      'SAP Human Resources system integration requested by the community. Some more text to test limit of chars that can hold in this DB column.'

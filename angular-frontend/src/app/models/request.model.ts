@@ -90,6 +90,10 @@ export interface UploadConnectorData {
   version: string | null;            // connector_bundle_version.bundle_version
   commitTag: string | null;          // connector_bundle_version.commit_tag
   bundleDisplayName: string | null;  // connector_bundle.display_name
+  connectorBundleId: number | null;  // connector_bundle.id — reuse an existing bundle as a template
+  // connector.id — link a connector already published in the catalog instead of creating one. Every
+  // field above is ignored then, which matches the form disabling them all for an existing connector.
+  existingConnectorId: number | null;
 }
 
 /**

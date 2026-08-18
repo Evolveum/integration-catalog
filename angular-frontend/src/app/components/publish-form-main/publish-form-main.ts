@@ -33,6 +33,9 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
   protected readonly searchQuery = signal<string>('');
+  // True when the application list could not be loaded, so an empty search result is explained as a
+  // failure rather than read as "this application does not exist".
+  protected readonly applicationsFailed = signal<boolean>(false);
   // True when the application search box holds a single character: prompt for at least 2.
   protected readonly applicationSearchTooShort = computed(() => this.searchQuery().trim().length === 1);
   protected readonly selectedApplication = signal<Application | null>(null);
@@ -155,6 +158,19 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   protected recentApps = computed(() => this.recentlyUsedApps());
 
+  /**
+   * Whether an application matches the search box, by name or description.
+   *
+   * Both are nullable in the database, and an application published without a description arrives
+   * here as null however the model types it. Reading `.toLowerCase()` off that throws inside the
+   * computed, which takes the whole result list down with it - the search then finds nothing at all,
+   * including applications that do match.
+   */
+  private matchesApplication(app: Application, query: string): boolean {
+    return (app.displayName ?? '').toLowerCase().includes(query)
+      || (app.description ?? '').toLowerCase().includes(query);
+  }
+
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     // Search needs at least 2 characters; a single character shows a hint instead (see
@@ -163,19 +179,14 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
     if (this.currentStep() === 1) {
       // Cap the list at 5 entries.
-      return this.applications().filter(app =>
-        app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query)
-      ).slice(0, 5);
+      return this.applications().filter(app => this.matchesApplication(app, query)).slice(0, 5);
     }
 
     const connectorType = this.selectedConnectorType();
     const targetFramework = connectorType === 'java-based' ? 'JAVA_BASED' : 'LOW_CODE';
 
     return this.applications().filter(app => {
-      const matchesQuery = app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query);
-      if (!matchesQuery) return false;
+      if (!this.matchesApplication(app, query)) return false;
       if (app.lifecycleState === 'REQUESTED') return true;
       if (!app.frameworks || app.frameworks.length === 0) return false;
       return app.frameworks.includes(targetFramework);
@@ -402,7 +413,13 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.preselectAppId = this.route.snapshot.queryParamMap.get('appId');
 
     this.applicationService.getAll().subscribe({
-      next: (data) => { this.applications.set(data); this.appsLoaded = true; this.tryPreselectApp(); }
+      next: (data) => { this.applications.set(data); this.appsLoaded = true; this.tryPreselectApp(); },
+      // Without this the list stays empty and the search silently finds nothing - including
+      // applications that are certainly there - with no way for anyone to tell why.
+      error: (error) => {
+        this.applicationsFailed.set(true);
+        console.error('Could not load the application list:', error);
+      }
     });
 
     this.applicationService.getRecentlyUsed().subscribe({ next: (data) => this.recentlyUsedApps.set(data) });

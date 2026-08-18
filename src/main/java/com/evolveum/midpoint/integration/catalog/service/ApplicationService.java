@@ -512,6 +512,7 @@ public class ApplicationService {
                             .filter(c -> activeConnectorIds.contains(c.getId()))
                             .map(connector -> new CatalogConnectorDto(
                                     bundle.getId(),
+                                    connector.getId(),
                                     connector.getDisplayName(),
                                     connector.getDescription(),
                                     connector.getRevision(),

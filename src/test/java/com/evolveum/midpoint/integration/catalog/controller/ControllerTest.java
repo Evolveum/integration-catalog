@@ -563,6 +563,7 @@ class ControllerTest {
     void getCatalogConnectorsShouldReturnList() throws Exception {
         CatalogConnectorDto dto = new CatalogConnectorDto(
                 1,
+                7,
                 "LDAP Connector",
                 "LDAP connector for directory services",
                 "1.0.0",
