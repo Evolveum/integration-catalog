@@ -14,6 +14,7 @@ import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
 
 interface MethodGroup {
@@ -27,7 +28,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -871,6 +872,26 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly isDownloadInfoOpen = signal<boolean>(false);
   protected readonly downloadInfoFileName = signal<string>('');
   protected readonly downloadInfoFileSize = signal<number | null>(null);
+
+  // Edit application modal (superuser only)
+  protected readonly isEditModalOpen = signal<boolean>(false);
+
+  protected openEditModal(): void {
+    this.isEditModalOpen.set(true);
+  }
+
+  protected closeEditModal(): void {
+    this.isEditModalOpen.set(false);
+  }
+
+  protected onEditSaved(): void {
+    this.closeEditModal();
+    // Reload application data to reflect changes
+    const appId = this.application()?.id;
+    if (appId) {
+      this.loadApplication(appId);
+    }
+  }
 
   protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;

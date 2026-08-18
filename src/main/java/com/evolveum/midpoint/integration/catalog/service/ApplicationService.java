@@ -600,4 +600,21 @@ public class ApplicationService {
                 })
                 .orElse(0L);
     }
+
+    /**
+     * Updates the display name and/or description of an application.
+     * Only superusers are allowed to perform this operation.
+     */
+    @Transactional
+    public Application updateApplication(UUID applicationId, UpdateApplicationDto dto) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
+        if (dto.displayName() != null && !dto.displayName().isBlank()) {
+            application.setDisplayName(dto.displayName());
+        }
+        if (dto.description() != null) {
+            application.setDescription(dto.description());
+        }
+        return applicationRepository.save(application);
+    }
 }

@@ -390,4 +390,14 @@ export class ApplicationService {
       { headers: { 'X-User-Name': username } }
     );
   }
+
+  /**
+   * Update application details (displayName, description) - superuser only
+   */
+  updateApplication(applicationId: string, payload: { displayName: string; description: string | null }): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/applications/${applicationId}`,
+      payload
+    );
+  }
 }

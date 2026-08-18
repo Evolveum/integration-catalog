@@ -685,6 +685,31 @@ public class Controller {
         }
     }
 
+    // TODO access this endpoint only for superuser
+
+    @Operation(summary = "Update application details",
+            description = "Updates the display name and/or description of an application. Superuser only.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Application updated successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (not a superuser)"),
+            @ApiResponse(responseCode = "404", description = "Application not found")
+    })
+    @PutMapping("/applications/{appId}")
+    public ResponseEntity<Void> updateApplication(@PathVariable UUID appId, @RequestBody UpdateApplicationDto dto) {
+        try {
+            applicationService.updateApplication(appId, dto);
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to update application: " + e.getMessage(), e);
+        }
+    }
+
     // ==================== Logo Endpoints ====================
 
     @Operation(summary = "Upload application logo",
