@@ -64,7 +64,6 @@ public class ApplicationService {
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
     private final ApplicationTagService applicationTagService;
     private final RecentlyUsedApplicationRepository recentlyUsedApplicationRepository;
-    private final BundleMergeService bundleMergeService;
     private final RequestVotingService requestVotingService;
     private final ConnectorDownloadService connectorDownloadService;
     private final BuildCallbackService buildCallbackService;
@@ -91,7 +90,6 @@ public class ApplicationService {
                               ApplicationMapper applicationMapper, ConnectorMapper connectorMapper,
                               ApplicationApplicationTagRepository applicationApplicationTagRepository,
                               ApplicationTagService applicationTagService,
-                              BundleMergeService bundleMergeService,
                               RequestVotingService requestVotingService,
                               ConnectorDownloadService connectorDownloadService,
                               BuildCallbackService buildCallbackService,
@@ -118,7 +116,6 @@ public class ApplicationService {
         this.connectorMapper = connectorMapper;
         this.applicationApplicationTagRepository = applicationApplicationTagRepository;
         this.applicationTagService = applicationTagService;
-        this.bundleMergeService = bundleMergeService;
         this.requestVotingService = requestVotingService;
         this.connectorDownloadService = connectorDownloadService;
         this.buildCallbackService = buildCallbackService;
@@ -531,8 +528,26 @@ public class ApplicationService {
     }
 
     @Transactional
-    public boolean verify(VerifyBundleInformationForm verifyPayload) {
-        return bundleMergeService.verify(verifyPayload);
+    public void verify(UUID uuid, VerifyBundleInformationForm verifyPayload) {
+        buildCallbackService.verify(uuid, verifyPayload);
+    }
+
+    @Transactional
+    public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
+        ConnectorVersion connectorVersion = findConnectorVersion(triggerBuildForm.getConnectorVersionId(), triggerBuildForm.getConnectorVersionRevision());
+        IntegrationMethod integrationMethod = findIntegrationMethod(oid, triggerBuildForm.getIntegrationMethodRevision());
+
+        return connectorUploadService.triggerJenkinsPipeline(connectorVersion, integrationMethod);
+    }
+
+    private IntegrationMethod findIntegrationMethod(UUID id, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
+    }
+
+    private ConnectorVersion findConnectorVersion(String id, String revision) {
+        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
     }
 
     @Transactional(readOnly = true)

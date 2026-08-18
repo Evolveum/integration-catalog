@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -413,13 +414,30 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle verified successfully"),
             @ApiResponse(responseCode = "400", description = "Verification failed"),
-            @ApiResponse(responseCode = "404", description = "Bundle not found"),
             @ApiResponse(responseCode = "409", description = "Connector class already exists for this bundle version")
     })
-    @PostMapping("/upload/verify")
-    public ResponseEntity<Boolean> verify(@RequestBody VerifyBundleInformationForm verifyPayload) {
+    @PostMapping("/upload/verify/{oid}")
+    public ResponseEntity<Void> verify(@RequestBody VerifyBundleInformationForm verifyPayload, @PathVariable UUID oid) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.verify(verifyPayload));
+            applicationService.verify(oid, verifyPayload);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (ObjectAlreadyExist e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Trigger building of connector")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Building successfully start")
+    })
+    @PostMapping("/upload/trigger-build/{oid}")
+    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.triggerBuild(oid, triggerBuildForm));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
