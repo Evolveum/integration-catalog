@@ -455,6 +455,23 @@ public class Controller {
         return ResponseEntity.ok(items);
     }
 
+    @Operation(summary = "Get connectors without download info for an integration method revision",
+            description = "Returns connectors linked to an integration method revision that do NOT have " +
+                    "download information (no artifactUrl set). These are connectors that were added but " +
+                    "the Jenkins build was never triggered or did not complete successfully.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connectors without download info retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found")
+    })
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors-without-download")
+    public ResponseEntity<List<ConnectorWithoutDownloadDto>> getConnectorsWithoutDownload(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision) {
+        List<ConnectorWithoutDownloadDto> connectors = applicationService.getConnectorsWithoutDownloadInfo(methodId, revision);
+        return ResponseEntity.ok(connectors);
+    }
+
     @Operation(summary = "Save integration method as new version")
     @PutMapping("/applications/{appId}/integration-method/{methodId}/{currentRevision}")
     public ResponseEntity<String> editIntegrationMethod(

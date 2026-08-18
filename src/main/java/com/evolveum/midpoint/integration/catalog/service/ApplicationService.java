@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -599,6 +600,55 @@ public class ApplicationService {
                             .sum();
                 })
                 .orElse(0L);
+    }
+
+    /**
+     * Returns connectors linked to a specific integration method revision that do NOT have
+     * download information (no artifactUrl set on the ConnectorBundleVersion). These are
+     * connectors that were added but the Jenkins build was never triggered (or did not
+     * complete successfully with upload/verify and upload/continue callbacks).
+     *
+     * Only connector versions in REVIEWING state are considered — this is the state where
+     * a superuser is reviewing the integration method and may need to trigger builds before
+     * approving.
+     */
+    @Transactional(readOnly = true)
+    public List<ConnectorWithoutDownloadDto> getConnectorsWithoutDownloadInfo(UUID methodId, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .map(method -> {
+                    List<ConnectorWithoutDownloadDto> result = new ArrayList<>();
+                    if (method.getConnectors() != null) {
+                        for (IntegrationMethodConnector imc : method.getConnectors()) {
+                            Connector connector = imc.getConnector();
+                            if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
+                                continue;
+                            }
+                            // Iterate all connector versions, only consider those in REVIEWING state
+                            for (ConnectorVersion connectorVersion : connector.getConnectorVersions()) {
+                                if (connectorVersion.getLifecycleState() != LifecycleType.IN_REVIEW) {
+                                    continue;
+                                }
+                                ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
+                                // Check if artifactUrl is missing (build was not triggered or did not complete)
+                                if (bundleVersion == null || bundleVersion.getArtifactUrl() == null || bundleVersion.getArtifactUrl().isBlank()) {
+                                    result.add(new ConnectorWithoutDownloadDto(
+                                            connector.getId(),
+                                            connector.getDisplayName() != null ? connector.getDisplayName() : connector.getFullyQualifiedClassName(),
+                                            connector.getFullyQualifiedClassName(),
+                                            connector.getConnectorBundle() != null ? connector.getConnectorBundle().getBundleName() : null,
+                                            bundleVersion != null ? bundleVersion.getBundleVersion() : null,
+                                            String.valueOf(connector.getId()),
+                                            connectorVersion.getRevision(),
+                                            methodId,
+                                            revision
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    return result;
+                })
+                .orElseGet(List::of);
     }
 
     /**

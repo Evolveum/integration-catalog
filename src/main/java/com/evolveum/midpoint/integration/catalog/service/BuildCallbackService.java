@@ -79,6 +79,10 @@ public class BuildCallbackService {
             persistCapabilitiesOnConnectorVersions(connectorVersion, continueForm.getCapability());
         }
 
+        connectorVersion.setRevision(continueForm.getConnectorVersion());
+        connectorVersion.getConnectorBundleVersion().setRevision(continueForm.getConnectorVersion());
+        connectorVersion.getConnectorBundleVersion().setBundleVersion(continueForm.getConnectorVersion());
+
         connectorVersion.setErrorMessage("");
         connectorVersion.getConnectorBundleVersion().setErrorMessage("");
 

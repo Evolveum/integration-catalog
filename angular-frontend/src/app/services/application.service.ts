@@ -32,6 +32,19 @@ export interface SheetDownloadResult {
   size: number | null;
 }
 
+/** Connector linked to an integration method that lacks download info (no artifactUrl set). */
+export interface ConnectorWithoutDownload {
+  connectorId: number;
+  connectorName: string;
+  className: string;
+  bundleName: string | null;
+  version: string | null;
+  connectorVersionId: string;
+  connectorVersionRevision: string;
+  integrationMethodId: string;
+  integrationMethodRevision: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -269,6 +282,16 @@ export class ApplicationService {
     );
   }
 
+  /**
+   * Returns connectors linked to an integration method revision that do NOT have
+   * download information (no artifactUrl set on the ConnectorBundleVersion).
+   */
+  getConnectorsWithoutDownload(appId: string, methodId: string, revision: string): Observable<ConnectorWithoutDownload[]> {
+    return this.http.get<ConnectorWithoutDownload[]>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors-without-download`
+    );
+  }
+
   addConnectorToIntegrationMethod(
     appId: string,
     versionId: string,
@@ -398,6 +421,26 @@ export class ApplicationService {
     return this.http.put<void>(
       `${environment.apiUrl}/applications/${applicationId}`,
       payload
+    );
+  }
+
+  /**
+   * Triggers a Jenkins build for a connector within an integration method.
+   */
+  triggerBuildForConnector(
+    methodId: string,
+    payload: {
+      className: string | null;
+      version: string | null;
+      integrationMethodRevision: string;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<string> {
+    return this.http.post<string>(
+      `${environment.apiUrl}/upload/trigger-build/${methodId}`,
+      payload,
+      { responseType: 'text' as 'json' }
     );
   }
 }

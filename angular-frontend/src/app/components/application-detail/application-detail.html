@@ -850,6 +850,7 @@
     </div>
   }
 
+
   <!-- Approve / Reject confirmation modal (shared component) -->
   @if (confirmMode(); as mode) {
     <app-approval-confirm-modal
@@ -857,6 +858,9 @@
       [connectorName]="confirmConnectorName()"
       [versionLabel]="confirmVersionLabel()"
       [submittedBy]="confirmSubmittedBy()"
+      [appId]="application()?.id ?? ''"
+      [methodId]="confirmVersion()?.id ?? ''"
+      [revision]="confirmVersion()?.revision ?? ''"
       [processing]="isProcessingApproval()"
       [error]="approvalError()"
       (confirm)="submitConfirm()"
