@@ -16,62 +16,19 @@
   </div>
 }
 
-<!-- Email copied toast -->
-@if (emailCopied()) {
-  <div class="position-fixed bottom-0 start-50 translate-middle-x pb-4" style="z-index:9999;">
-    <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 shadow-sm" style="background:#212529; color:#fff; font-size:0.875rem;">
-      <i class="fa-solid fa-check"></i> Email address copied to clipboard
-    </div>
-  </div>
-}
-
-<!-- Step 7: Publish confirmation -->
+<!-- Step 7: submission confirmation, over the finished wizard -->
 @if (publishComplete()) {
-  <div class="publish-complete-wrap">
-    <i class="fa-regular fa-clock publish-complete-clock"></i>
-    <h4 class="publish-complete-title">Your integration method is awaiting approval</h4>
-    <p class="publish-complete-subtitle">
-      Our team will process your integration method as quickly as possible.
-      If you have any questions, please contact us.
-      <!-- <a href="mailto:help&#64;evolveum.com" class="publish-email-link">help&#64;evolveum.com</a>. -->
-    </p>
-
-    <table class="publish-complete-table">
-      <thead>
-        <tr>
-          <th>Created on</th>
-          <th>Status</th>
-          <th>Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{{ publishCreatedOn() | date:'MMMM d, yyyy' }}</td>
-          <td><span class="publish-status-badge">Awaiting approval</span></td>
-          <td>
-            <button type="button" class="btn publish-app-detail-btn btn-sm" (click)="cancelPublish()">Cancel</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="publish-complete-footer">
-      @if (publishedApplicationId() || reviewSummary?.applicationId) {
-        <button type="button" class="btn btn-outline-secondary publish-app-detail-btn" (click)="navigateToAppDetail()">
-          @if (reviewSummary?.applicationLogoUrl) {
-            <img [src]="reviewSummary!.applicationLogoUrl" [alt]="reviewSummary!.applicationName" class="publish-app-detail-icon">
-          }
-          {{ reviewSummary?.applicationName }} application detail
-        </button>
-      }
-      <button type="button" class="btn btn-publish" routerLink="/">
-        Return to Integration catalog
-      </button>
-    </div>
-  </div>
+  <app-submission-success-modal
+    title="Integration method submitted for review"
+    subtitle="Method is now awaiting for approval"
+    [appId]="publishedApplicationId() ?? ''"
+    [methodId]="publishedVersionId() ?? ''"
+    [revision]="reviewSummary?.methodVersion ?? ''"
+    (done)="finishPublish()"
+    (dismissed)="finishPublish()">
+  </app-submission-success-modal>
 }
 
-@if (!publishComplete()) {
   <!-- Modal body: step 5 or step 6 -->
   <div class="modal-body modal-body-upload">
 
@@ -854,4 +811,3 @@
       }
     </div>
   </div>
-}

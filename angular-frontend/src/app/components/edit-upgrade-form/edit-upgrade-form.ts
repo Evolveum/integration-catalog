@@ -17,13 +17,15 @@ import { PageHeader } from '../page-header/page-header';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
 import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
+import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker, AddConnectorForm, EditConnectorModal],
+  imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker, AddConnectorForm, EditConnectorModal,
+    SubmissionSuccessModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })
@@ -614,7 +616,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
   
   // A minor "Save" shows a confirmation modal; a major "Save as new version" shows an upgrade modal.
-  // Either modal's "Go to catalog" then leaves to the app detail.
+  // Both are the same modal the publish flow ends on, so an author sees one confirmation whichever
+  // way their revision reached a reviewer; its "Done" then leaves to the app detail.
   protected readonly showSavedModal = signal<boolean>(false);
   protected readonly showNewVersionModal = signal<boolean>(false);
 

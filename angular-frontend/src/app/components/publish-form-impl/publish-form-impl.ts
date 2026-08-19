@@ -7,7 +7,7 @@
 import { Component, signal, computed, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { MidpointVersion } from '../../models/application-detail.model';
@@ -18,6 +18,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
 import { CatalogConnector } from '../../models/catalog-connector.model';
 import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -61,7 +62,7 @@ export interface Step5FormData {
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CapabilityPicker],
+  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })
@@ -147,10 +148,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly licenseExpanded = signal<boolean>(false);
   protected readonly isPublishing = signal<boolean>(false);
   protected readonly publishComplete = signal<boolean>(false);
-  protected readonly publishCreatedOn = signal<Date | null>(null);
   protected readonly publishedVersionId = signal<string | null>(null);
   protected readonly publishedApplicationId = signal<string | null>(null);
-  protected readonly emailCopied = signal<boolean>(false);
   protected readonly showVersionExistsWarning = signal<boolean>(false);
   protected readonly existingVersion = signal<string>('');
 
@@ -338,7 +337,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devSourceFile.set(null);
     this.devSourceFileDragOver.set(false);
     this.publishComplete.set(false);
-    this.publishCreatedOn.set(null);
     this.publishedVersionId.set(null);
     this.publishedApplicationId.set(null);
   }
@@ -450,14 +448,12 @@ export class PublishFormImpl implements OnInit, OnChanges {
     ).subscribe({
       next: () => {
         this.isPublishing.set(false);
-        this.publishCreatedOn.set(new Date());
         this.publishComplete.set(true);
       },
       error: (error: HttpErrorResponse) => {
         this.isPublishing.set(false);
         const isPostPublishError = !!this.publishedApplicationId();
         if (isPostPublishError) {
-          this.publishCreatedOn.set(new Date());
           this.publishComplete.set(true);
           console.error('Logo or tutorial upload failed:', error);
         } else {
@@ -472,16 +468,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.existingVersion.set('');
   }
 
-  protected copyEmailToClipboard(): void {
-    navigator.clipboard.writeText('help@evolveum.com').then(() => {
-      this.emailCopied.set(true);
-      setTimeout(() => this.emailCopied.set(false), 3000);
-    });
-  }
-
-  protected navigateToAppDetail(): void {
-    const id = this.publishedApplicationId() || this.reviewSummary?.applicationId;
-    if (id) this.router.navigate(['/applications', id], { state: { showVersions: true } });
+  /** Leaves the finished wizard, which is what both closing the modal and "Done" mean. */
+  protected finishPublish(): void {
+    this.router.navigate(['/']);
   }
 
   protected printConsentDocument(): void {
@@ -521,10 +510,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
-  }
-
-  protected cancelPublish(): void {
-    this.router.navigate(['/applications']);
   }
 
   private extractApplicationIdFromResponse(response: string): string | null {

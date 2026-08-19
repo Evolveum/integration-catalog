@@ -296,8 +296,10 @@ public class ConnectorUploadService {
         // generated placeholder so the column is never empty, and the Jenkins build callback replaces it
         // with the real Maven bundle name once a build reports one (BuildCallbackService#successBuild).
         bundle.setBundleName(newBundleNamePlaceholder());
-        // The form's "Connector bundle name" is the bundle's label, so it lands in display_name.
-        bundle.setDisplayName(firstNonBlank(dto.bundleDisplayName(), dto.displayName()));
+        // The form's "Connector bundle name" is the bundle's label, so it lands in display_name - and
+        // it is the only thing that does. An author who leaves it empty leaves the bundle unnamed;
+        // borrowing the connector's name instead would show them a bundle name they never gave.
+        bundle.setDisplayName(emptyToNull(dto.bundleDisplayName()));
         bundle.setDescription(dto.description());
         bundle.setMaintainer(dto.maintainer());
         bundle.setTicketingLink(dto.ticketingSystemLink());
@@ -330,8 +332,10 @@ public class ConnectorUploadService {
         // generated placeholder so the column is never empty, and the Jenkins build callback replaces it
         // with the real Maven bundle name once a build reports one (BuildCallbackService#successBuild).
         bundle.setBundleName(newBundleNamePlaceholder());
-        // The form's "Connector bundle name" is the bundle's label, so it lands in display_name.
-        bundle.setDisplayName(firstNonBlank(dto.bundleDisplayName(), dto.displayName()));
+        // The form's "Connector bundle name" is the bundle's label, so it lands in display_name - and
+        // it is the only thing that does. An author who leaves it empty leaves the bundle unnamed;
+        // borrowing the connector's name instead would show them a bundle name they never gave.
+        bundle.setDisplayName(emptyToNull(dto.bundleDisplayName()));
         bundle.setDescription(dto.description());
         bundle.setMaintainer(dto.maintainer());
         bundle.setTicketingLink(dto.ticketingSystemLink());
@@ -1282,7 +1286,9 @@ public class ConnectorUploadService {
         // identity, generated at creation and only ever replaced by the Jenkins build callback, so an
         // edit can rename the bundle's label but never its identity.
         if (bundle != null) {
-            bundle.setDisplayName(firstNonBlank(dto.bundleDisplayName(), dto.displayName()));
+            // Only the form's "Connector bundle name", as on creation: clearing the field clears the
+            // label rather than falling back to the connector's name.
+            bundle.setDisplayName(emptyToNull(dto.bundleDisplayName()));
             bundle.setDescription(dto.description());
             bundle.setMaintainer(dto.maintainer());
             if (dto.license() != null) bundle.setLicense(dto.license());
