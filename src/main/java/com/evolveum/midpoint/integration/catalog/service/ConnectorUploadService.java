@@ -25,6 +25,7 @@ import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapability;
 import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapabilityItem;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 
+import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
@@ -71,7 +72,8 @@ public class ConnectorUploadService {
     private final ApplicationEventPublisher events;
 
     private record ApplicationResolution(Application application, boolean isNew,
-                                          List<String> originNames, List<ApplicationTagDto> tagDtos) {}
+                                         List<String> originNames, List<ApplicationTagDto> tagDtos) {
+    }
 
     /**
      * @param linkedExisting whether {@link #connector()} is a connector already published in the
@@ -111,7 +113,6 @@ public class ConnectorUploadService {
         persistEntities(appRes, uploadRes, bundleVersion, connectorVersion);
         saveIntegrationMethodCapabilities(dto, uploadRes.integrationMethod());
         saveConnectorVersionCapabilities(dto, connectorVersion);
-        triggerJenkinsPipeline(connectorVersion, uploadRes.integrationMethod(), uploadRes.bundle(), dto.connector());
         // The revision is now in front of a reviewer; open its support work package once this commits.
         events.publishEvent(new IntegrationMethodSubmittedEvent(
                 uploadRes.integrationMethod().getId(), uploadRes.integrationMethod().getRevision(),
@@ -378,7 +379,7 @@ public class ConnectorUploadService {
     }
 
     private ConnectorVersion createConnectorVersion(UploadConnectorDto dto, Connector connector,
-                                                     ConnectorBundleVersion bundleVersion, String username) {
+                                                    ConnectorBundleVersion bundleVersion, String username) {
         ConnectorVersion cv = new ConnectorVersion();
         cv.setConnector(connector);
         cv.setConnectorBundleVersion(bundleVersion);
@@ -398,7 +399,7 @@ public class ConnectorUploadService {
     }
 
     private void setDefaults(Application application, ConnectorBundle bundle,
-                              ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
+                             ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
         if (application.getLifecycleState() == null) {
             application.setLifecycleState(Application.ApplicationLifecycleType.IN_REVIEW);
         }
@@ -419,7 +420,7 @@ public class ConnectorUploadService {
     }
 
     private void copyFromLatestVersionIfNeeded(UploadResolution res, ConnectorBundleVersion bundleVersion,
-                                                ConnectorVersion connectorVersion) {
+                                               ConnectorVersion connectorVersion) {
         if (!res.isNewVersion() || res.connector() == null) return;
 
         List<ConnectorVersion> existing = res.connector().getConnectorVersions();
@@ -451,7 +452,7 @@ public class ConnectorUploadService {
     }
 
     private void createGitHubRepositoryIfNeeded(UploadResolution res, ConnectorBundleVersion bundleVersion,
-                                                  ConnectorVersion connectorVersion, List<ItemFile> files) {
+                                                ConnectorVersion connectorVersion, List<ItemFile> files) {
         if (res.isNewVersion()) return;
 
         if (ConnectorBundle.FrameworkType.LOW_CODE.equals(res.bundle().getFramework())) {
@@ -475,26 +476,32 @@ public class ConnectorUploadService {
         }
     }
 
-    private String triggerJenkinsPipeline(ConnectorVersion connectorVersion, IntegrationMethod method,
-                                           ConnectorBundle bundle, UploadConnectorDto dto) {
+    public String triggerJenkinsPipeline(ConnectorVersion connectorVersion, IntegrationMethod method) {
         try {
+            ConnectorBundle bundle = connectorVersion.getConnector().getConnectorBundle();
             ConnectorBundleVersion cbv = connectorVersion.getConnectorBundleVersion();
             String browseLink = cbv != null ? cbv.getBrowseLink() : "";
             String gitCloneUrl = cbv != null ? cbv.getGitCloneUrl() : "";
             String framework = bundle != null ? bundle.getFramework().name() : "";
-            String className = dto.className() != null ? dto.className() : "";
-            String pathToProject = dto.pathToProject() != null ? dto.pathToProject() : "";
+            String buildFramework = bundle != null ? bundle.getBuildFramework().name() : "";
+            String className = connectorVersion.getFullyQualifiedClassName() != null ? connectorVersion.getFullyQualifiedClassName() : "";
+            String pathToProject = bundle != null && bundle.getPathToProject() != null ? bundle.getPathToProject() : "";
 
             JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
             HttpResponse<String> response = jenkinsClient.triggerJob(
-                    Map.of("REPOSITORY_URL", gitCloneUrl,
-                            "BRANCH_URL", browseLink,
-                            "CONNECTOR_OID", method.getId().toString(),
-                            "IMPL_TITLE", method.getDisplayName() != null ? method.getDisplayName() : "",
-                            "IMPL_FRAMEWORK", framework,
-                            "SKIP_DEPLOY", "false",
-                            "CONNECTOR_CLASS", className,
-                            "PATH_TO_PROJECT", pathToProject));
+                    Map.ofEntries(
+                            Map.entry("REPOSITORY_URL", gitCloneUrl),
+                            Map.entry("BRANCH_URL", browseLink),
+                            Map.entry("INTEGRATION_METHOD_UUID", method.getId().toString()),
+                            Map.entry("INTEGRATION_METHOD_REVISION", method.getRevision()),
+                            Map.entry("INTEGRATION_METHOD_TITLE", method.getDisplayName() != null ? method.getDisplayName() : ""),
+                            Map.entry("CONNECTOR_VERSION_ID", connectorVersion.getId().toString()),
+                            Map.entry("CONNECTOR_VERSION_REVISION", connectorVersion.getRevision()),
+                            Map.entry("BUNDLE_FRAMEWORK", framework),
+                            Map.entry("BUILD_FRAMEWORK", buildFramework),
+                            Map.entry("SKIP_DEPLOY", "false"),
+                            Map.entry("CONNECTOR_CLASS", className),
+                            Map.entry("PATH_TO_PROJECT", pathToProject)));
             log.info("Jenkins job triggered: {}", response.body());
             return response.body();
         } catch (Exception e) {
@@ -903,7 +910,8 @@ public class ConnectorUploadService {
                                                    IntegrationMethod target) {
         if (groups == null) return;
         for (IntegrationMethodCapabilityGroupDto group : groups) {
-            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
+            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty())
+                continue;
             IntegrationMethodCapability cap = new IntegrationMethodCapability();
             cap.setObjectClass(group.objectClass());
             cap.setIntegrationMethod(target);
@@ -922,7 +930,7 @@ public class ConnectorUploadService {
 
     @Transactional
     public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
-                                                AddConnectorDto dto, String username) {
+                                                  AddConnectorDto dto, String username) {
         IntegrationMethod target = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
 
@@ -1034,7 +1042,9 @@ public class ConnectorUploadService {
         return draft;
     }
 
-    /** Deep-copies a method's object-class capabilities (and their capability items) onto another revision. */
+    /**
+     * Deep-copies a method's object-class capabilities (and their capability items) onto another revision.
+     */
     private void copyCapabilities(IntegrationMethod from, IntegrationMethod to) {
         for (IntegrationMethodCapability oldCap : from.getCapabilities()) {
             IntegrationMethodCapability newCap = new IntegrationMethodCapability();
@@ -1107,7 +1117,7 @@ public class ConnectorUploadService {
     private Connector cloneConnectorGraph(Connector src) {
         ConnectorBundle srcBundle = src.getConnectorBundle();
         ConnectorBundle bundle = new ConnectorBundle();
-        bundle.setRevision(uniqueBundleRevision(srcBundle.getBundleName(), srcBundle.getRevision()));
+        bundle.setRevision(RepositoryUtil.uniqueBundleRevision(srcBundle.getBundleName(), srcBundle.getRevision(), connectorBundleRepository));
         bundle.setAuthor(srcBundle.getAuthor());
         bundle.setMaintainer(srcBundle.getMaintainer());
         // The copy belongs to the in-review revision being edited, so it starts IN_REVIEW regardless of
@@ -1196,21 +1206,6 @@ public class ConnectorUploadService {
             clone.getConnectorVersions().add(cv);
         }
         return clone;
-    }
-
-    /** Picks a bundle revision that keeps (bundle_name, revision) unique for a freshly cloned bundle. */
-    private String uniqueBundleRevision(String bundleName, String baseRevision) {
-        String base = baseRevision != null ? baseRevision : "1.0.0";
-        if (bundleName == null) {
-            return base;
-        }
-        String candidate = base;
-        int suffix = 1;
-        while (connectorBundleRepository.existsByBundleNameAndRevision(bundleName, candidate)) {
-            candidate = base + "-" + suffix;
-            suffix++;
-        }
-        return candidate;
     }
 
     /**
@@ -1372,7 +1367,9 @@ public class ConnectorUploadService {
         connectorRepository.save(connector);
     }
 
-    /** The connector's current version row: ids are sequence-assigned, so max id is the newest. */
+    /**
+     * The connector's current version row: ids are sequence-assigned, so max id is the newest.
+     */
     private static ConnectorVersion newestVersionOf(Connector connector) {
         return connector.getConnectorVersions().stream()
                 .filter(cv -> cv.getConnectorBundleVersion() != null)
@@ -1498,8 +1495,8 @@ public class ConnectorUploadService {
      * accumulate across successive version bumps.
      *
      * <p>The original bundle is only deleted when it holds nothing but this connector: its
-     * {@code connectors} collection cascades REMOVE, so deleting a bundle shared with other connectors
-     * (as {@link BundleMergeService} can produce) would take them down with it.
+     * {@code connectors} collection cascades REMOVE, so deleting a bundle that several connectors
+     * share would take them down with it.
      */
     private Connector absorbOriginalIntoClone(Connector clone, ConnectorBundle cloneBundle,
                                               Connector original, ConnectorBundle origBundle) {
@@ -1662,7 +1659,9 @@ public class ConnectorUploadService {
         }
     }
 
-    /** Rewrites an existing connector version (+ its bundle version) with the edited values. */
+    /**
+     * Rewrites an existing connector version (+ its bundle version) with the edited values.
+     */
     private void applyVersionEdit(ConnectorVersion cv, ConnectorBundleVersion cbv,
                                   EditConnectorDto dto, String errorMessage) {
         cv.setMaintainer(dto.maintainer());
@@ -1721,7 +1720,9 @@ public class ConnectorUploadService {
         return (maxMajor + 1) + ".0";
     }
 
-    /** Minor bump: keeps the major segment and increments the minor (1.1 -> 1.2, "1" -> "1.1"). */
+    /**
+     * Minor bump: keeps the major segment and increments the minor (1.1 -> 1.2, "1" -> "1.1").
+     */
     private String bumpMinorRevision(String revision) {
         return parseMajor(revision) + "." + (parseMinor(revision) + 1);
     }
@@ -1758,7 +1759,8 @@ public class ConnectorUploadService {
         if (groups == null || groups.isEmpty()) return;
 
         for (IntegrationMethodCapabilityGroupDto group : groups) {
-            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) continue;
+            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty())
+                continue;
 
             ConnVersionCapability cap = new ConnVersionCapability();
             cap.setObjectClass(group.objectClass());
@@ -1778,7 +1780,7 @@ public class ConnectorUploadService {
     }
 
     private void persistEntities(ApplicationResolution appRes, UploadResolution uploadRes,
-                                  ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
+                                 ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
         if (uploadRes.isNewVersion()) {
             if (appRes.isNew()) applicationRepository.save(appRes.application());
             if (bundleVersion.getId() == null) connectorBundleVersionRepository.save(bundleVersion);

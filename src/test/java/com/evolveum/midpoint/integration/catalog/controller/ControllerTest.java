@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -502,19 +504,17 @@ class ControllerTest {
     @Test
     void verifyConnectorBundleVersionNoBundleWithSuchClassName() throws Exception {
         VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
         verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
         verifyBundleInformationForm.setVersion("1.0.0");
 
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(true);
+        applicationService.verify(testVersionId, any(VerifyBundleInformationForm.class));
 
         mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
                 .andExpect(status().isOk());
 
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+        verify(applicationService).verify(testVersionId, any(VerifyBundleInformationForm.class));
     }
 
     // TODO, Set up conflict scenario
@@ -522,39 +522,20 @@ class ControllerTest {
     @Test
     void verifyConnectorBundleVersionBundleWithSuchClassName() throws Exception {
         VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
         verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
         verifyBundleInformationForm.setVersion("1.0.0");
 
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(false);
+        assertThrows(
+                ObjectAlreadyExist.class,
+                () -> applicationService.verify(testVersionId, any(VerifyBundleInformationForm.class))
+        );
 
         mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
                 .andExpect(status().isConflict());
 
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
-    }
-
-    // TODO, Set up Not found
-    @Disabled("TODO: Set up Not found scenario")
-    @Test
-    void verifyConnectorBundleVersionNoSuchBundle() throws Exception {
-        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
-        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
-        verifyBundleInformationForm.setVersion("1.0.0");
-
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(false);
-
-        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+        verify(applicationService).verify(testVersionId, any(VerifyBundleInformationForm.class));
     }
 
     // ===== GET /api/connectors/catalog =====

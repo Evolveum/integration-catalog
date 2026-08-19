@@ -17,7 +17,7 @@ import java.util.Optional;
 public interface ConnectorBundleRepository extends JpaRepository<ConnectorBundle, Integer>,
         JpaSpecificationExecutor<ConnectorBundle> {
 
-    Optional<ConnectorBundle> findByBundleName(String bundleName);
+    Optional<ConnectorBundle> findByBundleNameAndLifecycleState(String bundleName, LifecycleType lifecycleState);
 
     boolean existsByBundleNameAndRevision(String bundleName, String revision);
 

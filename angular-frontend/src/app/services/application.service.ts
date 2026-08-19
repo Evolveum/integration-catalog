@@ -47,6 +47,19 @@ export interface SupportTicket {
   error: string | null;
 }
 
+/** Connector linked to an integration method that lacks download info (no artifactUrl set). */
+export interface ConnectorWithoutDownload {
+  connectorId: number;
+  connectorName: string;
+  className: string;
+  bundleName: string | null;
+  version: string | null;
+  connectorVersionId: string;
+  connectorVersionRevision: string;
+  integrationMethodId: string;
+  integrationMethodRevision: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -292,6 +305,16 @@ export class ApplicationService {
     );
   }
 
+  /**
+   * Returns connectors linked to an integration method revision that do NOT have
+   * download information (no artifactUrl set on the ConnectorBundleVersion).
+   */
+  getConnectorsWithoutDownload(appId: string, methodId: string, revision: string): Observable<ConnectorWithoutDownload[]> {
+    return this.http.get<ConnectorWithoutDownload[]>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors-without-download`
+    );
+  }
+
   addConnectorToIntegrationMethod(
     appId: string,
     versionId: string,
@@ -413,4 +436,78 @@ export class ApplicationService {
       { headers: { 'X-User-Name': username } }
     );
   }
+
+  /**
+   * Update application details (displayName, description) - superuser only
+   */
+  updateApplication(applicationId: string, payload: { displayName: string; description: string | null }): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/applications/${applicationId}`,
+      payload
+    );
+  }
+
+  /**
+   * Triggers a Jenkins build for a connector within an integration method.
+   */
+  triggerBuildForConnector(
+    methodId: string,
+    payload: {
+      className: string | null;
+      version: string | null;
+      integrationMethodRevision: string;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<string> {
+    return this.http.post<string>(
+      `${environment.apiUrl}/upload/trigger-build/${methodId}`,
+      payload,
+      { responseType: 'text' as 'json' }
+    );
+  }
+
+  /**
+   * Verifies bundle information (calls /upload/verify/{oid}).
+   */
+  verifyBundle(
+    methodId: string,
+    payload: {
+      bundleName: string;
+      version: string;
+      className: string;
+      integrationMethodRevision: string;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/upload/verify/${methodId}`,
+      payload
+    );
+  }
+
+  /**
+   * Completes build successfully (calls /upload/continue/{oid}).
+   */
+  continueBuild(
+    methodId: string,
+    payload: {
+      connectorBundle: string;
+      connectorVersion: string;
+      integrationMethodRevision: string;
+      publishTime: number | null;
+      downloadLink: string | null;
+      connectorClass: string | null;
+      capability: string[] | null;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/upload/continue/${methodId}`,
+      payload
+    );
+  }
+
 }

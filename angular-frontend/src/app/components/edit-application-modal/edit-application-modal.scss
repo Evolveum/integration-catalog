@@ -1,0 +1,77 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
+.edit-app-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+}
+
+.edit-app-modal-container {
+  z-index: 1060;
+}
+
+.edit-app-dialog {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 1070;
+}
+
+.edit-app-header {
+  .edit-app-header-icon {
+    font-size: 1.1rem;
+    color: #0d6efd;
+  }
+
+  .edit-app-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+
+  .edit-app-close {
+    color: #6c757d;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+
+    &:hover {
+      color: #343a40;
+    }
+  }
+}
+
+.edit-app-body {
+  overflow-y: auto;
+}
+
+.edit-app-logo-section {
+  .edit-app-logo-preview {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    display: inline-block;
+    background: #f8f9fa;
+  }
+
+  .edit-app-current-logo {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: contain;
+  }
+}
+
+.edit-app-footer {
+  button.btn-secondary {
+    background: #f0f0f0;
+    border-color: #dee2e6;
+    color: #333;
+
+    &:hover {
+      background: #e2e2e2;
+    }
+  }
+}

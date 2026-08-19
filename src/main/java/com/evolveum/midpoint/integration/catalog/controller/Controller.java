@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -406,13 +407,30 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle verified successfully"),
             @ApiResponse(responseCode = "400", description = "Verification failed"),
-            @ApiResponse(responseCode = "404", description = "Bundle not found"),
             @ApiResponse(responseCode = "409", description = "Connector class already exists for this bundle version")
     })
-    @PostMapping("/upload/verify")
-    public ResponseEntity<Boolean> verify(@RequestBody VerifyBundleInformationForm verifyPayload) {
+    @PostMapping("/upload/verify/{oid}")
+    public ResponseEntity<Void> verify(@RequestBody VerifyBundleInformationForm verifyPayload, @PathVariable UUID oid) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.verify(verifyPayload));
+            applicationService.verify(oid, verifyPayload);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (ObjectAlreadyExist e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Trigger building of connector")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Building successfully start")
+    })
+    @PostMapping("/upload/trigger-build/{oid}")
+    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.triggerBuild(oid, triggerBuildForm));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -428,6 +446,23 @@ public class Controller {
     public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(@PathVariable UUID applicationId) {
         List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId);
         return ResponseEntity.ok(items);
+    }
+
+    @Operation(summary = "Get connectors without download info for an integration method revision",
+            description = "Returns connectors linked to an integration method revision that do NOT have " +
+                    "download information (no artifactUrl set). These are connectors that were added but " +
+                    "the Jenkins build was never triggered or did not complete successfully.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Connectors without download info retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found")
+    })
+    @GetMapping("/applications/{appId}/integration-method/{methodId}/{revision}/connectors-without-download")
+    public ResponseEntity<List<ConnectorWithoutDownloadDto>> getConnectorsWithoutDownload(
+            @PathVariable UUID appId,
+            @PathVariable UUID methodId,
+            @PathVariable String revision) {
+        List<ConnectorWithoutDownloadDto> connectors = applicationService.getConnectorsWithoutDownloadInfo(methodId, revision);
+        return ResponseEntity.ok(connectors);
     }
 
     @Operation(summary = "Save integration method as new version")
@@ -657,6 +692,31 @@ public class Controller {
             throw e;
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    // TODO access this endpoint only for superuser
+
+    @Operation(summary = "Update application details",
+            description = "Updates the display name and/or description of an application. Superuser only.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Application updated successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (not a superuser)"),
+            @ApiResponse(responseCode = "404", description = "Application not found")
+    })
+    @PutMapping("/applications/{appId}")
+    public ResponseEntity<Void> updateApplication(@PathVariable UUID appId, @RequestBody UpdateApplicationDto dto) {
+        try {
+            applicationService.updateApplication(appId, dto);
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to update application: " + e.getMessage(), e);
         }
     }
 
