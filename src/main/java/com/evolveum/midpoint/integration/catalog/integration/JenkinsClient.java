@@ -30,8 +30,8 @@ public class JenkinsClient {
         this.client = HttpClient.newHttpClient();
     }
 
-    public HttpResponse<String> triggerJob(String jobName, Map<String, String> parameters) throws IOException, InterruptedException {
-        String jobUrl = String.format("/job/%s/buildWithParameters", jobName);
+    public HttpResponse<String> triggerJob(Map<String, String> parameters) throws IOException, InterruptedException {
+        String jobUrl = String.format("/job/%s/buildWithParameters", properties.jobName());
 
         URI uri = UriComponentsBuilder.fromUriString(properties.url()).path(jobUrl)
                 .queryParams(MultiValueMap.fromSingleValue(parameters))

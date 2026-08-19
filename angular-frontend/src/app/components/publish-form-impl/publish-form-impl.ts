@@ -190,13 +190,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     return maxLabel ? `${minLabel} – ${maxLabel}` : `${minLabel}+`;
   });
 
-  protected readonly isConnectorVersionInvalid = computed(() => {
-    if (this.isExistingConnector) return false;
-    const v = this.connectorVersion().trim();
-    if (!v) return false;
-    return (v.match(/\./g) ?? []).length < 2;
-  });
-
   protected readonly isGitCloneUrlInvalid = computed(() => {
     const url = this.devGitCloneUrl();
     return !!url && !url.trim().endsWith('.git');
@@ -213,7 +206,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     if (this.isExistingConnector) return true;
     if (this.connectorCapabilities().length === 0) return false;
     if (!this.connectorVersion().trim()) return false;
-    if (this.isConnectorVersionInvalid()) return false;
     if (this.connectorType !== 'evolveum-hosted') {
       if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim()) return false;
       if (this.isGitCloneUrlInvalid()) return false;

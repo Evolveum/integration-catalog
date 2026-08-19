@@ -152,13 +152,6 @@ export class AddConnectorForm implements OnInit {
     return this.connectorType() === 'java-based';
   }
 
-  protected readonly isConnectorVersionInvalid = computed(() => {
-    if (this.selectedCatalogConnector()) return false;
-    const v = this.connectorVersion().trim();
-    if (!v) return false;
-    return (v.match(/\./g) ?? []).length < 2;
-  });
-
   protected readonly isGitCloneUrlInvalid = computed(() => {
     const url = this.devGitCloneUrl();
     return !!url && !url.trim().endsWith('.git');
@@ -176,7 +169,7 @@ export class AddConnectorForm implements OnInit {
       && !!this.connectorVersion().trim()
       && !!this.connectorMaintainer().trim()
       && !!this.connectorLicense();
-    if (!base || this.isConnectorVersionInvalid()) return false;
+    if (!base) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
       && !this.isGitCloneUrlInvalid();

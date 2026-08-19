@@ -144,9 +144,6 @@
                          (input)="connectorVersion.set($any($event.target).value)"
                          [disabled]="isExistingConnector"
                          placeholder="e.g. 1.0.0">
-                  @if (isConnectorVersionInvalid() && !isExistingConnector) {
-                    <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
-                  }
                 </div>
               </div>
 
