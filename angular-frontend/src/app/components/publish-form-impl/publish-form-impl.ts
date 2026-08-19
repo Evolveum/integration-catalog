@@ -104,7 +104,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
-  protected readonly bundleNameTaken = signal<boolean>(false);
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
   protected readonly licenseLabels: Record<string, string> = {
     'MIT': 'MIT',
@@ -216,7 +215,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     if (this.connectorCapabilities().length === 0) return false;
     if (!this.connectorVersion().trim()) return false;
     if (this.isConnectorVersionInvalid()) return false;
-    if (this.bundleNameTaken()) return false;
     if (this.connectorType !== 'evolveum-hosted') {
       if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim()) return false;
       if (this.isGitCloneUrlInvalid()) return false;
@@ -325,7 +323,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorLicense.set('');
     this.connectorDescription.set('');
     this.connectorBundleName.set('');
-    this.bundleNameTaken.set(false);
     this.connectorCapabilities.set([]);
     this.capabilityPicker?.reset();
     this.devProjectHomepage.set('');
@@ -415,7 +412,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
         buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
         pathToProject: this.devProjectFolderPath() || null,
         className: this.devClassName() || null,
-        bundleName: null,
         version: versionOverride ?? this.connectorVersion() ?? null,
         commitTag: this.devCommitTag() || null,
         bundleDisplayName: this.connectorBundleName() || null,
@@ -592,15 +588,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devSourceFileDragOver.set(false);
     const file = event.dataTransfer?.files?.[0] ?? null;
     if (file) { this.devSourceFile.set(file); this.onFieldChange(); }
-  }
-
-  protected onBundleNameBlur(): void {
-    const name = this.connectorBundleName().trim();
-    if (!name) return;
-    this.applicationService.checkBundleNameExists(name).subscribe({
-      next: (exists) => this.bundleNameTaken.set(exists),
-      error: () => this.bundleNameTaken.set(false)
-    });
   }
 
 

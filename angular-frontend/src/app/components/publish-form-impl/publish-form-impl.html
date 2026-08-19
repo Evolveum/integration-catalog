@@ -223,13 +223,9 @@
                 <input type="text" class="form-control"
                        [class.input-disabled]="isExistingConnector"
                        [value]="connectorBundleName()"
-                       (input)="connectorBundleName.set($any($event.target).value); bundleNameTaken.set(false); onFieldChange()"
-                       (blur)="onBundleNameBlur()"
+                       (input)="connectorBundleName.set($any($event.target).value); onFieldChange()"
                        [disabled]="isExistingConnector"
                        placeholder="Enter connector bundle name">
-                @if (bundleNameTaken()) {
-                  <div class="field-error">This bundle name is already taken. Please choose a different one.</div>
-                }
               </div>
               }
 

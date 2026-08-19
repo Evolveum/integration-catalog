@@ -19,8 +19,6 @@ public interface ConnectorBundleRepository extends JpaRepository<ConnectorBundle
 
     Optional<ConnectorBundle> findByBundleName(String bundleName);
 
-    boolean existsByBundleName(String bundleName);
-
     boolean existsByBundleNameAndRevision(String bundleName, String revision);
 
     List<ConnectorBundle> findByLifecycleState(LifecycleType lifecycleState);

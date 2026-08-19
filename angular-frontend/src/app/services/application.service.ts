@@ -112,10 +112,6 @@ export class ApplicationService {
     return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version`, { params });
   }
 
-  checkBundleNameExists(bundleName: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-bundle-name?bundleName=${encodeURIComponent(bundleName)}`);
-  }
-
   getAllTags(): Observable<ApplicationTag[]> {
     return this.http.get<ApplicationTag[]>(`${environment.apiUrl}/application-tags`);
   }
@@ -306,7 +302,7 @@ export class ApplicationService {
       framework: string; license: string | null;
       browseLink: string | null; gitCloneUrl: string | null;
       buildFramework: string | null; pathToProject: string | null;
-      className: string | null; bundleName: string | null;
+      className: string | null; bundleDisplayName: string | null;
       version: string | null; commitTag: string | null;
       midpointMinVersion: number | null; midpointMaxVersion: number | null;
       connectorVersionFrom: string | null; connectorVersionTo: string | null;
@@ -331,7 +327,7 @@ export class ApplicationService {
       displayName: string; description: string; maintainer: string;
       license: string | null; browseLink: string | null; supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
-      pathToProject: string | null; className: string | null; bundleName: string | null;
+      pathToProject: string | null; className: string | null; bundleDisplayName: string | null;
       commitTag: string | null; version: string | null;
       connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
     }

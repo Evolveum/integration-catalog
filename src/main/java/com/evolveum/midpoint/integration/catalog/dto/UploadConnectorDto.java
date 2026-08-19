@@ -18,7 +18,6 @@ public record UploadConnectorDto(
         String displayName,                      // connector.display_name
         ConnectorBundle.FrameworkType framework,  // connector_bundle.framework
         String version,                          // connector_bundle_version.bundle_version
-        String bundleName,                       // connector_bundle.bundle_name
         ConnectorBundle.LicenseType license,     // connector_bundle.license
         BuildFrameworkType buildFramework,        // connector_bundle.build_framework
         String description,                      // connector.description
@@ -29,7 +28,7 @@ public record UploadConnectorDto(
         String className,                        // connector.fully_qualified_class_name
         String pathToProject,                    // connector_bundle_version.path_to_project
         String commitTag,                        // connector_bundle_version.commit_tag
-        String bundleDisplayName,                // connector_bundle.display_name
+        String bundleDisplayName,                // connector_bundle.display_name (the form's "bundle name")
         Integer connectorBundleId,               // connector_bundle.id (when reusing existing bundle)
         Integer existingConnectorId              // connector.id (when linking a connector already published)
 ) {

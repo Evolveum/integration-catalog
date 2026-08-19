@@ -80,7 +80,7 @@ export class IntegrationMethodDetail implements OnInit {
 
   protected readonly confirmConnectorName = computed(() => {
     const c = this.connectors()[0];
-    return c?.bundleDisplayName || c?.name || this.methodName() || '—';
+    return c?.connectorDisplayName || c?.name || this.methodName() || '—';
   });
   protected readonly submittedByLabel = computed(() =>
     `${this.methodAuthor() || '—'} · ${this.submittedDate()}`

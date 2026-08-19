@@ -199,7 +199,7 @@
             <div class="edit-connector-card-header">
               <div class="edit-connector-title-group">
                 <span class="edit-connector-name d-flex align-items-center gap-2">
-                  {{ c.bundleDisplayName || c.name }}
+                  {{ c.connectorDisplayName || c.name }}
                   @if (isConnectorPending(c.connectorId)) {
                     <span class="edit-connector-pending-badge">Pending</span>
                   }
@@ -444,7 +444,7 @@
           </button>
         </div>
         <div class="cancel-confirm-body">
-          Are you sure you want to delete "{{ pending.bundleDisplayName || pending.name }}"? This action cannot be undone.
+          Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? This action cannot be undone.
         </div>
         <hr class="cancel-confirm-separator">
         <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">

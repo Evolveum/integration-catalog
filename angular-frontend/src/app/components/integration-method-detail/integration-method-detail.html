@@ -187,7 +187,7 @@
         @for (c of connectors(); track $index; let ci = $index) {
           <div class="view-connector-card">
             <div class="view-connector-card-header">
-              <span class="view-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <span class="view-connector-name">{{ c.connectorDisplayName || c.name }}</span>
               <button type="button" class="view-connector-see-compat d-flex align-items-center gap-2"
                       (click)="openCompatibility(c)" title="See connector compatibility">
                 <i class="fa-regular fa-eye"></i>See compatibility

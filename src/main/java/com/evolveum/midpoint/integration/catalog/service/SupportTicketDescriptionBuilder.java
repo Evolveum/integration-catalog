@@ -113,7 +113,6 @@ public class SupportTicketDescriptionBuilder {
 
         appendApplication(body, method);
         appendSummary(body, method);
-        appendDescription(body, method);
         appendCapabilities(body, method);
         appendTutorial(body, method);
         appendConnectors(body, method);
@@ -227,6 +226,9 @@ public class SupportTicketDescriptionBuilder {
         body.append("\n## Integration method\n\n");
         bullet(body, "Integration method", method.getDisplayName());
         bullet(body, "Revision", method.getRevision());
+        // Flattened onto one line like every other value here. A description written over several
+        // paragraphs would otherwise end the list it sits in and orphan the fields below it.
+        bullet(body, "Description", singleLine(method.getDescription()));
         bullet(body, "Integration method type", integrationMethodTypes(method));
         bullet(body, "Supported midPoint version", midpointVersionRange(method));
         bullet(body, "Author", method.getAuthor() != null ? withEmail(method.getAuthor()) : "unknown");
@@ -300,12 +302,6 @@ public class SupportTicketDescriptionBuilder {
                     log.warn("Integration method references unknown midPoint version id {}", versionId);
                     return "id " + versionId;
                 });
-    }
-
-    private void appendDescription(StringBuilder body, IntegrationMethod method) {
-        body.append("\n### Integration method description\n\n")
-                .append(blankToNotProvided(method.getDescription()))
-                .append('\n');
     }
 
     /**
@@ -695,10 +691,6 @@ public class SupportTicketDescriptionBuilder {
     /** Keeps a multi-line value from breaking the bullet list it sits in. */
     private static String singleLine(String value) {
         return value == null ? null : value.replaceAll("\\s*\\R\\s*", " ").trim();
-    }
-
-    private static String blankToNotProvided(String value) {
-        return value == null || value.isBlank() ? NOT_PROVIDED : value.trim();
     }
 
     private static String blankToDash(String value) {

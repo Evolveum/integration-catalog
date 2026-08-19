@@ -116,9 +116,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.stagedDeletes().size > 0 || this.stagedCompat().size > 0
   );
 
-  // A staged edit changing a connector's identity — version, className or bundleName, the triple
-  // that must match the Maven artifact — or an add/delete/compatibility change SUGGESTS saving as
-  // a new version, but never forces it: Save stays enabled, and the Save vs "Save as new version"
+  // A staged edit changing a connector's identity — version or className, which must match the
+  // Maven artifact — or an add/delete/compatibility change SUGGESTS saving as a new version,
+  // but never forces it: Save stays enabled, and the Save vs "Save as new version"
   // choice is simply the author's signal to the reviewer of how they want the change treated
   // (e.g. a wording fix may deliberately stay on the same IM version). The reviewer decides.
   protected readonly hasMajorConnectorChanges = computed(() => {
@@ -141,12 +141,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.hasMajorConnectorChanges() && !this.isDraftState()
   );
 
-  /** Whether a staged edit changes the connector identity (version, className, bundleName). */
+  /** Whether a staged edit changes the connector identity (version, className). */
   private isMajorConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): boolean {
     const norm = (v: string | null | undefined): string => (v ?? '').trim();
     return norm(p.version) !== norm(c.version)
-      || norm(p.className) !== norm(c.className)
-      || norm(p.bundleName) !== norm(c.bundleName);
+      || norm(p.className) !== norm(c.className);
   }
 
   protected isConnectorPending(connectorId: number | null): boolean {
@@ -160,7 +159,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       ...c,
       name: p.displayName,
       displayName: p.displayName,
-      bundleDisplayName: p.displayName,
+      connectorDisplayName: p.displayName,
+      bundleDisplayName: p.bundleDisplayName ?? c.bundleDisplayName,
       implementationDescription: p.description,
       maintainer: p.maintainer,
       // The staged maintainer's organization is only known locally for the current user;
@@ -176,7 +176,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       buildFramework: p.buildFramework ?? '',
       pathToProjectDirectory: p.pathToProject ?? '',
       className: p.className ?? '',
-      bundleName: p.bundleName ?? '',
       commitTag: p.commitTag ?? '',
       version: p.version ?? c.version,
       objectClassCapabilities: p.connectorCapabilities.map(g => ({

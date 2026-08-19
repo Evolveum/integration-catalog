@@ -528,6 +528,7 @@ public class ApplicationMapper {
         String licenseType = null;
         String ticketingLink = null;
         String connectorDisplayName = null;
+        String bundleDisplayName = null;
         String bundleName = null;
         String bundleFramework = null;
         String commitTag = null;
@@ -543,6 +544,9 @@ public class ApplicationMapper {
             if (bundle != null) {
                 licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                 ticketingLink = bundle.getTicketingLink();
+                // display_name is the label the form shows as "connector bundle name"; bundle_name is
+                // the technical identity behind it and is only used for the duplicate-version lookup.
+                bundleDisplayName = bundle.getDisplayName();
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
             }
@@ -595,6 +599,7 @@ public class ApplicationMapper {
                 pathToProject,
                 className,
                 connectorDisplayName,
+                bundleDisplayName,
                 bundleName,
                 bundleFramework,
                 commitTag,

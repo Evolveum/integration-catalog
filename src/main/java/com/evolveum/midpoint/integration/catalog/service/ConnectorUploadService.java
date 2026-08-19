@@ -292,8 +292,12 @@ public class ConnectorUploadService {
         bundle.setFramework(framework);
         bundle.setBuildFramework(buildFramework);
         bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
-        bundle.setBundleName(dto.bundleName());
-        bundle.setDisplayName(dto.bundleDisplayName());
+        // bundle_name is the bundle's technical identity and never comes from the form. It starts as a
+        // generated placeholder so the column is never empty, and the Jenkins build callback replaces it
+        // with the real Maven bundle name once a build reports one (BuildCallbackService#successBuild).
+        bundle.setBundleName(newBundleNamePlaceholder());
+        // The form's "Connector bundle name" is the bundle's label, so it lands in display_name.
+        bundle.setDisplayName(firstNonBlank(dto.bundleDisplayName(), dto.displayName()));
         bundle.setDescription(dto.description());
         bundle.setMaintainer(dto.maintainer());
         bundle.setTicketingLink(dto.ticketingSystemLink());
@@ -322,8 +326,12 @@ public class ConnectorUploadService {
         bundle.setFramework(framework);
         bundle.setBuildFramework(buildFramework);
         bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
-        bundle.setBundleName(dto.bundleName());
-        bundle.setDisplayName(dto.bundleDisplayName());
+        // bundle_name is the bundle's technical identity and never comes from the form. It starts as a
+        // generated placeholder so the column is never empty, and the Jenkins build callback replaces it
+        // with the real Maven bundle name once a build reports one (BuildCallbackService#successBuild).
+        bundle.setBundleName(newBundleNamePlaceholder());
+        // The form's "Connector bundle name" is the bundle's label, so it lands in display_name.
+        bundle.setDisplayName(firstNonBlank(dto.bundleDisplayName(), dto.displayName()));
         bundle.setDescription(dto.description());
         bundle.setMaintainer(dto.maintainer());
         bundle.setTicketingLink(dto.ticketingSystemLink());
@@ -385,9 +393,20 @@ public class ConnectorUploadService {
         if (application.getLifecycleState() == null) {
             application.setLifecycleState(Application.ApplicationLifecycleType.IN_REVIEW);
         }
+        // Safety net for bundles that predate the generated placeholder (or were reused from an older
+        // row): bundle_name must never be empty, since it is the key the build callback matches on.
         if (bundle.getBundleName() == null || bundle.getBundleName().isBlank()) {
-            bundle.setBundleName(UUID.randomUUID().toString());
+            bundle.setBundleName(newBundleNamePlaceholder());
         }
+    }
+
+    /**
+     * A fresh placeholder for {@code connector_bundle.bundle_name}: a UUID string, so a bundle always has
+     * a unique technical identity even before a build has told us its real Maven bundle name. Never
+     * derived from user input — the form's bundle name field is a label and goes to {@code display_name}.
+     */
+    private String newBundleNamePlaceholder() {
+        return UUID.randomUUID().toString();
     }
 
     private void copyFromLatestVersionIfNeeded(UploadResolution res, ConnectorBundleVersion bundleVersion,
@@ -919,10 +938,10 @@ public class ConnectorUploadService {
             connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), connector.getRevision(), "1.0.0");
         } else {
             UploadConnectorDto connDto = new UploadConnectorDto(
-                    dto.displayName(), dto.framework(), dto.version(), dto.bundleName(), dto.license(),
+                    dto.displayName(), dto.framework(), dto.version(), dto.license(),
                     dto.buildFramework(), dto.description(), dto.maintainer(), dto.browseLink(),
                     null, dto.gitCloneUrl(), dto.className(), dto.pathToProject(), dto.commitTag(),
-                    dto.displayName(), null, null);
+                    dto.bundleDisplayName(), null, null);
 
             ConnectorBundle bundle = createNewConnectorBundle(connDto, username);
             connectorBundleRepository.save(bundle);
@@ -1200,7 +1219,7 @@ public class ConnectorUploadService {
      * <p>A version-changing edit lands as a new version row. If the entered version is already used
      * on this connector, that existing row is rewritten instead (the (bundle, bundle_version) pair
      * must stay unique) and error_message records "Duplicate version with (...)" for the reviewer;
-     * the same flag marks a new version whose build (className, bundleName, commit hash) is
+     * the same flag marks a new version whose build (className, commit hash) is
      * identical to the current one.
      */
     @Transactional
@@ -1243,10 +1262,11 @@ public class ConnectorUploadService {
                 ? dto.version().trim() : currentVersion;
 
         boolean versionChanged = !requestedVersion.equals(currentVersion);
+        // bundle_name is not part of this comparison: it is generated, never editable from the form, so
+        // the class name is the only identity field the user can change here.
         boolean identityChanged = identifierDiffers(dto.className(),
                         firstNonBlank(baseCv != null ? baseCv.getFullyQualifiedClassName() : null,
-                                connector.getFullyQualifiedClassName()))
-                || identifierDiffers(dto.bundleName(), bundle != null ? bundle.getBundleName() : null);
+                                connector.getFullyQualifiedClassName()));
         boolean buildChanged = identityChanged
                 || identifierDiffers(dto.commitTag(), baseCbv != null ? baseCbv.getCommitTag() : null);
 
@@ -1258,13 +1278,14 @@ public class ConnectorUploadService {
         // connector.revision mirrors the connector's current user-facing version.
         connector.setRevision(requestedVersion);
 
-        // Connector bundle metadata.
+        // Connector bundle metadata. bundle_name is deliberately absent: it is the bundle's technical
+        // identity, generated at creation and only ever replaced by the Jenkins build callback, so an
+        // edit can rename the bundle's label but never its identity.
         if (bundle != null) {
-            bundle.setDisplayName(dto.displayName());
+            bundle.setDisplayName(firstNonBlank(dto.bundleDisplayName(), dto.displayName()));
             bundle.setDescription(dto.description());
             bundle.setMaintainer(dto.maintainer());
             if (dto.license() != null) bundle.setLicense(dto.license());
-            if (dto.bundleName() != null && !dto.bundleName().isBlank()) bundle.setBundleName(dto.bundleName());
             bundle.setTicketingLink(dto.supportPortal());
             bundle.setProjectHomepage(dto.browseLink());
             bundle.setGitCloneUrl(dto.gitCloneUrl());

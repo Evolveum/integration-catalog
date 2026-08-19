@@ -224,11 +224,6 @@ public class ApplicationService {
         return countryOfOriginRepository.findAll();
     }
 
-    public boolean checkBundleNameExists(String bundleName) {
-        if (bundleName == null || bundleName.isBlank()) return false;
-        return connectorBundleRepository.existsByBundleName(bundleName);
-    }
-
     /**
      * Whether the given connector version already exists in the catalog on another connector with
      * the same identity (bundle name + class name). Duplicate versions are never blocked — the

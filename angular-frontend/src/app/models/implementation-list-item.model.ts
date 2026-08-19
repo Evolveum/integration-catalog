@@ -27,8 +27,9 @@ export interface ImplementationListItem {
   gitCloneUrl: string;            // connector_bundle_version.git_clone_url
   pathToProjectDirectory: string; // connector_bundle_version.path_to_project
   className: string;              // connector.fully_qualified_class_name
-  bundleDisplayName: string;      // connector.display_name
-  bundleName: string;             // connector_bundle.bundle_name
+  connectorDisplayName: string;   // connector.display_name
+  bundleDisplayName: string;      // connector_bundle.display_name (shown as "connector bundle name")
+  bundleName: string;             // connector_bundle.bundle_name (technical identity, not shown)
   bundleFramework: string;        // connector_bundle.framework
   commitTag: string;              // connector_bundle_version.commit_tag
   objectClassCapabilities: ObjectClassCapability[]; // conn_version_capability + items

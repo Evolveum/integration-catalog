@@ -32,7 +32,7 @@ export interface AddConnectorPayload {
   buildFramework: string | null;
   pathToProject: string | null;
   className: string | null;
-  bundleName: string | null;
+  bundleDisplayName: string | null;
   version: string | null;
   commitTag: string | null;
   midpointMinVersion: number | null;
@@ -124,7 +124,6 @@ export class AddConnectorForm implements OnInit {
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
-  protected readonly bundleNameTaken = signal<boolean>(false);
   protected readonly connectorCapabilities = signal<CapabilityGroup[]>([]);
   protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
 
@@ -177,7 +176,7 @@ export class AddConnectorForm implements OnInit {
       && !!this.connectorVersion().trim()
       && !!this.connectorMaintainer().trim()
       && !!this.connectorLicense();
-    if (!base || this.isConnectorVersionInvalid() || this.bundleNameTaken()) return false;
+    if (!base || this.isConnectorVersionInvalid()) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
       && !this.isGitCloneUrlInvalid();
@@ -296,7 +295,6 @@ export class AddConnectorForm implements OnInit {
     this.isLicenseDropdownOpen.set(false);
     this.connectorDescription.set('');
     this.connectorBundleName.set('');
-    this.bundleNameTaken.set(false);
     this.connectorCapabilities.set([]);
     this.initialCapabilities.set([]);
     this.devProjectHomepage.set('');
@@ -322,15 +320,6 @@ export class AddConnectorForm implements OnInit {
   }
 
   // ── Step 2 actions ────────────────────────────────────────
-  protected onBundleNameBlur(): void {
-    const name = this.connectorBundleName().trim();
-    if (!name) return;
-    this.appService.checkBundleNameExists(name).subscribe({
-      next: exists => this.bundleNameTaken.set(exists),
-      error: () => this.bundleNameTaken.set(false)
-    });
-  }
-
   protected onLicenseBlur(): void {
     setTimeout(() => this.isLicenseDropdownOpen.set(false), 150);
   }
@@ -376,7 +365,7 @@ export class AddConnectorForm implements OnInit {
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
       className: this.devClassName() || null,
-      bundleName: this.connectorBundleName() || null,
+      bundleDisplayName: this.connectorBundleName() || null,
       version: this.connectorVersion() || null,
       commitTag: this.devCommitTag() || null,
       // midPoint range is set on the edit form; connector range via the "Set up compatibility" modal.
