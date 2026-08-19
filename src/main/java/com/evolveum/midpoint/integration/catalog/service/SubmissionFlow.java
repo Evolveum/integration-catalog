@@ -54,7 +54,7 @@ public enum SubmissionFlow {
      *                   word rather than leaving empty quotes in the subject
      */
     public String taskName(String methodName) {
-        return "Review: " + title + " - \"" + displayed(methodName) + "\"";
+        return title + " - \"" + displayed(methodName) + "\"";
     }
 
     /**
