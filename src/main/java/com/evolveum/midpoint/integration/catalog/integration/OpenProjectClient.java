@@ -26,7 +26,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
@@ -47,6 +49,9 @@ public class OpenProjectClient {
 
     /** Fails the submission fast rather than holding the request open on an unreachable portal. */
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
+
+    /** Far more files than a submission has, so {@link #listAttachments} never has to page. */
+    private static final int ATTACHMENT_PAGE_SIZE = 200;
 
     private final OpenProjectProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -149,6 +154,104 @@ public class OpenProjectClient {
             throw new IOException("Support portal rejected attachment '" + fileName + "' on work package "
                     + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
         }
+    }
+
+    /**
+     * One file on a work package, as far as a caller replacing files needs to know it.
+     *
+     * @param digest     md5 of the stored content, which the portal computes on upload. Lets a caller
+     *                   tell a file it has already uploaded from one whose content has since changed,
+     *                   without downloading it back.
+     * @param authorHref who uploaded it, as an API link. The only way to tell the catalog's own
+     *                   uploads from something a reviewer attached by hand.
+     */
+    public record Attachment(int id, String fileName, String digest, String authorHref) {
+    }
+
+    /**
+     * Everything attached to a work package.
+     *
+     * <p>Asks for a large page rather than paging: a submission's files are a tutorial and a handful
+     * of samples. An instance holding more than fits in one page is reported, because a caller that
+     * replaces files would take the short list for the whole truth.
+     *
+     * @throws IOException if the portal answers with anything other than a 2xx
+     */
+    public List<Attachment> listAttachments(int workPackageId) throws IOException, InterruptedException {
+        HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId
+                + "/attachments?pageSize=" + ATTACHMENT_PAGE_SIZE)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal could not be queried for the attachments of work package "
+                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
+        }
+
+        JsonNode collection = objectMapper.readTree(response.body());
+        List<Attachment> attachments = new ArrayList<>();
+        for (JsonNode element : collection.path("_embedded").path("elements")) {
+            JsonNode id = element.path("id");
+            if (!id.isInt()) {
+                continue;
+            }
+            attachments.add(new Attachment(
+                    id.intValue(),
+                    element.path("fileName").asText(""),
+                    element.path("digest").path("hash").asText(""),
+                    element.path("_links").path("author").path("href").asText("")));
+        }
+
+        // Against what came back rather than against the page size asked for, so an instance that
+        // ignores the parameter is caught as well.
+        int total = collection.path("total").asInt(attachments.size());
+        if (total > attachments.size()) {
+            throw new IOException("Work package " + workPackageId + " has " + total + " attachments but only "
+                    + attachments.size() + " were listed, so they cannot be read in full");
+        }
+        return attachments;
+    }
+
+    /**
+     * Removes a file from the work package it is attached to. The portal notes the removal in the
+     * work package's activity, so nothing disappears without a trace.
+     *
+     * @return {@code false} when the attachment is already gone
+     * @throws IOException if the portal answers with anything other than a 2xx
+     */
+    public boolean deleteAttachment(int attachmentId) throws IOException, InterruptedException {
+        HttpRequest request = authorized(properties.apiBase() + "/attachments/" + attachmentId)
+                .DELETE()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 404) {
+            return false;
+        }
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal refused to delete attachment " + attachmentId
+                    + " (HTTP " + response.statusCode() + "): " + response.body());
+        }
+        return true;
+    }
+
+    /**
+     * The portal user this client authenticates as, which is the author of everything the catalog has
+     * uploaded. A caller replacing the catalog's own files needs it to leave everybody else's alone.
+     *
+     * @return the id, or empty when the portal answers without one
+     * @throws IOException if the portal answers with anything other than a 2xx
+     */
+    public OptionalInt findSelfId() throws IOException, InterruptedException {
+        HttpRequest request = authorized(properties.apiBase() + "/users/me").GET().build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (!isSuccessful(response)) {
+            throw new IOException("Support portal could not be asked who the catalog signs in as (HTTP "
+                    + response.statusCode() + "): " + response.body());
+        }
+        return idOf(objectMapper.readTree(response.body()));
     }
 
     /**
@@ -324,14 +427,15 @@ public class OpenProjectClient {
      * read first and sent back with the change; a concurrent edit in the portal makes that stale and
      * the write is refused rather than overwriting somebody.
      *
-     * @return {@code false} when the work package no longer exists in the portal
+     * @return the description this call replaced, so a caller can say what the edit changed rather
+     * than leaving the reviewer to spot it; empty when the work package no longer exists in the portal
      * @throws IOException if the portal answers with anything other than a 2xx
      */
-    public boolean updateWorkPackage(int workPackageId, String subject, String description)
+    public Optional<String> updateWorkPackage(int workPackageId, String subject, String description)
             throws IOException, InterruptedException {
         Optional<JsonNode> current = readWorkPackage(workPackageId);
         if (current.isEmpty()) {
-            return false;
+            return Optional.empty();
         }
         JsonNode lockVersion = current.get().path("lockVersion");
         if (!lockVersion.isInt()) {
@@ -354,13 +458,15 @@ public class OpenProjectClient {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 404) {
-            return false;
+            return Optional.empty();
         }
         if (!isSuccessful(response)) {
             throw new IOException("Support portal rejected an update of work package " + workPackageId
                     + " (HTTP " + response.statusCode() + "): " + response.body());
         }
-        return true;
+        // The raw markdown, which is what was written here in the first place - the portal also keeps
+        // an html rendering of it, and comparing that would compare its formatting rather than the text.
+        return Optional.of(current.get().path("description").path("raw").asText(""));
     }
 
     /** One work package as the portal has it, or empty when it no longer exists. */

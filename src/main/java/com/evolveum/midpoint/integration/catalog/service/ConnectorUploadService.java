@@ -110,7 +110,7 @@ public class ConnectorUploadService {
         // The revision is now in front of a reviewer; open its support work package once this commits.
         events.publishEvent(new IntegrationMethodSubmittedEvent(
                 uploadRes.integrationMethod().getId(), uploadRes.integrationMethod().getRevision(),
-                SubmissionFlow.CREATE));
+                SubmissionFlow.CREATE, null));
 
         return appRes.application().getId() + "|" + uploadRes.integrationMethod().getId();
     }
@@ -150,7 +150,7 @@ public class ConnectorUploadService {
         log.info("Integration method {}/{} published with existing connector {} linked as it is",
                 method.getId(), method.getRevision(), connector.getId());
         events.publishEvent(new IntegrationMethodSubmittedEvent(
-                method.getId(), method.getRevision(), SubmissionFlow.CREATE));
+                method.getId(), method.getRevision(), SubmissionFlow.CREATE, null));
 
         return application.getId() + "|" + method.getId();
     }
@@ -560,8 +560,10 @@ public class ConnectorUploadService {
         // deliberately not carried over from the source, so this gets a work package of its own.
         // minorBump is the button the user pressed - "Save" corrects the method, "Save as new version"
         // raises a new one - and this is the only place that distinction has to be made.
+        // The source revision is left standing, so the work package opened for this one can also be
+        // told what this draft changes about it.
         events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision,
-                dto.minorBump() ? SubmissionFlow.EDIT : SubmissionFlow.UPGRADE));
+                dto.minorBump() ? SubmissionFlow.EDIT : SubmissionFlow.UPGRADE, currentRevision));
 
         return newRevision;
     }
@@ -634,7 +636,9 @@ public class ConnectorUploadService {
         // Normally a no-op, since the work package came across with the draft above. It matters for
         // a draft that has none — submitted before the portal existed, or while it was unreachable —
         // which picks one up on its next resubmission instead of staying without one forever.
-        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision, SubmissionFlow.EDIT));
+        // No previous revision to compare against: the one this replaces was just deleted. The work
+        // package's own description is what the edit is measured against instead.
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision, SubmissionFlow.EDIT, null));
 
         return newRevision;
     }
@@ -997,7 +1001,8 @@ public class ConnectorUploadService {
         // Note what is NOT carried over: support_ticket_id. The source revision is published, so its
         // review is over; this fork is a new submission and gets a work package of its own. It is an
         // upgrade rather than an edit: the published revision stays, and this major version joins it.
-        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision, SubmissionFlow.UPGRADE));
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, newRevision, SubmissionFlow.UPGRADE,
+                source.getRevision()));
         return draft;
     }
 

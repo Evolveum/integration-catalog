@@ -81,6 +81,26 @@ public class SupportTicketDescriptionBuilder {
     /** Indent of a bullet nested under another one, wide enough for OpenProject's markdown. */
     private static final String NESTED = "    ";
 
+    private static final String INTRO_NOTE =
+            "An integration method has been submitted for review in the Integration Catalog.";
+    private static final String CLOSING_NOTE =
+            "Use this work package to discuss the submission with the author.";
+    private static final String APPLICATION_PUBLISHED_NOTE =
+            "Already published in the catalog, so there is nothing to review here.";
+    private static final String CONNECTOR_PUBLISHED_NOTE =
+            "Published in the catalog already and reused unchanged, so there is nothing to review here.";
+    private static final String FILES_NOTE = "_Uploaded files are attached to this work package;"
+            + " they also stay on the method's page in the catalog._";
+
+    /**
+     * The notes above, as they appear in a finished body. They explain the work package rather than
+     * describe the submission, so every ticket that has one has the same one, and
+     * {@link SupportTicketDeltaBuilder} leaves them out of what it reports: a note that moved because
+     * the section it closes moved is not something an author changed.
+     */
+    static final List<String> NOTES = List.of(INTRO_NOTE, CLOSING_NOTE,
+            APPLICATION_PUBLISHED_NOTE, CONNECTOR_PUBLISHED_NOTE, FILES_NOTE);
+
     private final MidpointVersionRepository midpointVersionRepository;
     private final CatalogContactResolver contactResolver;
     private final TutorialStorageService tutorialStorageService;
@@ -89,7 +109,7 @@ public class SupportTicketDescriptionBuilder {
     /** The submission as markdown, ready to be posted as the work package description. */
     public String build(IntegrationMethod method) {
         StringBuilder body = new StringBuilder();
-        body.append("An integration method has been submitted for review in the Integration Catalog.\n");
+        body.append(INTRO_NOTE).append('\n');
 
         appendApplication(body, method);
         appendSummary(body, method);
@@ -98,7 +118,7 @@ public class SupportTicketDescriptionBuilder {
         appendTutorial(body, method);
         appendConnectors(body, method);
 
-        body.append("\nUse this work package to discuss the submission with the author.\n");
+        body.append('\n').append(CLOSING_NOTE).append('\n');
         return body.toString();
     }
 
@@ -157,7 +177,7 @@ public class SupportTicketDescriptionBuilder {
 
         bullet(body, "App name", application.getDisplayName());
         if (application.getLifecycleState() == Application.ApplicationLifecycleType.ACTIVE) {
-            body.append("\nAlready published in the catalog, so there is nothing to review here.\n");
+            body.append('\n').append(APPLICATION_PUBLISHED_NOTE).append('\n');
             return;
         }
 
@@ -430,8 +450,7 @@ public class SupportTicketDescriptionBuilder {
         } else {
             bullet(body, "Additional tutorials/samples", files);
         }
-        body.append("\n_Uploaded files are attached to this work package; they also stay on the method's"
-                + " page in the catalog._\n");
+        body.append('\n').append(FILES_NOTE).append('\n');
     }
 
     /**
@@ -490,7 +509,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Maintainer", withEmail(connector.getMaintainer()));
-        body.append("\nPublished in the catalog already and reused unchanged, so there is nothing to review here.\n");
+        body.append('\n').append(CONNECTOR_PUBLISHED_NOTE).append('\n');
     }
 
     private void appendConnectorForReview(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
