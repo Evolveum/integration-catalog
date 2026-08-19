@@ -37,6 +37,8 @@ export class ApprovalConfirmModal implements OnInit {
   @Input() revision = '';
   @Output() confirm = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
+  /** Emitted when the user clicks "Manual fill" for a connector. */
+  @Output() manualFill = new EventEmitter<ConnectorWithoutDownload>();
 
   protected readonly step = signal<number>(0);
   protected readonly successDismissed = signal<boolean>(false);
@@ -170,5 +172,15 @@ export class ApprovalConfirmModal implements OnInit {
   /** Check if a connector is currently being built. */
   protected isBuilding(connectorId: number): boolean {
     return this.buildingConnectors().has(connectorId);
+  }
+
+  /** Emit event to open the manual fill popup modal in the parent. */
+  protected openManualFill(connector: ConnectorWithoutDownload): void {
+    this.manualFill.emit(connector);
+  }
+
+  /** Called by parent after manual fill succeeds - refresh the connector list. */
+  onManualFillSuccess(): void {
+    this.loadConnectorsWithoutDownload();
   }
 }

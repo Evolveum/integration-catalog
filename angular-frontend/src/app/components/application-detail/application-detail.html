@@ -864,8 +864,20 @@
       [processing]="isProcessingApproval()"
       [error]="approvalError()"
       (confirm)="submitConfirm()"
-      (cancel)="closeConfirm()">
+      (cancel)="closeConfirm()"
+      (manualFill)="openManualFill($event)">
     </app-approval-confirm-modal>
+  }
+
+  <!-- Manual fill popup modal -->
+  @if (manualFillOpen() && manualFillConnector()) {
+    <app-manual-fill-modal
+      [connector]="manualFillConnector()!"
+      [methodId]="manualFillMethodId()"
+      (submit)="onManualFillSuccess()"
+      (cancel)="onManualFillCancel()"
+      (error)="onManualFillError($event)">
+    </app-manual-fill-modal>
   }
 
   <!-- Start review confirmation modal (shared component) -->

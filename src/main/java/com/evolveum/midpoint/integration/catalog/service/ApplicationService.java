@@ -637,7 +637,7 @@ public class ApplicationService {
                                             connector.getFullyQualifiedClassName(),
                                             connector.getConnectorBundle() != null ? connector.getConnectorBundle().getBundleName() : null,
                                             bundleVersion != null ? bundleVersion.getBundleVersion() : null,
-                                            String.valueOf(connector.getId()),
+                                            String.valueOf(connectorVersion.getId()),
                                             connectorVersion.getRevision(),
                                             methodId,
                                             revision

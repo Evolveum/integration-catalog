@@ -1,0 +1,19 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
+.manual-fill-backdrop {
+  z-index: 1060;
+}
+
+.manual-fill-container {
+  z-index: 1070;
+}
+
+.manual-fill-dialog {
+  max-width: 520px;
+  width: 90%;
+  max-height: 90vh;
+}

@@ -69,15 +69,22 @@
                         }
                       </div>
                       <div class="connector-actions d-flex flex-column gap-2">
-                        <button type="button"
-                                class="mt-2 btn btn-sm btn-outline-secondary"
-                                [disabled]="isBuilding(connector.connectorId)"
-                                (click)="triggerBuild(connector)">
-                          @if (isBuilding(connector.connectorId)) {
-                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                          }
-                          <i class="fa-solid fa-hammer"></i>Trigger build
-                        </button>
+                        <div class="connector-buttons-row d-flex gap-2 mt-2">
+                          <button type="button"
+                                  class="btn btn-sm btn-outline-secondary flex-fill"
+                                  [disabled]="isBuilding(connector.connectorId)"
+                                  (click)="triggerBuild(connector)">
+                            @if (isBuilding(connector.connectorId)) {
+                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            <i class="fa-solid fa-hammer"></i>Trigger build
+                          </button>
+                          <button type="button"
+                                  class="btn btn-sm btn-outline-primary flex-fill"
+                                  (click)="openManualFill(connector)">
+                            <i class="fa-solid fa-pen-to-square"></i>Manual fill
+                          </button>
+                        </div>
                         @if (getBuildMessage(connector.connectorId)) {
                         <span class="build-message">{{ getBuildMessage(connector.connectorId) }}</span>
                         }

@@ -443,4 +443,48 @@ export class ApplicationService {
       { responseType: 'text' as 'json' }
     );
   }
+
+  /**
+   * Verifies bundle information (calls /upload/verify/{oid}).
+   */
+  verifyBundle(
+    methodId: string,
+    payload: {
+      bundleName: string;
+      version: string;
+      className: string;
+      integrationMethodRevision: string;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/upload/verify/${methodId}`,
+      payload
+    );
+  }
+
+  /**
+   * Completes build successfully (calls /upload/continue/{oid}).
+   */
+  continueBuild(
+    methodId: string,
+    payload: {
+      connectorBundle: string;
+      connectorVersion: string;
+      integrationMethodRevision: string;
+      publishTime: number | null;
+      downloadLink: string | null;
+      connectorClass: string | null;
+      capability: string[] | null;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/upload/continue/${methodId}`,
+      payload
+    );
+  }
+
 }

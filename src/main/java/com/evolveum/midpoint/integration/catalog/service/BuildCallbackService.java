@@ -79,8 +79,7 @@ public class BuildCallbackService {
             persistCapabilitiesOnConnectorVersions(connectorVersion, continueForm.getCapability());
         }
 
-        connectorVersion.setRevision(continueForm.getConnectorVersion());
-        connectorVersion.getConnectorBundleVersion().setRevision(continueForm.getConnectorVersion());
+        connectorVersion.getConnectorBundleVersion().setArtifactUrl(continueForm.getDownloadLink());
         connectorVersion.getConnectorBundleVersion().setBundleVersion(continueForm.getConnectorVersion());
 
         connectorVersion.setErrorMessage("");
@@ -120,7 +119,7 @@ public class BuildCallbackService {
         String version = verifyPayload.getVersion();
         String className = verifyPayload.getClassName();
 
-        ConnectorBundle sourceBundle = connectorVersion.getConnector().getConnectorBundle();
+        Connector sourceConnector = connectorVersion.getConnector();
 
         Optional<ConnectorBundle> existingBundle = connectorBundleRepository.findByBundleNameAndLifecycleState(bundleName, LifecycleType.ACTIVE);
         if (existingBundle.isEmpty()) {
@@ -130,6 +129,10 @@ public class BuildCallbackService {
         ConnectorBundle targetBundle = existingBundle.get();
 
         validateVerifyPayload(version, className);
+
+        if (sourceConnector != null && sourceConnector.getClonedFrom() != null) {
+            return;
+        }
 
         Optional<ConnectorBundleVersion> matchingVersion = findMatchingBundleVersion(targetBundle, version);
 
@@ -273,6 +276,7 @@ public class BuildCallbackService {
     private Optional<ConnectorBundleVersion> findMatchingBundleVersion(ConnectorBundle bundle, String version) {
         return bundle.getBundleVersions().stream()
                 .filter(cbv -> version.equals(cbv.getBundleVersion()))
+                .filter(cv -> LifecycleType.ACTIVE == cv.getLifecycleState())
                 .findFirst();
     }
 
