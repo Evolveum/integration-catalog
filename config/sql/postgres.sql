@@ -859,7 +859,9 @@ INSERT INTO integration_method_type (id, display_name, description) OVERRIDING S
     (3, 'OpenLDAP',      'Connect to an OpenLDAP directory to read and manage identities.'),
     (4, 'Manual / ITSM', 'Fulfil provisioning requests manually through an ITSM ticketing workflow.'),
     (5, 'Database',      'Read and write identity data directly in a relational database.'),
-    (6, 'CSV',           'Exchange identity data through CSV file import and export.');
+    (6, 'CSV',           'Exchange identity data through CSV file import and export.'),
+    (7, 'SSH',           'Connect to a remote system using SSH to provision and manage identities.'),
+    (8, 'SAP',           'Integrate with SAP systems to provision and manage identities.');
 
 SELECT setval('integration_method_type_id_seq', 6);
 
@@ -912,5 +914,5 @@ SELECT setval('midpoint_version_id_seq', 10);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(2, $$ SELECT 1 $$, true);
+call apply_change(3, $$ SELECT 1 $$, true);
 -- end of region

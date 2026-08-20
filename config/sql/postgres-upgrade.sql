@@ -49,6 +49,20 @@ alter table connector add COLUMN IF NOT EXISTS cloned_from integer;
 $aa$);
 -- end of region
 
+-- region change 3: integration_method_type
+-- Adds SSH and SAP as supported integration methods for connectors.
+-- (Change 1 is the baseline schema created by config/sql/postgres.sql.)
+call apply_change(3, $aa$
+
+INSERT INTO integration_method_type (id, display_name, description)
+OVERRIDING SYSTEM VALUE
+VALUES
+    (7, 'SSH', 'Connect to a remote system using SSH to provision and manage identities.'),
+    (8, 'SAP', 'Integrate with SAP systems to provision and manage identities.');
+
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$
