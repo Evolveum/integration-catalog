@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Created by Dominik.
  */
-public record UploadImplementationDto(
+public record UploadIntegrationDto(
         Application application,                                                  // application table entity
         UploadIntegrationMethodDto integrationMethod,                             // integration_method table
         UploadConnectorDto connector,                                             // connector + connector_bundle tables

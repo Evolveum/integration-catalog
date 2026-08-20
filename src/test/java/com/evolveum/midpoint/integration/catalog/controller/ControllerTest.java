@@ -27,7 +27,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -580,45 +579,45 @@ class ControllerTest {
         verify(applicationService).listCatalogConnectors();
     }
 
-    // ===== POST /api/upload/connector =====
+    // ===== POST /api/upload/integration =====
 
     @Test
     void uploadConnectorShouldReturnOkWhenSuccessful() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenReturn("app-uuid|method-uuid");
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     @Test
     void uploadConnectorShouldReturnBadRequestOnIllegalArgument() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenThrow(new IllegalArgumentException("Framework must be specified"));
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     @Test
     void uploadConnectorShouldReturnConflictOnDuplicateBundle() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isConflict());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     // ===== GET /api/connectors/active =====

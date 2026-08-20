@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.exception.AuthenticationException;
 import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
@@ -154,13 +155,13 @@ public class Controller {
                 bundleName, className, version, excludeConnectorId));
     }
 
-    @Operation(summary = "Upload connector implementation")
-    @PostMapping("/upload/connector")
+    @Operation(summary = "Upload connector")
+    @PostMapping("/upload/integration")
     public ResponseEntity<String> uploadConnector(
-            @RequestBody UploadImplementationDto dto,
+            @RequestBody UploadIntegrationDto dto,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, username));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadIntegration(dto, username));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -174,10 +175,15 @@ public class Controller {
     @Operation(summary = "Upload status - success")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Upload status - success worked"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (not a superuser)"),
             @ApiResponse(responseCode = "404", description = "Upload status - success did not work")
     })
     @PostMapping("/upload/continue/{oid}")
-    public ResponseEntity<Void> completeBuildSuccessfully(@RequestBody ContinueForm continueForm, @PathVariable UUID oid) {
+    public ResponseEntity<Void> completeBuildSuccessfully(
+            @RequestBody ContinueForm continueForm,
+            @PathVariable UUID oid,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+        //TODO check superUser
         applicationService.successBuild(oid, continueForm);
         return ResponseEntity.ok().build();
     }
@@ -414,11 +420,16 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle verified successfully"),
             @ApiResponse(responseCode = "400", description = "Verification failed"),
+            @ApiResponse(responseCode = "403", description = "Forbidden (not a superuser)"),
             @ApiResponse(responseCode = "409", description = "Connector class already exists for this bundle version")
     })
     @PostMapping("/upload/verify/{oid}")
-    public ResponseEntity<Void> verify(@RequestBody VerifyBundleInformationForm verifyPayload, @PathVariable UUID oid) {
+    public ResponseEntity<Void> verify(
+            @RequestBody VerifyBundleInformationForm verifyPayload,
+            @PathVariable UUID oid,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
+            //TODO check superUser
             applicationService.verify(oid, verifyPayload);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
@@ -712,10 +723,15 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @PutMapping("/applications/{appId}")
-    public ResponseEntity<Void> updateApplication(@PathVariable UUID appId, @RequestBody UpdateApplicationDto dto) {
+    public ResponseEntity<Void> updateApplication(
+            @PathVariable UUID appId,
+            @RequestBody UpdateApplicationDto dto,
+            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.updateApplication(appId, dto);
+            applicationService.updateApplication(appId, dto, username);
             return ResponseEntity.ok().build();
+        } catch (AuthenticationException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {

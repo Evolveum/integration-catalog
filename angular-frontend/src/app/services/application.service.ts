@@ -94,7 +94,7 @@ export class ApplicationService {
   }
 
   uploadConnector(payload: UploadConnectorPayload): Observable<string> {
-    return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
+    return this.http.post<string>(`${environment.apiUrl}/upload/integration`, payload, { responseType: 'text' as 'json' });
   }
 
   /**

@@ -46,8 +46,10 @@ public class BuildCallbackService {
      */
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
-        IntegrationMethod method = findIntegrationMethod(oid, continueForm.getIntegrationMethodRevision());
-        ConnectorVersion connectorVersion = findConnectorVersion(continueForm.getConnectorVersionId(), continueForm.getConnectorVersionRevision());
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, continueForm.getIntegrationMethodRevision(), integrationMethodRepository);
+        ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
+                continueForm.getConnectorVersionId(), continueForm.getConnectorVersionRevision(), connectorVersionRepository);
 
         // Resolve connector and bundle version through linked connector
         ConnectorBundle sourceBundle = connectorVersion.getConnector().getConnectorBundle();
@@ -100,8 +102,10 @@ public class BuildCallbackService {
      */
     @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
-        IntegrationMethod method = findIntegrationMethod(oid, failForm.getIntegrationMethodRevision());
-        ConnectorVersion connectorVersion = findConnectorVersion(failForm.getConnectorVersionId(), failForm.getConnectorVersionRevision());
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, failForm.getIntegrationMethodRevision(), integrationMethodRepository);
+        ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
+                failForm.getConnectorVersionId(), failForm.getConnectorVersionRevision(), connectorVersionRepository);
 
         String errorMessage = failForm.getErrorMessage();
         connectorVersion.setErrorMessage(errorMessage);
@@ -113,7 +117,8 @@ public class BuildCallbackService {
 
     @Transactional
     public void verify(UUID oid, VerifyBundleInformationForm verifyPayload) {
-        ConnectorVersion connectorVersion = findConnectorVersion(verifyPayload.getConnectorVersionId(), verifyPayload.getConnectorVersionRevision());
+        ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
+                verifyPayload.getConnectorVersionId(), verifyPayload.getConnectorVersionRevision(), connectorVersionRepository);
 
         String bundleName = verifyPayload.getBundleName();
         String version = verifyPayload.getVersion();
@@ -191,16 +196,6 @@ public class BuildCallbackService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private IntegrationMethod findIntegrationMethod(UUID id, String revision) {
-        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
-
-    private ConnectorVersion findConnectorVersion(String id, String revision) {
-        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
 
     private ConnectorBundleVersion resolveConnectorBundleVersion(IntegrationMethod method) {
         if (method.getConnectors() == null || method.getConnectors().isEmpty()) {

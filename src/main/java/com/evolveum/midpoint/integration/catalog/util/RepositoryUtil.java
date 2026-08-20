@@ -1,6 +1,14 @@
 package com.evolveum.midpoint.integration.catalog.util;
 
+import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
+import com.evolveum.midpoint.integration.catalog.object.ConnectorVersionId;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.ConnectorBundleRepository;
+import com.evolveum.midpoint.integration.catalog.repository.ConnectorVersionRepository;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+
+import java.util.UUID;
 
 public class RepositoryUtil {
 
@@ -19,5 +27,17 @@ public class RepositoryUtil {
             suffix++;
         }
         return candidate;
+    }
+
+    public static IntegrationMethod findIntegrationMethod(
+            UUID id, String revision, IntegrationMethodRepository integrationMethodRepository) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
+    }
+
+    public static ConnectorVersion findConnectorVersion(
+            String id, String revision, ConnectorVersionRepository connectorVersionRepository) {
+        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
     }
 }

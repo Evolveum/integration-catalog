@@ -411,7 +411,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
         version: versionOverride ?? this.connectorVersion() ?? null,
         commitTag: this.devCommitTag() || null,
         bundleDisplayName: this.connectorBundleName() || null,
-        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null
+        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
+        connectorMinVersion: this.connectorVersionFrom() || null,
+        connectorMaxVersion: this.connectorVersionTo() || null
       },
       files: [],
       integrationMethodCapabilities: summary?.imCapabilities ?? [],

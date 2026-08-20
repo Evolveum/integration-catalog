@@ -25,6 +25,8 @@ public record UploadConnectorDto(
         String pathToProject,                    // connector_bundle_version.path_to_project
         String commitTag,                        // connector_bundle_version.commit_tag
         String bundleDisplayName,                // connector_bundle.display_name
-        Integer connectorBundleId                // connector_bundle.id (when reusing existing bundle)
+        Integer connectorBundleId,                // connector_bundle.id (when reusing existing bundle)
+        String connectorMinVersion,               // integration_method_connector.connector_min_version
+        String connectorMaxVersion                 // integration_method_connector.connector_max_version
 ) {
 }

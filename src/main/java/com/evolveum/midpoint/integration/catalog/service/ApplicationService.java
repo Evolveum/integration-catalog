@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
+import com.evolveum.midpoint.integration.catalog.exception.AuthenticationException;
 import com.evolveum.midpoint.integration.catalog.exception.ConnectorSigningException;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
@@ -20,6 +21,7 @@ import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
+import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -249,8 +251,8 @@ public class ApplicationService {
     }
 
     @Transactional
-    public String uploadConnector(UploadImplementationDto dto, String username) {
-        return connectorUploadService.uploadConnector(dto, username);
+    public String uploadIntegration(UploadIntegrationDto dto, String username) {
+        return connectorUploadService.uploadIntegration(dto, username);
     }
 
     @Transactional
@@ -535,20 +537,12 @@ public class ApplicationService {
 
     @Transactional
     public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
-        ConnectorVersion connectorVersion = findConnectorVersion(triggerBuildForm.getConnectorVersionId(), triggerBuildForm.getConnectorVersionRevision());
-        IntegrationMethod integrationMethod = findIntegrationMethod(oid, triggerBuildForm.getIntegrationMethodRevision());
+        ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
+                triggerBuildForm.getConnectorVersionId(), triggerBuildForm.getConnectorVersionRevision(), connectorVersionRepository);
+        IntegrationMethod integrationMethod = RepositoryUtil.findIntegrationMethod(
+                oid, triggerBuildForm.getIntegrationMethodRevision(), integrationMethodRepository);
 
         return connectorUploadService.triggerJenkinsPipeline(connectorVersion, integrationMethod);
-    }
-
-    private IntegrationMethod findIntegrationMethod(UUID id, String revision) {
-        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
-
-    private ConnectorVersion findConnectorVersion(String id, String revision) {
-        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
     }
 
     @Transactional(readOnly = true)
@@ -656,7 +650,13 @@ public class ApplicationService {
      * Only superusers are allowed to perform this operation.
      */
     @Transactional
-    public Application updateApplication(UUID applicationId, UpdateApplicationDto dto) {
+    public Application updateApplication(UUID applicationId, UpdateApplicationDto dto, String username) {
+        // Approving a revision is a superuser-only action (the client already restricts it to
+        // superusers; this is the server-side enforcement).
+        if (!authService.isSuperuser(username)) {
+            throw new AuthenticationException("Only a superuser may publish an integration method.");
+        }
+
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
         if (dto.displayName() != null && !dto.displayName().isBlank()) {

@@ -15,7 +15,7 @@ import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
-import com.evolveum.midpoint.integration.catalog.dto.UploadImplementationDto;
+import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.integration.GithubClient;
 import com.evolveum.midpoint.integration.catalog.integration.JenkinsClient;
@@ -64,44 +64,63 @@ public class ConnectorUploadService {
     private final IntegrationMethodConnectorRepository integrationMethodConnectorRepository;
     private final TutorialStorageService tutorialStorageService;
 
-    private record ApplicationResolution(Application application, boolean isNew,
-                                         List<String> originNames, List<ApplicationTagDto> tagDtos) {
+    private record ApplicationResolution(
+            Application application,
+            boolean isNew,
+            List<String> originNames,
+            List<ApplicationTagDto> tagDtos) {
     }
 
-    private record UploadResolution(IntegrationMethod integrationMethod, Connector connector,
-                                    ConnectorBundle bundle, boolean isNewVersion) {
+    private record UploadResolution(
+            IntegrationMethod integrationMethod,
+            Connector connector,
+            ConnectorBundle bundle,
+            boolean isNewConnector) {
     }
 
     @Transactional
-    public String uploadConnector(UploadImplementationDto dto, String username) {
+    public String uploadIntegration(UploadIntegrationDto dto, String username) {
         ApplicationResolution appRes = resolveApplication(dto);
         UploadResolution uploadRes = resolveUpload(dto, appRes.application(), username);
 
-        if (!uploadRes.isNewVersion()) {
-            uploadRes.integrationMethod().setAuthor(username);
-            uploadRes.integrationMethod().setMaintainer(dto.connector().maintainer());
-        }
-
-        ConnectorBundleVersion bundleVersion = createBundleVersion(dto.connector(), uploadRes.bundle(), username);
-        ConnectorVersion connectorVersion = createConnectorVersion(
-                dto.connector(), uploadRes.connector(), bundleVersion, username);
+        uploadRes.integrationMethod().setAuthor(username);
+        uploadRes.integrationMethod().setMaintainer(dto.connector().maintainer());
 
         applicationTagService.processOrigins(appRes.application(), appRes.originNames(), appRes.isNew());
         applicationTagService.processTags(appRes.application(), appRes.tagDtos(), appRes.isNew());
 
-        setUpRelationships(uploadRes, bundleVersion);
-        setDefaults(appRes.application(), uploadRes.bundle(), bundleVersion, connectorVersion);
-        copyFromLatestVersionIfNeeded(uploadRes, bundleVersion, connectorVersion);
-        createGitHubRepositoryIfNeeded(uploadRes, bundleVersion, connectorVersion, dto.files());
+        if (uploadRes.isNewConnector()) {
+            ConnectorBundleVersion bundleVersion = createBundleVersion(
+                    dto.connector(), uploadRes.bundle(), username);
+            bundleVersion.setConnectorBundle(uploadRes.bundle());
 
-        persistEntities(appRes, uploadRes, bundleVersion, connectorVersion);
+            ConnectorVersion connectorVersion = createConnectorVersion(
+                    dto.connector(), uploadRes.connector(), bundleVersion, username);
+            connectorVersion.setConnector(uploadRes.connector());
+
+            uploadRes.bundle().getConnectors().add(uploadRes.connector());
+
+            //don't support for now
+//            createGitHubRepositoryIfNeeded(uploadRes, bundleVersion, connectorVersion, dto.files());
+
+            IntegrationMethodConnector imc = new IntegrationMethodConnector();
+            imc.setConnector(uploadRes.connector());
+            imc.setConnectorMinVersion(dto.connector().connectorMinVersion());
+            imc.setConnectorMaxVersion(dto.connector().connectorMaxVersion());
+            imc.setIntegrationMethod(uploadRes.integrationMethod());
+            uploadRes.integrationMethod().getConnectors().add(imc);
+
+            persistEntities(uploadRes, bundleVersion, connectorVersion);
+            saveConnectorVersionCapabilities(dto, connectorVersion);
+        }
+
+        persistEntities(appRes, uploadRes);
         saveIntegrationMethodCapabilities(dto, uploadRes.integrationMethod());
-        saveConnectorVersionCapabilities(dto, connectorVersion);
 
         return appRes.application().getId() + "|" + uploadRes.integrationMethod().getId();
     }
 
-    private ApplicationResolution resolveApplication(UploadImplementationDto dto) {
+    private ApplicationResolution resolveApplication(UploadIntegrationDto dto) {
         Application application = dto.application();
         boolean isNew = (application.getId() == null);
         List<String> originNames = application.getOrigins();
@@ -121,52 +140,44 @@ public class ConnectorUploadService {
                 application.setName(generatedName);
             }
         }
+
+        if (application.getLifecycleState() == null) {
+            application.setLifecycleState(Application.ApplicationLifecycleType.IN_REVIEW);
+        }
+
         return new ApplicationResolution(application, isNew, originNames, tagDtos);
     }
 
-    private UploadResolution resolveUpload(UploadImplementationDto dto, Application application, String username) {
+    private UploadResolution resolveUpload(UploadIntegrationDto dto, Application application, String username) {
         UploadIntegrationMethodDto imDto = dto.integrationMethod();
         UploadConnectorDto connDto = dto.connector();
-        boolean isNewVersion = false;
+        boolean isNewConnector = true;
 
         IntegrationMethod integrationMethod;
         Connector connector;
         ConnectorBundle bundle;
 
-        if (imDto.id() != null) {
-            // Adding a new version to an existing integration method
-            integrationMethod = integrationMethodRepository.findByApplicationId(application.getId()).stream()
-                    .filter(m -> m.getId().equals(imDto.id()))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Integration method not found: " + imDto.id()));
-            isNewVersion = true;
-            // Reuse existing connector link
-            connector = integrationMethod.getConnectors().isEmpty() ? null
-                    : integrationMethod.getConnectors().get(0).getConnector();
-            bundle = connector != null ? connector.getConnectorBundle() : createNewConnectorBundle(connDto, username);
-        } else if (connDto.connectorBundleId() != null) {
+        integrationMethod = new IntegrationMethod();
+        integrationMethod.setApplication(application);
+        integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
+        integrationMethod.setMidpointMinVersionId(imDto.midpointMinVersion());
+        integrationMethod.setMidpointMaxVersionId(imDto.midpointMaxVersion());
+
+        if (connDto.connectorBundleId() != null) {
             // User chose an existing connector as a template — create a new independent bundle
             // so the new IN_REVIEW connector is isolated from the existing ACTIVE one
-            ConnectorBundle templateBundle = connectorBundleRepository.findById(connDto.connectorBundleId())
+            bundle = connectorBundleRepository.findById(connDto.connectorBundleId())
                     .orElseThrow(() -> new RuntimeException("Connector bundle not found: " + connDto.connectorBundleId()));
-            bundle = createNewConnectorBundle(connDto, templateBundle, username);
-            integrationMethod = new IntegrationMethod();
-            integrationMethod.setApplication(application);
-            integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
-            connector = new Connector();
-            connector.setDisplayName(connDto.displayName());
-            connector.setRevision("1.0.0");
-            connector.setAuthor(username);
-            connector.setMaintainer(connDto.maintainer());
-            connector.setDescription(connDto.description());
-            connector.setFullyQualifiedClassName(connDto.className());
-            connector.setConnectorBundle(bundle);
+
+            connector = bundle.getConnectors().stream()
+                    .filter(c -> c.getFullyQualifiedClassName().equals(connDto.className()))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException(
+                            "Connector for bundle with id:" + connDto.connectorBundleId() +
+                                    " and className: " + connDto.className() + " not found"));
+            isNewConnector = false;
         } else {
             // Entirely new integration method with a new connector bundle
-            integrationMethod = new IntegrationMethod();
-            integrationMethod.setApplication(application);
-            integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
-
             bundle = createNewConnectorBundle(connDto, username);
             connector = new Connector();
             connector.setDisplayName(connDto.displayName());
@@ -178,50 +189,44 @@ public class ConnectorUploadService {
             connector.setConnectorBundle(bundle);
         }
 
-        integrationMethod.setMidpointMinVersionId(imDto.midpointMinVersion());
-        integrationMethod.setMidpointMaxVersionId(imDto.midpointMaxVersion());
-
-        if (!isNewVersion) {
-            if (imDto.displayName() != null) {
-                integrationMethod.setDisplayName(imDto.displayName());
-            }
-            if (imDto.revision() != null) {
-                integrationMethod.setRevision(imDto.revision());
-            }
-            if (imDto.description() != null) {
-                integrationMethod.setDescription(imDto.description());
-            }
-            if (imDto.tutorial() != null) {
-                integrationMethod.setTutorial(imDto.tutorial());
-            }
-            if (imDto.typeIds() != null && !imDto.typeIds().isEmpty()) {
-                List<IntegrationMethodType> types = integrationMethodTypeRepository.findAllById(imDto.typeIds());
-                integrationMethod.setIntegMethodTypes(types);
-            }
+        if (imDto.displayName() != null) {
+            integrationMethod.setDisplayName(imDto.displayName());
+        }
+        if (imDto.revision() != null) {
+            integrationMethod.setRevision(imDto.revision());
+        }
+        if (imDto.description() != null) {
+            integrationMethod.setDescription(imDto.description());
+        }
+        if (imDto.tutorial() != null) {
+            integrationMethod.setTutorial(imDto.tutorial());
+        }
+        if (imDto.typeIds() != null && !imDto.typeIds().isEmpty()) {
+            List<IntegrationMethodType> types = integrationMethodTypeRepository.findAllById(imDto.typeIds());
+            integrationMethod.setIntegMethodTypes(types);
         }
 
-        return new UploadResolution(integrationMethod, connector, bundle, isNewVersion);
+        return new UploadResolution(integrationMethod, connector, bundle, isNewConnector);
     }
 
     private ConnectorBundle createNewConnectorBundle(UploadConnectorDto dto, String username) {
         ConnectorBundle.FrameworkType framework = dto.framework();
-        if (framework == null && dto.buildFramework() != null) {
-            framework = (dto.buildFramework() == BuildFrameworkType.MAVEN)
-                    ? ConnectorBundle.FrameworkType.JAVA_BASED
-                    : ConnectorBundle.FrameworkType.LOW_CODE;
-        }
         if (framework == null) {
             throw new IllegalArgumentException("Framework must be specified");
         }
 
         BuildFrameworkType buildFramework = dto.buildFramework();
 
+        if (dto.license() == null) {
+            throw new IllegalArgumentException("License must be specified");
+        }
+
         ConnectorBundle bundle = new ConnectorBundle();
         bundle.setRevision("1.0.0");
         bundle.setAuthor(username);
         bundle.setFramework(framework);
         bundle.setBuildFramework(buildFramework);
-        bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
+        bundle.setLicense(dto.license());
         bundle.setBundleName(dto.bundleName());
         bundle.setDisplayName(dto.bundleDisplayName());
         bundle.setDescription(dto.description());
@@ -231,36 +236,7 @@ public class ConnectorUploadService {
         bundle.setGitCloneUrl(dto.gitCloneUrl());
         bundle.setPathToProject(dto.pathToProject());
         bundle.setLifecycleState(LifecycleType.IN_REVIEW);
-        return bundle;
-    }
-
-    private ConnectorBundle createNewConnectorBundle(UploadConnectorDto dto, ConnectorBundle template, String username) {
-        ConnectorBundle.FrameworkType framework = dto.framework() != null ? dto.framework() : template.getFramework();
-        BuildFrameworkType buildFramework = dto.buildFramework() != null ? dto.buildFramework() : template.getBuildFramework();
-        if (framework == null && buildFramework != null) {
-            framework = (buildFramework == BuildFrameworkType.MAVEN)
-                    ? ConnectorBundle.FrameworkType.JAVA_BASED
-                    : ConnectorBundle.FrameworkType.LOW_CODE;
-        }
-        if (framework == null) {
-            throw new IllegalArgumentException("Framework must be specified");
-        }
-
-        ConnectorBundle bundle = new ConnectorBundle();
-        bundle.setRevision("1.0.0");
-        bundle.setAuthor(username);
-        bundle.setFramework(framework);
-        bundle.setBuildFramework(buildFramework);
-        bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.APACHE_2);
-        bundle.setBundleName(dto.bundleName());
-        bundle.setDisplayName(dto.bundleDisplayName());
-        bundle.setDescription(dto.description());
-        bundle.setMaintainer(dto.maintainer());
-        bundle.setTicketingLink(dto.ticketingSystemLink());
-        bundle.setProjectHomepage(dto.browseLink());
-        bundle.setGitCloneUrl(dto.gitCloneUrl());
-        bundle.setPathToProject(dto.pathToProject());
-        bundle.setLifecycleState(LifecycleType.IN_REVIEW);
+        bundle.setBundleName(UUID.randomUUID().toString());
         return bundle;
     }
 
@@ -303,59 +279,8 @@ public class ConnectorUploadService {
         return cv;
     }
 
-    private void setUpRelationships(UploadResolution res, ConnectorBundleVersion bundleVersion) {
-        if (!res.isNewVersion()) {
-            res.connector().setConnectorBundle(res.bundle());
-        }
-        bundleVersion.setConnectorBundle(res.bundle());
-    }
-
-    private void setDefaults(Application application, ConnectorBundle bundle,
-                             ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
-        if (application.getLifecycleState() == null) {
-            application.setLifecycleState(Application.ApplicationLifecycleType.IN_REVIEW);
-        }
-        if (bundle.getBundleName() == null || bundle.getBundleName().isBlank()) {
-            bundle.setBundleName(UUID.randomUUID().toString());
-        }
-    }
-
-    private void copyFromLatestVersionIfNeeded(UploadResolution res, ConnectorBundleVersion bundleVersion,
-                                               ConnectorVersion connectorVersion) {
-        if (!res.isNewVersion() || res.connector() == null) return;
-
-        List<ConnectorVersion> existing = res.connector().getConnectorVersions();
-        if (existing == null || existing.isEmpty()) return;
-
-        ConnectorVersion latest = existing.stream()
-                .max((a, b) -> {
-                    if (a.getUpdated() == null) return -1;
-                    if (b.getUpdated() == null) return 1;
-                    return a.getUpdated().compareTo(b.getUpdated());
-                })
-                .orElse(null);
-
-        if (latest == null) return;
-
-        if (connectorVersion.getFullyQualifiedClassName() == null && latest.getFullyQualifiedClassName() != null) {
-            connectorVersion.setFullyQualifiedClassName(latest.getFullyQualifiedClassName());
-        }
-
-        ConnectorBundleVersion latestCbv = latest.getConnectorBundleVersion();
-        if (latestCbv != null) {
-            if (bundleVersion.getBrowseLink() == null || bundleVersion.getBrowseLink().isEmpty()) {
-                bundleVersion.setBrowseLink(latestCbv.getBrowseLink());
-            }
-            if (bundleVersion.getGitCloneUrl() == null || bundleVersion.getGitCloneUrl().isEmpty()) {
-                bundleVersion.setGitCloneUrl(latestCbv.getGitCloneUrl());
-            }
-        }
-    }
-
     private void createGitHubRepositoryIfNeeded(UploadResolution res, ConnectorBundleVersion bundleVersion,
                                                 ConnectorVersion connectorVersion, List<ItemFile> files) {
-        if (res.isNewVersion()) return;
-
         if (ConnectorBundle.FrameworkType.LOW_CODE.equals(res.bundle().getFramework())) {
             boolean hasLinks = (bundleVersion.getBrowseLink() != null && !bundleVersion.getBrowseLink().isEmpty())
                     || (bundleVersion.getGitCloneUrl() != null && !bundleVersion.getGitCloneUrl().isEmpty());
@@ -463,29 +388,8 @@ public class ConnectorUploadService {
      */
     private String createDraft(IntegrationMethod existing, UUID methodId,
                                String currentRevision, EditIntegrationMethodDto dto, String newRevision) {
-        IntegrationMethod updated = new IntegrationMethod();
-        updated.setId(methodId);
-        updated.setRevision(newRevision);
-        updated.setApplication(existing.getApplication());
-        // Inherit the source revision's creation time so the method keeps its list position.
-        updated.setCreatedAt(existing.getCreatedAt());
-        // A revision produced by the edit-upgrade flow always starts unpublished, pending review.
-        updated.setLifecycleState(LifecycleType.IN_REVIEW);
-        updated.setAuthor(existing.getAuthor());
-        updated.setMaintainer(existing.getMaintainer());
-        // Supported midPoint version range comes from the edit form (prefilled from the source revision).
-        updated.setMidpointMinVersionId(dto.midpointMinVersion());
-        updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
-        updated.setAppVersion(existing.getAppVersion());
-        // Carry tutorial files forward into the new revision's own folder, then point file_path at it.
-        String tutorialFolder = tutorialStorageService.copyTutorialFolder(methodId, currentRevision, newRevision);
-        updated.setFilePath(tutorialFolder);
-        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
-        updated.setDisplayName(dto.displayName());
-        updated.setDescription(dto.description());
-        updated.setTutorial(dto.tutorial());
-
-        copyConnectorLinks(existing, updated);
+        IntegrationMethod updated = copyIntegrationMethod(
+                existing, methodId, currentRevision, newRevision, dto, false);
 
         integrationMethodRepository.save(updated);
 
@@ -517,31 +421,12 @@ public class ConnectorUploadService {
         // Resubmitting a rejected revision flips it back to IN_REVIEW; an in-review draft stays as-is.
         boolean wasRejected = existing.getLifecycleState() == LifecycleType.REJECTED;
 
-        IntegrationMethod updated = new IntegrationMethod();
-        updated.setId(methodId);
-        updated.setRevision(newRevision);
-        updated.setApplication(existing.getApplication());
-        // Inherit the source revision's creation time so the method keeps its list position.
-        updated.setCreatedAt(existing.getCreatedAt());
+        IntegrationMethod updated = copyIntegrationMethod(
+                existing, methodId, currentRevision, newRevision, dto, true);
         updated.setLifecycleState(wasRejected ? LifecycleType.IN_REVIEW : existing.getLifecycleState());
         // Keep the reviewer on a revision edited during its review (REVIEWING survives the rewrite);
         // a resubmitted rejected revision starts a fresh review cycle with no reviewer.
         updated.setReviewedBy(wasRejected ? null : existing.getReviewedBy());
-        updated.setAuthor(existing.getAuthor());
-        updated.setMaintainer(existing.getMaintainer());
-        // Supported midPoint version range comes from the edit form (prefilled from the source revision).
-        updated.setMidpointMinVersionId(dto.midpointMinVersion());
-        updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
-        updated.setAppVersion(existing.getAppVersion());
-        // Move the single tutorial folder over to the bumped revision and point file_path at it.
-        String tutorialFolder = tutorialStorageService.renameTutorialFolder(methodId, currentRevision, newRevision);
-        updated.setFilePath(tutorialFolder);
-        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
-        updated.setDisplayName(dto.displayName());
-        updated.setDescription(dto.description());
-        updated.setTutorial(dto.tutorial());
-
-        copyConnectorLinks(existing, updated);
 
         integrationMethodRepository.save(updated);
         saveIntegrationMethodCapabilities(dto.capabilities(), updated);
@@ -557,6 +442,40 @@ public class ConnectorUploadService {
         integrationMethodRepository.flush();
 
         return newRevision;
+    }
+
+    private IntegrationMethod copyIntegrationMethod(
+            IntegrationMethod existing, UUID methodId, String currentRevision, String newRevision,
+            EditIntegrationMethodDto dto, boolean rewriteExisting) {
+        IntegrationMethod updated = new IntegrationMethod();
+        updated.setId(methodId);
+        updated.setRevision(newRevision);
+        updated.setApplication(existing.getApplication());
+        // Inherit the source revision's creation time so the method keeps its list position.
+        updated.setCreatedAt(existing.getCreatedAt());
+        updated.setAuthor(existing.getAuthor());
+        updated.setMaintainer(existing.getMaintainer());
+        // Supported midPoint version range comes from the edit form (prefilled from the source revision).
+        updated.setMidpointMinVersionId(dto.midpointMinVersion());
+        updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
+        updated.setAppVersion(existing.getAppVersion());
+        String tutorialFolder;
+        if (rewriteExisting) {
+            // Move the single tutorial folder over to the bumped revision and point file_path at it.
+            tutorialFolder = tutorialStorageService.renameTutorialFolder(methodId, currentRevision, newRevision);
+        } else {
+            // Carry tutorial files forward into the new revision's own folder, then point file_path at it.
+            tutorialFolder = tutorialStorageService.copyTutorialFolder(methodId, currentRevision, newRevision);
+        }
+        updated.setFilePath(tutorialFolder);
+        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
+        updated.setDisplayName(dto.displayName());
+        updated.setDescription(dto.description());
+        updated.setTutorial(dto.tutorial());
+
+        copyConnectorLinks(existing, updated);
+
+        return updated;
     }
 
     private void copyConnectorLinks(IntegrationMethod from, IntegrationMethod to) {
@@ -583,10 +502,35 @@ public class ConnectorUploadService {
         if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
             throw new IllegalStateException("Only in-review revisions can be put under review: " + methodId + "/" + revision);
         }
-        draft.setLifecycleState(LifecycleType.REVIEWING);
+        setConditionallyLifecycleState(draft, LifecycleType.IN_REVIEW, LifecycleType.REVIEWING);
         draft.setReviewedBy(username);
         log.info("Started review of integration method {}/{} by {}", methodId, revision, username);
     }
+
+    private void setConditionallyLifecycleState(IntegrationMethod draft, LifecycleType inState, LifecycleType newState) {
+        draft.setLifecycleState(newState);
+        draft.getConnectors()
+                .forEach(imc -> {
+                    Connector connector = imc.getConnector();
+                    setConditionallyLifecycleState(connector, inState, newState);
+                });
+    }
+
+    private void setConditionallyLifecycleState(Connector connector, LifecycleType inState, LifecycleType newState) {
+        ConnectorBundle bundle = connector.getConnectorBundle();
+        if (bundle != null) {
+            if (bundle.getLifecycleState() != inState) {
+                bundle.setLifecycleState(newState);
+            }
+            bundle.getBundleVersions().stream()
+                    .filter(bv -> bv.getLifecycleState() != inState)
+                    .forEach(bv -> bv.setLifecycleState(newState));
+        }
+        connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getLifecycleState() != inState)
+                .forEach(cv -> cv.setLifecycleState(newState));
+    }
+
 
     /**
      * Stops an ongoing review: flips REVIEWING -> IN_REVIEW and clears the reviewer, so the
@@ -599,7 +543,7 @@ public class ConnectorUploadService {
         if (draft.getLifecycleState() != LifecycleType.REVIEWING) {
             throw new IllegalStateException("Only revisions under review can have the review stopped: " + methodId + "/" + revision);
         }
-        draft.setLifecycleState(LifecycleType.IN_REVIEW);
+        setConditionallyLifecycleState(draft, LifecycleType.REVIEWING, LifecycleType.IN_REVIEW);
         draft.setReviewedBy(null);
         log.info("Stopped review of integration method {}/{} by {}", methodId, revision, username);
     }
@@ -615,8 +559,7 @@ public class ConnectorUploadService {
     public void publishIntegrationMethod(UUID methodId, String revision, String username) {
         IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
-        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW
-                && draft.getLifecycleState() != LifecycleType.REVIEWING) {
+        if (draft.getLifecycleState() != LifecycleType.REVIEWING) {
             throw new IllegalStateException("Only in-review revisions can be published: " + methodId + "/" + revision);
         }
 
@@ -674,32 +617,17 @@ public class ConnectorUploadService {
     private void promoteConnectorsToActive(IntegrationMethod method) {
         for (IntegrationMethodConnector link : method.getConnectors()) {
             Connector connector = link.getConnector();
-            if (connector == null) continue;
+            //TODO How can connector be null?
+            if (connector == null) {
+                continue;
+            }
 
             // A copy-on-write clone holding a same-version metadata edit is folded back into the
             // shared original here, so the approved correction shows on EVERY method linking that
             // connector; a changed-version clone stays a separate connector and is promoted below.
             connector = mergeMetadataCloneIntoOriginal(method, link, connector);
 
-            ConnectorBundle bundle = connector.getConnectorBundle();
-            if (bundle != null) {
-                if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
-                    bundle.setLifecycleState(LifecycleType.ACTIVE);
-                    connectorBundleRepository.save(bundle);
-                }
-                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
-                    if (cbv.getLifecycleState() == LifecycleType.IN_REVIEW) {
-                        cbv.setLifecycleState(LifecycleType.ACTIVE);
-                        connectorBundleVersionRepository.save(cbv);
-                    }
-                }
-            }
-            for (ConnectorVersion cv : connector.getConnectorVersions()) {
-                if (cv.getLifecycleState() == LifecycleType.IN_REVIEW) {
-                    cv.setLifecycleState(LifecycleType.ACTIVE);
-                    connectorVersionRepository.save(cv);
-                }
-            }
+            setConditionallyLifecycleState(connector, LifecycleType.REVIEWING, LifecycleType.ACTIVE);
         }
     }
 
@@ -711,27 +639,10 @@ public class ConnectorUploadService {
     private void rejectConnectorsOfMethod(IntegrationMethod method) {
         for (IntegrationMethodConnector link : method.getConnectors()) {
             Connector connector = link.getConnector();
-            if (connector == null) continue;
-
-            ConnectorBundle bundle = connector.getConnectorBundle();
-            if (bundle != null) {
-                if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
-                    bundle.setLifecycleState(LifecycleType.REJECTED);
-                    connectorBundleRepository.save(bundle);
-                }
-                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
-                    if (cbv.getLifecycleState() == LifecycleType.IN_REVIEW) {
-                        cbv.setLifecycleState(LifecycleType.REJECTED);
-                        connectorBundleVersionRepository.save(cbv);
-                    }
-                }
+            if (connector == null) {
+                continue;
             }
-            for (ConnectorVersion cv : connector.getConnectorVersions()) {
-                if (cv.getLifecycleState() == LifecycleType.IN_REVIEW) {
-                    cv.setLifecycleState(LifecycleType.REJECTED);
-                    connectorVersionRepository.save(cv);
-                }
-            }
+            setConditionallyLifecycleState(connector, LifecycleType.REVIEWING, LifecycleType.REJECTED);
         }
     }
 
@@ -744,26 +655,7 @@ public class ConnectorUploadService {
         for (IntegrationMethodConnector link : method.getConnectors()) {
             Connector connector = link.getConnector();
             if (connector == null) continue;
-
-            ConnectorBundle bundle = connector.getConnectorBundle();
-            if (bundle != null) {
-                if (bundle.getLifecycleState() == LifecycleType.REJECTED) {
-                    bundle.setLifecycleState(LifecycleType.IN_REVIEW);
-                    connectorBundleRepository.save(bundle);
-                }
-                for (ConnectorBundleVersion cbv : bundle.getBundleVersions()) {
-                    if (cbv.getLifecycleState() == LifecycleType.REJECTED) {
-                        cbv.setLifecycleState(LifecycleType.IN_REVIEW);
-                        connectorBundleVersionRepository.save(cbv);
-                    }
-                }
-            }
-            for (ConnectorVersion cv : connector.getConnectorVersions()) {
-                if (cv.getLifecycleState() == LifecycleType.REJECTED) {
-                    cv.setLifecycleState(LifecycleType.IN_REVIEW);
-                    connectorVersionRepository.save(cv);
-                }
-            }
+            setConditionallyLifecycleState(connector, LifecycleType.REJECTED, LifecycleType.IN_REVIEW);
         }
     }
 
@@ -835,8 +727,9 @@ public class ConnectorUploadService {
                     dto.displayName(), dto.framework(), dto.version(), dto.bundleName(), dto.license(),
                     dto.buildFramework(), dto.description(), dto.maintainer(), dto.browseLink(),
                     null, dto.gitCloneUrl(), dto.className(), dto.pathToProject(), dto.commitTag(),
-                    dto.displayName(), null);
+                    dto.displayName(), null, dto.connectorVersionFrom(), dto.connectorVersionTo());
 
+            //TODO check bundleName is set
             ConnectorBundle bundle = createNewConnectorBundle(connDto, username);
             connectorBundleRepository.save(bundle);
 
@@ -1249,7 +1142,9 @@ public class ConnectorUploadService {
     private Connector mergeMetadataCloneIntoOriginal(IntegrationMethod method,
                                                      IntegrationMethodConnector link, Connector clone) {
         Integer originId = clone.getClonedFrom();
-        if (originId == null) return clone;
+        if (originId == null) {
+            return clone;
+        }
         Connector original = connectorRepository.findById(originId).orElse(null);
         if (original == null || original.getId().equals(clone.getId())) {
             // The original is gone (e.g. superseded and cleaned up) — the clone stands on its own.
@@ -1388,13 +1283,17 @@ public class ConnectorUploadService {
     }
 
     private static boolean identifierDiffers(String incoming, String current) {
-        if (incoming == null || incoming.isBlank()) return false;
+        if (incoming == null || incoming.isBlank()) {
+            return false;
+        }
         return !incoming.trim().equals(current == null ? "" : current.trim());
     }
 
     private static String firstNonBlank(String... values) {
         for (String v : values) {
-            if (v != null && !v.isBlank()) return v;
+            if (v != null && !v.isBlank()) {
+                return v;
+            }
         }
         return null;
     }
@@ -1444,11 +1343,11 @@ public class ConnectorUploadService {
         }
     }
 
-    private void saveIntegrationMethodCapabilities(UploadImplementationDto dto, IntegrationMethod integrationMethod) {
+    private void saveIntegrationMethodCapabilities(UploadIntegrationDto dto, IntegrationMethod integrationMethod) {
         saveIntegrationMethodCapabilities(dto.integrationMethodCapabilities(), integrationMethod);
     }
 
-    private void saveConnectorVersionCapabilities(UploadImplementationDto dto, ConnectorVersion connectorVersion) {
+    private void saveConnectorVersionCapabilities(UploadIntegrationDto dto, ConnectorVersion connectorVersion) {
         saveConnectorVersionCapabilities(dto.connectorCapabilities(), connectorVersion);
     }
 
@@ -1476,27 +1375,18 @@ public class ConnectorUploadService {
         }
     }
 
-    private void persistEntities(ApplicationResolution appRes, UploadResolution uploadRes,
+    private void persistEntities(ApplicationResolution appRes, UploadResolution uploadRes) {
+        applicationRepository.save(appRes.application());
+        integrationMethodRepository.save(uploadRes.integrationMethod());
+    }
+
+    private void persistEntities(UploadResolution uploadRes,
                                  ConnectorBundleVersion bundleVersion, ConnectorVersion connectorVersion) {
-        if (uploadRes.isNewVersion()) {
-            if (appRes.isNew()) applicationRepository.save(appRes.application());
-            if (bundleVersion.getId() == null) connectorBundleVersionRepository.save(bundleVersion);
-        } else {
-            applicationRepository.save(appRes.application());
-            if (uploadRes.bundle().getId() == null) {
-                connectorBundleRepository.save(uploadRes.bundle());
-            }
-            if (bundleVersion.getId() == null) connectorBundleVersionRepository.save(bundleVersion);
-            connectorRepository.save(uploadRes.connector());
-
-            IntegrationMethodConnector imc = new IntegrationMethodConnector();
-            imc.setConnector(uploadRes.connector());
-            imc.setConnectorMinVersion(connectorVersion.getRevision());
-            imc.setIntegrationMethod(uploadRes.integrationMethod());
-            uploadRes.integrationMethod().getConnectors().add(imc);
-
-            integrationMethodRepository.save(uploadRes.integrationMethod());
+        if (uploadRes.bundle().getId() == null) {
+            connectorBundleRepository.save(uploadRes.bundle());
         }
+        if (bundleVersion.getId() == null) connectorBundleVersionRepository.save(bundleVersion);
+        connectorRepository.save(uploadRes.connector());
         connectorVersionRepository.save(connectorVersion);
     }
 }
