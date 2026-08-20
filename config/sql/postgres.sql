@@ -894,16 +894,38 @@ SELECT setval('capability_id_seq', 18);
 
 
 INSERT INTO midpoint_version (id, version, version_name, is_current) values
-	(1, '4.2',  'Maxwell',       false),
-    (2, '4.3',  'Faraday',       false),
-    (3, '4.4',  'Tesla (LTS)',   false),
-    (4, '4.5',  'Nightingale',   false),
-    (5, '4.6',  'Baumgarten',    false),
-    (6, '4.7',  'Johnson',       false),
-    (7, '4.8',  'Curie (LTS)',   false),
-    (8, '4.9',  'Verne',         false),
-    (9, '4.10', 'Braille',       true),
-    (10, '4.11', 'Version 4.11', false);
+	(1,  '4.2',    'Maxwell',          false),
+    (2,  '4.3',    'Faraday',          false),
+    (3,  '4.4',    'Tesla (LTS)',      false),
+    (4,  '4.5',    'Nightingale',      false),
+    (5,  '4.6',    'Baumgarten',       false),
+    (6,  '4.7',    'Johnson',          false),
+    (7,  '4.8',    'Curie (LTS)',      false),
+    (8,  '4.9',    'Verne',            false),
+    (9,  '4.10',   'Braille',          false),
+    (10, '4.11',   'Čapek',            false),
+    (11, '4.8.1',  'Curie Update 1',   false),
+    (12, '4.8.2',  'Curie Update 2',   false),
+    (13, '4.8.3',  'Curie Update 3',   false),
+    (14, '4.8.4',  'Curie Update 4',   false),
+    (15, '4.8.5',  'Curie Update 5',   false),
+    (16, '4.8.6',  'Curie Update 6',   false),
+    (17, '4.8.7',  'Curie Update 7',   false),
+    (18, '4.8.8',  'Curie Update 8',   false),
+    (19, '4.8.9',  'Curie Update 9',   false),
+    (20, '4.8.10', 'Curie Update 10',  false),
+    (21, '4.8.11', 'Curie Update 11',  false),
+    (22, '4.8.12', 'Curie Update 12',  false),
+    (23, '4.9.1',  'Verne Update 1',   false),
+    (24, '4.9.2',  'Verne Update 2',   false),
+    (25, '4.9.3',  'Verne Update 3',   false),
+    (26, '4.9.4',  'Verne Update 4',   false),
+    (27, '4.9.5',  'Verne Update 5',   false),
+    (28, '4.9.6',  'Verne Update 6',   false),
+    (29, '4.9.7',  'Verne Update 7',   false),
+    (30, '4.10.1', 'Braille Update 1', false),
+    (31, '4.10.2', 'Braille Update 2', false),
+    (32, '4.10.3', 'Braille Update 3', true);
 	
 SELECT setval('midpoint_version_id_seq', 10);
 
