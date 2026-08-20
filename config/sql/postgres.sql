@@ -859,7 +859,9 @@ INSERT INTO integration_method_type (id, display_name, description) OVERRIDING S
     (3, 'OpenLDAP',      'Connect to an OpenLDAP directory to read and manage identities.'),
     (4, 'Manual / ITSM', 'Fulfil provisioning requests manually through an ITSM ticketing workflow.'),
     (5, 'Database',      'Read and write identity data directly in a relational database.'),
-    (6, 'CSV',           'Exchange identity data through CSV file import and export.');
+    (6, 'CSV',           'Exchange identity data through CSV file import and export.'),
+    (7, 'SSH',           'Connect to a remote system using SSH to provision and manage identities.'),
+    (8, 'SAP',           'Integrate with SAP systems to provision and manage identities.');
 
 SELECT setval('integration_method_type_id_seq', 6);
 
