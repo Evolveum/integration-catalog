@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
@@ -36,6 +38,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -48,9 +51,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * The security layer is deliberately switched off (SecurityConfig excluded, filters
  * disabled): these tests exercise the MVC layer only, and the caller identity is passed
  * as a request principal where an endpoint needs one.
+ * <p>
+ * Excluding SecurityConfig leaves no HttpSecurity bean, so the OAuth2 client auto-configuration
+ * (active because the application is an OIDC client) cannot build its filter chain and fails the
+ * whole slice - it is excluded here as well.
  */
 @WebMvcTest(controllers = Controller.class,
-        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class))
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
+        excludeAutoConfiguration = OAuth2ClientWebSecurityAutoConfiguration.class)
 @AutoConfigureMockMvc(addFilters = false)
 class ControllerTest {
 
@@ -83,6 +91,9 @@ class ControllerTest {
 
     @MockitoBean
     private TutorialStorageService tutorialStorageService;
+
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.service.BundleService bundleService;
 
     @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
@@ -515,19 +526,17 @@ class ControllerTest {
     @Test
     void verifyConnectorBundleVersionNoBundleWithSuchClassName() throws Exception {
         VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
         verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
         verifyBundleInformationForm.setVersion("1.0.0");
 
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(true);
+        applicationService.verify(testVersionId, any(VerifyBundleInformationForm.class));
 
         mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
                 .andExpect(status().isOk());
 
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+        verify(applicationService).verify(testVersionId, any(VerifyBundleInformationForm.class));
     }
 
     // TODO, Set up conflict scenario
@@ -535,39 +544,20 @@ class ControllerTest {
     @Test
     void verifyConnectorBundleVersionBundleWithSuchClassName() throws Exception {
         VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
         verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
         verifyBundleInformationForm.setVersion("1.0.0");
 
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(false);
+        assertThrows(
+                ObjectAlreadyExist.class,
+                () -> applicationService.verify(testVersionId, any(VerifyBundleInformationForm.class))
+        );
 
         mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
                 .andExpect(status().isConflict());
 
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
-    }
-
-    // TODO, Set up Not found
-    @Disabled("TODO: Set up Not found scenario")
-    @Test
-    void verifyConnectorBundleVersionNoSuchBundle() throws Exception {
-        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
-        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
-        verifyBundleInformationForm.setVersion("1.0.0");
-
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(false);
-
-        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+        verify(applicationService).verify(testVersionId, any(VerifyBundleInformationForm.class));
     }
 
     // ===== GET /api/connectors/catalog =====

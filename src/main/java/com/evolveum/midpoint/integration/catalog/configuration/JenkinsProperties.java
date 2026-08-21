@@ -13,6 +13,7 @@ public record JenkinsProperties(
         String url,
         String apiToken,
         String username,
+        String jobName,
         String callbackToken
 ) {
 }

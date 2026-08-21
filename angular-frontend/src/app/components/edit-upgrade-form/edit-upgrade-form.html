@@ -549,10 +549,8 @@
 
           @if (isCompatRangeInvalid()) {
             <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
-          } @else if ((compatFrom().trim() && !isCompatFromValid()) || !isCompatToValid()) {
-            <div class="field-error">Enter versions in the X.Y.Z format (e.g. 1.0.0).</div>
           } @else {
-            <div class="form-text">Enter a version in the X.Y.Z format. Users can search for this connector by version range.</div>
+            <div class="form-text">Users can search for this connector by version range.</div>
           }
 
           @if (!compatInfoDismissed()) {

@@ -39,8 +39,17 @@ SELECT setval('country_of_origin_id_seq', 3);
 INSERT INTO application (id, name, display_name, description, lifecycle_state, created_at, updated, logo_path) VALUES
     ('11111111-1111-1111-1111-111111111111', 'my_test_app', 'My Test App',
      'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
+    ('11111111-1111-1111-1111-111111111112', 'my_test_ap1', 'My Test App',
+     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
+    ('11111111-1111-1111-1111-111111111122', 'my_test_ap2', 'My Test App',
+     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
+    ('11111111-1111-1111-1111-111111111222', 'my_test_ap3', 'My Test App',
+     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
+    ('11111111-1111-1111-1111-111111112222', 'my_test_ap4', 'My Test App',
+     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
     ('22222222-2222-2222-2222-222222222222', 'sap_hr', 'SAP HR',
      'SAP Human Resources system integration requested by the community. Some more text to test limit of chars that can hold in this DB column.'
+     'SAP Human SAP Human SAP Human SAP Human SAP Human SAP Human SAP Human SAP .'
      'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), null),
     ('33333333-3333-3333-3333-333333333333', 'empty_app', 'Empty App',
      'Existing published application that currently has no integration methods or connectors', 'ACTIVE', NOW(), NOW(), null);
@@ -68,7 +77,7 @@ OVERRIDING SYSTEM VALUE VALUES
      'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN', NULL, 'Evolveum'),
     (2, '1.0', 'u1', 'Conn bun maintainer 2', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
      'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE', 'acme', 'Partner'),
-    (3, '1.0', 'u5', 'Conn bun maintainer 3', NOW(), NOW(), 'ACTIVE', 'connector-csvfile', 'CSV File Connector Bundle',
+    (3, '1.0', 'u5', 'Conn bun maintainer 3', NOW(), NOW(), 'ACTIVE', 'com.evolveum.polygon.connector-csv', 'CSV File Connector Bundle',
      'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues', 'MAVEN', NULL, 'Evolveum');
 
 SELECT setval('connector_bundle_id_seq', 4);
@@ -86,7 +95,7 @@ OVERRIDING SYSTEM VALUE VALUES
      'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL, NULL, NULL, 'Evolveum'),
     (2, '1.0', 'u1', 'Conn bun ver maintainer 2', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
      'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL, 'acme', 'Partner'),
-    (3, '1.0', 'u5', 'Conn bun ver maintainer 3', NOW(), NOW(), 'ACTIVE', 3, '1.4.2.0',
+    (3, '1.0', 'u5', 'Conn bun ver maintainer 3', NOW(), NOW(), 'ACTIVE', 3, '2.9',
      'https://nexus.evolveum.com/nexus/#browse/browse:releases:com%2Fevolveum%2Fpolygon%2Fconnector-csvfile',
      'https://github.com/Evolveum/connector-csv.git', '/path_to_project', 'MAVEN',
      'https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar', NULL, NULL, 'Evolveum');

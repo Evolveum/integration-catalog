@@ -213,4 +213,4 @@ Schema change **3**: the `catalog_users` and `organizations` tables are **droppe
 user, role and organization data lives in Keycloak only (token claims for the current
 user, Admin API for everyone else). The `author`/`maintainer` columns on catalog items
 are plain text usernames/org names and are unaffected. Existing databases: run
-`config/sql/upgrade/upgrade.sql`.
+`config/sql/postgres-upgrade.sql`.

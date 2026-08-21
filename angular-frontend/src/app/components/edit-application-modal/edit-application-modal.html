@@ -1,0 +1,122 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<!-- Backdrop -->
+<div class="edit-app-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onClose()"></div>
+
+<!-- Modal Dialog -->
+<div class="edit-app-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="edit-app-dialog bg-white rounded shadow-lg" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="edit-app-header d-flex align-items-center justify-content-between p-4 border-bottom">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-pen-to-square edit-app-header-icon"></i>
+        <span class="edit-app-title">Edit application</span>
+      </div>
+      <button type="button" class="btn p-0 edit-app-close" (click)="onClose()" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="edit-app-body p-4">
+
+      <!-- Display Name -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Display name <span class="text-danger">*</span></label>
+        <input
+          type="text"
+          class="form-control"
+          [class.is-invalid]="displayNameInvalid()"
+          [value]="displayName()"
+          (input)="onDisplayNameInput($event)"
+          placeholder="e.g. Active Directory, LDAP Server"
+        />
+        @if (displayNameInvalid()) {
+          <div class="invalid-feedback d-block">
+            Display name must be at least 3 characters long.
+          </div>
+        }
+      </div>
+
+      <!-- Description -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Description</label>
+        <textarea
+          class="form-control"
+          rows="4"
+          [value]="description()"
+          (input)="onDescriptionInput($event)"
+          placeholder="Brief description of the application..."
+        ></textarea>
+      </div>
+
+      <!-- Logo -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Logo</label>
+        <div class="edit-app-logo-section">
+          @if (application?.logoPath) {
+            <div class="edit-app-logo-preview mb-2">
+              <img [src]="'/api/applications/' + appId + '/logo'" alt="Current logo" class="edit-app-current-logo" />
+            </div>
+          }
+          <div class="input-group">
+            <input
+              id="logo-input"
+              type="file"
+              class="form-control"
+              accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
+              (change)="onLogoSelect($event)"
+            />
+            @if (logoFile()) {
+              <button type="button" class="btn btn-outline-secondary" (click)="clearLogo()">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (logoFile()) {
+            <small class="text-muted d-block mt-1">Selected: {{ logoFile()?.name }}</small>
+          }
+          <small class="text-muted d-block mt-1">PNG, JPEG, GIF, SVG, or WebP. Max 5MB.</small>
+        </div>
+      </div>
+
+      <!-- Error message -->
+      @if (saveError()) {
+        <div class="alert alert-danger py-2 mb-3" role="alert">
+          <i class="fa-solid fa-circle-exclamation me-1"></i>{{ saveError() }}
+        </div>
+      }
+
+      <!-- Success message -->
+      @if (saveSuccess()) {
+        <div class="alert alert-success py-2 mb-3" role="alert">
+          <i class="fa-solid fa-circle-check me-1"></i>{{ saveSuccess() }}
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="edit-app-footer d-flex justify-content-end align-items-center gap-2 p-4 border-top">
+      <button type="button" class="btn btn-secondary" (click)="onClose()" [disabled]="isSaving()">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="save()"
+        [disabled]="isSaving() || !isValid()"
+      >
+        @if (isSaving()) {
+          <span class="spinner-border spinner-border-sm me-1" role="status"></span>Saving...
+        } @else {
+          <i class="fa-solid fa-check me-1"></i>Save changes
+        }
+      </button>
+    </div>
+  </div>
+</div>

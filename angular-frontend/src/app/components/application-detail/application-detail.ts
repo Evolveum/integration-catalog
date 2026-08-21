@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
@@ -13,7 +13,10 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
+import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
+import { ConnectorWithoutDownload } from '../../services/application.service';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
 
 interface MethodGroup {
@@ -27,7 +30,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -147,6 +150,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly methodDropdownOpen = signal<boolean>(false);
 
   protected readonly availableMethodTypes = signal<{ id: number; displayName: string }[]>([]);
+
+  @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;
 
   constructor(
     private route: ActivatedRoute,
@@ -879,6 +884,63 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly isDownloadInfoOpen = signal<boolean>(false);
   protected readonly downloadInfoFileName = signal<string>('');
   protected readonly downloadInfoFileSize = signal<number | null>(null);
+
+  // Edit application modal (superuser only)
+  protected readonly isEditModalOpen = signal<boolean>(false);
+
+  // Manual fill modal (opened from approval-confirm-modal)
+  protected readonly manualFillOpen = signal<boolean>(false);
+  protected readonly manualFillConnector = signal<ConnectorWithoutDownload | null>(null);
+  protected readonly manualFillMethodId = signal<string>('');
+
+  protected openManualFill(connector: ConnectorWithoutDownload): void {
+    this.manualFillConnector.set(connector);
+    this.manualFillMethodId.set(this.confirmVersion()?.id ?? '');
+    this.manualFillOpen.set(true);
+  }
+
+  protected closeManualFill(): void {
+    this.manualFillOpen.set(false);
+    this.manualFillConnector.set(null);
+    this.manualFillMethodId.set('');
+  }
+
+  protected onManualFillSuccess(): void {
+    this.closeManualFill();
+    // Refresh the approval modal's connector list directly
+    this.approvalConfirmModal?.onManualFillSuccess();
+    // Also reload application data for consistency
+    const appId = this.application()?.id;
+    if (appId) {
+      this.loadApplication(appId);
+    }
+  }
+
+  protected onManualFillCancel(): void {
+    this.closeManualFill();
+  }
+
+  protected onManualFillError(message: string): void {
+    console.error('Manual fill error:', message);
+    // Keep the modal open so the user can retry
+  }
+
+  protected openEditModal(): void {
+    this.isEditModalOpen.set(true);
+  }
+
+  protected closeEditModal(): void {
+    this.isEditModalOpen.set(false);
+  }
+
+  protected onEditSaved(): void {
+    this.closeEditModal();
+    // Reload application data to reflect changes
+    const appId = this.application()?.id;
+    if (appId) {
+      this.loadApplication(appId);
+    }
+  }
 
   protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;

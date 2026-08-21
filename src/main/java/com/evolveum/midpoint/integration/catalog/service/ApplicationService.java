@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,13 +65,13 @@ public class ApplicationService {
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
     private final ApplicationTagService applicationTagService;
     private final RecentlyUsedApplicationRepository recentlyUsedApplicationRepository;
-    private final BundleMergeService bundleMergeService;
     private final RequestVotingService requestVotingService;
     private final ConnectorDownloadService connectorDownloadService;
     private final BuildCallbackService buildCallbackService;
     private final ConnectorUploadService connectorUploadService;
     private final CapabilityRepository capabilityRepository;
     private final ConnectorVersionRepository connectorVersionRepository;
+    private final ConnectorRepository connectorRepository;
     private final AuthService authService;
     private final OrganizationService organizationService;
 
@@ -91,7 +92,6 @@ public class ApplicationService {
                               ApplicationMapper applicationMapper, ConnectorMapper connectorMapper,
                               ApplicationApplicationTagRepository applicationApplicationTagRepository,
                               ApplicationTagService applicationTagService,
-                              BundleMergeService bundleMergeService,
                               RequestVotingService requestVotingService,
                               ConnectorDownloadService connectorDownloadService,
                               BuildCallbackService buildCallbackService,
@@ -99,6 +99,7 @@ public class ApplicationService {
                               RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
                               CapabilityRepository capabilityRepository,
                               ConnectorVersionRepository connectorVersionRepository,
+                              ConnectorRepository connectorRepository,
                               AuthService authService,
                               OrganizationService organizationService) {
         this.organizationService = organizationService;
@@ -120,7 +121,6 @@ public class ApplicationService {
         this.connectorMapper = connectorMapper;
         this.applicationApplicationTagRepository = applicationApplicationTagRepository;
         this.applicationTagService = applicationTagService;
-        this.bundleMergeService = bundleMergeService;
         this.requestVotingService = requestVotingService;
         this.connectorDownloadService = connectorDownloadService;
         this.buildCallbackService = buildCallbackService;
@@ -128,6 +128,7 @@ public class ApplicationService {
         this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
         this.capabilityRepository = capabilityRepository;
         this.connectorVersionRepository = connectorVersionRepository;
+        this.connectorRepository = connectorRepository;
         this.authService = authService;
     }
 
@@ -486,12 +487,21 @@ public class ApplicationService {
         return page.map(applicationMapper::toCardDto);
     }
 
-
+    /**
+     * Retrieves all active connectors from the integration catalog and maps them to signed connector DTOs.
+     *
+     * Only connectors with at least one version in {@link LifecycleType#ACTIVE} state are included.
+     * Each connector is transformed into a signed DTO before being returned.
+     *
+     * @return a list of allowed active connectors wrapped in {@link AllowedConnectorsListDto}
+     * @throws ConnectorSigningException if signing of connector data fails
+     */
     public AllowedConnectorsListDto listActiveConnectors() {
-        List<SignedActiveConnectorDto> list = connectorVersionRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
-                .map(connectorVersion -> {
+        List<SignedActiveConnectorDto> list = connectorRepository.findDistinctByConnectorVersionsLifecycleState(LifecycleType.ACTIVE)
+                .stream()
+                .map(connector -> {
                     try {
-                        return connectorMapper.toActiveConnectorDto(connectorVersion);
+                        return connectorMapper.toActiveConnectorDto(connector);
                     } catch (Exception e) {
                         throw new ConnectorSigningException("Failed to sign connector data", e);
                     }
@@ -542,8 +552,26 @@ public class ApplicationService {
     }
 
     @Transactional
-    public boolean verify(VerifyBundleInformationForm verifyPayload) {
-        return bundleMergeService.verify(verifyPayload);
+    public void verify(UUID uuid, VerifyBundleInformationForm verifyPayload) {
+        buildCallbackService.verify(uuid, verifyPayload);
+    }
+
+    @Transactional
+    public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
+        ConnectorVersion connectorVersion = findConnectorVersion(triggerBuildForm.getConnectorVersionId(), triggerBuildForm.getConnectorVersionRevision());
+        IntegrationMethod integrationMethod = findIntegrationMethod(oid, triggerBuildForm.getIntegrationMethodRevision());
+
+        return connectorUploadService.triggerJenkinsPipeline(connectorVersion, integrationMethod);
+    }
+
+    private IntegrationMethod findIntegrationMethod(UUID id, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
+    }
+
+    private ConnectorVersion findConnectorVersion(String id, String revision) {
+        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
     }
 
     @Transactional(readOnly = true)
@@ -595,5 +623,71 @@ public class ApplicationService {
                             .sum();
                 })
                 .orElse(0L);
+    }
+
+    /**
+     * Returns connectors linked to a specific integration method revision that do NOT have
+     * download information (no artifactUrl set on the ConnectorBundleVersion). These are
+     * connectors that were added but the Jenkins build was never triggered (or did not
+     * complete successfully with upload/verify and upload/continue callbacks).
+     *
+     * Only connector versions in REVIEWING state are considered — this is the state where
+     * a superuser is reviewing the integration method and may need to trigger builds before
+     * approving.
+     */
+    @Transactional(readOnly = true)
+    public List<ConnectorWithoutDownloadDto> getConnectorsWithoutDownloadInfo(UUID methodId, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .map(method -> {
+                    List<ConnectorWithoutDownloadDto> result = new ArrayList<>();
+                    if (method.getConnectors() != null) {
+                        for (IntegrationMethodConnector imc : method.getConnectors()) {
+                            Connector connector = imc.getConnector();
+                            if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
+                                continue;
+                            }
+                            // Iterate all connector versions, only consider those in REVIEWING state
+                            for (ConnectorVersion connectorVersion : connector.getConnectorVersions()) {
+                                if (connectorVersion.getLifecycleState() != LifecycleType.IN_REVIEW) {
+                                    continue;
+                                }
+                                ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
+                                // Check if artifactUrl is missing (build was not triggered or did not complete)
+                                if (bundleVersion == null || bundleVersion.getArtifactUrl() == null || bundleVersion.getArtifactUrl().isBlank()) {
+                                    result.add(new ConnectorWithoutDownloadDto(
+                                            connector.getId(),
+                                            connector.getDisplayName() != null ? connector.getDisplayName() : connector.getFullyQualifiedClassName(),
+                                            connector.getFullyQualifiedClassName(),
+                                            connector.getConnectorBundle() != null ? connector.getConnectorBundle().getBundleName() : null,
+                                            bundleVersion != null ? bundleVersion.getBundleVersion() : null,
+                                            String.valueOf(connectorVersion.getId()),
+                                            connectorVersion.getRevision(),
+                                            methodId,
+                                            revision
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    return result;
+                })
+                .orElseGet(List::of);
+    }
+
+    /**
+     * Updates the display name and/or description of an application.
+     * Only superusers are allowed to perform this operation.
+     */
+    @Transactional
+    public Application updateApplication(UUID applicationId, UpdateApplicationDto dto) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
+        if (dto.displayName() != null && !dto.displayName().isBlank()) {
+            application.setDisplayName(dto.displayName());
+        }
+        if (dto.description() != null) {
+            application.setDescription(dto.description());
+        }
+        return applicationRepository.save(application);
     }
 }

@@ -543,11 +543,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly compatInfoDismissed = signal<boolean>(false);
   protected readonly compatSaving = signal<boolean>(false);
 
-  /** A version is valid when it is in X.Y.Z form (three dot-separated numbers). */
-  private isVersionFormatValid(v: string): boolean {
-    return /^\d+\.\d+\.\d+$/.test(v.trim());
-  }
-
   private compareVersions(a: string, b: string): number {
     const pa = a.trim().split('.').map(n => parseInt(n, 10));
     const pb = b.trim().split('.').map(n => parseInt(n, 10));
@@ -557,21 +552,19 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return 0;
   }
 
-  protected readonly isCompatFromValid = computed(() => this.isVersionFormatValid(this.compatFrom()));
-
-  protected readonly isCompatToValid = computed(() => {
-    const to = this.compatTo().trim();
-    return !to || this.isVersionFormatValid(to);
-  });
-
+  /**
+   * Only an ordering problem is reported: "to" lower than "from". Free-form versions that are not
+   * numeric compare as NaN, so they are never flagged.
+   */
   protected readonly isCompatRangeInvalid = computed(() => {
+    const from = this.compatFrom().trim();
     const to = this.compatTo().trim();
-    if (!this.isCompatFromValid() || !to || !this.isVersionFormatValid(to)) return false;
-    return this.compareVersions(to, this.compatFrom()) < 0;
+    if (!from || !to) return false;
+    return this.compareVersions(to, from) < 0;
   });
 
   protected readonly isCompatValid = computed(() =>
-    this.isCompatFromValid() && this.isCompatToValid() && !this.isCompatRangeInvalid()
+    !!this.compatFrom().trim() && !this.isCompatRangeInvalid()
   );
 
   protected openCompatibility(connector: ImplementationListItem): void {

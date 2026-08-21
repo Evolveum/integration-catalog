@@ -1,0 +1,81 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<div class="manual-fill-backdrop bg-dark bg-opacity-50 position-fixed top-0 start-0 w-100 h-100" (click)="onCancel()"></div>
+<div class="manual-fill-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="manual-fill-dialog bg-white rounded-3 shadow-lg p-4 overflow-auto">
+    <!-- Header -->
+    <div class="pb-3 border-bottom mb-3 d-flex align-items-center justify-content-between">
+      <span class="fw-semibold fs-6 d-flex align-items-center gap-2">
+        <i class="fa-solid fa-pen-to-square"></i>Fill build info manually
+      </span>
+      <button type="button" class="btn p-0 text-secondary fs-5" (click)="onCancel()" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Connector info card -->
+    <div class="bg-light rounded-3 py-2 px-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center py-1">
+        <span class="text-secondary fw-medium fs-6">Connector</span>
+        <span class="fw-semibold fs-6 text-dark">{{ connector.connectorName }}</span>
+      </div>
+      @if (connector.version) {
+        <div class="d-flex justify-content-between align-items-center py-1">
+          <span class="text-secondary fw-medium fs-6">Version</span>
+          <span class="im-version-badge">{{ connector.version }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Form -->
+    <form #form="ngForm" novalidate>
+      <div class="mb-3">
+        <div class="mb-3">
+          <label class="form-label small mb-1">Bundle name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="bundleName"
+                 [(ngModel)]="bundleName" placeholder="e.g. connector-csv-file" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label small mb-1">Version <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="version"
+                 [(ngModel)]="version" placeholder="e.g. 1.0.0" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label small mb-1">Class name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="className"
+                 [(ngModel)]="className" placeholder="e.g. com.evolveum.connector.csv.CsvFileConnector" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label small mb-1">Download link <span class="text-muted">(optional)</span></label>
+          <input type="text" class="form-control" name="downloadLink"
+                 [(ngModel)]="downloadLink" placeholder="https://..." />
+        </div>
+      </div>
+
+      <!-- Error message -->
+      @if (errorMessage) {
+        <div class="alert alert-danger py-2 small mb-3 d-flex align-items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          {{ errorMessage }}
+        </div>
+      }
+
+      <!-- Footer actions -->
+      <div class="pt-3 border-top d-flex align-items-center justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="submitting">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary d-flex align-items-center gap-2" [disabled]="submitting" (click)="onSubmit()">
+          @if (submitting) {
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+          }
+          <i class="fa-solid fa-check"></i>Submit
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

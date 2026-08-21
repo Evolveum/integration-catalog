@@ -13,6 +13,5 @@ package com.evolveum.midpoint.integration.catalog.dto;
  */
 public record ActiveConnectorDto(
         String className,               // connector.fully_qualified_class_name
-        String version,                 // connector_bundle_version.bundle_version
         String bundle                   // connector_bundle.bundle_name
 ) {}

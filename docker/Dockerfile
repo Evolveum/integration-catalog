@@ -6,7 +6,7 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /integration-catalog/angular-frontend
 COPY angular-frontend/package*.json ./
-RUN npm install
+RUN npm ci --legacy-peer-deps || (cat ~/.npm/_logs/*-debug*.log && exit 1)
 COPY angular-frontend/ ./
 RUN npm run build --prod
 
@@ -24,6 +24,9 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /integration-catalog
 COPY --from=backend-build /integration-catalog/backend/target/integration-catalog-*.jar integration-catalog.jar
+
+# Copy config directory (sql scripts) to image
+COPY config /integration-catalog/config
 
 # Copy entrypoint script to handle secrets
 COPY docker/entrypoint.sh /integration-catalog/entrypoint.sh

@@ -17,8 +17,11 @@ import java.util.List;
 public class ContinueForm {
     private String connectorBundle;
     private String connectorVersion;
+    private String integrationMethodRevision;
     private Long publishTime;
     private String downloadLink;
     private String connectorClass;
     private List<CapabilityType> capability;
+    private String connectorVersionId;
+    private String connectorVersionRevision;
 }

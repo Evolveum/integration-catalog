@@ -47,11 +47,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
-
 		<!-- Spring Boot 4 auto-configures Jackson 3, whose ObjectMapper lives in
 		     tools.jackson.databind. This module restores the auto-configured
 		     com.fasterxml.jackson.databind.ObjectMapper bean that BundleService
@@ -62,14 +57,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-jackson2</artifactId>
 		</dependency>
+		<!-- OIDC: this application is the OIDC client; starter-security also brings in
+		     spring-security-crypto, which spring-security-test and the filter chain use. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
-			<scope>test</scope>
 		</dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -80,24 +76,25 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-logging</artifactId>
 		</dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Spring Boot 4 moved the @WebMvcTest slice out of spring-boot-starter-test
-             into its own module; ControllerTest and AuthControllerTest need it. -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc-test</artifactId>
-            <scope>test</scope>
-        </dependency>
 
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
+			<version>42.7.13</version>
 			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>tools.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>3.1.5</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.21.5</version>
 		</dependency>
 
         <dependency>
@@ -122,27 +119,98 @@
         <dependency>
             <groupId>org.kohsuke</groupId>
             <artifactId>github-api</artifactId>
-            <version>2.0-rc.7</version>
+            <version>1.330</version>
         </dependency>
 
         <!-- Parses the Markdown tutorial text so it can be converted to AsciiDoc for the download bundle -->
         <dependency>
             <groupId>org.commonmark</groupId>
             <artifactId>commonmark</artifactId>
-            <version>0.29.0</version>
+            <version>0.30.0</version>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
+
+		<!-- test scope -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Spring Boot 4 moved the @WebMvcTest slice out of spring-boot-starter-test
+             into its own module; ControllerTest and AuthControllerTest need it. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
     </dependencies>
+	<repositories>
+		<repository>
+			<id>evolveum</id>
+			<name>Evolveum Public Releases</name>
+			<url>https://nexus.evolveum.com/nexus/repository/public/</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>evolveum-snapshots</id>
+			<name>Evolveum Snapshots</name>
+			<url>https://nexus.evolveum.com/nexus/repository/snapshots/</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>evolveum-nexus</id>
+			<name>Plugin Snapshots</name>
+			<url>https://nexus.evolveum.com/nexus/repository/snapshots/</url>
+		</pluginRepository>
+		<pluginRepository>
+			<id>evolveum</id>
+			<name>Evolveum</name>
+			<url>https://nexus.evolveum.com/nexus/repository/public/</url>
+		</pluginRepository>
+	</pluginRepositories>
 
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<!--
+                 This plugin is used to parse current project version for later use with npm version which requires semantic versioning
+                 -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.4.0</version>
+				<executions>
+					<execution>
+						<id>parse-version</id>
+						<goals>
+							<goal>parse-version</goal>
+						</goals>
+						<configuration>
+							<propertyPrefix>parsedVersion</propertyPrefix>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -171,10 +239,9 @@
 						<version>2.9.1</version>
 						<executions>
 							<!-- Spring Boot's parent manages this plugin and contributes an execution
-							     of its own (id "default") that writes an SBOM into the jar at
-							     META-INF/sbom/application.cdx.json. Unbinding it keeps the BOM being
-							     built once, at the single documented location below. Bind it back by
-							     removing this block if the jar embedded SBOM is wanted as well. -->
+                                 of its own (id "default") that writes an SBOM into the jar at
+                                 META-INF/sbom/application.cdx.json. Unbinding it keeps the BOM being
+                                 built once, at the single documented location below. -->
 							<execution>
 								<id>default</id>
 								<phase>none</phase>
@@ -193,47 +260,113 @@
 							<outputName>backend-sbom</outputName>
 							<outputDirectory>${project.build.directory}</outputDirectory>
 							<includeBomSerialNumber>true</includeBomSerialNumber>
-							<!-- Only what ships in the jar; build/test tooling is not part of the product. -->
 							<includeTestScope>false</includeTestScope>
 						</configuration>
 					</plugin>
-
-					<!-- The frontend is a separate npm project that Maven does not otherwise build,
-					     so its SBOM is produced by the official CycloneDX npm tool. -->
 					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>exec-maven-plugin</artifactId>
-						<version>3.5.0</version>
+						<groupId>com.github.eirslett</groupId>
+						<artifactId>frontend-maven-plugin</artifactId>
+						<version>1.15.4</version>
+
+						<configuration>
+							<nodeDownloadRoot>
+								https://nexus.evolveum.com/nexus/repository/nodejs-dist/
+							</nodeDownloadRoot>
+							<npmDownloadRoot>
+								https://nexus.evolveum.com/nexus/repository/npmjs-dist/
+							</npmDownloadRoot>
+
+							<nodeVersion>v22.18.0</nodeVersion>
+							<npmVersion>10.9.3</npmVersion>
+							<installDirectory>${project.build.directory}</installDirectory>
+						</configuration>
+
 						<executions>
+
+							<execution>
+								<id>install-node-and-npm</id>
+								<goals>
+									<goal>install-node-and-npm</goal>
+								</goals>
+							</execution>
+
 							<execution>
 								<id>frontend-sbom</id>
 								<phase>package</phase>
 								<goals>
-									<goal>exec</goal>
+									<goal>npx</goal>
 								</goals>
 								<configuration>
-									<executable>${npx.executable}</executable>
-									<workingDirectory>${project.basedir}/angular-frontend</workingDirectory>
 									<arguments>
-										<argument>--yes</argument>
-										<argument>@cyclonedx/cyclonedx-npm</argument>
-										<argument>--package-lock-only</argument>
-										<argument>--omit</argument>
-										<argument>dev</argument>
-										<!-- "npm ls" exits non zero on unsatisfied optional peer
-										     dependencies (nunjucks wants chokidar 3.x while the tree
-										     resolves 4.x). That is harmless but would otherwise fail
-										     the build, so the SBOM is still produced. -->
-										<argument>--ignore-npm-errors</argument>
-										<argument>--output-format</argument>
-										<argument>JSON</argument>
-										<argument>--output-file</argument>
-										<argument>${project.build.directory}/frontend-sbom.json</argument>
+										--yes
+										@cyclonedx/cyclonedx-npm
+										--package-lock-only
+										--omit
+										dev
+										--ignore-npm-errors
+										--output-format
+										JSON
+										--output-file
+										${project.build.directory}/frontend-sbom.json
 									</arguments>
+									<workingDirectory>
+										${project.basedir}/angular-frontend
+									</workingDirectory>
 								</configuration>
 							</execution>
 						</executions>
 					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>dependencytrack</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>io.github.pmckeown</groupId>
+						<artifactId>dependency-track-maven-plugin</artifactId>
+						<version>1.10.2</version>
+						<configuration>
+							<dependencyTrackBaseUrl>${env.DTRACK_URL}</dependencyTrackBaseUrl>
+							<apiKey>${env.DTRACK_TOKEN}</apiKey>
+							<parentName>integration-catalog</parentName>
+							<parentVersion>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}</parentVersion>
+							<pollingConfig>
+								<enabled>true</enabled>
+								<pause>500</pause>
+								<attempts>100</attempts>
+								<timeUnit>MILLIS</timeUnit>
+							</pollingConfig>
+						</configuration>
+						<executions>
+							<execution>
+								<id>upload-backend-bom</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>upload-bom</goal>
+								</goals>
+								<configuration>
+									<projectName>backend</projectName>
+									<bomLocation>./target/backend-sbom.json</bomLocation>
+								</configuration>
+							</execution>
+
+							<execution>
+								<id>upload-frontend-bom</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>upload-bom</goal>
+								</goals>
+								<configuration>
+									<projectName>frontend</projectName>
+									<bomLocation>./target/frontend-sbom.json</bomLocation>
+								</configuration>
+							</execution>
+
+						</executions>
+					</plugin>
+
 				</plugins>
 			</build>
 		</profile>

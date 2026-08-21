@@ -14,38 +14,66 @@ CREATE TABLE m_global_metadata (
     value TEXT
 );
 
--- Applies one schema change from config/sql/upgrade/upgrade.sql exactly once per database:
+-- Applies one schema change from config/sql/postgres-upgrade.sql exactly once per database:
 -- the change runs only when its number is higher than the stored 'schemaChangeNumber',
 -- which is then advanced and the transaction committed. Because of the internal COMMIT
 -- the script must run outside a transaction block (plain psql, not pgAdmin).
+--
+-- To prevent two instances from applying the same change concurrently, the procedure
+-- acquires a PostgreSQL advisory lock BEFORE reading the schema change number. This
+-- guarantees that only one session can evaluate and apply a change at a time; any other
+-- session blocks until the lock is released, then re-evaluates the (now updated) change
+-- number and skips the already-applied change.
+--
 -- Taken from midPoint's native repository (postgres.sql); keep this definition in sync
--- with config/sql/upgrade/upgrade.sql.
-CREATE OR REPLACE PROCEDURE apply_change(changeNumber int, change TEXT, force boolean = false)
-    LANGUAGE plpgsql
-AS $$
+-- with config/sql/postgres-upgrade.sql.
+CREATE OR REPLACE PROCEDURE apply_change(
+    changeNumber int,
+    change TEXT,
+    force boolean DEFAULT false
+)
+LANGUAGE plpgsql
+AS $proc$
 DECLARE
     lastChange int;
+    lock_key bigint := hashtext('integration_catalog_schema_upgrade');
 BEGIN
-    SELECT value INTO lastChange FROM m_global_metadata WHERE name = 'schemaChangeNumber';
+    -- Only one session may apply schema changes at a time.
+    PERFORM pg_advisory_xact_lock(lock_key);
 
-    -- change is executed if the changeNumber is newer - or if forced
+    -- Re-read after acquiring the lock.
+    SELECT value
+      INTO lastChange
+      FROM m_global_metadata
+     WHERE name = 'schemaChangeNumber';
+
+    -- Apply only newer changes (or force).
     IF lastChange IS NULL OR lastChange < changeNumber OR force THEN
         EXECUTE change;
         RAISE NOTICE 'Change #% executed!', changeNumber;
 
         IF lastChange IS NULL THEN
-            INSERT INTO m_global_metadata (name, value) VALUES ('schemaChangeNumber', changeNumber);
+            INSERT INTO m_global_metadata(name, value)
+            VALUES ('schemaChangeNumber', changeNumber);
         ELSIF changeNumber > lastChange THEN
-            -- even with force we never want to set lower-or-equal change number, hence the IF above
-            UPDATE m_global_metadata SET value = changeNumber WHERE name = 'schemaChangeNumber';
+            UPDATE m_global_metadata
+               SET value = changeNumber
+             WHERE name = 'schemaChangeNumber';
         ELSE
             RAISE NOTICE 'Last change number left unchanged: #%', lastChange;
         END IF;
-        COMMIT;
     ELSE
-        RAISE NOTICE 'Change #% skipped - not newer than the last change #%!', changeNumber, lastChange;
+        RAISE NOTICE
+            'Change #% skipped - not newer than the last change #%!',
+            changeNumber,
+            lastChange;
     END IF;
-END $$;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE;
+END;
+$proc$;
 -- end of region
 
 CREATE TYPE ApplicationLifecycleType AS ENUM (
@@ -666,12 +694,12 @@ ALTER TABLE ONLY integration_method_connector
 
 ALTER TABLE ONLY recently_used_applications
     ADD CONSTRAINT recently_used_applications_pkey PRIMARY KEY (id);
+	
+ALTER TABLE ONLY organizations
+    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY midpoint_version
     ADD CONSTRAINT midpoint_version_pkey PRIMARY KEY (id);
-
-ALTER TABLE ONLY organizations
-    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
 	
 	
 	
@@ -883,7 +911,9 @@ INSERT INTO integration_method_type (id, display_name, description) OVERRIDING S
     (3, 'OpenLDAP',      'Connect to an OpenLDAP directory to read and manage identities.'),
     (4, 'Manual / ITSM', 'Fulfil provisioning requests manually through an ITSM ticketing workflow.'),
     (5, 'Database',      'Read and write identity data directly in a relational database.'),
-    (6, 'CSV',           'Exchange identity data through CSV file import and export.');
+    (6, 'CSV',           'Exchange identity data through CSV file import and export.'),
+    (7, 'SSH',           'Connect to a remote system using SSH to provision and manage identities.'),
+    (8, 'SAP',           'Integrate with SAP systems to provision and manage identities.');
 
 SELECT setval('integration_method_type_id_seq', 6);
 
@@ -911,31 +941,52 @@ INSERT INTO capability (id, name, description, display_order, globality) VALUES
     (16, 'LIVE_SYNC',               'Receive live change notifications',  8, 'SPECIFIC'),
     (17, 'SYNC',                    'Synchronize objects periodically',   9, 'SPECIFIC'),
     (18, 'VALIDATE',                'Validate',                          10, 'SPECIFIC');
-
-
+	
 SELECT setval('capability_id_seq', 18);
 
 
 INSERT INTO midpoint_version (id, version, version_name, is_current) values
-	(1, '4.2', 'Version 4.2', false),
-	(2, '4.3', 'Version 4.3', false),
-	(3, '4.4', 'Version 4.4', false),
-	(4, '4.5', 'Version 4.5', false),
-	(5, '4.6', 'Version 4.6', false),
-	(6, '4.7', 'Version 4.7', false),
-	(7, '4.8', 'Version 4.8', false),
-	(8, '4.9', 'Version 4.9', true),
-    (9, '4.10', 'Version 4.10', false),
-    (10, '4.11', 'Version 4.11', false);
+	(1,  '4.2',    'Maxwell',          false),
+    (2,  '4.3',    'Faraday',          false),
+    (3,  '4.4',    'Tesla (LTS)',      false),
+    (4,  '4.5',    'Nightingale',      false),
+    (5,  '4.6',    'Baumgarten',       false),
+    (6,  '4.7',    'Johnson',          false),
+    (7,  '4.8',    'Curie (LTS)',      false),
+    (8,  '4.9',    'Verne',            false),
+    (9,  '4.10',   'Braille',          false),
+    (10, '4.11',   'Čapek',            false),
+    (11, '4.8.1',  'Curie Update 1',   false),
+    (12, '4.8.2',  'Curie Update 2',   false),
+    (13, '4.8.3',  'Curie Update 3',   false),
+    (14, '4.8.4',  'Curie Update 4',   false),
+    (15, '4.8.5',  'Curie Update 5',   false),
+    (16, '4.8.6',  'Curie Update 6',   false),
+    (17, '4.8.7',  'Curie Update 7',   false),
+    (18, '4.8.8',  'Curie Update 8',   false),
+    (19, '4.8.9',  'Curie Update 9',   false),
+    (20, '4.8.10', 'Curie Update 10',  false),
+    (21, '4.8.11', 'Curie Update 11',  false),
+    (22, '4.8.12', 'Curie Update 12',  false),
+    (23, '4.9.1',  'Verne Update 1',   false),
+    (24, '4.9.2',  'Verne Update 2',   false),
+    (25, '4.9.3',  'Verne Update 3',   false),
+    (26, '4.9.4',  'Verne Update 4',   false),
+    (27, '4.9.5',  'Verne Update 5',   false),
+    (28, '4.9.6',  'Verne Update 6',   false),
+    (29, '4.9.7',  'Verne Update 7',   false),
+    (30, '4.10.1', 'Braille Update 1', false),
+    (31, '4.10.2', 'Braille Update 2', false),
+    (32, '4.10.3', 'Braille Update 3', true);
 	
 SELECT setval('midpoint_version_id_seq', 10);
 
 -- end of region
 
 -- region schema version
--- Initializing the schema change number used in config/sql/upgrade/upgrade.sql: a fresh
+-- Initializing the schema change number used in config/sql/postgres-upgrade.sql: a fresh
 -- installation is already at the current change number, so no upgrade section applies.
--- Keep in sync with the newest apply_change call in upgrade.sql and with
+-- Keep in sync with the newest apply_change call in postgres-upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
 call apply_change(5, $$ SELECT 1 $$, true);
 -- end of region

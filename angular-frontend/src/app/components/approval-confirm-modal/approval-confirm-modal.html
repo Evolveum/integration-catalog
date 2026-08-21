@@ -43,7 +43,73 @@
         <p class="approval-modal-section-title">Reason for rejection</p>
       }
 
-      @if (step() === 1) {
+      <!-- Step 0: Connectors without download info (approve only) -->
+      @if (step() === 0) {
+            @if (loadingConnectors()) {
+              <div class="mt-2 d-flex align-items-center gap-2 approval-modal-desc">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+                <span>Loading connectors...</span>
+              </div>
+            } @else {
+              @if (hasConnectorsWithoutDownload()) {
+                <div class="approval-notice approval-notice-warning">
+                  <i class="fa-solid fa-triangle-exclamation approval-notice-icon"></i>
+                  <div class="approval-notice-content">
+                    <strong>Connectors without build information</strong>
+                    <div>Some connectors in this integration method do not have download links yet. The Jenkins build was not triggered or did not complete.</div>
+                  </div>
+                </div>
+                <div class="connectors-list mt-3">
+                  @for (connector of connectorsWithoutDownload(); track connector.connectorId) {
+                    <div class="connector-item card p-2">
+                      <div class="connector-info">
+                        <span class="connector-name">{{ connector.connectorName }}</span>
+                        @if (connector.version) {
+                          <span class="ms-2 im-version-badge connector-version">{{ connector.version }}</span>
+                        }
+                      </div>
+                      <div class="connector-actions d-flex flex-column gap-2">
+                        <div class="connector-buttons-row d-flex gap-2 mt-2">
+                          <button type="button"
+                                  class="btn btn-sm btn-outline-secondary flex-fill"
+                                  [disabled]="isBuilding(connector.connectorId)"
+                                  (click)="triggerBuild(connector)">
+                            @if (isBuilding(connector.connectorId)) {
+                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            <i class="fa-solid fa-hammer"></i>Trigger build
+                          </button>
+                          <button type="button"
+                                  class="btn btn-sm btn-outline-primary flex-fill"
+                                  (click)="openManualFill(connector)">
+                            <i class="fa-solid fa-pen-to-square"></i>Manual fill
+                          </button>
+                        </div>
+                        @if (getBuildMessage(connector.connectorId)) {
+                        <span class="build-message">{{ getBuildMessage(connector.connectorId) }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+                <div class="mt-2 text-muted small">Trigger builds, then refresh to check again.</div>
+              } @else {
+                <div class="mt-2 text-success d-flex align-items-center gap-2">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span>All connectors have build information.</span>
+                </div>
+              }
+            }
+        @if (hasConnectorsWithoutDownload()) {
+          <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refreshConnectors()">
+            <i class="fa-solid fa-arrows-rotate"></i>Refresh
+          </button>
+        } @else {
+          <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refresh()">
+            <i class="fa-solid fa-arrow-right"></i>Continue
+          </button>
+        }
+      } @else if (step() === 1) {
         <!-- Step 1: pending notice + refresh -->
         <div class="approval-notice approval-notice-warning">
           <i class="fa-solid fa-triangle-exclamation approval-notice-icon"></i>
@@ -93,7 +159,7 @@
               class="btn d-flex align-items-center gap-2"
               [class.approval-confirm-approve]="mode === 'approve'"
               [class.approval-confirm-reject]="mode === 'reject'"
-              [disabled]="step() === 1 || processing"
+              [disabled]="step() < 2 || processing"
               (click)="onConfirm()">
         @if (mode === 'approve') {
           <i class="fa-solid fa-check"></i>Confirm approval
