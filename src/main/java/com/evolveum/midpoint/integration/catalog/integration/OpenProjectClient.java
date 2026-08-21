@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
@@ -151,9 +152,49 @@ public class OpenProjectClient {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (!isSuccessful(response)) {
-            throw new IOException("Support portal rejected attachment '" + fileName + "' on work package "
-                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
+            String detail = "Support portal rejected attachment '" + fileName + "' on work package "
+                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body();
+            if (isTooLarge(response.statusCode(), response.body())) {
+                throw new AttachmentTooLargeException(detail);
+            }
+            throw new IOException(detail);
         }
+    }
+
+    /**
+     * Thrown when the portal will not take a file however often it is offered, because the file is
+     * larger than the attachment size limit it or its proxy enforces.
+     *
+     * <p>Its own type so a caller can tell this apart from the portal being unreachable, which looks
+     * the same from the outside and is the opposite case: one is worth retrying, this one never is.
+     */
+    public static class AttachmentTooLargeException extends IOException {
+
+        public AttachmentTooLargeException(String message) {
+            super(message);
+        }
+    }
+
+    /**
+     * Whether a refused upload was refused for the file's size.
+     *
+     * <p>Two ways it arrives, because two things can enforce a limit: a proxy in front of the portal
+     * cuts the request off with {@code 413} before the portal sees it, while the portal itself
+     * answers {@code 422} and says so in the body. The 422 is read by its wording, which is the only
+     * thing distinguishing it from the other constraint violations that share its error identifier -
+     * so a portal answering in a language this does not recognise is simply treated as a failure
+     * worth retrying, as it was before.
+     */
+    static boolean isTooLarge(int statusCode, String body) {
+        if (statusCode == 413) {
+            return true;
+        }
+        if (statusCode != 422 || body == null) {
+            return false;
+        }
+        String lowerCase = body.toLowerCase(Locale.ROOT);
+        return lowerCase.contains("too large") || lowerCase.contains("maximum size")
+                || lowerCase.contains("file size");
     }
 
     /**

@@ -94,6 +94,47 @@ ALTER TABLE catalog_users ADD COLUMN IF NOT EXISTS email varchar(320);
 $aa$);
 -- end of region
 
+-- region change 5: pending_operation
+-- Operations the catalog owes an external system, written down before they are attempted so that a
+-- system which is temporarily unreachable delays an operation instead of losing it. A scheduled job
+-- offers every row still marked PENDING back to its handler until it succeeds - see
+-- PendingOperationRetryJob.
+--
+-- Deliberately generic. The first user is the support portal, whose work packages were until now
+-- opened on a best-effort basis: a portal that was down left a log line and a submission with no
+-- ticket, with nothing to find it by afterwards. Nothing about the table says so, though. It records
+-- WHICH system owes the operation (target_system), WHICH operation of that system it is (operation)
+-- and everything needed to perform it as opaque JSON (payload), whose shape is known only to the
+-- handler registered for that pair. Another external system is therefore a new value in
+-- target_system plus a handler bean, with no DDL and no change to the job.
+--
+-- operation is free text rather than an enum type: the set of operations belongs to whoever
+-- integrates a system, and adding one must not mean altering a type shared by all of them.
+--
+-- No backfill. Rows begin with the first operation raised after this change; whatever was lost to an
+-- outage before it was never recorded anywhere and cannot be reconstructed.
+--
+-- The index serves the only query there is - the job asking one system what it is still owed - and
+-- covers the count beside it. Left as a plain composite index rather than a partial one on
+-- status = 'PENDING': completed rows outnumber pending ones over time, but not by enough to be worth
+-- an index whose predicate has to be repeated in every query that hopes to use it.
+call apply_change(5, $aa$
+CREATE TABLE IF NOT EXISTS pending_operation (
+    id              bigserial PRIMARY KEY,
+    target_system   varchar(50)  NOT NULL,
+    operation       varchar(100) NOT NULL,
+    payload         text         NOT NULL,
+    status          varchar(20)  NOT NULL,
+    attempts        integer      NOT NULL DEFAULT 0,
+    created_at      timestamp    NOT NULL,
+    last_attempt_at timestamp,
+    last_error      text
+);
+CREATE INDEX IF NOT EXISTS idx_pending_operation_pending
+    ON pending_operation (target_system, status, id);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

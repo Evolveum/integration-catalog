@@ -563,16 +563,18 @@
                               <div class="im-col-status">
                                 @if (version.lifecycleState === 'IN_REVIEW') {
                                   <span class="badge im-badge-awaiting"><i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval</span>
-                                  @if (ticketUrlFor(version); as ticketUrl) {
+                                  <!-- Sent only to the submitting side and the reviewer; everyone else sees no link. -->
+                                  @if (version.supportTicketUrl; as ticketUrl) {
                                     <a class="im-ticket-link d-inline-flex align-items-center gap-2" [href]="ticketUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">
-                                      <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket #{{ ticketIdFor(version) }}
+                                      <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket #{{ version.supportTicketId }}
                                     </a>
                                   }
                                 } @else if (version.lifecycleState === 'REVIEWING') {
                                   <span class="badge im-badge-reviewing"><i class="fa-solid fa-lock me-1"></i>Under review</span>
-                                  @if (ticketUrlFor(version); as ticketUrl) {
+                                  <!-- Sent only to the submitting side and the reviewer; everyone else sees no link. -->
+                                  @if (version.supportTicketUrl; as ticketUrl) {
                                     <a class="im-ticket-link d-inline-flex align-items-center gap-2" [href]="ticketUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">
-                                      <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket #{{ ticketIdFor(version) }}
+                                      <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket #{{ version.supportTicketId }}
                                     </a>
                                   }
                                 } @else if (version.lifecycleState === 'ACTIVE') {

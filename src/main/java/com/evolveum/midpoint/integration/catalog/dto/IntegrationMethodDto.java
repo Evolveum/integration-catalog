@@ -38,5 +38,7 @@ public record IntegrationMethodDto(
         String maintainer,                                          // integration_method.maintainer
         LocalDate createdAt,                                        // integration_method.created_at
         LocalDate updated,                                          // integration_method.updated (= review start date while REVIEWING)
-        List<IncludedConnectorDto> connectors                       // connectors linked via integration_method_connector
+        List<IncludedConnectorDto> connectors,                      // connectors linked via integration_method_connector
+        Integer supportTicketId,                                    // integration_method.support_ticket_id, only for those allowed to see it
+        String supportTicketUrl                                     // generated from supportTicketId
 ) {}

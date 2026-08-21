@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.mapper;
 
+import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
@@ -13,6 +14,7 @@ import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
+import com.evolveum.midpoint.integration.catalog.service.AuthService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -27,15 +29,20 @@ public class ApplicationMapper {
     private final DownloadRepository downloadRepository;
     private final CatalogUserRepository catalogUserRepository;
     private final MidpointVersionRepository midpointVersionRepository;
+    private final AuthService authService;
+    private final OpenProjectProperties openProjectProperties;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
                              DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository,
-                             MidpointVersionRepository midpointVersionRepository) {
+                             MidpointVersionRepository midpointVersionRepository,
+                             AuthService authService, OpenProjectProperties openProjectProperties) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
         this.catalogUserRepository = catalogUserRepository;
         this.midpointVersionRepository = midpointVersionRepository;
+        this.authService = authService;
+        this.openProjectProperties = openProjectProperties;
     }
 
     // ── Tag helpers ───────────────────────────────────────────────────────────
@@ -72,6 +79,24 @@ public class ApplicationMapper {
      * Capabilities are collected from IntegrationMethodCapability → items → Capability.
      */
     public List<IntegrationMethodDto> mapIntegrationMethods(Application app) {
+        return mapIntegrationMethods(app, null);
+    }
+
+    /**
+     * Maps integration methods to IntegrationMethodDto, telling {@code viewer} the support ticket of
+     * every revision they are allowed to see one for.
+     *
+     * <p>The ticket rides along here rather than being fetched per revision because both of its parts
+     * - the id and the URL built from it - are already at hand: the id is a column of the row being
+     * mapped, and the URL is a format of it. Asking the portal instead would mean one round trip per
+     * revision on every page load, for a link whose contents never depended on the portal.
+     *
+     * @param viewer who is asking, or null when nobody in particular is; the ticket is filled in only
+     *               for the submitting side and the reviewer, by the same check that guards editing,
+     *               because it points into the review conversation rather than the catalog's public
+     *               face. Every other caller sees both ticket fields as null.
+     */
+    public List<IntegrationMethodDto> mapIntegrationMethods(Application app, String viewer) {
         if (app.getIntegrationMethods() == null) return null;
 
         return app.getIntegrationMethods().stream()
@@ -181,6 +206,10 @@ public class ApplicationMapper {
                             .mapToLong(cbv -> cbv.getDownloads() != null ? cbv.getDownloads().size() : 0L)
                             .sum();
 
+                    Integer supportTicketId = visibleSupportTicketId(method, viewer);
+                    String supportTicketUrl = supportTicketId != null
+                            ? openProjectProperties.workPackageUrl(supportTicketId) : null;
+
                     return new IntegrationMethodDto(
                             method.getId(),
                             method.getDescription(),
@@ -209,10 +238,31 @@ public class ApplicationMapper {
                             method.getMaintainer(),
                             method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
                             method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
-                            includedConnectors
+                            includedConnectors,
+                            supportTicketId,
+                            supportTicketUrl
                     );
                 })
                 .toList();
+    }
+
+    /**
+     * The revision's support ticket id if {@code viewer} may be told it, otherwise null.
+     *
+     * <p>The same boundary {@code SupportTicketService.describe} enforces: the reviewer (a superuser,
+     * whom {@code canEdit} already lets through) and the submitting side. A portal that is not
+     * configured has no tickets to point at, and a revision whose work package has not been opened -
+     * because the portal was unreachable when it was submitted, and the retry has not caught up yet -
+     * simply has no id to give.
+     */
+    private Integer visibleSupportTicketId(IntegrationMethod method, String viewer) {
+        if (viewer == null || viewer.isBlank()
+                || method.getSupportTicketId() == null
+                || !openProjectProperties.enabled()) {
+            return null;
+        }
+        return authService.canEdit(viewer, method.getAuthor(), method.getMaintainer())
+                ? method.getSupportTicketId() : null;
     }
 
     private List<String> collectCapabilities(IntegrationMethod method) {
@@ -241,6 +291,15 @@ public class ApplicationMapper {
     // ── ApplicationDto mapping ────────────────────────────────────────────────
 
     public ApplicationDto mapToApplicationDto(Application app) {
+        return mapToApplicationDto(app, (String) null);
+    }
+
+    /**
+     * The application as {@code viewer} may see it, which for the submitting side and the reviewer
+     * includes the support ticket of each revision they are concerned with - see
+     * {@link #mapIntegrationMethods(Application, String)}. Pass null for an anonymous read.
+     */
+    public ApplicationDto mapToApplicationDto(Application app, String viewer) {
         List<String> capabilities = null;
         List<ObjectClassCapabilityDto> objectClassCapabilities = null;
         String requester = null;
@@ -267,21 +326,31 @@ public class ApplicationMapper {
                 voteCount = voteRepository.countByRequestId(requestId);
             }
         }
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, objectClassCapabilities);
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount,
+                objectClassCapabilities, viewer);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount) {
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null);
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount,
                                                List<ObjectClassCapabilityDto> objectClassCapabilities) {
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount,
+                objectClassCapabilities, null);
+    }
+
+    /** @param viewer who is asking, see {@link #mapIntegrationMethods(Application, String)}. */
+    public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
+                                               Long requestId, Long voteCount,
+                                               List<ObjectClassCapabilityDto> objectClassCapabilities,
+                                               String viewer) {
         List<CountryOfOriginDto> origins = mapOrigins(app);
         List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
         List<ApplicationTagDto> tags = mapAllTags(app);
-        List<IntegrationMethodDto> integrationMethods = mapIntegrationMethods(app);
+        List<IntegrationMethodDto> integrationMethods = mapIntegrationMethods(app, viewer);
         List<String> frameworks = extractFrameworks(app);
         String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
 

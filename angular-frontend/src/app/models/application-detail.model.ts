@@ -53,6 +53,8 @@ export interface IntegrationMethod {
   createdAt: string | null;              // integration_method.created_at (submitted-for-review date)
   updated: string | null;                // integration_method.updated (= review start date while REVIEWING)
   connectors: IncludedConnector[] | null; // connectors linked via integration_method_connector
+  supportTicketId: number | null;        // integration_method.support_ticket_id, only sent to those allowed to see it
+  supportTicketUrl: string | null;       // built from supportTicketId by the backend
 }
 
 export interface ObjectClassCapability {

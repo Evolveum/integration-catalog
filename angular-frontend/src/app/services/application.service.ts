@@ -72,8 +72,15 @@ export class ApplicationService {
     return this.http.get<Application[]>(this.apiUrl);
   }
 
+  /**
+   * The application with everything its detail page shows, including the support ticket of each
+   * revision the caller may see one for — which is why the username goes along, the same way the
+   * other user-scoped endpoints identify their caller. Anyone else gets the same payload with the
+   * ticket fields empty.
+   */
   getById(id: string): Observable<ApplicationDetail> {
-    return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`);
+    return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`,
+      { params: new HttpParams().set('username', this.authService.currentUser() ?? '') });
   }
 
   getCategoryCounts(): Observable<CategoryCount[]> {
