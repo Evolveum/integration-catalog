@@ -70,16 +70,19 @@ public class Controller {
     }
 
     @Operation(summary = "Get application by ID",
-            description = "Fetches a single application by its UUID")
+            description = "Fetches a single application by its UUID. Pass the caller's username to "
+                    + "also receive the support ticket of every revision they are the submitting side "
+                    + "or the reviewer of; without it the ticket fields are left empty.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Application found"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @GetMapping("/applications/{id}")
-    public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id) {
+    public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id,
+                                                        @RequestParam(required = false) String username) {
         try {
             Application app = applicationService.getApplication(id);
-            ApplicationDto dto = applicationMapper.mapToApplicationDto(app);
+            ApplicationDto dto = applicationMapper.mapToApplicationDto(app, username);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -131,13 +134,6 @@ public class Controller {
         } catch (RuntimeException ex) {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    @Operation(summary = "Check if connector bundle name exists", description = "Returns true if the specified bundle name is already taken")
-    @GetMapping("/upload/check-bundle-name")
-    public ResponseEntity<Boolean> checkBundleNameExists(@RequestParam String bundleName) {
-        boolean exists = applicationService.checkBundleNameExists(bundleName);
-        return ResponseEntity.ok(exists);
     }
 
     @Operation(summary = "Check if a connector version already exists",

@@ -3,7 +3,15 @@
 --
 -- Licensed under the EUPL-1.2 or later.
 --
--- 
+-- Seed/demo data. Run it LAST, after both schema scripts:
+--
+--   psql ... -f config/sql/postgres.sql
+--   psql ... -f config/sql/postgres-upgrade.sql
+--   psql ... -f src/test/resources/sql/testing_data.sql
+--
+-- The upgrade script is not optional here even on a fresh database: schema changes go into it
+-- alone, so postgres.sql lands behind and lacks a column this file writes to (catalog_users.email,
+-- change 4). Skipping it fails with "column email does not exist".
 
 -- ============================================================
 -- ORGANIZATIONS
@@ -17,12 +25,20 @@ SELECT setval('organizations_id_seq', 2);
 -- ============================================================
 -- CATALOG USERS
 -- ============================================================
-INSERT INTO catalog_users (username, password, role, organization_id) VALUES
-	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
-	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
-	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
-	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
-	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
+-- The e-mail addresses must match openProject/seed/users.json exactly: a support work package is
+-- watched by the portal account carrying the address the catalog holds for that person, so an
+-- address that differs on either side means no watcher is attached. The domain follows the
+-- organization the member belongs to.
+-- Acme has three members with three different roles on purpose: only u1 and u6 act for the
+-- organization, while u4 belongs to it but contributes as an individual, so submissions maintained
+-- by Acme are u4's business no more than any other organization's are.
+INSERT INTO catalog_users (username, password, role, organization_id, email) VALUES
+	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1,    'u1@acme.com'),
+	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL, 'u2@read.com'),
+	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL, 'u3@solo.com'),
+	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1,    'u4@acme.com'),
+	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2,    'u5@evolveum.com'),
+	('u6', crypt('u6', gen_salt('bf', 10)), 'OrganizationContributor', 1,    'u6@acme.com');
 
 -- ============================================================
 -- LOOKUP TABLES
@@ -46,14 +62,6 @@ SELECT setval('country_of_origin_id_seq', 3);
 
 INSERT INTO application (id, name, display_name, description, lifecycle_state, created_at, updated, logo_path) VALUES
     ('11111111-1111-1111-1111-111111111111', 'my_test_app', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111111112', 'my_test_ap1', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111111122', 'my_test_ap2', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111111222', 'my_test_ap3', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
-    ('11111111-1111-1111-1111-111111112222', 'my_test_ap4', 'My Test App',
      'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
     ('22222222-2222-2222-2222-222222222222', 'sap_hr', 'SAP HR',
      'SAP Human Resources system integration requested by the community. Some more text to test limit of chars that can hold in this DB column.'

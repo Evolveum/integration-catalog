@@ -4,18 +4,31 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Input, Output, EventEmitter, signal, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApplicationService, ConnectorWithoutDownload } from '../../services/application.service';
+import { ApplicationService, ConnectorWithoutDownload, SupportTicket } from '../../services/application.service';
 
 /**
  * Reusable multi-step confirmation modal for approving or rejecting an in-review
  * integration-method version. The parent controls visibility (render it inside an
  * @if), passes the display data + processing/error state, and performs the actual
- * approve/reject on the `confirm` output. This component owns the multi-step flow:
- *   Step 0: Connectors without download info (approve mode only)
- *   Step 1: Support ticket still open (pending notice → Refresh → ready → Confirm)
- *   Step 2: Ready to confirm
+ * approve/reject on the `confirm` output. This component owns the three-step flow:
+ *   Step 0: connectors still missing download info (approve mode only)
+ *   Step 1: the support work package behind the review
+ *   Step 2: ready to confirm
+ *
+ * Step 0 lists the linked connectors that have no artifact yet, so the reviewer can trigger a build
+ * or fill the details in by hand. While any remain the step only offers Refresh; Continue appears
+ * once the list is empty.
+ *
+ * Step 1 is the second gate, driven by the support portal: the work package opened when the version
+ * was submitted is read on entry and again on every Refresh, and approval stays disabled until
+ * the portal reports the status the backend treats as the go-ahead. A version with no work
+ * package (submitted before the portal integration, or while the portal was down) has nothing
+ * to wait for and goes straight to the confirmable step.
+ *
+ * Rejection is deliberately not gated: it skips step 0, Refresh advances it as before, and the
+ * ticket is shown only so the reviewer can follow the link to write the reason there.
  */
 @Component({
   selector: 'app-approval-confirm-modal',
@@ -26,46 +39,96 @@ import { ApplicationService, ConnectorWithoutDownload } from '../../services/app
 })
 export class ApprovalConfirmModal implements OnInit {
   @Input({ required: true }) mode!: 'approve' | 'reject';
+  @Input({ required: true }) appId!: string;
+  @Input({ required: true }) methodId!: string;
+  @Input({ required: true }) revision!: string;
   @Input() connectorName = '';
   @Input() versionLabel = '';
   @Input() submittedBy = '';
   @Input() processing = false;
   @Input() error = '';
-  // Data needed to call the backend for connectors without download info.
-  @Input() appId = '';
-  @Input() methodId = '';
-  @Input() revision = '';
   @Output() confirm = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
   /** Emitted when the user clicks "Manual fill" for a connector. */
   @Output() manualFill = new EventEmitter<ConnectorWithoutDownload>();
 
+  private readonly applicationService = inject(ApplicationService);
+
   protected readonly step = signal<number>(0);
   protected readonly successDismissed = signal<boolean>(false);
+
+  // Step 0 state: connectors linked to this revision that have no artifact to download yet.
   protected readonly connectorsWithoutDownload = signal<ConnectorWithoutDownload[]>([]);
   protected readonly loadingConnectors = signal<boolean>(false);
   protected readonly buildingConnectors = signal<Set<number>>(new Set());
   protected readonly buildMessages = signal<Map<number, string>>(new Map());
 
-  // Hardcoded ticket details for now (to be wired to the support portal later).
-  protected readonly ticketId = '1239';
-  protected readonly relatedTicketId = '10452';
-  protected readonly ticketClosedDate = 'Jun 3, 2026';
-  protected readonly ticketUrl = 'https://support.evolveum.com/tickets/1239';
+  // Step 1 state: the support work package that gates the approval.
+  protected readonly ticket = signal<SupportTicket | null>(null);
+  protected readonly loading = signal<boolean>(false);
+  /** Set when the ticket itself could not be read, as opposed to the portal reporting a status. */
+  protected readonly lookupError = signal<string>('');
 
-  constructor(private applicationService: ApplicationService) {}
+  protected readonly ticketId = computed(() => this.ticket()?.ticketId ?? null);
+  protected readonly ticketUrl = computed(() => this.ticket()?.url ?? null);
+  protected readonly ticketStatus = computed(() => this.ticket()?.status ?? null);
 
   ngOnInit(): void {
-    // Only load connectors without download info for approve mode.
-    if (this.mode === 'approve' && this.appId && this.methodId && this.revision) {
+    if (this.mode === 'approve') {
       this.loadConnectorsWithoutDownload();
-    } else if (this.mode === 'approve') {
-      // No method data provided, skip step 0 and go to step 1.
-      this.step.set(1);
     } else {
-      // Reject mode skips step 0 entirely.
-      this.step.set(1);
+      // A rejection has no build prerequisites, so step 0 is skipped entirely.
+      this.enterTicketStep();
     }
+  }
+
+  /**
+   * Advances the flow. On step 0 the template only wires this to Continue once no connector is
+   * missing its build information, so there is nothing left to check and it moves straight on. On
+   * step 1 it re-reads the work package, and for an approval that is the whole gate — the modal
+   * only advances once the portal reports the awaited status. A rejection advances regardless,
+   * keeping its original behaviour.
+   */
+  protected refresh(): void {
+    if (this.step() === 0) {
+      this.enterTicketStep();
+      return;
+    }
+    if (this.mode === 'reject') {
+      this.step.set(2);
+      return;
+    }
+    this.loadTicket();
+  }
+
+  /** Moves on to the ticket gate and reads the work package it is waiting on. */
+  private enterTicketStep(): void {
+    this.step.set(1);
+    this.loadTicket();
+  }
+
+  private loadTicket(): void {
+    if (this.loading()) return;
+    this.loading.set(true);
+    this.lookupError.set('');
+    this.applicationService.getSupportTicket(this.appId, this.methodId, this.revision).subscribe({
+      next: (ticket) => {
+        this.loading.set(false);
+        this.ticket.set(ticket);
+        this.lookupError.set(ticket.error ?? '');
+        // Only the approval is gated; a rejection keeps its manual two-step flow.
+        if (this.mode === 'approve' && ticket.approvalReady) {
+          this.step.set(2);
+        }
+      },
+      error: (err) => {
+        this.loading.set(false);
+        console.error('Support ticket lookup failed', err);
+        // Leave the modal on step 1: without an answer from the portal the reviewer should not
+        // be waved through, but the reason is shown so it is clear why the button stays disabled.
+        this.lookupError.set('The support ticket could not be loaded.');
+      }
+    });
   }
 
   private loadConnectorsWithoutDownload(): void {
@@ -133,17 +196,6 @@ export class ApprovalConfirmModal implements OnInit {
   /** Refresh the connectors without download list. */
   protected refreshConnectors(): void {
     this.loadConnectorsWithoutDownload();
-  }
-
-  /** "Refresh to check again" advances from step 0 (connectors) or step 1 (ticket) to the next step. */
-  protected refresh(): void {
-    if (this.step() === 0) {
-      // Move past the connectors-without-download step.
-      this.step.set(1);
-    } else {
-      // Step 1 (ticket) → step 2 (ready to confirm).
-      this.step.set(2);
-    }
   }
 
   protected dismissSuccess(): void {

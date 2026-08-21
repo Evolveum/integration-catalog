@@ -17,7 +17,7 @@ import java.util.List;
  * current connector / bundle / bundle-version / version fields in place.
  */
 public record EditConnectorDto(
-        String displayName,                                          // connector.display_name + connector_bundle.display_name
+        String displayName,                                          // connector.display_name
         String description,                                          // connector.description
         String maintainer,                                           // connector.maintainer
         ConnectorBundle.LicenseType license,                         // connector_bundle.license
@@ -27,7 +27,7 @@ public record EditConnectorDto(
         BuildFrameworkType buildFramework,                           // connector_bundle.build_framework
         String pathToProject,                                        // connector_bundle_version.path_to_project
         String className,                                            // connector.fully_qualified_class_name
-        String bundleName,                                           // connector_bundle.bundle_name
+        String bundleDisplayName,                                    // connector_bundle.display_name (the form's "connector bundle name")
         String commitTag,                                            // connector_bundle_version.commit_tag
         String version,                                              // connector_bundle_version.bundle_version + connector.revision
         List<IntegrationMethodCapabilityGroupDto> connectorCapabilities // conn_version_capability + items (replaced)
