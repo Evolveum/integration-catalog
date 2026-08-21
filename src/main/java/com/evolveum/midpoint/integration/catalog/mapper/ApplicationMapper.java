@@ -86,7 +86,7 @@ public class ApplicationMapper {
                     Integer organizationId = null;
                     if (method.getAuthor() != null) {
                         organizationId = catalogUserRepository.findByUsername(method.getAuthor())
-                                .filter(u -> "OrganizationContributor".equals(u.getRole()))
+                                .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(u.getRole()))
                                 .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
                                 .orElse(null);
                     }
@@ -473,17 +473,21 @@ public class ApplicationMapper {
     /**
      * Maps a catalog_users.role to the maintainer category shown in the catalog:
      * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
+     *
+     * <p>Switched over {@link CatalogRole} rather than over the string, so that a role added to the
+     * catalog has to be given a category here instead of quietly mapping to none.
      */
     private static String roleToMaintainerCategory(String role) {
-        if (role == null) {
-            return null;
-        }
-        return switch (role) {
-            case "Superuser" -> "Evolveum";
-            case "OrganizationContributor" -> "Partner";
-            case "IndividualContributor" -> "Community";
-            default -> null;
-        };
+        // Explicit type argument: one branch yields null, which leaves nothing to infer U from.
+        return CatalogRole.of(role)
+                .<String>map(catalogRole -> switch (catalogRole) {
+                    case SUPERUSER -> "Evolveum";
+                    case ORGANIZATION_CONTRIBUTOR -> "Partner";
+                    case INDIVIDUAL_CONTRIBUTOR -> "Community";
+                    // A reader maintains nothing, so there is no category to show.
+                    case READ_ONLY -> null;
+                })
+                .orElse(null);
     }
 
     // ── IntegrationMethod list item ───────────────────────────────────────────
@@ -524,6 +528,7 @@ public class ApplicationMapper {
         String licenseType = null;
         String ticketingLink = null;
         String connectorDisplayName = null;
+        String bundleDisplayName = null;
         String bundleName = null;
         String bundleFramework = null;
         String commitTag = null;
@@ -539,6 +544,9 @@ public class ApplicationMapper {
             if (bundle != null) {
                 licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                 ticketingLink = bundle.getTicketingLink();
+                // display_name is the label the form shows as "connector bundle name"; bundle_name is
+                // the technical identity behind it and is only used for the duplicate-version lookup.
+                bundleDisplayName = bundle.getDisplayName();
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
             }
@@ -568,7 +576,7 @@ public class ApplicationMapper {
         // and is displayed as themselves, without the organization.
         String maintainerOrganization = maintainer == null ? null
                 : catalogUserRepository.findByUsername(maintainer)
-                        .filter(u -> "OrganizationContributor".equals(u.getRole()))
+                        .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(u.getRole()))
                         .map(u -> u.getOrganization() != null ? u.getOrganization().getName() : null)
                         .orElse(null);
 
@@ -591,6 +599,7 @@ public class ApplicationMapper {
                 pathToProject,
                 className,
                 connectorDisplayName,
+                bundleDisplayName,
                 bundleName,
                 bundleFramework,
                 commitTag,

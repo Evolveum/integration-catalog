@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Created by Tomas.
@@ -26,4 +27,7 @@ public interface DownloadRepository extends JpaRepository<Download, Integer>,
             LocalDateTime downloadedAt);
 
     long countByConnectorBundleVersion(ConnectorBundleVersion connectorBundleVersion);
+
+    /** The download history of one bundle version, so it can follow that version when bundles merge. */
+    List<Download> findByConnectorBundleVersion(ConnectorBundleVersion connectorBundleVersion);
 }

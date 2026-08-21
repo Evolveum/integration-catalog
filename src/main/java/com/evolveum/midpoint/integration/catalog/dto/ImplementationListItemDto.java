@@ -31,8 +31,9 @@ public record ImplementationListItemDto(
         String gitCloneUrl,                // connector_bundle_version.git_clone_url
         String pathToProjectDirectory,     // connector_bundle_version.path_to_project
         String className,                  // connector.fully_qualified_class_name
-        String bundleDisplayName,          // connector.display_name
-        String bundleName,                 // connector_bundle.bundle_name
+        String connectorDisplayName,       // connector.display_name
+        String bundleDisplayName,          // connector_bundle.display_name (shown as "connector bundle name")
+        String bundleName,                 // connector_bundle.bundle_name (technical identity, not shown)
         String bundleFramework,            // connector_bundle.framework
         String commitTag,                  // connector_bundle_version.commit_tag
         List<ObjectClassCapabilityDto> objectClassCapabilities, // conn_version_capability + items

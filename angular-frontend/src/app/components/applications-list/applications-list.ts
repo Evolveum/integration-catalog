@@ -170,8 +170,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     // Filter by search query
     if (query) {
+      // Null-guarded: display name is nullable in the database, and one null would throw here and
+      // empty the whole list rather than skipping that single application.
       filtered = filtered.filter(app =>
-        app.displayName.toLowerCase().includes(query)
+        (app.displayName ?? '').toLowerCase().includes(query)
       );
     }
 

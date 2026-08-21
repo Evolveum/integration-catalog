@@ -133,13 +133,6 @@ public class Controller {
         }
     }
 
-    @Operation(summary = "Check if connector bundle name exists", description = "Returns true if the specified bundle name is already taken")
-    @GetMapping("/upload/check-bundle-name")
-    public ResponseEntity<Boolean> checkBundleNameExists(@RequestParam String bundleName) {
-        boolean exists = applicationService.checkBundleNameExists(bundleName);
-        return ResponseEntity.ok(exists);
-    }
-
     @Operation(summary = "Check if a connector version already exists",
             description = "Returns true when another connector with the same bundle name and class name "
                     + "already carries the given version. Informational only — duplicates are not blocked; "

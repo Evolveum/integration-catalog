@@ -17,6 +17,7 @@ import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
+import { AuthService } from './auth.service';
 
 /** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
 export interface BundleDownloadResult {
@@ -30,6 +31,20 @@ export interface SheetDownloadResult {
   error: string | null;
   fileName: string | null;
   size: number | null;
+}
+
+/**
+ * The support-portal work package behind a revision's review (GET .../support-ticket).
+ * `approvalReady` is the backend's verdict — it compares the status against the one configured
+ * as the go-ahead, so the status name never has to be known here.
+ */
+export interface SupportTicket {
+  configured: boolean;
+  ticketId: number | null;
+  url: string | null;
+  status: string | null;
+  approvalReady: boolean;
+  error: string | null;
 }
 
 /** Connector linked to an integration method that lacks download info (no artifactUrl set). */
@@ -51,7 +66,7 @@ export interface ConnectorWithoutDownload {
 export class ApplicationService {
   private readonly apiUrl = `${environment.apiUrl}/applications`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private authService: AuthService) {}
 
   getAll(): Observable<Application[]> {
     return this.http.get<Application[]>(this.apiUrl);
@@ -108,10 +123,6 @@ export class ApplicationService {
     if (className) params = params.set('className', className);
     if (excludeConnectorId != null) params = params.set('excludeConnectorId', excludeConnectorId);
     return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version`, { params });
-  }
-
-  checkBundleNameExists(bundleName: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-bundle-name?bundleName=${encodeURIComponent(bundleName)}`);
   }
 
   getAllTags(): Observable<ApplicationTag[]> {
@@ -248,6 +259,18 @@ export class ApplicationService {
     );
   }
 
+  /**
+   * State of the support-portal work package opened when this revision was submitted.
+   * The backend restricts this to the submitting side and the reviewer, and identifies the
+   * caller by the username sent along - the same way the other user-scoped endpoints do.
+   */
+  getSupportTicket(appId: string, methodId: string, revision: string): Observable<SupportTicket> {
+    return this.http.get<SupportTicket>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`,
+      { params: new HttpParams().set('username', this.authService.currentUser() ?? '') }
+    );
+  }
+
   startReviewIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/start-review`,
@@ -302,7 +325,7 @@ export class ApplicationService {
       framework: string; license: string | null;
       browseLink: string | null; gitCloneUrl: string | null;
       buildFramework: string | null; pathToProject: string | null;
-      className: string | null; bundleName: string | null;
+      className: string | null; bundleDisplayName: string | null;
       version: string | null; commitTag: string | null;
       midpointMinVersion: number | null; midpointMaxVersion: number | null;
       connectorVersionFrom: string | null; connectorVersionTo: string | null;
@@ -327,7 +350,7 @@ export class ApplicationService {
       displayName: string; description: string; maintainer: string;
       license: string | null; browseLink: string | null; supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
-      pathToProject: string | null; className: string | null; bundleName: string | null;
+      pathToProject: string | null; className: string | null; bundleDisplayName: string | null;
       commitTag: string | null; version: string | null;
       connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
     }

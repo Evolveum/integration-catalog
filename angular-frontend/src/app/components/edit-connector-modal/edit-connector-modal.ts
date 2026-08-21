@@ -27,7 +27,7 @@ export interface ConnectorEditPayload {
   buildFramework: string | null;
   pathToProject: string | null;
   className: string | null;
-  bundleName: string | null;
+  bundleDisplayName: string | null;
   commitTag: string | null;
   version: string | null;
   connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
@@ -127,12 +127,14 @@ export class EditConnectorModal implements OnInit {
     const c = this.connector;
     this.isJavaBased = c.bundleFramework === 'JAVA_BASED';
 
-    this.connectorName.set(c.bundleDisplayName || c.name || '');
+    this.connectorName.set(c.connectorDisplayName || c.name || '');
     this.connectorVersion.set(c.version ?? '');
     this.connectorMaintainer.set(c.maintainer ?? '');
     this.connectorLicense.set(c.licenseType ?? '');
     this.connectorDescription.set(c.implementationDescription ?? '');
-    this.connectorBundleName.set(c.bundleName ?? '');
+    // The "connector bundle name" field is the bundle's label (connector_bundle.display_name);
+    // connector_bundle.bundle_name is the technical identity and is never shown or edited here.
+    this.connectorBundleName.set(c.bundleDisplayName ?? '');
 
     this.devProjectHomepage.set(c.browseLink ?? '');
     this.devSupportPortal.set(c.ticketingLink ?? '');
@@ -229,7 +231,7 @@ export class EditConnectorModal implements OnInit {
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
       className: this.devClassName() || null,
-      bundleName: this.connectorBundleName() || null,
+      bundleDisplayName: this.connectorBundleName() || null,
       commitTag: this.devCommitTag() || null,
       version: this.connectorVersion().trim() || null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
