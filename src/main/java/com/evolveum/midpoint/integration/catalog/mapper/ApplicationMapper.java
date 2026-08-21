@@ -8,11 +8,11 @@ package com.evolveum.midpoint.integration.catalog.mapper;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.object.*;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
+import com.evolveum.midpoint.integration.catalog.service.OrganizationService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -25,16 +25,16 @@ public class ApplicationMapper {
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
-    private final CatalogUserRepository catalogUserRepository;
+    private final OrganizationService organizationService;
     private final MidpointVersionRepository midpointVersionRepository;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
-                             DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository,
+                             DownloadRepository downloadRepository, OrganizationService organizationService,
                              MidpointVersionRepository midpointVersionRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
-        this.catalogUserRepository = catalogUserRepository;
+        this.organizationService = organizationService;
         this.midpointVersionRepository = midpointVersionRepository;
     }
 
@@ -80,16 +80,11 @@ public class ApplicationMapper {
                     String lifecycleState = method.getLifecycleState() != null
                             ? method.getLifecycleState().name() : null;
 
-                    // Author's organization drives the org-mate access checks; an
-                    // IndividualContributor's uploads stay personal even when they belong
-                    // to an organization, so the org is only exposed for org contributors.
-                    Integer organizationId = null;
-                    if (method.getAuthor() != null) {
-                        organizationId = catalogUserRepository.findByUsername(method.getAuthor())
-                                .filter(u -> "OrganizationContributor".equals(u.getRole()))
-                                .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
-                                .orElse(null);
-                    }
+                    // Author's organization drives the org-mate access checks. It was
+                    // stamped on the row at upload time, so an IndividualContributor's
+                    // uploads stay personal even when they belong to an organization.
+                    String authorOrganization =
+                            organizationService.displayName(method.getAuthorOrgId());
 
                     // Connector info from first linked connector
                     String connectorVersion = null;
@@ -191,7 +186,7 @@ public class ApplicationMapper {
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
                             method.getAuthor(),
-                            organizationId,
+                            authorOrganization,
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -206,7 +201,7 @@ public class ApplicationMapper {
                             method.getTutorial(),
                             method.getFilePath(),
                             method.getReviewedBy(),
-                            method.getMaintainer(),
+                            organizationService.maintainerLabel(method),
                             method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
                             method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
                             includedConnectors
@@ -424,16 +419,13 @@ public class ApplicationMapper {
             }
         }
 
-        // Distinct maintainer categories (Evolveum/Partner/Community) derived from the
-        // role of each integration method's author, for the "Maintainer" filter. We use
-        // `author` (the publishing catalog_user's username) rather than `maintainer`,
-        // which is a free-text field that does not link to catalog_users.
+        // Distinct maintainer categories (Evolveum/Partner/Community) for the "Maintainer"
+        // filter, taken from the category stamped on each integration method when it was
+        // uploaded - it records the author's role at that moment.
         List<String> maintainers = null;
         if (app.getIntegrationMethods() != null) {
             maintainers = app.getIntegrationMethods().stream()
-                    .map(IntegrationMethod::getAuthor)
-                    .filter(username -> username != null)
-                    .map(this::maintainerCategoryForUser)
+                    .map(IntegrationMethod::getAuthorCategory)
                     .filter(category -> category != null)
                     .distinct()
                     .toList();
@@ -460,30 +452,6 @@ public class ApplicationMapper {
                 integrationMethodTypes,
                 maintainers
         );
-    }
-
-    /** Maps an integration method's maintainer username to its maintainer category. */
-    private String maintainerCategoryForUser(String username) {
-        return catalogUserRepository.findByUsername(username)
-                .map(CatalogUser::getRole)
-                .map(ApplicationMapper::roleToMaintainerCategory)
-                .orElse(null);
-    }
-
-    /**
-     * Maps a catalog_users.role to the maintainer category shown in the catalog:
-     * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
-     */
-    private static String roleToMaintainerCategory(String role) {
-        if (role == null) {
-            return null;
-        }
-        return switch (role) {
-            case "Superuser" -> "Evolveum";
-            case "OrganizationContributor" -> "Partner";
-            case "IndividualContributor" -> "Community";
-            default -> null;
-        };
     }
 
     // ── IntegrationMethod list item ───────────────────────────────────────────
@@ -561,16 +529,16 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
-        // When the maintainer is an organization contributor, expose their organization so the
-        // client can render "org (username)". Null when the maintainer is not a known user
-        // (e.g. it is an organization itself), has no organization, or is an individual
-        // contributor — an IndividualContributor who belongs to an organization still publishes
-        // and is displayed as themselves, without the organization.
-        String maintainerOrganization = maintainer == null ? null
-                : catalogUserRepository.findByUsername(maintainer)
-                        .filter(u -> "OrganizationContributor".equals(u.getRole()))
-                        .map(u -> u.getOrganization() != null ? u.getOrganization().getName() : null)
-                        .orElse(null);
+        // Ownership as stamped on the connector. An item maintained by an organization has
+        // no maintainer username, and is shown under the organization's name; an item
+        // maintained by a person who publishes for an organization keeps the username and
+        // exposes the organization separately, so the client can render "org (username)".
+        String maintainerOrganizationName = connector == null ? null
+                : organizationService.displayName(connector.getMaintainerOrgId());
+        String maintainerOrganization = maintainer == null ? null : maintainerOrganizationName;
+        if (maintainer == null) {
+            maintainer = maintainerOrganizationName;
+        }
 
         return new ImplementationListItemDto(
                 method.getId(),

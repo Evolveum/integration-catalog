@@ -24,4 +24,10 @@ public interface ConnectorBundleRepository extends JpaRepository<ConnectorBundle
     boolean existsByBundleNameAndRevision(String bundleName, String revision);
 
     List<ConnectorBundle> findByLifecycleState(LifecycleType lifecycleState);
+
+    /** Owners of items currently designated to a maintainer; feeds the maintainer options. */
+    List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
+
+    /** Owners of items uploaded on behalf of the given organization. */
+    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
 }

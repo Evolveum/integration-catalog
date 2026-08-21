@@ -5,24 +5,16 @@
 --
 -- 
 
--- ============================================================
--- ORGANIZATIONS
--- ============================================================
+-- Users, roles and group membership live entirely in the identity provider (see
+-- keycloak_for_auth/import/integration-catalog-realm.json for the dev test users); the
+-- catalog database stores no user data. Organizations are the exception: the token claim
+-- carries only the identifier, so the display name lives in the organizations table and
+-- the rows below mirror the organizations of the development realm.
+
 INSERT INTO organizations (id, name, description) VALUES
-	(1, 'Acme co.', 'Test organization for OrganizationContributor and IndividualContributor users'),
-	(2, 'Evolveum', 'Evolveum — application administrators');
-
-SELECT setval('organizations_id_seq', 2);
-
--- ============================================================
--- CATALOG USERS
--- ============================================================
-INSERT INTO catalog_users (username, password, role, organization_id) VALUES
-	('u1', crypt('u1', gen_salt('bf', 10)), 'OrganizationContributor', 1),
-	('u2', crypt('u2', gen_salt('bf', 10)), 'ReadOnly',                NULL),
-	('u3', crypt('u3', gen_salt('bf', 10)), 'IndividualContributor',   NULL),
-	('u4', crypt('u4', gen_salt('bf', 10)), 'IndividualContributor',   1),
-	('u5', crypt('u5', gen_salt('bf', 10)), 'Superuser',               2);
+    ('evolveum', 'Evolveum', 'Maintainer of midPoint and the Integration catalog'),
+    ('acme',     'Acme co.', 'Demo partner organization')
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- LOOKUP TABLES
@@ -78,14 +70,15 @@ INSERT INTO application_origin (application_id, country_id) VALUES
 -- ============================================================
 
 INSERT INTO connector_bundle (id, revision, author, maintainer, created_at, updated, lifecycle_state,
-    bundle_name, display_name, description, framework, license, ticketing_link, build_framework)
+    bundle_name, display_name, description, framework, license, ticketing_link, build_framework,
+    author_org_id, author_category)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5', 'Conn bun maintainer 1', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
-     'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN'),
+     'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN', NULL, 'Evolveum'),
     (2, '1.0', 'u1', 'Conn bun maintainer 2', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
-     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE'),
+     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE', 'acme', 'Partner'),
     (3, '1.0', 'u5', 'Conn bun maintainer 3', NOW(), NOW(), 'ACTIVE', 'com.evolveum.polygon.connector-csv', 'CSV File Connector Bundle',
-     'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues', 'MAVEN');
+     'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues', 'MAVEN', NULL, 'Evolveum');
 
 SELECT setval('connector_bundle_id_seq', 4);
 
@@ -95,16 +88,17 @@ SELECT setval('connector_bundle_id_seq', 4);
 
 INSERT INTO connector_bundle_version (id, revision, author, maintainer, created_at, updated,
     lifecycle_state, connector_bundle_id, bundle_version, browse_link, git_clone_ULR,
-    path_to_project, build_framework, artifact_url, error_message)
+    path_to_project, build_framework, artifact_url, error_message,
+    author_org_id, author_category)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'u5','Conn bun ver author 1', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
-     'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL, NULL),
-    (2, '1.0', 'u1', 'Conn bun ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
-     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL),
-    (3, '1.0', 'u5', 'Conn bun ver author 3', NOW(), NOW(), 'ACTIVE', 3, '2.9',
+    (1, '1.0', 'u5','Conn bun ver maintainer 1', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
+     'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL, NULL, NULL, 'Evolveum'),
+    (2, '1.0', 'u1', 'Conn bun ver maintainer 2', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
+     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL, 'acme', 'Partner'),
+    (3, '1.0', 'u5', 'Conn bun ver maintainer 3', NOW(), NOW(), 'ACTIVE', 3, '2.9',
      'https://nexus.evolveum.com/nexus/#browse/browse:releases:com%2Fevolveum%2Fpolygon%2Fconnector-csvfile',
      'https://github.com/Evolveum/connector-csv.git', '/path_to_project', 'MAVEN',
-     'https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar', NULL);
+     'https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar', NULL, NULL, 'Evolveum');
 
 SELECT setval('connector_bundle_version_id_seq', 4);
 
@@ -136,11 +130,11 @@ SELECT setval('connector_connector_tag_id_seq', 1);
 
 INSERT INTO connector_version (id, revision, author, maintainer, created_at, updated,
     lifecycle_state, connector_bundle_version_id, connector_bundle_version_revision,
-    connector_id, fully_qualified_class_name, error_message)
+    connector_id, fully_qualified_class_name, error_message, author_org_id, author_category)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0.0', 'u5', 'Conn ver author 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL),
-    (2, '1.0.0', 'u1', 'Conn ver author 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL),
-    (3, '1.0.0', 'u5', 'Conn ver author 3', NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL);
+    (1, '1.0.0', 'u5', 'Conn ver maintainer 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL, NULL, 'Evolveum'),
+    (2, '1.0.0', 'u1', 'Conn ver maintainer 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL, 'acme', 'Partner'),
+    (3, '1.0.0', 'u5', 'Conn ver maintainer 3', NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL, NULL, 'Evolveum');
 
 SELECT setval('connector_version_id_seq', 3);
 
@@ -148,13 +142,16 @@ SELECT setval('connector_version_id_seq', 3);
 -- INTEGRATION METHODS  (composite PK uuid + revision)
 -- ============================================================
 
+-- 'Test 2' is published the way an organization contributor publishes for their
+-- organization: no maintainer username, the organization maintains it.
 INSERT INTO integration_method (id, application_id, display_name, description,
-     tutorial, file_path,  midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version, reviewed_by)
+     tutorial, file_path,  midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version, reviewed_by,
+     author_org_id, author_category, maintainer_org_id)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
-	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1',NULL),
+	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1',NULL,NULL,NULL,NULL),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111', 'Test 2 - Integration method','Test 2 - Integration method description',
-	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','IM author 2','IM maintainer 2',NOW(),NOW(),'2024.2',NULL);
+	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','u1',NULL,NOW(),NOW(),'2024.2',NULL,'acme','Partner','acme');
 
 -- ============================================================
 -- INTEGRATION METHOD → CONNECTOR links

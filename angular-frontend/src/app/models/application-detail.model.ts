@@ -33,7 +33,7 @@ export interface IntegrationMethod {
   systemVersion: string | null;            // integration_method.system_version
   releasedDate: string | null;             // connector_bundle_version.released_date
   author: string | null;                   // connector.author
-  organizationId: number | null;           // connector.organization_id
+  authorOrganization: string | null;       // organization the author published for (org contributors only)
   maintainer: string | null;               // integration_method.maintainer
   lifecycleState: string | null;           // integration_method.lifecycle_state
   downloadLink: string | null;             // generated download URL

@@ -9,5 +9,6 @@ package com.evolveum.midpoint.integration.catalog.repository;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface OrganizationRepository extends JpaRepository<Organization, Integer> {
+/** Organizations, keyed by the identifier carried in the OIDC organization claim. */
+public interface OrganizationRepository extends JpaRepository<Organization, String> {
 }

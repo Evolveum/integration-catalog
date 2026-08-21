@@ -6,157 +6,166 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import com.evolveum.midpoint.integration.catalog.dto.LoginResponseDto;
-import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
-import com.evolveum.midpoint.integration.catalog.object.Organization;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
-import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
+import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
+/**
+ * Identity questions, answered from the OIDC token claims of the current session plus the
+ * organizations table — the application talks to no identity-provider administration API.
+ * <p>
+ * A token only ever describes its own bearer, so questions about <em>other</em> users are
+ * answered from what was recorded on the item when it was written: its author, its
+ * maintainer, and the organization identifiers stamped alongside them.
+ */
 @Service
 public class AuthService {
 
-    private final CatalogUserRepository catalogUserRepository;
-    private final OrganizationRepository organizationRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final OrganizationService organizationService;
+    private final CatalogOwnerDirectory catalogOwnerDirectory;
+    private final CatalogClaims claims;
 
-    public AuthService(CatalogUserRepository catalogUserRepository, OrganizationRepository organizationRepository) {
-        this.catalogUserRepository = catalogUserRepository;
-        this.organizationRepository = organizationRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder();
+    public AuthService(OrganizationService organizationService,
+                       CatalogOwnerDirectory catalogOwnerDirectory,
+                       CatalogClaims claims) {
+        this.organizationService = organizationService;
+        this.catalogOwnerDirectory = catalogOwnerDirectory;
+        this.claims = claims;
     }
 
-    public Optional<LoginResponseDto> login(String username, String password) {
-        Optional<CatalogUser> userOpt = catalogUserRepository.findByUsername(username);
-        if (userOpt.isEmpty()) {
-            return Optional.empty();
+    /**
+     * The authenticated user's profile. Everything but the organization's display name
+     * comes straight from the token; the claim carries the organization's identifier only,
+     * so the name is resolved from the organizations table (falling back to the identifier
+     * when the organization has not been seeded there yet).
+     */
+    public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
+        String role = CatalogRole.READ_ONLY;
+        String organizationId = null;
+        String organizationName = null;
+        List<String> groups = List.of();
+        if (oidcUser != null) {
+            role = claims.effectiveRole(oidcUser);
+            organizationId = claims.organizationId(oidcUser);
+            String resolved = organizationService.displayName(organizationId);
+            organizationName = resolved != null ? resolved : organizationId;
+            groups = claims.groups(oidcUser);
         }
-
-        CatalogUser user = userOpt.get();
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            return Optional.empty();
-        }
-
-        Organization org = user.getOrganization();
-        return Optional.of(new LoginResponseDto(
-                user.getUsername(),
-                user.getRole(),
-                org != null ? org.getId() : null,
-                org != null ? org.getName() : null
-        ));
+        return new CurrentUserDto(
+                username,
+                oidcUser != null ? oidcUser.getFullName() : null,
+                oidcUser != null ? oidcUser.getEmail() : null,
+                role,
+                organizationId,
+                organizationName,
+                groups
+        );
     }
 
+    /**
+     * Maintainer options for a superuser: every user already designated as a maintainer,
+     * plus every organization.
+     * <p>
+     * Without a user table the first half can only come from the maintainers recorded on
+     * catalog items, so someone who has never been given an item to maintain is not offered
+     * here — they become selectable once they are made a maintainer of one.
+     */
     public List<String> getAllMaintainers() {
-        List<String> result = new ArrayList<>();
-        catalogUserRepository.findAll().stream()
-                .map(CatalogUser::getUsername)
-                .forEach(result::add);
-        organizationRepository.findAll().stream()
-                .map(Organization::getName)
-                .forEach(result::add);
+        List<String> result = new ArrayList<>(catalogOwnerDirectory.findAllMaintainers());
+        result.addAll(organizationService.allNames());
         return result;
     }
 
     /**
-     * Whether {@code username} may see/modify an item designated by {@code maintainer} and
-     * uploaded by {@code author}.
+     * Whether {@code username} may see/modify an item authored by {@code author} on behalf
+     * of {@code authorOrganizationId} and maintained by {@code maintainer} /
+     * {@code maintainerOrganizationId}.
      * <p>
      * This is the authoritative access check, mirrored (for UX only) on the client:
      * <ul>
-     *   <li>Superuser may access anything;</li>
-     *   <li>the designated maintainer may access it — matched either by username
-     *       (maintainer == username) or by organization (maintainer == the caller's
-     *       organization name, i.e. the item is maintained by the caller's org);</li>
-     *   <li>an Organization contributor may access any item maintained by a fellow
-     *       Organization contributor of their own organization (an organization acts as a
-     *       team; a maintainer without an organization stays personal, and so does an
-     *       Individual contributor even when they belong to an organization);</li>
-     *   <li>the uploader may access items they authored (author == username);</li>
-     *   <li>an Organization contributor may access any item authored by a fellow
-     *       Organization contributor of their own organization.</li>
+     *   <li>a Superuser may access anything;</li>
+     *   <li>the designated maintainer may access it, matched by username;</li>
+     *   <li>an item maintained by an organization is accessible to every member of that
+     *       organization — the organization acts as a team;</li>
+     *   <li>the uploader may access items they authored;</li>
+     *   <li>an Organization contributor may access any item authored on behalf of their own
+     *       organization.</li>
      * </ul>
-     * The {@code maintainer} is the primary ownership signal: it is explicitly set when
-     * publishing (e.g. a superuser may attribute an item to another user or org), whereas
-     * {@code author} merely records who uploaded it. An unknown or anonymous user is never
-     * granted access (except a superuser).
+     * The maintainer is the primary ownership signal: it is set explicitly when publishing
+     * (a superuser may attribute an item to another user or organization), whereas the
+     * author merely records who uploaded it. An anonymous caller is never granted access.
      */
-    public boolean canEdit(String username, String author, String maintainer) {
+    public boolean canEdit(String username, String author, String authorOrganizationId,
+                           String maintainer, String maintainerOrganizationId) {
         if (username == null || username.isBlank()) {
             return false;
         }
-        CatalogUser caller = catalogUserRepository.findByUsername(username).orElse(null);
+        OidcUser caller = currentOidcUser();
         if (caller == null) {
             return false;
         }
-        if ("Superuser".equals(caller.getRole())) {
+        String callerRole = claims.effectiveRole(caller);
+        if (CatalogRole.SUPERUSER.equals(callerRole)) {
             return true;
         }
-        // Maintainer designates ownership: match by the caller's username or by their org name.
-        if (maintainer != null && !maintainer.isBlank()) {
-            if (maintainer.equalsIgnoreCase(username)) {
-                return true;
-            }
-            if (caller.getOrganization() != null && caller.getOrganization().getName() != null
-                    && maintainer.equalsIgnoreCase(caller.getOrganization().getName())) {
-                return true;
-            }
+        if (maintainer != null && maintainer.equalsIgnoreCase(username)) {
+            return true;
         }
-        // An organization acts as a team: an item maintained by an org contributor is editable
-        // by every member of that organization. A maintainer without an org stays personal, as
-        // does an IndividualContributor who belongs to an org — they act as themselves.
-        if ("OrganizationContributor".equals(caller.getRole())
-                && caller.getOrganization() != null && maintainer != null && !maintainer.isBlank()) {
-            CatalogUser maintainerUser = catalogUserRepository.findByUsername(maintainer).orElse(null);
-            if (maintainerUser != null && "OrganizationContributor".equals(maintainerUser.getRole())
-                    && maintainerUser.getOrganization() != null
-                    && caller.getOrganization().getId().equals(maintainerUser.getOrganization().getId())) {
-                return true;
-            }
+        String callerOrganizationId = claims.organizationId(caller);
+        // An organization acts as a team: whatever it maintains, all of its members may edit.
+        if (callerOrganizationId != null && maintainerOrganizationId != null
+                && callerOrganizationId.equalsIgnoreCase(maintainerOrganizationId)) {
+            return true;
         }
-        // The uploader keeps access, as do organization contributors over their org's uploads.
         if (author != null && author.equalsIgnoreCase(username)) {
             return true;
         }
-        if ("OrganizationContributor".equals(caller.getRole())
-                && caller.getOrganization() != null && author != null) {
-            CatalogUser owner = catalogUserRepository.findByUsername(author).orElse(null);
-            if (owner != null && "OrganizationContributor".equals(owner.getRole())
-                    && owner.getOrganization() != null
-                    && caller.getOrganization().getId().equals(owner.getOrganization().getId())) {
-                return true;
-            }
-        }
-        return false;
+        // Uploads made on behalf of the caller's organization belong to the whole organization.
+        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
+                && callerOrganizationId != null && authorOrganizationId != null
+                && callerOrganizationId.equalsIgnoreCase(authorOrganizationId);
     }
 
-    /** Whether {@code username} resolves to a Superuser. Used to gate approval actions. */
+    /** Whether {@code username} is the current Superuser. Used to gate approval actions. */
     public boolean isSuperuser(String username) {
         if (username == null || username.isBlank()) {
             return false;
         }
-        return catalogUserRepository.findByUsername(username)
-                .map(u -> "Superuser".equals(u.getRole()))
-                .orElse(false);
+        OidcUser caller = currentOidcUser();
+        return caller != null && CatalogRole.SUPERUSER.equals(claims.effectiveRole(caller));
     }
 
+    /**
+     * Usernames sharing the caller's organization; just the caller when they have none.
+     * <p>
+     * Derived from the items published on behalf of that organization, so it lists the
+     * organization's contributors rather than every account in it.
+     */
     public List<String> getOrganizationMembers(String username) {
-        return catalogUserRepository.findByUsername(username)
-                .map(user -> {
-                    if (user.getOrganization() == null) {
-                        return List.of(username);
-                    }
-                    return catalogUserRepository
-                            .findByOrganizationId(user.getOrganization().getId())
-                            .stream()
-                            .map(CatalogUser::getUsername)
-                            .collect(Collectors.toList());
-                })
-                .orElse(List.of(username));
+        OidcUser caller = currentOidcUser();
+        String organizationId = caller != null ? claims.organizationId(caller) : null;
+        if (organizationId == null || organizationId.isBlank()) {
+            return List.of(username);
+        }
+        List<String> members = new ArrayList<>(
+                catalogOwnerDirectory.findAuthorsOfOrganization(organizationId));
+        if (!members.contains(username)) {
+            members.add(username);
+        }
+        return members;
+    }
+
+    private static OidcUser currentOidcUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof OidcUser oidcUser
+                ? oidcUser
+                : null;
     }
 }
