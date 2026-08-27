@@ -30,21 +30,52 @@ import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.SUP
 /**
  * OIDC login against the identity provider (this application is the OIDC client) plus the endpoint
  * authorization matrix.
- * <p>
- * The matrix in {@link #filterChain} is the authoritative list of what is public, what
- * requires login, and which role each operation needs. Data-dependent ownership rules
- * (may this contributor edit this particular item) stay in
- * {@link com.evolveum.midpoint.integration.catalog.service.AuthService#canEdit}, keyed off
- * the authenticated principal.
- * <p>
- * Sessions: the browser gets a session cookie after the OIDC code flow; the Angular app
- * calls /api with that cookie and mirrors the XSRF-TOKEN cookie into the X-XSRF-TOKEN
- * header for mutating requests. Unauthenticated /api requests get a plain 401 (no login
- * redirect); the SPA starts the login flow explicitly via /oauth2/authorization/oidc.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final String ALL_API = "/api/**";
+
+    private static final String CURRENT_USER = "/api/auth/me";
+
+    private static final String ORGANIZATION_MEMBERS = "/api/auth/organization/members";
+
+    private static final String MAINTAINER_DIRECTORY = "/api/auth/all-maintainers";
+
+    private static final String[] REVIEW_DECISIONS = {
+            "/api/applications/*/integration-method/*/*/start-review",
+            "/api/applications/*/integration-method/*/*/stop-review",
+            "/api/applications/*/integration-method/*/*/publish",
+            "/api/applications/*/integration-method/*/*/reject" };
+
+    private static final String CONNECTOR_UPLOADS = "/api/upload/**";
+
+    private static final String INTEGRATION_METHOD = "/api/applications/*/integration-method/**";
+
+    private static final String APPLICATION_LOGO = "/api/applications/*/logo";
+
+    private static final String[] ITEM_ATTACHMENTS = {
+            "/api/applications/*/integration-method/*/*/connectors",
+            "/api/applications/*/integration-method/*/*/tutorial",
+            APPLICATION_LOGO,
+            "/api/integration-methods/*/tutorial" };
+
+    private static final String REQUESTS = "/api/requests";
+
+    private static final String SINGLE_REQUEST = "/api/requests/*";
+
+    private static final String REQUEST_VOTE = "/api/requests/*/vote";
+
+    private static final String RECENTLY_USED_ITEM = "/api/recently-used/*";
+
+    private static final String[] CATALOG_SEARCHES = {
+            "/api/applications/search/*/*",
+            "/api/integration-methods/search/*/*" };
+
+    private static final String LOGOUT = "/logout";
+
+    private static final String POST_LOGOUT_REDIRECT = "{baseUrl}";
 
     private final CatalogOidcUserService catalogOidcUserService;
     private final JenkinsProperties jenkinsProperties;
@@ -57,6 +88,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+        JenkinsCallbackFilter jenkinsCallbackFilter = new JenkinsCallbackFilter(jenkinsProperties);
         http
                 // Reuses the MVC CORS mappings (configuration/CorsConfig) so preflights pass
                 // the security chain when the SPA is served from another origin.
@@ -64,75 +96,49 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
-                        // Machine callbacks authenticate with a shared secret, not a session.
-                        .ignoringRequestMatchers(JenkinsCallbackFilter.CALLBACK_PATH_PATTERNS))
-                .addFilterBefore(new JenkinsCallbackFilter(jenkinsProperties), AuthorizationFilter.class)
+                        .ignoringRequestMatchers(jenkinsCallbackFilter.authenticatedCallbackMatcher()))
+                .addFilterBefore(jenkinsCallbackFilter, AuthorizationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        // Jenkins build callbacks (verify + continue/fail) — guarded by the
-                        // shared-secret JenkinsCallbackFilter above, not by a user session.
-                        .requestMatchers(JenkinsCallbackFilter.CALLBACK_PATH_PATTERNS).permitAll()
+                        // Build callbacks (verify + continue/fail), reachable two ways: the
+                        // Jenkins pipeline authenticates with the shared secret handled by the
+                        // filter above, a contributor completing a build by hand through the
+                        // manual-fill dialog with their session.
+                        .requestMatchers(JenkinsCallbackFilter.CALLBACK_PATH_PATTERNS)
+                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER,
+                                        JenkinsCallbackFilter.CALLBACK_ROLE)
 
-                        // Superuser only: the review/approval workflow and the user directory.
-                        .requestMatchers("/api/auth/all-maintainers").hasRole(SUPERUSER)
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/applications/*/integration-method/*/*/start-review",
-                                "/api/applications/*/integration-method/*/*/stop-review",
-                                "/api/applications/*/integration-method/*/*/publish",
-                                "/api/applications/*/integration-method/*/*/reject").hasRole(SUPERUSER)
-
-                        // Contributors: publishing and editing catalog content. Ownership of the
-                        // individual item is enforced on top of this by AuthService.canEdit.
-                        .requestMatchers("/api/upload/**")
+                        .requestMatchers(MAINTAINER_DIRECTORY).hasRole(SUPERUSER)
+                        .requestMatchers(HttpMethod.POST, REVIEW_DECISIONS).hasRole(SUPERUSER)
+                        .requestMatchers(CONNECTOR_UPLOADS)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
-                        .requestMatchers(HttpMethod.PUT, "/api/applications/*/integration-method/**")
+                        .requestMatchers(HttpMethod.PUT, INTEGRATION_METHOD)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
-                        .requestMatchers(HttpMethod.DELETE, "/api/applications/*/integration-method/**")
+                        .requestMatchers(HttpMethod.DELETE, INTEGRATION_METHOD)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/applications/*/integration-method/*/*/connectors",
-                                "/api/applications/*/integration-method/*/*/tutorial",
-                                "/api/applications/*/logo",
-                                "/api/integration-methods/*/tutorial")
+                        .requestMatchers(HttpMethod.POST, ITEM_ATTACHMENTS)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
-                        .requestMatchers(HttpMethod.DELETE, "/api/applications/*/logo")
+                        .requestMatchers(HttpMethod.DELETE, APPLICATION_LOGO)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
-
-                        // Contributors: creating and cancelling requests. Cancelling is
-                        // further restricted to the requester or a superuser in
-                        // ApplicationService.cancelRequest.
-                        .requestMatchers(HttpMethod.POST, "/api/requests")
+                        .requestMatchers(HttpMethod.POST, REQUESTS)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
-                        .requestMatchers(HttpMethod.DELETE, "/api/requests/*")
+                        .requestMatchers(HttpMethod.DELETE, SINGLE_REQUEST)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
-
-                        // Any authenticated user (including ReadOnly): voting, profile and
-                        // recently-used tracking. Anonymous visitors cannot vote.
-                        .requestMatchers(HttpMethod.POST, "/api/requests/*/vote").authenticated()
-                        .requestMatchers("/api/auth/me", "/api/auth/organization/members").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/recently-used/*").authenticated()
-
-                        // Anonymous catalog browsing: all remaining reads and the two search POSTs.
-                        .requestMatchers(HttpMethod.GET, "/api/**").permitAll()
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/applications/search/*/*",
-                                "/api/integration-methods/search/*/*").permitAll()
-
-                        // Deny-by-default for any other (or future) API endpoint.
-                        .requestMatchers("/api/**").authenticated()
-
-                        // Everything outside /api: the SPA, its assets, and the OAuth endpoints.
+                        .requestMatchers(HttpMethod.POST, REQUEST_VOTE).authenticated()
+                        .requestMatchers(CURRENT_USER, ORGANIZATION_MEMBERS).authenticated()
+                        .requestMatchers(HttpMethod.POST, RECENTLY_USED_ITEM).authenticated()
+                        .requestMatchers(HttpMethod.GET, ALL_API).permitAll()
+                        .requestMatchers(HttpMethod.POST, CATALOG_SEARCHES).permitAll()
+                        .requestMatchers(ALL_API).authenticated()
                         .anyRequest().permitAll())
-                // XHR calls must see a 401, not a redirect to the provider; the SPA starts the
-                // login flow itself by navigating to /oauth2/authorization/oidc.
-                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
+               .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                        PathPatternRequestMatcher.withDefaults().matcher("/api/**")))
+                        PathPatternRequestMatcher.withDefaults().matcher(ALL_API)))
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(catalogOidcUserService)))
                 .logout(logout -> logout
                         // GET so the SPA can log out with a plain top-level navigation.
                         .logoutRequestMatcher(
-                                PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, "/logout"))
+                                PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, LOGOUT))
                         .logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository)));
         return http.build();
     }
@@ -141,7 +147,7 @@ public class SecurityConfig {
     private LogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
         OidcClientInitiatedLogoutSuccessHandler handler =
                 new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-        handler.setPostLogoutRedirectUri("{baseUrl}");
+        handler.setPostLogoutRedirectUri(POST_LOGOUT_REDIRECT);
         return handler;
     }
 }

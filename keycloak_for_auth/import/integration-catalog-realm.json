@@ -420,8 +420,7 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "role" : [ "OrganizationContributor" ],
-      "group" : [ "Partner" ]
+      "role" : [ "OrganizationContributor" ]
     },
     "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
@@ -487,8 +486,7 @@
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
     "attributes" : {
-      "role" : [ "IndividualContributor" ],
-      "group" : [ "Subscriber" ]
+      "role" : [ "IndividualContributor" ]
     },
     "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
@@ -747,21 +745,6 @@
         "access.token.claim" : "true",
         "user.attribute" : "role",
         "claim.name" : "roles",
-        "jsonType.label" : "String"
-      }
-    }, {
-      "id" : "e4f3a9b4-0002-4f8d-8c8a-4d5e6f7a8b02",
-      "name" : "catalog-group",
-      "protocol" : "openid-connect",
-      "protocolMapper" : "oidc-usermodel-attribute-mapper",
-      "consentRequired" : false,
-      "config" : {
-        "multivalued" : "true",
-        "userinfo.token.claim" : "true",
-        "id.token.claim" : "true",
-        "access.token.claim" : "true",
-        "user.attribute" : "group",
-        "claim.name" : "groups",
         "jsonType.label" : "String"
       }
     } ],

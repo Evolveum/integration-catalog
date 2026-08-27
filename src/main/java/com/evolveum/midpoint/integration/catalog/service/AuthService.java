@@ -20,8 +20,8 @@ import java.util.List;
 /**
  * Identity questions, answered from the OIDC token claims of the current session plus the
  * organizations table — the application talks to no identity-provider administration API.
- * <p>
- * A token only ever describes its own bearer, so questions about <em>other</em> users are
+ *
+ * A token only ever describes its own bearer, so questions about other users are
  * answered from what was recorded on the item when it was written: its author, its
  * maintainer, and the organization identifiers stamped alongside them.
  */
@@ -50,13 +50,11 @@ public class AuthService {
         String role = CatalogRole.READ_ONLY;
         String organizationId = null;
         String organizationName = null;
-        List<String> groups = List.of();
         if (oidcUser != null) {
             role = claims.effectiveRole(oidcUser);
             organizationId = claims.organizationId(oidcUser);
             String resolved = organizationService.displayName(organizationId);
             organizationName = resolved != null ? resolved : organizationId;
-            groups = claims.groups(oidcUser);
         }
         return new CurrentUserDto(
                 username,
@@ -64,15 +62,14 @@ public class AuthService {
                 oidcUser != null ? oidcUser.getEmail() : null,
                 role,
                 organizationId,
-                organizationName,
-                groups
+                organizationName
         );
     }
 
     /**
      * Maintainer options for a superuser: every user already designated as a maintainer,
      * plus every organization.
-     * <p>
+     *
      * Without a user table the first half can only come from the maintainers recorded on
      * catalog items, so someone who has never been given an item to maintain is not offered
      * here — they become selectable once they are made a maintainer of one.
@@ -87,20 +84,6 @@ public class AuthService {
      * Whether {@code username} may see/modify an item authored by {@code author} on behalf
      * of {@code authorOrganizationId} and maintained by {@code maintainer} /
      * {@code maintainerOrganizationId}.
-     * <p>
-     * This is the authoritative access check, mirrored (for UX only) on the client:
-     * <ul>
-     *   <li>a Superuser may access anything;</li>
-     *   <li>the designated maintainer may access it, matched by username;</li>
-     *   <li>an item maintained by an organization is accessible to every member of that
-     *       organization — the organization acts as a team;</li>
-     *   <li>the uploader may access items they authored;</li>
-     *   <li>an Organization contributor may access any item authored on behalf of their own
-     *       organization.</li>
-     * </ul>
-     * The maintainer is the primary ownership signal: it is set explicitly when publishing
-     * (a superuser may attribute an item to another user or organization), whereas the
-     * author merely records who uploaded it. An anonymous caller is never granted access.
      */
     public boolean canEdit(String username, String author, String authorOrganizationId,
                            String maintainer, String maintainerOrganizationId) {
@@ -144,7 +127,7 @@ public class AuthService {
 
     /**
      * Usernames sharing the caller's organization; just the caller when they have none.
-     * <p>
+     *
      * Derived from the items published on behalf of that organization, so it lists the
      * organization's contributors rather than every account in it.
      */

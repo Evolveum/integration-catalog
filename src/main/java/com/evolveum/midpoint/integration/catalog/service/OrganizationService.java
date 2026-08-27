@@ -20,7 +20,7 @@ import java.util.function.LongSupplier;
 /**
  * Resolves an organization identifier — the value the OIDC organization claim carries — to
  * the display name shown in the catalog.
- * <p>
+ *
  * Item lists ask for the same handful of organizations over and over, so the whole (small)
  * table is held for {@value #CACHE_TTL_MILLIS} ms instead of issuing one query per row. A
  * rename therefore becomes visible within that window, without a restart.

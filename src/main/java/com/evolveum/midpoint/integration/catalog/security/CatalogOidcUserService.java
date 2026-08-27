@@ -21,22 +21,10 @@ import java.util.Set;
 
 /**
  * Turns the identity the provider asserts into the application's security context. Which
- * claims carry the role, the groups and the organization is configuration rather than code
- * — see {@link CatalogClaims}:
- * <ul>
- *   <li>the roles claim becomes {@code ROLE_*} authorities and the strongest known catalog
- *       role becomes the user's effective role (default: ReadOnly);</li>
- *   <li>the groups claim (e.g. Partner, Subscriber) becomes {@code GROUP_*} authorities;</li>
- *   <li>the organization claim carries the organization's immutable identifier;
- *       /api/auth/me resolves it to the current display name.</li>
- * </ul>
- * No user data is persisted — the catalog keeps none. Questions about other users are
- * answered from what was recorded on catalog items when they were written.
+ * claims carry the role and the organization is configuration rather than code
  */
 @Service
 public class CatalogOidcUserService extends OidcUserService {
-
-    public static final String GROUP_AUTHORITY_PREFIX = "GROUP_";
 
     private final CatalogClaims claims;
 
@@ -50,12 +38,10 @@ public class CatalogOidcUserService extends OidcUserService {
 
         List<String> catalogRoles = claims.roles(oidcUser);
         String effectiveRole = claims.effectiveRole(oidcUser);
-        List<String> groups = claims.groups(oidcUser);
 
         Set<GrantedAuthority> authorities = new LinkedHashSet<>(oidcUser.getAuthorities());
         authorities.add(new SimpleGrantedAuthority("ROLE_" + effectiveRole));
         catalogRoles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
-        groups.forEach(group -> authorities.add(new SimpleGrantedAuthority(GROUP_AUTHORITY_PREFIX + group)));
 
         String userNameAttribute = userRequest.getClientRegistration()
                 .getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();

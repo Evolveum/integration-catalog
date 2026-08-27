@@ -510,9 +510,7 @@ public class ApplicationMapper {
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
             }
-            // The connector's CURRENT version = the newest version row (ids are sequence-assigned,
-            // so max id is the latest). Every connector edit adds a new version row, and the IM must
-            // show that edit — findFirst() would keep returning the oldest row instead.
+            // connector's CURRENT version = the newest version row
             Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
@@ -529,10 +527,7 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
-        // Ownership as stamped on the connector. An item maintained by an organization has
-        // no maintainer username, and is shown under the organization's name; an item
-        // maintained by a person who publishes for an organization keeps the username and
-        // exposes the organization separately, so the client can render "org (username)".
+        // Ownership as stamped on the connector
         String maintainerOrganizationName = connector == null ? null
                 : organizationService.displayName(connector.getMaintainerOrgId());
         String maintainerOrganization = maintainer == null ? null : maintainerOrganizationName;
@@ -582,7 +577,7 @@ public class ApplicationMapper {
     }
 
     /**
-     * Collects the object-class capabilities of the connector's latest <em>published</em>
+     * Collects the object-class capabilities of the connector's latest published
      * (ACTIVE) connector version, grouped by object class, so the publish form can pre-fill
      * the capability picker. Versions still in review (IN_REVIEW) are ignored.
      */

@@ -166,7 +166,7 @@ public class ApplicationService {
 
     /**
      * Enforces that {@code username} may edit a specific connector's content. Unlike
-     * {@link #assertCanEditMethod}, this gates on the <em>connector's</em> own owner, not the
+     * {@link #assertCanEditMethod}, this gates on the connector's own owner, not the
      * integration method's: a connector may be maintained by someone other than the IM
      * maintainer, in which case the IM maintainer must not be able to edit it (only its
      * maintainer, or a superuser, may). Throws 404 if the method/connector is missing, 403 otherwise.
@@ -630,10 +630,6 @@ public class ApplicationService {
      * download information (no artifactUrl set on the ConnectorBundleVersion). These are
      * connectors that were added but the Jenkins build was never triggered (or did not
      * complete successfully with upload/verify and upload/continue callbacks).
-     *
-     * Only connector versions in REVIEWING state are considered — this is the state where
-     * a superuser is reviewing the integration method and may need to trigger builds before
-     * approving.
      */
     @Transactional(readOnly = true)
     public List<ConnectorWithoutDownloadDto> getConnectorsWithoutDownloadInfo(UUID methodId, String revision) {

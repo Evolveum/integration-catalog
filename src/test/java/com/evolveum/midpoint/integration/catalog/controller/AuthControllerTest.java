@@ -112,7 +112,7 @@ class AuthControllerTest {
     void meReturnsOrganizationIdentity() throws Exception {
         when(authService.getCurrentUser(any(), any())).thenReturn(new CurrentUserDto(
                 "olivia", "Olivia Parker", "olivia@acme.example",
-                "OrganizationContributor", "acme", "Acme co.", List.of("Partner")));
+                "OrganizationContributor", "acme", "Acme co."));
 
         mockMvc.perform(get("/api/auth/me").with(readOnlyUser()))
                 .andExpect(status().isOk())

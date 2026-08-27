@@ -6,14 +6,9 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-import java.util.List;
-
 /**
  * The authenticated user's profile as the frontend sees it — every field comes from
- * the token claims (username, full name, email, role, organization, groups);
- * the catalog stores no user data of its own. The organization is identified by
- * {@code organizationId} (the organization's immutable identifier — stable across
- * renames) while {@code organizationName} is its current display name.
+ * the token claims (username, full name, email, role, organization).
  */
 public record CurrentUserDto(
         String username,
@@ -21,7 +16,6 @@ public record CurrentUserDto(
         String email,
         String role,
         String organizationId,
-        String organizationName,
-        List<String> groups
+        String organizationName
 ) {
 }

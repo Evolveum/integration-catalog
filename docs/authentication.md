@@ -2,8 +2,8 @@
 
 The Integration Catalog authenticates users with **OpenID Connect**: the Spring Boot
 backend is the OIDC client, **Keycloak** is the identity provider. There is no local
-password login anymore — Keycloak owns credentials, roles, group membership and the
-organization assignment.
+password login anymore — Keycloak owns credentials, roles and the organization
+assignment.
 
 ## 1. Architecture
 
@@ -42,16 +42,15 @@ with protocol mappers that put the following into the ID token / userinfo:
 
 | Claim | Source in Keycloak | Used for |
 |---|---|---|
-| `preferred_username` | username | principal name (`Authentication.getName()`), recorded as author/maintainer |
+| `preferred_username` | username | principal name (`Authentication.getName()`), recorded as author/maintainer — a rename in Keycloak must be repeated in the catalog database, see [Renaming a user in the identity provider](identity-and-ownership.adoc) |
 | `name` / `given_name` / `family_name` | user profile | full name in `/api/auth/me` |
 | `email` | user profile | email in `/api/auth/me` |
 | `roles` | user attribute `role` | application role → `ROLE_*` authorities |
-| `groups` | user attribute `group` | `Partner` / `Subscriber` → `GROUP_*` authorities, shown in `/api/auth/me` |
 | `organization` | **Keycloak Organizations** membership (via the built-in `organization` client scope) | organization identity in `/api/auth/me` and the ownership rules |
 
-The role and group stay plain **user attributes** (`role`, `group`) copied into the
-tokens by `oidc-usermodel-attribute-mapper` mappers on the client — the realm carries no
-catalog-specific role or group objects. The **organization**, however, is a first-class
+The role stays a plain **user attribute** (`role`) copied into the tokens by an
+`oidc-usermodel-attribute-mapper` mapper on the client — the realm carries no
+catalog-specific role objects. The **organization**, however, is a first-class
 Keycloak *Organization* (realm → *Organizations*): each organization has an immutable
 **alias** (the stable identifier the catalog uses) and a freely renameable display
 **name**, and users are made members of it. The `organization` claim (emitted by the
@@ -60,7 +59,7 @@ alias of the organization(s) the user belongs to; the backend resolves the alias
 current display name through the Admin API. Renaming an organization therefore changes
 what is displayed, while everything keyed to the alias keeps working.
 
-To onboard a user an admin fills in the `role` (and optionally `group`) attribute on the
+To onboard a user an admin fills in the `role` attribute on the
 user's *Attributes* tab and, if the user belongs to an organization, adds them as a
 member on the organization's *Members* tab.
 
@@ -76,10 +75,6 @@ username-and-password form. Re-enable that step if organization IdPs are ever ad
 If the attribute carries several values, the strongest wins (Superuser >
 OrganizationContributor > IndividualContributor > ReadOnly); a user without the attribute
 is treated as `ReadOnly`.
-
-**Group** (attribute `group`): `Partner` or `Subscriber`. Carried into the security context
-as `GROUP_Partner` / `GROUP_Subscriber` authorities and exposed by `/api/auth/me`; no
-endpoint restriction is currently keyed off them.
 
 **No local user data:** the catalog database has no user, role or organization tables.
 The logged-in user's identity is read from the session's token claims; anything about
@@ -121,14 +116,18 @@ Key classes (package `security`):
   SPA CSRF, 401 entry point for `/api/**`.
 - `LazyClientRegistrationRepository` — builds the client registration from the same
   properties on first use instead of at startup, so the backend boots without Keycloak.
-- `CatalogOidcUserService` — maps `roles`/`groups` claims to authorities.
+- `CatalogOidcUserService` — maps the `roles` claim to authorities.
 - `KeycloakUserService` — read-only user and organization directory over the Keycloak
   Admin API (service-account client-credentials; used for ownership checks, user
   listings and resolving organization aliases to display names).
   Fail-soft: short connect/read timeouts, a 15 s backoff after a failed call, and stale
   cache entries (or empty results) served while Keycloak is unreachable.
-- `JenkinsCallbackFilter` — shared-secret check for `/api/upload/continue/**`; rejects
-  everything while `jenkins.callbackToken` is unset.
+- `JenkinsCallbackFilter` — shared-secret authentication for the build callbacks
+  (`/api/upload/continue/**`, `/api/upload/verify/*`). A request carrying a valid
+  `X-Callback-Token` is authenticated as the machine principal `jenkins` with role
+  `Jenkins`; a request without one is left to session authentication, so the same
+  endpoints stay reachable from the manual-fill dialog. While `jenkins.callbackToken` is
+  unset nothing can authenticate as the pipeline, which is warned about at startup.
 
 ## 4. Endpoint authorization matrix
 
@@ -173,11 +172,21 @@ set plus voting).
 - Review workflow: `POST .../start-review`, `.../stop-review`, `.../publish`, `.../reject`
 - `GET /api/auth/all-maintainers`
 
-### Machine (shared secret, no session)
+### Build callbacks (shared secret **or** a contributor session)
 
-- `POST /api/upload/verify`, `POST /api/upload/continue/{oid}` and
-  `POST /api/upload/continue/fail/{oid}` — Jenkins build callbacks; require header
-  `X-Callback-Token: <jenkins.callbackToken>`.
+- `POST /api/upload/verify/{oid}`, `POST /api/upload/continue/{oid}` and
+  `POST /api/upload/continue/fail/{oid}`.
+
+These have two legitimate callers, so the shared secret is an alternative credential rather
+than a gate on the path:
+
+- the Jenkins pipeline, which has no session and sends
+  `X-Callback-Token: <jenkins.callbackToken>` (exempt from CSRF, having no CSRF token);
+- a contributor completing a build by hand in the manual-fill dialog, on their session and
+  with the usual CSRF token.
+
+Both end up in the same rule — `hasAnyRole(IndividualContributor, OrganizationContributor,
+Superuser, Jenkins)` — and a caller with neither credential is rejected.
 
 Everything not matched above under `/api/**` requires authentication (deny-by-default).
 
@@ -185,14 +194,14 @@ Everything not matched above under `/api/**` requires authentication (deny-by-de
 
 `keycloak_for_auth/import/integration-catalog-realm.json` (password = username unless noted):
 
-| User | Password | Role | Organization | Group |
-|---|---|---|---|---|
-| `kcuser` | `StrongPassword` | Superuser | Evolveum | — |
-| `u1` | `u1` | OrganizationContributor | Acme co. | Partner |
-| `u2` | `u2` | ReadOnly | — | — |
-| `u3` | `u3` | IndividualContributor | — | — |
-| `u4` | `u4` | IndividualContributor | Acme co. | Subscriber |
-| `u5` | `u5` | Superuser | Evolveum | — |
+| User | Password | Role | Organization |
+|---|---|---|---|
+| `kcuser` | `StrongPassword` | Superuser | Evolveum |
+| `u1` | `u1` | OrganizationContributor | Acme co. |
+| `u2` | `u2` | ReadOnly | — |
+| `u3` | `u3` | IndividualContributor | — |
+| `u4` | `u4` | IndividualContributor | Acme co. |
+| `u5` | `u5` | Superuser | Evolveum |
 
 Organizations in the realm import (membership per the table above):
 

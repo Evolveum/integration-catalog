@@ -4,13 +4,12 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
+import { catchError, map, Observable, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export enum UserRole {
-  Unauthenticated = 'Unauthenticated user',
   ReadOnly = 'Read only',
   IndividualContributor = 'Individual contributor',
   OrganizationContributor = 'Organization contributor',
@@ -26,7 +25,6 @@ interface CurrentUserResponse {
   /** Organization identifier — stable across organization renames. */
   organizationId: string | null;
   organizationName: string | null;
-  groups: string[];
 }
 
 /**
@@ -40,28 +38,38 @@ interface CurrentUserResponse {
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
   private readonly _currentOrganizationName = signal<string | null>(null);
-  private readonly _currentFullName = signal<string | null>(null);
-  private readonly _currentEmail = signal<string | null>(null);
-  private readonly _currentGroups = signal<string[]>([]);
 
   readonly currentUser = this._currentUser.asReadonly();
 
-  constructor(private http: HttpClient) {
-    this.http.get<CurrentUserResponse>(`${environment.apiUrl}/auth/me`).subscribe({
-      next: user => {
-        this._currentUser.set(user.username);
-        this._currentRole.set(UserRole[user.role as keyof typeof UserRole] ?? null);
-        this._currentOrganizationName.set(user.organizationName);
-        this._currentFullName.set(user.fullName);
-        this._currentEmail.set(user.email);
-        this._currentGroups.set(user.groups ?? []);
-      },
-      // 401 — no session; the visitor stays anonymous.
-      error: () => {}
-    });
+  /**
+   * Loads the profile of the current backend session into the signals above. It completes
+   * rather than fails on every outcome, so a provider or backend problem cannot keep the
+   * application from starting: a 401 is the normal "no session" answer and leaves the
+   * visitor anonymous, any other failure is logged and treated the same way.
+   */
+  loadCurrentUser(): Observable<void> {
+    return this.http.get<CurrentUserResponse>(`${environment.apiUrl}/auth/me`).pipe(
+      map(user => this.applyCurrentUser(user)),
+      catchError((error: HttpErrorResponse) => {
+        this.applyCurrentUser(null);
+        if (error.status !== HttpStatusCode.Unauthorized) {
+          console.error('Could not load the current user profile; continuing as anonymous.', error);
+        }
+        return of(undefined);
+      })
+    );
+  }
+
+  /** Mirrors a loaded profile — or, for null, the anonymous state — into the session signals. */
+  private applyCurrentUser(user: CurrentUserResponse | null): void {
+    this._currentUser.set(user?.username ?? null);
+    this._currentRole.set(user ? (UserRole[user.role as keyof typeof UserRole] ?? null) : null);
+    this._currentOrganizationName.set(user?.organizationName ?? null);
   }
 
   /** Starts the OIDC login flow: full-page redirect to the provider via the backend. */
@@ -81,19 +89,6 @@ export class AuthService {
 
   currentOrganizationName(): string | null {
     return this._currentOrganizationName();
-  }
-
-  currentFullName(): string | null {
-    return this._currentFullName();
-  }
-
-  currentEmail(): string | null {
-    return this._currentEmail();
-  }
-
-  /** Group membership (e.g. Partner, Subscriber); empty when logged out. */
-  currentGroups(): string[] {
-    return this._currentGroups();
   }
 
   getAllMaintainers(): Observable<string[]> {

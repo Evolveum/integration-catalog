@@ -15,41 +15,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reads the catalog's notion of role, group membership and organization out of OIDC token
- * claims.
- * <p>
- * The claim names are configuration, not code — {@code catalog.oidc.claims.*} in
- * application.properties — so pointing the catalog at a provider that names them
- * differently is a configuration change. The shapes accepted here are the ones OIDC
- * providers actually emit: a single value, an array of values, or (for the organization) an
- * object keyed by the organization's identifier.
+ * Reads the catalog's notion of role and organization out of OIDC token claims.
  */
 @Component
 public class CatalogClaims {
 
     private final String rolesClaim;
-    private final String groupsClaim;
     private final String organizationClaim;
 
     public CatalogClaims(
             @Value("${catalog.oidc.claims.roles:roles}") String rolesClaim,
-            @Value("${catalog.oidc.claims.groups:groups}") String groupsClaim,
             @Value("${catalog.oidc.claims.organization:organization}") String organizationClaim) {
         this.rolesClaim = rolesClaim;
-        this.groupsClaim = groupsClaim;
         this.organizationClaim = organizationClaim;
-    }
-
-    public String rolesClaim() {
-        return rolesClaim;
-    }
-
-    public String groupsClaim() {
-        return groupsClaim;
-    }
-
-    public String organizationClaim() {
-        return organizationClaim;
     }
 
     /** The catalog roles carried by the token, in the order the provider listed them. */
@@ -68,11 +46,6 @@ public class CatalogClaims {
                 .orElse(CatalogRole.READ_ONLY);
     }
 
-    /** Group membership (e.g. Partner, Subscriber); empty when the token carries none. */
-    public List<String> groups(OidcUser oidcUser) {
-        return stringList(claim(oidcUser, groupsClaim));
-    }
-
     /**
      * The identifier of the user's organization, or {@code null} when they belong to none.
      * Only the first one is used: the catalog models a user as publishing on behalf of at
@@ -87,7 +60,7 @@ public class CatalogClaims {
      * the provider emits strings, and an object keyed by identifier when it emits JSON;
      * both shapes are accepted.
      */
-    public List<String> organizationIds(OidcUser oidcUser) {
+    private List<String> organizationIds(OidcUser oidcUser) {
         Object claim = claim(oidcUser, organizationClaim);
         List<String> raw = claim instanceof Map<?, ?> byIdentifier
                 ? byIdentifier.keySet().stream().map(String::valueOf).toList()

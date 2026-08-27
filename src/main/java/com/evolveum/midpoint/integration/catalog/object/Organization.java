@@ -16,13 +16,9 @@ import lombok.experimental.Accessors;
 
 /**
  * An organization users publish on behalf of. This is the only identity data the catalog
- * stores: users, roles and groups stay with the identity provider and reach the
+ * stores: users and roles stay with the identity provider and reach the
  * application as OIDC token claims, but the organization claim carries the organization's
- * <em>identifier</em> only, so the display name has to live somewhere — here.
- * <p>
- * {@link #id} is that identifier, immutable across renames; catalog items reference it
- * rather than the name, which is what makes a rename a single update of {@link #name}
- * instead of a sweep over every author/maintainer column.
+ * identifier only, so the display name has to live somewhere — here.
  */
 @Entity
 @Table(name = "organizations")

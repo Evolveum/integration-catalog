@@ -47,7 +47,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new AuthService(organizationService, catalogOwnerDirectory,
-                new CatalogClaims("roles", "groups", "organization"));
+                new CatalogClaims("roles", "organization"));
     }
 
     @AfterEach
@@ -81,7 +81,6 @@ class AuthServiceTest {
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", List.of("acme"),
-                "groups", List.of("Partner"),
                 "name", "Olivia Parker",
                 "email", "olivia@acme.example"));
 
@@ -91,7 +90,6 @@ class AuthServiceTest {
         assertEquals("OrganizationContributor", user.role());
         assertEquals("acme", user.organizationId());
         assertEquals("Acme co.", user.organizationName());
-        assertEquals(List.of("Partner"), user.groups());
         assertEquals("Olivia Parker", user.fullName());
         assertEquals("olivia@acme.example", user.email());
     }
@@ -127,7 +125,6 @@ class AuthServiceTest {
         assertEquals("ReadOnly", user.role());
         assertNull(user.organizationId());
         assertNull(user.organizationName());
-        assertEquals(List.of(), user.groups());
     }
 
     @Test

@@ -16,16 +16,6 @@ import org.springframework.stereotype.Service;
 
 /**
  * Records on a catalog item who owns it, at the moment it is written.
- * <p>
- * The application has no user directory: an OIDC token describes only the user presenting
- * it, so "which organization is this item's author in?" cannot be answered later. It is
- * therefore answered once, here, from the uploader's own claims — which also makes the
- * record honest, because it captures ownership as it stood at upload time instead of
- * re-attributing old uploads when someone changes employer.
- * <p>
- * The maintainer the client sends is either a username or an organization's display name.
- * An organization is stored as {@code maintainerOrgId} with no maintainer username, so that
- * renaming the organization needs no change to the item.
  */
 @Service
 public class OwnershipService {

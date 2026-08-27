@@ -25,13 +25,12 @@ cannot affect the catalog.
 
 === `security.CatalogClaims`
 
-Reads role, group membership and organization out of an `OidcUser`. Claim *names* are
+Reads role and organization out of an `OidcUser`. Claim *names* are
 configuration, so adopting a provider that names them differently is a properties change.
 
 [source,properties]
 ----
 catalog.oidc.claims.roles=roles
-catalog.oidc.claims.groups=groups
 catalog.oidc.claims.organization=organization
 ----
 
@@ -45,9 +44,6 @@ catalog.oidc.claims.organization=organization
 | `effectiveRole(OidcUser)`
 | The strongest of them; `ReadOnly` when the token carries none.
 
-| `groups(OidcUser)`
-| Group membership (`Partner`, `Subscriber`, …); empty when absent.
-
 | `organizationId(OidcUser)`
 | The user's organization identifier, or `null`. A user publishes on behalf of at most one.
 
@@ -58,7 +54,7 @@ identifiers, and an object keyed by identifier.
 
 === `security.CatalogOidcUserService`
 
-Unchanged in behaviour: turns the claims into authorities (`ROLE_*`, `GROUP_*`) at login.
+Unchanged in behaviour: turns the claims into `ROLE_*` authorities at login.
 It now asks `CatalogClaims` for the claim names instead of holding constants.
 
 === `security.CatalogRole.categoryOf(String role)`
@@ -254,3 +250,108 @@ Because change 4 creates the table empty, the one-off data conversion lives sepa
 `config/sql/upgrade/organization-backfill.sql`: seed the organizations, state which user
 belongs to which, then convert the old plain-text maintainer names into references. It is
 re-runnable and only touches rows that have not been converted.
+
+== Renaming a user in the identity provider
+
+An organization survives a rename because items reference its identifier. A *user* has no
+such identifier: the catalog keeps no user table, so a username is not a reference to
+anything — it is text copied onto a row when that row is written. The principal name is
+the `preferred_username` claim
+(`spring.security.oauth2.client.provider.oidc.user-name-attribute`), and every column
+listed below holds a copy of it.
+
+Renaming a user in the identity provider therefore changes nothing in the catalog on its
+own. The stored rows keep the old name and the renamed user is treated as a different
+person, so the rename has to be repeated in the catalog database.
+
+This is a deliberate trade-off. Carrying an immutable user identifier on every owner
+column — the design the `organizations` table uses — would cost a second identifier
+everywhere, to protect against an operation that in IAM is rare and admin-only. A short
+manual procedure is preferred instead.
+
+=== What is wrong until the procedure is run
+
+* The user can no longer edit their own items: `AuthService.canEdit` matches `author` and
+`maintainer` by username.
+* Items keep displaying the old name as author or maintainer.
+* The user is missing from `findAllMaintainers()` and from their organization's member
+list — both are derived from the owner columns of the item tables.
+* Their votes and recently-used entries stay attached to the old name.
+
+Items maintained by an organization are unaffected: they carry `maintainer_org_id` and no
+username at all.
+
+=== The procedure
+
+Run it in `psql` as one transaction. No restart is needed — the catalog caches
+organization names but never user data — and nothing has to change in Keycloak beyond the
+rename itself. The user sees the new name in their own session at their next login,
+because it comes from the token.
+
+[source,sql]
+----
+\set old_username 'jdoe'
+\set new_username 'j.doe'
+
+BEGIN;
+
+-- Ownership stamped on the five item tables.
+UPDATE connector                SET author     = :'new_username' WHERE author     = :'old_username';
+UPDATE connector                SET maintainer = :'new_username' WHERE maintainer = :'old_username';
+UPDATE connector_version        SET author     = :'new_username' WHERE author     = :'old_username';
+UPDATE connector_version        SET maintainer = :'new_username' WHERE maintainer = :'old_username';
+UPDATE connector_bundle         SET author     = :'new_username' WHERE author     = :'old_username';
+UPDATE connector_bundle         SET maintainer = :'new_username' WHERE maintainer = :'old_username';
+UPDATE connector_bundle_version SET author     = :'new_username' WHERE author     = :'old_username';
+UPDATE connector_bundle_version SET maintainer = :'new_username' WHERE maintainer = :'old_username';
+UPDATE integration_method       SET author     = :'new_username' WHERE author     = :'old_username';
+UPDATE integration_method       SET maintainer = :'new_username' WHERE maintainer = :'old_username';
+
+-- The reviewer recorded by the approval workflow.
+UPDATE integration_method SET reviewed_by = :'new_username' WHERE reviewed_by = :'old_username';
+
+-- Requests raised by the user.
+UPDATE request SET requester = :'new_username' WHERE requester = :'old_username';
+
+-- Votes and recently-used entries are keyed by the username, so a row the new name
+-- already owns has to go before the rename can land on it.
+DELETE FROM vote v USING vote taken
+    WHERE v.voter = :'old_username'
+      AND taken.voter = :'new_username'
+      AND taken.request_id = v.request_id;
+UPDATE vote SET voter = :'new_username' WHERE voter = :'old_username';
+
+DELETE FROM recently_used_applications r USING recently_used_applications taken
+    WHERE r.user_id = :'old_username'
+      AND taken.user_id = :'new_username'
+      AND taken.application_id = r.application_id;
+UPDATE recently_used_applications SET user_id = :'new_username' WHERE user_id = :'old_username';
+
+COMMIT;
+----
+
+Then confirm that the old name is gone everywhere:
+
+[source,sql]
+----
+SELECT 'connector'                AS location, count(*) FROM connector
+    WHERE :'old_username' IN (author, maintainer)
+UNION ALL SELECT 'connector_version',        count(*) FROM connector_version
+    WHERE :'old_username' IN (author, maintainer)
+UNION ALL SELECT 'connector_bundle',         count(*) FROM connector_bundle
+    WHERE :'old_username' IN (author, maintainer)
+UNION ALL SELECT 'connector_bundle_version', count(*) FROM connector_bundle_version
+    WHERE :'old_username' IN (author, maintainer)
+UNION ALL SELECT 'integration_method',       count(*) FROM integration_method
+    WHERE :'old_username' IN (author, maintainer, reviewed_by)
+UNION ALL SELECT 'request',                  count(*) FROM request  WHERE requester = :'old_username'
+UNION ALL SELECT 'vote',                     count(*) FROM vote     WHERE voter     = :'old_username'
+UNION ALL SELECT 'recently_used',            count(*) FROM recently_used_applications
+    WHERE user_id = :'old_username';
+----
+
+Every count must be zero.
+
+NOTE: The procedure is re-runnable and matches on the old name only, so running it twice
+is harmless. It does not merge two users: pointing `new_username` at a name that already
+belongs to somebody else hands them the first user's items.

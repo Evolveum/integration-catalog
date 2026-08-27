@@ -11,9 +11,6 @@ import java.util.List;
 /**
  * The application roles, as carried by the identity provider's roles claim. The names
  * must match what the provider emits exactly.
- * <p>
- * Ordered by precedence: when a user carries several catalog roles, the strongest one
- * becomes their effective role.
  */
 public final class CatalogRole {
 
@@ -26,12 +23,6 @@ public final class CatalogRole {
     public static final List<String> BY_PRECEDENCE =
             List.of(SUPERUSER, ORGANIZATION_CONTRIBUTOR, INDIVIDUAL_CONTRIBUTOR, READ_ONLY);
 
-    /**
-     * The maintainer category the catalog shows for an item, derived from the role of the
-     * user who uploaded it: Superuser → Evolveum, OrganizationContributor → Partner,
-     * IndividualContributor → Community. Null for anything else (e.g. ReadOnly), which is
-     * how an item without a category is rendered.
-     */
     public static String categoryOf(String role) {
         if (role == null) {
             return null;

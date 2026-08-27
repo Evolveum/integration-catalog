@@ -23,11 +23,6 @@ import java.util.stream.Stream;
 /**
  * The users the catalog itself knows about, gathered from the owner columns of the five
  * owned item tables.
- * <p>
- * The application has no user table and no administration API to ask, so "who exists" can
- * only be answered from the identities already recorded on catalog items: a user the
- * catalog has never seen is invisible here. That is the accepted trade-off of keeping user
- * data with the identity provider.
  */
 @Service
 public class CatalogOwnerDirectory {

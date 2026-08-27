@@ -48,16 +48,6 @@ import java.util.zip.ZipOutputStream;
 
 /**
  * Assembles a downloadable ZIP bundle for an integration-method revision, containing:
- * <ul>
- *     <li>the tutorial text (integration_method.tutorial), converted from Markdown to AsciiDoc, as
- *         {@code tutorial.adoc};</li>
- *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/};</li>
- *     <li>JSON metadata for the application, integration method, and connectors, under {@code metadata/};</li>
- *     <li>the connector build JARs, each resolved from the method's linked connector and fetched from its
- *         {@code artifact_url}, placed under {@code connectors/}. If the method has no connector artifact (or
- *         the fetch fails), the JAR is omitted, an {@code ERROR.txt} explaining why is added at the ZIP root,
- *         and the bundle carries a warning.</li>
- * </ul>
  */
 @Slf4j
 @Service

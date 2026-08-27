@@ -1062,20 +1062,6 @@ public class ConnectorUploadService {
     /**
      * Applies an "Edit connector" modal save. The connector version is NEVER changed automatically —
      * it has to match the Maven artifact, and catching duplicates is the reviewer's job.
-     *
-     * <p>A connector shared with another revision is always cloned first (see
-     * {@link #cloneConnectorGraph}): nothing may show anywhere before this draft is approved. What
-     * happens on approval depends on the edit (see {@link #promoteConnectorsToActive}): a
-     * same-version metadata edit is folded back into the shared original — it is the same connector
-     * version, so every integration method linking it sees the correction — while a version- or
-     * identity-changing edit keeps the clone as a separate connector, leaving revisions pinned to
-     * the old version untouched.
-     *
-     * <p>A version-changing edit lands as a new version row. If the entered version is already used
-     * on this connector, that existing row is rewritten instead (the (bundle, bundle_version) pair
-     * must stay unique) and error_message records "Duplicate version with (...)" for the reviewer;
-     * the same flag marks a new version whose build (className, bundleName, commit hash) is
-     * identical to the current one.
      */
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
