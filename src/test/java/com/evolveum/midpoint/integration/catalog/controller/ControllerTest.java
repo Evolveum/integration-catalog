@@ -121,7 +121,7 @@ class ControllerTest {
                 .build();
 
         when(applicationService.getApplication(testAppId)).thenReturn(testApplication);
-        when(applicationMapper.mapToApplicationDto(testApplication)).thenReturn(dto);
+        when(applicationMapper.mapToApplicationDto(testApplication, null)).thenReturn(dto);
 
         mockMvc.perform(get("/api/applications/{id}", testAppId))
                 .andExpect(status().isOk())
@@ -129,7 +129,7 @@ class ControllerTest {
                 .andExpect(jsonPath("$.displayName").value("Test Application"));
 
         verify(applicationService).getApplication(testAppId);
-        verify(applicationMapper).mapToApplicationDto(testApplication);
+        verify(applicationMapper).mapToApplicationDto(testApplication, null);
     }
 
     @Test

@@ -43,22 +43,13 @@ public class PendingOperation {
     private ExternalSystem targetSystem;
 
     /**
-     * Which operation of {@link #targetSystem} this is, e.g. {@code CREATE_WORK_PACKAGE}. Free text
-     * rather than an enum shared by every system, because the set of operations belongs to whoever
-     * integrates a system and no central type should have to be edited to add one. Together with
-     * {@link #targetSystem} it selects the handler that knows how to perform and how to read
-     * {@link #payload}.
+     * Which operation of {@link #targetSystem} this is, e.g. {@code CREATE_WORK_PACKAGE}.
      */
     @Column(name = "operation", length = 100, nullable = false)
     private String operation;
 
     /**
      * Everything needed to perform the operation, as JSON, in a shape defined by the handler.
-     *
-     * <p>What is stored is normally an identifier of what the operation is about rather than the
-     * finished request: the handler reads the current state when it runs, so a task created a day
-     * late describes the submission as it stands then, including anything the author changed or
-     * uploaded during the outage.
      */
     @Column(name = "payload", nullable = false, columnDefinition = "text")
     private String payload;
@@ -67,22 +58,15 @@ public class PendingOperation {
     @Column(name = "status", length = 20, nullable = false)
     private PendingOperationStatus status = PendingOperationStatus.PENDING;
 
-    /** How often the operation has been attempted, counting the immediate attempt on submission. */
     @Column(name = "attempts", nullable = false)
     private int attempts = 0;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    /** When it was last attempted, or null while it has never been. */
     @Column(name = "last_attempt_at")
     private LocalDateTime lastAttemptAt;
 
-    /**
-     * Why the last attempt did not succeed, for whoever has to work out whether the external system
-     * is down or the catalog is asking it for something impossible. Cleared once the operation
-     * succeeds, so a row that reads DONE does not also carry an error.
-     */
     @Column(name = "last_error", columnDefinition = "text")
     private String lastError;
 }

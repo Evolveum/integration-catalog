@@ -16,14 +16,6 @@ import org.springframework.stereotype.Component;
 /**
  * Comes back to the operations external systems could not take when they arose, and offers them
  * again.
- *
- * <p>This is what turns "the portal was down" into a delay rather than a loss. Everything about
- * what to retry and how is elsewhere - the job's whole job is to run on a schedule and to work
- * through the systems one at a time, so that one unreachable system does not stall the rest.
- *
- * <p>Runs hourly by default; {@code pending-operations.cron} moves it, and {@code -} switches it
- * off for a deployment that would rather drive the retry itself. Operations are still recorded and
- * attempted immediately when the schedule is off - what is lost is only the second chance.
  */
 @Slf4j
 @Component
@@ -34,10 +26,6 @@ public class PendingOperationRetryJob {
 
     /**
      * Retries everything still owed, system by system.
-     *
-     * <p>A system that fails outright is logged and stepped over rather than allowed to end the
-     * run: the next system's operations have nothing to do with it, and this one will be offered
-     * its operations again at the next run regardless.
      */
     @Scheduled(cron = "${pending-operations.cron:0 0 * * * *}")
     public void retryPendingOperations() {

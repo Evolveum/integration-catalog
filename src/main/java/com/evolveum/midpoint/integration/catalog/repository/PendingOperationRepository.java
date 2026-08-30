@@ -23,11 +23,6 @@ public interface PendingOperationRepository extends JpaRepository<PendingOperati
 
     /**
      * The operations still owed to one external system, oldest first, capped at a batch size.
-     *
-     * <p>Oldest first so a backlog is worked off in the order it built up - a create attempted
-     * before the edit that follows it, rather than the other way round. Capped so that a run after
-     * a long outage cannot occupy the scheduler thread indefinitely; whatever is left over is
-     * simply still pending at the next run.
      */
     List<PendingOperation> findByTargetSystemAndStatusOrderByIdAsc(
             ExternalSystem targetSystem, PendingOperationStatus status, Limit limit);

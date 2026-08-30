@@ -75,16 +75,9 @@ public class ApplicationMapper {
     // ── Integration-method versions ───────────────────────────────────────────
 
     /**
-     * Maps integration methods to IntegrationMethodDto.
-     * Capabilities are collected from IntegrationMethodCapability → items → Capability.
-     */
-    public List<IntegrationMethodDto> mapIntegrationMethods(Application app) {
-        return mapIntegrationMethods(app, null);
-    }
-
-    /**
      * Maps integration methods to IntegrationMethodDto, telling {@code viewer} the support ticket of
-     * every revision they are allowed to see one for.
+     * every revision they are allowed to see one for. Capabilities are collected from
+     * IntegrationMethodCapability → items → Capability.
      *
      * <p>The ticket rides along here rather than being fetched per revision because both of its parts
      * - the id and the URL built from it - are already at hand: the id is a column of the row being
@@ -248,12 +241,6 @@ public class ApplicationMapper {
 
     /**
      * The revision's support ticket id if {@code viewer} may be told it, otherwise null.
-     *
-     * <p>The same boundary {@code SupportTicketService.describe} enforces: the reviewer (a superuser,
-     * whom {@code canEdit} already lets through) and the submitting side. A portal that is not
-     * configured has no tickets to point at, and a revision whose work package has not been opened -
-     * because the portal was unreachable when it was submitted, and the retry has not caught up yet -
-     * simply has no id to give.
      */
     private Integer visibleSupportTicketId(IntegrationMethod method, String viewer) {
         if (viewer == null || viewer.isBlank()
@@ -289,10 +276,6 @@ public class ApplicationMapper {
     }
 
     // ── ApplicationDto mapping ────────────────────────────────────────────────
-
-    public ApplicationDto mapToApplicationDto(Application app) {
-        return mapToApplicationDto(app, (String) null);
-    }
 
     /**
      * The application as {@code viewer} may see it, which for the submitting side and the reviewer
@@ -333,13 +316,6 @@ public class ApplicationMapper {
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount) {
         return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null);
-    }
-
-    public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
-                                               Long requestId, Long voteCount,
-                                               List<ObjectClassCapabilityDto> objectClassCapabilities) {
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount,
-                objectClassCapabilities, null);
     }
 
     /** @param viewer who is asking, see {@link #mapIntegrationMethods(Application, String)}. */

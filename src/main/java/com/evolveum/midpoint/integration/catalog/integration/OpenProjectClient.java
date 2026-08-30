@@ -148,13 +148,6 @@ public class OpenProjectClient {
 
     /**
      * Whether a refused upload was refused for the file's size.
-     *
-     * <p>Two ways it arrives, because two things can enforce a limit: a proxy in front of the portal
-     * cuts the request off with {@code 413} before the portal sees it, while the portal itself
-     * answers {@code 422} and says so in the body. The 422 is read by its wording, which is the only
-     * thing distinguishing it from the other constraint violations that share its error identifier -
-     * so a portal answering in a language this does not recognise is simply treated as a failure
-     * worth retrying, as it was before.
      */
     static boolean isTooLarge(int statusCode, String body) {
         if (statusCode == 413) {
@@ -177,8 +170,6 @@ public class OpenProjectClient {
     /**
      * Everything attached to a work package. Asks for one large page rather than paging, and reports
      * an overflow, since a caller replacing files would take a short list for the whole truth.
-     *
-     * @throws IOException if the portal answers with anything other than a 2xx
      */
     public List<Attachment> listAttachments(int workPackageId) throws IOException, InterruptedException {
         HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId
