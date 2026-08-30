@@ -27,11 +27,7 @@ public class CatalogUser {
     @Column(nullable = false)
     private String role;
 
-    /**
-     * Contact address, used where the catalog has to tell another system who to write to - currently
-     * the support work package opened for a submitted integration method. Nullable: nobody had one
-     * before the column existed and none can be invented for them.
-     */
+    /** Nullable - rows created before the column existed have none. */
     private String email;
 
     @ManyToOne(fetch = FetchType.LAZY)

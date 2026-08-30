@@ -20,23 +20,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Says what an edit changed about a submission, as a comment for its support work package.
+ * Says what an edit changed about a submission, as a comment for its support work package, so a
+ * reviewer does not have to re-read the whole ticket to find the corrected line.
  *
- * <p>A reviewer who has already read the ticket should not have to read all of it again to find the
- * one line the author corrected, which is what a rewritten description alone asks of them. This
- * turns two versions of that description into the short list of fields that actually differ.
- *
- * <p>The comparison is made on the rendered description rather than on the entities behind it, for
- * two reasons. The description is the only form of the submission that survives an in-place edit -
- * the row it was built from is deleted and replaced by the edit itself, so the portal's copy is all
- * that is left of "before". And it is by definition exactly what the reviewer read, so a field this
- * reports as changed is a line they can see changing; a comparison of entities could report
- * something the ticket never showed, or miss something it did.
- *
- * <p>The description's own shape carries the structure: headings open a section, {@code * **Label:**
- * value} bullets are its fields, and anything else is the section's prose. Nothing here needs to
- * know which fields {@link SupportTicketDescriptionBuilder} writes, so a field added there is
- * compared without a change here.
+ * <p>Compared on the rendered description rather than on the entities: an in-place edit deletes the
+ * row the earlier version was built from, so the portal's copy is all that is left of "before", and
+ * it is by definition what the reviewer read. The description's own shape carries the structure, so
+ * a field added to {@link SupportTicketDescriptionBuilder} is compared without a change here.
  */
 @Component
 public class SupportTicketDeltaBuilder {
@@ -85,34 +75,19 @@ public class SupportTicketDeltaBuilder {
 
     /**
      * The changes between two descriptions of the same submission, as markdown.
-     *
-     * @param before   the description as the reviewer last saw it
-     * @param after    the description as it stands after the edit
-     * @param lead     opening sentence, which says what the two versions are - the caller knows
-     *                 whether the earlier one is this ticket's own text or another revision's
-     * @return the comment, or empty when the two say the same thing and there is nothing to report.
-     * A blank version yields empty as well: everything would be listed as added, which is what the
-     * description itself already says.
      */
     public Optional<String> compare(String before, String after, String lead) {
         return compare(before, after, lead, List.of());
     }
 
     /**
-     * The same, with what changed among the submission's files.
-     *
-     * <p>Those cannot be read out of the descriptions: the tutorial is attached rather than written
-     * into the body, so an author who rewrites it changes nothing the two versions show. The caller
-     * that replaces the files knows what it replaced, and says so here.
-     *
-     * @param fileChanges one phrase per file, already in a reader's terms
+     * The same, plus file changes, which the descriptions cannot show: the tutorial is attached rather
+     * than written into the body, so only the caller that replaced the files knows.
      */
     public Optional<String> compare(String before, String after, String lead, List<String> fileChanges) {
         List<String> blocks = new ArrayList<>();
         boolean worthSaying = false;
 
-        // A missing earlier version is not an error: a work package that was opened with no description
-        // has nothing to compare, and listing the whole submission as added would only repeat it.
         if (before != null && !before.isBlank() && after != null && !after.isBlank()) {
             Map<String, Map<String, String>> was = parse(before);
             Map<String, Map<String, String>> now = parse(after);
@@ -211,7 +186,6 @@ public class SupportTicketDeltaBuilder {
      */
     private Map<String, Map<String, String>> parse(String body) {
         Map<String, Map<String, String>> sections = new LinkedHashMap<>();
-        // Whatever stands before the first heading belongs to a section with no title of its own.
         Map<String, String> current = openSection(sections, "");
         String parent = null;
 
@@ -222,12 +196,8 @@ public class SupportTicketDeltaBuilder {
                 String label = bullet.group(2);
                 String value = bullet.group(3);
                 if (nested) {
-                    // Read on its own, "Global" says nothing; it is the bullet above that gives it
-                    // its meaning, and that bullet is where the reviewer's eye goes.
                     label = parent == null ? label : parent + " / " + label;
                 } else if (value.isBlank()) {
-                    // A bullet with no value of its own is only there to head the ones below it,
-                    // so it is that heading rather than a field that could differ.
                     parent = label;
                     continue;
                 } else {
@@ -256,14 +226,9 @@ public class SupportTicketDeltaBuilder {
     }
 
     /**
-     * Starts a section, keeping a connector's own name as its title: the rest of that heading says
-     * whether this submission publishes the connector, which is a fact about it that can change
-     * (editing a published connector puts it up for review) and is compared as a field like any
-     * other. Were it left in the title, that one change would read as a whole connector removed and
-     * another added.
-     *
-     * <p>Two sections can legitimately share a title - every connector titles its bundle block the
-     * same way - so a repeated one is numbered rather than merged into the first.
+     * Starts a section, keeping only a connector's own name as the title so that a change in its
+     * review status reads as a changed field rather than as one connector removed and another added.
+     * A repeated title is numbered, since sections may legitimately share one.
      */
     private static Map<String, String> openSection(Map<String, Map<String, String>> sections, String title) {
         String name = title;

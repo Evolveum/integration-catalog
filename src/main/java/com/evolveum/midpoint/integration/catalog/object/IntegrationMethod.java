@@ -118,13 +118,7 @@ public class IntegrationMethod implements Persistable<UUID> {
     @Column(name = "reviewed_by")
     private String reviewedBy;
 
-    /**
-     * Work package opened in the support portal when this revision was submitted for review, or
-     * null when none exists (revision predates the integration, or the portal was unreachable).
-     * It is the review conversation between the author and the reviewer, so it belongs to this
-     * revision row and is deliberately NOT carried over when a published revision is forked into
-     * a new draft - that fork is a new submission and gets a work package of its own.
-     */
+    /** Support portal work package for this revision; null when none was opened. Not inherited by a fork. */
     @Column(name = "support_ticket_id")
     private Integer supportTicketId;
 

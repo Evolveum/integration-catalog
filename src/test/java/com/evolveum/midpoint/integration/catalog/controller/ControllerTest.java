@@ -72,9 +72,6 @@ class ControllerTest {
     private TutorialStorageService tutorialStorageService;
 
     @MockitoBean
-    private com.evolveum.midpoint.integration.catalog.service.BundleService bundleService;
-
-    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
 
     private UUID testAppId;

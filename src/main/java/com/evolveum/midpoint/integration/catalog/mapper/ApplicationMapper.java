@@ -473,19 +473,15 @@ public class ApplicationMapper {
     /**
      * Maps a catalog_users.role to the maintainer category shown in the catalog:
      * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
-     *
-     * <p>Switched over {@link CatalogRole} rather than over the string, so that a role added to the
-     * catalog has to be given a category here instead of quietly mapping to none.
      */
     private static String roleToMaintainerCategory(String role) {
-        // Explicit type argument: one branch yields null, which leaves nothing to infer U from.
+        // Explicit type argument: one branch yields null, so there is nothing to infer U from.
         return CatalogRole.of(role)
                 .<String>map(catalogRole -> switch (catalogRole) {
                     case SUPERUSER -> "Evolveum";
                     case ORGANIZATION_CONTRIBUTOR -> "Partner";
                     case INDIVIDUAL_CONTRIBUTOR -> "Community";
-                    // A reader maintains nothing, so there is no category to show.
-                    case READ_ONLY -> null;
+                    case READ_ONLY -> null; // a reader maintains nothing
                 })
                 .orElse(null);
     }
@@ -544,15 +540,10 @@ public class ApplicationMapper {
             if (bundle != null) {
                 licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                 ticketingLink = bundle.getTicketingLink();
-                // display_name is the label the form shows as "connector bundle name"; bundle_name is
-                // the technical identity behind it and is only used for the duplicate-version lookup.
                 bundleDisplayName = bundle.getDisplayName();
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
             }
-            // The connector's CURRENT version = the newest version row (ids are sequence-assigned,
-            // so max id is the latest). Every connector edit adds a new version row, and the IM must
-            // show that edit — findFirst() would keep returning the oldest row instead.
             Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
@@ -569,11 +560,6 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
-        // When the maintainer is an organization contributor, expose their organization so the
-        // client can render "org (username)". Null when the maintainer is not a known user
-        // (e.g. it is an organization itself), has no organization, or is an individual
-        // contributor — an IndividualContributor who belongs to an organization still publishes
-        // and is displayed as themselves, without the organization.
         String maintainerOrganization = maintainer == null ? null
                 : catalogUserRepository.findByUsername(maintainer)
                         .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(u.getRole()))
@@ -614,8 +600,6 @@ public class ApplicationMapper {
      * grouped by object class, so the edit form can pre-fill the capability picker.
      */
     private List<ObjectClassCapabilityDto> mapConnectorVersionCapabilities(Connector connector) {
-        // Newest version row = the connector's current version (see buildIntegrationMethodListItem),
-        // so the capabilities shown match the version shown.
         return connector.getConnectorVersions().stream()
                 .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                 .map(this::mapCapabilitiesOf)

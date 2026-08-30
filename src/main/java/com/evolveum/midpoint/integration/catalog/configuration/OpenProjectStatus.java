@@ -9,16 +9,9 @@ package com.evolveum.midpoint.integration.catalog.configuration;
 import java.util.Locale;
 
 /**
- * Work package statuses of a stock OpenProject, so {@code openproject.initial-status} can be
- * configured by name instead of by a magic number nobody can read.
- *
- * <p>The ids are the ones a freshly seeded OpenProject assigns. An instance numbering them
- * otherwise sets the numeric {@code openproject.initial-status-id} instead, which overrides the id
- * the chosen constant carries. See {@link OpenProjectProperties}.
- *
- * <p>A status existing here does not mean a work package can be moved into it: that depends on the
- * workflow of the configured {@link OpenProjectType}. {@link #TESTED} in particular is out of reach
- * for a stock {@link OpenProjectType#TASK}.
+ * Work package statuses of a stock OpenProject, so {@code openproject.initial-status} is configured
+ * by name rather than by id. An instance numbering them differently sets
+ * {@code openproject.initial-status-id}.
  */
 public enum OpenProjectStatus {
 
@@ -59,10 +52,6 @@ public enum OpenProjectStatus {
      * Reduces a status to a form that compares equal whether it was written as a portal title, as a
      * constant name, or with stray case and spacing - {@code "In progress"}, {@code "IN_PROGRESS"}
      * and {@code " in progress "} all collapse to {@code inprogress}.
-     *
-     * <p>Used for matching a configured status against what the portal reports, which is why it is
-     * lenient: the two come from different places and only have to mean the same thing. Statuses
-     * that merely read alike stay distinct, {@code Tested} and {@code Test failed} among them.
      */
     static String normalize(String status) {
         return status == null ? "" : status.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
