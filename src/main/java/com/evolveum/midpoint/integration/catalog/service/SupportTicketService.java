@@ -44,23 +44,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Keeps a submitted revision paired with a work package in the support portal, which is where the
- * author and the reviewer discuss the submission. The catalog only opens the work package and
- * reads its status back; everything said about the submission is said in the portal.
- *
- * <p>The pairing lives on the revision row, so which revisions share a ticket follows from how the
- * edit flows treat rows: a draft revised or resubmitted in place keeps its work package, while a
- * draft forked off a published revision is a new submission and gets its own.
+ * Keeps a submitted revision paired with a work package in the support portal, where the author and
+ * the reviewer discuss the submission. The catalog only opens the work package and reads its status
+ * back. The pairing lives on the revision row, so a fork gets its own while an in-place edit keeps one.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SupportTicketService {
 
-    /**
-     * Name the tutorial is attached under. Referenced by the description
-     * ({@link SupportTicketDescriptionBuilder}), so a reviewer told what to look for finds exactly that.
-     */
+    /** Name the tutorial is attached under, also named by the description. */
     public static final String TUTORIAL_ATTACHMENT = "tutorial.md";
 
     public static final String OPEN_WORK_PACKAGE = "OPEN_WORK_PACKAGE";
@@ -80,15 +73,11 @@ public class SupportTicketService {
     private final TutorialStorageService tutorialStorageService;
 
     /**
-     * Opens a work package for a submitted revision, or rewrites the one it already has.
-     *
-     * <p>Runs in a transaction of its own, after the submitting transaction has committed: the
-     * submission is already durable by then, so nothing the portal does can roll it back. What the
-     * portal being down costs is only time - the operation was written down before this was
-     * attempted, so a failure here leaves it pending and the scheduled retry opens the work package
-     * when the portal is back. Until then {@link #describe} reports no ticket and the approval
-     * dialog has nothing to wait for, exactly as for a revision submitted before the integration
-     * existed.
+     * Opens a work package for a submitted revision, or rewrites the one it already has. Runs after
+     * the submitting transaction commits, in its own transaction, so an unreachable portal costs the
+     * author nothing but time: the operation stays pending and the scheduled retry opens the work
+     * package once the portal is back. Until then {@link #describe} reports no ticket, so the
+     * approval dialog has nothing to wait for.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult openWorkPackage(IntegrationMethodSubmittedEvent event) {
@@ -133,12 +122,9 @@ public class SupportTicketService {
     }
 
     /**
-     * Rewrites the work package of a revision that was edited while it was under review, so what the
-     * reviewer reads is the submission as it stands rather than as it was first sent.
-     *
-     * <p>Edits reach here because an in-place edit replaces the revision row and carries its work
-     * package to the replacement, which then raises a submitted event like any other; the ticket id
-     * on the row is what tells the two apart.
+     * Rewrites the work package of a revision edited while under review, so the reviewer reads the
+     * submission as it stands. A portal that cannot be reached leaves the operation pending for the
+     * scheduled retry.
      */
     private OperationResult rewriteWorkPackage(int workPackageId, IntegrationMethod method,
                                                IntegrationMethodSubmittedEvent event) {
@@ -179,20 +165,9 @@ public class SupportTicketService {
     }
 
     /**
-     * Says what a draft forked off a published revision changes about it, on the freshly opened work
-     * package of that draft.
-     *
-     * <p>"Save" on a published revision produces a draft that is nearly all inherited: its work
-     * package describes a whole submission, most of which the reviewer approved once already, and
-     * nothing in it points at the handful of fields the author actually touched. Listing those is the
-     * difference between reviewing an edit and reviewing the method again.
-     *
-     * <p>Only for that flow. A first submission has nothing to differ from, and an upgrade
-     * ("Save as new version") stands beside the published revision rather than replacing it, so it is
-     * read as a version in its own right.
-     *
-     * <p>Best effort and deliberately last: the work package is open, described and watched by the
-     * time this runs, and a comment that could not be composed is not worth losing that over.
+     * Comments what a draft forked off a published revision changes about it, so the reviewer reviews
+     * an edit rather than the whole method again. Only for {@link SubmissionFlow#EDIT}; best effort,
+     * and last, so a failed comment costs nothing already done.
      */
     private void commentOnEditOfPublishedRevision(int workPackageId, IntegrationMethod method,
                                                   IntegrationMethodSubmittedEvent event) {
@@ -216,8 +191,6 @@ public class SupportTicketService {
                             + " approved. What it changes about that revision is listed here.",
                     tutorialChange(previous, method));
         } catch (Exception e) {
-            // Describing a revision reads it from the database; failing to describe the older one says
-            // nothing about this submission, whose own work package is already open and complete.
             log.warn("Could not work out what {}/{} changes about {}: {}",
                     event.methodId(), event.revision(), event.previousRevision(), e.getMessage());
             return;
@@ -226,12 +199,8 @@ public class SupportTicketService {
     }
 
     /**
-     * Whether the tutorial differs between two revisions, said the way {@link #refreshAttachments}
-     * says it.
-     *
-     * <p>Its own line because the description carries no tutorial - it points at the attachment - so
-     * two descriptions can be identical while the text the reviewer is asked to read is not. The
-     * uploaded samples need no such line: the description names them, so they differ in it already.
+     * Whether the tutorial differs between two revisions, worded as {@link #refreshAttachments} does.
+     * Needed separately because the description only points at the tutorial, never reproduces it.
      */
     private static List<String> tutorialChange(IntegrationMethod before, IntegrationMethod after) {
         String was = blankToNull(before.getTutorial());
@@ -281,19 +250,13 @@ public class SupportTicketService {
     }
 
     /**
-     * Appends a connector added to a revision that is already under review to that revision's existing
-     * work package, so the reviewer sees the submission grow instead of finding a second work package
-     * about the same review.
+     * Comments a connector added to a revision already under review onto that revision's work package,
+     * rather than opening a second one. Same shape as {@link #openWorkPackage}: a portal that cannot be
+     * reached delays the comment, and the retry composes it from the revision as it stands then.
      *
-     * <p>Same shape as {@link #openWorkPackage}: after the commit, in its own transaction, and a
-     * portal that cannot be reached delays the comment rather than losing it - the scheduled retry
-     * posts it later, composed from the revision as it stands then.
-     *
-     * <p>A revision whose work package has not been opened has nothing to append to, and this is
-     * then given up on rather than retried. That is not a hole: if the work package is merely late,
-     * the operation that opens it describes the revision at the moment it runs, and the connector
-     * added here is part of that description. Retrying as well would put the same connector in front
-     * of the reviewer twice.
+     * <p>A revision with no work package is given up on rather than retried - the operation that opens
+     * it describes the revision as it stands then, this connector included, so retrying would say it
+     * twice.
      *
      * @return whether the connector is now on the work package, and if not, whether asking again
      * could change that
@@ -336,18 +299,10 @@ public class SupportTicketService {
     }
 
     /**
-     * Puts everything the submission carries as a file onto the work package's Files tab: the tutorial,
-     * written out of {@code integration_method.tutorial} as {@value #TUTORIAL_ATTACHMENT}, and every
-     * sample the author has uploaded so far.
-     *
-     * <p>Attachments rather than description text, because a tutorial is a {@code text} column with no
-     * length limit and a sample is not text at all. Both would either bury every other field in the
-     * ticket or, past the portal's limits, cost the whole work package.
-     *
-     * <p>"So far" matters: on a first submission the folder is still empty here, because the publish form
-     * uploads the samples only after the create call returns. Those arrive later through
-     * {@link #attachTutorialFile}. An edited or upgraded revision, on the other hand, already carries
-     * its predecessor's files, and they are attached here.
+     * Puts the tutorial ({@value #TUTORIAL_ATTACHMENT}) and every sample uploaded so far on the work
+     * package's Files tab - attachments, because a tutorial is an unbounded {@code text} column and a
+     * sample is not text at all. On a first submission the samples arrive later, via
+     * {@link #attachTutorialFile}.
      */
     private void attachFiles(int workPackageId, IntegrationMethod method) {
         List<String> refused = new ArrayList<>();
@@ -360,12 +315,8 @@ public class SupportTicketService {
     }
 
     /**
-     * Everything the revision carries as a file, read and ready to be attached: the tutorial, written
-     * out of {@code integration_method.tutorial}, and the author's uploads.
-     *
-     * <p>A file that cannot be read is skipped rather than failing the rest, but the result says so:
-     * a caller replacing what the work package holds must not read "could not be read" as "the author
-     * removed it" and delete the copy the reviewer has.
+     * The tutorial and the author's uploads, read and ready to attach. An unreadable file is skipped,
+     * and the result says so, so a caller does not mistake it for one the author removed.
      */
     private SubmittedFiles collectFiles(IntegrationMethod method, int workPackageId) {
         List<SubmittedFile> files = new ArrayList<>();
@@ -397,21 +348,11 @@ public class SupportTicketService {
     }
 
     /**
-     * Brings a work package's files back in line with the revision after an edit, and says what that
-     * took.
+     * Brings a work package's files back in line with the revision after an edit. Only the catalog's
+     * own uploads are touched, and only where the content differs; anything a reviewer attached is
+     * left alone.
      *
-     * <p>Needed because the description only points at the tutorial rather than reproducing it: an
-     * author who rewrites the tutorial changes nothing the description shows, so without this the
-     * reviewer opens the Files tab and reads the text that was submitted first. The same goes for a
-     * sample added or withdrawn since.
-     *
-     * <p>Only the catalog's own uploads are touched, and only where they differ: a file whose content
-     * still matches what the portal stores is left alone, so an edit that changed neither the tutorial
-     * nor the samples leaves the Files tab untouched instead of churning it. Anything a reviewer
-     * attached themselves belongs to the conversation, not to the submission, and is never removed.
-     *
-     * @return what changed, in reader's terms, for the comment that explains the edit; empty when
-     * nothing changed or when the portal could not be asked, which is not worth failing the edit over
+     * @return what changed, for the comment explaining the edit; empty when nothing did
      */
     private List<String> refreshAttachments(int workPackageId, IntegrationMethod method) {
         SubmittedFiles submitted = collectFiles(method, workPackageId);
@@ -450,14 +391,12 @@ public class SupportTicketService {
                     .filter(attachment -> digest != null && digest.equalsIgnoreCase(attachment.digest()))
                     .findFirst()
                     .orElse(null);
+
             if (same != null) {
-                // Already there, unchanged. Anything else of that name is a duplicate upload, and
-                // dropping it is housekeeping rather than something the edit did.
                 deleteOthers(workPackageId, present, same);
                 continue;
             }
-            // Uploaded before the old copy is dropped, so a refused upload leaves the reviewer with
-            // the file as it was rather than with no file at all.
+
             OperationResult attached = attach(workPackageId, file);
             if (!attached.isCompleted()) {
                 if (attached.isObsolete()) {
@@ -472,7 +411,6 @@ public class SupportTicketService {
         commentOnRefusedFiles(workPackageId, method, refused);
 
         if (!submitted.complete()) {
-            // Something could not be read, so an attachment with no file behind it may still have one.
             log.warn("Not everything {}/{} carries could be read, so nothing was removed from work package {}",
                     method.getId(), method.getRevision(), workPackageId);
             return changes;
@@ -530,7 +468,6 @@ public class SupportTicketService {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("MD5").digest(content));
         } catch (NoSuchAlgorithmException e) {
-            // Every JVM has md5; without it a file simply never matches and is uploaded again.
             log.warn("No md5 available, so attached files cannot be compared: {}", e.getMessage());
             return null;
         }
@@ -550,17 +487,11 @@ public class SupportTicketService {
     }
 
     /**
-     * Attaches one of the author's uploaded files to the work package of the revision it belongs to.
+     * Attaches one of the author's uploaded files, which arrive after the create call and so are
+     * missing from the description. The portal notes each in the activity itself, so nothing is commented.
      *
-     * <p>The publish form uploads these in separate requests after the create call, so the work package
-     * already exists and its description was written while the folder was still empty. Attaching on
-     * arrival is what puts them in front of the reviewer; the portal notes each one in the work package's
-     * activity by itself, so nothing is commented here.
-     *
-     * <p>A revision with no work package is given up on rather than retried, for the same reason as
-     * {@link #appendConnector}: opening a work package attaches everything the revision carries at
-     * that moment, so a file uploaded while the portal was down is attached by the operation that
-     * finally opens it, not by this one.
+     * <p>A revision with no work package is given up on rather than retried, for the reason given on
+     * {@link #appendConnector}: the operation that opens one attaches everything the revision carries.
      *
      * @return whether the file is now on the work package, and if not, whether asking again could
      * change that
@@ -611,8 +542,6 @@ public class SupportTicketService {
             Path file = tutorialStorageService.resolveTutorialFile(method.getId(), method.getRevision(), fileName);
             byte[] content = Files.readAllBytes(file);
             String probed = Files.probeContentType(file);
-            // Windows often cannot name a type from the extension alone; the portal accepts the generic
-            // one and still offers the file for download under its own name.
             return Optional.of(new SubmittedFile(fileName, content,
                     probed != null ? probed : "application/octet-stream"));
         } catch (Exception e) {
@@ -663,15 +592,9 @@ public class SupportTicketService {
     }
 
     /**
-     * Tells the reviewer, on the work package itself, about files the portal would not take and
-     * where to get them instead.
-     *
-     * <p>Without this the Files tab is simply short: the description names a sample the reviewer
-     * cannot find, and nothing says whether it was never submitted or merely would not fit. The
-     * files are in the catalog either way, so the comment says so and links to the revision's page.
-     *
-     * <p>One comment for however many files a run refused, rather than one each, so a submission
-     * carrying several oversized samples does not bury the review conversation.
+     * Tells the reviewer, on the work package itself, about files the portal would not take and where
+     * to get them instead - otherwise the Files tab is simply short and nothing says why. One comment
+     * per run, however many files it refused, so several oversized samples do not bury the review.
      */
     private void commentOnRefusedFiles(int workPackageId, IntegrationMethod method, List<String> refused) {
         if (refused.isEmpty()) {
@@ -701,27 +624,11 @@ public class SupportTicketService {
     }
 
     /**
-     * Subscribes everyone the submission concerns to its freshly opened work package, so each side
-     * hears about it from the portal instead of watching the catalog for it:
-     *
-     * <ul>
-     *   <li>the reviewers named in {@code openproject.watchers}, by portal login;</li>
-     *   <li>the author, and the maintainer when that is a person, by the address in
-     *       {@code catalog_users.email}. A maintainer that is an organization adds nobody of its
-     *       own - its author speaks for it, and only people have an address at all, see
-     *       {@link CatalogContactResolver}.</li>
-     * </ul>
-     *
-     * <p>Best effort throughout, one address at a time: somebody the portal does not know, or who
-     * cannot see the work package, is logged and skipped. The work package is already open and its
-     * id already on the revision by the time this runs, and a missing watcher is not worth losing
-     * that over - the review proceeds without any watcher at all, and the body names everyone
-     * regardless.
+     * Subscribes everyone the submission concerns to its work package: the reviewers in
+     * {@code openproject.watchers} by login, and the submitting side by {@code catalog_users.email}.
+     * Best effort - anyone the portal does not know is logged and skipped.
      */
     private void addWatchers(int workPackageId, IntegrationMethod method) {
-        // Portal user ids rather than names: one person can be reached by more than one route - a
-        // configured reviewer login, and the same person as the author or as the maintainer - and
-        // there is no reason to send the same request twice.
         Set<Integer> watching = new LinkedHashSet<>();
 
         for (String login : properties.watchers()) {
@@ -732,8 +639,6 @@ public class SupportTicketService {
         for (String name : distinct(method.getAuthor(), method.getMaintainer())) {
             String email = contactResolver.emailOf(name).orElse(null);
             if (email == null) {
-                // An organization, or somebody the catalog holds no address for. The author covers
-                // the first case, and the body names them all either way.
                 log.debug("No contact address for '{}', not watching work package {}", name, workPackageId);
                 continue;
             }
@@ -806,14 +711,9 @@ public class SupportTicketService {
     }
 
     /**
-     * The work package behind a revision's review and whether it says the reviewer may approve.
-     * <p>
-     * Restricted to the people the review concerns - the reviewer and the submitting side - via
-     * the same ownership check that guards editing. The ticket carries the review conversation,
-     * which is not part of the catalog's public face.
-     * <p>
-     * Beyond that it never throws: a portal that cannot be reached is reported through
-     * {@link SupportTicketDto#error()} so the dialog can say so rather than fail.
+     * The work package behind a revision's review and whether it lets the reviewer approve. Restricted
+     * to the reviewer and the submitting side by the same ownership check that guards editing. Never
+     * throws for a portal problem - that is reported through {@link SupportTicketDto#error()}.
      */
     // Deliberately not @Transactional: the portal call below can take seconds, and there is no
     // reason to hold a database connection open across it. The one read stands on its own.
@@ -835,8 +735,6 @@ public class SupportTicketService {
 
         Integer ticketId = method.getSupportTicketId();
         if (ticketId == null) {
-            // Submitted before the portal integration existed, or the portal was unreachable then.
-            // There is no conversation to wait for, so approval is not held up.
             return new SupportTicketDto(true, null, null, null, true, null);
         }
 

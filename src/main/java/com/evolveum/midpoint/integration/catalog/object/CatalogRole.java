@@ -9,33 +9,19 @@ package com.evolveum.midpoint.integration.catalog.object;
 import java.util.Optional;
 
 /**
- * The roles {@code catalog_users.role} can hold.
- *
- * <p>The column stays a string rather than becoming an enum type: the value travels to the client in
- * the login response and appears in the API documentation, so it is part of an external contract and
- * its spelling has to keep matching {@link #storedValue()} exactly. What this enum removes is the
- * repetition of that spelling across the access checks, where a typo would not fail but would
- * silently deny - or grant - the wrong thing.
- *
- * <p>Values a released database may already hold are therefore never renamed here. A role that is
- * not one of these resolves to nothing through {@link #of(String)}, which the callers treat as "no
- * privileges", the same way an unknown user is treated.
+ * The roles {@code catalog_users.role} can hold, so the access checks stop repeating the spelling of
+ * each one, where a typo silently grants or denies rather than failing. The column stays a string:
+ * the value is part of the API contract, so {@link #storedValue()} must keep matching it exactly.
  */
 public enum CatalogRole {
 
     /** Full access, and the only role allowed to approve a submission. */
     SUPERUSER("Superuser"),
 
-    /**
-     * Publishes on behalf of their organization, and shares access with the fellow organization
-     * contributors of that organization - an organization acts as a team.
-     */
+    /** Publishes on behalf of their organization, sharing access with its other contributors. */
     ORGANIZATION_CONTRIBUTOR("OrganizationContributor"),
 
-    /**
-     * Publishes as themselves. Belonging to an organization changes nothing about that: their items
-     * stay personal and their organization's items are not theirs.
-     */
+    /** Publishes as themselves, even when they belong to an organization. */
     INDIVIDUAL_CONTRIBUTOR("IndividualContributor"),
 
     /** May browse the catalog and nothing more. */

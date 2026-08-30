@@ -39,46 +39,27 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
- * Renders a submitted revision as the markdown body of its support work package. This is the whole
- * of what a reviewer sees before opening the catalog, so it carries the submission's own data plus
- * everything about the connectors that ride along with it.
+ * Renders a submitted revision as the markdown body of its support work package - the whole of what a
+ * reviewer sees before opening the catalog.
  *
- * <p>Must be called inside the transaction that loaded the {@link IntegrationMethod}: it walks lazy
- * associations (capabilities, connectors, bundle versions) as it goes.
- *
- * <p>Every section degrades to a "not provided" note rather than disappearing, so a reviewer can
- * tell an empty field from a field this builder forgot.
- *
- * <p>People are named in the body with their contact address, resolved through
- * {@link CatalogContactResolver}; a name with no address is written on its own, as every name was
- * before those columns existed. Naming them here is independent of whether they also end up watching
- * the work package - {@link SupportTicketService} adds the watchers it can, and the body has to
- * carry the whole submission either way, including the people it could not attach.
+ * <p>Must run inside the transaction that loaded the {@link IntegrationMethod}, as it walks lazy
+ * associations. Every section degrades to a "not provided" note rather than disappearing, so an empty
+ * field is not mistaken for a forgotten one.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class SupportTicketDescriptionBuilder {
 
-    /** Readable to a human, unlike {@link LocalDateTime#toString()} with its microseconds. */
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    /**
-     * Object class under which resource-wide capabilities are stored, as opposed to the ones that
-     * belong to a real object class. Mirrors what the detail page does when it splits the two.
-     */
+    /** Object class holding the resource-wide capabilities, as the detail page splits them. */
     private static final String GLOBAL_OBJECT_CLASS = "Global";
 
     private static final String NOT_PROVIDED = "_not provided_";
 
-    /**
-     * Stand-in for an empty build error. A version with no recorded error usually has none, but the
-     * build may also simply not have run yet, and "not provided" would be read as the former; the
-     * reviewer is pointed at the comments, where a later build failure is reported.
-     */
     private static final String NO_BUILD_ERROR = "_check comments if any_";
 
-    /** Indent of a bullet nested under another one, wide enough for OpenProject's markdown. */
     private static final String NESTED = "    ";
 
     private static final String INTRO_NOTE =
@@ -94,9 +75,7 @@ public class SupportTicketDescriptionBuilder {
 
     /**
      * The notes above, as they appear in a finished body. They explain the work package rather than
-     * describe the submission, so every ticket that has one has the same one, and
-     * {@link SupportTicketDeltaBuilder} leaves them out of what it reports: a note that moved because
-     * the section it closes moved is not something an author changed.
+     * describe the submission, so {@link SupportTicketDeltaBuilder} leaves them out of what it reports.
      */
     static final List<String> NOTES = List.of(INTRO_NOTE, CLOSING_NOTE,
             APPLICATION_PUBLISHED_NOTE, CONNECTOR_PUBLISHED_NOTE, FILES_NOTE);
@@ -122,13 +101,8 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * One connector as markdown, to be posted as a comment on the work package of a revision that is
-     * already under review.
-     *
-     * <p>Only the added connector, not the whole submission again: the description already covers the
-     * rest, and a reviewer scrolling a comment thread needs to see what changed, not what did not. The
-     * connector is rendered by the same two methods the description uses, so an added connector reads
-     * identically whether it arrived with the submission or after it.
+     * One connector as markdown, for a comment on a work package already open. Only the added
+     * connector, rendered by the same methods the description uses, so it reads identically.
      */
     public String buildConnectorAddendum(IntegrationMethod method, Integer connectorId) {
         StringBuilder body = new StringBuilder();
@@ -141,7 +115,6 @@ public class SupportTicketDescriptionBuilder {
                         .findFirst()
                         .orElse(null);
         if (link == null) {
-            // Detached again between the add and this comment. Saying so beats describing nothing.
             body.append("\nIt is no longer linked to the revision, so there is nothing to describe.\n");
             return body.toString();
         }
@@ -157,14 +130,8 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The application the method integrates, described in full only when this submission would publish
-     * it too.
-     *
-     * <p>An {@code ACTIVE} application is already in the catalog and is not what the reviewer is being
-     * asked about, so it is named and marked as needing no review. Anything else - a brand-new
-     * application, or one that existed only as a community request - becomes {@code ACTIVE} when this
-     * method is approved, so everything the reviewer would have to check is listed. The condition is
-     * the one the approve step itself uses, so the ticket cannot disagree with what approval does.
+     * The application the method integrates, described in full only when approving this submission
+     * would publish it too. Keyed on the same condition the approve step uses, so the two cannot disagree.
      */
     private void appendApplication(StringBuilder body, IntegrationMethod method) {
         Application application = method.getApplication();
@@ -226,8 +193,6 @@ public class SupportTicketDescriptionBuilder {
         body.append("\n## Integration method\n\n");
         bullet(body, "Integration method", method.getDisplayName());
         bullet(body, "Revision", method.getRevision());
-        // Flattened onto one line like every other value here. A description written over several
-        // paragraphs would otherwise end the list it sits in and orphan the fields below it.
         bullet(body, "Description", singleLine(method.getDescription()));
         bullet(body, "Integration method type", integrationMethodTypes(method));
         bullet(body, "Supported midPoint version", midpointVersionRange(method));
@@ -251,13 +216,8 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * A name with its contact address in brackets and, for someone publishing on behalf of an
-     * organization, that organization after it: {@code u1 (u1@acme.com), Acme co.}
-     *
-     * <p>Each part is added only if it is known, so the same method covers a person with an address and
-     * no organization, an organization named as maintainer in its own right, and a name the catalog can
-     * no longer place - see {@link CatalogContactResolver} for why the last one is expected rather than
-     * a fault.
+     * A name with its address and organization where those are known: {@code u1 (u1@acme.com), Acme co.}
+     * Each part is optional, so a bare name is a normal result - see {@link CatalogContactResolver}.
      */
     private String withEmail(String name) {
         if (name == null || name.isBlank()) {
@@ -404,17 +364,9 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The tutorial the author wrote, plus the names of the files uploaded alongside it.
-     *
-     * <p>The tutorial is pointed at rather than reproduced: {@link SupportTicketService} attaches it to
-     * the work package, where the reviewer opens it from the Files tab. A tutorial has no length limit,
-     * so reproducing it here would bury every other field under it. A blank one is still reported as
-     * such - that is a fact about the submission a reviewer needs.
-     *
-     * <p>The uploaded samples are attached too, and named here as well so the reviewer can see what the
-     * submission is supposed to include. When the list is empty the line points at the Files tab rather
-     * than reporting nothing, because on a first submission there is no moment at which this description
-     * could see them - they are attached as they arrive, see {@link TutorialFileAddedEvent}.
+     * The tutorial and the names of the files uploaded alongside it. The tutorial is pointed at rather
+     * than reproduced - it has no length limit and is attached instead. An empty file list points at
+     * the Files tab, because on a first submission the uploads arrive after this is written.
      */
     private void appendTutorial(StringBuilder body, IntegrationMethod method) {
         body.append("\n### Integration tutorial\n\n");
@@ -431,17 +383,12 @@ public class SupportTicketDescriptionBuilder {
             files = join(tutorialStorageService.listTutorialFiles(method.getId(), method.getRevision()),
                     Function.identity());
         } catch (Exception e) {
-            // A ticket without the file list beats no ticket at all.
             log.warn("Could not list tutorial files for {}/{}: {}",
                     method.getId(), method.getRevision(), e.getMessage());
             files = null;
         }
         body.append('\n');
         if (files == null) {
-            // Empty right now does not mean empty for good: on a first submission the files are uploaded
-            // only after this description is written, and each one is then attached to this work package
-            // as it arrives. "Not provided" would be read as "the author uploaded nothing", which is
-            // wrong, so the line points at the tab they will appear in.
             bullet(body, "Additional tutorials/samples", "See the **Files** tab above");
         } else {
             bullet(body, "Additional tutorials/samples", files);
@@ -450,13 +397,9 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * Every connector the method links, split by whether the reviewer has to look at it.
-     *
-     * <p>A connector already published in the catalog and reused untouched needs no review, so it is
-     * named and nothing more. One introduced or edited with this submission gets published when the
-     * method is approved, so everything known about it goes here. The two are told apart by the
-     * lifecycle state the approve step itself keys on: {@code IN_REVIEW} anywhere in the connector,
-     * its bundle or a bundle version means the approval will promote it.
+     * Every connector the method links, split by whether approving this submission would publish it -
+     * {@code IN_REVIEW} anywhere in the connector, its bundle or a bundle version. A reused published
+     * connector is only named.
      */
     private void appendConnectors(StringBuilder body, IntegrationMethod method) {
         body.append("\n## Connectors\n");
@@ -639,12 +582,9 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The version the author typed in the publish form. It is stored on the bundle version rather than
-     * on the connector row - {@code connector.revision} is seeded to {@code 1.0.0} and is not what was
-     * submitted - so the connector's revision is only a fallback for a row without a bundle version.
-     *
-     * <p>A connector edited with this submission carries its earlier versions too, so the one under
-     * review wins; on an already published connector there is none, and the newest version answers.
+     * The version the author typed in the publish form, which lives on the bundle version;
+     * {@code connector.revision} is seeded to {@code 1.0.0} and only serves as a fallback. The version
+     * under review wins over the connector's earlier ones.
      */
     private String submittedVersion(Connector connector) {
         List<ConnectorVersion> versions = connector.getConnectorVersions() == null

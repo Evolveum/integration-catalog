@@ -133,8 +133,7 @@ public class TutorialStorageService {
 
         updateFilePath(integrationMethodId, revision, folder);
         log.info("Saved tutorial file for integration method {}/{}: {}", integrationMethodId, revision, fileName);
-        // Announced once this commits, so a revision already under review can have the file mentioned
-        // on its support work package - the description was written before any file existed.
+        // Files arrive after the work package was written, so it is told about each one.
         events.publishEvent(new TutorialFileAddedEvent(integrationMethodId, revision, fileName));
     }
 
