@@ -27,4 +27,10 @@ public interface ConnectorRepository extends JpaRepository<Connector, Integer>,
      * @return distinct connectors whose versions match the given lifecycle state
      */
     List<Connector> findDistinctByConnectorVersionsLifecycleState(LifecycleType lifecycleState);
+
+    /**
+     * Connectors copy-on-write cloned from the given one. Used when that original is retired, so its
+     * clones can be repointed at the connector taking its place instead of being left dangling.
+     */
+    List<Connector> findByClonedFrom(Integer clonedFrom);
 }

@@ -72,9 +72,6 @@ class ControllerTest {
     private TutorialStorageService tutorialStorageService;
 
     @MockitoBean
-    private com.evolveum.midpoint.integration.catalog.service.BundleService bundleService;
-
-    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
 
     private UUID testAppId;
@@ -544,6 +541,7 @@ class ControllerTest {
     void getCatalogConnectorsShouldReturnList() throws Exception {
         CatalogConnectorDto dto = new CatalogConnectorDto(
                 1,
+                7,
                 "LDAP Connector",
                 "LDAP connector for directory services",
                 "1.0.0",

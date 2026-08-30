@@ -27,6 +27,9 @@ public class CatalogUser {
     @Column(nullable = false)
     private String role;
 
+    /** Nullable - rows created before the column existed have none. */
+    private String email;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
     private Organization organization;

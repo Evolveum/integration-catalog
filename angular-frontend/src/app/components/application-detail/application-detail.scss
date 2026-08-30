@@ -888,6 +888,11 @@
   font-weight: 500;
   color: $color-dark-blue;
   text-decoration: underline;
+  // .im-row-actions below is pulled up by a negative margin (see .im-row-actions) and its box
+  // covers this link even though its buttons are right-aligned. On hover that box becomes
+  // visible and would otherwise take the click, so lift the link above it.
+  position: relative;
+  z-index: 1;
 
   &:hover {
     color: $midpoint-special-color-20;

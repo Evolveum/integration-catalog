@@ -118,6 +118,10 @@ public class IntegrationMethod implements Persistable<UUID> {
     @Column(name = "reviewed_by")
     private String reviewedBy;
 
+    /** Support portal work package for this revision; null when none was opened. Not inherited by a fork. */
+    @Column(name = "support_ticket_id")
+    private Integer supportTicketId;
+
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodCapability> capabilities = new ArrayList<>();
 

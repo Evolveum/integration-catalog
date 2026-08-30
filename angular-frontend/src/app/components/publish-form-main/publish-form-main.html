@@ -496,6 +496,9 @@
                     @if (applicationSearchTooShort()) {
                       <div class="search-hint">Please enter at least 2 characters to search.</div>
                     }
+                    @if (applicationsFailed()) {
+                      <div class="search-hint">The application list could not be loaded, so search finds nothing. Reload the page and try again.</div>
+                    }
                   </div>
 
                   <!-- Selected Application Card -->

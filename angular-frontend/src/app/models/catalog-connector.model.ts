@@ -4,7 +4,9 @@ export interface CatalogConnectorObjectClassCapability {
 }
 
 export interface CatalogConnector {
-  id: number;
+  id: number;                // connector_bundle.id
+  connectorId: number;       // connector.id — links this connector on publish instead of copying it;
+                             // a bundle can hold several, so its id alone cannot say which
   displayName: string;       // connector.display_name
   description: string;       // connector.description
   version: string;           // connector.revision

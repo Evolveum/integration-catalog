@@ -10,6 +10,7 @@ import java.util.List;
 
 public record CatalogConnectorDto(
         Integer id,               // connector_bundle.id  (sent as connectorBundleId to backend)
+        Integer connectorId,      // connector.id  (sent as existingConnectorId, to link this very connector)
         String displayName,       // connector.display_name
         String description,       // connector.description
         String version,           // connector.revision

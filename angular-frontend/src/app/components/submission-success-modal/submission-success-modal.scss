@@ -1,0 +1,139 @@
+@use 'variables' as *;
+
+/* Confirmation shown over whichever form put the revision in front of a reviewer */
+.submitted-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.submitted-modal-container {
+  z-index: 1050;
+}
+
+.submitted-modal-dialog {
+  position: relative;
+  background: $color-white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 520px;
+  max-width: 95vw;
+  padding: 1.25rem;
+}
+
+.submitted-modal-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  color: $color-gray-secondary;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Spans past the dialog's padding, so its rule reaches both edges */
+.submitted-modal-head {
+  padding: 1.5rem 1rem 1.25rem;
+  margin: 0 -1.25rem 1.25rem;
+  border-bottom: 1px solid $color-border-light;
+}
+
+.submitted-modal-check {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: #e6f4ea;
+  color: $color-success;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.submitted-modal-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: $color-text-dark;
+  margin: 0 0 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.submitted-modal-subtitle {
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  margin: 0;
+}
+
+.submitted-modal-section-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: $color-text-dark;
+  margin: 0 0 0.6rem;
+}
+
+.submitted-modal-text {
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+
+.submitted-ticket-panel {
+  background-color: $color-bg-light;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  /* The number is what the panel is for; the actions give way when the dialog narrows */
+  flex-wrap: wrap;
+}
+
+.submitted-ticket-number {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  overflow-wrap: anywhere;
+}
+
+.submitted-ticket-action {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: $color-text-dark;
+  white-space: nowrap;
+
+  &:hover {
+    color: $color-dark-blue;
+    text-decoration: underline;
+  }
+}
+
+.submitted-ticket-open {
+  color: $color-dark-blue;
+}
+
+/* Full-width divider above the footer button (spans past the dialog's padding) */
+.submitted-modal-separator {
+  margin: 0 -1.25rem 1rem;
+  border: 0;
+  border-top: 1px solid $color-border-light;
+  opacity: 1;
+}
+
+.submitted-modal-done {
+  background-color: $color-dark-blue;
+  border-color: $color-dark-blue;
+  color: $color-white;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 6px;
+
+  &:hover {
+    background-color: #1b5e85;
+    border-color: #1b5e85;
+    color: $color-white;
+  }
+}

@@ -19,6 +19,10 @@ services:
       JENKINS_URL: https://jenkins.evolveum.com/
       JENKINS_TOKEN_FILE: /run/secrets/jenkins_token
       JENKINS_USERNAME_FILE: /run/secrets/jenkins_username
+
+      OPENPROJECT_URL: https://support.evolveum.com
+      OPENPROJECT_PROJECT: integration-catalog-connectors
+      OPENPROJECT_PASSWORD_FILE: /run/secrets/openproject_password
     depends_on:
       - db
     secrets:
@@ -26,6 +30,7 @@ services:
       - github_token
       - jenkins_token
       - jenkins_username
+      - openproject_password
 
   db:
     image: postgres:16-alpine
@@ -54,3 +59,7 @@ secrets:
     file: ./secrets/jenkins_token.txt
   jenkins_username:
     file: ./secrets/jenkins_username.txt
+  # Service account API token for the support portal. The user name stays "apikey"
+  # (application.properties) - OpenProject wants the token as the password.
+  openproject_password:
+    file: ./secrets/openproject_password.txt

@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.LoginResponseDto;
+import com.evolveum.midpoint.integration.catalog.object.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.object.CatalogUser;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
@@ -94,7 +95,7 @@ public class AuthService {
         if (caller == null) {
             return false;
         }
-        if ("Superuser".equals(caller.getRole())) {
+        if (CatalogRole.SUPERUSER.matches(caller.getRole())) {
             return true;
         }
         // Maintainer designates ownership: match by the caller's username or by their org name.
@@ -110,10 +111,10 @@ public class AuthService {
         // An organization acts as a team: an item maintained by an org contributor is editable
         // by every member of that organization. A maintainer without an org stays personal, as
         // does an IndividualContributor who belongs to an org — they act as themselves.
-        if ("OrganizationContributor".equals(caller.getRole())
+        if (CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(caller.getRole())
                 && caller.getOrganization() != null && maintainer != null && !maintainer.isBlank()) {
             CatalogUser maintainerUser = catalogUserRepository.findByUsername(maintainer).orElse(null);
-            if (maintainerUser != null && "OrganizationContributor".equals(maintainerUser.getRole())
+            if (maintainerUser != null && CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(maintainerUser.getRole())
                     && maintainerUser.getOrganization() != null
                     && caller.getOrganization().getId().equals(maintainerUser.getOrganization().getId())) {
                 return true;
@@ -123,10 +124,10 @@ public class AuthService {
         if (author != null && author.equalsIgnoreCase(username)) {
             return true;
         }
-        if ("OrganizationContributor".equals(caller.getRole())
+        if (CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(caller.getRole())
                 && caller.getOrganization() != null && author != null) {
             CatalogUser owner = catalogUserRepository.findByUsername(author).orElse(null);
-            if (owner != null && "OrganizationContributor".equals(owner.getRole())
+            if (owner != null && CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(owner.getRole())
                     && owner.getOrganization() != null
                     && caller.getOrganization().getId().equals(owner.getOrganization().getId())) {
                 return true;
@@ -141,7 +142,7 @@ public class AuthService {
             return false;
         }
         return catalogUserRepository.findByUsername(username)
-                .map(u -> "Superuser".equals(u.getRole()))
+                .map(u -> CatalogRole.SUPERUSER.matches(u.getRole()))
                 .orElse(false);
     }
 

@@ -86,7 +86,7 @@ public class ApplicationMapper {
                     Integer organizationId = null;
                     if (method.getAuthor() != null) {
                         organizationId = catalogUserRepository.findByUsername(method.getAuthor())
-                                .filter(u -> "OrganizationContributor".equals(u.getRole()))
+                                .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(u.getRole()))
                                 .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
                                 .orElse(null);
                     }
@@ -475,15 +475,15 @@ public class ApplicationMapper {
      * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
      */
     private static String roleToMaintainerCategory(String role) {
-        if (role == null) {
-            return null;
-        }
-        return switch (role) {
-            case "Superuser" -> "Evolveum";
-            case "OrganizationContributor" -> "Partner";
-            case "IndividualContributor" -> "Community";
-            default -> null;
-        };
+        // Explicit type argument: one branch yields null, so there is nothing to infer U from.
+        return CatalogRole.of(role)
+                .<String>map(catalogRole -> switch (catalogRole) {
+                    case SUPERUSER -> "Evolveum";
+                    case ORGANIZATION_CONTRIBUTOR -> "Partner";
+                    case INDIVIDUAL_CONTRIBUTOR -> "Community";
+                    case READ_ONLY -> null; // a reader maintains nothing
+                })
+                .orElse(null);
     }
 
     // ── IntegrationMethod list item ───────────────────────────────────────────
@@ -524,6 +524,7 @@ public class ApplicationMapper {
         String licenseType = null;
         String ticketingLink = null;
         String connectorDisplayName = null;
+        String bundleDisplayName = null;
         String bundleName = null;
         String bundleFramework = null;
         String commitTag = null;
@@ -539,12 +540,10 @@ public class ApplicationMapper {
             if (bundle != null) {
                 licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                 ticketingLink = bundle.getTicketingLink();
+                bundleDisplayName = bundle.getDisplayName();
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
             }
-            // The connector's CURRENT version = the newest version row (ids are sequence-assigned,
-            // so max id is the latest). Every connector edit adds a new version row, and the IM must
-            // show that edit — findFirst() would keep returning the oldest row instead.
             Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
@@ -561,14 +560,9 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
-        // When the maintainer is an organization contributor, expose their organization so the
-        // client can render "org (username)". Null when the maintainer is not a known user
-        // (e.g. it is an organization itself), has no organization, or is an individual
-        // contributor — an IndividualContributor who belongs to an organization still publishes
-        // and is displayed as themselves, without the organization.
         String maintainerOrganization = maintainer == null ? null
                 : catalogUserRepository.findByUsername(maintainer)
-                        .filter(u -> "OrganizationContributor".equals(u.getRole()))
+                        .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(u.getRole()))
                         .map(u -> u.getOrganization() != null ? u.getOrganization().getName() : null)
                         .orElse(null);
 
@@ -591,6 +585,7 @@ public class ApplicationMapper {
                 pathToProject,
                 className,
                 connectorDisplayName,
+                bundleDisplayName,
                 bundleName,
                 bundleFramework,
                 commitTag,
@@ -605,8 +600,6 @@ public class ApplicationMapper {
      * grouped by object class, so the edit form can pre-fill the capability picker.
      */
     private List<ObjectClassCapabilityDto> mapConnectorVersionCapabilities(Connector connector) {
-        // Newest version row = the connector's current version (see buildIntegrationMethodListItem),
-        // so the capabilities shown match the version shown.
         return connector.getConnectorVersions().stream()
                 .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                 .map(this::mapCapabilitiesOf)
