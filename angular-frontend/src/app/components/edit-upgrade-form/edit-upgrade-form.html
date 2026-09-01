@@ -273,11 +273,19 @@
               }
 
               <!-- Flat rows (old design): every field shown directly, no collapsible subsections -->
-              @if (c.browseLink) {
+              @if (c.projectHomepage) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Project homepage:</span>
                   <span class="edit-connector-value">
-                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.projectHomepage }}
+                  </span>
+                </div>
+              }
+              @if (c.branchUrl) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Browse link:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-code-branch me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.branchUrl }}
                   </span>
                 </div>
               }

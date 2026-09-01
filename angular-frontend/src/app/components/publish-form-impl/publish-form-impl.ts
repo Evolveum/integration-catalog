@@ -49,6 +49,7 @@ export interface Step5FormData {
   connectorBundleName: string;
   connectorCapabilityGroups: CapabilityGroup[];
   devProjectHomepage: string;
+  devBranchUrl: string;
   devSupportPortal: string;
   devBuildTool: 'maven' | 'gradle' | '';
   devGitCloneUrl: string;
@@ -121,6 +122,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   // Dev & Build
   protected readonly devProjectHomepage = signal<string>('');
+  protected readonly devBranchUrl = signal<string>('');
   protected readonly devSupportPortal = signal<string>('');
   protected readonly devBuildTool = signal<'maven' | 'gradle' | ''>('');
   protected readonly devGitCloneUrl = signal<string>('');
@@ -317,6 +319,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorCapabilities.set([]);
     this.capabilityPicker?.reset();
     this.devProjectHomepage.set('');
+    this.devBranchUrl.set('');
     this.devSupportPortal.set('');
     this.devBuildTool.set('');
     this.devGitCloneUrl.set('');
@@ -341,7 +344,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorLicense.set(connector.licenseType ?? '');
     this.connectorDescription.set(connector.description ?? '');
     this.connectorBundleName.set(connector.bundleDisplayName ?? '');
-    this.devProjectHomepage.set(connector.browseLink ?? '');
+    this.devProjectHomepage.set(connector.projectHomepage ?? '');
+    this.devBranchUrl.set(connector.branchUrl ?? '');
     this.devGitCloneUrl.set(connector.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(connector.pathToProject ?? '');
     this.devClassName.set(connector.className ?? '');
@@ -397,7 +401,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
             : this.mapConnectorTypeToFramework(this.connectorType),
         license: this.connectorLicense() || null,
         ticketingSystemLink: this.devSupportPortal() || null,
-        browseLink: this.devProjectHomepage() || null,
+        projectHomepage: this.devProjectHomepage() || null,
+        branchUrl: this.devBranchUrl() || null,
         gitCloneUrl: this.devGitCloneUrl() || null,
         buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
         pathToProject: this.devProjectFolderPath() || null,
@@ -405,7 +410,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
         version: versionOverride ?? this.connectorVersion() ?? null,
         commitTag: this.devCommitTag() || null,
         bundleDisplayName: this.connectorBundleName() || null,
-        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
         // Picking a published connector links it as it is; every field above is disabled in that case,
         // so there is nothing to copy it for. Without this the backend would build a duplicate of it.
         existingConnectorId: this.isExistingConnector ? (this.selectedCatalogConnector?.connectorId ?? null) : null
@@ -583,6 +587,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
       connectorBundleName: this.connectorBundleName(),
       connectorCapabilityGroups: this.connectorCapabilities(),
       devProjectHomepage: this.devProjectHomepage(),
+      devBranchUrl: this.devBranchUrl(),
       devSupportPortal: this.devSupportPortal(),
       devBuildTool: this.devBuildTool(),
       devGitCloneUrl: this.devGitCloneUrl(),

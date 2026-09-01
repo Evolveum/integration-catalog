@@ -559,7 +559,8 @@ public class ApplicationMapper {
         String connectorMaxVersion = link != null ? link.getConnectorMaxVersion() : null;
         Integer connectorId = null;
         String connectorVersion = null;
-        String browseLink = null;
+        String projectHomepage = null;
+        String branchUrl = null;
         String gitCloneUrl = null;
         String buildFramework = null;
         String pathToProject = null;
@@ -573,6 +574,7 @@ public class ApplicationMapper {
         String bundleName = null;
         String bundleFramework = null;
         String commitTag = null;
+        boolean initialVersion = true;
         List<ObjectClassCapabilityDto> objectClassCapabilities = List.of();
 
         if (connector != null) {
@@ -583,24 +585,31 @@ public class ApplicationMapper {
             connectorDisplayName = connector.getDisplayName();
             ConnectorBundle bundle = connector.getConnectorBundle();
             if (bundle != null) {
+                // What describes the connector rather than one build of it lives on the bundle, and
+                // that includes the two fields fixed after the first version (license, clone URL).
                 licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                 ticketingLink = bundle.getTicketingLink();
+                projectHomepage = bundle.getProjectHomepage();
+                gitCloneUrl = bundle.getGitCloneUrl();
                 bundleDisplayName = bundle.getDisplayName();
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
+                initialVersion = bundle.getBundleVersions().size() <= 1;
             }
             Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
             if (latestCv.isPresent()) {
+                // Everything describing one built artifact comes from that build's own row.
                 ConnectorBundleVersion cbv = latestCv.get().getConnectorBundleVersion();
                 // bundle_version is the editable, user-facing version; fall back to the PK revision.
                 connectorVersion = cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cbv.getRevision();
-                browseLink = cbv.getBrowseLink();
-                gitCloneUrl = cbv.getGitCloneUrl();
+                branchUrl = cbv.getBrowseLink();
                 buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;
                 pathToProject = cbv.getPathToProject();
                 commitTag = cbv.getCommitTag();
+                className = latestCv.get().getFullyQualifiedClassName() != null
+                        ? latestCv.get().getFullyQualifiedClassName() : className;
             }
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
@@ -623,7 +632,8 @@ public class ApplicationMapper {
                 maintainerOrganization,
                 licenseType,
                 connectorDescription,
-                browseLink,
+                projectHomepage,
+                branchUrl,
                 ticketingLink,
                 buildFramework,
                 gitCloneUrl,
@@ -636,7 +646,8 @@ public class ApplicationMapper {
                 commitTag,
                 objectClassCapabilities,
                 connectorMinVersion,
-                connectorMaxVersion
+                connectorMaxVersion,
+                initialVersion
         );
     }
 

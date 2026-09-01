@@ -6,11 +6,13 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
+import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorVersionId;
 import com.evolveum.midpoint.integration.catalog.object.LifecycleType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -53,4 +55,14 @@ public interface ConnectorVersionRepository extends JpaRepository<ConnectorVersi
                                    @Param("className") String className,
                                    @Param("version") String version,
                                    @Param("excludeConnectorId") Integer excludeConnectorId);
+
+    /**
+     * Re-parents every connector version of {@code source} onto {@code target}. Used when a build
+     * reports that its artifact belongs to a bundle that already carries this version, so the two sets
+     * of connectors end up sharing the one row that stands for that build.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update ConnectorVersion cv set cv.connectorBundleVersion = :target where cv.connectorBundleVersion = :source")
+    int moveAllToBundleVersion(@Param("source") ConnectorBundleVersion source,
+                               @Param("target") ConnectorBundleVersion target);
 }

@@ -6,10 +6,14 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
+import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersionId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,4 +26,18 @@ public interface ConnectorBundleVersionRepository extends JpaRepository<Connecto
     Optional<ConnectorBundleVersion> findByConnectorBundleIdAndBundleVersion(Integer connectorBundleId, String bundleVersion);
 
     boolean existsByConnectorBundleIdAndBundleVersion(Integer connectorBundleId, String bundleVersion);
+
+    /**
+     * Re-parents every version of {@code source} onto {@code target}. Written as a bulk update rather
+     * than by moving entities between the two {@code bundleVersions} collections: those use
+     * orphanRemoval, so a move would schedule the rows for deletion instead.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update ConnectorBundleVersion v set v.connectorBundle = :target where v.connectorBundle = :source")
+    int moveAllToBundle(@Param("source") ConnectorBundle source, @Param("target") ConnectorBundle target);
+
+    /** Bulk delete, so the row goes without JPA cascading into connectors that have already been moved. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from ConnectorBundleVersion v where v.id = :id and v.revision = :revision")
+    int deleteRow(@Param("id") Integer id, @Param("revision") String revision);
 }

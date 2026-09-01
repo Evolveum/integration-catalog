@@ -135,6 +135,24 @@ CREATE INDEX IF NOT EXISTS idx_pending_operation_pending
 $aa$);
 -- end of region
 
+-- region change 6: only ACTIVE connector bundles compete for a bundle name
+-- unique_connector_bundle_bundle_name reserved (bundle_name, revision) across every lifecycle state,
+-- so a draft could not carry the name of the published bundle it was cloned from. The workaround was
+-- to hand the copy a suffixed revision (RepositoryUtil.uniqueBundleRevision), which then had to be
+-- reclaimed when the copy replaced the original - and it also made two rows of the same Maven artifact
+-- look like two different bundles.
+--
+-- A partial index instead: at most one ACTIVE bundle per (bundle_name, revision), with drafts and
+-- rejected leftovers free to repeat it. Adding lifecycle_state to the constraint tuple would have done
+-- the same for one draft but then collided on the second rejected draft of the same version.
+call apply_change(6, $aa$
+ALTER TABLE connector_bundle DROP CONSTRAINT IF EXISTS unique_connector_bundle_bundle_name;
+CREATE UNIQUE INDEX unique_active_bundle_name
+    ON connector_bundle (bundle_name, revision)
+    WHERE lifecycle_state = 'ACTIVE';
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

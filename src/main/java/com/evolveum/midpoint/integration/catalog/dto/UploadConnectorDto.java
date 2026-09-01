@@ -18,14 +18,14 @@ public record UploadConnectorDto(
         BuildFrameworkType buildFramework,        // connector_bundle.build_framework
         String description,                      // connector.description
         String maintainer,                       // connector.maintainer
-        String browseLink,                       // connector_bundle_version.browse_link
+        String projectHomepage,                  // connector_bundle.project_homepage
+        String branchUrl,                        // connector_bundle_version.browse_link (Jenkins BRANCH_URL)
         String ticketingSystemLink,              // connector_bundle.ticketing_link
-        String gitCloneUrl,                      // connector_bundle_version.git_clone_url
+        String gitCloneUrl,                      // connector_bundle.git_clone_ulr
         String className,                        // connector.fully_qualified_class_name
         String pathToProject,                    // connector_bundle_version.path_to_project
         String commitTag,                        // connector_bundle_version.commit_tag
         String bundleDisplayName,                // connector_bundle.display_name (the form's "bundle name")
-        Integer connectorBundleId,               // connector_bundle.id (when reusing existing bundle)
         Integer existingConnectorId              // connector.id (when linking a connector already published)
 ) {
 }

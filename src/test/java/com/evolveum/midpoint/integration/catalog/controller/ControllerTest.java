@@ -551,6 +551,7 @@ class ControllerTest {
                 "MAVEN",
                 "JAVA_BASED",
                 "https://github.com/Evolveum/connector-ldap",
+                "https://github.com/Evolveum/connector-ldap/tree/v1.0.0",
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
                 "com.evolveum.polygon.connector.ldap.LdapConnector",
