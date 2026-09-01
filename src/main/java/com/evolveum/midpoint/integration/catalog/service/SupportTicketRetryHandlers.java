@@ -19,10 +19,6 @@ import org.springframework.context.annotation.Configuration;
  * saying which system it belongs to, what it is called on the pending row, what its payload is, and
  * which method performs it. A second external system is another class exactly like this one - no
  * column, no query and no change to the scheduled job.
- *
- * <p>The payload of each is the event that raised it, so the handler is handed the identity of what
- * to act on and reads the current state itself. See {@link RetryableOperationHandler} for why that
- * matters to an operation carried out a day after it arose.
  */
 @Configuration
 public class SupportTicketRetryHandlers {

@@ -41,11 +41,6 @@ import static org.mockito.Mockito.when;
 /**
  * Covers what approving a revision does to the connector graph: folding a copy-on-write clone back into
  * the connector it came from, and retiring the original's bundle when the clone carries a new version.
- *
- * <p>The repositories are mocked, so what is asserted is the sequence of writes the service asks for —
- * which is exactly where the bugs live. Re-parenting has to go through the bulk-update methods and the
- * emptied bundle through {@code deleteRow}, because {@code connectors} and {@code bundleVersions} cascade
- * REMOVE: an entity delete would take the sibling connectors of a multi-connector bundle down with it.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)

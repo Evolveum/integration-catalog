@@ -135,9 +135,6 @@ public class OpenProjectClient {
     /**
      * Thrown when the portal will not take a file however often it is offered, because the file is
      * larger than the attachment size limit it or its proxy enforces.
-     *
-     * <p>Its own type so a caller can tell this apart from the portal being unreachable, which looks
-     * the same from the outside and is the opposite case: one is worth retrying, this one never is.
      */
     public static class AttachmentTooLargeException extends IOException {
 

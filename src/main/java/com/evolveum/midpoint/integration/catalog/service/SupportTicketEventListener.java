@@ -44,10 +44,6 @@ public class SupportTicketEventListener {
 
     /**
      * Records one operation and attempts it.
-     *
-     * <p>The event is the payload, which is what lets a late attempt be a correct one: it names the
-     * revision rather than describing it, so the handler reads the submission as it stands when it
-     * finally runs.
      */
     private void submit(String operation, Object event) {
         if (!properties.enabled()) {

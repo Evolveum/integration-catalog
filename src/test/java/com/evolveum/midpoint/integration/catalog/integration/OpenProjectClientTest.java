@@ -12,11 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for how {@link OpenProjectClient} reads a refused upload.
- *
- * <p>The distinction under test is the one the retry mechanism turns on: a file the portal will
- * never take has to be recognised as such, or it is offered again on every scheduled run for as
- * long as the revision exists; and a failure that is merely this minute's has to stay retryable, or
- * a submission loses a file to a portal that was only briefly unwell.
  */
 class OpenProjectClientTest {
 

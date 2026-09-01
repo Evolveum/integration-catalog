@@ -62,7 +62,6 @@ class PendingOperationStoreTest {
         assertThat(pending.getStatus()).isEqualTo(PendingOperationStatus.DONE);
         assertThat(pending.getAttempts()).isEqualTo(1);
         assertThat(pending.getLastAttemptAt()).isNotNull();
-        // An error left over from the attempt before would only mislead whoever reads the row.
         assertThat(pending.getLastError()).isNull();
     }
 
@@ -102,7 +101,6 @@ class PendingOperationStoreTest {
 
         storeAllowing(0).attempted(ROW_ID, OperationOutcome.OBSOLETE, "revision no longer exists");
 
-        // Terminal, so a row nothing can be done about does not sit in the queue forever.
         assertThat(pending.getStatus()).isEqualTo(PendingOperationStatus.OBSOLETE);
     }
 

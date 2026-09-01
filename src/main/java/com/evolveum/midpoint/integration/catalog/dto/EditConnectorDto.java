@@ -14,16 +14,6 @@ import java.util.List;
 /**
  * Payload for editing an existing connector linked to an integration method revision. The connector is
  * identified by its id in the request path.
- *
- * <p>The fields fall into three groups, and which group a field is in decides what an edit does with it
- * (see {@code ConnectorUploadService#updateConnector}):
- * <ul>
- *     <li><b>metadata</b> - rewritten in place on the connector and its bundle, no new version;</li>
- *     <li><b>build data</b> - describes one built artifact, so a change lands on a connector bundle
- *         version (a new one when the version changed);</li>
- *     <li><b>fixed</b> - accepted only while the bundle is still on its first version, rejected
- *         afterwards (see {@code ApplicationService#assertFixedFieldsUnchanged}).</li>
- * </ul>
  */
 public record EditConnectorDto(
         // -- metadata ------------------------------------------------------------------------------

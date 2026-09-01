@@ -78,16 +78,6 @@ public class ApplicationMapper {
      * Maps integration methods to IntegrationMethodDto, telling {@code viewer} the support ticket of
      * every revision they are allowed to see one for. Capabilities are collected from
      * IntegrationMethodCapability → items → Capability.
-     *
-     * <p>The ticket rides along here rather than being fetched per revision because both of its parts
-     * - the id and the URL built from it - are already at hand: the id is a column of the row being
-     * mapped, and the URL is a format of it. Asking the portal instead would mean one round trip per
-     * revision on every page load, for a link whose contents never depended on the portal.
-     *
-     * @param viewer who is asking, or null when nobody in particular is; the ticket is filled in only
-     *               for the submitting side and the reviewer, by the same check that guards editing,
-     *               because it points into the review conversation rather than the catalog's public
-     *               face. Every other caller sees both ticket fields as null.
      */
     public List<IntegrationMethodDto> mapIntegrationMethods(Application app, String viewer) {
         if (app.getIntegrationMethods() == null) return null;
@@ -151,8 +141,7 @@ public class ApplicationMapper {
                         }
                     }
 
-                    // Every linked connector, so the card can list them all (the flattened
-                    // connector fields above only carry the first link).
+                    // Every linked connector, so the card can list them all.
                     List<IncludedConnectorDto> includedConnectors = method.getConnectors().stream()
                             .map(IntegrationMethodConnector::getConnector)
                             .filter(Objects::nonNull)
@@ -318,7 +307,6 @@ public class ApplicationMapper {
         return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null);
     }
 
-    /** @param viewer who is asking, see {@link #mapIntegrationMethods(Application, String)}. */
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount,
                                                List<ObjectClassCapabilityDto> objectClassCapabilities,
@@ -402,10 +390,6 @@ public class ApplicationMapper {
 
         List<String> frameworks = extractFrameworks(app);
 
-        // Covered midPoint version IDs = union of each integration method's
-        // [midpoint_minVersion, midpoint_maxVersion] range, so the "MidPoint version"
-        // filter matches any selected version within range. A null bound is open-ended
-        // (clamped to the lowest/highest known version), matching the app detail view.
         List<String> midpointVersions = new ArrayList<>();
         if (app.getIntegrationMethods() != null) {
             List<Integer> allVersionIds = midpointVersionRepository.findAll().stream()
@@ -417,7 +401,6 @@ public class ApplicationMapper {
                 int globalMax = allVersionIds.get(allVersionIds.size() - 1);
                 Set<Integer> coveredIds = new TreeSet<>();
                 for (IntegrationMethod method : app.getIntegrationMethods()) {
-                    // Only active integration methods count toward supported versions.
                     if (LifecycleType.ACTIVE != method.getLifecycleState()) {
                         continue;
                     }
@@ -470,9 +453,7 @@ public class ApplicationMapper {
         }
 
         // Distinct maintainer categories (Evolveum/Partner/Community) derived from the
-        // role of each integration method's author, for the "Maintainer" filter. We use
-        // `author` (the publishing catalog_user's username) rather than `maintainer`,
-        // which is a free-text field that does not link to catalog_users.
+        // role of each integration method's author
         List<String> maintainers = null;
         if (app.getIntegrationMethods() != null) {
             maintainers = app.getIntegrationMethods().stream()
@@ -600,9 +581,7 @@ public class ApplicationMapper {
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
             if (latestCv.isPresent()) {
-                // Everything describing one built artifact comes from that build's own row.
                 ConnectorBundleVersion cbv = latestCv.get().getConnectorBundleVersion();
-                // bundle_version is the editable, user-facing version; fall back to the PK revision.
                 connectorVersion = cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cbv.getRevision();
                 branchUrl = cbv.getBrowseLink();
                 buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;

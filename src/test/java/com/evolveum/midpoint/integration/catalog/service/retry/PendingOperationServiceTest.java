@@ -99,8 +99,6 @@ class PendingOperationServiceTest {
 
         service.submit(ExternalSystem.OPENPROJECT, OPERATION, EVENT);
 
-        // The whole point: the row is durable before the external system is touched, so a process
-        // killed during the call still leaves something for the retry to find.
         assertThat(order).containsExactly("record", "attempt");
     }
 
@@ -126,8 +124,6 @@ class PendingOperationServiceTest {
         serviceReturning(OperationResult.retry("the portal is unreachable"), new AtomicReference<>())
                 .submit(ExternalSystem.OPENPROJECT, OPERATION, EVENT);
 
-        // RETRY is what leaves the row pending, which is what the scheduled run looks for, and the
-        // reason travels with it so the row says why rather than only that.
         verify(store).attempted(ROW_ID, OperationOutcome.RETRY, "the portal is unreachable");
         verify(store, never()).abandon(any(), anyString());
     }
@@ -137,8 +133,6 @@ class PendingOperationServiceTest {
         serviceReturning(OperationResult.obsolete("the revision was superseded"), new AtomicReference<>())
                 .submit(ExternalSystem.OPENPROJECT, OPERATION, EVENT);
 
-        // A terminal row with no reason reads like a lost operation; the reason is what tells anyone
-        // reading the table that nothing was missed.
         verify(store).attempted(ROW_ID, OperationOutcome.OBSOLETE, "the revision was superseded");
     }
 
@@ -150,7 +144,6 @@ class PendingOperationServiceTest {
 
         service.submit(ExternalSystem.OPENPROJECT, OPERATION, EVENT);
 
-        // Nothing was said about whether it happened, so the safe reading is that it did not.
         verify(store).attempted(eq(ROW_ID), eq(OperationOutcome.RETRY), contains("no result"));
     }
 
@@ -175,8 +168,6 @@ class PendingOperationServiceTest {
 
         serviceReturning(OperationResult.completed(), seen).submit(ExternalSystem.OPENPROJECT, OPERATION, EVENT);
 
-        // An operation performed without a row is one nobody could ever check on, so it is not
-        // performed at all. The caller is not failed for it either.
         assertThat(seen.get()).isNull();
     }
 
@@ -186,7 +177,6 @@ class PendingOperationServiceTest {
 
         service.submit(ExternalSystem.OPENPROJECT, OPERATION, EVENT);
 
-        // Retrying it forever would only bury whatever else is pending behind it.
         verify(store).abandon(eq(ROW_ID), contains("No handler"));
         verify(store, never()).attempted(any(), any(), any());
     }
@@ -239,8 +229,6 @@ class PendingOperationServiceTest {
                 ExternalSystem.OPENPROJECT, OPERATION, IntegrationMethodSubmittedEvent.class,
                 payload -> OperationResult.completed());
 
-        // Silently keeping one of them would leave the other unreachable, and the operations it was
-        // written for would fail in a way nobody could explain.
         assertThatThrownBy(() -> new PendingOperationService(store, objectMapper, List.of(handler, handler)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("OPENPROJECT/" + OPERATION);

@@ -473,8 +473,6 @@ public class SupportTicketDescriptionBuilder {
             return;
         }
         body.append("\n**Bundle**\n\n");
-        // Build framework and path to project are per built artifact and are listed with the bundle
-        // version that carries them, not here.
         bullet(body, "Bundle name", bundle.getDisplayName());
         bullet(body, "Framework", enumLabel(bundle.getFramework()));
         bullet(body, "License", licenseLabel(bundle.getLicense()));

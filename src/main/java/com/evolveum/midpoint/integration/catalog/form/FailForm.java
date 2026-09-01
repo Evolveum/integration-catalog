@@ -14,12 +14,8 @@ import lombok.Setter;
 public class FailForm {
     private String errorMessage;
     private String integrationMethodRevision;
-    // The build now belongs to a connector bundle version - one built artifact, which may carry
-    // several connectors. These identify it.
     private String connectorBundleVersionId;
     private String connectorBundleVersionRevision;
-    // Legacy: the single connector version a build used to be started for. Still accepted so a Jenkins
-    // job that has not been updated yet keeps working - the bundle version is resolved through it.
     private String connectorVersionId;
     private String connectorVersionRevision;
 }

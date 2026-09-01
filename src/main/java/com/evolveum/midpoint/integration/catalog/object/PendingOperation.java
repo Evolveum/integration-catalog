@@ -15,17 +15,6 @@ import java.time.LocalDateTime;
 /**
  * One operation the catalog owes an external system, written down before it is attempted so that
  * an unreachable system costs a delay rather than the operation itself.
- *
- * <p>Deliberately not modelled per external system or per kind of work. The row says which system
- * it belongs to ({@link #targetSystem}), which operation of that system it is ({@link #operation})
- * and carries everything needed to perform it as opaque JSON ({@link #payload}); what that JSON
- * means is known only to the handler registered for the pair. Supporting another system, or another
- * operation of a system already supported, therefore needs no column and no change to the scheduled
- * retry - see {@code RetryableOperationHandler}.
- *
- * <p>Rows are kept after they finish rather than deleted, so "the portal was down for two days last
- * month" remains answerable from the database. {@link #attempts}, {@link #lastAttemptAt} and
- * {@link #lastError} are what makes that answer legible.
  */
 @Entity
 @Table(name = "pending_operation")

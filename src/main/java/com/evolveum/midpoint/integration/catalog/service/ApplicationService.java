@@ -512,8 +512,6 @@ public class ApplicationService {
                                     bundle.getDisplayName(),
                                     connector.getMaintainer(),
                                     bundle.getLicense() != null ? bundle.getLicense().name() : null,
-                                    // Build data describes one built artifact, so it comes from that
-                                    // build's row; what describes the bundle comes from the bundle.
                                     latest != null && latest.getBuildFramework() != null
                                             ? latest.getBuildFramework().name() : null,
                                     bundle.getFramework() != null ? bundle.getFramework().name() : null,
