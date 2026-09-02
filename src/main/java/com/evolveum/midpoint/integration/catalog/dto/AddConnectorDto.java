@@ -24,7 +24,6 @@ public record AddConnectorDto(
         ConnectorBundle.FrameworkType framework,                     // connector_bundle.framework
         ConnectorBundle.LicenseType license,                         // connector_bundle.license
         String projectHomepage,                                      // connector_bundle.project_homepage
-        String branchUrl,                                            // connector_bundle_version.browse_link (Jenkins BRANCH_URL)
         String gitCloneUrl,                                          // connector_bundle.git_clone_ulr
         BuildFrameworkType buildFramework,                           // connector_bundle.build_framework
         String pathToProject,                                        // connector_bundle_version.path_to_project

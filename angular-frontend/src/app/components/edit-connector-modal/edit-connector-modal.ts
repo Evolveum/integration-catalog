@@ -22,7 +22,6 @@ export interface ConnectorEditPayload {
   maintainer: string;
   license: string | null;
   projectHomepage: string | null;
-  branchUrl: string | null;
   supportPortal: string | null;
   gitCloneUrl: string | null;
   buildFramework: string | null;
@@ -80,7 +79,6 @@ export class EditConnectorModal implements OnInit {
 
   // ── Development & build ───────────────────────────────────
   protected readonly devProjectHomepage = signal<string>('');
-  protected readonly devBranchUrl = signal<string>('');
   protected readonly devSupportPortal = signal<string>('');
   protected readonly devBuildTool = signal<'maven' | 'gradle' | ''>('');
   protected readonly devGitCloneUrl = signal<string>('');
@@ -145,7 +143,6 @@ export class EditConnectorModal implements OnInit {
     this.connectorBundleName.set(c.bundleDisplayName ?? '');
 
     this.devProjectHomepage.set(c.projectHomepage ?? '');
-    this.devBranchUrl.set(c.branchUrl ?? '');
     this.devSupportPortal.set(c.ticketingLink ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devCommitTag.set(c.commitTag ?? '');
@@ -235,7 +232,6 @@ export class EditConnectorModal implements OnInit {
       maintainer: this.connectorMaintainer(),
       license: this.connectorLicense() || null,
       projectHomepage: this.devProjectHomepage() || null,
-      branchUrl: this.devBranchUrl() || null,
       supportPortal: this.devSupportPortal() || null,
       gitCloneUrl: this.devGitCloneUrl() || null,
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,

@@ -225,24 +225,6 @@
                 </div>
               </div>
 
-              <!-- Branch / tag URL -->
-              <div class="mb-3">
-                <label class="form-label d-flex align-items-center form-label-upload">
-                  Browse link
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip"><strong>Branch or tag being built</strong><br><br>Link to the exact branch or tag this version is built from. Unlike the project homepage, which stays with the connector, this belongs to this version alone.</span>
-                  </span>
-                </label>
-                <div class="method-link-wrapper d-flex align-items-center">
-                  <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-code-branch method-link-icon-i"></i></span>
-                  <input type="url" class="method-link-input flex-grow-1"
-                         [value]="devBranchUrl()"
-                         (input)="devBranchUrl.set($any($event.target).value); onFieldChange()"
-                         [disabled]="isExistingConnector"
-                         placeholder="e.g. https://github.com/Evolveum/connector-ldap/tree/v3.7">
-                </div>
-              </div>
 
               <!-- Support portal -->
               <div class="mb-3">
@@ -668,12 +650,6 @@
               <div class="review-detail-row">
                 <span class="review-detail-label">Project homepage:</span>
                 <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devProjectHomepage() }}</span>
-              </div>
-            }
-            @if (devBranchUrl()) {
-              <div class="review-detail-row">
-                <span class="review-detail-label">Browse link:</span>
-                <span class="review-detail-value"><i class="fa-solid fa-code-branch review-link-icon me-1"></i>{{ devBranchUrl() }}</span>
               </div>
             }
             @if (devSupportPortal()) {

@@ -515,7 +515,6 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Commit hash", bundleVersion.getCommitTag());
         bullet(body, "Build framework", enumLabel(bundleVersion.getBuildFramework()));
         bullet(body, "Path to project", bundleVersion.getPathToProject());
-        bullet(body, "Browse link", bundleVersion.getBrowseLink());
     }
 
     /**

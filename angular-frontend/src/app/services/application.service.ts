@@ -330,7 +330,7 @@ export class ApplicationService {
       existingConnectorId: number | null;
       displayName: string; description: string; maintainer: string;
       framework: string; license: string | null;
-      projectHomepage: string | null; branchUrl: string | null; gitCloneUrl: string | null;
+      projectHomepage: string | null; gitCloneUrl: string | null;
       buildFramework: string | null; pathToProject: string | null;
       className: string | null; bundleDisplayName: string | null;
       version: string | null; commitTag: string | null;
@@ -355,7 +355,7 @@ export class ApplicationService {
     connectorId: number,
     payload: {
       displayName: string; description: string; maintainer: string;
-      license: string | null; projectHomepage: string | null; branchUrl: string | null;
+      license: string | null; projectHomepage: string | null;
       supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
       pathToProject: string | null; className: string | null; bundleDisplayName: string | null;

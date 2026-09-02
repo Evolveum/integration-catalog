@@ -185,23 +185,6 @@
               </div>
             </div>
 
-            <!-- Branch / tag URL -->
-            <div class="mb-3">
-              <label class="form-label form-label-upload">
-                  Browse link
-                <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Link to the exact branch or tag this version is built from. Unlike the project homepage, it belongs to this version alone.">
-                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                </button>
-              </label>
-              <div class="method-link-wrapper d-flex align-items-center">
-                <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-code-branch method-link-icon-i"></i></span>
-                <input type="url" class="method-link-input flex-grow-1"
-                       [value]="devBranchUrl()"
-                       (input)="devBranchUrl.set($any($event.target).value)"
-                       placeholder="e.g. https://github.com/Evolveum/connector-ldap/tree/v3.7">
-              </div>
-              <div class="form-text">The build checks this branch out; it changes with every new version.</div>
-            </div>
 
             <!-- Support portal -->
             <div class="mb-3">

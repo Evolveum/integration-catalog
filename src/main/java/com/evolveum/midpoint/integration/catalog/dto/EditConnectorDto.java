@@ -25,7 +25,6 @@ public record EditConnectorDto(
         String bundleDisplayName,                                    // connector_bundle.display_name (the form's "connector bundle name")
         // -- build data ----------------------------------------------------------------------------
         String version,                                              // connector_bundle_version.bundle_version + connector.revision
-        String branchUrl,                                            // connector_bundle_version.browse_link (Jenkins BRANCH_URL)
         String commitTag,                                            // connector_bundle_version.commit_tag
         String pathToProject,                                        // connector_bundle_version.path_to_project
         BuildFrameworkType buildFramework,                           // connector_bundle_version.build_framework

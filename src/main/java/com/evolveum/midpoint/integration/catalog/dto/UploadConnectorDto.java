@@ -19,7 +19,6 @@ public record UploadConnectorDto(
         String description,                      // connector.description
         String maintainer,                       // connector.maintainer
         String projectHomepage,                  // connector_bundle.project_homepage
-        String branchUrl,                        // connector_bundle_version.browse_link (Jenkins BRANCH_URL)
         String ticketingSystemLink,              // connector_bundle.ticketing_link
         String gitCloneUrl,                      // connector_bundle.git_clone_ulr
         String className,                        // connector.fully_qualified_class_name

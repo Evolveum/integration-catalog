@@ -49,7 +49,6 @@ export interface Step5FormData {
   connectorBundleName: string;
   connectorCapabilityGroups: CapabilityGroup[];
   devProjectHomepage: string;
-  devBranchUrl: string;
   devSupportPortal: string;
   devBuildTool: 'maven' | 'gradle' | '';
   devGitCloneUrl: string;
@@ -122,7 +121,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   // Dev & Build
   protected readonly devProjectHomepage = signal<string>('');
-  protected readonly devBranchUrl = signal<string>('');
   protected readonly devSupportPortal = signal<string>('');
   protected readonly devBuildTool = signal<'maven' | 'gradle' | ''>('');
   protected readonly devGitCloneUrl = signal<string>('');
@@ -319,7 +317,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorCapabilities.set([]);
     this.capabilityPicker?.reset();
     this.devProjectHomepage.set('');
-    this.devBranchUrl.set('');
     this.devSupportPortal.set('');
     this.devBuildTool.set('');
     this.devGitCloneUrl.set('');
@@ -345,7 +342,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorDescription.set(connector.description ?? '');
     this.connectorBundleName.set(connector.bundleDisplayName ?? '');
     this.devProjectHomepage.set(connector.projectHomepage ?? '');
-    this.devBranchUrl.set(connector.branchUrl ?? '');
     this.devGitCloneUrl.set(connector.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(connector.pathToProject ?? '');
     this.devClassName.set(connector.className ?? '');
@@ -402,7 +398,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
         license: this.connectorLicense() || null,
         ticketingSystemLink: this.devSupportPortal() || null,
         projectHomepage: this.devProjectHomepage() || null,
-        branchUrl: this.devBranchUrl() || null,
         gitCloneUrl: this.devGitCloneUrl() || null,
         buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
         pathToProject: this.devProjectFolderPath() || null,
@@ -587,7 +582,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
       connectorBundleName: this.connectorBundleName(),
       connectorCapabilityGroups: this.connectorCapabilities(),
       devProjectHomepage: this.devProjectHomepage(),
-      devBranchUrl: this.devBranchUrl(),
       devSupportPortal: this.devSupportPortal(),
       devBuildTool: this.devBuildTool(),
       devGitCloneUrl: this.devGitCloneUrl(),

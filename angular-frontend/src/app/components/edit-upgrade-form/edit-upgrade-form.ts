@@ -173,7 +173,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           : null,
       licenseType: p.license ?? '',
       projectHomepage: p.projectHomepage ?? '',
-      branchUrl: p.branchUrl ?? '',
       ticketingLink: p.supportPortal ?? '',
       gitCloneUrl: p.gitCloneUrl ?? '',
       buildFramework: p.buildFramework ?? '',

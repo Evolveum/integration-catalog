@@ -82,7 +82,6 @@ export interface UploadConnectorData {
   license: string | null;            // connector_bundle.license
   ticketingSystemLink: string | null; // connector_bundle.ticketing_link
   projectHomepage: string | null;    // connector_bundle.project_homepage
-  branchUrl: string | null;          // connector_bundle_version.browse_link
   gitCloneUrl: string | null;        // connector_bundle.git_clone_ulr
   buildFramework: string | null;     // connector_bundle_version.build_framework
   pathToProject: string | null;      // connector_bundle_version.path_to_project
@@ -135,7 +134,6 @@ export interface ImplementationFormData {
   licenseType: string;
   implementationDescription: string;
   projectHomepage: string;
-  branchUrl: string;
   ticketingLink: string;
   buildFramework: string;
   gitCloneUrl: string;

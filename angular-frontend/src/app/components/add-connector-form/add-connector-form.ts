@@ -28,7 +28,6 @@ export interface AddConnectorPayload {
   framework: string;
   license: string | null;
   projectHomepage: string | null;
-  branchUrl: string | null;
   gitCloneUrl: string | null;
   buildFramework: string | null;
   pathToProject: string | null;
@@ -129,7 +128,6 @@ export class AddConnectorForm implements OnInit {
   protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
 
   protected readonly devProjectHomepage = signal<string>('');
-  protected readonly devBranchUrl = signal<string>('');
   protected readonly devSupportPortal = signal<string>('');
   protected readonly devBuildTool = signal<'maven' | 'gradle' | ''>('');
   protected readonly devGitCloneUrl = signal<string>('');
@@ -293,7 +291,6 @@ export class AddConnectorForm implements OnInit {
     this.connectorCapabilities.set([]);
     this.initialCapabilities.set([]);
     this.devProjectHomepage.set('');
-    this.devBranchUrl.set('');
     this.devSupportPortal.set('');
     this.devBuildTool.set('');
     this.devGitCloneUrl.set('');
@@ -308,7 +305,6 @@ export class AddConnectorForm implements OnInit {
     this.connectorMaintainer.set(c.maintainer ?? this.authService.defaultMaintainer());
     this.connectorLicense.set(c.licenseType ?? '');
     this.devProjectHomepage.set(c.projectHomepage ?? '');
-    this.devBranchUrl.set(c.branchUrl ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(c.pathToProject ?? '');
     this.devClassName.set(c.className ?? '');
@@ -358,7 +354,6 @@ export class AddConnectorForm implements OnInit {
       framework: this.isJavaBasedConnector ? 'JAVA_BASED' : 'LOW_CODE',
       license: this.connectorLicense() || null,
       projectHomepage: this.devProjectHomepage() || null,
-      branchUrl: this.devBranchUrl() || null,
       gitCloneUrl: this.devGitCloneUrl() || null,
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
