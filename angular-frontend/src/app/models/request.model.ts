@@ -81,15 +81,14 @@ export interface UploadConnectorData {
   framework: string;                 // connector_bundle.framework
   license: string | null;            // connector_bundle.license
   ticketingSystemLink: string | null; // connector_bundle.ticketing_link
-  browseLink: string | null;         // connector_bundle_version.browse_link
-  gitCloneUrl: string | null;        // connector_bundle_version.git_clone_url
-  buildFramework: string | null;     // connector_bundle.build_framework
+  projectHomepage: string | null;    // connector_bundle.project_homepage
+  gitCloneUrl: string | null;        // connector_bundle.git_clone_ulr
+  buildFramework: string | null;     // connector_bundle_version.build_framework
   pathToProject: string | null;      // connector_bundle_version.path_to_project
   className: string | null;          // connector.fully_qualified_class_name
   version: string | null;            // connector_bundle_version.bundle_version
   commitTag: string | null;          // connector_bundle_version.commit_tag
   bundleDisplayName: string | null;  // connector_bundle.display_name (the form's "connector bundle name")
-  connectorBundleId: number | null;  // connector_bundle.id — reuse an existing bundle as a template
   // connector.id — link a connector already published in the catalog instead of creating one. Every
   // field above is ignored then, which matches the form disabling them all for an existing connector.
   existingConnectorId: number | null;
@@ -134,7 +133,7 @@ export interface ImplementationFormData {
   maintainer: string;
   licenseType: string;
   implementationDescription: string;
-  browseLink: string;
+  projectHomepage: string;
   ticketingLink: string;
   buildFramework: string;
   gitCloneUrl: string;

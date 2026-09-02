@@ -25,10 +25,11 @@ public record ImplementationListItemDto(
         String maintainerOrganization,     // organization.name of the maintainer user (null if none)
         String licenseType,                // connector_bundle.license
         String implementationDescription,  // connector.description
-        String browseLink,                 // connector_bundle_version.browse_link
+        String projectHomepage,            // connector_bundle.project_homepage
+        String branchUrl,                  // connector_bundle_version.browse_link
         String ticketingLink,              // connector_bundle.ticketing_link
         String buildFramework,             // connector_bundle_version.build_framework
-        String gitCloneUrl,                // connector_bundle_version.git_clone_url
+        String gitCloneUrl,                // connector_bundle.git_clone_ulr
         String pathToProjectDirectory,     // connector_bundle_version.path_to_project
         String className,                  // connector.fully_qualified_class_name
         String connectorDisplayName,       // connector.display_name
@@ -38,5 +39,8 @@ public record ImplementationListItemDto(
         String commitTag,                  // connector_bundle_version.commit_tag
         List<ObjectClassCapabilityDto> objectClassCapabilities, // conn_version_capability + items
         String connectorMinVersion,        // integration_method_connector.connector_minversion
-        String connectorMaxVersion         // integration_method_connector.connector_maxversion
+        String connectorMaxVersion,        // integration_method_connector.connector_maxversion
+        // Whether the bundle is still on its first version, i.e. whether the edit form may still offer
+        // the fields that are fixed once a version has been published (license, git clone URL).
+        boolean initialVersion
 ) {}

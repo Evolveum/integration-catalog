@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
@@ -122,9 +123,39 @@ public class OpenProjectClient {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (!isSuccessful(response)) {
-            throw new IOException("Support portal rejected attachment '" + fileName + "' on work package "
-                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
+            String detail = "Support portal rejected attachment '" + fileName + "' on work package "
+                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body();
+            if (isTooLarge(response.statusCode(), response.body())) {
+                throw new AttachmentTooLargeException(detail);
+            }
+            throw new IOException(detail);
         }
+    }
+
+    /**
+     * Thrown when the portal will not take a file however often it is offered, because the file is
+     * larger than the attachment size limit it or its proxy enforces.
+     */
+    public static class AttachmentTooLargeException extends IOException {
+
+        public AttachmentTooLargeException(String message) {
+            super(message);
+        }
+    }
+
+    /**
+     * Whether a refused upload was refused for the file's size.
+     */
+    static boolean isTooLarge(int statusCode, String body) {
+        if (statusCode == 413) {
+            return true;
+        }
+        if (statusCode != 422 || body == null) {
+            return false;
+        }
+        String lowerCase = body.toLowerCase(Locale.ROOT);
+        return lowerCase.contains("too large") || lowerCase.contains("maximum size")
+                || lowerCase.contains("file size");
     }
 
     /**
@@ -136,8 +167,6 @@ public class OpenProjectClient {
     /**
      * Everything attached to a work package. Asks for one large page rather than paging, and reports
      * an overflow, since a caller replacing files would take a short list for the whole truth.
-     *
-     * @throws IOException if the portal answers with anything other than a 2xx
      */
     public List<Attachment> listAttachments(int workPackageId) throws IOException, InterruptedException {
         HttpRequest request = authorized(properties.apiBase() + "/work_packages/" + workPackageId

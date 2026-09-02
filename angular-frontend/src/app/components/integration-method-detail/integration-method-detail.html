@@ -251,7 +251,7 @@
                 }
 
                 <!-- Repository & documentation -->
-                @if (c.browseLink || c.ticketingLink) {
+                @if (c.projectHomepage || c.ticketingLink) {
                   <div class="view-subsection">
                     <button type="button" class="view-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-repo')">
                       <i class="fa-solid icon-sm"
@@ -260,11 +260,11 @@
                       <span>Repository &amp; Documentation</span>
                     </button>
                     @if (isSectionExpanded(ci + '-repo')) {
-                      @if (c.browseLink) {
+                      @if (c.projectHomepage) {
                         <div class="view-connector-row">
                           <span class="view-connector-label">Project homepage:</span>
                           <span class="view-connector-value">
-                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.projectHomepage }}
                           </span>
                         </div>
                       }

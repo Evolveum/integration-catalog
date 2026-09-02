@@ -22,6 +22,8 @@ public class ContinueForm {
     private String downloadLink;
     private String connectorClass;
     private List<CapabilityType> capability;
+    private String connectorBundleVersionId;
+    private String connectorBundleVersionRevision;
     private String connectorVersionId;
     private String connectorVersionRevision;
 }

@@ -27,7 +27,7 @@ export interface AddConnectorPayload {
   maintainer: string;
   framework: string;
   license: string | null;
-  browseLink: string | null;
+  projectHomepage: string | null;
   gitCloneUrl: string | null;
   buildFramework: string | null;
   pathToProject: string | null;
@@ -304,7 +304,7 @@ export class AddConnectorForm implements OnInit {
     this.connectorVersion.set(c.version ?? '');
     this.connectorMaintainer.set(c.maintainer ?? this.authService.defaultMaintainer());
     this.connectorLicense.set(c.licenseType ?? '');
-    this.devProjectHomepage.set(c.browseLink ?? '');
+    this.devProjectHomepage.set(c.projectHomepage ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(c.pathToProject ?? '');
     this.devClassName.set(c.className ?? '');
@@ -353,7 +353,7 @@ export class AddConnectorForm implements OnInit {
       maintainer: this.connectorMaintainer(),
       framework: this.isJavaBasedConnector ? 'JAVA_BASED' : 'LOW_CODE',
       license: this.connectorLicense() || null,
-      browseLink: this.devProjectHomepage() || null,
+      projectHomepage: this.devProjectHomepage() || null,
       gitCloneUrl: this.devGitCloneUrl() || null,
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,

@@ -72,8 +72,15 @@ export class ApplicationService {
     return this.http.get<Application[]>(this.apiUrl);
   }
 
+  /**
+   * The application with everything its detail page shows, including the support ticket of each
+   * revision the caller may see one for — which is why the username goes along, the same way the
+   * other user-scoped endpoints identify their caller. Anyone else gets the same payload with the
+   * ticket fields empty.
+   */
   getById(id: string): Observable<ApplicationDetail> {
-    return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`);
+    return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`,
+      { params: new HttpParams().set('username', this.authService.currentUser() ?? '') });
   }
 
   getCategoryCounts(): Observable<CategoryCount[]> {
@@ -323,7 +330,7 @@ export class ApplicationService {
       existingConnectorId: number | null;
       displayName: string; description: string; maintainer: string;
       framework: string; license: string | null;
-      browseLink: string | null; gitCloneUrl: string | null;
+      projectHomepage: string | null; gitCloneUrl: string | null;
       buildFramework: string | null; pathToProject: string | null;
       className: string | null; bundleDisplayName: string | null;
       version: string | null; commitTag: string | null;
@@ -348,7 +355,8 @@ export class ApplicationService {
     connectorId: number,
     payload: {
       displayName: string; description: string; maintainer: string;
-      license: string | null; browseLink: string | null; supportPortal: string | null;
+      license: string | null; projectHomepage: string | null;
+      supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
       pathToProject: string | null; className: string | null; bundleDisplayName: string | null;
       commitTag: string | null; version: string | null;

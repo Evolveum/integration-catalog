@@ -172,7 +172,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           : p.maintainer === this.authService.currentUser() ? this.authService.displayedOrganization()
           : null,
       licenseType: p.license ?? '',
-      browseLink: p.browseLink ?? '',
+      projectHomepage: p.projectHomepage ?? '',
       ticketingLink: p.supportPortal ?? '',
       gitCloneUrl: p.gitCloneUrl ?? '',
       buildFramework: p.buildFramework ?? '',

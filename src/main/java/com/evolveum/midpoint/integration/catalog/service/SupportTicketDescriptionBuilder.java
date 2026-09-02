@@ -475,10 +475,8 @@ public class SupportTicketDescriptionBuilder {
         body.append("\n**Bundle**\n\n");
         bullet(body, "Bundle name", bundle.getDisplayName());
         bullet(body, "Framework", enumLabel(bundle.getFramework()));
-        bullet(body, "Build framework", enumLabel(bundle.getBuildFramework()));
         bullet(body, "License", licenseLabel(bundle.getLicense()));
         bullet(body, "Git clone URL", bundle.getGitCloneUrl());
-        bullet(body, "Path to project", bundle.getPathToProject());
         bullet(body, "Project homepage", bundle.getProjectHomepage());
         bullet(body, "Support portal", bundle.getTicketingLink());
         bullet(body, "Description", singleLine(bundle.getDescription()));
@@ -515,9 +513,8 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Bundle version", bundleVersion.getBundleVersion() != null
                 ? bundleVersion.getBundleVersion() : bundleVersion.getRevision());
         bullet(body, "Commit hash", bundleVersion.getCommitTag());
-        bullet(body, "Git clone URL", bundleVersion.getGitCloneUrl());
+        bullet(body, "Build framework", enumLabel(bundleVersion.getBuildFramework()));
         bullet(body, "Path to project", bundleVersion.getPathToProject());
-        bullet(body, "Browse link", bundleVersion.getBrowseLink());
     }
 
     /**

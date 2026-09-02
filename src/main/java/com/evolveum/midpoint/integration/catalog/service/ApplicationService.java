@@ -512,11 +512,13 @@ public class ApplicationService {
                                     bundle.getDisplayName(),
                                     connector.getMaintainer(),
                                     bundle.getLicense() != null ? bundle.getLicense().name() : null,
-                                    bundle.getBuildFramework() != null ? bundle.getBuildFramework().name() : null,
+                                    latest != null && latest.getBuildFramework() != null
+                                            ? latest.getBuildFramework().name() : null,
                                     bundle.getFramework() != null ? bundle.getFramework().name() : null,
+                                    bundle.getProjectHomepage(),
                                     latest != null ? latest.getBrowseLink() : null,
-                                    latest != null ? latest.getGitCloneUrl() : bundle.getGitCloneUrl(),
-                                    latest != null ? latest.getPathToProject() : bundle.getPathToProject(),
+                                    bundle.getGitCloneUrl(),
+                                    latest != null ? latest.getPathToProject() : null,
                                     connector.getFullyQualifiedClassName(),
                                     applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector)
                             ));
@@ -529,12 +531,21 @@ public class ApplicationService {
         buildCallbackService.verify(uuid, verifyPayload);
     }
 
+    /**
+     * A build produces one artifact, so it is started for the connector version's bundle version — every
+     * connector class on it is built by that single run.
+     */
     @Transactional
     public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
         ConnectorVersion connectorVersion = findConnectorVersion(triggerBuildForm.getConnectorVersionId(), triggerBuildForm.getConnectorVersionRevision());
         IntegrationMethod integrationMethod = findIntegrationMethod(oid, triggerBuildForm.getIntegrationMethodRevision());
 
-        return connectorUploadService.triggerJenkinsPipeline(connectorVersion, integrationMethod);
+        ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
+        if (bundleVersion == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Connector version " + connectorVersion.getId() + " has no bundle version to build.");
+        }
+        return connectorUploadService.triggerJenkinsPipeline(bundleVersion, integrationMethod);
     }
 
     private IntegrationMethod findIntegrationMethod(UUID id, String revision) {

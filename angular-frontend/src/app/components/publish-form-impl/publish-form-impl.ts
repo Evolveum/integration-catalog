@@ -341,7 +341,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorLicense.set(connector.licenseType ?? '');
     this.connectorDescription.set(connector.description ?? '');
     this.connectorBundleName.set(connector.bundleDisplayName ?? '');
-    this.devProjectHomepage.set(connector.browseLink ?? '');
+    this.devProjectHomepage.set(connector.projectHomepage ?? '');
     this.devGitCloneUrl.set(connector.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(connector.pathToProject ?? '');
     this.devClassName.set(connector.className ?? '');
@@ -397,7 +397,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
             : this.mapConnectorTypeToFramework(this.connectorType),
         license: this.connectorLicense() || null,
         ticketingSystemLink: this.devSupportPortal() || null,
-        browseLink: this.devProjectHomepage() || null,
+        projectHomepage: this.devProjectHomepage() || null,
         gitCloneUrl: this.devGitCloneUrl() || null,
         buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
         pathToProject: this.devProjectFolderPath() || null,
@@ -405,7 +405,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
         version: versionOverride ?? this.connectorVersion() ?? null,
         commitTag: this.devCommitTag() || null,
         bundleDisplayName: this.connectorBundleName() || null,
-        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null,
         // Picking a published connector links it as it is; every field above is disabled in that case,
         // so there is nothing to copy it for. Without this the backend would build a duplicate of it.
         existingConnectorId: this.isExistingConnector ? (this.selectedCatalogConnector?.connectorId ?? null) : null

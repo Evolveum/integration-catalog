@@ -23,8 +23,8 @@ public record AddConnectorDto(
         String maintainer,                                           // connector.maintainer
         ConnectorBundle.FrameworkType framework,                     // connector_bundle.framework
         ConnectorBundle.LicenseType license,                         // connector_bundle.license
-        String browseLink,                                           // connector_bundle_version.browse_link
-        String gitCloneUrl,                                          // connector_bundle_version.git_clone_url
+        String projectHomepage,                                      // connector_bundle.project_homepage
+        String gitCloneUrl,                                          // connector_bundle.git_clone_ulr
         BuildFrameworkType buildFramework,                           // connector_bundle.build_framework
         String pathToProject,                                        // connector_bundle_version.path_to_project
         String className,                                            // connector.fully_qualified_class_name
