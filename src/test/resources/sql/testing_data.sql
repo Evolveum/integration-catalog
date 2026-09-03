@@ -74,11 +74,11 @@ INSERT INTO connector_bundle (id, revision, author, maintainer, created_at, upda
     bundle_name, display_name, description, framework, license, ticketing_link, build_framework,
     author_org_id, author_category)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'u5', 'Conn bun maintainer 1', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
+    (1, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
      'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN', NULL, 'Evolveum'),
-    (2, '1.0', 'u1', 'Conn bun maintainer 2', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
+    (2, '1.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
      'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE', 'acme', 'Partner'),
-    (3, '1.0', 'u5', 'Conn bun maintainer 3', NOW(), NOW(), 'ACTIVE', 'com.evolveum.polygon.connector-csv', 'CSV File Connector Bundle',
+    (3, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 'com.evolveum.polygon.connector-csv', 'CSV File Connector Bundle',
      'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues', 'MAVEN', NULL, 'Evolveum');
 
 SELECT setval('connector_bundle_id_seq', 4);
@@ -92,11 +92,11 @@ INSERT INTO connector_bundle_version (id, revision, author, maintainer, created_
     path_to_project, build_framework, artifact_url, error_message,
     author_org_id, author_category)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'u5','Conn bun ver maintainer 1', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
+    (1, '1.0', 'u5','u5', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
      'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL, NULL, NULL, 'Evolveum'),
-    (2, '1.0', 'u1', 'Conn bun ver maintainer 2', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
+    (2, '1.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
      'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL, 'acme', 'Partner'),
-    (3, '1.0', 'u5', 'Conn bun ver maintainer 3', NOW(), NOW(), 'ACTIVE', 3, '2.9',
+    (3, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 3, '2.9',
      'https://nexus.evolveum.com/nexus/#browse/browse:releases:com%2Fevolveum%2Fpolygon%2Fconnector-csvfile',
      'https://github.com/Evolveum/connector-csv.git', '/path_to_project', 'MAVEN',
      'https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar', NULL, NULL, 'Evolveum');
@@ -110,11 +110,11 @@ SELECT setval('connector_bundle_version_id_seq', 4);
 INSERT INTO connector (id, revision, author, maintainer, created_at, updated, display_name,
     fully_qualified_class_name, connector_bundle_id, description, cloned_from)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0.0', 'Conn author 1', 'Conn maintainer 1', NOW(), NOW(), 'Display name Connector Java-based',
+    (1, '1.0.0', 'Conn author 1', 'u5', NOW(), NOW(), 'Display name Connector Java-based',
 	'Fully.qualified.conn.class.name.1', 1, 'Description Connector 1', NUll),
-    (2, '1.0.0', 'Conn author 2', 'Conn maintainer 2', NOW(), NOW(), 'Display name Connector LOW CODE',
+    (2, '1.0.0', 'Conn author 2', 'u5', NOW(), NOW(), 'Display name Connector LOW CODE',
 	'Fully.qualified.conn.class.name.2', 2, 'Description connector 2', NUll),
-    (3, '1.0.0', 'Conn author 3', 'Conn maintainer 3', NOW(), NOW(), 'CSV File Connector',
+    (3, '1.0.0', 'Conn author 3', 'u5', NOW(), NOW(), 'CSV File Connector',
 	'com.evolveum.polygon.connector.csv.CsvConnector', 3, 'CSV file connector', NUll);
 
 SELECT setval('connector_id_seq', 3);
@@ -133,9 +133,9 @@ INSERT INTO connector_version (id, revision, author, maintainer, created_at, upd
     lifecycle_state, connector_bundle_version_id, connector_bundle_version_revision,
     connector_id, fully_qualified_class_name, error_message, author_org_id, author_category)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0.0', 'u5', 'Conn ver maintainer 1', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL, NULL, 'Evolveum'),
-    (2, '1.0.0', 'u1', 'Conn ver maintainer 2', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL, 'acme', 'Partner'),
-    (3, '1.0.0', 'u5', 'Conn ver maintainer 3', NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL, NULL, 'Evolveum');
+    (1, '1.0.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL, NULL, 'Evolveum'),
+    (2, '1.0.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL, 'acme', 'Partner'),
+    (3, '1.0.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL, NULL, 'Evolveum');
 
 SELECT setval('connector_version_id_seq', 3);
 
@@ -150,7 +150,7 @@ INSERT INTO integration_method (id, application_id, display_name, description,
      author_org_id, author_category, maintainer_org_id, author_email)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
-	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1',NULL,NULL,NULL,NULL,NULL),
+	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','u5',NOW(),NOW(),'2025.1',NULL,NULL,NULL,NULL,NULL),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111', 'Test 2 - Integration method','Test 2 - Integration method description',
 	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','u1',NULL,NOW(),NOW(),'2024.2',NULL,'acme','Partner','acme','u1@example.com');
 

@@ -513,6 +513,13 @@
     "realmRoles" : [ "default-roles-integration-catalog" ],
     "notBefore" : 0,
     "groups" : [ ]
+  }, {
+    "username" : "service-account-integration-catalog",
+    "enabled" : true,
+    "serviceAccountClientId" : "integration-catalog",
+    "clientRoles" : {
+      "realm-management" : [ "view-users" ]
+    }
   } ],
   "organizations" : [ {
     "id" : "b7a1c2d3-0001-4a5b-8c9d-0e1f2a3b4c01",
@@ -712,7 +719,7 @@
     "standardFlowEnabled" : true,
     "implicitFlowEnabled" : false,
     "directAccessGrantsEnabled" : true,
-    "serviceAccountsEnabled" : false,
+    "serviceAccountsEnabled" : true,
     "publicClient" : false,
     "frontchannelLogout" : true,
     "protocol" : "openid-connect",

@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
+import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,12 +43,15 @@ class AuthServiceTest {
     @Mock
     private CatalogOwnerDirectory catalogOwnerDirectory;
 
+    @Mock
+    private KeycloakUserDirectory keycloakUserDirectory;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authService = new AuthService(organizationService, catalogOwnerDirectory,
-                new CatalogClaims("roles", "organization"));
+                keycloakUserDirectory, new CatalogClaims("roles", "organization"));
     }
 
     @AfterEach
@@ -242,10 +246,31 @@ class AuthServiceTest {
     }
 
     @Test
-    void allMaintainersAreExistingMaintainersPlusOrganizationNames() {
+    void allMaintainersMergeTheRealmWithTheCatalogsOwnMaintainers() {
+        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("olivia", "newcomer"));
         when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("ben", "olivia"));
         when(organizationService.allNames()).thenReturn(List.of("Acme co.", "Evolveum"));
 
-        assertEquals(List.of("ben", "olivia", "Acme co.", "Evolveum"), authService.getAllMaintainers());
+        // People sorted and de-duplicated across both sources, organizations kept after them.
+        assertEquals(List.of("ben", "newcomer", "olivia", "Acme co.", "Evolveum"),
+                authService.getAllMaintainers());
+    }
+
+    @Test
+    void allMaintainersSurviveAnUnreachableRealm() {
+        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of());
+        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("ben", "olivia"));
+        when(organizationService.allNames()).thenReturn(List.of("Acme co."));
+
+        assertEquals(List.of("ben", "olivia", "Acme co."), authService.getAllMaintainers());
+    }
+
+    @Test
+    void allMaintainersDoNotRepeatAUserWhoseCaseDiffersBetweenSources() {
+        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("Olivia"));
+        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("olivia"));
+        when(organizationService.allNames()).thenReturn(List.of());
+
+        assertEquals(1, authService.getAllMaintainers().size());
     }
 }
