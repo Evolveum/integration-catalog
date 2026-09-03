@@ -30,10 +30,11 @@ public class DatabaseSchemaVersionValidator {
 
     /**
      * Schema change number required by this build. Bump together with every new
-     * apply_change section appended to config/sql/postgres-upgrade.sql and the number in
-     * the apply_change call at the end of config/sql/postgres.sql.
+     * apply_change section appended to config/sql/postgres-upgrade.sql - and only there;
+     * the stamp at the end of config/sql/postgres.sql is deliberately left behind, see the
+     * header of the upgrade script for why raising it cannot be undone.
      */
-    public static final int REQUIRED_VERSION = 5;
+    public static final int REQUIRED_VERSION = 9;
 
     private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
 

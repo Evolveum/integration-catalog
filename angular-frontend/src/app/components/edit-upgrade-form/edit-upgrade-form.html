@@ -199,7 +199,7 @@
             <div class="edit-connector-card-header">
               <div class="edit-connector-title-group">
                 <span class="edit-connector-name d-flex align-items-center gap-2">
-                  {{ c.bundleDisplayName || c.name }}
+                  {{ c.connectorDisplayName || c.name }}
                   @if (isConnectorPending(c.connectorId)) {
                     <span class="edit-connector-pending-badge">Pending</span>
                   }
@@ -273,11 +273,11 @@
               }
 
               <!-- Flat rows (old design): every field shown directly, no collapsible subsections -->
-              @if (c.browseLink) {
+              @if (c.projectHomepage) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Project homepage:</span>
                   <span class="edit-connector-value">
-                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.projectHomepage }}
                   </span>
                 </div>
               }
@@ -444,7 +444,7 @@
           </button>
         </div>
         <div class="cancel-confirm-body">
-          Are you sure you want to delete "{{ pending.bundleDisplayName || pending.name }}"? This action cannot be undone.
+          Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? This action cannot be undone.
         </div>
         <hr class="cancel-confirm-separator">
         <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
@@ -457,52 +457,30 @@
     </div>
   }
 
-  <!-- "Changes saved" confirmation modal (shown after a minor Save) -->
+  <!-- "Changes saved" confirmation (shown after a minor Save) -->
   @if (showSavedModal()) {
-    <div class="saved-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeSavedModal()"></div>
-    <div class="saved-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-      <div class="saved-modal-dialog" (click)="$event.stopPropagation()">
-        <button type="button" class="btn p-0 saved-modal-close" (click)="closeSavedModal()" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="saved-modal-body d-flex flex-column align-items-center text-center">
-          <div class="saved-modal-check">
-            <i class="fa-solid fa-check"></i>
-          </div>
-          <h5 class="saved-modal-title">Changes has been successfully saved</h5>
-        </div>
-        <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">
-          <button type="button" class="btn saved-modal-close-link" (click)="closeSavedModal()">Close</button>
-          <button type="button" class="btn saved-modal-catalog-btn" (click)="savedGoToCatalog()">Go to catalog</button>
-        </div>
-      </div>
-    </div>
+    <app-submission-success-modal
+      title="Changes has been successfully saved"
+      subtitle="Changes are now awaiting for approval"
+      [appId]="appId()"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
+      (done)="savedGoToCatalog()"
+      (dismissed)="closeSavedModal()">
+    </app-submission-success-modal>
   }
 
-  <!-- "Upgraded to new version" modal (shown after "Save as new version") -->
+  <!-- "Upgraded to new version" confirmation (shown after "Save as new version") -->
   @if (showNewVersionModal()) {
-    <div class="saved-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeNewVersionModal()"></div>
-    <div class="saved-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-      <div class="saved-modal-dialog" (click)="$event.stopPropagation()">
-        <button type="button" class="btn p-0 saved-modal-close" (click)="closeNewVersionModal()" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="saved-modal-body d-flex flex-column align-items-center text-center">
-          <div class="saved-modal-check">
-            <i class="fa-solid fa-check"></i>
-          </div>
-          <h5 class="saved-modal-title">Integration method upgraded to {{ versionBadge(methodVersion()) }}</h5>
-        </div>
-        <ul class="new-version-list">
-          <li>Configuration metadata updated</li>
-        </ul>
-        <hr class="saved-modal-separator">
-        <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">
-          <button type="button" class="btn saved-modal-close-link" (click)="closeNewVersionModal()">Close</button>
-          <button type="button" class="btn saved-modal-catalog-btn" (click)="savedGoToCatalog()">Go to catalog</button>
-        </div>
-      </div>
-    </div>
+    <app-submission-success-modal
+      [title]="'Integration method upgraded to ' + versionBadge(methodVersion())"
+      subtitle="New version is now awaiting for approval"
+      [appId]="appId()"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
+      (done)="savedGoToCatalog()"
+      (dismissed)="closeNewVersionModal()">
+    </app-submission-success-modal>
   }
 
   <!-- "Set up connector compatibility" modal -->

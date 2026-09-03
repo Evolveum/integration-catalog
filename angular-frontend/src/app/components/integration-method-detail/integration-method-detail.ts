@@ -8,7 +8,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import Asciidoctor from 'asciidoctor';
-import { ApplicationService } from '../../services/application.service';
+import { ApplicationService, SupportTicket } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
@@ -66,9 +66,11 @@ export class IntegrationMethodDetail implements OnInit {
   private readonly datePipe = new DatePipe('en-US');
   protected readonly submittedDate = computed(() =>
     this.datePipe.transform(this.methodCreatedAt(), 'MMMM d, yyyy') || '—');
-  // Hardcoded ticket details for now (to be wired to the support portal later).
-  protected readonly ticketId = '1239';
-  protected readonly ticketUrl = 'https://support.evolveum.com/tickets/1239';
+  // Support-portal work package opened when this revision was submitted. Null until loaded, and
+  // it stays null for a revision that has none or for a viewer not entitled to see it.
+  protected readonly supportTicket = signal<SupportTicket | null>(null);
+  protected readonly ticketId = computed(() => this.supportTicket()?.ticketId ?? null);
+  protected readonly ticketUrl = computed(() => this.supportTicket()?.url ?? null);
   // Reviewer of a REVIEWING revision: reviewed_by is set at start-review, and updated is
   // bumped by that same state flip (the row is then edit-locked, so it stays = review start).
   protected readonly reviewerName = signal<string>('');
@@ -78,7 +80,7 @@ export class IntegrationMethodDetail implements OnInit {
 
   protected readonly confirmConnectorName = computed(() => {
     const c = this.connectors()[0];
-    return c?.bundleDisplayName || c?.name || this.methodName() || '—';
+    return c?.connectorDisplayName || c?.name || this.methodName() || '—';
   });
   protected readonly submittedByLabel = computed(() =>
     `${this.methodAuthor() || '—'} · ${this.submittedDate()}`
@@ -160,6 +162,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.setCapabilities(ver.objectClassCapabilities);
           this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.loadConnectors(aId, vId, ver.revision ?? '');
+          this.loadSupportTicket(aId, vId, ver.revision ?? '');
         } else {
           this.finishLoading();
         }
@@ -186,6 +189,20 @@ export class IntegrationMethodDetail implements OnInit {
   private resolveMidpointVersion(id: number | null): string {
     if (id === null) return '';
     return this.midpointVersions().find(v => v.id === id)?.version ?? '';
+  }
+
+  /**
+   * Loads the revision's support ticket, but only while it is under review and only for a viewer
+   * entitled to it — the endpoint answers 403 to anyone else, and asking would just log noise.
+   * Any failure leaves the ticket null, which simply hides the link.
+   */
+  private loadSupportTicket(appId: string, methodId: string, revision: string): void {
+    if (!this.isInReview() && !this.isReviewing()) return;
+    if (!this.canEdit()) return;
+    this.applicationService.getSupportTicket(appId, methodId, revision).subscribe({
+      next: (ticket) => this.supportTicket.set(ticket),
+      error: () => this.supportTicket.set(null)
+    });
   }
 
   private loadTutorialFiles(appId: string, methodId: string, revision: string): void {

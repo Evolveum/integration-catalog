@@ -25,6 +25,10 @@ public interface OwnedItem {
 
     Object setAuthorCategory(String authorCategory);
 
+    String getAuthorEmail();
+
+    Object setAuthorEmail(String authorEmail);
+
     String getMaintainer();
 
     Object setMaintainer(String maintainer);

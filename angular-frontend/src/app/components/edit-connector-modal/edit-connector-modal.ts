@@ -21,13 +21,13 @@ export interface ConnectorEditPayload {
   description: string;
   maintainer: string;
   license: string | null;
-  browseLink: string | null;
+  projectHomepage: string | null;
   supportPortal: string | null;
   gitCloneUrl: string | null;
   buildFramework: string | null;
   pathToProject: string | null;
   className: string | null;
-  bundleName: string | null;
+  bundleDisplayName: string | null;
   commitTag: string | null;
   version: string | null;
   connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
@@ -87,6 +87,11 @@ export class EditConnectorModal implements OnInit {
   protected readonly devClassName = signal<string>('');
 
   protected isJavaBased = false;
+  /**
+   * The license and the git clone URL are settled with the bundle's first version and fixed from then
+   * on — the backend answers a later change with 409 — so past that point they are shown read-only.
+   */
+  protected isInitialVersion = true;
 
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
   protected readonly licenseLabels: Record<string, string> = {
@@ -126,15 +131,18 @@ export class EditConnectorModal implements OnInit {
   ngOnInit(): void {
     const c = this.connector;
     this.isJavaBased = c.bundleFramework === 'JAVA_BASED';
+    this.isInitialVersion = c.initialVersion;
 
-    this.connectorName.set(c.bundleDisplayName || c.name || '');
+    this.connectorName.set(c.connectorDisplayName || c.name || '');
     this.connectorVersion.set(c.version ?? '');
     this.connectorMaintainer.set(c.maintainer ?? '');
     this.connectorLicense.set(c.licenseType ?? '');
     this.connectorDescription.set(c.implementationDescription ?? '');
-    this.connectorBundleName.set(c.bundleName ?? '');
+    // The "connector bundle name" field is the bundle's label (connector_bundle.display_name);
+    // connector_bundle.bundle_name is the technical identity and is never shown or edited here.
+    this.connectorBundleName.set(c.bundleDisplayName ?? '');
 
-    this.devProjectHomepage.set(c.browseLink ?? '');
+    this.devProjectHomepage.set(c.projectHomepage ?? '');
     this.devSupportPortal.set(c.ticketingLink ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devCommitTag.set(c.commitTag ?? '');
@@ -223,13 +231,13 @@ export class EditConnectorModal implements OnInit {
       description: this.connectorDescription(),
       maintainer: this.connectorMaintainer(),
       license: this.connectorLicense() || null,
-      browseLink: this.devProjectHomepage() || null,
+      projectHomepage: this.devProjectHomepage() || null,
       supportPortal: this.devSupportPortal() || null,
       gitCloneUrl: this.devGitCloneUrl() || null,
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
       className: this.devClassName() || null,
-      bundleName: this.connectorBundleName() || null,
+      bundleDisplayName: this.connectorBundleName() || null,
       commitTag: this.devCommitTag() || null,
       version: this.connectorVersion().trim() || null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({

@@ -118,6 +118,15 @@ public class IntegrationMethod implements OwnedItem, Persistable<UUID> {
     @Column(name = "author_category")
     private String authorCategory;
 
+    /**
+     * The uploader's own address, taken from their token when the row was written. Stamped for the
+     * same reason as the columns above: a token describes only its bearer, so the address of the
+     * person named in {@link #author} cannot be looked up afterwards. Null for rows written before
+     * the column existed, and for anyone whose token carried no address.
+     */
+    @Column(name = "author_email")
+    private String authorEmail;
+
     // Not @CreationTimestamp: a forked revision inherits its source's created_at
     // (see assignDefaults / createDraft) so a method keeps its original ordering.
     @Column(name = "created_at", nullable = false)
@@ -137,6 +146,10 @@ public class IntegrationMethod implements OwnedItem, Persistable<UUID> {
      */
     @Column(name = "reviewed_by")
     private String reviewedBy;
+
+    /** Support portal work package for this revision; null when none was opened. Not inherited by a fork. */
+    @Column(name = "support_ticket_id")
+    private Integer supportTicketId;
 
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodCapability> capabilities = new ArrayList<>();

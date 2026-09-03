@@ -16,6 +16,8 @@ public class VerifyBundleInformationForm {
     private String className;                   // connector.fully_qualified_class_name
     private String bundleName;                  // connector_bundle.bundle_name
     private String integrationMethodRevision;   // integration_method.revision
+    private String connectorBundleVersionId;
+    private String connectorBundleVersionRevision;
     private String connectorVersionId;
     private String connectorVersionRevision;
 

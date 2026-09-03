@@ -6,7 +6,7 @@
 
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IncludedConnector, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { AuthService, UserRole } from '../../services/auth.service';
@@ -222,9 +222,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
   protected readonly isProcessingApproval = signal<boolean>(false);
   protected readonly approvalError = signal<string>('');
-  private readonly submittedDate = 'May 20, 2026';
-  // Placeholder link to the review's support ticket (to be wired to the support portal later).
-  protected readonly ticketUrl = 'https://support.evolveum.com/tickets/1239';
+  // Submitted-for-review date = integration_method.created_at, matching the method detail page.
+  private readonly datePipe = new DatePipe('en-US');
 
   protected readonly confirmConnectorName = computed(() => {
     const v = this.confirmVersion();
@@ -233,7 +232,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly confirmVersionLabel = computed(() => this.versionBadge(this.confirmVersion()?.revision ?? ''));
   protected readonly confirmSubmittedBy = computed(() => {
     const v = this.confirmVersion();
-    return v ? `${v.author || '—'} · ${this.submittedDate}` : '';
+    if (!v) return '';
+    const submitted = this.datePipe.transform(v.createdAt, 'MMMM d, yyyy') || '—';
+    return `${v.author || '—'} · ${submitted}`;
   });
 
   protected openApproveConfirm(version: IntegrationMethod): void {

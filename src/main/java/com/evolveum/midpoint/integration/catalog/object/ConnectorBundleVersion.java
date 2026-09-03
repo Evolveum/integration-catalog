@@ -69,6 +69,15 @@ public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
     @Column(name = "author_category")
     private String authorCategory;
 
+    /**
+     * The uploader's own address, taken from their token when the row was written. Stamped for the
+     * same reason as the columns above: a token describes only its bearer, so the address of the
+     * person named in {@link #author} cannot be looked up afterwards. Null for rows written before
+     * the column existed, and for anyone whose token carried no address.
+     */
+    @Column(name = "author_email")
+    private String authorEmail;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

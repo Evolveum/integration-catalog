@@ -228,13 +228,9 @@
                   <input type="text" class="form-control"
                          [class.input-disabled]="isExistingConnector"
                          [value]="connectorBundleName()"
-                         (input)="connectorBundleName.set($any($event.target).value); bundleNameTaken.set(false)"
-                         (blur)="onBundleNameBlur()"
+                         (input)="connectorBundleName.set($any($event.target).value)"
                          [disabled]="isExistingConnector"
                          placeholder="Enter connector bundle name">
-                  @if (bundleNameTaken()) {
-                    <div class="field-error">This bundle name is already taken. Please choose a different one.</div>
-                  }
                 </div>
               }
 
@@ -282,6 +278,7 @@
                          placeholder="e.g. https://github.com/Evolveum/connector-ldap">
                 </div>
               </div>
+
 
               <!-- Support portal -->
               <div class="mb-3">

@@ -32,6 +32,20 @@ export interface SheetDownloadResult {
   size: number | null;
 }
 
+/**
+ * The support-portal work package behind a revision's review (GET .../support-ticket).
+ * `approvalReady` is the backend's verdict — it compares the status against the one configured
+ * as the go-ahead, so the status name never has to be known here.
+ */
+export interface SupportTicket {
+  configured: boolean;
+  ticketId: number | null;
+  url: string | null;
+  status: string | null;
+  approvalReady: boolean;
+  error: string | null;
+}
+
 /** Connector linked to an integration method that lacks download info (no artifactUrl set). */
 export interface ConnectorWithoutDownload {
   connectorId: number;
@@ -57,6 +71,11 @@ export class ApplicationService {
     return this.http.get<Application[]>(this.apiUrl);
   }
 
+  /**
+   * The application with everything its detail page shows, including the support ticket of each
+   * revision the caller may see one for — the backend takes the caller from the session. Anyone
+   * else gets the same payload with the ticket fields empty.
+   */
   getById(id: string): Observable<ApplicationDetail> {
     return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`);
   }
@@ -110,10 +129,6 @@ export class ApplicationService {
     if (className) params = params.set('className', className);
     if (excludeConnectorId != null) params = params.set('excludeConnectorId', excludeConnectorId);
     return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version`, { params });
-  }
-
-  checkBundleNameExists(bundleName: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-bundle-name?bundleName=${encodeURIComponent(bundleName)}`);
   }
 
   getAllTags(): Observable<ApplicationTag[]> {
@@ -250,6 +265,17 @@ export class ApplicationService {
     );
   }
 
+  /**
+   * State of the support-portal work package opened when this revision was submitted.
+   * The backend restricts this to the submitting side and the reviewer, taking the caller
+   * from the session.
+   */
+  getSupportTicket(appId: string, methodId: string, revision: string): Observable<SupportTicket> {
+    return this.http.get<SupportTicket>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`
+    );
+  }
+
   startReviewIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/start-review`,
@@ -302,9 +328,9 @@ export class ApplicationService {
       existingConnectorId: number | null;
       displayName: string; description: string; maintainer: string;
       framework: string; license: string | null;
-      browseLink: string | null; gitCloneUrl: string | null;
+      projectHomepage: string | null; gitCloneUrl: string | null;
       buildFramework: string | null; pathToProject: string | null;
-      className: string | null; bundleName: string | null;
+      className: string | null; bundleDisplayName: string | null;
       version: string | null; commitTag: string | null;
       midpointMinVersion: number | null; midpointMaxVersion: number | null;
       connectorVersionFrom: string | null; connectorVersionTo: string | null;
@@ -327,9 +353,10 @@ export class ApplicationService {
     connectorId: number,
     payload: {
       displayName: string; description: string; maintainer: string;
-      license: string | null; browseLink: string | null; supportPortal: string | null;
+      license: string | null; projectHomepage: string | null;
+      supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
-      pathToProject: string | null; className: string | null; bundleName: string | null;
+      pathToProject: string | null; className: string | null; bundleDisplayName: string | null;
       commitTag: string | null; version: string | null;
       connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
     }

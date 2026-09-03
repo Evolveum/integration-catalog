@@ -44,6 +44,9 @@ public class OwnershipService {
                 ? callerOrganizationId
                 : null);
         item.setAuthorCategory(CatalogRole.categoryOf(callerRole));
+        // The one address the catalog can know: the caller's own. Support reviews need a contact
+        // for the person who submitted, and nothing can recover it once the token is gone.
+        item.setAuthorEmail(caller != null ? caller.getEmail() : null);
         assignMaintainer(item, requestedMaintainer);
     }
 
@@ -68,6 +71,7 @@ public class OwnershipService {
         to.setAuthor(from.getAuthor());
         to.setAuthorOrgId(from.getAuthorOrgId());
         to.setAuthorCategory(from.getAuthorCategory());
+        to.setAuthorEmail(from.getAuthorEmail());
         copyMaintainer(from, to);
     }
 

@@ -3,7 +3,16 @@
 --
 -- Licensed under the EUPL-1.2 or later.
 --
--- 
+-- Seed/demo data. Run it LAST, after both schema scripts:
+--
+--   psql ... -f config/sql/postgres.sql
+--   psql ... -f config/sql/postgres-upgrade.sql
+--   psql ... -f src/test/resources/sql/testing_data.sql
+--
+-- The upgrade script is not optional here even on a fresh database: schema changes go into it
+-- alone, so postgres.sql lands behind and lacks both the organizations table this file writes to
+-- and the author_email column beside it (change 8). Skipping it fails with "relation organizations
+-- does not exist".
 
 -- Users, roles and group membership live entirely in the identity provider (see
 -- keycloak_for_auth/import/integration-catalog-realm.json for the dev test users); the
@@ -138,12 +147,12 @@ SELECT setval('connector_version_id_seq', 3);
 -- organization: no maintainer username, the organization maintains it.
 INSERT INTO integration_method (id, application_id, display_name, description,
      tutorial, file_path,  midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version, reviewed_by,
-     author_org_id, author_category, maintainer_org_id)
+     author_org_id, author_category, maintainer_org_id, author_email)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
-	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1',NULL,NULL,NULL,NULL),
+	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','IM maintainer 1',NOW(),NOW(),'2025.1',NULL,NULL,NULL,NULL,NULL),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111', 'Test 2 - Integration method','Test 2 - Integration method description',
-	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','u1',NULL,NOW(),NOW(),'2024.2',NULL,'acme','Partner','acme');
+	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','u1',NULL,NOW(),NOW(),'2024.2',NULL,'acme','Partner','acme','u1@example.com');
 
 -- ============================================================
 -- INTEGRATION METHOD → CONNECTOR links

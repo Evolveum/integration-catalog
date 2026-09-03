@@ -15,14 +15,20 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
+// Scheduling is on for PendingOperationRetryJob only
+@EnableScheduling
 @SpringBootApplication
 @EnableConfigurationProperties({
 		GithubProperties.class,
 		JenkinsProperties.class,
 		LogoStorageProperties.class,
 		TutorialStorageProperties.class,
-		ConnectorSigningProperties.class
+		ConnectorSigningProperties.class,
+		OpenProjectProperties.class,
+		PendingOperationProperties.class,
+		CatalogProperties.class
 })
 public class IntegrationCatalogApplication {
 

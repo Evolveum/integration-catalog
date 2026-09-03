@@ -88,26 +88,33 @@
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
               </label>
-              <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
-                <div class="form-select license-select-trigger"
-                     [class.license-placeholder]="!connectorLicense()"
-                     tabindex="0"
-                     (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
-                     (blur)="onLicenseBlur()"
-                     (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
-                     (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
-                  {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
-                </div>
-                @if (isLicenseDropdownOpen()) {
-                  <div class="license-dropdown">
-                    @for (opt of licenseOptions; track opt) {
-                      <div class="license-option"
-                           [class.license-option-selected]="connectorLicense() === opt"
-                           (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
-                    }
+              @if (isInitialVersion) {
+                <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
+                  <div class="form-select license-select-trigger"
+                       [class.license-placeholder]="!connectorLicense()"
+                       tabindex="0"
+                       (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (blur)="onLicenseBlur()"
+                       (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
+                    {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
-                }
-              </div>
+                  @if (isLicenseDropdownOpen()) {
+                    <div class="license-dropdown">
+                      @for (opt of licenseOptions; track opt) {
+                        <div class="license-option"
+                             [class.license-option-selected]="connectorLicense() === opt"
+                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="form-select license-select-trigger license-select-trigger--fixed">
+                  {{ connectorLicense() ? fmtLicense(connectorLicense()) : '—' }}
+                </div>
+                <div class="form-text">Set with the first version of this connector bundle and fixed from then on.</div>
+              }
             </div>
 
             <!-- Description -->
@@ -178,6 +185,7 @@
               </div>
             </div>
 
+
             <!-- Support portal -->
             <div class="mb-3">
               <label class="form-label form-label-upload">
@@ -231,14 +239,18 @@
                 </button>
               </label>
               <div class="method-link-wrapper d-flex align-items-center"
-                   [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid()">
+                   [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid()"
+                   [class.method-link-wrapper--fixed]="!isInitialVersion">
                 <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
                 <input type="url" class="method-link-input flex-grow-1"
                        [value]="devGitCloneUrl()"
+                       [disabled]="!isInitialVersion"
                        (input)="devGitCloneUrl.set($any($event.target).value)"
                        placeholder="e.g. https://github.com/Evolveum/connector-ldap.git">
               </div>
-              @if (isGitCloneUrlInvalid()) {
+              @if (!isInitialVersion) {
+                <div class="form-text">Set with the first version of this connector bundle and fixed from then on.</div>
+              } @else if (isGitCloneUrlInvalid()) {
                 <div class="field-error">Invalid format. Please use a Git clone URL (e.g., ending in .git).</div>
               } @else {
                 <div class="form-text">Ensure the link is accessible to the intended audience.</div>

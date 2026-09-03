@@ -143,6 +143,17 @@
 
 .method-link-wrapper--invalid { border-color: #dc3545; }
 
+/* Fields settled with the bundle's first version and fixed afterwards. .accordion-panel-body paints
+   every input inside it white with two classes of specificity, so each selector here has to carry two
+   as well (and come later) or the field still looks editable. */
+.method-link-wrapper.method-link-wrapper--fixed,
+.method-link-wrapper--fixed .method-link-input,
+.form-select.license-select-trigger--fixed {
+  background-color: $color-bg-muted;
+  color: $color-gray-secondary;
+  cursor: not-allowed;
+}
+
 /* ── License combobox ───────────────────────────────────── */
 .license-combobox {
   position: relative;

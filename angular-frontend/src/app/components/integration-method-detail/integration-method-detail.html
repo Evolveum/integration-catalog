@@ -58,11 +58,13 @@
           <span class="review-meta-item d-inline-flex align-items-center">
             <i class="fa-solid fa-user me-2"></i>Submitted by&nbsp;<span class="review-meta-author">{{ methodAuthor() || '—' }}</span>
           </span>
-          <span class="review-meta-item d-inline-flex align-items-center">
-            <a class="review-meta-ticket d-inline-flex align-items-center" [href]="ticketUrl" target="_blank" rel="noopener">
-              <i class="fa-solid fa-ticket me-2"></i><span class="review-meta-ticket-text">Open ticket #{{ ticketId }}</span><i class="fa-solid fa-arrow-right ms-2"></i>
-            </a>
-          </span>
+          @if (ticketUrl(); as url) {
+            <span class="review-meta-item d-inline-flex align-items-center">
+              <a class="review-meta-ticket d-inline-flex align-items-center" [href]="url" target="_blank" rel="noopener">
+                <i class="fa-solid fa-ticket me-2"></i><span class="review-meta-ticket-text">Open ticket #{{ ticketId() }}</span><i class="fa-solid fa-arrow-right ms-2"></i>
+              </a>
+            </span>
+          }
         </div>
       }
 
@@ -185,7 +187,7 @@
         @for (c of connectors(); track $index; let ci = $index) {
           <div class="view-connector-card">
             <div class="view-connector-card-header">
-              <span class="view-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <span class="view-connector-name">{{ c.connectorDisplayName || c.name }}</span>
               <button type="button" class="view-connector-see-compat d-flex align-items-center gap-2"
                       (click)="openCompatibility(c)" title="See connector compatibility">
                 <i class="fa-regular fa-eye"></i>See compatibility
@@ -249,7 +251,7 @@
                 }
 
                 <!-- Repository & documentation -->
-                @if (c.browseLink || c.ticketingLink) {
+                @if (c.projectHomepage || c.ticketingLink) {
                   <div class="view-subsection">
                     <button type="button" class="view-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-repo')">
                       <i class="fa-solid icon-sm"
@@ -258,11 +260,11 @@
                       <span>Repository &amp; Documentation</span>
                     </button>
                     @if (isSectionExpanded(ci + '-repo')) {
-                      @if (c.browseLink) {
+                      @if (c.projectHomepage) {
                         <div class="view-connector-row">
                           <span class="view-connector-label">Project homepage:</span>
                           <span class="view-connector-value">
-                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.projectHomepage }}
                           </span>
                         </div>
                       }
@@ -458,6 +460,9 @@
   @if (confirmMode(); as mode) {
     <app-approval-confirm-modal
       [mode]="mode"
+      [appId]="appId()"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
       [connectorName]="confirmConnectorName()"
       [versionLabel]="versionBadge(methodVersion())"
       [submittedBy]="submittedByLabel()"

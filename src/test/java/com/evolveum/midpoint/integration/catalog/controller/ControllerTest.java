@@ -93,9 +93,6 @@ class ControllerTest {
     private TutorialStorageService tutorialStorageService;
 
     @MockitoBean
-    private com.evolveum.midpoint.integration.catalog.service.BundleService bundleService;
-
-    @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
 
     private UUID testAppId;
@@ -145,7 +142,7 @@ class ControllerTest {
                 .build();
 
         when(applicationService.getApplication(testAppId)).thenReturn(testApplication);
-        when(applicationMapper.mapToApplicationDto(testApplication)).thenReturn(dto);
+        when(applicationMapper.mapToApplicationDto(testApplication, null)).thenReturn(dto);
 
         mockMvc.perform(get("/api/applications/{id}", testAppId))
                 .andExpect(status().isOk())
@@ -153,7 +150,7 @@ class ControllerTest {
                 .andExpect(jsonPath("$.displayName").value("Test Application"));
 
         verify(applicationService).getApplication(testAppId);
-        verify(applicationMapper).mapToApplicationDto(testApplication);
+        verify(applicationMapper).mapToApplicationDto(testApplication, null);
     }
 
     @Test
@@ -566,6 +563,7 @@ class ControllerTest {
     void getCatalogConnectorsShouldReturnList() throws Exception {
         CatalogConnectorDto dto = new CatalogConnectorDto(
                 1,
+                7,
                 "LDAP Connector",
                 "LDAP connector for directory services",
                 "1.0.0",
@@ -575,6 +573,7 @@ class ControllerTest {
                 "MAVEN",
                 "JAVA_BASED",
                 "https://github.com/Evolveum/connector-ldap",
+                "https://github.com/Evolveum/connector-ldap/tree/v1.0.0",
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
                 "com.evolveum.polygon.connector.ldap.LdapConnector",
