@@ -21,6 +21,7 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapability;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnector;
+import com.evolveum.midpoint.integration.catalog.object.OwnedItem;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.object.LifecycleType;
 import com.evolveum.midpoint.integration.catalog.object.MidpointVersion;
@@ -84,6 +85,7 @@ public class SupportTicketDescriptionBuilder {
     private final CatalogContactResolver contactResolver;
     private final TutorialStorageService tutorialStorageService;
     private final CatalogProperties catalogProperties;
+    private final OrganizationService organizationService;
 
     /** The submission as markdown, ready to be posted as the work package description. */
     public String build(IntegrationMethod method) {
@@ -196,8 +198,8 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", singleLine(method.getDescription()));
         bullet(body, "Integration method type", integrationMethodTypes(method));
         bullet(body, "Supported midPoint version", midpointVersionRange(method));
-        bullet(body, "Author", method.getAuthor() != null ? withEmail(method.getAuthor()) : "unknown");
-        bullet(body, "Maintainer", withEmail(method.getMaintainer()));
+        bullet(body, "Author", method.getAuthor() != null ? withEmail(method, method.getAuthor()) : "unknown");
+        bullet(body, "Maintainer", maintainer(method));
         bullet(body, "Submitted", timestamp(method.getCreatedAt()));
         appendCatalogLink(body, method, method.getApplication());
     }
@@ -217,18 +219,35 @@ public class SupportTicketDescriptionBuilder {
 
     /**
      * A name with its address and organization where those are known: {@code u1 (u1@acme.com), Acme co.}
-     * Each part is optional, so a bare name is a normal result - see {@link CatalogContactResolver}.
+     * Each part is optional, so a bare name is a normal result - see {@link CatalogContactResolver};
+     * {@code item} is the row the name is stamped on, which is where both parts come from.
      */
-    private String withEmail(String name) {
+    private String withEmail(OwnedItem item, String name) {
         if (name == null || name.isBlank()) {
             return null;
         }
-        String labelled = contactResolver.emailOf(name)
+        String labelled = contactResolver.emailOf(item, name)
                 .map(email -> name + " (" + email + ")")
                 .orElse(name);
-        return contactResolver.organizationOf(name)
+        return contactResolver.organizationOf(item, name)
                 .map(organization -> labelled + ", " + organization)
                 .orElse(labelled);
+    }
+
+    /**
+     * The maintainer as the ticket names them: the maintaining person, with whatever contact
+     * details the catalog holds, or the maintaining organization when no person maintains the
+     * item - an organization is named and nothing more, having no address to reach it at.
+     *
+     * <p>Needed because an organization maintainer is recorded as an organization reference with
+     * no username at all (see {@code OwnershipService#assignMaintainer}), so reading the username
+     * alone would report a maintained item as unmaintained.
+     */
+    private String maintainer(OwnedItem item) {
+        String name = item.getMaintainer();
+        return name != null && !name.isBlank()
+                ? withEmail(item, name)
+                : organizationService.displayName(item.getMaintainerOrgId());
     }
 
     private String integrationMethodTypes(IntegrationMethod method) {
@@ -447,7 +466,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", singleLine(connector.getDescription()));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
-        bullet(body, "Maintainer", withEmail(connector.getMaintainer()));
+        bullet(body, "Maintainer", maintainer(connector));
         body.append('\n').append(CONNECTOR_PUBLISHED_NOTE).append('\n');
     }
 
@@ -456,8 +475,8 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", singleLine(connector.getDescription()));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
-        bullet(body, "Author", withEmail(connector.getAuthor()));
-        bullet(body, "Maintainer", withEmail(connector.getMaintainer()));
+        bullet(body, "Author", withEmail(connector, connector.getAuthor()));
+        bullet(body, "Maintainer", maintainer(connector));
         bullet(body, "Fully qualified class name", connector.getFullyQualifiedClassName());
         bullet(body, "Created", timestamp(connector.getCreatedAt()));
         if (connector.getClonedFrom() != null) {
@@ -497,8 +516,8 @@ public class SupportTicketDescriptionBuilder {
                         .toList();
         for (ConnectorVersion version : versions) {
             body.append("\n## Connector version ").append(blankToDash(version.getRevision())).append("\n\n");
-            bullet(body, "Author", withEmail(version.getAuthor()));
-            bullet(body, "Maintainer", withEmail(version.getMaintainer()));
+            bullet(body, "Author", withEmail(version, version.getAuthor()));
+            bullet(body, "Maintainer", maintainer(version));
             bullet(body, "Created", timestamp(version.getCreatedAt()));
             appendBundleVersion(body, version.getConnectorBundleVersion());
             bullet(body, "Build error", blankTo(singleLine(version.getErrorMessage()), NO_BUILD_ERROR));

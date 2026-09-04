@@ -73,6 +73,7 @@ public class ApplicationService {
     private final ConnectorVersionRepository connectorVersionRepository;
     private final ConnectorRepository connectorRepository;
     private final AuthService authService;
+    private final OrganizationService organizationService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -97,8 +98,11 @@ public class ApplicationService {
                               ConnectorUploadService connectorUploadService,
                               RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
                               CapabilityRepository capabilityRepository,
-                              ConnectorVersionRepository connectorVersionRepository, ConnectorRepository connectorRepository,
-                              AuthService authService) {
+                              ConnectorVersionRepository connectorVersionRepository,
+                              ConnectorRepository connectorRepository,
+                              AuthService authService,
+                              OrganizationService organizationService) {
+        this.organizationService = organizationService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
@@ -138,7 +142,8 @@ public class ApplicationService {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException(
                         "Integration method not found: " + methodId + "/" + revision));
-        if (!authService.canEdit(username, method.getAuthor(), method.getMaintainer())) {
+        if (!authService.canEdit(username, method.getAuthor(), method.getAuthorOrgId(),
+                method.getMaintainer(), method.getMaintainerOrgId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this integration method.");
         }
@@ -161,7 +166,7 @@ public class ApplicationService {
 
     /**
      * Enforces that {@code username} may edit a specific connector's content. Unlike
-     * {@link #assertCanEditMethod}, this gates on the <em>connector's</em> own owner, not the
+     * {@link #assertCanEditMethod}, this gates on the connector's own owner, not the
      * integration method's: a connector may be maintained by someone other than the IM
      * maintainer, in which case the IM maintainer must not be able to edit it (only its
      * maintainer, or a superuser, may). Throws 404 if the method/connector is missing, 403 otherwise.
@@ -177,7 +182,8 @@ public class ApplicationService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException(
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
-        if (!authService.canEdit(username, connector.getAuthor(), connector.getMaintainer())) {
+        if (!authService.canEdit(username, connector.getAuthor(), connector.getAuthorOrgId(),
+                connector.getMaintainer(), connector.getMaintainerOrgId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this connector.");
         }
@@ -371,8 +377,16 @@ public class ApplicationService {
         Specification<IntegrationMethod> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchForm.getMaintainer() != null && !searchForm.getMaintainer().isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer().toLowerCase() + "%"));
+            // An item maintained by an organization carries no maintainer username, so the
+            // search has to match the organization's name as well as the username.
+            String pattern = "%" + searchForm.getMaintainer().toLowerCase() + "%";
+            List<String> organizationIds = organizationService.idsOfNamesContaining(searchForm.getMaintainer());
+            spec = spec.and((root, query, cb) -> {
+                var byUsername = cb.like(cb.lower(root.get("maintainer")), pattern);
+                return organizationIds.isEmpty()
+                        ? byUsername
+                        : cb.or(byUsername, root.get("maintainerOrgId").in(organizationIds));
+            });
         }
 
         if (searchForm.getLifecycleState() != null) {
@@ -398,8 +412,8 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Request createRequestFromForm(RequestFormDto dto) {
-        return requestVotingService.createRequestFromForm(dto);
+    public Request createRequestFromForm(RequestFormDto dto, String requester) {
+        return requestVotingService.createRequestFromForm(dto, requester);
     }
 
     public Optional<Request> getRequest(Long id) {
@@ -422,7 +436,16 @@ public class ApplicationService {
         return requestVotingService.hasUserVoted(requestId, voter);
     }
 
-    public void cancelRequest(Long requestId) {
+    /** The requester may cancel their own request; a superuser may cancel any. */
+    public void cancelRequest(Long requestId, String username) {
+        Request request = requestVotingService.getRequest(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
+        boolean isRequester = request.getRequester() != null
+                && request.getRequester().equalsIgnoreCase(username);
+        if (!isRequester && !authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the requester or a superuser may cancel this request");
+        }
         requestVotingService.cancelRequest(requestId);
     }
 
@@ -510,7 +533,7 @@ public class ApplicationService {
                                     connector.getDescription(),
                                     connector.getRevision(),
                                     bundle.getDisplayName(),
-                                    connector.getMaintainer(),
+                                    organizationService.maintainerLabel(connector),
                                     bundle.getLicense() != null ? bundle.getLicense().name() : null,
                                     latest != null && latest.getBuildFramework() != null
                                             ? latest.getBuildFramework().name() : null,
@@ -614,10 +637,6 @@ public class ApplicationService {
      * download information (no artifactUrl set on the ConnectorBundleVersion). These are
      * connectors that were added but the Jenkins build was never triggered (or did not
      * complete successfully with upload/verify and upload/continue callbacks).
-     *
-     * Only connector versions in REVIEWING state are considered — this is the state where
-     * a superuser is reviewing the integration method and may need to trigger builds before
-     * approving.
      */
     @Transactional(readOnly = true)
     public List<ConnectorWithoutDownloadDto> getConnectorsWithoutDownloadInfo(UUID methodId, String revision) {

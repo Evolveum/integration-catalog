@@ -75,6 +75,7 @@ class ConnectorUploadServiceApproveTest {
     @Mock private IntegrationMethodTypeRepository integrationMethodTypeRepository;
     @Mock private IntegrationMethodConnectorRepository integrationMethodConnectorRepository;
     @Mock private TutorialStorageService tutorialStorageService;
+    @Mock private OwnershipService ownershipService;
     @Mock private ApplicationEventPublisher events;
 
     private ConnectorUploadService service;
@@ -108,11 +109,11 @@ class ConnectorUploadServiceApproveTest {
                 connectorVersionRepository, connectorBundleRepository, connectorBundleVersionRepository,
                 downloadRepository,
                 new GithubProperties("token", "group", "template"),
-                new JenkinsProperties("http://jenkins", "token", "user", "job"),
+                new JenkinsProperties("http://jenkins", "token", "user", "job", "callback-token"),
                 applicationTagService, capabilityRepository, integrationMethodCapabilityRepository,
                 integrationMethodCapabilityItemRepository, connVersionCapabilityRepository,
                 connVersionCapabilityItemRepository, integrationMethodTypeRepository,
-                integrationMethodConnectorRepository, tutorialStorageService, events);
+                integrationMethodConnectorRepository, tutorialStorageService, ownershipService, events);
 
         buildPublishedBundle();
         buildDraftClone();
@@ -191,7 +192,6 @@ class ConnectorUploadServiceApproveTest {
         draftLink.setConnectorMinVersion("1.0.0");
         draft.getConnectors().add(draftLink);
 
-        // A second method still linking the published connector — the reason it was cloned at all.
         otherMethodLink = new IntegrationMethodConnector();
         otherMethodLink.setId(2);
         otherMethodLink.setConnector(original);
@@ -222,15 +222,12 @@ class ConnectorUploadServiceApproveTest {
     void versionBumpOnSharedBundleMovesSiblingsAcrossAndDropsTheOldBundleRow() {
         service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
-        // The sibling's versions join the copy of 1.0.0 the clone already carries, and the old row goes.
         verify(connectorVersionRepository).moveAllToBundleVersion(original100, clone100);
         verify(connectorBundleVersionRepository).deleteRow(OLD_VERSION_ID, ROW_REVISION);
-        // Anything the clone did not copy comes along as it is, then the connectors themselves.
         verify(connectorBundleVersionRepository).moveAllToBundle(originalBundle, cloneBundle);
         verify(connectorRepository).moveAllToBundle(originalBundle, cloneBundle);
         verify(connectorBundleRepository).deleteRow(ORIGINAL_BUNDLE_ID);
 
-        // The regression guard: an entity delete here cascades REMOVE into the connectors just moved out.
         verify(connectorBundleRepository, never()).delete(any(ConnectorBundle.class));
 
         assertNull(clone.getClonedFrom(), "the clone is the connector now, not a copy of one");

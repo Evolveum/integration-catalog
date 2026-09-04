@@ -30,6 +30,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -63,19 +64,21 @@ public class Controller {
     }
 
     @Operation(summary = "Get application by ID",
-            description = "Fetches a single application by its UUID. Pass the caller's username to "
-                    + "also receive the support ticket of every revision they are the submitting side "
-                    + "or the reviewer of; without it the ticket fields are left empty.")
+            description = "Fetches a single application by its UUID. An authenticated caller also "
+                    + "receives the support ticket of every revision they are the submitting side "
+                    + "or the reviewer of; for anyone else the ticket fields are left empty.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Application found"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @GetMapping("/applications/{id}")
     public ResponseEntity<ApplicationDto> getApplication(@PathVariable UUID id,
-                                                        @RequestParam(required = false) String username) {
+                                                        Authentication authentication) {
         try {
             Application app = applicationService.getApplication(id);
-            ApplicationDto dto = applicationMapper.mapToApplicationDto(app, username);
+            // Null for an anonymous read, which is allowed here - it only means no ticket fields.
+            String viewer = authentication != null ? authentication.getName() : null;
+            ApplicationDto dto = applicationMapper.mapToApplicationDto(app, viewer);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -147,9 +150,9 @@ public class Controller {
     @PostMapping("/upload/connector")
     public ResponseEntity<String> uploadConnector(
             @RequestBody UploadImplementationDto dto,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, username));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, authentication.getName()));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -247,9 +250,10 @@ public class Controller {
             @ApiResponse(responseCode = "400", description = "Invalid request data")
     })
     @PostMapping("/requests")
-    public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto) {
+    public ResponseEntity<Request> createRequest(@Valid @RequestBody RequestFormDto dto,
+                                                 Authentication authentication) {
         try {
-            Request created = applicationService.createRequestFromForm(dto);
+            Request created = applicationService.createRequestFromForm(dto, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -265,10 +269,12 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Request not found")
     })
     @DeleteMapping("/requests/{requestId}")
-    public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId) {
+    public ResponseEntity<Void> cancelRequest(@PathVariable Long requestId, Authentication authentication) {
         try {
-            applicationService.cancelRequest(requestId);
+            applicationService.cancelRequest(requestId, authentication.getName());
             return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (Exception ex) {
@@ -284,9 +290,9 @@ public class Controller {
             @ApiResponse(responseCode = "400", description = "User already voted or request not found")
     })
     @PostMapping("/requests/{requestId}/vote")
-    public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, @RequestParam String voter) {
+    public ResponseEntity<Vote> submitVote(@PathVariable Long requestId, Authentication authentication) {
         try {
-            Vote vote = applicationService.submitVote(requestId, voter);
+            Vote vote = applicationService.submitVote(requestId, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(vote);
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -310,8 +316,10 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Check completed successfully")
     })
     @GetMapping("/requests/{requestId}/votes/check")
-    public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, @RequestParam String voter) {
-        boolean hasVoted = applicationService.hasUserVoted(requestId, voter);
+    public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, Authentication authentication) {
+        // Anonymous callers may ask; they have trivially not voted.
+        boolean hasVoted = authentication != null
+                && applicationService.hasUserVoted(requestId, authentication.getName());
         return ResponseEntity.ok(hasVoted);
     }
 
@@ -623,8 +631,8 @@ public class Controller {
     @PostMapping("/recently-used/{applicationId}")
     public ResponseEntity<Void> recordRecentlyUsed(
             @PathVariable UUID applicationId,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
-        applicationService.recordRecentlyUsed(applicationId, username);
+            Authentication authentication) {
+        applicationService.recordRecentlyUsed(applicationId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 }

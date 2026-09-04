@@ -625,8 +625,20 @@ public class SupportTicketService {
 
     /**
      * Subscribes everyone the submission concerns to its work package: the reviewers in
-     * {@code openproject.watchers} by login, and the submitting side by {@code catalog_users.email}.
-     * Best effort - anyone the portal does not know is logged and skipped.
+     * {@code openproject.watchers} and the submitting side, both by portal login.
+     *
+     * <p>Login is the primary key on purpose. The author and maintainer columns hold catalog
+     * usernames, and a portal account carries the same login as the person's catalog account - which
+     * is the one identifier that survived users moving to the identity provider. It also reaches a
+     * maintainer who is not the author, whom no stamped address can describe: an item records the
+     * address of whoever wrote it, never of a third person. The address is kept as a fallback for a
+     * portal whose logins do not follow the catalog's usernames, and only the author has one.
+     *
+     * <p>A maintainer that is an organization is skipped without trying: it leaves
+     * {@code maintainer} null and carries {@code maintainer_org_id} instead, so there is no name
+     * here to look up - the author represents it, exactly as openProject/README.md describes.
+     *
+     * <p>Best effort throughout: anyone the portal does not know is logged and skipped.
      */
     private void addWatchers(int workPackageId, IntegrationMethod method) {
         Set<Integer> watching = new LinkedHashSet<>();
@@ -637,12 +649,21 @@ public class SupportTicketService {
         }
 
         for (String name : distinct(method.getAuthor(), method.getMaintainer())) {
-            String email = contactResolver.emailOf(name).orElse(null);
-            if (email == null) {
-                log.debug("No contact address for '{}', not watching work package {}", name, workPackageId);
-                continue;
+            OptionalInt userId = attempt(name, () -> openProjectClient.findUserIdByLogin(name));
+            String who = name;
+            if (userId.isEmpty()) {
+                // No account under that login: fall back to the address the row carries, which the
+                // author has and nobody else does.
+                String email = contactResolver.emailOf(method, name).orElse(null);
+                if (email == null) {
+                    log.debug("No portal login '{}' and no contact address for them, "
+                            + "not watching work package {}", name, workPackageId);
+                    continue;
+                }
+                userId = findByEmail(email, workPackageId);
+                who = email;
             }
-            watch(workPackageId, email, findByEmail(email, workPackageId), watching);
+            watch(workPackageId, who, userId, watching);
         }
     }
 
@@ -676,13 +697,22 @@ public class SupportTicketService {
      * a failed query is not.
      */
     private OptionalInt resolve(String who, PortalLookup lookup, int workPackageId) {
+        OptionalInt userId = attempt(who, lookup);
+        if (userId.isEmpty()) {
+            log.info("Support portal has no user for '{}', not watching work package {}",
+                    who, workPackageId);
+        }
+        return userId;
+    }
+
+    /**
+     * One portal lookup without reporting a miss, for a caller that has another way left to try -
+     * see {@link #addWatchers}, where a login that is not a portal account is an ordinary step on the
+     * way to the address rather than something to warn about. A failed query is still logged.
+     */
+    private OptionalInt attempt(String who, PortalLookup lookup) {
         try {
-            OptionalInt userId = lookup.get();
-            if (userId.isEmpty()) {
-                log.info("Support portal has no user for '{}', not watching work package {}",
-                        who, workPackageId);
-            }
-            return userId;
+            return lookup.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("Interrupted while looking '{}' up in the support portal", who);
@@ -723,8 +753,11 @@ public class SupportTicketService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Integration method not found: " + methodId + "/" + revision));
 
-        // canEdit already lets a superuser through, so the reviewer needs no separate case.
-        if (!authService.canEdit(username, method.getAuthor(), method.getMaintainer())) {
+        // canEdit already lets a superuser through, so the reviewer needs no separate case. The
+        // organization ids go with the names: an item maintained by an organization carries no
+        // maintainer username, so a name-only check would lock out the org-mates the review concerns.
+        if (!authService.canEdit(username, method.getAuthor(), method.getAuthorOrgId(),
+                method.getMaintainer(), method.getMaintainerOrgId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Not allowed to see the support ticket of " + methodId + "/" + revision);
         }

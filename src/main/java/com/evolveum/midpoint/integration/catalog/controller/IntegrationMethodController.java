@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -82,9 +83,9 @@ public class IntegrationMethodController {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestBody EditIntegrationMethodDto dto,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            String newRevision = applicationService.editIntegrationMethod(methodId, revision, dto, username);
+            String newRevision = applicationService.editIntegrationMethod(methodId, revision, dto, authentication.getName());
             return ResponseEntity.ok(newRevision);
         } catch (ResponseStatusException e) {
             throw e;
@@ -108,9 +109,9 @@ public class IntegrationMethodController {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            applicationService.startReviewIntegrationMethod(methodId, revision, username);
+            applicationService.startReviewIntegrationMethod(methodId, revision, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -134,9 +135,9 @@ public class IntegrationMethodController {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            applicationService.stopReviewIntegrationMethod(methodId, revision, username);
+            applicationService.stopReviewIntegrationMethod(methodId, revision, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -160,9 +161,9 @@ public class IntegrationMethodController {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            applicationService.publishIntegrationMethod(methodId, revision, username);
+            applicationService.publishIntegrationMethod(methodId, revision, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -186,9 +187,9 @@ public class IntegrationMethodController {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            applicationService.rejectIntegrationMethod(methodId, revision, username);
+            applicationService.rejectIntegrationMethod(methodId, revision, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -211,11 +212,11 @@ public class IntegrationMethodController {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestBody AddConnectorDto dto,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
             // Returns the revision the connector landed on: the same revision for a mutable draft, or a
             // freshly forked draft revision when the source was a published (immutable) version.
-            String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+            String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, authentication.getName());
             return ResponseEntity.ok(savedRevision);
         } catch (ResponseStatusException e) {
             throw e;
@@ -246,9 +247,9 @@ public class IntegrationMethodController {
             @PathVariable String revision,
             @PathVariable Integer connectorId,
             @RequestBody EditConnectorDto dto,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            applicationService.updateConnector(methodId, revision, connectorId, dto, username);
+            applicationService.updateConnector(methodId, revision, connectorId, dto, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -270,10 +271,10 @@ public class IntegrationMethodController {
             @PathVariable String revision,
             @PathVariable Integer connectorId,
             @RequestBody UpdateConnectorCompatibilityDto dto,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
             applicationService.updateConnectorCompatibility(methodId, revision, connectorId,
-                    dto.connectorVersionFrom(), dto.connectorVersionTo(), username);
+                    dto.connectorVersionFrom(), dto.connectorVersionTo(), authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -294,9 +295,9 @@ public class IntegrationMethodController {
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
-            @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
+            Authentication authentication) {
         try {
-            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId, username);
+            applicationService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -420,8 +421,7 @@ public class IntegrationMethodController {
     @Operation(summary = "Get the support ticket for a revision under review",
             description = "Returns the work package opened for the revision and whether its status "
                     + "allows the review to be approved. Restricted to the reviewer (superuser) and "
-                    + "the submitting side (author or maintainer), identified by the username the "
-                    + "caller passes in.")
+                    + "the submitting side (author or maintainer), identified by the authenticated caller.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Support ticket state"),
             @ApiResponse(responseCode = "403", description = "Not the reviewer or the submitting side"),
@@ -432,9 +432,9 @@ public class IntegrationMethodController {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestParam String username) {
+            Authentication authentication) {
         try {
-            return ResponseEntity.ok(supportTicketService.describe(methodId, revision, username));
+            return ResponseEntity.ok(supportTicketService.describe(methodId, revision, authentication.getName()));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

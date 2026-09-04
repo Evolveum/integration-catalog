@@ -27,6 +27,11 @@ public interface ConnectorBundleVersionRepository extends JpaRepository<Connecto
 
     boolean existsByConnectorBundleIdAndBundleVersion(Integer connectorBundleId, String bundleVersion);
 
+    /** Owners of items currently designated to a maintainer; feeds the maintainer options. */
+    List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
+
+    /** Owners of items uploaded on behalf of the given organization. */
+    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
     /**
      * Re-parents every version of {@code source} onto {@code target}. Written as a bulk update rather
      * than by moving entities between the two {@code bundleVersions} collections: those use

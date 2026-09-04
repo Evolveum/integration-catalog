@@ -4,100 +4,87 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, map, catchError, of } from 'rxjs';
+import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
+import { catchError, map, Observable, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export enum UserRole {
-  Unauthenticated = 'Unauthenticated user',
   ReadOnly = 'Read only',
   IndividualContributor = 'Individual contributor',
   OrganizationContributor = 'Organization contributor',
   Superuser = 'Superuser'
 }
 
-interface LoginResponse {
+/** Profile served by GET /api/auth/me for the authenticated session. */
+interface CurrentUserResponse {
   username: string;
+  fullName: string | null;
+  email: string | null;
   role: string;
-  organizationId: number | null;
+  /** Organization identifier — stable across organization renames. */
+  organizationId: string | null;
   organizationName: string | null;
 }
 
+/**
+ * Session state for the OIDC login. Authentication is done by the identity provider
+ * through the backend (Spring Security OIDC client): login/logout are full-page redirects, the
+ * browser carries a session cookie, and this service only mirrors the profile that
+ * GET /api/auth/me reports for that session. Nothing identity-related is kept in
+ * localStorage anymore — the backend session is the single source of truth.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
-  private readonly _currentOrganizationId = signal<number | null>(null);
   private readonly _currentOrganizationName = signal<string | null>(null);
-  private readonly _loginModalOpen = signal<boolean>(false);
 
   readonly currentUser = this._currentUser.asReadonly();
-  readonly loginModalOpen = this._loginModalOpen.asReadonly();
 
-  openLoginModal(): void { this._loginModalOpen.set(true); }
-  closeLoginModal(): void { this._loginModalOpen.set(false); }
-
-  constructor(private http: HttpClient) {
-    const storedUser = localStorage.getItem('currentUser');
-    const storedRole = localStorage.getItem('currentRole');
-    const storedOrgId = localStorage.getItem('currentOrganizationId');
-    const storedOrgName = localStorage.getItem('currentOrganizationName');
-    if (storedUser) {
-      this._currentUser.set(storedUser);
-    }
-    if (storedRole) {
-      this._currentRole.set(UserRole[storedRole as keyof typeof UserRole] ?? null);
-    }
-    if (storedOrgId) {
-      this._currentOrganizationId.set(Number(storedOrgId));
-    }
-    if (storedOrgName) {
-      this._currentOrganizationName.set(storedOrgName);
-    }
-  }
-
-  login(username: string, password: string): Observable<boolean> {
-    return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, { username, password }).pipe(
-      map(response => {
-        const role = UserRole[response.role as keyof typeof UserRole] ?? null;
-        this._currentUser.set(response.username);
-        this._currentRole.set(role);
-        this._currentOrganizationId.set(response.organizationId);
-        this._currentOrganizationName.set(response.organizationName);
-        localStorage.setItem('currentUser', response.username);
-        if (role) {
-          localStorage.setItem('currentRole', response.role);
+  /**
+   * Loads the profile of the current backend session into the signals above. It completes
+   * rather than fails on every outcome, so a provider or backend problem cannot keep the
+   * application from starting: a 401 is the normal "no session" answer and leaves the
+   * visitor anonymous, any other failure is logged and treated the same way.
+   */
+  loadCurrentUser(): Observable<void> {
+    return this.http.get<CurrentUserResponse>(`${environment.apiUrl}/auth/me`).pipe(
+      map(user => this.applyCurrentUser(user)),
+      catchError((error: HttpErrorResponse) => {
+        this.applyCurrentUser(null);
+        if (error.status !== HttpStatusCode.Unauthorized) {
+          console.error('Could not load the current user profile; continuing as anonymous.', error);
         }
-        if (response.organizationId != null) {
-          localStorage.setItem('currentOrganizationId', String(response.organizationId));
-        }
-        if (response.organizationName != null) {
-          localStorage.setItem('currentOrganizationName', response.organizationName);
-        }
-        window.location.reload();
-        return true;
-      }),
-      catchError(() => of(false))
+        return of(undefined);
+      })
     );
   }
 
-  logout(): void {
-    this._currentUser.set(null);
-    this._currentRole.set(null);
-    this._currentOrganizationId.set(null);
-    this._currentOrganizationName.set(null);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentRole');
-    localStorage.removeItem('currentOrganizationId');
-    localStorage.removeItem('currentOrganizationName');
-    window.location.reload();
+  /** Mirrors a loaded profile — or, for null, the anonymous state — into the session signals. */
+  private applyCurrentUser(user: CurrentUserResponse | null): void {
+    this._currentUser.set(user?.username ?? null);
+    this._currentRole.set(user ? (UserRole[user.role as keyof typeof UserRole] ?? null) : null);
+    this._currentOrganizationName.set(user?.organizationName ?? null);
   }
 
-  currentOrganizationId(): number | null {
-    return this._currentOrganizationId();
+  /** Starts the OIDC login flow: full-page redirect to the provider via the backend. */
+  login(): void {
+    window.location.href = `${this.backendBaseUrl()}/oauth2/authorization/oidc`;
+  }
+
+  /** Ends both the application session and the provider's SSO session, then returns to the app. */
+  logout(): void {
+    window.location.href = `${this.backendBaseUrl()}/logout`;
+  }
+
+  /** The backend origin the OAuth endpoints live on (apiUrl minus the /api suffix). */
+  private backendBaseUrl(): string {
+    return environment.apiUrl.replace(/\/api\/?$/, '');
   }
 
   currentOrganizationName(): string | null {
@@ -162,16 +149,17 @@ export class AuthService {
     return this._currentRole();
   }
 
+  /** Any logged-in user may vote, including ReadOnly; anonymous visitors may not. */
   canVote(): boolean {
-    const role = this.currentRole();
-    return role === UserRole.ReadOnly ||
-           role === UserRole.IndividualContributor ||
-           role === UserRole.OrganizationContributor ||
-           role === UserRole.Superuser;
+    return this.isLoggedIn();
   }
 
+  /** Creating requests requires a contributor role — ReadOnly only browses and votes. */
   canRequest(): boolean {
-    return this.canVote();
+    const role = this.currentRole();
+    return role === UserRole.IndividualContributor ||
+           role === UserRole.OrganizationContributor ||
+           role === UserRole.Superuser;
   }
 
   canUpload(): boolean {
@@ -190,9 +178,13 @@ export class AuthService {
    * organization (pass the maintainer's org as `maintainerOrganization`; a maintainer
    * without an organization stays personal); the uploader may access items they authored;
    * and an Organization contributor may access any item authored by a member of their own
-   * organization (same organizationId). The server only exposes `maintainerOrganization`\
-   * `organizationId` when that maintainer\author is an Organization contributor, so items
+   * organization (same organization name). The server only exposes `maintainerOrganization`\
+   * `authorOrganization` when that maintainer\author is an Organization contributor, so items
    * of an Individual contributor who belongs to an org stay personal on both sides.
+   *
+   * Every organization branch reads displayedOrganization(), not the raw membership: an
+   * Individual contributor who happens to belong to an organization gains nothing from it,
+   * so their org-mates' drafts stay invisible to them.
    *
    * The maintainer is the primary ownership signal — it is explicitly set at publish time,
    * so e.g. a superuser can attribute an item to another user, who then gains access to it.
@@ -201,7 +193,7 @@ export class AuthService {
    */
   canEdit(
     author: string | null | undefined,
-    organizationId: number | null | undefined,
+    authorOrganization: string | null | undefined,
     maintainer?: string | null,
     maintainerOrganization?: string | null,
   ): boolean {
@@ -209,21 +201,21 @@ export class AuthService {
     if (!user) return false;
     const role = this._currentRole();
     if (role === UserRole.Superuser) return true;
-    const orgName = this._currentOrganizationName();
+    const orgName = this.displayedOrganization();
     if (maintainer) {
       const m = maintainer.trim().toLowerCase();
       if (m === user.trim().toLowerCase()) return true;
       if (orgName && m === orgName.trim().toLowerCase()) return true;
     }
-    // An organization acts as a team: a member maintainer grants access to all org-mates.
+    // An organization acts as a team: a contributor maintainer grants access to all org-mates.
     if (orgName && maintainerOrganization
         && orgName.trim().toLowerCase() === maintainerOrganization.trim().toLowerCase()) {
       return true;
     }
     if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
-    if (role === UserRole.OrganizationContributor) {
-      const orgId = this._currentOrganizationId();
-      if (orgId !== null && organizationId != null && orgId === organizationId) return true;
+    if (orgName && authorOrganization
+        && orgName.trim().toLowerCase() === authorOrganization.trim().toLowerCase()) {
+      return true;
     }
     return false;
   }

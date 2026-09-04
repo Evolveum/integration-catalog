@@ -9,12 +9,12 @@ package com.evolveum.midpoint.integration.catalog.mapper;
 import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.object.*;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
+import com.evolveum.midpoint.integration.catalog.service.OrganizationService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -27,19 +27,19 @@ public class ApplicationMapper {
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
-    private final CatalogUserRepository catalogUserRepository;
+    private final OrganizationService organizationService;
     private final MidpointVersionRepository midpointVersionRepository;
     private final AuthService authService;
     private final OpenProjectProperties openProjectProperties;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
-                             DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository,
+                             DownloadRepository downloadRepository, OrganizationService organizationService,
                              MidpointVersionRepository midpointVersionRepository,
                              AuthService authService, OpenProjectProperties openProjectProperties) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
-        this.catalogUserRepository = catalogUserRepository;
+        this.organizationService = organizationService;
         this.midpointVersionRepository = midpointVersionRepository;
         this.authService = authService;
         this.openProjectProperties = openProjectProperties;
@@ -88,16 +88,11 @@ public class ApplicationMapper {
                     String lifecycleState = method.getLifecycleState() != null
                             ? method.getLifecycleState().name() : null;
 
-                    // Author's organization drives the org-mate access checks; an
-                    // IndividualContributor's uploads stay personal even when they belong
-                    // to an organization, so the org is only exposed for org contributors.
-                    Integer organizationId = null;
-                    if (method.getAuthor() != null) {
-                        organizationId = catalogUserRepository.findByUsername(method.getAuthor())
-                                .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(u.getRole()))
-                                .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
-                                .orElse(null);
-                    }
+                    // Author's organization drives the org-mate access checks. It was
+                    // stamped on the row at upload time, so an IndividualContributor's
+                    // uploads stay personal even when they belong to an organization.
+                    String authorOrganization =
+                            organizationService.displayName(method.getAuthorOrgId());
 
                     // Connector info from first linked connector
                     String connectorVersion = null;
@@ -202,7 +197,7 @@ public class ApplicationMapper {
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
                             method.getAuthor(),
-                            organizationId,
+                            authorOrganization,
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -217,7 +212,7 @@ public class ApplicationMapper {
                             method.getTutorial(),
                             method.getFilePath(),
                             method.getReviewedBy(),
-                            method.getMaintainer(),
+                            organizationService.maintainerLabel(method),
                             method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
                             method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
                             includedConnectors,
@@ -237,7 +232,11 @@ public class ApplicationMapper {
                 || !openProjectProperties.enabled()) {
             return null;
         }
-        return authService.canEdit(viewer, method.getAuthor(), method.getMaintainer())
+        // The organization ids are part of the check: an item maintained by an organization
+        // carries no maintainer username, so a name-only comparison would hide the ticket
+        // from the very org-mates the review concerns.
+        return authService.canEdit(viewer, method.getAuthor(), method.getAuthorOrgId(),
+                method.getMaintainer(), method.getMaintainerOrgId())
                 ? method.getSupportTicketId() : null;
     }
 
@@ -452,14 +451,13 @@ public class ApplicationMapper {
             }
         }
 
-        // Distinct maintainer categories (Evolveum/Partner/Community) derived from the
-        // role of each integration method's author
+        // Distinct maintainer categories (Evolveum/Partner/Community) for the "Maintainer"
+        // filter, taken from the category stamped on each integration method when it was
+        // uploaded - it records the author's role at that moment.
         List<String> maintainers = null;
         if (app.getIntegrationMethods() != null) {
             maintainers = app.getIntegrationMethods().stream()
-                    .map(IntegrationMethod::getAuthor)
-                    .filter(username -> username != null)
-                    .map(this::maintainerCategoryForUser)
+                    .map(IntegrationMethod::getAuthorCategory)
                     .filter(category -> category != null)
                     .distinct()
                     .toList();
@@ -486,30 +484,6 @@ public class ApplicationMapper {
                 integrationMethodTypes,
                 maintainers
         );
-    }
-
-    /** Maps an integration method's maintainer username to its maintainer category. */
-    private String maintainerCategoryForUser(String username) {
-        return catalogUserRepository.findByUsername(username)
-                .map(CatalogUser::getRole)
-                .map(ApplicationMapper::roleToMaintainerCategory)
-                .orElse(null);
-    }
-
-    /**
-     * Maps a catalog_users.role to the maintainer category shown in the catalog:
-     * Superuser → Evolveum, OrganizationContributor → Partner, IndividualContributor → Community.
-     */
-    private static String roleToMaintainerCategory(String role) {
-        // Explicit type argument: one branch yields null, so there is nothing to infer U from.
-        return CatalogRole.of(role)
-                .<String>map(catalogRole -> switch (catalogRole) {
-                    case SUPERUSER -> "Evolveum";
-                    case ORGANIZATION_CONTRIBUTOR -> "Partner";
-                    case INDIVIDUAL_CONTRIBUTOR -> "Community";
-                    case READ_ONLY -> null; // a reader maintains nothing
-                })
-                .orElse(null);
     }
 
     // ── IntegrationMethod list item ───────────────────────────────────────────
@@ -577,6 +551,7 @@ public class ApplicationMapper {
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
                 initialVersion = bundle.getBundleVersions().size() <= 1;
             }
+            // connector's CURRENT version = the newest version row
             Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
@@ -593,11 +568,13 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
-        String maintainerOrganization = maintainer == null ? null
-                : catalogUserRepository.findByUsername(maintainer)
-                        .filter(u -> CatalogRole.ORGANIZATION_CONTRIBUTOR.matches(u.getRole()))
-                        .map(u -> u.getOrganization() != null ? u.getOrganization().getName() : null)
-                        .orElse(null);
+        // Ownership as stamped on the connector
+        String maintainerOrganizationName = connector == null ? null
+                : organizationService.displayName(connector.getMaintainerOrgId());
+        String maintainerOrganization = maintainer == null ? null : maintainerOrganizationName;
+        if (maintainer == null) {
+            maintainer = maintainerOrganizationName;
+        }
 
         return new ImplementationListItemDto(
                 method.getId(),
@@ -642,7 +619,7 @@ public class ApplicationMapper {
     }
 
     /**
-     * Collects the object-class capabilities of the connector's latest <em>published</em>
+     * Collects the object-class capabilities of the connector's latest published
      * (ACTIVE) connector version, grouped by object class, so the publish form can pre-fill
      * the capability picker. Versions still in review (IN_REVIEW) are ignored.
      */
