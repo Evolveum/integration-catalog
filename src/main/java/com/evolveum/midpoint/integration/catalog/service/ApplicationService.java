@@ -166,10 +166,8 @@ public class ApplicationService {
 
     /**
      * Enforces that {@code username} may edit a specific connector's content. Unlike
-     * {@link #assertCanEditMethod}, this gates on the connector's own owner, not the
-     * integration method's: a connector may be maintained by someone other than the IM
-     * maintainer, in which case the IM maintainer must not be able to edit it (only its
-     * maintainer, or a superuser, may). Throws 404 if the method/connector is missing, 403 otherwise.
+     * {@link #assertCanEditMethod}, this gates on the connector's own owner, so a connector
+     * maintained by someone else stays closed to the method's maintainer.
      */
     private void assertCanEditConnector(String username, UUID methodId, String revision, Integer connectorId) {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))

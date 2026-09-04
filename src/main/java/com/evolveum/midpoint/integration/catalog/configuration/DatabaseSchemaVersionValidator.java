@@ -29,10 +29,8 @@ import org.springframework.stereotype.Component;
 public class DatabaseSchemaVersionValidator {
 
     /**
-     * Schema change number required by this build. Bump together with every new
-     * apply_change section appended to config/sql/postgres-upgrade.sql - and only there;
-     * the stamp at the end of config/sql/postgres.sql is deliberately left behind, see the
-     * header of the upgrade script for why raising it cannot be undone.
+     * Schema change number required by this build. Bump with every new apply_change section in
+     * config/sql/postgres-upgrade.sql - and only there; postgres.sql is deliberately left behind.
      */
     public static final int REQUIRED_VERSION = 9;
 

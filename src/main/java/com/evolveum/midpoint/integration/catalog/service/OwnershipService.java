@@ -35,17 +35,15 @@ public class OwnershipService {
     public void stampNew(OwnedItem item, String username, String requestedMaintainer) {
         OidcUser caller = currentOidcUser();
         String callerRole = caller != null ? claims.effectiveRole(caller) : null;
-        String callerOrganizationId = caller != null ? claims.organizationId(caller) : null;
+        String callerOrganizationId = caller != null
+                ? organizationService.registeredId(claims.organizationId(caller))
+                : null;
 
         item.setAuthor(username);
-        // Only an organization contributor publishes on behalf of their organization; an
-        // individual contributor who happens to belong to one still publishes as themselves.
         item.setAuthorOrgId(CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
                 ? callerOrganizationId
                 : null);
         item.setAuthorCategory(CatalogRole.categoryOf(callerRole));
-        // The one address the catalog can know: the caller's own. Support reviews need a contact
-        // for the person who submitted, and nothing can recover it once the token is gone.
         item.setAuthorEmail(caller != null ? caller.getEmail() : null);
         assignMaintainer(item, requestedMaintainer);
     }
@@ -82,10 +80,8 @@ public class OwnershipService {
     }
 
     /**
-     * The organization to record for a maintainer who is a person. Only the caller's own
-     * organization can be known — a superuser may name any user as maintainer, and there is
-     * no directory to look that user's organization up in, so the item then simply carries
-     * no maintaining organization.
+     * The organization to record for a maintainer who is a person. Only the caller's own can be
+     * known, so an item maintained by anyone else carries no maintaining organization.
      */
     private String organizationOfMaintainer(String maintainer) {
         OidcUser caller = currentOidcUser();
@@ -99,7 +95,7 @@ public class OwnershipService {
             return null;
         }
         return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(claims.effectiveRole(caller))
-                ? claims.organizationId(caller)
+                ? organizationService.registeredId(claims.organizationId(caller))
                 : null;
     }
 

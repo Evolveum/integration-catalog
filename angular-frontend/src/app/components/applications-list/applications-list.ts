@@ -908,10 +908,14 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    this.applicationService.submitVote(app.requestId).subscribe({
+    const requestId = app.requestId;
+    this.applicationService.submitVote(requestId).subscribe({
       next: () => {
-        // Increment vote count locally
-        app.voteCount = (app.voteCount || 0) + 1;
+        // Count the vote locally rather than reloading the list. Change detection is zoneless,
+        // so mutating the application in place would render nothing until the next reload —
+        // the new count has to reach the template as a new object in a new array.
+        this.applications.update(apps => apps.map(a =>
+          a.requestId === requestId ? { ...a, voteCount: (a.voteCount ?? 0) + 1 } : a));
       },
       error: (err) => {
         if (err.status === 400) {

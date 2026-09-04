@@ -28,29 +28,16 @@ import java.util.function.LongSupplier;
 /**
  * The realm's usernames, read from the Keycloak Admin REST API.
  *
- * <p>The catalog keeps no user table, so the only people it can otherwise name are those already
- * recorded in an owner column - which leaves a newly created user impossible to designate as
- * maintainer until they have somehow published something themselves. This closes that one gap and
- * nothing more: roles still come from the token and organizations from the organizations table, so
- * the service account needs only {@code realm-management / view-users}.
- *
- * <p>Authentication is the client-credentials grant of the same {@code integration-catalog} client
- * the login flow uses, so no second credential is configured anywhere - only the realm has to
- * enable the client's service account.
- *
- * <p><b>Fail-soft.</b> Every failure returns the last known answer, or an empty list, and never an
- * error: an unreachable, unconfigured or deliberately disabled Keycloak costs the maintainer list
- * its Keycloak half and leaves the rest of the catalog working. Failures also suspend calls for a
- * short backoff, so a dead Keycloak is not re-probed on every request.
+ * <p>The catalog keeps no user table, so without this a user could not be named maintainer until
+ * they had published something themselves. Fail-soft: any Keycloak problem costs the maintainer
+ * list its Keycloak half and nothing else.
  */
 @Slf4j
 @Service
 public class KeycloakUserDirectory {
 
-    /** How long a listing may be served from cache. */
     private static final long CACHE_TTL_MILLIS = 60_000;
 
-    /** How long to suspend calls after a failed one. */
     private static final long FAILURE_BACKOFF_MILLIS = 15_000;
 
     private static final int PAGE_SIZE = 100;
@@ -79,7 +66,6 @@ public class KeycloakUserDirectory {
     private volatile String accessToken;
     private volatile long tokenExpiresAt;
 
-    /** Until this instant Keycloak is considered unreachable and no calls are attempted. */
     private volatile long unavailableUntil;
 
     // @Autowired is required here: the test-seam constructor below makes this a two-constructor
@@ -107,9 +93,8 @@ public class KeycloakUserDirectory {
     }
 
     /**
-     * Every human user of the realm, in the order Keycloak returns them. Service accounts are left
-     * out. Empty when the directory is disabled or Keycloak cannot be reached and nothing was
-     * cached - callers must treat an empty answer as "no addition", never as "no users exist".
+     * Every human user of the realm, in the order Keycloak returns them. Empty means "no addition",
+     * never "no users exist" — the directory may be disabled or Keycloak unreachable.
      */
     public List<String> listUsernames() {
         if (!enabled) {

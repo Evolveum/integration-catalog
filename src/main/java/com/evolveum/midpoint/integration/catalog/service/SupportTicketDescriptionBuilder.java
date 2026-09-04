@@ -235,13 +235,9 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The maintainer as the ticket names them: the maintaining person, with whatever contact
-     * details the catalog holds, or the maintaining organization when no person maintains the
-     * item - an organization is named and nothing more, having no address to reach it at.
-     *
-     * <p>Needed because an organization maintainer is recorded as an organization reference with
-     * no username at all (see {@code OwnershipService#assignMaintainer}), so reading the username
-     * alone would report a maintained item as unmaintained.
+     * The maintainer as the ticket names them: the maintaining person with their contact details,
+     * or just the name of the maintaining organization. Needed because an organization maintainer
+     * is recorded with no username, which reading the username alone would report as unmaintained.
      */
     private String maintainer(OwnedItem item) {
         String name = item.getMaintainer();

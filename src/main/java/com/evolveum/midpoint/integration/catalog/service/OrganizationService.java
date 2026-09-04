@@ -20,10 +20,6 @@ import java.util.function.LongSupplier;
 /**
  * Resolves an organization identifier — the value the OIDC organization claim carries — to
  * the display name shown in the catalog.
- *
- * Item lists ask for the same handful of organizations over and over, so the whole (small)
- * table is held for {@value #CACHE_TTL_MILLIS} ms instead of issuing one query per row. A
- * rename therefore becomes visible within that window, without a restart.
  */
 @Service
 public class OrganizationService {
@@ -62,7 +58,15 @@ public class OrganizationService {
         return names().get(organizationId);
     }
 
-    /** All organizations, ordered by display name; used for the maintainer options. */
+    /**
+     * The identifier back, but only when the organizations table actually knows it;
+     * {@code null} otherwise.
+     */
+    public String registeredId(String organizationId) {
+        return displayName(organizationId) != null ? organizationId : null;
+    }
+
+    /** All organizations, ordered by display name. */
     public List<String> allNames() {
         return names().values().stream()
                 .filter(name -> name != null && !name.isBlank())
@@ -110,8 +114,6 @@ public class OrganizationService {
 
     private Map<String, String> names() {
         long now = clock.getAsLong();
-        // The "never loaded yet" case is a flag rather than a sentinel timestamp: subtracting
-        // one from the current time overflows, and the cache would then never fill at all.
         if (!loaded || now - loadedAt >= CACHE_TTL_MILLIS) {
             Map<String, String> freshlyLoaded = new LinkedHashMap<>();
             for (Organization organization : organizationRepository.findAll()) {

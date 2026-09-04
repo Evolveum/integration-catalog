@@ -26,13 +26,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for the identity logic: /api/auth/me claim parsing (organization claim in both
- * shapes a provider can emit) and the canEdit ownership matrix. The caller is taken from the
- * security context and everything about them comes from their token — only the organization
- * names and the catalog's known owners are read from the database, and those are mocked.
+ * Unit tests for the identity logic: /api/auth/me claim parsing (the organization claim in both
+ * shapes a provider can emit) and the canEdit ownership matrix. Everything but the organization
+ * names and the catalog's known owners comes from the token; those two are mocked.
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -112,14 +112,15 @@ class AuthServiceTest {
     }
 
     @Test
-    void currentUserOrganizationNameFallsBackToIdentifierWhenNotSeeded() {
+    void currentUserOrganizationNameStaysNullWhenNotSeeded() {
         when(organizationService.displayName("acme")).thenReturn(null);
 
         CurrentUserDto user = authService.getCurrentUser("olivia",
                 oidcUser(Map.of("organization", List.of("acme"))));
 
+        // Identifier without a name is what tells the frontend the organization is unregistered.
         assertEquals("acme", user.organizationId());
-        assertEquals("acme", user.organizationName());
+        assertNull(user.organizationName());
     }
 
     @Test
@@ -178,13 +179,12 @@ class AuthServiceTest {
 
     @Test
     void organizationActsAsTeamForWhateverItMaintains() {
-        callerIs("IndividualContributor", "acme");
+        callerIs("OrganizationContributor", "acme");
 
-        // Maintained by the caller's own organization -> every member may edit,
-        // whatever their role inside it.
-        assertTrue(authService.canEdit("dana", null, null, null, "acme"));
+        // Maintained by the caller's own organization -> every contributor to it may edit.
+        assertTrue(authService.canEdit("olivia", null, null, null, "acme"));
         // Maintained by another organization -> off limits.
-        assertFalse(authService.canEdit("dana", null, null, null, "evolveum"));
+        assertFalse(authService.canEdit("olivia", null, null, null, "evolveum"));
     }
 
     @Test
@@ -206,6 +206,18 @@ class AuthServiceTest {
         callerIs("IndividualContributor", "acme");
 
         assertFalse(authService.canEdit("dana", "amber", "acme", null, null));
+    }
+
+    @Test
+    void individualContributorDoesNotInheritItemsMaintainedByTheirOrganization() {
+        callerIs("IndividualContributor", "acme");
+
+        // Membership alone confers nothing: an item published on behalf of acme stays
+        // invisible to an org-mate who contributes as an individual.
+        assertFalse(authService.canEdit("dana", "olivia", "acme", null, "acme"));
+        // Their own items are unaffected.
+        assertTrue(authService.canEdit("dana", "dana", null, null, null));
+        assertTrue(authService.canEdit("dana", null, null, "dana", null));
     }
 
     // ---- claim- and catalog-backed helpers ----
@@ -234,6 +246,14 @@ class AuthServiceTest {
                 .thenReturn(List.of("amber", "olivia"));
 
         assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
+    }
+
+    @Test
+    void organizationMembersOfIndividualContributorIsJustThemselves() {
+        callerIs("IndividualContributor", "acme");
+
+        assertEquals(List.of("dana"), authService.getOrganizationMembers("dana"));
+        verifyNoInteractions(catalogOwnerDirectory);
     }
 
     @Test

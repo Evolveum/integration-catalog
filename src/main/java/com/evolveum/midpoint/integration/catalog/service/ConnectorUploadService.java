@@ -78,10 +78,8 @@ public class ConnectorUploadService {
     }
 
     /**
-     * @param linkedExisting whether {@link #connector()} is a connector already published in the
-     *                       catalog, linked as it is. Nothing about it is created or changed, so the
-     *                       publish skips everything that exists to get a new connector built and
-     *                       reviewed.
+     * @param linkedExisting whether {@link #connector()} is an already published connector, linked
+     *                       as it is, so the publish skips everything that builds a new one
      */
     private record UploadResolution(IntegrationMethod integrationMethod, Connector connector,
                                      ConnectorBundle bundle, boolean isNewVersion, boolean linkedExisting) {}
@@ -123,14 +121,9 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Publishes a method whose connector is already in the catalog: the connector is linked, not copied.
-     *
-     * <p>Everything the normal path does to a connector is skipped, because there is no new connector to
-     * do it to - no bundle, no bundle version, no connector version, so nothing to build on Jenkins, no
-     * repository to create and no connector capabilities to record. The connector keeps its own
-     * lifecycle state, which is what lets the reviewer be told there is nothing to review about it.
-     *
-     * <p>Only the method itself is new, so it is what gets saved and put in front of a reviewer.
+     * Publishes a method whose connector is already in the catalog: the connector is linked, not
+     * copied, so nothing is built and the connector keeps its own lifecycle state. Only the method
+     * is new, and only it goes in front of a reviewer.
      */
     private String publishWithLinkedConnector(UploadImplementationDto dto, ApplicationResolution appRes,
                                               UploadResolution uploadRes) {
@@ -417,19 +410,11 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Starts the build of one connector bundle version — one artifact, one build. A bundle may hold
-     * several connectors built from the same source, so {@code CONNECTOR_CLASS} carries every class on
-     * this version as a comma-separated list rather than starting the same build once per class.
-     *
-     * <p>What describes the build — the branch, the module path, the build tool — is read from the
-     * bundle version being built, never from the bundle: the bundle carries only what is the same for
-     * every version of it (the repository it is cloned from, the framework it is written against), so
-     * reading a build parameter from there would build an older version's inputs.
-     *
-     * <p>The job is told which bundle version it is building through {@code CONNECTOR_BUNDLE_VERSION_*},
-     * and is expected to echo that back on the callback. {@code CONNECTOR_VERSION_*} is still sent,
-     * pointing at the newest connector version on this bundle version, so a job that has not been
-     * updated yet still reports something the callback can resolve.
+     * Starts the build of one connector bundle version — one artifact, one build, with every class
+     * on the version passed as a comma-separated {@code CONNECTOR_CLASS}. Build parameters are read
+     * from the bundle version, never from the bundle, which would supply an older version's inputs.
+     * {@code CONNECTOR_VERSION_*} is still sent alongside {@code CONNECTOR_BUNDLE_VERSION_*} so a
+     * job that has not been updated yet still reports something the callback can resolve.
      */
     public String triggerJenkinsPipeline(ConnectorBundleVersion cbv, IntegrationMethod method) {
         try {
@@ -571,10 +556,8 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Rewrites a revision in place with a minor bump (1.1 -> 1.2): builds the bumped revision from the
-     * edited data, moves the tutorial folder across, then deletes the superseded revision so only one
-     * record survives. An in-review draft stays in review; a rejected revision is flipped back to
-     * IN_REVIEW (resubmission), and its connectors are un-rejected too.
+     * Rewrites a revision in place with a minor bump (1.1 -> 1.2), deleting the superseded record so
+     * only one survives. A rejected revision flips back to IN_REVIEW, as does anything it links.
      */
     private String rewriteWithMinorBump(IntegrationMethod existing, UUID methodId,
                                         String currentRevision, EditIntegrationMethodDto dto) {
@@ -641,10 +624,8 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Starts a review on an in-review revision: flips IN_REVIEW -> REVIEWING. While REVIEWING the
-     * revision is locked for its author (see ApplicationService#assertCanEditMethod) so no changes
-     * land under the reviewer — superusers stay exempt so the reviewer can fix findings directly —
-     * and only from this state do the approve/reject actions become available.
+     * Starts a review on an in-review revision: flips IN_REVIEW -> REVIEWING, which locks it for its
+     * author so no changes land under the reviewer, and opens the approve/reject actions.
      */
     @Transactional
     public void startReviewIntegrationMethod(UUID methodId, String revision, String username) {
@@ -675,11 +656,8 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Publishes (approves) an in-review revision: activates it and then removes any other ACTIVE
-     * revision of the same method that shares its major version. A minor draft therefore supersedes
-     * its published baseline (e.g. activating 2.1 drops the active 2.0), while a new major leaves
-     * earlier majors intact (activating 3.0 keeps 2.x). The superseded revisions and their tutorial
-     * folders are deleted.
+     * Publishes (approves) an in-review revision: activates it and deletes any other ACTIVE revision
+     * sharing its major version, so 2.1 supersedes 2.0 while 3.0 leaves 2.x standing.
      */
     @Transactional
     public void publishIntegrationMethod(UUID methodId, String revision, String username) {
@@ -728,10 +706,8 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Activates the bundle, bundle versions and connector versions of every connector linked to a
-     * method revision, so a published method's connectors become visible in the connector catalog.
-     * Only IN_REVIEW records are promoted; already-ACTIVE ones (existing catalog connectors) are left
-     * as they are.
+     * Activates everything beneath every connector linked to a method revision, so a published
+     * method's connectors become visible. Only IN_REVIEW records are promoted.
      */
     private void promoteConnectorsToActive(IntegrationMethod method) {
         for (IntegrationMethodConnector link : method.getConnectors()) {
@@ -801,8 +777,7 @@ public class ConnectorUploadService {
 
     /**
      * Undo a rejection on the connectors of a method: flip REJECTED records back to IN_REVIEW.
-     * Used when a rejected revision is resubmitted (edited + saved) so its connectors are re-reviewed
-     * again. ACTIVE connectors reused by the method are left untouched.
+     * ACTIVE connectors the method merely reuses are left untouched.
      */
     private void resetRejectedConnectorsToInReview(IntegrationMethod method) {
         for (IntegrationMethodConnector link : method.getConnectors()) {
@@ -1037,11 +1012,9 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Deep-copies a connector and everything beneath it — its bundle, and every bundle version and
-     * connector version (with their capabilities) — into brand-new rows. Used for copy-on-write when a
-     * connector is shared across revisions and one revision edits it: the edit then lands on the copy and
-     * leaves the shared original (e.g. a published revision) untouched. The cloned bundle keeps its name
-     * but takes a fresh revision so the (bundle_name, revision) uniqueness constraint still holds.
+     * Deep-copies a connector and everything beneath it into new rows, for copy-on-write when one
+     * revision edits a connector shared with another: the edit lands on the copy and leaves the
+     * original untouched. The clone takes a fresh bundle revision to keep that key unique.
      */
     private Connector cloneConnectorGraph(Connector src) {
         ConnectorBundle srcBundle = src.getConnectorBundle();
@@ -1133,6 +1106,12 @@ public class ConnectorUploadService {
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
                                 String username) {
+        applyConnectorEdit(methodId, revision, connectorId, dto, username);
+        events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, revision, SubmissionFlow.EDIT, null));
+    }
+
+    private void applyConnectorEdit(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
+                                    String username) {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
 
@@ -1271,10 +1250,9 @@ public class ConnectorUploadService {
 
     /**
      * Folds a copy-on-write clone back into the connector it was cloned from, when the two still live
-     * in the same bundle. Two shapes are merged:
+     * in the same bundle; only a clone that moved to a different bundle stays standing beside it.
      *
-     * Only a clone that ended up in a different bundle stays standing beside the original. Returns the
-     * connector the method is linked to afterwards.
+     * @return the connector the method is linked to afterwards
      */
     private Connector mergeCloneIntoOriginal(IntegrationMethod method,
                                              IntegrationMethodConnector link, Connector clone) {
@@ -1352,11 +1330,9 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Retires the original connector in favour of a version-bump clone. The clone was made as a full
-     * copy of the original and then gained the new version, so it is already the complete graph; what
-     * is left is to move everything that still points at the original onto it — the integration-method
-     * links, the download history of each bundle version, and any sibling clone taken from the same
-     * original — and then delete the original connector and its bundle.
+     * Retires the original connector in favour of a version-bump clone: the clone is already the
+     * complete graph, so everything still pointing at the original is moved onto it and the
+     * original is deleted.
      */
     private Connector absorbOriginalIntoClone(Connector clone, ConnectorBundle cloneBundle,
                                               Connector original, ConnectorBundle origBundle) {
@@ -1526,7 +1502,6 @@ public class ConnectorUploadService {
         return firstNonBlank(cbv.getBundleVersion(), cbv.getRevision());
     }
 
-    /** Replaces {@code to}'s capabilities with a copy of {@code from}'s. */
     private void copyVersionCapabilities(ConnectorVersion from, ConnectorVersion to) {
         if (to.getCapabilities() != null && !to.getCapabilities().isEmpty()) {
             connVersionCapabilityRepository.deleteAll(to.getCapabilities());
@@ -1549,10 +1524,9 @@ public class ConnectorUploadService {
 
     /**
      * Rewrites an existing connector version (+ its bundle version) with the edited build data. The
-     * maintainer is not among it: it describes the connector, not a build, and lives on the connector
-     * and its bundle.
+     * maintainer is not among it: it describes the connector, not a build.
      *
-     * @param className the resolved class name (a blank field means "unchanged", never "clear it")
+     * @param className the resolved class name (blank means "unchanged", never "clear it")
      * @param commitTag the resolved commit hash, resolved the same way
      */
     private void applyVersionEdit(ConnectorVersion cv, ConnectorBundleVersion cbv, EditConnectorDto dto,

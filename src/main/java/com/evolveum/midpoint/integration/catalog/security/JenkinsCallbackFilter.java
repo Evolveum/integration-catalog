@@ -28,11 +28,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Machine-to-machine authentication for the build callbacks
- * (POST /api/upload/verify/{oid}, /api/upload/continue/{oid} and /api/upload/continue/fail/{oid}),
- * which the Jenkins pipeline calls without a user session. The pipeline sends the shared secret
- * configured as jenkins.callbackToken in the X-Callback-Token header.
- *
+ * Authenticates the Jenkins build callbacks, which arrive without a user session, by the shared
+ * secret the pipeline sends in the X-Callback-Token header.
  */
 @Slf4j
 public class JenkinsCallbackFilter extends OncePerRequestFilter {

@@ -15,10 +15,8 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
- * An organization users publish on behalf of. This is the only identity data the catalog
- * stores: users and roles stay with the identity provider and reach the
- * application as OIDC token claims, but the organization claim carries the organization's
- * identifier only, so the display name has to live somewhere — here.
+ * An organization users publish on behalf of. Exists because the organization claim carries the
+ * identifier only, leaving the display name nowhere else to live.
  */
 @Entity
 @Table(name = "organizations")

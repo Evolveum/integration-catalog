@@ -191,3 +191,23 @@
     opacity: 1;
   }
 }
+
+.unregistered-org-banner {
+  background-color: #FDECEA;
+  border-bottom: 1px solid #F5C2BC;
+  color: #7A271A;
+  min-height: 44px;
+  gap: 0.6rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+.unregistered-org-banner-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.unregistered-org-banner-text {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}

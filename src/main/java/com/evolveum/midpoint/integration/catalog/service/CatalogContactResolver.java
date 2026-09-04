@@ -14,13 +14,9 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 /**
- * Turns an author or maintainer named on a catalog item into a contact address and an organization.
- *
- * <p>Both come off the item itself, stamped there when the row was written (see
- * {@link OwnershipService}), not from a directory: users live in the identity provider and a token
- * describes only its own bearer, so there is nothing to ask for the address of someone else. The
- * consequence is that only the author has an address - the person who submitted is the one whose
- * token the catalog saw. A miss is therefore normal and resolves to empty rather than to an error.
+ * Turns an author or maintainer named on a catalog item into a contact address and an organization,
+ * read off the item itself rather than from a directory. Only the author can have an address — a
+ * token describes only its bearer — so a miss is normal and resolves to empty.
  */
 @Component
 @RequiredArgsConstructor
@@ -33,8 +29,7 @@ public class CatalogContactResolver {
      *
      * @param item the item they are named on
      * @param name the author or maintainer name as it appears on that item
-     * @return their address, or empty for anyone but the author, and for an author who was
-     *         stamped before the column existed or whose token carried no address
+     * @return their address, or empty for anyone but the author
      */
     public Optional<String> emailOf(OwnedItem item, String name) {
         if (item == null || name == null || name.isBlank()) {

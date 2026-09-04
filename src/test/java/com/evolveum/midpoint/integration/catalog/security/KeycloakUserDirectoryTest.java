@@ -27,13 +27,9 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
- * Tests the realm user listing against a mocked HTTP layer: pagination, the service-account token
- * being reused, the short-lived cache and - most importantly - the fail-soft behaviour, since an
- * unreachable Keycloak must cost the maintainer list its Keycloak half and nothing else. Time is
- * supplied by the test, so cache and backoff expiry are exercised without sleeping.
- *
- * <p>All expectations are declared before the first call: {@link MockRestServiceServer} is ordered
- * and refuses expectations added after a request has been made.
+ * Tests the realm user listing against a mocked HTTP layer: pagination, token reuse, the cache and
+ * the fail-soft behaviour. Time is supplied by the test, so expiry needs no sleeping, and all
+ * expectations are declared up front because {@link MockRestServiceServer} is ordered.
  */
 class KeycloakUserDirectoryTest {
 

@@ -17,10 +17,8 @@ import org.springframework.util.StringUtils;
 import java.util.function.Supplier;
 
 /**
- * The CSRF handler recommended by the Spring Security reference for single-page applications
- * with CookieCsrfTokenRepository: BREACH-protected (XOR-masked) tokens for anything rendered
- * into a response, while the raw token value Angular copies from the XSRF-TOKEN cookie into
- * the X-XSRF-TOKEN header is accepted as-is.
+ * The CSRF handler the Spring Security reference prescribes for single-page applications using
+ * CookieCsrfTokenRepository, so that the raw token Angular copies from the cookie is accepted.
  */
 public final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
 

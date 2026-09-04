@@ -74,6 +74,19 @@
 
 <app-staging-banner />
 
+<!-- The token names an organization the catalog has no row for, so nothing can be published
+     on its behalf until an administrator adds it. -->
+@if (authService.organizationIsUnregistered()) {
+  <div class="unregistered-org-banner d-flex align-items-center px-4">
+    <i class="fa-solid fa-triangle-exclamation unregistered-org-banner-icon"></i>
+    <span class="unregistered-org-banner-text">
+      Your organization (<strong>{{ authService.currentOrganizationId() }}</strong>) is not registered in the catalog,
+      so you cannot publish on its behalf — everything you publish is attributed to you personally.
+      Ask an administrator to add the organization.
+    </span>
+  </div>
+}
+
 @if (breadcrumb) {
   <div class="page-header-breadcrumb px-4">
     <ng-content select="[breadcrumb]"></ng-content>

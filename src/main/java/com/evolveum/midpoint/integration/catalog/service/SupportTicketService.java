@@ -625,20 +625,10 @@ public class SupportTicketService {
 
     /**
      * Subscribes everyone the submission concerns to its work package: the reviewers in
-     * {@code openproject.watchers} and the submitting side, both by portal login.
-     *
-     * <p>Login is the primary key on purpose. The author and maintainer columns hold catalog
-     * usernames, and a portal account carries the same login as the person's catalog account - which
-     * is the one identifier that survived users moving to the identity provider. It also reaches a
-     * maintainer who is not the author, whom no stamped address can describe: an item records the
-     * address of whoever wrote it, never of a third person. The address is kept as a fallback for a
-     * portal whose logins do not follow the catalog's usernames, and only the author has one.
-     *
-     * <p>A maintainer that is an organization is skipped without trying: it leaves
-     * {@code maintainer} null and carries {@code maintainer_org_id} instead, so there is no name
-     * here to look up - the author represents it, exactly as openProject/README.md describes.
-     *
-     * <p>Best effort throughout: anyone the portal does not know is logged and skipped.
+     * {@code openproject.watchers} and the submitting side, matched by portal login — the one
+     * identifier that survived users moving to the identity provider, and the only way to reach a
+     * maintainer who is not the author. An organization maintainer has no name to look up and is
+     * skipped, the author representing it. Best effort: anyone the portal does not know is skipped.
      */
     private void addWatchers(int workPackageId, IntegrationMethod method) {
         Set<Integer> watching = new LinkedHashSet<>();

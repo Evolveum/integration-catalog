@@ -35,10 +35,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Tests the security matrix of {@link SecurityConfig} together with the /api/auth
- * endpoints — the opposite setup to {@link ControllerTest}, which switches security off.
- * OIDC sessions are fabricated with spring-security-test's {@code oidcLogin()}; the role
- * authorities mirror what {@link CatalogOidcUserService} grants after a real login.
+ * Tests the security matrix of {@link SecurityConfig} together with the /api/auth endpoints — the
+ * opposite setup to {@link ControllerTest}, which switches security off. Sessions are fabricated
+ * with {@code oidcLogin()}, mirroring what {@link CatalogOidcUserService} grants after a real login.
  */
 @WebMvcTest(controllers = {AuthController.class, Controller.class})
 @Import(SecurityConfig.class)

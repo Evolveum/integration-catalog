@@ -6,10 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-/**
- * The authenticated user's profile as the frontend sees it — every field comes from
- * the token claims (username, full name, email, role, organization).
- */
+/** The authenticated user's profile as the frontend sees it. */
 public record CurrentUserDto(
         String username,
         String fullName,

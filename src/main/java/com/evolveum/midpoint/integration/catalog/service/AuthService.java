@@ -21,15 +21,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
- * Identity questions, answered from the OIDC token claims of the current session plus the
- * organizations table.
- *
- * A token only ever describes its own bearer, so questions about other users are
- * answered from what was recorded on the item when it was written: its author, its
- * maintainer, and the organization identifiers stamped alongside them.
- *
- * The one exception is the superuser's maintainer list, which has to be able to name a user the
- * catalog has never seen and therefore reads the realm through {@link KeycloakUserDirectory}.
+ * Identity questions, answered from the token claims of the current session plus the organizations
+ * table. A token describes only its bearer, so anything about other users is read from what was
+ * stamped on the item when it was written.
  */
 @Service
 public class AuthService {
@@ -50,10 +44,9 @@ public class AuthService {
     }
 
     /**
-     * The authenticated user's profile. Everything but the organization's display name
-     * comes straight from the token; the claim carries the organization's identifier only,
-     * so the name is resolved from the organizations table (falling back to the identifier
-     * when the organization has not been seeded there yet).
+     * The authenticated user's profile. An organization identifier without a name means the
+     * organization is not seeded in the catalog and nothing may be published on its behalf —
+     * the frontend warns about that combination.
      */
     public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
         String role = CatalogRole.READ_ONLY;
@@ -62,8 +55,7 @@ public class AuthService {
         if (oidcUser != null) {
             role = claims.effectiveRole(oidcUser);
             organizationId = claims.organizationId(oidcUser);
-            String resolved = organizationService.displayName(organizationId);
-            organizationName = resolved != null ? resolved : organizationId;
+            organizationName = organizationService.displayName(organizationId);
         }
         return new CurrentUserDto(
                 username,
@@ -76,13 +68,9 @@ public class AuthService {
     }
 
     /**
-     * Maintainer options for a superuser: every user of the realm, plus every organization.
-     *
-     * The identity provider is asked first, since only it knows a user who has not yet touched
-     * the catalog - without that, a freshly created user could never be made maintainer of
-     * anything, having published nothing to be recorded on. What the catalog itself knows is
-     * merged in behind it, which both keeps the list working while Keycloak is unreachable and
-     * preserves maintainers who no longer have an account.
+     * Maintainer options for a superuser: every user of the realm, plus every organization. The
+     * realm is asked first because only it knows a user who has not published anything yet; what
+     * the catalog knows is merged in behind it, so the list survives an unreachable Keycloak.
      */
     public List<String> getAllMaintainers() {
         SortedSet<String> people = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
@@ -115,8 +103,8 @@ public class AuthService {
         if (maintainer != null && maintainer.equalsIgnoreCase(username)) {
             return true;
         }
-        String callerOrganizationId = claims.organizationId(caller);
-        // An organization acts as a team: whatever it maintains, all of its members may edit.
+        String callerOrganizationId = contributingOrganizationId(caller, callerRole);
+        // An organization acts as a team: whatever it maintains, all of its contributors may edit.
         if (callerOrganizationId != null && maintainerOrganizationId != null
                 && callerOrganizationId.equalsIgnoreCase(maintainerOrganizationId)) {
             return true;
@@ -125,12 +113,26 @@ public class AuthService {
             return true;
         }
         // Uploads made on behalf of the caller's organization belong to the whole organization.
-        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
-                && callerOrganizationId != null && authorOrganizationId != null
+        return callerOrganizationId != null && authorOrganizationId != null
                 && callerOrganizationId.equalsIgnoreCase(authorOrganizationId);
     }
 
-    /** Whether {@code username} is the current Superuser. Used to gate approval actions. */
+    /**
+     * The organization the caller acts on behalf of, or {@code null} when they act as themselves.
+     * Membership alone confers nothing — only an organization contributor shares in its items.
+     *
+     * @param caller the authenticated user
+     * @param callerRole their effective catalog role
+     */
+    private String contributingOrganizationId(OidcUser caller, String callerRole) {
+        // An unregistered organization needs no check: no item can carry an identifier the
+        // organizations table does not have, the ownership columns being foreign keys into it.
+        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
+                ? claims.organizationId(caller)
+                : null;
+    }
+
+    /** Whether {@code username} is the current Superuser. */
     public boolean isSuperuser(String username) {
         if (username == null || username.isBlank()) {
             return false;
@@ -140,14 +142,14 @@ public class AuthService {
     }
 
     /**
-     * Usernames sharing the caller's organization; just the caller when they have none.
-     *
-     * Derived from the items published on behalf of that organization, so it lists the
-     * organization's contributors rather than every account in it.
+     * Usernames sharing the caller's organization; just the caller when they have none. Derived
+     * from the items published on its behalf, so it lists contributors, not every account.
      */
     public List<String> getOrganizationMembers(String username) {
         OidcUser caller = currentOidcUser();
-        String organizationId = caller != null ? claims.organizationId(caller) : null;
+        String organizationId = caller != null
+                ? contributingOrganizationId(caller, claims.effectiveRole(caller))
+                : null;
         if (organizationId == null || organizationId.isBlank()) {
             return List.of(username);
         }

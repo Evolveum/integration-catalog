@@ -28,11 +28,8 @@ interface CurrentUserResponse {
 }
 
 /**
- * Session state for the OIDC login. Authentication is done by the identity provider
- * through the backend (Spring Security OIDC client): login/logout are full-page redirects, the
- * browser carries a session cookie, and this service only mirrors the profile that
- * GET /api/auth/me reports for that session. Nothing identity-related is kept in
- * localStorage anymore — the backend session is the single source of truth.
+ * Session state for the OIDC login. The backend session is the single source of truth: this only
+ * mirrors what GET /api/auth/me reports, and keeps nothing in localStorage.
  */
 @Injectable({
   providedIn: 'root'
@@ -43,14 +40,13 @@ export class AuthService {
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
   private readonly _currentOrganizationName = signal<string | null>(null);
+  private readonly _currentOrganizationId = signal<string | null>(null);
 
   readonly currentUser = this._currentUser.asReadonly();
 
   /**
-   * Loads the profile of the current backend session into the signals above. It completes
-   * rather than fails on every outcome, so a provider or backend problem cannot keep the
-   * application from starting: a 401 is the normal "no session" answer and leaves the
-   * visitor anonymous, any other failure is logged and treated the same way.
+   * Loads the profile of the current backend session. Completes rather than fails on every
+   * outcome, so a provider problem cannot keep the application from starting.
    */
   loadCurrentUser(): Observable<void> {
     return this.http.get<CurrentUserResponse>(`${environment.apiUrl}/auth/me`).pipe(
@@ -70,6 +66,21 @@ export class AuthService {
     this._currentUser.set(user?.username ?? null);
     this._currentRole.set(user ? (UserRole[user.role as keyof typeof UserRole] ?? null) : null);
     this._currentOrganizationName.set(user?.organizationName ?? null);
+    this._currentOrganizationId.set(user?.organizationId ?? null);
+  }
+
+  /**
+   * Whether the token names an organization the catalog has no row for, in which case the user
+   * publishes as themselves until an administrator seeds it. The header banner says so.
+   */
+  organizationIsUnregistered(): boolean {
+    return this._currentRole() === UserRole.OrganizationContributor
+      && !!this._currentOrganizationId()
+      && !this._currentOrganizationName();
+  }
+
+  currentOrganizationId(): string | null {
+    return this._currentOrganizationId();
   }
 
   /** Starts the OIDC login flow: full-page redirect to the provider via the backend. */
@@ -108,9 +119,8 @@ export class AuthService {
   }
 
   /**
-   * Options for the maintainer combobox of a non-superuser: the organization plus the
-   * user themselves for an organization contributor, otherwise just the user. Superusers
-   * load the full list asynchronously via getAllMaintainers() instead.
+   * Options for the maintainer combobox of a non-superuser: the organization plus the user
+   * themselves for an organization contributor, otherwise just the user.
    */
   maintainerOptions(): string[] {
     const user = this._currentUser();
@@ -122,10 +132,8 @@ export class AuthService {
   }
 
   /**
-   * Organization shown next to the current user when they are a maintainer: only an
-   * organization contributor is displayed under their org. An individual contributor who
-   * belongs to an organization publishes as themselves, so no organization is shown
-   * (mirrors the server-side maintainerOrganization resolution in ApplicationMapper).
+   * Organization shown next to the current user when they are a maintainer. An individual
+   * contributor publishes as themselves, so none is shown for them.
    */
   displayedOrganization(): string | null {
     return this._currentRole() === UserRole.OrganizationContributor
@@ -170,22 +178,8 @@ export class AuthService {
   }
 
   /**
-   * Whether the current user may see/edit an item designated by the given maintainer and
-   * uploaded by the given author/organization. Mirrors the server-side `AuthService.canEdit`:
-   * a Superuser may access anything; the designated maintainer may access it (matched by
-   * username, or by the user's organization name when the item is maintained by their org);
-   * an item maintained by a member of the user's organization is accessible to the whole
-   * organization (pass the maintainer's org as `maintainerOrganization`; a maintainer
-   * without an organization stays personal); the uploader may access items they authored;
-   * and an Organization contributor may access any item authored by a member of their own
-   * organization (same organization name). The server only exposes `maintainerOrganization`\
-   * `authorOrganization` when that maintainer\author is an Organization contributor, so items
-   * of an Individual contributor who belongs to an org stay personal on both sides.
-   *
-   * The maintainer is the primary ownership signal — it is explicitly set at publish time,
-   * so e.g. a superuser can attribute an item to another user, who then gains access to it.
-   *
-   * This only decides which controls/rows are shown — the backend re-enforces the same rule.
+   * Whether the current user may see/edit an item with the given owners, mirroring the server-side
+   * `AuthService.canEdit`. Decides which controls are shown only; the backend re-enforces the rule.
    */
   canEdit(
     author: string | null | undefined,
@@ -197,19 +191,19 @@ export class AuthService {
     if (!user) return false;
     const role = this._currentRole();
     if (role === UserRole.Superuser) return true;
-    const orgName = this._currentOrganizationName();
+    const orgName = this.displayedOrganization();
     if (maintainer) {
       const m = maintainer.trim().toLowerCase();
       if (m === user.trim().toLowerCase()) return true;
       if (orgName && m === orgName.trim().toLowerCase()) return true;
     }
-    // An organization acts as a team: a member maintainer grants access to all org-mates.
+    // An organization acts as a team: a contributor maintainer grants access to all org-mates.
     if (orgName && maintainerOrganization
         && orgName.trim().toLowerCase() === maintainerOrganization.trim().toLowerCase()) {
       return true;
     }
     if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
-    if (role === UserRole.OrganizationContributor && orgName && authorOrganization
+    if (orgName && authorOrganization
         && orgName.trim().toLowerCase() === authorOrganization.trim().toLowerCase()) {
       return true;
     }

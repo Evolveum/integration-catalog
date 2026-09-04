@@ -45,16 +45,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration tests for the REST Controller.
- * Tests all endpoints using MockMvc and mocked ApplicationService.
+ * Integration tests for the REST Controller, over MockMvc and a mocked ApplicationService.
  *
- * The security layer is deliberately switched off (SecurityConfig excluded, filters
- * disabled): these tests exercise the MVC layer only, and the caller identity is passed
- * as a request principal where an endpoint needs one.
- *
- * Excluding SecurityConfig leaves no HttpSecurity bean, so the OAuth2 client auto-configuration
- * (active because the application is an OIDC client) cannot build its filter chain and fails the
- * whole slice - it is excluded here as well.
+ * Security is deliberately switched off so these exercise the MVC layer only; the caller identity
+ * is passed as a request principal instead. Excluding SecurityConfig leaves no HttpSecurity bean,
+ * so the OAuth2 client auto-configuration has to be excluded with it.
  */
 @WebMvcTest(controllers = Controller.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
