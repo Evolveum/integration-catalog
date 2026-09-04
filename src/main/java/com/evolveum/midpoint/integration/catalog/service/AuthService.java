@@ -115,8 +115,8 @@ public class AuthService {
         if (maintainer != null && maintainer.equalsIgnoreCase(username)) {
             return true;
         }
-        String callerOrganizationId = claims.organizationId(caller);
-        // An organization acts as a team: whatever it maintains, all of its members may edit.
+        String callerOrganizationId = contributingOrganizationId(caller, callerRole);
+        // An organization acts as a team: whatever it maintains, all of its contributors may edit.
         if (callerOrganizationId != null && maintainerOrganizationId != null
                 && callerOrganizationId.equalsIgnoreCase(maintainerOrganizationId)) {
             return true;
@@ -125,9 +125,23 @@ public class AuthService {
             return true;
         }
         // Uploads made on behalf of the caller's organization belong to the whole organization.
-        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
-                && callerOrganizationId != null && authorOrganizationId != null
+        return callerOrganizationId != null && authorOrganizationId != null
                 && callerOrganizationId.equalsIgnoreCase(authorOrganizationId);
+    }
+
+    /**
+     * The organization the caller acts on behalf of, or {@code null} when they act as
+     * themselves. Membership alone confers nothing: an individual contributor who happens to
+     * belong to an organization publishes and reads as an individual, so only an organization
+     * contributor shares in the organization's items.
+     *
+     * @param caller the authenticated user
+     * @param callerRole their effective catalog role
+     */
+    private String contributingOrganizationId(OidcUser caller, String callerRole) {
+        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
+                ? claims.organizationId(caller)
+                : null;
     }
 
     /** Whether {@code username} is the current Superuser. Used to gate approval actions. */
@@ -140,14 +154,17 @@ public class AuthService {
     }
 
     /**
-     * Usernames sharing the caller's organization; just the caller when they have none.
+     * Usernames sharing the caller's organization; just the caller when they have none, or
+     * when they contribute as an individual.
      *
      * Derived from the items published on behalf of that organization, so it lists the
      * organization's contributors rather than every account in it.
      */
     public List<String> getOrganizationMembers(String username) {
         OidcUser caller = currentOidcUser();
-        String organizationId = caller != null ? claims.organizationId(caller) : null;
+        String organizationId = caller != null
+                ? contributingOrganizationId(caller, claims.effectiveRole(caller))
+                : null;
         if (organizationId == null || organizationId.isBlank()) {
             return List.of(username);
         }

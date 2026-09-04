@@ -182,6 +182,10 @@ export class AuthService {
    * `authorOrganization` when that maintainer\author is an Organization contributor, so items
    * of an Individual contributor who belongs to an org stay personal on both sides.
    *
+   * Every organization branch reads displayedOrganization(), not the raw membership: an
+   * Individual contributor who happens to belong to an organization gains nothing from it,
+   * so their org-mates' drafts stay invisible to them.
+   *
    * The maintainer is the primary ownership signal — it is explicitly set at publish time,
    * so e.g. a superuser can attribute an item to another user, who then gains access to it.
    *
@@ -197,19 +201,19 @@ export class AuthService {
     if (!user) return false;
     const role = this._currentRole();
     if (role === UserRole.Superuser) return true;
-    const orgName = this._currentOrganizationName();
+    const orgName = this.displayedOrganization();
     if (maintainer) {
       const m = maintainer.trim().toLowerCase();
       if (m === user.trim().toLowerCase()) return true;
       if (orgName && m === orgName.trim().toLowerCase()) return true;
     }
-    // An organization acts as a team: a member maintainer grants access to all org-mates.
+    // An organization acts as a team: a contributor maintainer grants access to all org-mates.
     if (orgName && maintainerOrganization
         && orgName.trim().toLowerCase() === maintainerOrganization.trim().toLowerCase()) {
       return true;
     }
     if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
-    if (role === UserRole.OrganizationContributor && orgName && authorOrganization
+    if (orgName && authorOrganization
         && orgName.trim().toLowerCase() === authorOrganization.trim().toLowerCase()) {
       return true;
     }
