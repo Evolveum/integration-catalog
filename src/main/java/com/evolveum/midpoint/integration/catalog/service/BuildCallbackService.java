@@ -309,6 +309,7 @@ public class BuildCallbackService {
         ConnVersionCapability group = new ConnVersionCapability();
         group.setObjectClass("Global");
         group.setConnectorVersion(connectorVersion);
+        connVersionCapabilityRepository.save(group);
 
         for (CapabilityType capType : capabilityTypes) {
             if (!capType.isGlobal()){
@@ -329,7 +330,6 @@ public class BuildCallbackService {
             item.setCapability(cap);
             group.getItems().add(item);
         }
-        connVersionCapabilityRepository.save(group);
     }
 
     private Optional<ConnectorBundleVersion> findMatchingBundleVersion(ConnectorBundle bundle, String version) {
