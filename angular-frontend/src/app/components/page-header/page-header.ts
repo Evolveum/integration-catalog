@@ -22,6 +22,8 @@ import { StagingBanner } from '../staging-banner/staging-banner';
 export class PageHeader {
   @Input() breadcrumb: boolean = false;
   @Input() hideBorder: boolean = false;
+  /** Opt-in for the unregistered-organization warning, shown only where the user publishes. */
+  @Input() showUnregisteredOrgWarning: boolean = false;
 
   protected readonly authService = inject(AuthService);
   protected readonly toastService = inject(ToastService);

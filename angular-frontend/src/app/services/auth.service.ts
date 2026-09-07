@@ -71,7 +71,7 @@ export class AuthService {
 
   /**
    * Whether the token names an organization the catalog has no row for, in which case the user
-   * publishes as themselves until an administrator seeds it. The header banner says so.
+   * publishes as themselves until an administrator seeds it. The publish form's banner says so.
    */
   organizationIsUnregistered(): boolean {
     return this._currentRole() === UserRole.OrganizationContributor

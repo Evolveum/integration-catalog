@@ -75,8 +75,8 @@
 <app-staging-banner />
 
 <!-- The token names an organization the catalog has no row for, so nothing can be published
-     on its behalf until an administrator adds it. -->
-@if (authService.organizationIsUnregistered()) {
+     on its behalf until an administrator adds it. Only the publish flow opts in to the warning. -->
+@if (showUnregisteredOrgWarning && authService.organizationIsUnregistered()) {
   <div class="unregistered-org-banner d-flex align-items-center px-4">
     <i class="fa-solid fa-triangle-exclamation unregistered-org-banner-icon"></i>
     <span class="unregistered-org-banner-text">
