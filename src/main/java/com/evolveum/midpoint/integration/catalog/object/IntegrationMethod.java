@@ -102,10 +102,10 @@ public class IntegrationMethod implements OwnedItem, Persistable<UUID> {
     // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
     // reference to organizations.id, so renames need no change here) and leaves maintainer null.
     @Column(name = "author_org_id")
-    private String authorOrgId;
+    private Integer authorOrgId;
 
     @Column(name = "maintainer_org_id")
-    private String maintainerOrgId;
+    private Integer maintainerOrgId;
 
     /** Evolveum, Partner or Community. */
     @Column(name = "author_category")

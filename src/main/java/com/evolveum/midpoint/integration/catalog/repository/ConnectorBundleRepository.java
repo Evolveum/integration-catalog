@@ -30,7 +30,7 @@ public interface ConnectorBundleRepository extends JpaRepository<ConnectorBundle
     List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
 
     /** Owners of items uploaded on behalf of the given organization. */
-    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
+    List<ItemOwnerView> findDistinctByAuthorOrgId(Integer authorOrgId);
     /**
      * Deletes an emptied bundle row. A bulk delete on purpose: {@code delete(entity)} would cascade
      * REMOVE into the connectors still held in the entity's in-memory collection, which is exactly what

@@ -154,7 +154,7 @@ $aa$);
 -- end of region
 
 -- region change 7: user data moved entirely to the identity provider
--- Users, roles and organizations live in the identity provider (claims 'role', 'group',
+-- Users, roles and group membership live in the identity provider (claims 'role', 'group',
 -- 'organization'); the application read them from token claims and, at the time, from the
 -- provider's administration API. The author/maintainer columns are plain text and stay.
 --
@@ -163,21 +163,33 @@ $aa$);
 -- so it can answer "the caller's address" but never "that other person's address". Change 8
 -- therefore stamps author_email on the item at write time, the same way it stamps author_org_id,
 -- and change 4 becomes a column that existed only between these two changes.
+--
+-- organizations is deliberately NOT dropped. Membership moves to the provider with everything
+-- else, but the organizations themselves cannot: the claim names one without saying what to call
+-- it, so the display name has nowhere else to live. Change 8 adds the alias to match the claim
+-- against; the table's id, its name and the rows already in it all stay as they are.
 call apply_change(7, $aa$
 DROP TABLE IF EXISTS catalog_users;
-DROP TABLE IF EXISTS organizations;
 $aa$);
 -- end of region
 
--- region change 8: organizations table + organization stamped on catalog items
+-- region change 8: organization alias + organization stamped on catalog items
 -- The application stops calling the identity provider's administration API. Everything it
 -- knows about the logged-in user comes from the OIDC token claims, so users, roles and
 -- groups stay with the provider and no user table comes back. Organizations are the one
--- exception: the claim carries only the organization's identifier, so the display name
--- has to live somewhere - here.
+-- exception: the claim carries only an alias, so the display name has to live somewhere -
+-- the organizations table change 7 left in place for exactly this.
 --
--- organizations.id is that identifier (immutable, unlike the name), which is what makes a
--- rename one UPDATE of organizations.name instead of a sweep over five tables.
+-- The alias is what a claim is matched against. It is NOT what items point at: it belongs to
+-- the provider, which can reassign it, and items keyed by it would silently change hands when
+-- that happened. Items point at organizations.id, the integer the table has carried since the
+-- baseline schema - issued by the catalog and beyond anyone else's reach. Renaming an
+-- organization and re-aliasing one are then each one UPDATE of one row, with no item touched.
+--
+-- Nullable: an organization that predates the identity provider has no alias to fill in, and
+-- only an administrator knows which one it should get. Until it has one no claim resolves to
+-- it, which is the right answer for an organization the catalog cannot recognise. Unique, so
+-- one alias never names two organizations - Postgres lets the NULLs repeat.
 --
 -- Because a token only describes its own bearer, facts about *other* users are recorded
 -- on the item when it is written: author_org_id, maintainer_org_id (set when an
@@ -185,26 +197,21 @@ $aa$);
 -- a username only) and author_category. Existing rows are converted once the
 -- organizations are known - see change 9 below.
 call apply_change(8, $aa$
-CREATE TABLE IF NOT EXISTS organizations (
-    id          character varying(255) NOT NULL,
-    name        character varying(255) NOT NULL,
-    description text
-);
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS alias character varying(255);
 
-ALTER TABLE ONLY organizations
-    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
+CREATE UNIQUE INDEX unique_organizations_alias ON organizations USING btree (alias);
 
-ALTER TABLE connector                ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
+ALTER TABLE connector                ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
 
-ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
+ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_org_id integer;
 
 ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_category character varying(32);
 ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_category character varying(32);
@@ -266,15 +273,16 @@ $aa$);
 -- end of region
 
 -- region change 9: plain-text organization maintainers become references
--- Completes change 4 for databases that already held data. Before it, an item maintained by
+-- Completes change 8 for databases that already held data. Before it, an item maintained by
 -- an organization carried the organization's display name in the maintainer column, which is
 -- exactly what a rename used to orphan; now it carries maintainer_org_id and the maintainer
 -- column holds a username only.
 --
--- IMPORTANT: this converts only what matches a row in the organizations table, which change 4
--- created EMPTY. Insert the environment's organizations BEFORE running this script - the
--- change runs once, so an organization added afterwards will not be picked up and its items
--- keep their plain-text maintainer.
+-- IMPORTANT: this converts only what matches a row in the organizations table. A database
+-- upgraded from before change 7 still holds the organizations it always had; a fresh one has
+-- none, and they have to be inserted BEFORE this script runs - the change runs once, so an
+-- organization added afterwards will not be picked up and its items keep their plain-text
+-- maintainer.
 --
 -- author_org_id and author_category are deliberately not filled in here: they describe the
 -- uploader's role and organization at the time of upload, which no longer exists anywhere in

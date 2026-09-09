@@ -378,7 +378,7 @@ public class ApplicationService {
             // An item maintained by an organization carries no maintainer username, so the
             // search has to match the organization's name as well as the username.
             String pattern = "%" + searchForm.getMaintainer().toLowerCase() + "%";
-            List<String> organizationIds = organizationService.idsOfNamesContaining(searchForm.getMaintainer());
+            List<Integer> organizationIds = organizationService.idsOfNamesContaining(searchForm.getMaintainer());
             spec = spec.and((root, query, cb) -> {
                 var byUsername = cb.like(cb.lower(root.get("maintainer")), pattern);
                 return organizationIds.isEmpty()

@@ -53,7 +53,7 @@ public class CatalogContactResolver {
             return Optional.empty();
         }
         String trimmed = name.trim();
-        String organizationId = null;
+        Integer organizationId = null;
         if (trimmed.equalsIgnoreCase(trimmed(item.getAuthor()))) {
             organizationId = item.getAuthorOrgId();
         } else if (trimmed.equalsIgnoreCase(trimmed(item.getMaintainer()))) {

@@ -63,8 +63,8 @@ public class CatalogOwnerDirectory {
     }
 
     /** Every user who has authored an item on behalf of the given organization. */
-    public List<String> findAuthorsOfOrganization(String organizationId) {
-        if (organizationId == null || organizationId.isBlank()) {
+    public List<String> findAuthorsOfOrganization(Integer organizationId) {
+        if (organizationId == null) {
             return List.of();
         }
         return distinctNames(

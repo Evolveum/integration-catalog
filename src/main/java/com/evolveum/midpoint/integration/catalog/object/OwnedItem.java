@@ -17,9 +17,9 @@ public interface OwnedItem {
 
     Object setAuthor(String author);
 
-    String getAuthorOrgId();
+    Integer getAuthorOrgId();
 
-    Object setAuthorOrgId(String authorOrgId);
+    Object setAuthorOrgId(Integer authorOrgId);
 
     String getAuthorCategory();
 
@@ -33,7 +33,7 @@ public interface OwnedItem {
 
     Object setMaintainer(String maintainer);
 
-    String getMaintainerOrgId();
+    Integer getMaintainerOrgId();
 
-    Object setMaintainerOrgId(String maintainerOrgId);
+    Object setMaintainerOrgId(Integer maintainerOrgId);
 }

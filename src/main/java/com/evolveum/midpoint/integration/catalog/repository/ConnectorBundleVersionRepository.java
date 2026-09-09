@@ -31,7 +31,7 @@ public interface ConnectorBundleVersionRepository extends JpaRepository<Connecto
     List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
 
     /** Owners of items uploaded on behalf of the given organization. */
-    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
+    List<ItemOwnerView> findDistinctByAuthorOrgId(Integer authorOrgId);
     /**
      * Re-parents every version of {@code source} onto {@code target}. Written as a bulk update rather
      * than by moving entities between the two {@code bundleVersions} collections: those use

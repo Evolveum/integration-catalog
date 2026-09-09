@@ -47,20 +47,22 @@ public class CatalogClaims {
     }
 
     /**
-     * The identifier of the user's organization, or {@code null} when they belong to none.
-     * Only the first one is used: the catalog models a user as publishing on behalf of at
+     * The alias of the user's organization, or {@code null} when they belong to none. It is an
+     * alias rather than the catalog's own organization id because a token carries only what the
+     * provider knows; {@code OrganizationService.idOfAlias} turns it into the latter.
+     *
+     * <p>Only the first one is used: the catalog models a user as publishing on behalf of at
      * most one organization.
      */
-    public String organizationId(OidcUser oidcUser) {
-        return organizationIds(oidcUser).stream().findFirst().orElse(null);
+    public String organizationAlias(OidcUser oidcUser) {
+        return organizationAliases(oidcUser).stream().findFirst().orElse(null);
     }
 
     /**
-     * All organization identifiers in the claim. The claim is an array of identifiers when
-     * the provider emits strings, and an object keyed by identifier when it emits JSON;
-     * both shapes are accepted.
+     * All organization aliases in the claim. The claim is an array of aliases when the provider
+     * emits strings, and an object keyed by alias when it emits JSON; both shapes are accepted.
      */
-    private List<String> organizationIds(OidcUser oidcUser) {
+    private List<String> organizationAliases(OidcUser oidcUser) {
         Object claim = claim(oidcUser, organizationClaim);
         List<String> raw = claim instanceof Map<?, ?> byIdentifier
                 ? byIdentifier.keySet().stream().map(String::valueOf).toList()

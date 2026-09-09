@@ -44,25 +44,27 @@ public class AuthService {
     }
 
     /**
-     * The authenticated user's profile. An organization identifier without a name means the
-     * organization is not seeded in the catalog and nothing may be published on its behalf —
+     * The authenticated user's profile. The profile carries the claim's alias, not the catalog's
+     * own organization id, because it is what the frontend shows; an alias without a name means
+     * the organization is not seeded in the catalog and nothing may be published on its behalf —
      * the frontend warns about that combination.
      */
     public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
         String role = CatalogRole.READ_ONLY;
-        String organizationId = null;
+        String organizationAlias = null;
         String organizationName = null;
         if (oidcUser != null) {
             role = claims.effectiveRole(oidcUser);
-            organizationId = claims.organizationId(oidcUser);
-            organizationName = organizationService.displayName(organizationId);
+            organizationAlias = claims.organizationAlias(oidcUser);
+            organizationName = organizationService.displayName(
+                    organizationService.idOfAlias(organizationAlias));
         }
         return new CurrentUserDto(
                 username,
                 oidcUser != null ? oidcUser.getFullName() : null,
                 oidcUser != null ? oidcUser.getEmail() : null,
                 role,
-                organizationId,
+                organizationAlias,
                 organizationName
         );
     }
@@ -87,8 +89,8 @@ public class AuthService {
      * of {@code authorOrganizationId} and maintained by {@code maintainer} /
      * {@code maintainerOrganizationId}.
      */
-    public boolean canEdit(String username, String author, String authorOrganizationId,
-                           String maintainer, String maintainerOrganizationId) {
+    public boolean canEdit(String username, String author, Integer authorOrganizationId,
+                           String maintainer, Integer maintainerOrganizationId) {
         if (username == null || username.isBlank()) {
             return false;
         }
@@ -103,18 +105,16 @@ public class AuthService {
         if (maintainer != null && maintainer.equalsIgnoreCase(username)) {
             return true;
         }
-        String callerOrganizationId = contributingOrganizationId(caller, callerRole);
+        Integer callerOrganizationId = contributingOrganizationId(caller, callerRole);
         // An organization acts as a team: whatever it maintains, all of its contributors may edit.
-        if (callerOrganizationId != null && maintainerOrganizationId != null
-                && callerOrganizationId.equalsIgnoreCase(maintainerOrganizationId)) {
+        if (callerOrganizationId != null && callerOrganizationId.equals(maintainerOrganizationId)) {
             return true;
         }
         if (author != null && author.equalsIgnoreCase(username)) {
             return true;
         }
         // Uploads made on behalf of the caller's organization belong to the whole organization.
-        return callerOrganizationId != null && authorOrganizationId != null
-                && callerOrganizationId.equalsIgnoreCase(authorOrganizationId);
+        return callerOrganizationId != null && callerOrganizationId.equals(authorOrganizationId);
     }
 
     /**
@@ -124,11 +124,11 @@ public class AuthService {
      * @param caller the authenticated user
      * @param callerRole their effective catalog role
      */
-    private String contributingOrganizationId(OidcUser caller, String callerRole) {
-        // An unregistered organization needs no check: no item can carry an identifier the
-        // organizations table does not have, the ownership columns being foreign keys into it.
+    private Integer contributingOrganizationId(OidcUser caller, String callerRole) {
+        // An organization the catalog has not been told about resolves to null, which is what an
+        // unregistered organization should confer: nothing.
         return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
-                ? claims.organizationId(caller)
+                ? organizationService.idOfAlias(claims.organizationAlias(caller))
                 : null;
     }
 
@@ -147,10 +147,10 @@ public class AuthService {
      */
     public List<String> getOrganizationMembers(String username) {
         OidcUser caller = currentOidcUser();
-        String organizationId = caller != null
+        Integer organizationId = caller != null
                 ? contributingOrganizationId(caller, claims.effectiveRole(caller))
                 : null;
-        if (organizationId == null || organizationId.isBlank()) {
+        if (organizationId == null) {
             return List.of(username);
         }
         List<String> members = new ArrayList<>(

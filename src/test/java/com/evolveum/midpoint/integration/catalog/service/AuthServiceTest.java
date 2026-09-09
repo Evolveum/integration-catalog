@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -46,12 +47,19 @@ class AuthServiceTest {
     @Mock
     private KeycloakUserDirectory keycloakUserDirectory;
 
+    /** Catalog ids of the two seeded organizations, as {@code organizations.id} holds them. */
+    private static final Integer ACME = 1;
+    private static final Integer EVOLVEUM = 2;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authService = new AuthService(organizationService, catalogOwnerDirectory,
                 keycloakUserDirectory, new CatalogClaims("roles", "organization"));
+        // Lenient: the ownership tests pass ids straight to canEdit and never reach the lookup.
+        lenient().when(organizationService.idOfAlias("acme")).thenReturn(ACME);
+        lenient().when(organizationService.idOfAlias("evolveum")).thenReturn(EVOLVEUM);
     }
 
     @AfterEach
@@ -68,11 +76,14 @@ class AuthServiceTest {
         return new DefaultOidcUser(List.of(), idToken.build());
     }
 
-    /** Puts a logged-in caller with the given role and organization into the security context. */
-    private static void callerIs(String role, String organizationId) {
-        Map<String, Object> claims = organizationId == null
+    /**
+     * Puts a logged-in caller with the given role and organization into the security context.
+     * The organization is named by its alias, which is all a token ever carries.
+     */
+    private static void callerIs(String role, String organizationAlias) {
+        Map<String, Object> claims = organizationAlias == null
                 ? Map.of("roles", List.of(role))
-                : Map.of("roles", List.of(role), "organization", List.of(organizationId));
+                : Map.of("roles", List.of(role), "organization", List.of(organizationAlias));
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken(oidcUser(claims), null));
     }
@@ -81,7 +92,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserWithOrganizationClaimAsIdentifierList() {
-        when(organizationService.displayName("acme")).thenReturn("Acme co.");
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", List.of("acme"),
@@ -100,7 +111,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserWithOrganizationClaimAsIdentifierKeyedMap() {
-        when(organizationService.displayName("acme")).thenReturn("Acme co.");
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", Map.of("acme", Map.of())));
@@ -113,12 +124,12 @@ class AuthServiceTest {
 
     @Test
     void currentUserOrganizationNameStaysNullWhenNotSeeded() {
-        when(organizationService.displayName("acme")).thenReturn(null);
+        when(organizationService.displayName(ACME)).thenReturn(null);
 
         CurrentUserDto user = authService.getCurrentUser("olivia",
                 oidcUser(Map.of("organization", List.of("acme"))));
 
-        // Identifier without a name is what tells the frontend the organization is unregistered.
+        // Alias without a name is what tells the frontend the organization is unregistered.
         assertEquals("acme", user.organizationId());
         assertNull(user.organizationName());
     }
@@ -165,7 +176,7 @@ class AuthServiceTest {
     void superuserCanEditAnything() {
         callerIs("Superuser", "evolveum");
 
-        assertTrue(authService.canEdit("boss", "someone", "acme", "someone-else", "acme"));
+        assertTrue(authService.canEdit("boss", "someone", ACME, "someone-else", ACME));
         assertTrue(authService.canEdit("boss", null, null, null, null));
     }
 
@@ -182,9 +193,9 @@ class AuthServiceTest {
         callerIs("OrganizationContributor", "acme");
 
         // Maintained by the caller's own organization -> every contributor to it may edit.
-        assertTrue(authService.canEdit("olivia", null, null, null, "acme"));
+        assertTrue(authService.canEdit("olivia", null, null, null, ACME));
         // Maintained by another organization -> off limits.
-        assertFalse(authService.canEdit("olivia", null, null, null, "evolveum"));
+        assertFalse(authService.canEdit("olivia", null, null, null, EVOLVEUM));
     }
 
     @Test
@@ -194,18 +205,18 @@ class AuthServiceTest {
         // The uploader keeps access to their own item.
         assertTrue(authService.canEdit("olivia", "olivia", null, null, null));
         // Authored on behalf of the caller's organization -> team access.
-        assertTrue(authService.canEdit("olivia", "amber", "acme", null, null));
+        assertTrue(authService.canEdit("olivia", "amber", ACME, null, null));
         // Authored by an org-mate as an individual -> stays personal.
         assertFalse(authService.canEdit("olivia", "dana", null, null, null));
         // Authored for another organization -> no access.
-        assertFalse(authService.canEdit("olivia", "eve", "evolveum", null, null));
+        assertFalse(authService.canEdit("olivia", "eve", EVOLVEUM, null, null));
     }
 
     @Test
     void individualContributorDoesNotInheritItemsAuthoredForTheirOrganization() {
         callerIs("IndividualContributor", "acme");
 
-        assertFalse(authService.canEdit("dana", "amber", "acme", null, null));
+        assertFalse(authService.canEdit("dana", "amber", ACME, null, null));
     }
 
     @Test
@@ -214,7 +225,7 @@ class AuthServiceTest {
 
         // Membership alone confers nothing: an item published on behalf of acme stays
         // invisible to an org-mate who contributes as an individual.
-        assertFalse(authService.canEdit("dana", "olivia", "acme", null, "acme"));
+        assertFalse(authService.canEdit("dana", "olivia", ACME, null, ACME));
         // Their own items are unaffected.
         assertTrue(authService.canEdit("dana", "dana", null, null, null));
         assertTrue(authService.canEdit("dana", null, null, "dana", null));
@@ -242,7 +253,7 @@ class AuthServiceTest {
     @Test
     void organizationMembersComeFromItemsPublishedForThatOrganization() {
         callerIs("OrganizationContributor", "acme");
-        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
+        when(catalogOwnerDirectory.findAuthorsOfOrganization(ACME))
                 .thenReturn(List.of("amber", "olivia"));
 
         assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
@@ -259,7 +270,7 @@ class AuthServiceTest {
     @Test
     void organizationMembersAlwaysContainTheCallerThemselves() {
         callerIs("OrganizationContributor", "acme");
-        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
+        when(catalogOwnerDirectory.findAuthorsOfOrganization(ACME))
                 .thenReturn(List.of("amber"));
 
         assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));

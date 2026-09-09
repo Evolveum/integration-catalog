@@ -35,8 +35,8 @@ public class OwnershipService {
     public void stampNew(OwnedItem item, String username, String requestedMaintainer) {
         OidcUser caller = currentOidcUser();
         String callerRole = caller != null ? claims.effectiveRole(caller) : null;
-        String callerOrganizationId = caller != null
-                ? organizationService.registeredId(claims.organizationId(caller))
+        Integer callerOrganizationId = caller != null
+                ? organizationService.idOfAlias(claims.organizationAlias(caller))
                 : null;
 
         item.setAuthor(username);
@@ -54,7 +54,7 @@ public class OwnershipService {
      * carries the caller's organization when they maintain on its behalf.
      */
     public void assignMaintainer(OwnedItem item, String requestedMaintainer) {
-        String organizationId = organizationService.idOfName(requestedMaintainer);
+        Integer organizationId = organizationService.idOfName(requestedMaintainer);
         if (organizationId != null) {
             item.setMaintainer(null);
             item.setMaintainerOrgId(organizationId);
@@ -83,7 +83,7 @@ public class OwnershipService {
      * The organization to record for a maintainer who is a person. Only the caller's own can be
      * known, so an item maintained by anyone else carries no maintaining organization.
      */
-    private String organizationOfMaintainer(String maintainer) {
+    private Integer organizationOfMaintainer(String maintainer) {
         OidcUser caller = currentOidcUser();
         if (caller == null || maintainer == null || maintainer.isBlank()) {
             return null;
@@ -95,7 +95,7 @@ public class OwnershipService {
             return null;
         }
         return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(claims.effectiveRole(caller))
-                ? organizationService.registeredId(claims.organizationId(caller))
+                ? organizationService.idOfAlias(claims.organizationAlias(caller))
                 : null;
     }
 

@@ -8,6 +8,8 @@ package com.evolveum.midpoint.integration.catalog.object;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -16,7 +18,7 @@ import lombok.experimental.Accessors;
 
 /**
  * An organization users publish on behalf of. Exists because the organization claim carries the
- * identifier only, leaving the display name nowhere else to live.
+ * alias only, leaving the display name nowhere else to live.
  */
 @Entity
 @Table(name = "organizations")
@@ -25,7 +27,15 @@ import lombok.experimental.Accessors;
 public class Organization {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    /**
+     * The value the OIDC organization claim carries; the provider's to change, and null for an
+     * organization that predates the provider and has not been given one yet.
+     */
+    @Column(unique = true)
+    private String alias;
 
     @Column(nullable = false)
     private String name;
