@@ -26,7 +26,7 @@ import java.util.List;
 @IdClass(ConnectorVersionId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorVersion implements Persistable<Integer> {
+public class ConnectorVersion implements OwnedItem, Persistable<Integer> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "connector_version_seq")
@@ -48,6 +48,22 @@ public class ConnectorVersion implements Persistable<Integer> {
 
     private String author;
     private String maintainer;
+
+    // Ownership as it stood when the row was written - a token describes only its bearer, so none
+    // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
+    // reference to organizations.id, so renames need no change here) and leaves maintainer null.
+    @Column(name = "author_org_id")
+    private Integer authorOrgId;
+
+    @Column(name = "maintainer_org_id")
+    private Integer maintainerOrgId;
+
+    /** Evolveum, Partner or Community. */
+    @Column(name = "author_category")
+    private String authorCategory;
+
+    @Column(name = "author_email")
+    private String authorEmail;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)

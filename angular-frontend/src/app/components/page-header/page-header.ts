@@ -8,14 +8,13 @@ import {Component, inject, Input, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { LoginModal } from '../login-modal/login-modal';
 import { ToastService } from '../../services/toast.service';
 import { StagingBanner } from '../staging-banner/staging-banner';
 
 @Component({
   selector: 'app-page-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, LoginModal, StagingBanner],
+  imports: [CommonModule, RouterLink, StagingBanner],
   templateUrl: './page-header.html',
   styleUrls: ['./page-header.scss'],
   host: { style: 'display: block; position: sticky; top: 0; z-index: 1000;' }
@@ -23,15 +22,15 @@ import { StagingBanner } from '../staging-banner/staging-banner';
 export class PageHeader {
   @Input() breadcrumb: boolean = false;
   @Input() hideBorder: boolean = false;
+  /** Opt-in for the unregistered-organization warning, shown only where the user publishes. */
+  @Input() showUnregisteredOrgWarning: boolean = false;
 
   protected readonly authService = inject(AuthService);
   protected readonly toastService = inject(ToastService);
 
   protected readonly currentUser = this.authService.currentUser;
-  protected readonly loginModalOpen = this.authService.loginModalOpen;
 
-  protected openLoginModal(): void { this.authService.openLoginModal(); }
-  protected closeLoginModal(): void { this.authService.closeLoginModal(); }
+  protected login(): void { this.authService.login(); }
   protected logout(): void { this.authService.logout(); }
 
   protected closeToast(): void {

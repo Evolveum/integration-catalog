@@ -17,7 +17,6 @@ import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
-import { AuthService } from './auth.service';
 
 /** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
 export interface BundleDownloadResult {
@@ -66,7 +65,7 @@ export interface ConnectorWithoutDownload {
 export class ApplicationService {
   private readonly apiUrl = `${environment.apiUrl}/applications`;
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  constructor(private http: HttpClient) {}
 
   getAll(): Observable<Application[]> {
     return this.http.get<Application[]>(this.apiUrl);
@@ -74,29 +73,29 @@ export class ApplicationService {
 
   /**
    * The application with everything its detail page shows, including the support ticket of each
-   * revision the caller may see one for — which is why the username goes along, the same way the
-   * other user-scoped endpoints identify their caller. Anyone else gets the same payload with the
-   * ticket fields empty.
+   * revision the caller may see one for — the backend takes the caller from the session. Anyone
+   * else gets the same payload with the ticket fields empty.
    */
   getById(id: string): Observable<ApplicationDetail> {
-    return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`,
-      { params: new HttpParams().set('username', this.authService.currentUser() ?? '') });
+    return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`);
   }
 
   getCategoryCounts(): Observable<CategoryCount[]> {
     return this.http.get<CategoryCount[]>(`${environment.apiUrl}/categories/counts`);
   }
 
-  submitVote(requestId: number, voter: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
+  /** Votes as the authenticated user (the backend takes the identity from the session). */
+  submitVote(requestId: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/requests/${requestId}/vote`, {});
   }
 
   getVoteCount(requestId: number): Observable<number> {
     return this.http.get<number>(`${environment.apiUrl}/requests/${requestId}/votes/count`);
   }
 
-  hasUserVoted(requestId: number, voter: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check?voter=${voter}`);
+  /** Whether the authenticated user has voted; false for anonymous callers. */
+  hasUserVoted(requestId: number): Observable<boolean> {
+    return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check`);
   }
 
   submitRequest(request: IntegrationRequest): Observable<void> {
@@ -268,13 +267,12 @@ export class ApplicationService {
 
   /**
    * State of the support-portal work package opened when this revision was submitted.
-   * The backend restricts this to the submitting side and the reviewer, and identifies the
-   * caller by the username sent along - the same way the other user-scoped endpoints do.
+   * The backend restricts this to the submitting side and the reviewer, taking the caller
+   * from the session.
    */
   getSupportTicket(appId: string, methodId: string, revision: string): Observable<SupportTicket> {
     return this.http.get<SupportTicket>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`,
-      { params: new HttpParams().set('username', this.authService.currentUser() ?? '') }
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`
     );
   }
 
@@ -437,12 +435,9 @@ export class ApplicationService {
     return this.http.get<Application[]>(`${environment.apiUrl}/recently-used`);
   }
 
-  recordRecentlyUsed(applicationId: string, username: string): Observable<void> {
-    return this.http.post<void>(
-      `${environment.apiUrl}/recently-used/${applicationId}`,
-      {},
-      { headers: { 'X-User-Name': username } }
-    );
+  /** Records usage for the authenticated user (identity comes from the session). */
+  recordRecentlyUsed(applicationId: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/recently-used/${applicationId}`, {});
   }
 
   /**

@@ -57,9 +57,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-jackson2</artifactId>
 		</dependency>
+		<!-- OIDC: this application is the OIDC client; starter-security also brings in
+		     spring-security-crypto, which spring-security-test and the filter chain use. -->
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-crypto</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
 		</dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -131,7 +137,7 @@
 		</dependency>
 
 		<!-- Spring Boot 4 moved the @WebMvcTest slice out of spring-boot-starter-test
-             into its own module; ControllerTest needs it. -->
+             into its own module; ControllerTest and AuthControllerTest need it. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
@@ -141,6 +147,12 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
     </dependencies>

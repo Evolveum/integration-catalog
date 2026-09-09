@@ -153,6 +153,169 @@ CREATE UNIQUE INDEX unique_active_bundle_name
 $aa$);
 -- end of region
 
+-- region change 7: user data moved entirely to the identity provider
+-- Users, roles and group membership live in the identity provider (claims 'role', 'group',
+-- 'organization'); the application read them from token claims and, at the time, from the
+-- provider's administration API. The author/maintainer columns are plain text and stay.
+--
+-- This drops catalog_users, which change 4 had just given an email column. That address was the
+-- one thing the table still supplied that the token cannot - a token describes only its bearer,
+-- so it can answer "the caller's address" but never "that other person's address". Change 8
+-- therefore stamps author_email on the item at write time, the same way it stamps author_org_id,
+-- and change 4 becomes a column that existed only between these two changes.
+--
+-- organizations is deliberately NOT dropped. Membership moves to the provider with everything
+-- else, but the organizations themselves cannot: the claim names one without saying what to call
+-- it, so the display name has nowhere else to live. Change 8 adds the alias to match the claim
+-- against; the table's id, its name and the rows already in it all stay as they are.
+call apply_change(7, $aa$
+DROP TABLE IF EXISTS catalog_users;
+$aa$);
+-- end of region
+
+-- region change 8: organization alias + organization stamped on catalog items
+-- The application stops calling the identity provider's administration API. Everything it
+-- knows about the logged-in user comes from the OIDC token claims, so users, roles and
+-- groups stay with the provider and no user table comes back. Organizations are the one
+-- exception: the claim carries only an alias, so the display name has to live somewhere -
+-- the organizations table change 7 left in place for exactly this.
+--
+-- The alias is what a claim is matched against. It is NOT what items point at: it belongs to
+-- the provider, which can reassign it, and items keyed by it would silently change hands when
+-- that happened. Items point at organizations.id, the integer the table has carried since the
+-- baseline schema - issued by the catalog and beyond anyone else's reach. Renaming an
+-- organization and re-aliasing one are then each one UPDATE of one row, with no item touched.
+--
+-- Nullable: an organization that predates the identity provider has no alias to fill in, and
+-- only an administrator knows which one it should get. Until it has one no claim resolves to
+-- it, which is the right answer for an organization the catalog cannot recognise. Unique, so
+-- one alias never names two organizations - Postgres lets the NULLs repeat.
+--
+-- Because a token only describes its own bearer, facts about *other* users are recorded
+-- on the item when it is written: author_org_id, maintainer_org_id (set when an
+-- organization rather than a person maintains the item - the maintainer column then holds
+-- a username only) and author_category. Existing rows are converted once the
+-- organizations are known - see change 9 below.
+call apply_change(8, $aa$
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS alias character varying(255);
+
+CREATE UNIQUE INDEX unique_organizations_alias ON organizations USING btree (alias);
+
+ALTER TABLE connector                ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS maintainer_org_id integer;
+
+ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_org_id integer;
+ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_org_id integer;
+
+ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_category character varying(32);
+ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_category character varying(32);
+ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_category character varying(32);
+ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_category character varying(32);
+ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_category character varying(32);
+
+-- 320 = 64 local part + "@" + 255 domain, the longest address RFC 5321 allows. Nullable and not
+-- backfilled: rows written before this change have no address recorded and none can be recovered,
+-- so a support work package for one of them simply names the author without a contact - exactly
+-- what change 4 settled for when the address was missing from catalog_users.
+ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_email character varying(320);
+ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_email character varying(320);
+ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_email character varying(320);
+ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_email character varying(320);
+ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_email character varying(320);
+
+ALTER TABLE ONLY connector
+    ADD CONSTRAINT fk_conn_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_version
+    ADD CONSTRAINT fk_conn_version_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle
+    ADD CONSTRAINT fk_conn_bundle_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_version
+    ADD CONSTRAINT fk_conn_bundle_version_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY integration_method
+    ADD CONSTRAINT fk_integ_method_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector
+    ADD CONSTRAINT fk_conn_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_version
+    ADD CONSTRAINT fk_conn_version_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle
+    ADD CONSTRAINT fk_conn_bundle_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_version
+    ADD CONSTRAINT fk_conn_bundle_version_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY integration_method
+    ADD CONSTRAINT fk_integ_method_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+CREATE INDEX idx_conn_maintainer_org         ON connector USING btree (maintainer_org_id);
+CREATE INDEX idx_cver_maintainer_org         ON connector_version USING btree (maintainer_org_id);
+CREATE INDEX idx_cbundle_maintainer_org      ON connector_bundle USING btree (maintainer_org_id);
+CREATE INDEX idx_cbundle_ver_maintainer_org  ON connector_bundle_version USING btree (maintainer_org_id);
+CREATE INDEX idx_integ_method_maintainer_org ON integration_method USING btree (maintainer_org_id);
+CREATE INDEX idx_conn_author_org             ON connector USING btree (author_org_id);
+CREATE INDEX idx_cver_author_org             ON connector_version USING btree (author_org_id);
+CREATE INDEX idx_cbundle_author_org          ON connector_bundle USING btree (author_org_id);
+CREATE INDEX idx_cbundle_ver_author_org      ON connector_bundle_version USING btree (author_org_id);
+CREATE INDEX idx_integ_method_author_org     ON integration_method USING btree (author_org_id);
+$aa$);
+-- end of region
+
+-- region change 9: plain-text organization maintainers become references
+-- Completes change 8 for databases that already held data. Before it, an item maintained by
+-- an organization carried the organization's display name in the maintainer column, which is
+-- exactly what a rename used to orphan; now it carries maintainer_org_id and the maintainer
+-- column holds a username only.
+--
+-- IMPORTANT: this converts only what matches a row in the organizations table. A database
+-- upgraded from before change 7 still holds the organizations it always had; a fresh one has
+-- none, and they have to be inserted BEFORE this script runs - the change runs once, so an
+-- organization added afterwards will not be picked up and its items keep their plain-text
+-- maintainer.
+--
+-- author_org_id and author_category are deliberately not filled in here: they describe the
+-- uploader's role and organization at the time of upload, which no longer exists anywhere in
+-- the database and cannot be recovered from it. Rows without them behave as personal items -
+-- the author keeps access - and they are stamped the next time the item is written.
+call apply_change(9, $aa$
+UPDATE connector c
+    SET maintainer_org_id = o.id, maintainer = NULL
+    FROM organizations o
+    WHERE lower(c.maintainer) = lower(o.name) AND c.maintainer_org_id IS NULL;
+
+UPDATE connector_version cv
+    SET maintainer_org_id = o.id, maintainer = NULL
+    FROM organizations o
+    WHERE lower(cv.maintainer) = lower(o.name) AND cv.maintainer_org_id IS NULL;
+
+UPDATE connector_bundle cb
+    SET maintainer_org_id = o.id, maintainer = NULL
+    FROM organizations o
+    WHERE lower(cb.maintainer) = lower(o.name) AND cb.maintainer_org_id IS NULL;
+
+UPDATE connector_bundle_version cbv
+    SET maintainer_org_id = o.id, maintainer = NULL
+    FROM organizations o
+    WHERE lower(cbv.maintainer) = lower(o.name) AND cbv.maintainer_org_id IS NULL;
+
+UPDATE integration_method im
+    SET maintainer_org_id = o.id, maintainer = NULL
+    FROM organizations o
+    WHERE lower(im.maintainer) = lower(o.name) AND im.maintainer_org_id IS NULL;
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

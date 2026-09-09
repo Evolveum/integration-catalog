@@ -56,6 +56,11 @@ public interface ConnectorVersionRepository extends JpaRepository<ConnectorVersi
                                    @Param("version") String version,
                                    @Param("excludeConnectorId") Integer excludeConnectorId);
 
+    /** Owners of items that name a maintainer. */
+    List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
+
+    /** Owners of items uploaded on behalf of the given organization. */
+    List<ItemOwnerView> findDistinctByAuthorOrgId(Integer authorOrgId);
     /**
      * Re-parents every connector version of {@code source} onto {@code target}. Used when a build
      * reports that its artifact belongs to a bundle that already carries this version, so the two sets

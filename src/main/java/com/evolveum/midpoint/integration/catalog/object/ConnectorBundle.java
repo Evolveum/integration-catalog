@@ -23,7 +23,7 @@ import java.util.List;
 @Table(name = "connector_bundle")
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorBundle {
+public class ConnectorBundle implements OwnedItem {
 
     public enum FrameworkType {
         JAVA_BASED,
@@ -44,6 +44,22 @@ public class ConnectorBundle {
     private String revision;
     private String author;
     private String maintainer;
+
+    // Ownership as it stood when the row was written - a token describes only its bearer, so none
+    // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
+    // reference to organizations.id, so renames need no change here) and leaves maintainer null.
+    @Column(name = "author_org_id")
+    private Integer authorOrgId;
+
+    @Column(name = "maintainer_org_id")
+    private Integer maintainerOrgId;
+
+    /** Evolveum, Partner or Community. */
+    @Column(name = "author_category")
+    private String authorCategory;
+
+    @Column(name = "author_email")
+    private String authorEmail;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
