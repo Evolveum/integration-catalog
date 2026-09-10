@@ -32,7 +32,7 @@ public class DatabaseSchemaVersionValidator {
      * Schema change number required by this build. Bump with every new apply_change section in
      * config/sql/postgres-upgrade.sql - and only there; postgres.sql is deliberately left behind.
      */
-    public static final int REQUIRED_VERSION = 9;
+    public static final int REQUIRED_VERSION = 10;
 
     private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
 

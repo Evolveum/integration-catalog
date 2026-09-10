@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -32,15 +33,18 @@ public class AuthService {
     private final CatalogOwnerDirectory catalogOwnerDirectory;
     private final KeycloakUserDirectory keycloakUserDirectory;
     private final CatalogClaims claims;
+    private final String iamProfileUrl;
 
     public AuthService(OrganizationService organizationService,
                        CatalogOwnerDirectory catalogOwnerDirectory,
                        KeycloakUserDirectory keycloakUserDirectory,
-                       CatalogClaims claims) {
+                       CatalogClaims claims,
+                       @Value("${catalog.iam.profile-url:}") String iamProfileUrl) {
         this.organizationService = organizationService;
         this.catalogOwnerDirectory = catalogOwnerDirectory;
         this.keycloakUserDirectory = keycloakUserDirectory;
         this.claims = claims;
+        this.iamProfileUrl = iamProfileUrl;
     }
 
     /**
@@ -60,10 +64,16 @@ public class AuthService {
         return new CurrentUserDto(
                 username,
                 oidcUser != null ? oidcUser.getFullName() : null,
+                oidcUser != null ? oidcUser.getGivenName() : null,
+                oidcUser != null ? oidcUser.getFamilyName() : null,
                 oidcUser != null ? oidcUser.getEmail() : null,
+                oidcUser != null ? oidcUser.getPhoneNumber() : null,
+                oidcUser != null ? oidcUser.getLocale() : null,
+                oidcUser != null ? oidcUser.getZoneInfo() : null,
                 role,
                 organizationId,
-                organizationName
+                organizationName,
+                iamProfileUrl == null || iamProfileUrl.isBlank() ? null : iamProfileUrl
         );
     }
 

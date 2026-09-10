@@ -51,7 +51,8 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new AuthService(organizationService, catalogOwnerDirectory,
-                keycloakUserDirectory, new CatalogClaims("roles", "organization"));
+                keycloakUserDirectory, new CatalogClaims("roles", "organization"),
+                "https://iam.example/account");
     }
 
     @AfterEach
@@ -96,6 +97,35 @@ class AuthServiceTest {
         assertEquals("Acme co.", user.organizationName());
         assertEquals("Olivia Parker", user.fullName());
         assertEquals("olivia@acme.example", user.email());
+    }
+
+    @Test
+    void currentUserCarriesTheProfileClaimsAndTheIamLink() {
+        CurrentUserDto user = authService.getCurrentUser("olivia", oidcUser(Map.of(
+                "given_name", "Olivia",
+                "family_name", "Parker",
+                "phone_number", "+421 900 000 000",
+                "locale", "sk-SK",
+                "zoneinfo", "Europe/Bratislava")));
+
+        assertEquals("Olivia", user.firstName());
+        assertEquals("Parker", user.lastName());
+        assertEquals("+421 900 000 000", user.phoneNumber());
+        assertEquals("sk-SK", user.locale());
+        assertEquals("Europe/Bratislava", user.zoneInfo());
+        assertEquals("https://iam.example/account", user.iamProfileUrl());
+    }
+
+    /** A claim the provider does not emit stays null, so the page can say "not provided". */
+    @Test
+    void currentUserProfileClaimsAreNullWhenAbsent() {
+        CurrentUserDto user = authService.getCurrentUser("ben", oidcUser(Map.of()));
+
+        assertNull(user.firstName());
+        assertNull(user.lastName());
+        assertNull(user.phoneNumber());
+        assertNull(user.locale());
+        assertNull(user.zoneInfo());
     }
 
     @Test

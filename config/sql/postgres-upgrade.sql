@@ -308,6 +308,36 @@ UPDATE integration_method im
 $aa$);
 -- end of region
 
+-- region change 10: API key management (Gravitee-backed)
+-- One row per personal API key. Gravitee owns the key itself - it mints the value, and the
+-- catalog never stores it, not even hashed: the value is shown once, at creation.
+--
+-- The Gravitee side is one application per KEY, each with a single subscription: Gravitee refuses
+-- a second live subscription of one application to the same plan ('plan.subscribed'), so a
+-- per-user application would cap every user at one key. Only the subscription is constrained
+-- unique here - the application id is one-to-one with it in practice. owner_sub is the identity
+-- provider's 'sub' claim rather than the username, because it survives a rename in the provider;
+-- owner_username is a display copy.
+-- (Comment only: this section is already applied everywhere and creates nothing new.)
+call apply_change(10, $aa$
+CREATE TABLE api_key (
+    id                       uuid                     NOT NULL,
+    name                     character varying(255)   NOT NULL,
+    owner_sub                character varying(255)   NOT NULL,
+    owner_username           character varying(255)   NOT NULL,
+    gravitee_application_id  character varying(64)    NOT NULL,
+    gravitee_subscription_id character varying(64)    NOT NULL,
+    gravitee_api_key_id      character varying(64),
+    created_at               timestamp with time zone NOT NULL DEFAULT now(),
+    expires_at               timestamp with time zone,
+    revoked_at               timestamp with time zone
+);
+ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_subscription_uk UNIQUE (gravitee_subscription_id);
+CREATE INDEX api_key_owner_idx ON api_key (owner_sub);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

@@ -73,6 +73,9 @@ public class SecurityConfig {
             "/api/applications/search/*/*",
             "/api/integration-methods/search/*/*" };
 
+    /** Personal keys: every method is the owner's own business, so nothing here is public. */
+    private static final String API_KEYS = "/api/api-keys/**";
+
     private static final String LOGOUT = "/logout";
 
     private static final String POST_LOGOUT_REDIRECT = "{baseUrl}";
@@ -125,6 +128,7 @@ public class SecurityConfig {
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
                         .requestMatchers(HttpMethod.POST, REQUEST_VOTE).authenticated()
                         .requestMatchers(CURRENT_USER, ORGANIZATION_MEMBERS).authenticated()
+                        .requestMatchers(API_KEYS).authenticated()
                         .requestMatchers(HttpMethod.POST, RECENTLY_USED_ITEM).authenticated()
                         .requestMatchers(HttpMethod.GET, ALL_API).permitAll()
                         .requestMatchers(HttpMethod.POST, CATALOG_SEARCHES).permitAll()

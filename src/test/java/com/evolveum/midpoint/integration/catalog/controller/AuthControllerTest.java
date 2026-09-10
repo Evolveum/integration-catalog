@@ -110,15 +110,19 @@ class AuthControllerTest {
     @Test
     void meReturnsOrganizationIdentity() throws Exception {
         when(authService.getCurrentUser(any(), any())).thenReturn(new CurrentUserDto(
-                "olivia", "Olivia Parker", "olivia@acme.example",
-                "OrganizationContributor", "acme", "Acme co."));
+                "olivia", "Olivia Parker", "Olivia", "Parker", "olivia@acme.example",
+                "+421 900 000 000", "sk-SK", "Europe/Bratislava",
+                "OrganizationContributor", "acme", "Acme co.", "https://iam.example/account"));
 
         mockMvc.perform(get("/api/auth/me").with(readOnlyUser()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("olivia"))
                 .andExpect(jsonPath("$.role").value("OrganizationContributor"))
                 .andExpect(jsonPath("$.organizationId").value("acme"))
-                .andExpect(jsonPath("$.organizationName").value("Acme co."));
+                .andExpect(jsonPath("$.organizationName").value("Acme co."))
+                .andExpect(jsonPath("$.firstName").value("Olivia"))
+                .andExpect(jsonPath("$.lastName").value("Parker"))
+                .andExpect(jsonPath("$.iamProfileUrl").value("https://iam.example/account"));
     }
 
     @Test

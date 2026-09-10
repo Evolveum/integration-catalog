@@ -55,14 +55,36 @@
 
 
     @if (currentUser()) {
-      <button class="header-user d-flex align-items-center gap-2" (click)="logout()" title="Logout">
-        <i class="fa-solid fa-user header-user-icon"></i>
-        <div class="d-flex flex-column text-start">
-          <span class="header-username">{{ currentUser() }}</span>
-          <span class="header-role">({{ authService.currentRole() }})</span>
-        </div>
-        <i class="fa-solid fa-chevron-down header-chevron"></i>
-      </button>
+      <div class="header-user-menu">
+        <button class="header-user d-flex align-items-center gap-2" type="button" (click)="toggleMenu()"
+          [class.header-user-active]="menuOpen()" [attr.aria-expanded]="menuOpen()" aria-haspopup="menu"
+          title="Account menu">
+          <span class="header-avatar">{{ userInitials() }}</span>
+          <div class="d-flex flex-column text-start">
+            <span class="header-username">{{ currentUser() }}</span>
+            <span class="header-role">({{ authService.currentRole() }})</span>
+          </div>
+          <i class="fa-solid fa-chevron-down header-chevron" [class.header-chevron-open]="menuOpen()"></i>
+        </button>
+
+        @if (menuOpen()) {
+          <div class="user-menu" role="menu">
+            <button class="user-menu-item" type="button" role="menuitem"
+              (click)="openComingSoon('My integration methods')">My integration methods</button>
+            <button class="user-menu-item" type="button" role="menuitem"
+              (click)="openComingSoon('My connectors')">My connectors</button>
+            <div class="user-menu-separator"></div>
+            <a class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
+            <div class="user-menu-separator"></div>
+            <button class="user-menu-item user-menu-item-danger" type="button" role="menuitem" (click)="logout()">
+              <i class="fa-solid fa-power-off"></i>
+              <span>Sign out</span>
+            </button>
+          </div>
+
+          <div class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+        }
+      </div>
     } @else {
       <button class="header-btn-login d-flex align-items-center gap-2" (click)="login()">
         <i class="fa-solid fa-user header-user-icon"></i>

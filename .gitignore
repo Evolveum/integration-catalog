@@ -95,3 +95,6 @@ integration-catalog
 /keycloak_for_auth/data/postgres/
 /openProject/
 /connector/
+
+# Gravitee ids and token of the local APIM, written by docker/gravitee/seed.sh
+gravitee-local.properties
