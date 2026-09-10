@@ -18,9 +18,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -58,5 +60,18 @@ public class ApiKeyController {
     public ResponseEntity<CreatedApiKeyDto> create(@AuthenticationPrincipal OidcUser user,
                                                    @RequestBody CreateApiKeyRequestDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(apiKeyService.create(user, request));
+    }
+
+    @Operation(summary = "Revoke an API key",
+            description = "Stops the key working immediately; it stays listed as revoked")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Revoked, or already was"),
+            @ApiResponse(responseCode = "404", description = "No such key of this user"),
+            @ApiResponse(responseCode = "502", description = "Gravitee refused or could not be reached")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> revoke(@AuthenticationPrincipal OidcUser user, @PathVariable String id) {
+        apiKeyService.revoke(user, id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -56,10 +56,7 @@ public class ApiKeyService {
      */
     @Transactional
     public CreatedApiKeyDto create(OidcUser user, CreateApiKeyRequestDto request) {
-        if (!properties.enabled()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "API key management is not configured - set the gravitee.* properties.");
-        }
+        requireConfigured();
         String name = request.name() == null ? "" : request.name().trim();
         if (name.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The key needs a name.");
@@ -99,6 +96,53 @@ public class ApiKeyService {
             Thread.currentThread().interrupt();
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The API key creation was interrupted.", e);
         }
+    }
+
+    /**
+     * Revokes one of the caller's own keys. Gravitee goes first: the reverse order would show a
+     * key as dead while it still opens doors. Revoking twice is not an error.
+     *
+     * @param id the key to revoke
+     */
+    @Transactional
+    public void revoke(OidcUser user, String id) {
+        requireConfigured();
+        ApiKey key = ownKey(subjectOf(user), id);
+        if (key.getRevokedAt() != null) {
+            return;
+        }
+        try {
+            gravitee.closeSubscription(key.getGraviteeSubscriptionId());
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "The API key could not be revoked: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The revocation was interrupted.", e);
+        }
+        key.setRevokedAt(Instant.now());
+        repository.save(key);
+    }
+
+    /** Says so plainly, rather than letting the call reach Gravitee without an api id or a token. */
+    private void requireConfigured() {
+        if (!properties.enabled()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "API key management is not configured - set the gravitee.* properties.");
+        }
+    }
+
+    /** Somebody else's key is reported missing rather than forbidden: it is none of their business. */
+    private ApiKey ownKey(String subject, String id) {
+        UUID keyId;
+        try {
+            keyId = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No such API key.", e);
+        }
+        return repository.findById(keyId)
+                .filter(key -> subject.equals(key.getOwnerSub()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such API key."));
     }
 
     /** The expiration the caller asked for, refused when past or beyond the cap. */

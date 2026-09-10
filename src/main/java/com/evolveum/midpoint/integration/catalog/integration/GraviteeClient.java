@@ -33,6 +33,8 @@ public class GraviteeClient {
     /** A key is minted while the user waits, so a stalled APIM must fail rather than hang. */
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
+    private static final int HTTP_NOT_FOUND = 404;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(GraviteeClient.class);
 
     private final GraviteeProperties properties;
@@ -111,6 +113,28 @@ public class GraviteeClient {
             LOGGER.warn("Gravitee did not accept the expiration of subscription {}; the key does not expire.",
                     subscriptionId, e);
             return false;
+        }
+    }
+
+    /**
+     * Revokes the key by closing its subscription, which Gravitee marks revoked with it. A
+     * subscription Gravitee no longer knows counts as closed - it cannot authenticate anything,
+     * and refusing here would leave such a key un-revocable.
+     *
+     * @param subscriptionId the subscription behind the key
+     */
+    public void closeSubscription(String subscriptionId) throws IOException, InterruptedException {
+        HttpRequest request = post(properties.managementV2Base() + "/apis/" + properties.apiId()
+                + "/subscriptions/" + subscriptionId + "/_close", objectMapper.createObjectNode());
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == HTTP_NOT_FOUND) {
+            LOGGER.warn("Gravitee does not know subscription {}; the key counts as revoked.", subscriptionId);
+            return;
+        }
+        if (response.statusCode() / 100 != 2) {
+            throw new IOException("Gravitee refused to close the subscription (HTTP "
+                    + response.statusCode() + "): " + response.body());
         }
     }
 

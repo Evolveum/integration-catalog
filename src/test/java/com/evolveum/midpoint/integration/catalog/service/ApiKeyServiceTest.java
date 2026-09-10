@@ -15,6 +15,7 @@ import com.evolveum.midpoint.integration.catalog.repository.ApiKeyRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -29,14 +30,19 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -173,6 +179,82 @@ class ApiKeyServiceTest {
                 () -> serviceWith(configured()).create(user(), new CreateApiKeyRequestDto("My key", null)));
 
         assertEquals(HttpStatus.BAD_GATEWAY, failure.getStatusCode());
+        verify(repository, never()).save(any());
+    }
+
+    // ---- revoke ----
+
+    private ApiKey ownedKey(UUID id) {
+        ApiKey key = new ApiKey();
+        key.setId(id);
+        key.setName("qwe");
+        key.setOwnerSub(SUB);
+        key.setGraviteeSubscriptionId("sub-1");
+        return key;
+    }
+
+    /** Gravitee must go first: the reverse order would show a key as dead while it still works. */
+    @Test
+    void revokeClosesTheSubscriptionBeforeStampingTheRow() throws Exception {
+        UUID id = UUID.randomUUID();
+        ApiKey key = ownedKey(id);
+        when(repository.findById(id)).thenReturn(Optional.of(key));
+
+        serviceWith(configured()).revoke(user(), id.toString());
+
+        InOrder order = inOrder(gravitee, repository);
+        order.verify(gravitee).closeSubscription("sub-1");
+        order.verify(repository).save(key);
+        assertNotNull(key.getRevokedAt());
+    }
+
+    @Test
+    void revokingTwiceChangesNothing() {
+        UUID id = UUID.randomUUID();
+        ApiKey key = ownedKey(id);
+        key.setRevokedAt(Instant.now().minusSeconds(60));
+        when(repository.findById(id)).thenReturn(Optional.of(key));
+
+        serviceWith(configured()).revoke(user(), id.toString());
+
+        verify(repository, never()).save(any());
+    }
+
+    /** Somebody else's key is reported missing rather than forbidden. */
+    @Test
+    void revokingAKeyOfAnotherUserIsNotFound() {
+        UUID id = UUID.randomUUID();
+        ApiKey key = ownedKey(id);
+        key.setOwnerSub("someone-else");
+        when(repository.findById(id)).thenReturn(Optional.of(key));
+
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class,
+                () -> serviceWith(configured()).revoke(user(), id.toString()));
+
+        assertEquals(HttpStatus.NOT_FOUND, failure.getStatusCode());
+    }
+
+    @Test
+    void revokingAnUnknownIdIsNotFound() {
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class,
+                () -> serviceWith(configured()).revoke(user(), "not-a-uuid"));
+
+        assertEquals(HttpStatus.NOT_FOUND, failure.getStatusCode());
+    }
+
+    /** A refusal from Gravitee must leave the row alone, so nothing claims a key is dead. */
+    @Test
+    void revokeFailureLeavesTheRowUnchanged() throws Exception {
+        UUID id = UUID.randomUUID();
+        ApiKey key = ownedKey(id);
+        when(repository.findById(id)).thenReturn(Optional.of(key));
+        doThrow(new IOException("Gravitee refused")).when(gravitee).closeSubscription("sub-1");
+
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class,
+                () -> serviceWith(configured()).revoke(user(), id.toString()));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, failure.getStatusCode());
+        assertNull(key.getRevokedAt());
         verify(repository, never()).save(any());
     }
 }

@@ -76,6 +76,11 @@ public class SecurityConfig {
     /** Personal keys: every method is the owner's own business, so nothing here is public. */
     private static final String API_KEYS = "/api/api-keys/**";
 
+    /** Named for the catalog: the default XSRF-TOKEN collides with other apps on localhost. */
+    private static final String CSRF_COOKIE = "IC-XSRF-TOKEN";
+
+    private static final String CSRF_HEADER = "X-IC-XSRF-TOKEN";
+
     private static final String LOGOUT = "/logout";
 
     private static final String POST_LOGOUT_REDIRECT = "{baseUrl}";
@@ -88,6 +93,18 @@ public class SecurityConfig {
         this.jenkinsProperties = jenkinsProperties;
     }
 
+    /**
+     * CSRF tokens under a name of our own. Cookies are scoped by host, not by port, so the default
+     * XSRF-TOKEN is shared with every other localhost application a developer runs - Gravitee's
+     * console sets an HttpOnly one, which the SPA cannot read and the backend then rejects.
+     */
+    private static CookieCsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieName(CSRF_COOKIE);
+        repository.setHeaderName(CSRF_HEADER);
+        return repository;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            ClientRegistrationRepository clientRegistrationRepository) throws Exception {
@@ -97,7 +114,7 @@ public class SecurityConfig {
                 // the security chain when the SPA is served from another origin.
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRepository(csrfTokenRepository())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
                         .ignoringRequestMatchers(jenkinsCallbackFilter.authenticatedCallbackMatcher()))
                 .addFilterBefore(jenkinsCallbackFilter, AuthorizationFilter.class)

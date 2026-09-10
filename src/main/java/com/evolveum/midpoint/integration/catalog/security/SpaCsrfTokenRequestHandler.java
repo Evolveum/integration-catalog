@@ -28,7 +28,7 @@ public final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, Supplier<CsrfToken> csrfToken) {
         this.xor.handle(request, response, csrfToken);
-        // Resolve the deferred token so the repository writes the XSRF-TOKEN cookie on every response.
+        // Resolve the deferred token so the repository writes the cookie on every response.
         csrfToken.get();
     }
 

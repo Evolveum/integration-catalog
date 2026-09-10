@@ -7,17 +7,21 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { inject, provideAppInitializer } from '@angular/core';
 import { AppComponent } from './app/app.component';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { routes } from './app/app.routes';
 import { AuthService } from './app/services/auth.service';
 
-// Identity travels in the backend session cookie (OIDC login); Angular's default XSRF
-// support mirrors the XSRF-TOKEN cookie into the X-XSRF-TOKEN header for mutating calls.
+// Identity travels in the backend session cookie (OIDC login); the XSRF cookie is mirrored into
+// a header for mutating calls. Both names are the catalog's own: cookies ignore the port, so the
+// default XSRF-TOKEN is shared with every other application on localhost (see SecurityConfig).
 bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(routes),
-    provideHttpClient(),
+    provideHttpClient(withXsrfConfiguration({
+      cookieName: 'IC-XSRF-TOKEN',
+      headerName: 'X-IC-XSRF-TOKEN'
+    })),
     provideAppInitializer(() => inject(AuthService).loadCurrentUser())
   ]
 }).catch(err => console.error(err));
