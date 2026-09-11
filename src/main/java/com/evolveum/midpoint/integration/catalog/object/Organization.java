@@ -6,11 +6,18 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+/**
+ * An organization users publish on behalf of. Exists because the organization claim carries the
+ * identifier only, leaving the display name nowhere else to live.
+ */
 @Entity
 @Table(name = "organizations")
 @Getter @Setter
@@ -18,8 +25,7 @@ import lombok.experimental.Accessors;
 public class Organization {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private String id;
 
     @Column(nullable = false)
     private String name;

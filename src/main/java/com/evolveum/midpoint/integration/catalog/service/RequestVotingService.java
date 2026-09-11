@@ -49,12 +49,16 @@ public class RequestVotingService {
         return requestRepository.findByApplicationId(appId);
     }
 
+    /**
+     * @param requester the authenticated username — taken from the security context, not from
+     *                  the form, so the recorded requester (who may later cancel the request)
+     *                  cannot be spoofed by the client
+     */
     @Transactional
-    public Request createRequestFromForm(RequestFormDto dto) {
+    public Request createRequestFromForm(RequestFormDto dto, String requester) {
         String integrationApplicationName = dto.integrationApplicationName();
         String description = dto.description();
         String deploymentType = dto.deploymentType();
-        String requester = dto.requester();
 
         String abbreviatedName = integrationApplicationName.toLowerCase()
                 .replaceAll("[^a-z0-9_]", "_")

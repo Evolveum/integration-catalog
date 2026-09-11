@@ -1,0 +1,152 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.create-key-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1050;
+}
+
+.create-key-container {
+  z-index: 1055;
+  pointer-events: none;
+}
+
+.create-key-dialog {
+  pointer-events: auto;
+  background: $color-white;
+  border-radius: 10px;
+  width: 460px;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.create-key-header {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid $color-separator;
+}
+
+.create-key-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0;
+}
+
+.create-key-close {
+  border: none;
+  background: none;
+  color: $color-gray-secondary;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.25rem;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-text-dark;
+  }
+}
+
+.create-key-body {
+  padding: 1.35rem 1.5rem;
+}
+
+.create-key-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-bottom: 0.5rem;
+}
+
+.create-key-input {
+  width: 100%;
+  border: 1px solid $color-border-input;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: $color-text-dark;
+
+  &:focus {
+    outline: none;
+    border-color: $color-dark-blue;
+  }
+
+  &::placeholder {
+    color: $color-text-light;
+  }
+}
+
+.create-key-help {
+  font-size: 0.8125rem;
+  color: $color-text-muted;
+  margin: 0.5rem 0 1.35rem;
+}
+
+.create-key-chip {
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.create-key-chip-active {
+  background-color: $color-bg-selected;
+  border-color: $color-dark-blue;
+  color: $color-dark-blue;
+  font-weight: 600;
+}
+
+.create-key-date {
+  margin-top: 0.85rem;
+}
+
+.create-key-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid $color-separator;
+}
+
+.create-key-cancel {
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: $color-text-secondary;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-text-dark;
+  }
+}
+
+.create-key-submit {
+  background-color: $color-dark-blue;
+  border: 1px solid $color-dark-blue;
+  border-radius: 6px;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: $color-white;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: $color-mid-blue;
+    border-color: $color-mid-blue;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}

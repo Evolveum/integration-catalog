@@ -1,0 +1,269 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.settings-page {
+  background-color: $color-white;
+  min-height: calc(100vh - 56px);
+}
+
+.settings-content {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+.settings-back {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  color: $color-dark-blue;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.settings-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.35rem;
+}
+
+.settings-subtitle {
+  font-size: 0.875rem;
+  color: $color-text-muted;
+  margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   TABS (page level and inside the card)
+   ======================================== */
+.settings-tabs {
+  gap: 1.5rem;
+  border-bottom: 1px solid $color-separator;
+  margin-bottom: 2rem;
+}
+
+.settings-tab,
+.profile-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0 0 0.5rem;
+  color: $color-text-muted;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-dark-blue;
+  }
+}
+
+.settings-tab-active,
+.profile-tab-active {
+  color: $color-dark-blue;
+  font-weight: 600;
+  border-bottom-color: $color-dark-blue;
+}
+
+.settings-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.35rem;
+}
+
+.settings-section-subtitle {
+  font-size: 0.875rem;
+  color: $color-text-muted;
+  margin-bottom: 1.25rem;
+}
+
+/* ========================================
+   READ-ONLY NOTICE
+   ======================================== */
+.iam-banner {
+  background-color: #E7F3FB;
+  border: 1px solid #C7E2F4;
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.iam-banner-icon {
+  color: $color-dark-blue;
+  font-size: 15px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.iam-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8125rem;
+  color: #1f3a52;
+  overflow-wrap: anywhere;
+}
+
+.iam-banner-btn {
+  background-color: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  padding: 0.45rem 0.85rem;
+  color: $color-text-dark;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $color-bg-hover;
+    color: $color-text-dark;
+  }
+
+  i {
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+}
+
+/* ========================================
+   PROFILE CARD
+   ======================================== */
+.settings-card {
+  background-color: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px $shadow-card;
+}
+
+.profile-head {
+  padding-bottom: 1.25rem;
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #DCE7F5;
+  color: #36538B;
+  font-size: 1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-identity {
+  min-width: 0;
+}
+
+.profile-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a202c;
+  overflow-wrap: anywhere;
+}
+
+.profile-email {
+  font-size: 0.8125rem;
+  color: $color-text-muted;
+  overflow-wrap: anywhere;
+}
+
+.profile-role-badge {
+  background-color: #DCE7F5;
+  color: #36538B;
+  border-radius: 4px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.profile-tabs {
+  gap: 1.5rem;
+  border-bottom: 1px solid $color-separator;
+  margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   READ-ONLY FIELDS
+   ======================================== */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem 1.5rem;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.profile-field-wide {
+  grid-column: 1 / -1;
+}
+
+.profile-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-secondary;
+}
+
+.profile-input {
+  width: 100%;
+  background-color: $color-bg-light;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  color: $color-text-dark;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+
+  // Read-only fields must not look editable, but stay selectable so values can be copied.
+  &:focus {
+    outline: none;
+    border-color: $color-border-input;
+    box-shadow: none;
+  }
+
+  &::placeholder {
+    color: $color-text-light;
+    font-style: italic;
+  }
+}
+
+.profile-textarea {
+  resize: none;
+}
+
+/* ========================================
+   PLACEHOLDER / SIGNED-OUT STATES
+   ======================================== */
+.settings-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: $color-text-muted;
+  font-size: 0.875rem;
+}

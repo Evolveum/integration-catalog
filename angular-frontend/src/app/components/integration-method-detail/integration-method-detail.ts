@@ -89,10 +89,10 @@ export class IntegrationMethodDetail implements OnInit {
   // Ownership of the opened revision, used to gate the "Edit and upgrade" action. The server
   // enforces the same rule; hiding the button just avoids offering an action that would be rejected.
   // (methodAuthor is declared above and reused here.)
-  protected readonly methodOrganizationId = signal<number | null>(null);
+  protected readonly methodAuthorOrganization = signal<string | null>(null);
   protected readonly methodMaintainer = signal<string | null>(null);
   protected readonly canEdit = computed(() =>
-    this.authService.canEdit(this.methodAuthor(), this.methodOrganizationId(), this.methodMaintainer()));
+    this.authService.canEdit(this.methodAuthor(), this.methodAuthorOrganization(), this.methodMaintainer()));
 
   // Supported midPoint version range
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
@@ -152,7 +152,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodCreatedAt.set(ver.createdAt ?? null);
           this.reviewerName.set(ver.reviewedBy ?? '');
           this.methodUpdated.set(ver.updated ?? null);
-          this.methodOrganizationId.set(ver.organizationId ?? null);
+          this.methodAuthorOrganization.set(ver.authorOrganization ?? null);
           this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);

@@ -8,17 +8,19 @@ import {Component, inject, Input, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { LoginModal } from '../login-modal/login-modal';
 import { ToastService } from '../../services/toast.service';
 import { StagingBanner } from '../staging-banner/staging-banner';
 
 @Component({
   selector: 'app-page-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, LoginModal, StagingBanner],
+  imports: [CommonModule, RouterLink, StagingBanner],
   templateUrl: './page-header.html',
   styleUrls: ['./page-header.scss'],
-  host: { style: 'display: block; position: sticky; top: 0; z-index: 1000;' }
+  host: {
+    style: 'display: block; position: sticky; top: 0; z-index: 1000;',
+    '(document:keydown.escape)': 'closeMenu()'
+  }
 })
 export class PageHeader {
   @Input() breadcrumb: boolean = false;
@@ -28,11 +30,31 @@ export class PageHeader {
   protected readonly toastService = inject(ToastService);
 
   protected readonly currentUser = this.authService.currentUser;
-  protected readonly loginModalOpen = this.authService.loginModalOpen;
 
-  protected openLoginModal(): void { this.authService.openLoginModal(); }
-  protected closeLoginModal(): void { this.authService.closeLoginModal(); }
-  protected logout(): void { this.authService.logout(); }
+  protected readonly menuOpen = signal(false);
+
+  protected readonly userInitials = this.authService.initials;
+
+  protected toggleMenu(): void { this.menuOpen.update(open => !open); }
+  protected closeMenu(): void { this.menuOpen.set(false); }
+
+  protected login(): void { this.authService.login(); }
+
+  protected logout(): void {
+    this.closeMenu();
+    this.authService.logout();
+  }
+
+  /**
+   * Placeholder for menu entries whose pages do not exist yet, so they give feedback instead of
+   * doing nothing. Replace with routing once the pages land.
+   *
+   * @param label the menu entry the user picked
+   */
+  protected openComingSoon(label: string): void {
+    this.closeMenu();
+    this.toastService.show(label, 'This page is not available yet.', 'info');
+  }
 
   protected closeToast(): void {
     this.toastService.close();

@@ -1,0 +1,151 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<div class="keys-header d-flex align-items-start gap-3">
+  <div>
+    <h2 class="keys-title">API keys</h2>
+    <p class="keys-subtitle">
+      Create and manage personal API keys used to authenticate with Evolveum-hosted services.
+    </p>
+  </div>
+  <!-- The empty state carries its own buttons, so this one appears only next to a list. -->
+  @if (activeKeys().length > 0) {
+    <button type="button" class="keys-btn keys-btn-primary ms-auto d-flex align-items-center gap-2"
+      (click)="openCreate()">
+      <i class="fa-solid fa-plus"></i>Create key
+    </button>
+  }
+</div>
+
+<!-- The value is shown exactly once: nothing can display it again after this notice is closed. -->
+@if (createdValue(); as value) {
+  <div class="keys-created d-flex gap-3">
+    <i class="fa-solid fa-circle-check keys-created-icon"></i>
+    <div class="keys-created-body">
+      <div class="keys-created-title">API key created</div>
+      <div class="keys-created-text">Copy this key now. You won't be able to view it again after you finish.</div>
+      <div class="keys-created-value d-flex align-items-center gap-2">
+        <span class="keys-created-secret">{{ valueVisible() ? value : maskedValue() }}</span>
+        <button type="button" class="keys-created-action ms-auto d-flex align-items-center gap-2"
+          (click)="toggleValue()">
+          <i class="fa-solid" [class.fa-eye]="!valueVisible()" [class.fa-eye-slash]="valueVisible()"></i>
+          {{ valueVisible() ? 'Hide' : 'Show' }}
+        </button>
+        <button type="button" class="keys-created-action d-flex align-items-center gap-2" (click)="copyValue(value)">
+          <i class="fa-solid fa-copy"></i>Copy
+        </button>
+      </div>
+    </div>
+    <button type="button" class="keys-created-close" title="Dismiss" (click)="dismissCreated()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+}
+
+@if (loading()) {
+  <div class="keys-card keys-message d-flex justify-content-center">
+    <span class="spinner-border text-secondary" role="status"></span>
+  </div>
+} @else if (loadFailed()) {
+  <!-- An empty table here would read as "you have no keys", which is not what happened. -->
+  <div class="keys-card keys-message d-flex flex-column align-items-center">
+    <i class="fa-solid fa-triangle-exclamation keys-message-icon"></i>
+    <p class="mb-0">Your API keys could not be loaded.</p>
+  </div>
+} @else if (activeKeys().length === 0) {
+  <div class="keys-card keys-empty d-flex flex-column align-items-center">
+    <span class="keys-empty-icon d-flex align-items-center justify-content-center">
+      <i class="fa-solid fa-key"></i>
+    </span>
+    <h3 class="keys-empty-title">No active API keys</h3>
+    <p class="keys-empty-text">
+      Create an API key to authenticate applications or devices that use Evolveum-hosted services.
+    </p>
+    <button type="button" class="keys-btn keys-btn-primary d-flex align-items-center gap-2"
+      (click)="openCreate()">
+      <i class="fa-solid fa-plus"></i>Create key (without scope)
+    </button>
+    <button type="button" class="keys-btn keys-btn-outline d-flex align-items-center gap-2"
+      (click)="createWithScope()">
+      <i class="fa-solid fa-plus"></i>Create key (with scope)
+    </button>
+  </div>
+} @else {
+  <ng-container *ngTemplateOutlet="keyTable; context: { $implicit: activeKeys() }"></ng-container>
+}
+
+@if (inactiveKeys().length > 0) {
+  <button type="button" class="keys-inactive-toggle d-flex align-items-center gap-2"
+    [attr.aria-expanded]="inactiveOpen()" (click)="toggleInactive()">
+    Inactive keys ({{ inactiveKeys().length }})
+    <i class="fa-solid fa-caret-down keys-inactive-caret" [class.keys-inactive-caret-open]="inactiveOpen()"></i>
+  </button>
+
+  @if (inactiveOpen()) {
+    <ng-container *ngTemplateOutlet="keyTable; context: { $implicit: inactiveKeys() }"></ng-container>
+  }
+}
+
+<!-- Same table for the active list and the inactive group. -->
+<ng-template #keyTable let-rows>
+  <div class="keys-card keys-table-card">
+    <table class="keys-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Last used</th>
+          <th>Created</th>
+          <th>Expires</th>
+          <th class="keys-table-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (key of rows; track key.id) {
+          <tr>
+            <td class="keys-table-name">{{ key.name }}</td>
+            <td>
+              <span class="keys-status" [class.keys-status-active]="status(key) === 'Active'"
+                [class.keys-status-revoked]="status(key) === 'Revoked'">{{ status(key) }}</span>
+            </td>
+            <td>{{ key.lastUsedAt ? (key.lastUsedAt | date:'d/M/yyyy') : 'Never' }}</td>
+            <td>{{ key.createdAt | date:'d/M/yyyy' }}</td>
+            <td>{{ key.expiresAt ? (key.expiresAt | date:'d/M/yyyy') : 'Never' }}</td>
+            <td class="keys-table-actions">
+              <div class="keys-menu-anchor">
+                <button type="button" class="keys-menu-btn" title="Key actions" (click)="toggleMenu(key.id)">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                @if (openMenuKeyId() === key.id) {
+                  <div class="keys-menu" role="menu">
+                    <button type="button" class="keys-menu-item" role="menuitem" (click)="rotate(key)">
+                      Rotate
+                    </button>
+                    <div class="keys-menu-separator"></div>
+                    <button type="button" class="keys-menu-item keys-menu-item-danger" role="menuitem"
+                      (click)="revoke(key)">
+                      Revoke
+                    </button>
+                  </div>
+                  <div class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</ng-template>
+
+@if (modalOpen()) {
+  <app-create-api-key-modal [busy]="creating()" (closed)="modalOpen.set(false)" (create)="onCreate($event)" />
+}
+
+@if (revoking()) {
+  <app-revoke-api-key-modal [busy]="revokeInFlight()" (closed)="revoking.set(null)"
+    (confirmed)="confirmRevoke()" />
+}

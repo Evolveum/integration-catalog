@@ -161,7 +161,7 @@
   text-align: center;
 }
 
-// User element (avatar + name + chevron) — acts as logout for now
+// User element (avatar + name + chevron) — opens the account menu
 .header-user {
   background: none;
   border: none;
@@ -171,7 +171,8 @@
   opacity: 0.9;
   transition: opacity 0.15s;
 
-  &:hover {
+  &:hover,
+  &.header-user-active {
     opacity: 1;
   }
 }
@@ -190,4 +191,117 @@
   &:hover {
     opacity: 1;
   }
+}
+
+.unregistered-org-banner {
+  background-color: #FDECEA;
+  border-bottom: 1px solid #F5C2BC;
+  color: #7A271A;
+  min-height: 44px;
+  gap: 0.6rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+.unregistered-org-banner-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.unregistered-org-banner-text {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+/* ========================================
+   ACCOUNT MENU (avatar button + dropdown)
+   ======================================== */
+
+.header-user-menu {
+  position: relative;
+}
+
+// White circle with the user's initials, as in the design
+.header-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: $color-white;
+  color: #36538B;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.header-chevron-open {
+  transform: rotate(180deg);
+}
+
+.header-chevron {
+  transition: transform 0.15s;
+}
+
+.user-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 2;
+  min-width: 250px;
+  padding: 0.5rem 0;
+  background-color: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px $shadow-dropdown;
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  background: none;
+  color: $color-text-dark;
+  font-size: 0.9375rem;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+
+  // The Settings entry is a router link; it must read like the buttons beside it.
+  &:hover,
+  &:focus,
+  &:visited {
+    color: $color-text-dark;
+    text-decoration: none;
+  }
+
+  &:hover {
+    background-color: $color-bg-hover;
+  }
+}
+
+.user-menu-item-danger {
+  color: $toast-danger-header;
+
+  // Beats the shared hover colour above, which exists for the router-link entry.
+  &:hover,
+  &:focus {
+    color: $toast-danger-header;
+  }
+}
+
+.user-menu-separator {
+  height: 1px;
+  margin: 0.5rem 0;
+  background-color: $color-separator;
+}
+
+.click-backdrop {
+  z-index: 1;
 }

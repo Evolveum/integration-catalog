@@ -23,6 +23,12 @@ public interface ConnectorRepository extends JpaRepository<Connector, Integer>,
 
     List<Connector> findByConnectorBundleId(Integer connectorBundleId);
 
+    /** Owners of items that name a maintainer. */
+    List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
+
+    /** Owners of items uploaded on behalf of the given organization. */
+    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
+
     /**
      * Retrieves distinct connectors associated with connector versions
      * having the given lifecycle state.

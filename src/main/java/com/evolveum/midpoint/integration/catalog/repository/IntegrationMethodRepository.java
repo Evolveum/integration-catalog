@@ -25,4 +25,9 @@ public interface IntegrationMethodRepository extends JpaRepository<IntegrationMe
     Optional<IntegrationMethod> findFirstByIdOrderByCreatedAtDesc(UUID id);
     List<IntegrationMethod> findByLifecycleState(LifecycleType lifecycleState);
 
+    /** Owners of items that name a maintainer. */
+    List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
+
+    /** Owners of items uploaded on behalf of the given organization. */
+    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
 }

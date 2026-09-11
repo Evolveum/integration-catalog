@@ -28,7 +28,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		ConnectorSigningProperties.class,
 		OpenProjectProperties.class,
 		PendingOperationProperties.class,
-		CatalogProperties.class
+		CatalogProperties.class,
+		GraviteeProperties.class
 })
 public class IntegrationCatalogApplication {
 

@@ -10,6 +10,7 @@ import { ApplicationDetail } from './components/application-detail/application-d
 import { PublishFormMain } from './components/publish-form-main/publish-form-main';
 import { EditUpgradeForm } from './components/edit-upgrade-form/edit-upgrade-form';
 import { IntegrationMethodDetail } from './components/integration-method-detail/integration-method-detail';
+import { SettingsPage } from './components/settings-page/settings-page';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
@@ -17,5 +18,6 @@ export const routes: Routes = [
   { path: 'applications/:id', component: ApplicationDetail },
   { path: 'applications/:appId/integration-method/:versionId/:revision/details', component: IntegrationMethodDetail },
   { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm },
-  { path: 'publish', component: PublishFormMain }
+  { path: 'publish', component: PublishFormMain },
+  { path: 'settings', component: SettingsPage }
 ];
