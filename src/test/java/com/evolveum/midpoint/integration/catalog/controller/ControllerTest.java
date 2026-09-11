@@ -323,6 +323,8 @@ class ControllerTest {
                 "Slack",
                 "cloud-based",
                 "Slack integration for team communication",
+                "Provision users and channels from midPoint",
+                1,
                 "1.0",
                 "test@example.com",
                 false,
@@ -348,6 +350,8 @@ class ControllerTest {
                 "", // Empty name - invalid
                 null,
                 "", // Empty description - invalid
+                "", // Empty integration need - invalid
+                null,
                 null,
                 null,
                 null,

@@ -9,10 +9,12 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.CapabilityType;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.object.ObjectClassCapabilities;
 import com.evolveum.midpoint.integration.catalog.object.Request;
 import com.evolveum.midpoint.integration.catalog.object.Vote;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodTypeRepository;
 import com.evolveum.midpoint.integration.catalog.repository.ObjectClassCapabilitiesRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
@@ -36,6 +38,7 @@ public class RequestVotingService {
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagService applicationTagService;
     private final ObjectClassCapabilitiesRepository objectClassCapabilitiesRepository;
+    private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
 
     public List<Request> getRequests() {
         return requestRepository.findAll();
@@ -55,6 +58,10 @@ public class RequestVotingService {
         String description = dto.description();
         String deploymentType = dto.deploymentType();
         String requester = dto.requester();
+        IntegrationMethodType integrationMethodType = dto.integrationMethodTypeId() == null ? null
+                : integrationMethodTypeRepository.findById(dto.integrationMethodTypeId())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Integration method type not found: " + dto.integrationMethodTypeId()));
 
         String abbreviatedName = integrationApplicationName.toLowerCase()
                 .replaceAll("[^a-z0-9_]", "_")
@@ -89,6 +96,8 @@ public class RequestVotingService {
             request.setMail(dto.contactEmail());
             request.setCollab(dto.openToCollaborate() != null && dto.openToCollaborate());
             request.setSystemVersion(dto.systemVersion());
+            request.setIntegrationNeed(dto.integrationNeed());
+            request.setIntegrationMethodType(integrationMethodType);
 
             request = requestRepository.save(request);
 

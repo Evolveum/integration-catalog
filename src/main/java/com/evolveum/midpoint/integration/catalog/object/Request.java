@@ -47,6 +47,13 @@ public class Request {
     @Column(name = "system_version", length = 20)
     private String systemVersion;
 
+    @Column(name = "integration_need", columnDefinition = "TEXT")
+    private String integrationNeed;
+
+    @ManyToOne
+    @JoinColumn(name = "integration_method_type_id")
+    private IntegrationMethodType integrationMethodType;
+
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ObjectClassCapabilities> objectClassCapabilities = new ArrayList<>();
 

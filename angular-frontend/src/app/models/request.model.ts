@@ -27,10 +27,11 @@ export interface ObjectClassCapabilityEntry {
  */
 export interface IntegrationRequest {
   integrationApplicationName: string;
-  integrationMethod: string;
+  integrationMethodTypeId: number | null;
   deploymentType: string;
   capabilities: ObjectClassCapabilityEntry[];
   description: string;
+  integrationNeed: string;
   systemVersion: string;
   contactEmail: string;
   openToCollaborate: boolean;

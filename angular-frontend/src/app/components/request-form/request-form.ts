@@ -12,6 +12,11 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 
+interface IntegrationMethodOption {
+  id: number;
+  displayName: string;
+}
+
 @Component({
   selector: 'app-request-form',
   standalone: true,
@@ -28,14 +33,15 @@ export class RequestForm implements OnInit {
 
   protected formData = {
     integrationApplicationName: '',
-    integrationMethod: '',
+    integrationMethod: null as IntegrationMethodOption | null,
     description: '',
+    integrationNeed: '',
     systemVersion: '',
     contactEmail: '',
     openToCollaborate: false,
     deploymentType: ''
   };
-  protected readonly integrationMethods = signal<string[]>([]);
+  protected readonly integrationMethods = signal<IntegrationMethodOption[]>([]);
   protected readonly isIntegrationMethodDropdownOpen = signal<boolean>(false);
   protected readonly isIntegrationMethodExpanded = signal<boolean>(false);
   protected readonly capabilityGroups = signal<CapabilityGroup[]>([]);
@@ -50,7 +56,7 @@ export class RequestForm implements OnInit {
 
   ngOnInit(): void {
     this.applicationService.getIntegrationMethodTypes().subscribe({
-      next: (types) => this.integrationMethods.set(types.map(t => t.displayName)),
+      next: (types) => this.integrationMethods.set(types),
       error: (err) => console.error('Failed to load integration method types', err)
     });
   }
@@ -64,8 +70,9 @@ export class RequestForm implements OnInit {
   protected resetForm(): void {
     this.formData = {
       integrationApplicationName: '',
-      integrationMethod: '',
+      integrationMethod: null,
       description: '',
+      integrationNeed: '',
       systemVersion: '',
       contactEmail: '',
       openToCollaborate: false,
@@ -92,10 +99,11 @@ export class RequestForm implements OnInit {
 
     const request = {
       integrationApplicationName: this.formData.integrationApplicationName,
-      integrationMethod: this.formData.integrationMethod,
+      integrationMethodTypeId: this.formData.integrationMethod?.id ?? null,
       deploymentType: this.formData.deploymentType,
       capabilities,
       description: this.formData.description,
+      integrationNeed: this.formData.integrationNeed,
       systemVersion: this.formData.systemVersion,
       contactEmail: this.formData.contactEmail,
       openToCollaborate: this.formData.openToCollaborate,
@@ -129,12 +137,12 @@ export class RequestForm implements OnInit {
     this.isIntegrationMethodDropdownOpen.update(value => !value);
   }
 
-  protected selectIntegrationMethod(method: string): void {
+  protected selectIntegrationMethod(method: IntegrationMethodOption): void {
     this.formData.integrationMethod = method;
     this.isIntegrationMethodDropdownOpen.set(false);
   }
 
-  protected get visibleIntegrationMethods(): string[] {
+  protected get visibleIntegrationMethods(): IntegrationMethodOption[] {
     return this.isIntegrationMethodExpanded()
       ? this.integrationMethods()
       : this.integrationMethods().slice(0, 4);

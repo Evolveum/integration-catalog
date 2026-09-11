@@ -85,6 +85,8 @@ export interface ApplicationDetail {
   integrationMethods: IntegrationMethod[] | null; // integration_method
   requestId: number | null;                 // request.id
   voteCount: number | null;                 // computed: count of vote rows
+  integrationNeed: string | null;           // request.integration_need
+  requestedIntegrationMethodType: string | null; // integration_method_type.display_name via request
   frameworks: string[] | null;              // connector_bundle.framework
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
 }

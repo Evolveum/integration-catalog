@@ -68,26 +68,26 @@
               <div class="position-relative">
                 <div class="form-control d-flex align-items-center integration-method-trigger"
                     (click)="toggleIntegrationMethodDropdown()">
-                  @if (!formData.integrationMethod) {
-                    <span class="capability-placeholder">Select</span>
+                  @if (formData.integrationMethod; as selected) {
+                    <span>{{ selected.displayName }}</span>
                   } @else {
-                    <span>{{ formData.integrationMethod }}</span>
+                    <span class="capability-placeholder">Select</span>
                   }
                   <i class="fa-solid fa-chevron-down position-absolute end-0 me-3 dropdown-arrow-sm"></i>
                 </div>
 
                 @if (isIntegrationMethodDropdownOpen()) {
                   <div class="position-absolute w-100 bg-white mt-1 integration-method-dropdown">
-                    @for (method of visibleIntegrationMethods; track method) {
+                    @for (method of visibleIntegrationMethods; track method.id) {
                       <label class="d-flex align-items-center integration-method-option"
-                            [class.integration-method-option-selected]="formData.integrationMethod === method"
+                            [class.integration-method-option-selected]="formData.integrationMethod?.id === method.id"
                             (click)="selectIntegrationMethod(method)">
                         <input type="radio"
                               name="integrationMethod"
-                              [value]="method"
-                              [checked]="formData.integrationMethod === method"
+                              [value]="method.id"
+                              [checked]="formData.integrationMethod?.id === method.id"
                               class="integration-method-radio">
-                        <span>{{ method }}</span>
+                        <span>{{ method.displayName }}</span>
                       </label>
                     }
                     @if (integrationMethods().length > 4) {
@@ -108,8 +108,13 @@
 
             <!-- Row 8 & 9 -->
             <div class="mb-3">
-              <label class="form-label form-label-bold">Short description<span class="text-danger">&nbsp;*</span></label>
-              <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the integration you need and your use case." required></textarea>
+              <label class="form-label form-label-bold">Application description<span class="text-danger">&nbsp;*</span></label>
+              <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the application: what it is and what it is used for." required></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label form-label-bold">Requested integration<span class="text-danger">&nbsp;*</span></label>
+              <textarea class="form-control" rows="3" [(ngModel)]="formData.integrationNeed" placeholder="Briefly describe the integration you need and your use case." required></textarea>
             </div>
 
             <!-- System Version & Contact Email side by side -->
@@ -188,7 +193,7 @@
               <button type="button" class="btn btn-cancel" (click)="closeRequestModal()" [disabled]="isSubmitting()">
                 <span class="btn-cancel-text">Cancel</span>
               </button>
-              <button type="button" class="btn btn-submit" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description">
+              <button type="button" class="btn btn-submit" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description || !formData.integrationNeed">
                 {{ isSubmitting() ? 'Submitting...' : 'Submit request' }}
               </button>
             </div>

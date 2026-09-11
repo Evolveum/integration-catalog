@@ -142,6 +142,20 @@
             <p class="app-description-text">{{ application()!.description }}</p>
           </div>
 
+          <!-- Requested integration (REQUESTED apps) -->
+          @if (application()!.lifecycleState === 'REQUESTED'
+               && (application()!.requestedIntegrationMethodType || application()!.integrationNeed)) {
+            <div class="mb-4">
+              <h2 class="h5 mb-3">Requested integration</h2>
+              @if (application()!.requestedIntegrationMethodType) {
+                <p class="fw-semibold mb-2">{{ application()!.requestedIntegrationMethodType }}</p>
+              }
+              @if (application()!.integrationNeed) {
+                <p class="app-description-text">{{ application()!.integrationNeed }}</p>
+              }
+            </div>
+          }
+
             <!-- REQUESTED Application Info -->
             @if (application()!.lifecycleState === 'REQUESTED') {
               <div class="row mt-4">
