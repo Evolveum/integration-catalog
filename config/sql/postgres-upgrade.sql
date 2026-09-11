@@ -153,6 +153,20 @@ CREATE UNIQUE INDEX unique_active_bundle_name
 $aa$);
 -- end of region
 
+-- region change 7: a request says which integration it asks for
+-- The request form had a single "Short description" that was stored as application.description, so
+-- whatever the requester wrote about the integration they need showed up in the catalog as the
+-- application's description. integration_need keeps that text on the request instead. The integration
+-- method type picked on the form was sent but never stored; integration_method_type_id keeps it.
+-- ON DELETE SET NULL: removing a type must not take the requests that mention it along.
+call apply_change(7, $aa$
+ALTER TABLE request ADD COLUMN integration_need text;
+ALTER TABLE request ADD COLUMN integration_method_type_id integer;
+ALTER TABLE ONLY request
+    ADD CONSTRAINT fk_request_imt FOREIGN KEY (integration_method_type_id) REFERENCES integration_method_type(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$
