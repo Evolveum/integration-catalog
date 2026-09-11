@@ -34,9 +34,10 @@ const BUNDLE_NOTE = 'If the package contains a samples directory, it may include
   + 'that can be imported into midPoint';
 
 /**
- * Post-download help modal shown after a download starts. The parent controls visibility
- * (render it inside an @if); the modal can only be dismissed via the Understood button or
- * the corner X (backdrop clicks do nothing).
+ * Help modal with numbered steps - by default the setup guide shown after a download starts,
+ * other help (e.g. finding a commit hash) passes its own title, lead and steps. The parent
+ * controls visibility (render it inside an @if); the modal can only be dismissed via the
+ * Understood button or the corner X (backdrop clicks do nothing).
  */
 @Component({
   selector: 'app-download-info-modal',
@@ -45,6 +46,10 @@ const BUNDLE_NOTE = 'If the package contains a samples directory, it may include
   styleUrls: ['./download-info-modal.scss']
 })
 export class DownloadInfoModal {
+  @Input() title = 'Download starting shortly';
+  @Input() lead = 'To complete setup, follow these steps:';
+  /** Font Awesome icon in the header circle. */
+  @Input() icon = 'fa-check';
   /** Name of the downloaded file, e.g. "sharepoint-via-rest-v2.zip". */
   @Input() fileName = '';
   /** Size of the downloaded file in bytes (null = unknown, size hidden). */

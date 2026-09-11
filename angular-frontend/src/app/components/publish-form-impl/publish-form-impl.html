@@ -398,10 +398,20 @@
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
-                  <a href="https://google.com" target="_blank" rel="noopener" class="commit-help-link d-inline-flex align-items-center gap-1">
+                  <button type="button" class="commit-help-link d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
                     How to find it <i class="fa-solid fa-arrow-right"></i>
-                  </a>
+                  </button>
                 </div>
+                @if (isCommitHelpOpen()) {
+                  <app-download-info-modal
+                    title="How to specify the commit hash"
+                    lead=""
+                    icon="fa-code-commit"
+                    [steps]="commitHelpSteps"
+                    note=""
+                    (closed)="isCommitHelpOpen.set(false)">
+                  </app-download-info-modal>
+                }
               </div>
 
               <!-- Implementation details -->

@@ -19,6 +19,7 @@ import { CatalogConnector } from '../../models/catalog-connector.model';
 import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
+import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/download-info-modal';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -59,10 +60,36 @@ export interface Step5FormData {
   devGithubApiKey: string;
 }
 
+// Draft content of the "How to find it" help next to the commit hash field.
+const COMMIT_HELP_STEPS: DownloadInfoStep[] = [
+  {
+    title: 'Open the connector repository',
+    description: 'Open the Git repository containing the connector source code for which you want to create a new connector version.'
+  },
+  {
+    title: 'Select the required tag or release',
+    description: 'Navigate to the repository tags or releases and select the desired connector version.'
+  },
+  {
+    title: 'Open the commit history',
+    description: 'Open the commit history and locate the commit that represents the connector version. ' + 
+    ' In most cases, this will be the latest commit associated with the tag. '
+  },
+  {
+    title: 'Copy the commit hash',
+    description: 'Open the selected commit details and copy the commit hash value. This hash uniquely ' + 
+    ' identifies the exact source code version of the connector. '
+  },
+  {
+    title: 'Paste the commit hash',
+    description: 'Paste the copied commit hash into the *Commit hash* field in the Integration Catalog.'
+  }
+];
+
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal],
+  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })
@@ -130,6 +157,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly devRepoOwnership = signal<'evolveum' | 'own'>('evolveum');
   protected readonly devGithubApiKey = signal<string>('');
   protected readonly showGithubApiKey = signal<boolean>(false);
+  protected readonly isCommitHelpOpen = signal<boolean>(false);
+  protected readonly commitHelpSteps = COMMIT_HELP_STEPS;
   protected readonly devSourceFile = signal<File | null>(null);
   protected readonly devSourceFileDragOver = signal<boolean>(false);
 

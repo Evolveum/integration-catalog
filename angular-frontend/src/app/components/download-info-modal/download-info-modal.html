@@ -14,9 +14,9 @@
 
     <div class="download-info-header d-flex flex-column align-items-center text-center">
       <span class="download-info-check d-flex align-items-center justify-content-center">
-        <i class="fa-solid fa-check"></i>
+        <i class="fa-solid" [class]="icon"></i>
       </span>
-      <h2 class="download-info-title">Download starting shortly</h2>
+      <h2 class="download-info-title">{{ title }}</h2>
       @if (fileName) {
         <span class="download-info-file">
           {{ fileName }}@if (formattedSize(); as size) {&nbsp;&middot;&nbsp;{{ size }}}
@@ -25,7 +25,9 @@
     </div>
 
     <div class="download-info-body">
-      <p class="download-info-lead">To complete setup, follow these steps:</p>
+      @if (lead) {
+        <p class="download-info-lead">{{ lead }}</p>
+      }
 
       @for (step of steps; track $index) {
         <div class="download-info-step d-flex gap-3">
