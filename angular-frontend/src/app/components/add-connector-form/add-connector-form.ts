@@ -15,6 +15,8 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { PageHeader } from '../page-header/page-header';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
 import { CatalogConnector } from '../../models/catalog-connector.model';
 
 type Step = 1 | 2;
@@ -55,7 +57,7 @@ export interface StagedConnector {
 @Component({
   selector: 'app-add-connector-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader],
+  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal],
   templateUrl: './add-connector-form.html',
   styleUrls: ['./add-connector-form.scss']
 })
@@ -134,6 +136,9 @@ export class AddConnectorForm implements OnInit {
   protected readonly devCommitTag = signal<string>('');
   protected readonly devProjectFolderPath = signal<string>('');
   protected readonly devClassName = signal<string>('');
+  protected readonly isCommitHelpOpen = signal<boolean>(false);
+  protected readonly commitHelpTitle = COMMIT_HELP_TITLE;
+  protected readonly commitHelpSteps = COMMIT_HELP_STEPS;
 
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
   protected readonly licenseLabels: Record<string, string> = {

@@ -63,6 +63,9 @@
   text-decoration: none;
   font-weight: 500;
   white-space: nowrap;
+  background: none;
+  padding: 0;
+  border: 0;
   /* Single continuous underline across text + icon at one level (avoids the
      uneven per-glyph underline that text-decoration produces on the flex link). */
   border-bottom: 1px solid transparent;

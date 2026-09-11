@@ -311,7 +311,7 @@
                     </div>
                     <div class="form-text">
                       Need help creating a GitHub API key? See Github's guide on personal access tokens:
-                      <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token"
+                      <a [attr.href]="links()?.githubTokenGuide"
                          target="_blank" rel="noopener noreferrer" class="github-api-key-link">
                         How to create Github API Key <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem;"></i>
                       </a>
@@ -404,7 +404,7 @@
                 </div>
                 @if (isCommitHelpOpen()) {
                   <app-download-info-modal
-                    title="How to specify the commit hash"
+                    [title]="commitHelpTitle"
                     lead=""
                     icon="fa-code-commit"
                     [steps]="commitHelpSteps"
@@ -744,8 +744,8 @@
           <p class="publish-license-text">
             By publishing this integration method, you confirm that you hold all rights necessary to publish this content
             under the license you have selected, that the content does not infringe any third-party rights, and that it
-            complies with Evolveum's <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> and
-            <a href="https://docs.evolveum.com/legal/acceptable-use-policy/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+            complies with Evolveum's <a [attr.href]="links()?.termsOfUse" target="_blank" rel="noopener">Terms of Use</a> and
+            <a [attr.href]="links()?.acceptableUsePolicy" target="_blank" rel="noopener">Acceptable Use Policy</a>.
           </p>
 
           @if (licenseExpanded()) {
@@ -758,8 +758,8 @@
               4.0 International (CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector
               or configuration itself. Evolveum reserves the right to remove or decline publication of any submitted
               content at its sole discretion, including but not limited to content that violates these
-              <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> or the
-              <a href="https://docs.evolveum.com/legal/acceptable-use-policy/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+              <a [attr.href]="links()?.termsOfUse" target="_blank" rel="noopener">Terms of Use</a> or the
+              <a [attr.href]="links()?.acceptableUsePolicy" target="_blank" rel="noopener">Acceptable Use Policy</a>.
             </p>
           }
 

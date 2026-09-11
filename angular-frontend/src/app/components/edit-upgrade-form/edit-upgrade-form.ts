@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,7 @@ import { toArray } from 'rxjs/operators';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
+import { LinksService } from '../../services/links.service';
 import { PageHeader } from '../page-header/page-header';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
@@ -30,6 +31,7 @@ import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../mod
   styleUrls: ['./edit-upgrade-form.scss']
 })
 export class EditUpgradeForm implements OnInit, OnDestroy {
+  protected readonly links = inject(LinksService).links;
   protected readonly loading = signal<boolean>(true);
   protected readonly showAddConnector = signal<boolean>(false);
   // Set once a connector is added directly to a mutable (in-review/rejected) revision this session.

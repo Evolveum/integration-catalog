@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, computed, effect, inject, OnInit, OnDestroy } from '@angular/core';
 import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +14,7 @@ import { PageHeader } from '../page-header/page-header';
 import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
+import { LinksService } from '../../services/links.service';
 
 @Component({
   selector: 'app-publish-form-main',
@@ -62,6 +63,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly isLoadingCountries = signal<boolean>(true);
 
   // Step 3 – method-specific form fields
+  protected readonly links = inject(LinksService).links;
   protected readonly methodFormDisplayName = signal<string>('');
   protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
