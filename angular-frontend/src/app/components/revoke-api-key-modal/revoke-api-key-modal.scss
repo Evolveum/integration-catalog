@@ -1,0 +1,108 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.revoke-key-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1050;
+}
+
+.revoke-key-container {
+  z-index: 1055;
+  pointer-events: none;
+}
+
+.revoke-key-dialog {
+  position: relative;
+  pointer-events: auto;
+  background: $color-white;
+  border-radius: 10px;
+  width: 520px;
+  max-width: calc(100vw - 2rem);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.revoke-key-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 1rem;
+  border: none;
+  background: none;
+  color: $color-gray-secondary;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.25rem;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-text-dark;
+  }
+}
+
+.revoke-key-body {
+  padding: 1.75rem 1.75rem 1.5rem;
+}
+
+.revoke-key-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: $toast-danger-header;
+  color: $color-white;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.revoke-key-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+.revoke-key-text {
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  margin: 0;
+}
+
+.revoke-key-footer {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid $color-separator;
+}
+
+.revoke-key-cancel {
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  font-size: 0.9375rem;
+  color: $color-text-secondary;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-text-dark;
+  }
+}
+
+.revoke-key-confirm {
+  background-color: $toast-danger-header;
+  border: 1px solid $toast-danger-header;
+  border-radius: 6px;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: $color-white;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: #C42B3A;
+    border-color: #C42B3A;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
