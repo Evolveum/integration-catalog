@@ -19,7 +19,9 @@ public record ApiKeyDto(
         Instant createdAt,
         Instant lastUsedAt,
         Instant expiresAt,
-        Instant revokedAt
+        Instant revokedAt,
+        String keyHint,
+        Instant replacedAt
 ) {
 
     public static ApiKeyDto of(ApiKey key) {
@@ -29,6 +31,8 @@ public record ApiKeyDto(
                 key.getCreatedAt(),
                 null,
                 key.getExpiresAt(),
-                key.getRevokedAt());
+                key.getRevokedAt(),
+                key.getKeyHint(),
+                key.getReplacedAt());
     }
 }

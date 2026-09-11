@@ -13,6 +13,8 @@ import com.evolveum.midpoint.integration.catalog.dto.CreatedApiKeyDto;
 import com.evolveum.midpoint.integration.catalog.integration.GraviteeClient;
 import com.evolveum.midpoint.integration.catalog.object.ApiKey;
 import com.evolveum.midpoint.integration.catalog.repository.ApiKeyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -20,8 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -32,6 +37,13 @@ import java.util.UUID;
 public class ApiKeyService {
 
     private static final int MAX_EXPIRATION_DAYS = 365;
+
+    /** Gravitee's fixed renewal grace period; only assumed when its own answer cannot be read. */
+    private static final Duration RENEWAL_GRACE = Duration.ofHours(2);
+
+    private static final int HINT_LENGTH = 4;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApiKeyService.class);
 
     private final ApiKeyRepository repository;
     private final GraviteeClient gravitee;
@@ -84,6 +96,7 @@ public class ApiKeyService {
             key.setGraviteeApplicationId(applicationId);
             key.setGraviteeSubscriptionId(subscriptionId);
             key.setGraviteeApiKeyId(material.id());
+            key.setKeyHint(hintOf(material.value()));
             key.setCreatedAt(Instant.now());
             key.setExpiresAt(expirationAccepted ? expiresAt : null);
             repository.save(key);
@@ -99,10 +112,69 @@ public class ApiKeyService {
     }
 
     /**
-     * Revokes one of the caller's own keys. Gravitee goes first: the reverse order would show a
-     * key as dead while it still opens doors. Revoking twice is not an error.
-     *
-     * @param id the key to revoke
+     * Replaces one of the caller's working keys with a new key on the same subscription and returns
+     * its value, the only time it is available. The old key keeps working for Gravitee's grace
+     * period and stays listed as replaced; the new one ends when the subscription does.
+     */
+    @Transactional
+    public CreatedApiKeyDto renew(OidcUser user, String id) {
+        requireConfigured();
+        ApiKey old = ownKey(subjectOf(user), id);
+        Instant now = Instant.now();
+        if (!isWorking(old, now) || old.getReplacedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Only an active key that has not been replaced yet can be rotated.");
+        }
+        String subscriptionId = old.getGraviteeSubscriptionId();
+        // The newest key carries the subscription's end: a renewal does not extend how long access lasts.
+        Instant subscriptionEnd = old.getExpiresAt();
+
+        GraviteeClient.ApiKeyMaterial material;
+        try {
+            material = gravitee.renewApiKey(subscriptionId);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "The API key could not be rotated: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The rotation was interrupted.", e);
+        }
+
+        // Gravitee has just given every working key of the subscription an end; record it.
+        Map<String, Instant> graceEnds = graceEnds(subscriptionId);
+        for (ApiKey sibling : repository.findByGraviteeSubscriptionId(subscriptionId)) {
+            if (!isWorking(sibling, now)) {
+                continue;
+            }
+            Instant graceEnd = graceEnds.getOrDefault(sibling.getGraviteeApiKeyId(), now.plus(RENEWAL_GRACE));
+            sibling.setExpiresAt(earliest(graceEnd, subscriptionEnd));
+            if (sibling.getReplacedAt() == null) {
+                sibling.setReplacedAt(now);
+            }
+            repository.save(sibling);
+        }
+
+        ApiKey renewed = new ApiKey();
+        renewed.setId(UUID.randomUUID());
+        renewed.setName(old.getName());
+        renewed.setOwnerSub(old.getOwnerSub());
+        renewed.setOwnerUsername(old.getOwnerUsername());
+        renewed.setGraviteeApplicationId(old.getGraviteeApplicationId());
+        renewed.setGraviteeSubscriptionId(subscriptionId);
+        renewed.setGraviteeApiKeyId(material.id());
+        renewed.setKeyHint(hintOf(material.value()));
+        renewed.setCreatedAt(now);
+        renewed.setExpiresAt(earliest(material.expireAt(), subscriptionEnd));
+        repository.save(renewed);
+
+        return new CreatedApiKeyDto(ApiKeyDto.of(renewed), material.value(), true);
+    }
+
+    /**
+     * Revokes one of the caller's own keys and leaves the others of its subscription working - a
+     * renewed key and the one it replaced share one. The subscription itself is closed only with
+     * its last working key. Gravitee goes first: the reverse order would show a key as dead while
+     * it still opens doors. Revoking twice is not an error.
      */
     @Transactional
     public void revoke(OidcUser user, String id) {
@@ -111,8 +183,18 @@ public class ApiKeyService {
         if (key.getRevokedAt() != null) {
             return;
         }
+        Instant now = Instant.now();
+        String subscriptionId = key.getGraviteeSubscriptionId();
+        List<ApiKey> otherWorking = repository.findByGraviteeSubscriptionId(subscriptionId).stream()
+                .filter(other -> !other.getId().equals(key.getId()) && isWorking(other, now))
+                .toList();
+        boolean closeSubscription = otherWorking.isEmpty() || key.getGraviteeApiKeyId() == null;
         try {
-            gravitee.closeSubscription(key.getGraviteeSubscriptionId());
+            if (closeSubscription) {
+                gravitee.closeSubscription(subscriptionId);
+            } else {
+                gravitee.revokeApiKey(subscriptionId, key.getGraviteeApiKeyId());
+            }
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "The API key could not be revoked: " + e.getMessage(), e);
@@ -120,8 +202,38 @@ public class ApiKeyService {
             Thread.currentThread().interrupt();
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The revocation was interrupted.", e);
         }
-        key.setRevokedAt(Instant.now());
+        key.setRevokedAt(now);
         repository.save(key);
+        if (closeSubscription) {
+            // A closed subscription takes every key of it along.
+            for (ApiKey other : otherWorking) {
+                other.setRevokedAt(now);
+                repository.save(other);
+            }
+        }
+    }
+
+    /**
+     * When Gravitee says each key of the subscription stops working. Best-effort: the renewal already
+     * happened, so an unreadable answer falls back to the documented grace period rather than
+     * losing the new key.
+     */
+    private Map<String, Instant> graceEnds(String subscriptionId) {
+        Map<String, Instant> ends = new HashMap<>();
+        try {
+            for (GraviteeClient.ApiKeyState state : gravitee.listApiKeys(subscriptionId)) {
+                if (state.id() != null && state.expireAt() != null) {
+                    ends.put(state.id(), state.expireAt());
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            LOGGER.warn("Could not read the keys of subscription {} after renewing it; assuming the {} grace period.",
+                    subscriptionId, RENEWAL_GRACE, e);
+        }
+        return ends;
     }
 
     /** Says so plainly, rather than letting the call reach Gravitee without an api id or a token. */
@@ -159,6 +271,22 @@ public class ApiKeyService {
                     "A key may live at most " + MAX_EXPIRATION_DAYS + " days.");
         }
         return expiresAt;
+    }
+
+    private static boolean isWorking(ApiKey key, Instant now) {
+        return key.getRevokedAt() == null && (key.getExpiresAt() == null || key.getExpiresAt().isAfter(now));
+    }
+
+    /** The earlier of two instants, where null means "never". */
+    private static Instant earliest(Instant a, Instant b) {
+        if (a == null) {
+            return b;
+        }
+        return b == null || a.isBefore(b) ? a : b;
+    }
+
+    private static String hintOf(String value) {
+        return value.length() <= HINT_LENGTH ? value : value.substring(value.length() - HINT_LENGTH);
     }
 
     private String subjectOf(OidcUser user) {

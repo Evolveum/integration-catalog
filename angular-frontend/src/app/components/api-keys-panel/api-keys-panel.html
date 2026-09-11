@@ -25,8 +25,8 @@
   <div class="keys-created d-flex gap-3">
     <i class="fa-solid fa-circle-check keys-created-icon"></i>
     <div class="keys-created-body">
-      <div class="keys-created-title">API key created</div>
-      <div class="keys-created-text">Copy this key now. You won't be able to view it again after you finish.</div>
+      <div class="keys-created-title">{{ createdTitle() }}</div>
+      <div class="keys-created-text">{{ createdText() }}</div>
       <div class="keys-created-value d-flex align-items-center gap-2">
         <span class="keys-created-secret">{{ valueVisible() ? value : maskedValue() }}</span>
         <button type="button" class="keys-created-action ms-auto d-flex align-items-center gap-2"
@@ -96,6 +96,7 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Key</th>
           <th>Status</th>
           <th>Last used</th>
           <th>Created</th>
@@ -107,32 +108,40 @@
         @for (key of rows; track key.id) {
           <tr>
             <td class="keys-table-name">{{ key.name }}</td>
+            <!-- The last characters of the value: the only thing telling a rotated key from its successor. -->
+            <td class="keys-table-hint">{{ key.keyHint ? '••••' + key.keyHint : '—' }}</td>
             <td>
               <span class="keys-status" [class.keys-status-active]="status(key) === 'Active'"
+                [class.keys-status-replaced]="status(key) === 'Replaced'"
                 [class.keys-status-revoked]="status(key) === 'Revoked'">{{ status(key) }}</span>
             </td>
             <td>{{ key.lastUsedAt ? (key.lastUsedAt | date:'d/M/yyyy') : 'Never' }}</td>
             <td>{{ key.createdAt | date:'d/M/yyyy' }}</td>
-            <td>{{ key.expiresAt ? (key.expiresAt | date:'d/M/yyyy') : 'Never' }}</td>
+            <!-- A replaced key stops within hours, so its end needs the time as well. -->
+            <td>{{ key.expiresAt ? (key.expiresAt | date:(key.replacedAt ? 'd/M/yyyy HH:mm' : 'd/M/yyyy')) : 'Never' }}</td>
             <td class="keys-table-actions">
-              <div class="keys-menu-anchor">
-                <button type="button" class="keys-menu-btn" title="Key actions" (click)="toggleMenu(key.id)">
-                  <i class="fa-solid fa-ellipsis-vertical"></i>
-                </button>
-                @if (openMenuKeyId() === key.id) {
-                  <div class="keys-menu" role="menu">
-                    <button type="button" class="keys-menu-item" role="menuitem" (click)="rotate(key)">
-                      Rotate
-                    </button>
-                    <div class="keys-menu-separator"></div>
-                    <button type="button" class="keys-menu-item keys-menu-item-danger" role="menuitem"
-                      (click)="revoke(key)">
-                      Revoke
-                    </button>
-                  </div>
-                  <div class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
-                }
-              </div>
+              @if (hasActions(key)) {
+                <div class="keys-menu-anchor">
+                  <button type="button" class="keys-menu-btn" title="Key actions" (click)="toggleMenu(key.id)">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
+                  @if (openMenuKeyId() === key.id) {
+                    <div class="keys-menu" role="menu">
+                      @if (canRotate(key)) {
+                        <button type="button" class="keys-menu-item" role="menuitem" (click)="rotate(key)">
+                          Rotate
+                        </button>
+                        <div class="keys-menu-separator"></div>
+                      }
+                      <button type="button" class="keys-menu-item keys-menu-item-danger" role="menuitem"
+                        (click)="revoke(key)">
+                        Revoke
+                      </button>
+                    </div>
+                    <div class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+                  }
+                </div>
+              }
             </td>
           </tr>
         }
@@ -148,4 +157,10 @@
 @if (revoking()) {
   <app-revoke-api-key-modal [busy]="revokeInFlight()" (closed)="revoking.set(null)"
     (confirmed)="confirmRevoke()" />
+}
+
+@if (rotating(); as key) {
+  <app-revoke-api-key-modal variant="primary" icon="fa-arrows-rotate" title="Rotate API key?"
+    [text]="rotateText(key)" confirmLabel="Rotate API key" busyLabel="Rotating..."
+    [busy]="rotateInFlight()" (closed)="rotating.set(null)" (confirmed)="confirmRotate()" />
 }

@@ -309,16 +309,18 @@ $aa$);
 -- end of region
 
 -- region change 10: API key management (Gravitee-backed)
--- One row per personal API key. Gravitee owns the key itself - it mints the value, and the
--- catalog never stores it, not even hashed: the value is shown once, at creation.
+-- One row per Gravitee API key. Gravitee owns the key itself - it mints the value, and the
+-- catalog never stores it, not even hashed: the value is shown once, at creation or renewal.
 --
 -- The Gravitee side is one application per KEY, each with a single subscription: Gravitee refuses
 -- a second live subscription of one application to the same plan ('plan.subscribed'), so a
--- per-user application would cap every user at one key. Only the subscription is constrained
--- unique here - the application id is one-to-one with it in practice. owner_sub is the identity
--- provider's 'sub' claim rather than the username, because it survives a rename in the provider;
--- owner_username is a display copy.
--- (Comment only: this section is already applied everywhere and creates nothing new.)
+-- per-user application would cap every user at one key. Renewing (Gravitee's _renew on the
+-- subscription) mints a new key on that SAME subscription and gives the previous one a two-hour
+-- grace period, and both are listed - so the Gravitee key id is unique here, not the subscription.
+-- key_hint keeps the last four characters of the value, the only thing that tells the two keys
+-- apart for the user; on its own it is not a usable secret. replaced_at marks the row a renewal
+-- superseded. owner_sub is the identity provider's 'sub' claim rather than the username, because
+-- it survives a rename in the provider; owner_username is a display copy.
 call apply_change(10, $aa$
 CREATE TABLE api_key (
     id                       uuid                     NOT NULL,
@@ -328,13 +330,16 @@ CREATE TABLE api_key (
     gravitee_application_id  character varying(64)    NOT NULL,
     gravitee_subscription_id character varying(64)    NOT NULL,
     gravitee_api_key_id      character varying(64),
+    key_hint                 character varying(8),
     created_at               timestamp with time zone NOT NULL DEFAULT now(),
     expires_at               timestamp with time zone,
-    revoked_at               timestamp with time zone
+    revoked_at               timestamp with time zone,
+    replaced_at              timestamp with time zone
 );
 ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_pkey PRIMARY KEY (id);
-ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_subscription_uk UNIQUE (gravitee_subscription_id);
+ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_gravitee_key_uk UNIQUE (gravitee_api_key_id);
 CREATE INDEX api_key_owner_idx ON api_key (owner_sub);
+CREATE INDEX api_key_subscription_idx ON api_key (gravitee_subscription_id);
 $aa$);
 -- end of region
 

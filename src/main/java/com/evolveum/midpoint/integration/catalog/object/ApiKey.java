@@ -57,6 +57,14 @@ public class ApiKey {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
+    /** Last four characters of the value: tells a renewed key from its predecessor without storing it. */
+    @Column(name = "key_hint")
+    private String keyHint;
+
+    /** When a renewal superseded this key; it keeps working until {@link #expiresAt}, Gravitee's grace period. */
+    @Column(name = "replaced_at")
+    private Instant replacedAt;
+
     public UUID getId() {
         return id;
     }
@@ -135,5 +143,21 @@ public class ApiKey {
 
     public void setRevokedAt(Instant revokedAt) {
         this.revokedAt = revokedAt;
+    }
+
+    public String getKeyHint() {
+        return keyHint;
+    }
+
+    public void setKeyHint(String keyHint) {
+        this.keyHint = keyHint;
+    }
+
+    public Instant getReplacedAt() {
+        return replacedAt;
+    }
+
+    public void setReplacedAt(Instant replacedAt) {
+        this.replacedAt = replacedAt;
     }
 }

@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -135,6 +136,8 @@ class ApiKeyServiceTest {
         assertEquals("app-1", saved.getValue().getGraviteeApplicationId());
         assertEquals("sub-1", saved.getValue().getGraviteeSubscriptionId());
         assertEquals("key-1", saved.getValue().getGraviteeApiKeyId());
+        // Only the last four characters are kept, to tell a renewed key from its predecessor.
+        assertEquals("cret", saved.getValue().getKeyHint());
         // The value is never part of what is stored.
         assertNull(saved.getValue().getExpiresAt());
     }
@@ -240,6 +243,119 @@ class ApiKeyServiceTest {
                 () -> serviceWith(configured()).revoke(user(), "not-a-uuid"));
 
         assertEquals(HttpStatus.NOT_FOUND, failure.getStatusCode());
+    }
+
+    /** During the grace period the old key can be revoked alone, without touching the new one. */
+    @Test
+    void revokingTheReplacedKeyLeavesTheNewOneWorking() throws Exception {
+        ApiKey old = ownedKey(UUID.randomUUID());
+        old.setGraviteeApiKeyId("key-1");
+        old.setReplacedAt(Instant.now().minusSeconds(60));
+        old.setExpiresAt(Instant.now().plus(2, ChronoUnit.HOURS));
+        ApiKey renewed = ownedKey(UUID.randomUUID());
+        renewed.setGraviteeApiKeyId("key-2");
+        when(repository.findById(old.getId())).thenReturn(Optional.of(old));
+        when(repository.findByGraviteeSubscriptionId("sub-1")).thenReturn(List.of(old, renewed));
+
+        serviceWith(configured()).revoke(user(), old.getId().toString());
+
+        verify(gravitee).revokeApiKey("sub-1", "key-1");
+        verify(gravitee, never()).closeSubscription(anyString());
+        assertNotNull(old.getRevokedAt());
+        assertNull(renewed.getRevokedAt());
+    }
+
+    // ---- renew ----
+
+    @Test
+    void renewReplacesTheOldKeyAndReturnsTheNewValueOnce() throws Exception {
+        Instant graceEnd = Instant.now().plus(2, ChronoUnit.HOURS);
+        ApiKey old = ownedKey(UUID.randomUUID());
+        old.setGraviteeApiKeyId("key-1");
+        old.setGraviteeApplicationId("app-1");
+        when(repository.findById(old.getId())).thenReturn(Optional.of(old));
+        when(repository.findByGraviteeSubscriptionId("sub-1")).thenReturn(List.of(old));
+        when(gravitee.renewApiKey("sub-1")).thenReturn(new GraviteeClient.ApiKeyMaterial("key-2", "new-secret-abcd"));
+        when(gravitee.listApiKeys("sub-1")).thenReturn(List.of(
+                new GraviteeClient.ApiKeyState("key-1", graceEnd, false),
+                new GraviteeClient.ApiKeyState("key-2", null, false)));
+
+        CreatedApiKeyDto renewed = serviceWith(configured()).renew(user(), old.getId().toString());
+
+        assertEquals("new-secret-abcd", renewed.value());
+        assertEquals("abcd", renewed.key().keyHint());
+        assertNotNull(old.getReplacedAt());
+        assertEquals(graceEnd, old.getExpiresAt());
+
+        ArgumentCaptor<ApiKey> saved = ArgumentCaptor.forClass(ApiKey.class);
+        verify(repository, times(2)).save(saved.capture());
+        ApiKey stored = saved.getAllValues().get(1);
+        assertEquals("key-2", stored.getGraviteeApiKeyId());
+        assertEquals("sub-1", stored.getGraviteeSubscriptionId());
+        assertEquals("qwe", stored.getName());
+        assertNull(stored.getExpiresAt());
+        assertNull(stored.getReplacedAt());
+    }
+
+    /** A rotation must not let access outlive the subscription the user chose to end. */
+    @Test
+    void renewKeepsTheSubscriptionEnd() throws Exception {
+        Instant subscriptionEnd = Instant.now().plus(1, ChronoUnit.HOURS);
+        ApiKey old = ownedKey(UUID.randomUUID());
+        old.setGraviteeApiKeyId("key-1");
+        old.setExpiresAt(subscriptionEnd);
+        when(repository.findById(old.getId())).thenReturn(Optional.of(old));
+        when(repository.findByGraviteeSubscriptionId("sub-1")).thenReturn(List.of(old));
+        when(gravitee.renewApiKey("sub-1")).thenReturn(new GraviteeClient.ApiKeyMaterial("key-2", "new-secret"));
+        when(gravitee.listApiKeys("sub-1")).thenReturn(List.of(
+                new GraviteeClient.ApiKeyState("key-1", Instant.now().plus(2, ChronoUnit.HOURS), false)));
+
+        CreatedApiKeyDto renewed = serviceWith(configured()).renew(user(), old.getId().toString());
+
+        assertEquals(subscriptionEnd, renewed.key().expiresAt());
+        assertEquals(subscriptionEnd, old.getExpiresAt());
+    }
+
+    /** The new key already exists in Gravitee, so an unreadable key list must not lose it. */
+    @Test
+    void renewFallsBackToTheGracePeriodWhenTheKeysCannotBeRead() throws Exception {
+        ApiKey old = ownedKey(UUID.randomUUID());
+        old.setGraviteeApiKeyId("key-1");
+        when(repository.findById(old.getId())).thenReturn(Optional.of(old));
+        when(repository.findByGraviteeSubscriptionId("sub-1")).thenReturn(List.of(old));
+        when(gravitee.renewApiKey("sub-1")).thenReturn(new GraviteeClient.ApiKeyMaterial("key-2", "new-secret"));
+        when(gravitee.listApiKeys("sub-1")).thenThrow(new IOException("Gravitee refused"));
+
+        CreatedApiKeyDto renewed = serviceWith(configured()).renew(user(), old.getId().toString());
+
+        assertEquals("new-secret", renewed.value());
+        assertNotNull(old.getExpiresAt());
+        assertTrue(old.getExpiresAt().isAfter(Instant.now().plus(119, ChronoUnit.MINUTES)));
+    }
+
+    @Test
+    void renewingARevokedKeyIsAConflict() {
+        ApiKey key = ownedKey(UUID.randomUUID());
+        key.setRevokedAt(Instant.now().minusSeconds(60));
+        when(repository.findById(key.getId())).thenReturn(Optional.of(key));
+
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class,
+                () -> serviceWith(configured()).renew(user(), key.getId().toString()));
+
+        assertEquals(HttpStatus.CONFLICT, failure.getStatusCode());
+    }
+
+    @Test
+    void renewingAnAlreadyReplacedKeyIsAConflict() {
+        ApiKey key = ownedKey(UUID.randomUUID());
+        key.setReplacedAt(Instant.now().minusSeconds(60));
+        key.setExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
+        when(repository.findById(key.getId())).thenReturn(Optional.of(key));
+
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class,
+                () -> serviceWith(configured()).renew(user(), key.getId().toString()));
+
+        assertEquals(HttpStatus.CONFLICT, failure.getStatusCode());
     }
 
     /** A refusal from Gravitee must leave the row alone, so nothing claims a key is dead. */

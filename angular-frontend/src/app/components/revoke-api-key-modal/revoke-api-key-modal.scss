@@ -106,3 +106,20 @@
     cursor: not-allowed;
   }
 }
+
+/* Non-destructive confirmations (rotation) */
+.revoke-key-dialog-primary {
+  .revoke-key-icon {
+    background-color: $midpoint-special-color;
+  }
+
+  .revoke-key-confirm {
+    background-color: $midpoint-special-color;
+    border-color: $midpoint-special-color;
+
+    &:hover:not(:disabled) {
+      background-color: $color-dark-blue;
+      border-color: $color-dark-blue;
+    }
+  }
+}

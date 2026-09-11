@@ -12,7 +12,7 @@ import { ApiKey, ApiKeyService } from '../../services/api-key.service';
 import { CreateApiKeyModal, CreateApiKeyRequest } from '../create-api-key-modal/create-api-key-modal';
 import { RevokeApiKeyModal } from '../revoke-api-key-modal/revoke-api-key-modal';
 
-type ApiKeyStatus = 'Active' | 'Expired' | 'Revoked';
+type ApiKeyStatus = 'Active' | 'Replaced' | 'Expired' | 'Revoked';
 
 /**
  * The API keys tab of the settings page: the user's keys, the creation modal and the one-time
@@ -46,8 +46,14 @@ export class ApiKeysPanel implements OnInit {
   protected readonly revoking = signal<ApiKey | null>(null);
   protected readonly revokeInFlight = signal(false);
 
+  /** The key the rotate dialog is asking about. */
+  protected readonly rotating = signal<ApiKey | null>(null);
+  protected readonly rotateInFlight = signal(false);
+
   /** Shown once: nothing can produce this value again. */
   protected readonly createdValue = signal<string | null>(null);
+  protected readonly createdTitle = signal('API key created');
+  protected readonly createdText = signal("Copy this key now. You won't be able to view it again after you finish.");
   protected readonly valueVisible = signal(false);
 
   protected readonly openMenuKeyId = signal<string | null>(null);
@@ -72,8 +78,8 @@ export class ApiKeysPanel implements OnInit {
       next: created => {
         this.creating.set(false);
         this.modalOpen.set(false);
-        this.createdValue.set(created.value);
-        this.valueVisible.set(false);
+        this.showValue(created.value, 'API key created',
+          "Copy this key now. You won't be able to view it again after you finish.");
         this.load();
         if (!created.expirationAccepted) {
           this.toastService.show('API key created',
@@ -116,10 +122,37 @@ export class ApiKeysPanel implements OnInit {
     this.openMenuKeyId.set(null);
   }
 
-  /** Replaces the key with a new value, keeping its name and its place in the list. */
   protected rotate(key: ApiKey): void {
     this.closeMenu();
-    this.toastService.show('Rotate API key', `Rotating "${key.name}" is not available yet.`, 'info');
+    this.rotating.set(key);
+  }
+
+  protected rotateText(key: ApiKey): string {
+    return `A new key replaces "${key.name}". The current key keeps working for two more hours, `
+      + 'so update everything that uses it before then.';
+  }
+
+  /** Replaces the key with a new one under the same name; the old one stays listed as replaced. */
+  protected confirmRotate(): void {
+    const key = this.rotating();
+    if (!key) {
+      return;
+    }
+    this.rotateInFlight.set(true);
+    this.apiKeyService.renew(key.id).subscribe({
+      next: renewed => {
+        this.rotateInFlight.set(false);
+        this.rotating.set(null);
+        this.showValue(renewed.value, 'API key rotated',
+          "Copy the new key now. You won't be able to view it again after you finish. "
+          + 'The previous key keeps working for two hours.');
+        this.load();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.rotateInFlight.set(false);
+        this.toastService.show('API key', this.messageOf(error, 'The API key could not be rotated.'), 'danger');
+      }
+    });
   }
 
   protected revoke(key: ApiKey): void {
@@ -153,7 +186,25 @@ export class ApiKeysPanel implements OnInit {
 
   protected status(key: ApiKey): ApiKeyStatus {
     if (key.revokedAt) return 'Revoked';
+    if (key.replacedAt) return 'Replaced';
     return this.hasExpired(key) ? 'Expired' : 'Active';
+  }
+
+  /** Only the newest working key of a rotation chain can be rotated again. */
+  protected canRotate(key: ApiKey): boolean {
+    return this.status(key) === 'Active';
+  }
+
+  /** Revoked and expired keys authenticate nothing, so there is nothing left to do with them. */
+  protected hasActions(key: ApiKey): boolean {
+    return !this.isInactive(key);
+  }
+
+  private showValue(value: string, title: string, text: string): void {
+    this.createdValue.set(value);
+    this.createdTitle.set(title);
+    this.createdText.set(text);
+    this.valueVisible.set(false);
   }
 
   private load(): void {

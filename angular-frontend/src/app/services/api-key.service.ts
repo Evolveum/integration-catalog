@@ -18,6 +18,10 @@ export interface ApiKey {
   lastUsedAt: string | null;
   expiresAt: string | null;
   revokedAt: string | null;
+  /** Last four characters of the value; null for keys created before it was recorded. */
+  keyHint: string | null;
+  /** Set when a rotation superseded the key; it keeps working until expiresAt. */
+  replacedAt: string | null;
 }
 
 /** What POST /api/api-keys answers: the new key plus the only copy of its value. */
@@ -47,6 +51,14 @@ export class ApiKeyService {
    */
   create(name: string, expiresAt: string | null): Observable<CreatedApiKey> {
     return this.http.post<CreatedApiKey>(this.baseUrl, { name, expiresAt });
+  }
+
+  /**
+   * Replaces the key with a new one; the value in the response is its only copy. The old key keeps
+   * working for Gravitee's two-hour grace period.
+   */
+  renew(id: string): Observable<CreatedApiKey> {
+    return this.http.post<CreatedApiKey>(`${this.baseUrl}/${id}/renew`, {});
   }
 
   /** Stops the key working immediately; it stays in the list as revoked. */

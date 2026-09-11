@@ -62,8 +62,23 @@ public class ApiKeyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(apiKeyService.create(user, request));
     }
 
+    @Operation(summary = "Rotate an API key",
+            description = "Replaces the key with a new one and returns its value - the only time it is shown. "
+                    + "The old key keeps working for Gravitee's two-hour grace period and stays listed as replaced")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "The new key and its value"),
+            @ApiResponse(responseCode = "404", description = "No such key of this user"),
+            @ApiResponse(responseCode = "409", description = "The key is revoked, expired or already replaced"),
+            @ApiResponse(responseCode = "502", description = "Gravitee refused or could not be reached")
+    })
+    @PostMapping("/{id}/renew")
+    public ResponseEntity<CreatedApiKeyDto> renew(@AuthenticationPrincipal OidcUser user, @PathVariable String id) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(apiKeyService.renew(user, id));
+    }
+
     @Operation(summary = "Revoke an API key",
-            description = "Stops the key working immediately; it stays listed as revoked")
+            description = "Stops the key working immediately; it stays listed as revoked. Other keys of its "
+                    + "subscription (a key it replaced, or the one that replaced it) keep working")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Revoked, or already was"),
             @ApiResponse(responseCode = "404", description = "No such key of this user"),

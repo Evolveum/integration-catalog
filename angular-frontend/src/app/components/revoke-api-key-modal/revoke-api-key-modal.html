@@ -6,28 +6,25 @@
 
 <div class="revoke-key-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onClose()"></div>
 <div class="revoke-key-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="revoke-key-dialog">
+  <div class="revoke-key-dialog" [class.revoke-key-dialog-primary]="variant === 'primary'">
     <button type="button" class="revoke-key-close" title="Close" (click)="onClose()">
       <i class="fa-solid fa-xmark"></i>
     </button>
 
     <div class="revoke-key-body d-flex gap-3">
       <span class="revoke-key-icon d-flex align-items-center justify-content-center">
-        <i class="fa-solid fa-exclamation"></i>
+        <i class="fa-solid" [class]="icon"></i>
       </span>
       <div>
-        <h2 class="revoke-key-title">Revoke API key?</h2>
-        <p class="revoke-key-text">
-          This action takes effect immediately and cannot be undone and requests authenticated with
-          this key will start failing as soon as it is revoked.
-        </p>
+        <h2 class="revoke-key-title">{{ title }}</h2>
+        <p class="revoke-key-text">{{ text }}</p>
       </div>
     </div>
 
     <div class="revoke-key-footer d-flex align-items-center">
       <button type="button" class="revoke-key-cancel" (click)="onClose()">Close</button>
       <button type="button" class="revoke-key-confirm ms-auto" [disabled]="busy" (click)="onConfirm()">
-        {{ busy ? 'Revoking...' : 'Revoke API key' }}
+        {{ busy ? busyLabel : confirmLabel }}
       </button>
     </div>
   </div>

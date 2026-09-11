@@ -258,6 +258,18 @@
   color: $toast-danger-text;
 }
 
+/* Superseded by a rotation: still working through Gravitee's grace period, then expired. */
+.keys-status-replaced {
+  background-color: #FFF3CD;
+  border: 1px solid #FFE69C;
+  color: #664D03;
+}
+
+.keys-table-hint {
+  font-family: var(--bs-font-monospace);
+  white-space: nowrap;
+}
+
 /* ========================================
    ROW MENU
    ======================================== */

@@ -15,4 +15,7 @@ import java.util.UUID;
 public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
 
     List<ApiKey> findByOwnerSubOrderByCreatedAtDesc(String ownerSub);
+
+    /** A key and the keys that renewed or were renewed by it: they share one subscription. */
+    List<ApiKey> findByGraviteeSubscriptionId(String graviteeSubscriptionId);
 }
