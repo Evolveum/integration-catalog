@@ -120,7 +120,7 @@ export class AddConnectorForm implements OnInit {
     if (!search) return options;
     return options.filter(o => o.toLowerCase().includes(search));
   });
-  protected readonly connectorLicense = signal<string>('');
+  protected readonly connectorLicense = signal<string>('EUPL');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
@@ -284,7 +284,7 @@ export class AddConnectorForm implements OnInit {
     this.connectorMaintainer.set(this.authService.defaultMaintainer());
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
-    this.connectorLicense.set('');
+    this.connectorLicense.set('EUPL');
     this.isLicenseDropdownOpen.set(false);
     this.connectorDescription.set('');
     this.connectorBundleName.set('');

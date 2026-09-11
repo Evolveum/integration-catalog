@@ -101,7 +101,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     if (!search) return options;
     return options.filter(o => o.toLowerCase().includes(search));
   });
-  protected readonly connectorLicense = signal<string>('');
+  protected readonly connectorLicense = signal<string>('EUPL');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
@@ -311,7 +311,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorVersionFrom.set('');
     this.connectorVersionTo.set('');
     this.connectorMaintainer.set(this.authService.defaultMaintainer());
-    this.connectorLicense.set('');
+    this.connectorLicense.set('EUPL');
     this.connectorDescription.set('');
     this.connectorBundleName.set('');
     this.connectorCapabilities.set([]);
