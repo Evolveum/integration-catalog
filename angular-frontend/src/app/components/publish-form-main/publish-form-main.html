@@ -314,13 +314,13 @@
                     </div>
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
-                        Integration method version <span class="text-danger">&nbsp;*</span>
+                        Integration method version
                         <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                           <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Version of this integration method (e.g. 1.0.0). Only numbers and dots allowed.</span>
+                          <span class="info-tooltip">Version of this integration method. It is assigned automatically; new integration methods start at 1.0.</span>
                         </span>
                       </label>
-                      <input type="text" class="form-control input-disabled" [value]="methodFormVersion()" disabled placeholder="e.g. 1.0.0">
+                      <div class="form-control-plaintext">{{ methodFormVersion() }}</div>
                     </div>
                   </div>
 

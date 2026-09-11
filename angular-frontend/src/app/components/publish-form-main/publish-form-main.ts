@@ -492,20 +492,6 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.childMidpointLabel.set(label);
   }
 
-  protected onMethodVersionInput(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const filtered = el.value.replace(/[^0-9.]/g, '');
-    el.value = filtered;
-    this.methodFormVersion.set(filtered);
-  }
-
-  protected onMethodVersionBlur(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const trimmed = el.value.replace(/\.+$/, '');
-    el.value = trimmed;
-    this.methodFormVersion.set(trimmed);
-  }
-
   protected onMethodFormDescriptionChange(event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
     if (value.length <= 350) {
