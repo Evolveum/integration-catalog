@@ -63,8 +63,8 @@
             (click)="activeProfileTab.set('general')">General</button>
           <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'contact'"
             (click)="activeProfileTab.set('contact')">Contact information</button>
-          <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'regional'"
-            (click)="activeProfileTab.set('regional')">Regional settings</button>
+          <!-- <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'regional'"
+            (click)="activeProfileTab.set('regional')">Regional settings</button> -->
         </div>
 
         <!-- Every field is read-only: the value is whatever the token carried. -->

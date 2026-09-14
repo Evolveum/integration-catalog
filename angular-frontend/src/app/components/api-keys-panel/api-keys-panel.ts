@@ -184,10 +184,14 @@ export class ApiKeysPanel implements OnInit {
     this.inactiveOpen.update(open => !open);
   }
 
+  /**
+   * "Replaced" only while a rotated key still works: once its grace period is over it is expired
+   * like any other, which keeps the inactive group down to two badges.
+   */
   protected status(key: ApiKey): ApiKeyStatus {
     if (key.revokedAt) return 'Revoked';
-    if (key.replacedAt) return 'Replaced';
-    return this.hasExpired(key) ? 'Expired' : 'Active';
+    if (this.hasExpired(key)) return 'Expired';
+    return key.replacedAt ? 'Replaced' : 'Active';
   }
 
   /** Only the newest working key of a rotation chain can be rotated again. */
