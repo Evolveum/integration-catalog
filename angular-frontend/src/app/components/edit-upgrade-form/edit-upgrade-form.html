@@ -13,6 +13,7 @@
     [appHasLogo]="appHasLogo()"
     [logoUrl]="getLogoUrl()"
     [deferSave]="true"
+    [excludedConnectorIds]="linkedConnectorIds()"
     (close)="closeAddConnector()"
     (saved)="onConnectorSaved($event)"
     (staged)="onConnectorStaged($event)">
@@ -200,6 +201,9 @@
               <div class="edit-connector-title-group">
                 <span class="edit-connector-name d-flex align-items-center gap-2">
                   {{ c.connectorDisplayName || c.name }}
+                  @if (isObsoleteConnector(c.connectorTags)) {
+                    <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
                   @if (isConnectorPending(c.connectorId)) {
                     <span class="edit-connector-pending-badge">Pending</span>
                   }
@@ -333,6 +337,9 @@
             <div class="edit-connector-card-header">
               <span class="edit-connector-name d-flex align-items-center gap-2">
                 {{ sc.displayName || 'New connector' }}
+                @if (isObsoleteConnector(sc.tags)) {
+                  <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                }
                 <span class="edit-connector-pending-badge">Pending</span>
               </span>
               <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"

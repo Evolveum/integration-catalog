@@ -167,6 +167,17 @@ ALTER TABLE ONLY request
 $aa$);
 -- end of region
 
+-- region change 8: obsolete connector tag
+-- Legacy connectors (e.g. DBTable, ScriptedSQL) stay allowed and counted, but the catalog warns about
+-- them. They are marked by linking this tag in connector_connector_tag. Tags are looked up by name, so
+-- the name becomes unique.
+call apply_change(8, $aa$
+ALTER TABLE ONLY connector_tag
+    ADD CONSTRAINT uq_connector_tag_name UNIQUE (name);
+INSERT INTO connector_tag (name, display_name) VALUES ('obsolete', 'Obsolete');
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

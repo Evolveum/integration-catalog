@@ -353,6 +353,20 @@
   background: #e3f0ff;
 }
 
+.edit-connector-obsolete-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #7a4f00;
+  background: #fff3cd;
+  border: 1px solid #f5e2b8;
+}
+
 .edit-connector-card-header {
   display: flex;
   align-items: flex-start;

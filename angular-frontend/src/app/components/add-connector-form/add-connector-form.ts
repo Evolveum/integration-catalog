@@ -6,7 +6,7 @@
 
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, computed
+  signal, computed, input
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +18,7 @@ import { PageHeader } from '../page-header/page-header';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
 import { CatalogConnector } from '../../models/catalog-connector.model';
+import { ConnectorTag, isObsoleteConnector } from '../../models/connector-tag.model';
 
 type Step = 1 | 2;
 
@@ -52,6 +53,7 @@ export interface StagedConnector {
   description: string;
   maintainer: string;
   license: string | null;
+  tags: ConnectorTag[]; // of the picked catalog connector; empty for a new one
 }
 
 @Component({
@@ -70,6 +72,8 @@ export class AddConnectorForm implements OnInit {
   @Input() logoUrl = '';
   /** When true, saving the form does not persist anything; it stages the connector back to the parent. */
   @Input() deferSave = false;
+  /** Connectors the method already has; the catalog picker hides them. */
+  readonly excludedConnectorIds = input<number[]>([]);
   @Output() close = new EventEmitter<void>();
   @Output() saved = new EventEmitter<string>();
   @Output() staged = new EventEmitter<StagedConnector>();
@@ -91,10 +95,12 @@ export class AddConnectorForm implements OnInit {
   protected readonly catalogSearchTooShort = computed(() => this.catalogSearch().trim().length === 1);
   protected readonly pendingCatalogConnector = signal<CatalogConnector | null>(null);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   protected readonly filteredCatalogConnectors = computed(() => {
     const q = this.catalogSearch().toLowerCase().trim();
-    const all = this.catalogConnectors();
+    const excluded = new Set(this.excludedConnectorIds());
+    const all = this.catalogConnectors().filter(c => !excluded.has(c.connectorId));
     // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
     const matched = q.length < 2
       ? all
@@ -389,7 +395,8 @@ export class AddConnectorForm implements OnInit {
         version: payload.version ?? '',
         description: payload.description ?? '',
         maintainer: payload.maintainer,
-        license: payload.license
+        license: payload.license,
+        tags: cc?.tags ?? []
       });
       return;
     }

@@ -520,7 +520,8 @@ public class ApplicationService {
                                     bundle.getGitCloneUrl(),
                                     latest != null ? latest.getPathToProject() : null,
                                     connector.getFullyQualifiedClassName(),
-                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector)
+                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector),
+                                    applicationMapper.mapConnectorTags(connector)
                             ));
                 })
                 .toList();

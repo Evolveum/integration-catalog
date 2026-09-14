@@ -925,6 +925,20 @@
   margin-bottom: 0.5rem;
 }
 
+/* Amber "Obsolete" tag inside a connector chip. */
+.connector-obsolete-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background-color: #fff3cd;
+  color: #7a4f00;
+  border: 1px solid #f5e2b8;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
 /* Connector chip in the "Connectors" section; hovering it reveals the
    connector's description in a tooltip above the chip. */
 .badge-connector {
@@ -991,6 +1005,23 @@
   border: 1px solid #dee2e6;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.im-obsolete-warning {
+  background: #fdf6e3;
+  border: 1px solid #f5e2b8;
+  color: #7a5b00;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  margin: 0 1.25rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.im-obsolete-warning-icon {
+  color: #d9a300;
+  margin-top: 0.2rem;
 }
 
 .im-method-header {

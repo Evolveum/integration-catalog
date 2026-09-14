@@ -559,7 +559,8 @@ class ControllerTest {
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
                 "com.evolveum.polygon.connector.ldap.LdapConnector",
-                List.of()
+                List.of(),
+                List.of(new ConnectorTagDto("obsolete", "Obsolete"))
         );
         when(applicationService.listCatalogConnectors()).thenReturn(List.of(dto));
 
@@ -567,7 +568,8 @@ class ControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].displayName").value("LDAP Connector"))
-                .andExpect(jsonPath("$[0].bundleFramework").value("JAVA_BASED"));
+                .andExpect(jsonPath("$[0].bundleFramework").value("JAVA_BASED"))
+                .andExpect(jsonPath("$[0].tags[0].name").value("obsolete"));
 
         verify(applicationService).listCatalogConnectors();
     }

@@ -881,6 +881,14 @@ public class ConnectorUploadService {
         IntegrationMethod target = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
 
+        // Checked before forking, which would otherwise copy tutorial files for nothing.
+        if (dto.existingConnectorId() != null && target.getConnectors().stream()
+                .anyMatch(link -> link.getConnector() != null
+                        && dto.existingConnectorId().equals(link.getConnector().getId()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The connector is already linked to this integration method.");
+        }
+
         boolean forkedNewDraft = target.getLifecycleState() == LifecycleType.ACTIVE;
         if (forkedNewDraft) {
             target = clonePublishedAsDraft(target, methodId);
@@ -1075,6 +1083,17 @@ public class ConnectorUploadService {
         clone.setDescription(src.getDescription());
         clone.setConnectorBundle(bundle);
         clone.setClonedFrom(src.getClonedFrom() != null ? src.getClonedFrom() : src.getId());
+        // A version-bump approval deletes the original and keeps the clone, so the tags must travel with it.
+        Set<ConnectorConnectorTag> cloneTags = new HashSet<>();
+        if (src.getConnectorConnectorTags() != null) {
+            for (ConnectorConnectorTag srcTag : src.getConnectorConnectorTags()) {
+                ConnectorConnectorTag tag = new ConnectorConnectorTag();
+                tag.setConnector(clone);
+                tag.setConnectorTag(srcTag.getConnectorTag());
+                cloneTags.add(tag);
+            }
+        }
+        clone.setConnectorConnectorTags(cloneTags);
         connectorRepository.save(clone);
 
         for (ConnectorVersion srcCv : src.getConnectorVersions()) {

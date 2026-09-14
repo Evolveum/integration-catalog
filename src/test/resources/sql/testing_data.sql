@@ -135,6 +135,11 @@ SELECT setval('connector_id_seq', 3);
 INSERT INTO connector_connector_tag (connector_id, tag_id) VALUES
     (1, 1);
 
+-- The obsolete tag comes from postgres-upgrade.sql change 8, so it is looked up by name. Connector 3 is
+-- linked to an active integration method, so the warning shows in the UI.
+INSERT INTO connector_connector_tag (connector_id, tag_id)
+SELECT 3, id FROM connector_tag WHERE name = 'obsolete';
+
 SELECT setval('connector_connector_tag_id_seq', 1);
 
 -- ============================================================

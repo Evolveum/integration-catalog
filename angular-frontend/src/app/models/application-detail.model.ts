@@ -4,6 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { ConnectorTag } from './connector-tag.model';
+
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
   version: string;      // midpoint_version.version
@@ -67,6 +69,7 @@ export interface IncludedConnector {
   displayName: string | null;  // connector.display_name
   version: string | null;      // connector_bundle_version.bundle_version of the current version
   description: string | null;  // connector.description
+  tags: ConnectorTag[];        // connector_connector_tag + connector_tag
 }
 
 export interface ApplicationDetail {

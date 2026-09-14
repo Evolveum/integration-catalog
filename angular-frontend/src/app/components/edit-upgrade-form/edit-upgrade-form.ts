@@ -20,6 +20,7 @@ import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-con
 import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 
 @Component({
@@ -94,6 +95,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
+  // Staged deletes stay in: adds are saved before deletes, so re-adding one would still hit the link.
+  protected readonly linkedConnectorIds = computed<number[]>(() => [
+    ...this.connectors().map(c => c.connectorId),
+    ...this.stagedConnectors().map(sc => sc.payload.existingConnectorId)
+  ].filter((id): id is number => id != null));
   protected readonly connectorCapsExpanded = signal<Set<string>>(new Set());
   protected readonly editingConnector = signal<ImplementationListItem | null>(null);
   protected readonly pendingDeleteConnector = signal<ImplementationListItem | null>(null);

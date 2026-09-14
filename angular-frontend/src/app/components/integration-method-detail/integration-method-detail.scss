@@ -103,6 +103,20 @@
   margin: 0.25rem 0 0.5rem;
 }
 
+.connector-obsolete-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background-color: #fff3cd;
+  color: #7a4f00;
+  border: 1px solid #f5e2b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 .version-exists-warning-icon {
   color: #d9a300;
   margin-top: 0.15rem;

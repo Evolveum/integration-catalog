@@ -713,6 +713,21 @@
   font-weight: 600;
   font-size: 0.9375rem;
   color: $color-text-dark;
+  overflow-wrap: anywhere;
+}
+
+.cc-obsolete-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background-color: #fff3cd;
+  color: #7a4f00;
+  border: 1px solid #f5e2b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
 }
 
 .cc-connector-desc {

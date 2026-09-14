@@ -521,7 +521,12 @@
                      class="form-check-input flex-shrink-0 radio-input"
                      style="pointer-events: none;">
               <div class="cc-connector-info">
-                <div class="cc-connector-name">{{ connector.displayName }}</div>
+                <div class="cc-connector-name">
+                  {{ connector.displayName }}
+                  @if (isObsoleteConnector(connector.tags)) {
+                    <span class="cc-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
+                </div>
                 @if (connector.description) {
                   <div class="cc-connector-desc">{{ connector.description }}</div>
                 }

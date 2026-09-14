@@ -441,6 +441,14 @@
                           <span class="im-version-count">{{ method.versions.length }} version{{ method.versions.length === 1 ? '' : 's' }}</span>
                         </div>
 
+                        <!-- Shown even when collapsed: legacy connectors stay usable, but users must notice. -->
+                        @if (method.usesObsoleteConnector) {
+                          <div class="im-obsolete-warning d-flex align-items-start gap-2">
+                            <i class="fa-solid fa-triangle-exclamation im-obsolete-warning-icon"></i>
+                            <span><strong>This integration method uses an obsolete connector.</strong> The connector is still allowed, but it has been superseded and should not be used for new deployments.</span>
+                          </div>
+                        }
+
                         @if (isMethodExpanded(method.id)) {
                           <!-- Column headers -->
                           <div class="im-table-header d-flex">
@@ -563,6 +571,9 @@
                                       @for (connector of version.connectors; track connector.className) {
                                         <span class="badge badge-capability badge-connector" (click)="$event.stopPropagation()">
                                           {{ connectorChipLabel(connector) }}
+                                          @if (isObsoleteConnector(connector.tags)) {
+                                            <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                                          }
                                           @if (connector.description) {
                                             <span class="connector-tooltip">{{ connector.description }}</span>
                                           }

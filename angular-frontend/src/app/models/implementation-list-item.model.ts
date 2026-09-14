@@ -4,6 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { ConnectorTag } from './connector-tag.model';
+
 export interface ObjectClassCapability {
   objectName: string;             // conn_version_capability.object_class
   capabilities: string[];         // capability.name items
@@ -39,4 +41,5 @@ export interface ImplementationListItem {
   // False once a version has been published from this bundle: the edit form then stops offering the
   // fields that are fixed from that point on (license, git clone URL).
   initialVersion: boolean;
+  connectorTags: ConnectorTag[];  // connector_connector_tag + connector_tag
 }

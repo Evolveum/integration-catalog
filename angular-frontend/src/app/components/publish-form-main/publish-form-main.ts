@@ -7,6 +7,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CatalogConnector } from '../../models/catalog-connector.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
@@ -111,6 +112,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   // True when the connector search box holds a single character: prompt for at least 2.
   protected readonly connectorCatalogSearchTooShort = computed(() => this.connectorCatalogSearch().trim().length === 1);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   protected readonly filteredCatalogConnectors = computed<CatalogConnector[]>(() => {
     const query = this.connectorCatalogSearch().toLowerCase().trim();

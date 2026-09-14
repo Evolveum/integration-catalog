@@ -159,7 +159,8 @@ public class ApplicationMapper {
                                                         ? cbv.getBundleVersion() : cbv.getRevision();
                                             })
                                             .orElse(null),
-                                    c.getDescription()))
+                                    c.getDescription(),
+                                    mapConnectorTags(c)))
                             .toList();
 
                     List<String> integMethodTypes = method.getIntegMethodTypes().stream()
@@ -565,6 +566,7 @@ public class ApplicationMapper {
         String commitTag = null;
         boolean initialVersion = true;
         List<ObjectClassCapabilityDto> objectClassCapabilities = List.of();
+        List<ConnectorTagDto> connectorTags = List.of();
 
         if (connector != null) {
             connectorId = connector.getId();
@@ -599,6 +601,7 @@ public class ApplicationMapper {
                         ? latestCv.get().getFullyQualifiedClassName() : className;
             }
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
+            connectorTags = mapConnectorTags(connector);
         }
 
         String maintainerOrganization = maintainer == null ? null
@@ -634,8 +637,21 @@ public class ApplicationMapper {
                 objectClassCapabilities,
                 connectorMinVersion,
                 connectorMaxVersion,
-                initialVersion
+                initialVersion,
+                connectorTags
         );
+    }
+
+    public List<ConnectorTagDto> mapConnectorTags(Connector connector) {
+        if (connector.getConnectorConnectorTags() == null) {
+            return List.of();
+        }
+        return connector.getConnectorConnectorTags().stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(ConnectorTag::getName))
+                .map(tag -> new ConnectorTagDto(tag.getName(), tag.getDisplayName()))
+                .toList();
     }
 
     /**

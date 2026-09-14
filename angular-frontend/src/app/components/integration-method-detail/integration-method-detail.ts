@@ -15,6 +15,7 @@ import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { ToastService } from '../../services/toast.service';
 
@@ -103,6 +104,7 @@ export class IntegrationMethodDetail implements OnInit {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
   // Tutorial (AsciiDoc source) rendered to embeddable HTML for read-only display.

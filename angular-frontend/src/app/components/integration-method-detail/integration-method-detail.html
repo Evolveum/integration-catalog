@@ -187,7 +187,12 @@
         @for (c of connectors(); track $index; let ci = $index) {
           <div class="view-connector-card">
             <div class="view-connector-card-header">
-              <span class="view-connector-name">{{ c.connectorDisplayName || c.name }}</span>
+              <span class="view-connector-name">
+                {{ c.connectorDisplayName || c.name }}
+                @if (isObsoleteConnector(c.connectorTags)) {
+                  <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                }
+              </span>
               <button type="button" class="view-connector-see-compat d-flex align-items-center gap-2"
                       (click)="openCompatibility(c)" title="See connector compatibility">
                 <i class="fa-regular fa-eye"></i>See compatibility
@@ -195,6 +200,13 @@
             </div>
 
             <div class="view-connector-details">
+                @if (isObsoleteConnector(c.connectorTags)) {
+                  <div class="version-exists-warning d-flex align-items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation version-exists-warning-icon"></i>
+                    <span><strong>Obsolete connector.</strong> It is still allowed, but it is superseded and
+                      should not be used for new deployments.</span>
+                  </div>
+                }
                 <div class="view-connector-row">
                   <span class="view-connector-label">Maintainer:</span>
                   <span class="view-connector-value">{{ formatMaintainer(c.maintainer, c.maintainerOrganization) }}</span>

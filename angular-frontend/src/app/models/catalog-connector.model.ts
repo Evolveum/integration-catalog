@@ -1,3 +1,5 @@
+import { ConnectorTag } from './connector-tag.model';
+
 export interface CatalogConnectorObjectClassCapability {
   objectName: string;          // conn_version_capability.object_class
   capabilities: string[];      // capability.name items
@@ -21,4 +23,5 @@ export interface CatalogConnector {
   pathToProject: string;     // latest connector_bundle_version.path_to_project
   className: string;         // connector.fully_qualified_class_name
   objectClassCapabilities: CatalogConnectorObjectClassCapability[]; // conn_version_capability + items
+  tags: ConnectorTag[];      // connector_connector_tag + connector_tag
 }

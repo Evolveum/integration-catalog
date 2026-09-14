@@ -9,6 +9,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IncludedConnector, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
@@ -26,6 +27,7 @@ interface MethodGroup {
   versions: IntegrationMethod[];
   publishedCount: number;
   pendingCount: number;
+  usesObsoleteConnector: boolean;
 }
 
 @Component({
@@ -89,11 +91,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           types: v.integMethodTypes ?? [],
           versions: [],
           publishedCount: 0,
-          pendingCount: 0
+          pendingCount: 0,
+          usesObsoleteConnector: false
         };
         groups.set(v.id, group);
       }
       group.versions.push(v);
+      if (v.connectors?.some((c: IncludedConnector) => isObsoleteConnector(c.tags))) group.usesObsoleteConnector = true;
       if (v.lifecycleState === 'ACTIVE') group.publishedCount++;
       // A revision under active review (REVIEWING) is still pending, not yet published.
       else if (v.lifecycleState === 'IN_REVIEW' || v.lifecycleState === 'REVIEWING') group.pendingCount++;
@@ -430,6 +434,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected isConnectorsSectionExpanded(key: string): boolean {
     return !this.collapsedConnectorSections().has(key);
   }
+
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   /** Chip label: fully qualified class name plus the connector version, e.g. "…CsvConnector v2.9". */
   protected connectorChipLabel(c: IncludedConnector): string {
