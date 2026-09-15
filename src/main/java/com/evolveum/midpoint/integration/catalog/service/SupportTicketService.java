@@ -69,7 +69,6 @@ public class SupportTicketService {
     private final AuthService authService;
     private final SupportTicketDescriptionBuilder descriptionBuilder;
     private final SupportTicketDeltaBuilder deltaBuilder;
-    private final CatalogContactResolver contactResolver;
     private final TutorialStorageService tutorialStorageService;
 
     /**
@@ -638,13 +637,13 @@ public class SupportTicketService {
             watch(workPackageId, login, userId, watching);
         }
 
-        for (String name : distinct(method.getAuthor(), method.getMaintainer())) {
+        for (String name : distinct(method.getAuthor().getUsername(), method.getMaintainer().getUsername())) {
             OptionalInt userId = attempt(name, () -> openProjectClient.findUserIdByLogin(name));
             String who = name;
             if (userId.isEmpty()) {
                 // No account under that login: fall back to the address the row carries, which the
                 // author has and nobody else does.
-                String email = contactResolver.emailOf(method, name).orElse(null);
+                String email = method.getAuthor().getEmail();
                 if (email == null) {
                     log.debug("No portal login '{}' and no contact address for them, "
                             + "not watching work package {}", name, workPackageId);
@@ -746,8 +745,7 @@ public class SupportTicketService {
         // canEdit already lets a superuser through, so the reviewer needs no separate case. The
         // organization ids go with the names: an item maintained by an organization carries no
         // maintainer username, so a name-only check would lock out the org-mates the review concerns.
-        if (!authService.canEdit(username, method.getAuthor(), method.getAuthorOrgId(),
-                method.getMaintainer(), method.getMaintainerOrgId())) {
+        if (!authService.canEdit(username, method.getMaintainer())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Not allowed to see the support ticket of " + methodId + "/" + revision);
         }

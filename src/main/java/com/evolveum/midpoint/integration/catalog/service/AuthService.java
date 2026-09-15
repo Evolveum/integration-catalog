@@ -7,9 +7,13 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.object.Maintainer;
+import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
+import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
+import org.apache.commons.lang3.Strings;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -49,21 +53,21 @@ public class AuthService {
      * the frontend warns about that combination.
      */
     public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
-        String role = CatalogRole.READ_ONLY;
-        String organizationId = null;
+        CatalogRole role = CatalogRole.READ_ONLY;
         String organizationName = null;
+        String organizationDisplayName = null;
         if (oidcUser != null) {
             role = claims.effectiveRole(oidcUser);
-            organizationId = claims.organizationId(oidcUser);
-            organizationName = organizationService.displayName(organizationId);
+            organizationName = claims.organizationName(oidcUser);
+            organizationDisplayName = organizationService.displayName(organizationName);
         }
         return new CurrentUserDto(
                 username,
                 oidcUser != null ? oidcUser.getFullName() : null,
                 oidcUser != null ? oidcUser.getEmail() : null,
-                role,
-                organizationId,
-                organizationName
+                role.getIdentifier(),
+                organizationName,
+                organizationDisplayName
         );
     }
 
@@ -83,83 +87,93 @@ public class AuthService {
     }
 
     /**
-     * Whether {@code username} may see/modify an item authored by {@code author} on behalf
-     * of {@code authorOrganizationId} and maintained by {@code maintainer} /
-     * {@code maintainerOrganizationId}.
+     * Whether {@code username} may see/modify an item authored by {@code author}
+     * on behalf maintained by {@code maintainer}.
      */
-    public boolean canEdit(String username, String author, String authorOrganizationId,
-                           String maintainer, String maintainerOrganizationId) {
+    public boolean canEdit(String username, Maintainer maintainer) {
         if (username == null || username.isBlank()) {
             return false;
         }
+
         OidcUser caller = currentOidcUser();
         if (caller == null) {
             return false;
         }
-        String callerRole = claims.effectiveRole(caller);
-        if (CatalogRole.SUPERUSER.equals(callerRole)) {
+        CatalogRole callerRole = claims.effectiveRole(caller);
+
+        if (!callerRole.canEdit()) {
+            return false;
+        }
+
+        if (CatalogRole.SUPERUSER == callerRole) {
             return true;
         }
-        if (maintainer != null && maintainer.equalsIgnoreCase(username)) {
+
+        if (maintainer.getCategory() == MaintainerType.COMMUNITY) {
             return true;
         }
-        String callerOrganizationId = contributingOrganizationId(caller, callerRole);
+
+        if (Strings.CI.equals(maintainer.getUsername(), username)) {
+            return true;
+        }
+
+        Organization maintainerOrg = maintainer.getOrganization();
+
+        String callerOrganizationName = contributingOrganizationName(caller, callerRole);
         // An organization acts as a team: whatever it maintains, all of its contributors may edit.
-        if (callerOrganizationId != null && maintainerOrganizationId != null
-                && callerOrganizationId.equalsIgnoreCase(maintainerOrganizationId)) {
+        if (callerOrganizationName != null && maintainerOrg != null
+                && Strings.CI.equals(callerOrganizationName, maintainerOrg.getName())) {
             return true;
         }
-        if (author != null && author.equalsIgnoreCase(username)) {
-            return true;
-        }
-        // Uploads made on behalf of the caller's organization belong to the whole organization.
-        return callerOrganizationId != null && authorOrganizationId != null
-                && callerOrganizationId.equalsIgnoreCase(authorOrganizationId);
+        return false;
     }
 
     /**
      * The organization the caller acts on behalf of, or {@code null} when they act as themselves.
      * Membership alone confers nothing — only an organization contributor shares in its items.
      *
-     * @param caller the authenticated user
+     * @param caller     the authenticated user
      * @param callerRole their effective catalog role
      */
-    private String contributingOrganizationId(OidcUser caller, String callerRole) {
+    private String contributingOrganizationName(OidcUser caller, CatalogRole callerRole) {
         // An unregistered organization needs no check: no item can carry an identifier the
         // organizations table does not have, the ownership columns being foreign keys into it.
         return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
-                ? claims.organizationId(caller)
+                ? claims.organizationName(caller)
                 : null;
     }
 
-    /** Whether {@code username} is the current Superuser. */
+    /**
+     * Whether {@code username} is the current Superuser.
+     */
     public boolean isSuperuser(String username) {
         if (username == null || username.isBlank()) {
             return false;
         }
         OidcUser caller = currentOidcUser();
-        return caller != null && CatalogRole.SUPERUSER.equals(claims.effectiveRole(caller));
+        return caller != null && CatalogRole.SUPERUSER == claims.effectiveRole(caller);
     }
 
-    /**
-     * Usernames sharing the caller's organization; just the caller when they have none. Derived
-     * from the items published on its behalf, so it lists contributors, not every account.
-     */
-    public List<String> getOrganizationMembers(String username) {
-        OidcUser caller = currentOidcUser();
-        String organizationId = caller != null
-                ? contributingOrganizationId(caller, claims.effectiveRole(caller))
-                : null;
-        if (organizationId == null || organizationId.isBlank()) {
-            return List.of(username);
-        }
-        List<String> members = new ArrayList<>(
-                catalogOwnerDirectory.findAuthorsOfOrganization(organizationId));
-        if (!members.contains(username)) {
-            members.add(username);
-        }
-        return members;
-    }
+    //TODO don't need it we resolve based on maintainer
+//    /**
+//     * Usernames sharing the caller's organization; just the caller when they have none. Derived
+//     * from the items published on its behalf, so it lists contributors, not every account.
+//     */
+//    public List<String> getOrganizationMembers(String username) {
+//        OidcUser caller = currentOidcUser();
+//        String organizationName = caller != null
+//                ? contributingOrganizationName(caller, claims.effectiveRole(caller))
+//                : null;
+//        if (organizationName == null || organizationName.isBlank()) {
+//            return List.of(username);
+//        }
+//        List<String> members = new ArrayList<>(
+//                catalogOwnerDirectory.findAuthorsOfOrganization(organizationName));
+//        if (!members.contains(username)) {
+//            members.add(username);
+//        }
+//        return members;
+//    }
 
     private static OidcUser currentOidcUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

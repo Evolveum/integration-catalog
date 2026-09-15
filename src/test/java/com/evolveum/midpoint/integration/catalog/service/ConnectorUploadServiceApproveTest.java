@@ -311,7 +311,7 @@ class ConnectorUploadServiceApproveTest {
         connector.setRevision("1.0.0");
         connector.setDisplayName(className);
         connector.setFullyQualifiedClassName("com.evolveum.polygon.connector." + className);
-        connector.setMaintainer("owner");
+        connector.setMaintainer(new Maintainer().setCategory(MaintainerType.USER).setUsername("owner"));
         connector.setConnectorBundle(bundle);
         bundle.getConnectors().add(connector);
         connectorsById.put(id, connector);

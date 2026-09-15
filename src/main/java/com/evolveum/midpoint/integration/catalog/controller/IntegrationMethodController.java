@@ -148,15 +148,15 @@ public class IntegrationMethodController {
         }
     }
 
-    @Operation(summary = "Publish (approve) an in-review integration method revision",
+    @Operation(summary = "Approve an in-review integration method revision",
             description = "Activates an in-review revision. A minor revision replaces its same-major "
-                    + "published baseline; a new major version is kept alongside earlier majors.")
+                    + "approved baseline; a new major version is kept alongside earlier majors.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Revision published"),
+            @ApiResponse(responseCode = "200", description = "Revision approved"),
             @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
             @ApiResponse(responseCode = "409", description = "Revision is not in review")
     })
-    @PostMapping("/publish")
+    @PostMapping("/approve")
     public ResponseEntity<Void> publishIntegrationMethod(
             @PathVariable UUID appId,
             @PathVariable UUID methodId,

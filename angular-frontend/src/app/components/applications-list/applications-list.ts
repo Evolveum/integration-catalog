@@ -861,7 +861,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       }
       return;
     }
-    this.router.navigate(['/publish']);
+    this.router.navigate(['/approve']);
   }
 
   protected reloadApplications(): void {

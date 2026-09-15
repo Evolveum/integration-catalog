@@ -21,8 +21,7 @@ public record ImplementationListItemDto(
         String publishedDate,              // connector_bundle_version.released_date (null — no direct field yet)
         String version,                    // connector_bundle_version.revision
         String displayName,                // integration_method.display_name
-        String maintainer,                 // connector.maintainer
-        String maintainerOrganization,     // organization the maintainer publishes for (null if none)
+        MaintainerDto maintainer,                 // connector.maintainer
         String licenseType,                // connector_bundle.license
         String implementationDescription,  // connector.description
         String projectHomepage,            // connector_bundle.project_homepage

@@ -26,7 +26,7 @@ import java.util.List;
 @IdClass(ConnectorBundleVersionId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
+public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMaintainer, Persistable<Integer> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "connector_bundle_version_seq")
@@ -46,8 +46,29 @@ public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
         this.isNew = false;
     }
 
-    private String author;
-    private String maintainer;
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
+
+    @ManyToMany
+    @JoinTable(
+            name = "connector_bundle_version_maintainers",
+            joinColumns = {
+                    @JoinColumn(
+                            name = "connector_bundle_version_id",
+                            referencedColumnName = "id"
+                    ),
+                    @JoinColumn(
+                            name = "connector_bundle_version_revision",
+                            referencedColumnName = "revision"
+                    )
+            },
+            inverseJoinColumns = @JoinColumn(
+                    name = "maintainer_id",
+                    referencedColumnName = "id"
+            )
+    )
+    private List<Maintainer> maintainer = new ArrayList<>();
 
     // Ownership as it stood when the row was written - a token describes only its bearer, so none
     // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
@@ -118,4 +139,17 @@ public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
 
     @OneToMany(mappedBy = "connectorBundleVersion", fetch = FetchType.LAZY)
     private List<Download> downloads = new ArrayList<>();
+
+    @Override
+    public ConnectorBundleVersion setMaintainer(Maintainer maintainer) {
+        if (!this.maintainer.contains(maintainer)) {
+            this.maintainer.add(maintainer);
+        }
+        return this;
+    }
+
+    public ConnectorBundleVersion setMaintainer(List<Maintainer> maintainer) {
+        this.maintainer = maintainer;
+        return this;
+    }
 }

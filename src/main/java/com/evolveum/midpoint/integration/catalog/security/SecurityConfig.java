@@ -23,10 +23,6 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.INDIVIDUAL_CONTRIBUTOR;
-import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.ORGANIZATION_CONTRIBUTOR;
-import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.SUPERUSER;
-
 /**
  * OIDC login against the identity provider (this application is the OIDC client) plus the endpoint
  * authorization matrix.
@@ -35,31 +31,44 @@ import static com.evolveum.midpoint.integration.catalog.security.CatalogRole.SUP
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final String SUPERUSER = CatalogRole.SUPERUSER.getIdentifier();
+    private static final String INDIVIDUAL_CONTRIBUTOR = CatalogRole.INDIVIDUAL_CONTRIBUTOR.getIdentifier();
+    private static final String ORGANIZATION_CONTRIBUTOR = CatalogRole.ORGANIZATION_CONTRIBUTOR.getIdentifier();
+
     private static final String ALL_API = "/api/**";
 
     private static final String CURRENT_USER = "/api/auth/me";
 
+    //TODO what is this ? we don't know org members
     private static final String ORGANIZATION_MEMBERS = "/api/auth/organization/members";
 
     private static final String MAINTAINER_DIRECTORY = "/api/auth/all-maintainers";
 
+    private static final String APPLICATION = "/api/applications/*";
+
     private static final String[] REVIEW_DECISIONS = {
             "/api/applications/*/integration-method/*/*/start-review",
             "/api/applications/*/integration-method/*/*/stop-review",
-            "/api/applications/*/integration-method/*/*/publish",
-            "/api/applications/*/integration-method/*/*/reject" };
+            "/api/applications/*/integration-method/*/*/approve",
+            "/api/applications/*/integration-method/*/*/reject"
+    };
 
-    private static final String CONNECTOR_UPLOADS = "/api/upload/**";
+    private static final String UNFINISHED_CONNECTOR = "/api/applications/*/integration-method/*/connectors-without-download";
 
     private static final String INTEGRATION_METHOD = "/api/applications/*/integration-method/**";
+
+    private static final String[] CONNECTOR_UPLOADS = {
+            "/api/upload/**",
+            "/api/applications/*/integration-method/*/*/connectors"
+    };
 
     private static final String APPLICATION_LOGO = "/api/applications/*/logo";
 
     private static final String[] ITEM_ATTACHMENTS = {
-            "/api/applications/*/integration-method/*/*/connectors",
             "/api/applications/*/integration-method/*/*/tutorial",
             APPLICATION_LOGO,
-            "/api/integration-methods/*/tutorial" };
+            "/api/integration-methods/*/tutorial"
+    };
 
     private static final String REQUESTS = "/api/requests";
 
@@ -67,11 +76,14 @@ public class SecurityConfig {
 
     private static final String REQUEST_VOTE = "/api/requests/*/vote";
 
+    private static final String REQUEST_CHECK_VOTE = "/api/requests/*/vote/check";
+
     private static final String RECENTLY_USED_ITEM = "/api/recently-used/*";
 
     private static final String[] CATALOG_SEARCHES = {
             "/api/applications/search/*/*",
-            "/api/integration-methods/search/*/*" };
+            "/api/integration-methods/search/*/*"
+    };
 
     private static final String LOGOUT = "/logout";
 
@@ -104,10 +116,10 @@ public class SecurityConfig {
                         // filter above, a contributor completing a build by hand through the
                         // manual-fill dialog with their session.
                         .requestMatchers(JenkinsCallbackFilter.CALLBACK_PATH_PATTERNS)
-                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER,
-                                        JenkinsCallbackFilter.CALLBACK_ROLE)
+                                .hasAnyRole(SUPERUSER, JenkinsCallbackFilter.CALLBACK_ROLE)
 
                         .requestMatchers(MAINTAINER_DIRECTORY).hasRole(SUPERUSER)
+                        .requestMatchers(UNFINISHED_CONNECTOR).hasRole(SUPERUSER)
                         .requestMatchers(HttpMethod.POST, REVIEW_DECISIONS).hasRole(SUPERUSER)
                         .requestMatchers(CONNECTOR_UPLOADS)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
@@ -124,10 +136,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, SINGLE_REQUEST)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
                         .requestMatchers(HttpMethod.POST, REQUEST_VOTE).authenticated()
-                        .requestMatchers(CURRENT_USER, ORGANIZATION_MEMBERS).authenticated()
+                        .requestMatchers(REQUEST_CHECK_VOTE).authenticated()
+                        .requestMatchers(CURRENT_USER).authenticated()
+                        .requestMatchers(ORGANIZATION_MEMBERS).authenticated()
                         .requestMatchers(HttpMethod.POST, RECENTLY_USED_ITEM).authenticated()
                         .requestMatchers(HttpMethod.GET, ALL_API).permitAll()
                         .requestMatchers(HttpMethod.POST, CATALOG_SEARCHES).permitAll()
+                        .requestMatchers(HttpMethod.PUT, APPLICATION).hasRole(SUPERUSER) //edit application
                         .requestMatchers(ALL_API).authenticated()
                         .anyRequest().permitAll())
                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(

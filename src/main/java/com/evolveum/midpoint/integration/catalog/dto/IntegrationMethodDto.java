@@ -20,7 +20,8 @@ public record IntegrationMethodDto(
         String systemVersion,                                       // integration_method.system_version
         LocalDate releasedDate,                                     // connector_bundle_version.created_at
         String author,                                              // connector.author
-        String authorOrganization,                                  // organization the author published for (org contributors only)
+//TODO why we need it in frontend?
+//        String authorOrganization,                                  // organization the author published for (org contributors only)
         String lifecycleState,                                      // integration_method.lifecycle_state
         String downloadLink,                                        // generated download URL
         String framework,                                           // connector_bundle.framework
@@ -35,7 +36,7 @@ public record IntegrationMethodDto(
         String tutorial,                                            // integration_method.tutorial
         String filePath,                                            // integration_method.file_path
         String reviewedBy,                                          // integration_method.reviewed_by
-        String maintainer,                                          // integration_method.maintainer
+        String maintainer,                                          // integration_method.maintainer as label
         LocalDate createdAt,                                        // integration_method.created_at
         LocalDate updated,                                          // integration_method.updated (= review start date while REVIEWING)
         List<IncludedConnectorDto> connectors,                      // connectors linked via integration_method_connector

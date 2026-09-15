@@ -19,7 +19,7 @@ public record EditConnectorDto(
         // -- metadata ------------------------------------------------------------------------------
         String displayName,                                          // connector.display_name
         String description,                                          // connector.description
-        String maintainer,                                           // connector.maintainer
+        MaintainerDto maintainer,                                    // connector.maintainer
         String projectHomepage,                                      // connector_bundle.project_homepage
         String supportPortal,                                        // connector_bundle.ticketing_link
         String bundleDisplayName,                                    // connector_bundle.display_name (the form's "connector bundle name")

@@ -6,9 +6,10 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.object.GetOwnershipOneMaintainer;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
-import com.evolveum.midpoint.integration.catalog.object.OwnedItem;
 import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,11 +26,13 @@ import java.util.function.LongSupplier;
 public class OrganizationService {
 
     static final long CACHE_TTL_MILLIS = 60_000;
+    private static final String DEFAULT_LABEL_EVOLVEUM = "Evolveum";
+    private static final String DEFAULT_LABEL_COMMUNITY = "Community";
 
     private final OrganizationRepository organizationRepository;
     private final LongSupplier clock;
 
-    private volatile Map<String, String> namesById = Map.of();
+    private volatile Map<String, String> displayNamesByName = Map.of();
     private volatile boolean loaded;
     private volatile long loadedAt;
 
@@ -51,53 +54,81 @@ public class OrganizationService {
      * unknown — an item whose organization has not been seeded stays readable, it just
      * shows no organization.
      */
-    public String displayName(String organizationId) {
-        if (organizationId == null || organizationId.isBlank()) {
+    public String displayName(String organizationName) {
+        if (StringUtils.isEmpty(organizationName)) {
             return null;
         }
-        return names().get(organizationId);
+        return displayNames().get(organizationName);
     }
 
-    /**
-     * The identifier back, but only when the organizations table actually knows it;
-     * {@code null} otherwise.
-     */
-    public String registeredId(String organizationId) {
-        return displayName(organizationId) != null ? organizationId : null;
+    public String displayName(Organization organization) {
+        if (organization == null) {
+            return null;
+        }
+
+        if (StringUtils.isNotEmpty(organization.getDisplayName())) {
+            return organization.getDisplayName();
+        }
+
+        return organization.getName();
     }
+
+//    /**
+//     * The identifier back, but only when the organizations table actually knows it;
+//     * {@code null} otherwise.
+//     */
+//    public String registeredId(Integer organizationId) {
+//        return displayName(organizationId) != null ? String.valueOf(organizationId) : null;
+//    }
 
     /** All organizations, ordered by display name. */
     public List<String> allNames() {
-        return names().values().stream()
+        return displayNames().values().stream()
                 .filter(name -> name != null && !name.isBlank())
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();
     }
 
     /** The identifier of the organization with this display name, if any. */
-    public String idOfName(String name) {
+    public String displayNameOfName(String name) {
         if (name == null || name.isBlank()) {
             return null;
         }
-        return names().entrySet().stream()
+        return displayNames().entrySet().stream()
                 .filter(e -> name.trim().equalsIgnoreCase(e.getValue()))
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElse(null);
     }
 
+    //TODO This isn't right class for this method
     /**
      * What to show as an item's maintainer: the maintainer's username, or — when an
      * organization maintains it and therefore no username is recorded — the organization's
      * display name.
      */
-    public String maintainerLabel(OwnedItem item) {
-        if (item == null) {
+    public String maintainerLabel(GetOwnershipOneMaintainer item) {
+        if (item == null || item.getMaintainer() == null) {
             return null;
         }
-        return item.getMaintainer() != null
-                ? item.getMaintainer()
-                : displayName(item.getMaintainerOrgId());
+        switch (item.getMaintainer().getCategory()) {
+            case null -> {
+                //TODO exception(has to exist)
+                return null;
+            }
+            case EVOLVEUM -> {
+                return DEFAULT_LABEL_EVOLVEUM;
+            }
+            case COMMUNITY -> {
+                return DEFAULT_LABEL_COMMUNITY;
+            }
+            case USER -> {
+                return item.getMaintainer().getUsername();
+            }
+            case ORG -> {
+                return displayName(item.getMaintainer().getOrganization());
+            }
+        }
     }
 
     /** Identifiers of the organizations whose display name contains the given text. */
@@ -106,23 +137,35 @@ public class OrganizationService {
             return List.of();
         }
         String needle = text.trim().toLowerCase();
-        return names().entrySet().stream()
+        return displayNames().entrySet().stream()
                 .filter(e -> e.getValue() != null && e.getValue().toLowerCase().contains(needle))
                 .map(Map.Entry::getKey)
                 .toList();
     }
 
-    private Map<String, String> names() {
+    private Map<String, String> displayNames() {
         long now = clock.getAsLong();
         if (!loaded || now - loadedAt >= CACHE_TTL_MILLIS) {
             Map<String, String> freshlyLoaded = new LinkedHashMap<>();
             for (Organization organization : organizationRepository.findAll()) {
-                freshlyLoaded.put(organization.getId(), organization.getName());
+                String displayName = organization.getName();
+                if (StringUtils.isNotEmpty(organization.getDisplayName())) {
+                    displayName = organization.getDisplayName();
+                }
+                freshlyLoaded.put(organization.getName(), displayName);
             }
-            namesById = Map.copyOf(freshlyLoaded);
+            displayNamesByName = Map.copyOf(freshlyLoaded);
             loadedAt = now;
             loaded = true;
         }
-        return namesById;
+        return displayNamesByName;
+    }
+
+    public Organization getOrganizationById(Integer organizationId) {
+        return organizationRepository.findById(organizationId).orElse(null);
+    }
+
+    public Organization getOrganizationByName(String name) {
+        return organizationRepository.findByName(name).orElse(null);
     }
 }

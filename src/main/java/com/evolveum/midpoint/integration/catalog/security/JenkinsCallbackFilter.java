@@ -68,10 +68,10 @@ public class JenkinsCallbackFilter extends OncePerRequestFilter {
             if (hasValidToken(request)) {
                 authenticateAsCallback();
             } else if (request.getHeader(CALLBACK_TOKEN_HEADER) != null) {
-                // Worth reporting on its own: a caller that sends the header meant to be the
-                // pipeline, so this is a stale or mistyped secret rather than a browser call.
-                log.warn("Ignoring an invalid {} header on {} - the request falls back to session"
-                                + " authentication and will be rejected unless it carries one",
+                // We need to indicate that an invalid token has been received, but only in the log.
+                // We do not want to give the attacker any additional information,
+                // but we need to know that someone is trying to gain access.
+                log.error("The {} received for the request {} is incorrect.",
                         CALLBACK_TOKEN_HEADER, request.getRequestURI());
             }
         }

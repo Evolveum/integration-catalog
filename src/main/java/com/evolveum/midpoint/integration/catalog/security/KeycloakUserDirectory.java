@@ -35,6 +35,7 @@ import java.util.function.LongSupplier;
 @Slf4j
 @Service
 public class KeycloakUserDirectory {
+    //TODO I think that we don't need it
 
     private static final long CACHE_TTL_MILLIS = 60_000;
 
@@ -154,6 +155,7 @@ public class KeycloakUserDirectory {
     /** Short timeouts: a dead Keycloak must degrade the list, not hang the request. */
     private static RestClient buildRestClient() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        //TODO Can we use some properties for it? (maybe some default that already exist)
         requestFactory.setConnectTimeout(Duration.ofSeconds(2));
         requestFactory.setReadTimeout(Duration.ofSeconds(5));
         return RestClient.builder().requestFactory(requestFactory).build();

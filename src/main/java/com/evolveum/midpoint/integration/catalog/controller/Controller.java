@@ -452,8 +452,6 @@ public class Controller {
         return ResponseEntity.ok(items);
     }
 
-    // TODO access this endpoint only for superuser
-
     @Operation(summary = "Update application details",
             description = "Updates the display name and/or description of an application. Superuser only.")
     @ApiResponses(value = {

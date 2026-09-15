@@ -25,10 +25,13 @@ import lombok.experimental.Accessors;
 public class Organization {
 
     @Id
-    private String id;
+    private Integer id;
 
     @Column(nullable = false)
     private String name;
+
+    @Column(name = "display_name")
+    private String displayName;
 
     @Column(columnDefinition = "TEXT")
     private String description;

@@ -47,12 +47,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.getCurrentUser(authentication.getName(), oidcUser));
     }
 
-    @Operation(summary = "Get organization members",
-            description = "Returns all usernames in the authenticated user's organization")
-    @GetMapping("/organization/members")
-    public ResponseEntity<List<String>> getOrganizationMembers(Authentication authentication) {
-        return ResponseEntity.ok(authService.getOrganizationMembers(authentication.getName()));
-    }
+    //TODO Why we need this?
+//    @Operation(summary = "Get organization members",
+//            description = "Returns all usernames in the authenticated user's organization")
+//    @GetMapping("/organization/members")
+//    public ResponseEntity<List<String>> getOrganizationMembers(Authentication authentication) {
+//        return ResponseEntity.ok(authService.getOrganizationMembers(authentication.getName()));
+//    }
 
     @Operation(summary = "Get all maintainers",
             description = "Returns all usernames and organization names — superuser only")

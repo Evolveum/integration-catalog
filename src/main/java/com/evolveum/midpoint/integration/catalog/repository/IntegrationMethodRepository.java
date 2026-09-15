@@ -28,6 +28,6 @@ public interface IntegrationMethodRepository extends JpaRepository<IntegrationMe
     /** Owners of items that name a maintainer. */
     List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
 
-    /** Owners of items uploaded on behalf of the given organization. */
-    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
+//    /** Owners of items uploaded on behalf of the given organization. */
+//    List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
 }

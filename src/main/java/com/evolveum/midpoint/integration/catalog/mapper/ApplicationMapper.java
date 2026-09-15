@@ -15,6 +15,7 @@ import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
 import com.evolveum.midpoint.integration.catalog.service.OrganizationService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -88,11 +89,11 @@ public class ApplicationMapper {
                     String lifecycleState = method.getLifecycleState() != null
                             ? method.getLifecycleState().name() : null;
 
-                    // Author's organization drives the org-mate access checks. It was
-                    // stamped on the row at upload time, so an IndividualContributor's
-                    // uploads stay personal even when they belong to an organization.
-                    String authorOrganization =
-                            organizationService.displayName(method.getAuthorOrgId());
+//                    // Author's organization drives the org-mate access checks. It was
+//                    // stamped on the row at upload time, so an IndividualContributor's
+//                    // uploads stay personal even when they belong to an organization.
+//                    String authorOrganization =
+//                            organizationService.displayName(method.getAuthorOrgId());
 
                     // Connector info from first linked connector
                     String connectorVersion = null;
@@ -196,8 +197,8 @@ public class ApplicationMapper {
                             connectorVersion,
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
-                            method.getAuthor(),
-                            authorOrganization,
+                            method.getAuthor() != null ? method.getAuthor().getUsername() : null,
+//                            authorOrganization,
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -235,8 +236,7 @@ public class ApplicationMapper {
         // The organization ids are part of the check: an item maintained by an organization
         // carries no maintainer username, so a name-only comparison would hide the ticket
         // from the very org-mates the review concerns.
-        return authService.canEdit(viewer, method.getAuthor(), method.getAuthorOrgId(),
-                method.getMaintainer(), method.getMaintainerOrgId())
+        return authService.canEdit(viewer, method.getMaintainer())
                 ? method.getSupportTicketId() : null;
     }
 
@@ -457,8 +457,9 @@ public class ApplicationMapper {
         List<String> maintainers = null;
         if (app.getIntegrationMethods() != null) {
             maintainers = app.getIntegrationMethods().stream()
-                    .map(IntegrationMethod::getAuthorCategory)
-                    .filter(category -> category != null)
+                    .map(IntegrationMethod::getMaintainer)
+                    .map(maintainer -> maintainer.getCategory().getDisplayName())
+                    .filter(StringUtils::isNotBlank)
                     .distinct()
                     .toList();
             if (maintainers.isEmpty()) {
@@ -520,7 +521,7 @@ public class ApplicationMapper {
         String buildFramework = null;
         String pathToProject = null;
         String className = null;
-        String maintainer = null;
+        Maintainer maintainer = null;
         String connectorDescription = null;
         String licenseType = null;
         String ticketingLink = null;
@@ -568,13 +569,6 @@ public class ApplicationMapper {
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
         }
 
-        // Ownership as stamped on the connector
-        String maintainerOrganizationName = connector == null ? null
-                : organizationService.displayName(connector.getMaintainerOrgId());
-        String maintainerOrganization = maintainer == null ? null : maintainerOrganizationName;
-        if (maintainer == null) {
-            maintainer = maintainerOrganizationName;
-        }
 
         return new ImplementationListItemDto(
                 method.getId(),
@@ -584,8 +578,7 @@ public class ApplicationMapper {
                 null,               // publishedDate (no direct field)
                 connectorVersion,
                 method.getDisplayName(),
-                maintainer,
-                maintainerOrganization,
+                maintainerToMaintainerDto(maintainer),
                 licenseType,
                 connectorDescription,
                 projectHomepage,
@@ -605,6 +598,18 @@ public class ApplicationMapper {
                 connectorMaxVersion,
                 initialVersion
         );
+    }
+
+    private MaintainerDto maintainerToMaintainerDto(Maintainer maintainer) {
+        if (maintainer == null) {
+            return null;
+        }
+
+        return new MaintainerDto(
+                maintainer.getId(),
+                maintainer.getUsername(),
+                maintainer.getOrganization() != null ? maintainer.getOrganization().getName() : null,
+                maintainer.getCategory());
     }
 
     /**

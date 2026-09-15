@@ -12,7 +12,7 @@ public record CurrentUserDto(
         String fullName,
         String email,
         String role,
-        String organizationId,
-        String organizationName
+        String organizationName,
+        String organizationDisplayName
 ) {
 }

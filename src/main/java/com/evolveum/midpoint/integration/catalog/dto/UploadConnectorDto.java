@@ -8,16 +8,17 @@ package com.evolveum.midpoint.integration.catalog.dto;
 
 import com.evolveum.midpoint.integration.catalog.object.BuildFrameworkType;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
+import com.evolveum.midpoint.integration.catalog.object.Maintainer;
 
 /** The connector half of a publish request. */
 public record UploadConnectorDto(
         String displayName,                      // connector.display_name
-        ConnectorBundle.FrameworkType framework,  // connector_bundle.framework
+        ConnectorBundle.FrameworkType framework, // connector_bundle.framework
         String version,                          // connector_bundle_version.bundle_version
         ConnectorBundle.LicenseType license,     // connector_bundle.license
-        BuildFrameworkType buildFramework,        // connector_bundle.build_framework
+        BuildFrameworkType buildFramework,       // connector_bundle.build_framework
         String description,                      // connector.description
-        String maintainer,                       // connector.maintainer
+        MaintainerDto maintainer,                // connector.maintainer
         String projectHomepage,                  // connector_bundle.project_homepage
         String ticketingSystemLink,              // connector_bundle.ticketing_link
         String gitCloneUrl,                      // connector_bundle.git_clone_ulr

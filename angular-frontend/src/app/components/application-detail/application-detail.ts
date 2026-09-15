@@ -562,10 +562,10 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return !!methods && methods.length > 0;
   }
 
-  protected navigateToPublish(): void {
+  protected navigateToApprove(): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.router.navigate(['/publish'], { queryParams: { appId } });
+      this.router.navigate(['/approve'], { queryParams: { appId } });
     }
   }
 

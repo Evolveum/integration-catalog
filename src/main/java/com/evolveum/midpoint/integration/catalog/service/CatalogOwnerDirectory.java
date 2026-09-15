@@ -62,21 +62,21 @@ public class CatalogOwnerDirectory {
                 ItemOwnerView::getMaintainer);
     }
 
-    /** Every user who has authored an item on behalf of the given organization. */
-    public List<String> findAuthorsOfOrganization(String organizationId) {
-        if (organizationId == null || organizationId.isBlank()) {
-            return List.of();
-        }
-        return distinctNames(
-                Stream.of(
-                                connectorRepository.findDistinctByAuthorOrgId(organizationId),
-                                connectorVersionRepository.findDistinctByAuthorOrgId(organizationId),
-                                connectorBundleRepository.findDistinctByAuthorOrgId(organizationId),
-                                connectorBundleVersionRepository.findDistinctByAuthorOrgId(organizationId),
-                                integrationMethodRepository.findDistinctByAuthorOrgId(organizationId))
-                        .flatMap(List::stream),
-                ItemOwnerView::getAuthor);
-    }
+//    /** Every user who has authored an item on behalf of the given organization. */
+//    public List<String> findAuthorsOfOrganization(String organizationName) {
+//        if (organizationName == null || organizationName.isBlank()) {
+//            return List.of();
+//        }
+//        return distinctNames(
+//                Stream.of(
+//                                connectorRepository.findDistinctByAuthorOrgId(organizationName),
+//                                connectorVersionRepository.findDistinctByAuthorOrgId(organizationName),
+//                                connectorBundleRepository.findDistinctByAuthorOrgId(organizationName),
+//                                connectorBundleVersionRepository.findDistinctByAuthorOrgId(organizationName),
+//                                integrationMethodRepository.findDistinctByAuthorOrgId(organizationName))
+//                        .flatMap(List::stream),
+//                ItemOwnerView::getAuthor);
+//    }
 
     /** The five tables overlap heavily, so the merged result is de-duplicated and sorted here. */
     private static List<String> distinctNames(Stream<ItemOwnerView> owners,

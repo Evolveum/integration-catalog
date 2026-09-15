@@ -205,7 +205,7 @@ It is backed by two derived queries on each item repository, projected through
 [source,java]
 ----
 List<ItemOwnerView> findDistinctByMaintainerIsNotNull();
-List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
+//List<ItemOwnerView> findDistinctByAuthorOrgId(String authorOrgId);
 ----
 
 == Answering the questions

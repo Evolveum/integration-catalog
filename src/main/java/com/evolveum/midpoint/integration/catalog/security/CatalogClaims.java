@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -31,19 +32,16 @@ public class CatalogClaims {
     }
 
     /** The catalog roles carried by the token, in the order the provider listed them. */
-    public List<String> roles(OidcUser oidcUser) {
-        return stringList(claim(oidcUser, rolesClaim)).stream()
-                .filter(CatalogRole.BY_PRECEDENCE::contains)
+    public List<CatalogRole> roles(OidcUser oidcUser) {
+        List<String> claimRoles = stringList(claim(oidcUser, rolesClaim));
+        return Arrays.stream(CatalogRole.values())
+                .filter(catalogRole -> claimRoles.contains(catalogRole.getIdentifier()))
                 .toList();
     }
 
-    /** The strongest catalog role the token carries; ReadOnly when it carries none. */
-    public String effectiveRole(OidcUser oidcUser) {
-        List<String> roles = roles(oidcUser);
-        return CatalogRole.BY_PRECEDENCE.stream()
-                .filter(roles::contains)
-                .findFirst()
-                .orElse(CatalogRole.READ_ONLY);
+    public CatalogRole effectiveRole(OidcUser oidcUser) {
+        List<CatalogRole> roles = roles(oidcUser);
+        return roles.stream().findFirst().orElse(CatalogRole.READ_ONLY);
     }
 
     /**
@@ -51,8 +49,8 @@ public class CatalogClaims {
      * Only the first one is used: the catalog models a user as publishing on behalf of at
      * most one organization.
      */
-    public String organizationId(OidcUser oidcUser) {
-        return organizationIds(oidcUser).stream().findFirst().orElse(null);
+    public String organizationName(OidcUser oidcUser) {
+        return organizationNames(oidcUser).stream().findFirst().orElse(null);
     }
 
     /**
@@ -60,10 +58,10 @@ public class CatalogClaims {
      * the provider emits strings, and an object keyed by identifier when it emits JSON;
      * both shapes are accepted.
      */
-    private List<String> organizationIds(OidcUser oidcUser) {
+    private List<String> organizationNames(OidcUser oidcUser) {
         Object claim = claim(oidcUser, organizationClaim);
-        List<String> raw = claim instanceof Map<?, ?> byIdentifier
-                ? byIdentifier.keySet().stream().map(String::valueOf).toList()
+        List<String> raw = claim instanceof Map<?, ?> byName
+                ? byName.keySet().stream().map(String::valueOf).toList()
                 : stringList(claim);
         return raw.stream()
                 .map(String::trim)

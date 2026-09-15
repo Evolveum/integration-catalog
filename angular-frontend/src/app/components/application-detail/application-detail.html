@@ -273,7 +273,7 @@
                   <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0">Search integration methods</h5>
                     @if (hasIntegrationMethods()) {
-                      <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToPublish()">
+                      <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToApprove()">
                         <i class="fa-solid fa-plus"></i>Add new method
                       </button>
                     }
@@ -397,7 +397,7 @@
                       } @else {
                         <p class="fw-semibold mb-2">No integration methods defined yet.</p>
                         <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
-                        <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToPublish()">
+                        <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToApprove()">
                           <i class="fa-solid fa-plus me-1"></i>Add integration method
                         </button>
                       }

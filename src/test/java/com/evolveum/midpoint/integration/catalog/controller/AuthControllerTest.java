@@ -121,15 +121,15 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.organizationName").value("Acme co."));
     }
 
-    @Test
-    void organizationMembersRequireLogin() throws Exception {
-        when(authService.getOrganizationMembers(any())).thenReturn(List.of("olivia", "dana"));
-
-        mockMvc.perform(get("/api/auth/organization/members"))
-                .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/auth/organization/members").with(readOnlyUser()))
-                .andExpect(status().isOk());
-    }
+//    @Test
+//    void organizationMembersRequireLogin() throws Exception {
+//        when(authService.getOrganizationMembers(any())).thenReturn(List.of("olivia", "dana"));
+//
+//        mockMvc.perform(get("/api/auth/organization/members"))
+//                .andExpect(status().isUnauthorized());
+//        mockMvc.perform(get("/api/auth/organization/members").with(readOnlyUser()))
+//                .andExpect(status().isOk());
+//    }
 
     @Test
     void allMaintainersIsSuperuserOnly() throws Exception {
