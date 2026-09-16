@@ -19,6 +19,7 @@ import { ConnectorWithoutDownload } from '../../services/application.service';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 interface MethodGroup {
   id: string;
@@ -857,14 +858,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-
-    // Replace underscores with spaces
-    const withSpaces = text.replace(/_/g, ' ');
-
-    // Convert to lowercase and capitalize first letter
-    const formatted = withSpaces.toLowerCase();
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   protected formatConnectorType(framework: string | null): string {

@@ -242,7 +242,7 @@
 }
 
 .badge-counter {
-  background-color: $color-dark-blue;
+  background-color: $color-brand-navy;
   color: white;
   width: 20px;
   height: 20px;
@@ -355,7 +355,7 @@
 .filter-chip {
   padding: 0.5rem 0.75rem;
   background-color: white;
-  border: 1px solid $color-dark-blue;
+  border: 1px solid $color-brand-navy;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -462,8 +462,8 @@
 }
 
 .checkbox-checked {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
 }
 
 .checkbox-unchecked {
@@ -472,7 +472,7 @@
 }
 
 .link-clear-filter {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.875rem;
   text-decoration: none;
 }
@@ -555,11 +555,11 @@
   background-color: transparent;
   border: none;
   padding: 0;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 600;
 
   &:hover {
-    color: color.adjust($color-dark-blue, $lightness: -10%);
+    color: color.adjust($color-brand-steel, $lightness: -10%);
     text-decoration: underline;
   }
 }
@@ -587,7 +587,7 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-dark-blue;
+  color: $color-primary-500;
   cursor: pointer;
   text-decoration: none;
 }
@@ -611,7 +611,7 @@
 }
 
 .breadcrumb-link:hover {
-  color: $color-dark-blue;
+  color: $color-primary-500;
   text-decoration: underline;
 }
 
@@ -635,7 +635,7 @@
    DOWNLOAD BUTTON
    ======================================== */
 .btn-download {
-  background-color: $midpoint-special-color;
+  background-color: $color-brand-steel;
   color: $btn-download-color;
   border: none;
 }
@@ -644,7 +644,7 @@
    PUBLISHING STATE
    ======================================== */
 .publishing-icon {
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
 }
 
 /* ========================================
@@ -706,7 +706,7 @@
   width: auto;
   min-width: 90px;
   border-radius: 50px;
-  border: 1px solid $color-dark-blue;
+  border: 1px solid $color-brand-navy;
   height: 38px;
   padding: 0 1rem;
   cursor: pointer;
@@ -719,7 +719,7 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba($color-dark-blue, 0.2);
+    box-shadow: 0 0 0 2px rgba($color-brand-navy, 0.2);
   }
 }
 
@@ -749,7 +749,7 @@
 
   &.method-type-option-active {
     font-weight: 600;
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -802,21 +802,21 @@
 }
 
 .btn-create-method-primary {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
   color: #fff;
 }
 
 .btn-create-method-primary:hover {
-  background-color: color.adjust($color-dark-blue, $lightness: -8%);
-  border-color: color.adjust($color-dark-blue, $lightness: -8%);
+  background-color: color.adjust($color-brand-navy, $lightness: -8%);
+  border-color: color.adjust($color-brand-navy, $lightness: -8%);
   color: #fff;
 }
 
 .btn-add-method {
   background-color: #ffffff;
-  border: 1px solid $color-dark-blue;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
   padding: 0.5rem 1.25rem;
   border-radius: 4px;
   font-size: 0.875rem;
@@ -826,8 +826,8 @@
 
 .btn-add-method:hover {
   background-color: #f8f9fa;
-  border-color: $color-dark-blue;
-  color: $color-dark-blue;
+  border-color: $color-brand-navy;
+  color: $color-brand-steel;
 }
 
 /* ========================================
@@ -855,14 +855,14 @@
 .im-view-details-link {
   font-size: 0.875rem;
   font-weight: 600;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
 
   &:hover {
     text-decoration: underline;
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -886,7 +886,7 @@
   margin-top: 0.5rem;
   font-size: 0.8rem;
   font-weight: 500;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   text-decoration: underline;
   // .im-row-actions below is pulled up by a negative margin (see .im-row-actions) and its box
   // covers this link even though its buttons are right-aligned. On hover that box becomes
@@ -895,7 +895,7 @@
   z-index: 1;
 
   &:hover {
-    color: $midpoint-special-color-20;
+    color: $color-brand-steel-dark;
   }
 }
 
@@ -1210,12 +1210,12 @@
 
 .btn-im-view-details {
   background: white;
-  border: 1px solid $midpoint-special-color;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-steel;
+  color: $color-brand-steel;
 
   &:hover {
     background: #f8f9fa;
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -1276,13 +1276,13 @@
 
 .btn-im-edit-upgrade {
   background-color: white;
-  border: 1px solid $midpoint-special-color;
-  color: $midpoint-special-color;
+  border: 1px solid $color-brand-steel;
+  color: $color-brand-steel;
   font-size: 0.8rem;
 
   &:hover:not(:disabled) {
     background-color: #f8f9fa;
-    color: $midpoint-special-color;
+    color: $color-brand-steel;
   }
 
   &:disabled {
@@ -1292,14 +1292,14 @@
 }
 
 .btn-im-start-review {
-  background-color: $midpoint-special-color;
-  border: 1px solid $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: white;
   font-size: 0.8rem;
 
   &:hover:not(:disabled) {
-    background-color: $color-dark-blue;
-    border-color: $color-dark-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
     color: white;
   }
 }
@@ -1308,27 +1308,27 @@
    filling dark blue on hover. */
 .btn-im-stop-review {
   background-color: white;
-  border: 1px solid $color-dark-blue;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
   font-size: 0.8rem;
 
   &:hover:not(:disabled) {
-    background-color: $color-dark-blue;
-    border-color: $color-dark-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
     color: white;
   }
 }
 
 .btn-im-download {
-  background-color: $midpoint-special-color;
-  border: 1px solid $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: white;
   font-size: 0.8rem;
 }
 
 .btn-im-download:hover:not(:disabled) {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
   color: white;
 }
 
@@ -1440,7 +1440,7 @@
 .cancel-keep-btn {
   background: none;
   border: none;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
 

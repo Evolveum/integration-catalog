@@ -22,7 +22,7 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="cancel()" style="cursor:pointer;">
       @if (showLogo()) {
@@ -323,7 +323,7 @@
               }
               @if (c.className) {
                 <div class="edit-connector-row">
-                  <span class="edit-connector-label">Class name:</span>
+                  <span class="edit-connector-label">Connector class name:</span>
                   <span class="edit-connector-value">{{ c.className }}</span>
                 </div>
               }
@@ -507,6 +507,15 @@
             Define the connector version range supported by this integration. Only connectors within
             the specified range will be available for use.
           </p>
+
+          <!-- The range is stored per integration method, not on the connector. -->
+          <div class="compat-modal-note d-flex gap-2 align-items-start mb-3">
+            <i class="fa-solid fa-circle-info compat-modal-note-icon flex-shrink-0"></i>
+            <span class="flex-grow-1">
+              <strong>Note</strong>&nbsp;This range belongs to this integration method, not to the connector itself.
+              Other integration methods using the same connector keep their own ranges.
+            </span>
+          </div>
 
           <div class="d-flex align-items-start gap-3 mb-1">
             <div class="flex-grow-1">

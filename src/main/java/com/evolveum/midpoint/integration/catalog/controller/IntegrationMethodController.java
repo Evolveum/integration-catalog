@@ -364,7 +364,7 @@ public class IntegrationMethodController {
     }
 
     @Operation(summary = "Download a ZIP bundle for an integration method revision",
-            description = "Bundles the tutorial (tutorial.adoc, converted from Markdown) and all uploaded tutorial files into a single ZIP.")
+            description = "Bundles the tutorial (tutorial.md, as authored in Markdown) and all uploaded tutorial files into a single ZIP.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle built successfully"),
             @ApiResponse(responseCode = "404", description = "Integration method not found"),

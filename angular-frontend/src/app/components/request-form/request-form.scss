@@ -21,13 +21,13 @@
   margin-right: 0.5rem;
   cursor: pointer;
   appearance: auto;
-  accent-color: $midpoint-special-color !important;
+  accent-color: $color-brand-steel !important;
 }
 
 /* Bootstrap radio button checked state */
 .modal .form-check-input[type="radio"]:checked {
-  background-color: $midpoint-special-color !important;
-  border-color: $midpoint-special-color !important;
+  background-color: $color-brand-steel !important;
+  border-color: $color-brand-steel !important;
 }
 
 .modal .form-check-input[type="radio"]:focus {
@@ -268,14 +268,14 @@
 }
 
 .integration-method-option-selected {
-  background-color: rgba($color-light-blue, 0.08);
-  color: $midpoint-special-color-20;
+  background-color: rgba($color-brand-sky, 0.08);
+  color: $color-brand-steel-dark;
 }
 
 .integration-method-view-more {
   padding: 10px 16px;
   cursor: pointer;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 14px;
   font-weight: 500;
   border-top: 1px solid $color-border-light;
@@ -287,7 +287,7 @@
 
 .view-more-icon {
   font-size: 10px;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
 }
 
 /* Form Separator */
@@ -309,12 +309,12 @@
 }
 
 .btn-cancel-text {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
 }
 
 .btn-submit {
   color: $btn-download-color;
-  background-color: $midpoint-special-color;
+  background-color: $color-brand-steel;
   font-weight: 600;
 }
 

@@ -7,7 +7,7 @@
 <div class="container-fluid p-0 page-container">
   <app-page-header [breadcrumb]="true">
     <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-      <a class="breadcrumb-link" (click)="goBack()" style="cursor:pointer;">Integration catalog</a>
+      <a class="breadcrumb-link" (click)="goBack()" style="cursor:pointer;">MidPoint Integration Catalog</a>
       @if (application()) {
         <span class="breadcrumb-sep">›</span>
         <span class="breadcrumb-current d-flex align-items-center gap-1">
@@ -36,7 +36,7 @@
         <p>{{ error() }}</p>
         <hr>
         <button class="btn btn-primary" (click)="goBack()">
-          <i class="fa-solid fa-arrow-left me-1"></i> Back to Integration Catalog
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to MidPoint Integration Catalog
         </button>
       </div>
     </div>
@@ -707,7 +707,7 @@
 
                   <div class="im-list-footer d-flex align-items-center justify-content-between mt-3">
                     <button type="button" class="btn btn-go-to-catalog" (click)="goBack()">
-                      <i class="fa-solid fa-arrow-left me-2 icon-md"></i>Go to Integration catalog
+                      <i class="fa-solid fa-arrow-left me-2 icon-md"></i>Go to MidPoint Integration Catalog
                     </button>
 
                     @if (totalPages() > 1) {
@@ -772,7 +772,7 @@
 
           <!-- App Category -->
           <div class="mb-5">
-            <h6 class="text-muted small mb-1">App Category</h6>
+            <h6 class="text-muted small mb-1">App category</h6>
             @if (application()!.categories && application()!.categories!.length > 0) {
               <div>
                 @for (category of application()!.categories!; track category.id) {
@@ -786,7 +786,7 @@
 
           <!-- Last Update -->
           <div class="mb-5">
-            <h6 class="text-muted small mb-1">Last Update</h6>
+            <h6 class="text-muted small mb-1">Last update</h6>
             @if (application()!.updated) {
               <p class="mb-0 fw-semibold">{{ application()!.updated | date: 'MMM d, yyyy' }}</p>
             } @else {
@@ -797,7 +797,7 @@
           <!-- Maintainer Location (hidden for requested apps) -->
           @if (application()!.lifecycleState !== 'REQUESTED') {
             <div class="mb-0">
-              <h6 class="text-muted small mb-1">Maintainer Location</h6>
+              <h6 class="text-muted small mb-1">Maintainer location</h6>
               @if (application()!.origins && application()!.origins!.length > 0) {
                 @for (origin of application()!.origins!; track origin.id) {
                   <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>

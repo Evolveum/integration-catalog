@@ -131,7 +131,6 @@ export class AddConnectorForm implements OnInit {
   protected readonly connectorLicense = signal<string>('EUPL');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
-  protected readonly connectorBundleName = signal<string>('');
   protected readonly connectorCapabilities = signal<CapabilityGroup[]>([]);
   protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
 
@@ -184,8 +183,9 @@ export class AddConnectorForm implements OnInit {
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
       && !this.isGitCloneUrlInvalid();
+    // Class name is optional; when given it still has to be a well-formed Java class name.
     const javaOk = !this.isJavaBasedConnector
-      || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
+      || (!!this.devBuildTool() && !this.isClassNameInvalid());
     return devOk && javaOk;
   });
 
@@ -298,7 +298,6 @@ export class AddConnectorForm implements OnInit {
     this.connectorLicense.set('EUPL');
     this.isLicenseDropdownOpen.set(false);
     this.connectorDescription.set('');
-    this.connectorBundleName.set('');
     this.connectorCapabilities.set([]);
     this.initialCapabilities.set([]);
     this.devProjectHomepage.set('');
@@ -369,7 +368,8 @@ export class AddConnectorForm implements OnInit {
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
       className: this.devClassName() || null,
-      bundleDisplayName: this.connectorBundleName() || null,
+      // The form no longer asks for a bundle display name; the backend leaves it unset.
+      bundleDisplayName: null,
       version: this.connectorVersion() || null,
       commitTag: this.devCommitTag() || null,
       // midPoint range is set on the edit form; connector range via the "Set up compatibility" modal.

@@ -10,8 +10,8 @@
 .breadcrumb-link {
   background: none; border: none; padding: 0;
   font-size: 0.8125rem; font-weight: 500;
-  color: $color-dark-blue; cursor: pointer; text-decoration: none;
-  &:hover { color: $color-dark-blue; text-decoration: underline; }
+  color: $color-primary-500; cursor: pointer; text-decoration: none;
+  &:hover { color: $color-primary-500; text-decoration: underline; }
 }
 
 .breadcrumb-sep  { font-size: 0.8125rem; color: #9ca3af; }
@@ -59,7 +59,7 @@
 
 /* "How to find it →" helper link under Commit hash */
 .commit-help-link {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   text-decoration: none;
   font-weight: 500;
   white-space: nowrap;
@@ -88,12 +88,12 @@
 
 /* ── Connector type cards ───────────────────────────────── */
 .connector-option .form-check-input:checked {
-  background-color: $midpoint-special-color;
-  border-color: $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border-color: $color-brand-steel;
 }
 
 .connector-option .form-check-input:focus {
-  border-color: $midpoint-special-color;
+  border-color: $color-brand-steel;
   box-shadow: 0 0 0 0.25rem $shadow-teal;
 }
 
@@ -104,7 +104,7 @@
   cursor: pointer;
   transition: all 0.2s;
   &.selected {
-    border-color: $midpoint-special-color;
+    border-color: $color-brand-steel;
     background-color: $color-bg-selected;
   }
 }
@@ -139,7 +139,7 @@
 }
 
 .connector-existing-anchor {
-  color: $midpoint-special-color; font-weight: 500; text-decoration: none;
+  color: $color-brand-steel; font-weight: 500; text-decoration: none;
   &:hover { text-decoration: underline; }
 }
 
@@ -366,16 +366,16 @@
 }
 
 .ac-btn-back {
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
   background: none; border: none;
   padding: 0.375rem 0.75rem; font-weight: 600;
-  &:hover { color: $color-dark-blue; }
+  &:hover { color: $color-brand-steel; }
 }
 
 .ac-btn-next {
-  background-color: $midpoint-special-color;
-  border-color: $midpoint-special-color;
-  &:hover { background-color: $color-dark-blue; border-color: $color-dark-blue; }
+  background-color: $color-brand-steel;
+  border-color: $color-brand-steel;
+  &:hover { background-color: $color-brand-navy; border-color: $color-brand-navy; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
@@ -423,7 +423,7 @@
   cursor: pointer; transition: border-color 0.15s, background-color 0.15s;
 
   &.selected {
-    border-color: $midpoint-special-color;
+    border-color: $color-brand-steel;
     background-color: $color-bg-selected;
   }
 
@@ -448,13 +448,13 @@
 }
 
 .define-new-cancel-btn {
-  color: $midpoint-special-color; font-weight: 600; padding: 0; text-decoration: none;
+  color: $color-brand-steel; font-weight: 600; padding: 0; text-decoration: none;
   &:hover { color: $color-text-dark; }
 }
 
 /* ── Catalog search input ───────────────────────────────── */
 .search-input-wrapper {
-  border: 2px solid $color-dark-blue; border-radius: 50px;
+  border: 2px solid $color-brand-navy; border-radius: 50px;
   background-color: $color-white; transition: border-width 0.15s ease-in-out;
 }
 
@@ -477,10 +477,10 @@
 .clear-icon   { font-size: 12px; color: $color-gray-secondary; }
 
 /* Radio */
-.form-check-input[type="radio"] { accent-color: $midpoint-special-color !important; }
+.form-check-input[type="radio"] { accent-color: $color-brand-steel !important; }
 .form-check-input[type="radio"]:checked {
-  background-color: $midpoint-special-color !important;
-  border-color: $midpoint-special-color !important;
+  background-color: $color-brand-steel !important;
+  border-color: $color-brand-steel !important;
 }
 
 // Shown when the connector search box holds a single character: prompts for at least 2.

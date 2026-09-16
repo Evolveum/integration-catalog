@@ -164,25 +164,6 @@
                 <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
               </div>
 
-              <!-- Connector bundle name (java-based only) -->
-              @if (isJavaBasedConnector) {
-              <div class="mb-4">
-                <label class="form-label form-label-upload">
-                  Connector bundle name
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Display name for the connector bundle grouping related connector versions.</span>
-                  </span>
-                </label>
-                <input type="text" class="form-control"
-                       [class.input-disabled]="isExistingConnector"
-                       [value]="connectorBundleName()"
-                       (input)="connectorBundleName.set($any($event.target).value); onFieldChange()"
-                       [disabled]="isExistingConnector"
-                       placeholder="Enter connector bundle name">
-              </div>
-              }
-
               <!-- Connector capabilities -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Define capabilities for:@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}</label>
@@ -212,7 +193,7 @@
                   Project homepage
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip"><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the Integration Catalog.</span>
+                    <span class="info-tooltip"><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the MidPoint Integration Catalog.</span>
                   </span>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
@@ -442,7 +423,7 @@
               @if (isJavaBasedConnector) {
                 <div class="mb-0">
                   <label class="form-label d-flex align-items-center form-label-upload">
-                    {{ isExistingConnector ? 'Connector entry class' : 'Class name' }}@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    {{ isExistingConnector ? 'Connector entry class' : 'Connector class name' }}
                     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                       <i class="fa-solid fa-circle-info info-icon"></i>
                       <span class="info-tooltip"><strong>The main entry point of the connector logic.</strong><br><br>Specify the full Java class name that implements the connector. Unlike file paths, this uses dot notation to separate packages (e.g., com.example.MyConnector). This class tells midPoint which part of the code to execute.</span>
@@ -477,6 +458,15 @@
           Specify which versions of midPoint and connectors this integration method supports. <br />
           This helps users find Integration methods compatible with their environments.
         </p>
+
+        <!-- Both ranges are stored on the integration method, not on the connector. -->
+        <div class="alert-info-note d-flex gap-2 align-items-start mb-3">
+          <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+          <span class="alert-text">
+            <strong>Note</strong>&nbsp;These settings belong to the integration method{{ compatScopeName }}, not to the
+            connector itself. Other integration methods using the same connector keep their own ranges.
+          </span>
+        </div>
 
         <!-- Supported midPoint version -->
         <div class="compat-section mb-4">
@@ -519,6 +509,10 @@
         <!-- Connector version ranges -->
         <div class="compat-section">
           <h6 class="compat-section-title">Connector version ranges</h6>
+          <p class="compat-section-desc">
+            Define the connector version range supported by this integration. Only connectors within
+            the specified range will be available for use.
+          </p>
           <div class="compat-connector-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
@@ -688,7 +682,7 @@
             }
             @if (devClassName() && (connectorType === 'java-based' || isExistingConnector)) {
               <div class="review-detail-row">
-                <span class="review-detail-label">{{ isExistingConnector ? 'Connector entry class:' : 'Class name:' }}</span>
+                <span class="review-detail-label">{{ isExistingConnector ? 'Connector entry class:' : 'Connector class name:' }}</span>
                 <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devClassName() }}</span>
               </div>
             }
@@ -752,7 +746,7 @@
             <p class="publish-license-text">
               You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce,
               adapt, modify, translate, publish, publicly perform, publicly display and distribute this content solely
-              for the purpose of hosting and displaying it in the Integration Catalog under the license you have
+              for the purpose of hosting and displaying it in the MidPoint Integration Catalog under the license you have
               selected. Any tutorial, documentation, or descriptive text accompanying your submission will be published
               under Evolveum's standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives
               4.0 International (CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector
@@ -811,9 +805,9 @@
         <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing() || !publishConfirmed()" (click)="publishIntegrationMethod()">
           @if (isPublishing()) {
             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            Publishing...
+            Submitting...
           } @else {
-            Publish integration method <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+            Submit/send to approve <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
           }
         </button>
       }

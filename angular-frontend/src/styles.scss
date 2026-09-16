@@ -6,6 +6,20 @@
 @use 'styles/variables' as *;
 @import '@fortawesome/fontawesome-free/css/all.css';
 @import 'easymde/dist/easymde.min.css';
+/* Roboto, self-hosted. The variable axis spans 100-900, so the 600 weights
+   used throughout the app render as a true 600 rather than a faked one. */
+@import '@fontsource-variable/roboto/index.css';
+@import '@fontsource-variable/roboto/wght-italic.css';
+
+/* Bootstrap derives body, buttons and form controls from this custom property,
+   so overriding it here is enough to move the whole UI onto Roboto. */
+:root {
+  --bs-body-font-family: 'Roboto Variable', Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+body {
+  font-family: var(--bs-body-font-family);
+}
 
 html {
   scrollbar-gutter: stable;
@@ -14,13 +28,13 @@ html {
 
 /* Global radio button styling */
 input[type="radio"] {
-  accent-color: $midpoint-special-color !important;
+  accent-color: $color-brand-steel !important;
 }
 
 /* Bootstrap radio button checked state */
 .form-check-input[type="radio"]:checked {
-  background-color: $midpoint-special-color !important;
-  border-color: $midpoint-special-color !important;
+  background-color: $color-brand-steel !important;
+  border-color: $color-brand-steel !important;
 }
 
 /* Remove Bootstrap blue focus highlight from all form elements */

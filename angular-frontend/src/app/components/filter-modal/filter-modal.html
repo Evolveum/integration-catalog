@@ -36,7 +36,7 @@
               [class.active]="selectedSection() === 'deployment'"
               (click)="selectSection('deployment')">
               <i class="fa-solid fa-server filter-option-icon"></i>
-              <span class="filter-option-label">Deployment Type</span>
+              <span class="filter-option-label">Deployment type</span>
             </div>
 
             <div
@@ -122,7 +122,7 @@
             <!-- Deployment Type -->
             @if (selectedSection() === 'deployment') {
               <div>
-                <h5 class="mb-4">Deployment Type</h5>
+                <h5 class="mb-4">Deployment type</h5>
                 <div class="category-list">
                   @for (deployment of deploymentTypes(); track deployment.name) {
                     <div
