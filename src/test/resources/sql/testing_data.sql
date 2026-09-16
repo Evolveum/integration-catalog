@@ -11,19 +11,22 @@
 --
 -- The upgrade script is not optional here even on a fresh database: schema changes go into it
 -- alone, so postgres.sql lands behind and lacks both the organizations table this file writes to
--- and the author_email column beside it (change 8). Skipping it fails with "relation organizations
+-- and the author_email column beside it (changes 8 and 10). Skipping it fails with "relation organizations
 -- does not exist".
 
 -- Users, roles and group membership live entirely in the identity provider (see
 -- keycloak_for_auth/import/integration-catalog-realm.json for the dev test users); the
 -- catalog database stores no user data. Organizations are the exception: the token claim
--- carries only the identifier, so the display name lives in the organizations table and
--- the rows below mirror the organizations of the development realm.
+-- carries only the alias, so the display name lives in the organizations table and the rows
+-- below mirror the organizations of the development realm.
+--
+-- The id is left to the identity column and looked up by alias wherever an item below is owned
+-- by an organization, so this file never has to know which number an organization was given.
 
-INSERT INTO organizations (id, name, description) VALUES
+INSERT INTO organizations (alias, name, description) VALUES
     ('evolveum', 'Evolveum', 'Maintainer of midPoint and the Integration catalog'),
     ('acme',     'Acme co.', 'Demo partner organization')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (alias) DO NOTHING;
 
 -- ============================================================
 -- LOOKUP TABLES
@@ -77,7 +80,7 @@ OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
      'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN', NULL, 'Evolveum'),
     (2, '1.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
-     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE', 'acme', 'Partner'),
+     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE', (SELECT id FROM organizations WHERE alias = 'acme'), 'Partner'),
     (3, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 'com.evolveum.polygon.connector-csv', 'CSV File Connector Bundle',
      'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues', 'MAVEN', NULL, 'Evolveum');
 
@@ -95,7 +98,7 @@ OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0', 'u5','u5', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
      'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL, NULL, NULL, 'Evolveum'),
     (2, '1.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
-     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL, 'acme', 'Partner'),
+     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL, (SELECT id FROM organizations WHERE alias = 'acme'), 'Partner'),
     (3, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 3, '2.9',
      'https://nexus.evolveum.com/nexus/#browse/browse:releases:com%2Fevolveum%2Fpolygon%2Fconnector-csvfile',
      'https://github.com/Evolveum/connector-csv.git', '/path_to_project', 'MAVEN',
@@ -134,7 +137,7 @@ INSERT INTO connector_version (id, revision, author, maintainer, created_at, upd
     connector_id, fully_qualified_class_name, error_message, author_org_id, author_category)
 OVERRIDING SYSTEM VALUE VALUES
     (1, '1.0.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL, NULL, 'Evolveum'),
-    (2, '1.0.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL, 'acme', 'Partner'),
+    (2, '1.0.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL, (SELECT id FROM organizations WHERE alias = 'acme'), 'Partner'),
     (3, '1.0.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL, NULL, 'Evolveum');
 
 SELECT setval('connector_version_id_seq', 3);
@@ -152,7 +155,9 @@ VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
 	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','u5',NOW(),NOW(),'2025.1',NULL,NULL,NULL,NULL,NULL),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111', 'Test 2 - Integration method','Test 2 - Integration method description',
-	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','u1',NULL,NOW(),NOW(),'2024.2',NULL,'acme','Partner','acme','u1@example.com');
+	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','u1',NULL,NOW(),NOW(),'2024.2',NULL,
+     (SELECT id FROM organizations WHERE alias = 'acme'),'Partner',
+     (SELECT id FROM organizations WHERE alias = 'acme'),'u1@example.com');
 
 -- ============================================================
 -- INTEGRATION METHOD → CONNECTOR links

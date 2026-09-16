@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.function.LongSupplier;
 
 /**
- * Resolves an organization identifier — the value the OIDC organization claim carries — to
- * the display name shown in the catalog.
+ * Resolves organizations: the alias the OIDC claim carries to the catalog's own id, and that id
+ * to the display name shown in the catalog.
  */
 @Service
 public class OrganizationService {
@@ -50,9 +50,8 @@ public class OrganizationService {
     }
 
     /**
-     * The organization's display name, or {@code null} when the identifier is blank or
-     * unknown — an item whose organization has not been seeded stays readable, it just
-     * shows no organization.
+     * The organization's display name, or {@code null} when the id is null or unknown — an item
+     * whose organization has since been removed stays readable, it just shows no organization.
      */
     public String displayName(String organizationName) {
         if (StringUtils.isEmpty(organizationName)) {

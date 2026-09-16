@@ -151,7 +151,7 @@ public class OwnershipService {
 //     * The organization to record for a maintainer who is a person. Only the caller's own can be
 //     * known, so an item maintained by anyone else carries no maintaining organization.
 //     */
-//    private String organizationOfMaintainer(String maintainer) {
+//    private Integer organizationOfMaintainer(String maintainer) {
 //        OidcUser caller = currentOidcUser();
 //        if (caller == null || maintainer == null || maintainer.isBlank()) {
 //            return null;
@@ -163,7 +163,7 @@ public class OwnershipService {
 //            return null;
 //        }
 //        return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(claims.effectiveRole(caller))
-//                ? organizationService.registeredId(claims.organizationName(caller))
+//                ? organizationService.idOfAlias(claims.organizationAlias(caller))
 //                : null;
 //    }
 

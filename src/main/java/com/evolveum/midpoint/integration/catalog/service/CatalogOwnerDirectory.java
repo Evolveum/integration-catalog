@@ -63,17 +63,17 @@ public class CatalogOwnerDirectory {
     }
 
 //    /** Every user who has authored an item on behalf of the given organization. */
-//    public List<String> findAuthorsOfOrganization(String organizationName) {
-//        if (organizationName == null || organizationName.isBlank()) {
+//    public List<String> findAuthorsOfOrganization(Integer organizationId) {
+//        if (organizationId == null) {
 //            return List.of();
 //        }
 //        return distinctNames(
 //                Stream.of(
-//                                connectorRepository.findDistinctByAuthorOrgId(organizationName),
-//                                connectorVersionRepository.findDistinctByAuthorOrgId(organizationName),
-//                                connectorBundleRepository.findDistinctByAuthorOrgId(organizationName),
-//                                connectorBundleVersionRepository.findDistinctByAuthorOrgId(organizationName),
-//                                integrationMethodRepository.findDistinctByAuthorOrgId(organizationName))
+//                                connectorRepository.findDistinctByAuthorOrgId(organizationId),
+//                                connectorVersionRepository.findDistinctByAuthorOrgId(organizationId),
+//                                connectorBundleRepository.findDistinctByAuthorOrgId(organizationId),
+//                                connectorBundleVersionRepository.findDistinctByAuthorOrgId(organizationId),
+//                                integrationMethodRepository.findDistinctByAuthorOrgId(organizationId))
 //                        .flatMap(List::stream),
 //                ItemOwnerView::getAuthor);
 //    }

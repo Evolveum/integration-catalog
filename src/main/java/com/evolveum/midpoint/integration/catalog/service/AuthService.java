@@ -87,8 +87,9 @@ public class AuthService {
     }
 
     /**
-     * Whether {@code username} may see/modify an item authored by {@code author}
-     * on behalf maintained by {@code maintainer}.
+     * Whether {@code username} may see/modify an item authored by {@code author} on behalf
+     * of {@code authorOrganizationId} and maintained by {@code maintainer} /
+     * {@code maintainerOrganizationId}.
      */
     public boolean canEdit(String username, Maintainer maintainer) {
         if (username == null || username.isBlank()) {
@@ -132,7 +133,7 @@ public class AuthService {
      * The organization the caller acts on behalf of, or {@code null} when they act as themselves.
      * Membership alone confers nothing — only an organization contributor shares in its items.
      *
-     * @param caller     the authenticated user
+     * @param caller the authenticated user
      * @param callerRole their effective catalog role
      */
     private String contributingOrganizationName(OidcUser caller, CatalogRole callerRole) {

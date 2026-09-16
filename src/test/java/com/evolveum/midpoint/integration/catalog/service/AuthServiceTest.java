@@ -49,12 +49,19 @@ class AuthServiceTest {
     @Mock
     private KeycloakUserDirectory keycloakUserDirectory;
 
+    /** Catalog ids of the two seeded organizations, as {@code organizations.id} holds them. */
+    private static final Integer ACME = 1;
+    private static final Integer EVOLVEUM = 2;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         authService = new AuthService(organizationService, catalogOwnerDirectory,
                 keycloakUserDirectory, new CatalogClaims("roles", "organization"));
+        // Lenient: the ownership tests pass ids straight to canEdit and never reach the lookup.
+        lenient().when(organizationService.idOfAlias("acme")).thenReturn(ACME);
+        lenient().when(organizationService.idOfAlias("evolveum")).thenReturn(EVOLVEUM);
     }
 
     @AfterEach
@@ -71,11 +78,14 @@ class AuthServiceTest {
         return new DefaultOidcUser(List.of(), idToken.build());
     }
 
-    /** Puts a logged-in caller with the given role and organization into the security context. */
-    private static void callerIs(String role, String organizationId) {
-        Map<String, Object> claims = organizationId == null
+    /**
+     * Puts a logged-in caller with the given role and organization into the security context.
+     * The organization is named by its alias, which is all a token ever carries.
+     */
+    private static void callerIs(String role, String organizationAlias) {
+        Map<String, Object> claims = organizationAlias == null
                 ? Map.of("roles", List.of(role))
-                : Map.of("roles", List.of(role), "organization", List.of(organizationId));
+                : Map.of("roles", List.of(role), "organization", List.of(organizationAlias));
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken(oidcUser(claims), null));
     }
@@ -84,7 +94,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserWithOrganizationClaimAsIdentifierList() {
-        when(organizationService.displayName("acme")).thenReturn("Acme co.");
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", List.of("acme"),
@@ -103,7 +113,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserWithOrganizationClaimAsIdentifierKeyedMap() {
-        when(organizationService.displayName("acme")).thenReturn("Acme co.");
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", Map.of("acme", Map.of())));
@@ -116,7 +126,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserOrganizationNameStaysNullWhenNotSeeded() {
-        when(organizationService.displayName("acme")).thenReturn(null);
+        when(organizationService.displayName(ACME)).thenReturn(null);
 
         CurrentUserDto user = authService.getCurrentUser("olivia",
                 oidcUser(Map.of("organization", List.of("acme"))));
@@ -226,7 +236,7 @@ class AuthServiceTest {
 //    @Test
 //    void organizationMembersComeFromItemsPublishedForThatOrganization() {
 //        callerIs("OrganizationContributor", "acme");
-//        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
+//        when(catalogOwnerDirectory.findAuthorsOfOrganization(ACME))
 //                .thenReturn(List.of("amber", "olivia"));
 //
 //        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
@@ -243,7 +253,7 @@ class AuthServiceTest {
 //    @Test
 //    void organizationMembersAlwaysContainTheCallerThemselves() {
 //        callerIs("OrganizationContributor", "acme");
-//        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
+//        when(catalogOwnerDirectory.findAuthorsOfOrganization(ACME))
 //                .thenReturn(List.of("amber"));
 //
 //        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
