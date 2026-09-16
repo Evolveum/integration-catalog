@@ -38,7 +38,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/applications/{appId}/integration-method/{methodId}/{revision}")
+@RequestMapping("/api/applications/{appId}/integration-method/{methodId}/{revision}") //TODO check if we need appId when we know methodId (all endpoints/all methods)
 @Tag(name = "Integration method revision",
         description = "API for a single revision of an integration method")
 public class IntegrationMethodController {
@@ -155,14 +155,14 @@ public class IntegrationMethodController {
             @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
             @ApiResponse(responseCode = "409", description = "Revision is not in review")
     })
-    @PostMapping("/publish")
-    public ResponseEntity<Void> publishIntegrationMethod(
+    @PostMapping("/publish") //TODO change to approve
+    public ResponseEntity<Void> approveIntegrationMethod(
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            applicationService.publishIntegrationMethod(methodId, revision, username);
+            applicationService.approveIntegrationMethod(methodId, revision, username);
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -434,7 +434,7 @@ public class IntegrationMethodController {
             @PathVariable String revision,
             @RequestParam String username) {
         try {
-            return ResponseEntity.ok(supportTicketService.describe(methodId, revision, username));
+            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, username));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

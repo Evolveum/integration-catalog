@@ -36,4 +36,11 @@ public class ConnVersionCapability {
 
     @OneToMany(mappedBy = "connVersionCapability", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnVersionCapabilityItem> items = new ArrayList<>();
+
+    public static ConnVersionCapability createConnVersionCapabilityDraft(ConnVersionCapability srcCap, ConnectorVersion cv) {
+        ConnVersionCapability clone = new ConnVersionCapability();
+        clone.setObjectClass(srcCap.getObjectClass());
+        clone.setConnectorVersion(cv);
+        return clone;
+    }
 }

@@ -15,6 +15,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -67,4 +68,26 @@ public class Connector {
 
     @OneToMany(mappedBy = "connector", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ConnectorConnectorTag> connectorConnectorTags;
+
+    public static Connector createConnectorDraft(Connector source) {
+        Connector clone = new Connector();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setDisplayName(source.getDisplayName());
+        clone.setFullyQualifiedClassName(source.getFullyQualifiedClassName());
+        clone.setDescription(source.getDescription());
+        clone.setClonedFrom(source.getClonedFrom());
+        // A version-bump approval deletes the original and keeps the this, so the tags must travel with it.
+        Set<ConnectorConnectorTag> thisTags = new HashSet<>();
+        if (source.getConnectorConnectorTags() != null) {
+            for (ConnectorConnectorTag srcTag : source.getConnectorConnectorTags()) {
+                ConnectorConnectorTag tag = new ConnectorConnectorTag(srcTag);
+                tag.setConnector(clone);
+                thisTags.add(tag);
+            }
+        }
+        clone.setConnectorConnectorTags(thisTags);
+        return clone;
+    }
 }

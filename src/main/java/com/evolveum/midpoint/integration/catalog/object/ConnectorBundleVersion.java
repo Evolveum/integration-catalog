@@ -36,6 +36,7 @@ public class ConnectorBundleVersion implements Persistable<Integer> {
     @Id
     private String revision;
 
+    //TODO what is this?
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;
@@ -102,4 +103,28 @@ public class ConnectorBundleVersion implements Persistable<Integer> {
 
     @OneToMany(mappedBy = "connectorBundleVersion", fetch = FetchType.LAZY)
     private List<Download> downloads = new ArrayList<>();
+
+    public static ConnectorBundleVersion createConnectorBundleVersionDraft(ConnectorBundleVersion source, ConnectorBundle bundle) {
+        ConnectorBundleVersion clone = createConnectorBundleVersion(source, bundle);
+        clone.setLifecycleState(LifecycleType.IN_REVIEW);
+        return clone;
+    }
+
+    public static ConnectorBundleVersion createConnectorBundleVersion(ConnectorBundleVersion source, ConnectorBundle bundle) {
+        ConnectorBundleVersion clone = new ConnectorBundleVersion();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setLifecycleState(source.getLifecycleState());
+        clone.setConnectorBundle(bundle);
+        clone.setBundleVersion(source.getBundleVersion());
+        clone.setBrowseLink(source.getBrowseLink());
+        clone.setGitCloneUrl(source.getGitCloneUrl());
+        clone.setPathToProject(source.getPathToProject());
+        clone.setBuildFramework(source.getBuildFramework());
+        clone.setCommitTag(source.getCommitTag());
+        clone.setArtifactUrl(source.getArtifactUrl());
+        clone.setErrorMessage(source.getErrorMessage());
+        return clone;
+    }
 }

@@ -143,13 +143,13 @@ public class Controller {
                 bundleName, className, version, excludeConnectorId));
     }
 
-    @Operation(summary = "Upload connector implementation")
-    @PostMapping("/upload/connector")
+    @Operation(summary = "Upload integration")
+    @PostMapping("/upload/integration")
     public ResponseEntity<String> uploadConnector(
-            @RequestBody UploadImplementationDto dto,
+            @RequestBody UploadIntegrationDto dto,
             @RequestHeader(value = "X-User-Name", required = false, defaultValue = "anonymous") String username) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, username));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadIntegration(dto, username));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -163,6 +163,7 @@ public class Controller {
     @Operation(summary = "Upload status - success")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Upload status - success worked"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "Upload status - success did not work")
     })
     @PostMapping("/upload/continue/{oid}")
@@ -403,6 +404,7 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle verified successfully"),
             @ApiResponse(responseCode = "400", description = "Verification failed"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "409", description = "Connector class already exists for this bundle version")
     })
     @PostMapping("/upload/verify/{oid}")
@@ -450,7 +452,7 @@ public class Controller {
             description = "Updates the display name and/or description of an application. Superuser only.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Application updated successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden (not a superuser)"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @PutMapping("/applications/{appId}")

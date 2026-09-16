@@ -350,10 +350,10 @@ public class OpenProjectClient {
     }
 
     /**
-     * Reads a work package's current subject, so a caller rewriting it can keep whatever the portal
+     * Reads a work package's current subject (name of ticket), so a caller rewriting it can keep whatever the portal
      * already calls the review.
      */
-    public Optional<String> readSubject(int workPackageId) throws IOException, InterruptedException {
+    public Optional<String> getTitleOfWorkPackage(int workPackageId) throws IOException, InterruptedException {
         return readWorkPackage(workPackageId)
                 .map(workPackage -> workPackage.path("subject"))
                 .filter(JsonNode::isTextual)

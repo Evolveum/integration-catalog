@@ -220,7 +220,7 @@ class ConnectorUploadServiceApproveTest {
      */
     @Test
     void versionBumpOnSharedBundleMovesSiblingsAcrossAndDropsTheOldBundleRow() {
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         // The sibling's versions join the copy of 1.0.0 the clone already carries, and the old row goes.
         verify(connectorVersionRepository).moveAllToBundleVersion(original100, clone100);
@@ -244,7 +244,7 @@ class ConnectorUploadServiceApproveTest {
     /** Downloads cascade with their bundle version, so they have to be repointed before it is deleted. */
     @Test
     void downloadHistoryMovesBeforeTheOldVersionRowIsDeleted() {
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         InOrder order = inOrder(downloadRepository, connectorBundleVersionRepository);
         order.verify(downloadRepository).save(download);
@@ -259,7 +259,7 @@ class ConnectorUploadServiceApproveTest {
         original100.getConnectorVersions().remove(siblingCv);
         connectorsById.remove(SIBLING_CONNECTOR_ID);
 
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         verify(connectorBundleRepository).deleteRow(ORIGINAL_BUNDLE_ID);
         verify(connectorBundleRepository, never()).delete(any(ConnectorBundle.class));
@@ -279,7 +279,7 @@ class ConnectorUploadServiceApproveTest {
         clone.setDisplayName("LDAP Connector (fixed)");
         cloneBundle.setProjectHomepage("https://example.org/ldap");
 
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         assertEquals("LDAP Connector (fixed)", original.getDisplayName());
         assertEquals("https://example.org/ldap", originalBundle.getProjectHomepage());
@@ -295,7 +295,7 @@ class ConnectorUploadServiceApproveTest {
     void cloneInAnotherBundleStaysItsOwnConnector() {
         cloneBundle.setBundleName(BUNDLE_NAME + ".v2");
 
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         verify(connectorBundleRepository, never()).deleteRow(anyInt());
         verify(connectorRepository, never()).delete(any(Connector.class));
