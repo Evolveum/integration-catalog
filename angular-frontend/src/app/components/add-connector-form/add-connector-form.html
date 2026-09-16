@@ -7,7 +7,7 @@
 <!-- Breadcrumb -->
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" style="cursor:pointer;" (click)="goToCatalog()">Integration catalog</a>
+    <a class="breadcrumb-link" style="cursor:pointer;" (click)="goToCatalog()">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" style="cursor:pointer;" (click)="goToApp()">
       @if (showLogo()) {
@@ -216,24 +216,6 @@
                 <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
               </div>
 
-              <!-- Bundle name (java-based only) -->
-              @if (isJavaBasedConnector) {
-                <div class="mb-4">
-                  <label class="form-label form-label-upload">
-                    Connector bundle name
-                    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Display name for the connector bundle grouping related connector versions.">
-                      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                    </button>
-                  </label>
-                  <input type="text" class="form-control"
-                         [class.input-disabled]="isExistingConnector"
-                         [value]="connectorBundleName()"
-                         (input)="connectorBundleName.set($any($event.target).value)"
-                         [disabled]="isExistingConnector"
-                         placeholder="Enter connector bundle name">
-                </div>
-              }
-
               <!-- Capabilities -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Define capabilities for:</label>
@@ -405,7 +387,7 @@
               @if (isJavaBasedConnector) {
                 <div class="mb-3">
                   <label class="form-label form-label-upload">
-                    Class name@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    Connector class name
                     <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Fully qualified Java class name of the connector (e.g. com.example.MyConnector).">
                       <i class="fa-solid fa-circle-info info-icon-sm"></i>
                     </button>

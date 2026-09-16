@@ -18,12 +18,12 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-dark-blue;
+  color: $color-primary-500;
   cursor: pointer;
   text-decoration: none;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-primary-500;
     text-decoration: underline;
   }
 }
@@ -173,13 +173,13 @@
 }
 
 .review-meta-author {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
 }
 
 /* "Open ticket" link at the end of the meta row (hardcoded ticket for now). */
 .review-meta-ticket {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   text-decoration: none;
 
@@ -372,7 +372,7 @@
 }
 
 .view-tutorial-file-name {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   text-decoration: none;
   font-weight: 600;
 
@@ -383,7 +383,7 @@
 
 .view-tutorial-download {
   font-size: 0.875rem;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   text-decoration: none;
   white-space: nowrap;
 
@@ -436,7 +436,7 @@
   border: none;
   padding: 0;
   font-size: 0.875rem;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   cursor: pointer;
 
   &:hover {
@@ -493,7 +493,7 @@
 }
 
 .compat-label-info {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.75rem;
   margin-left: 0.25rem;
 }
@@ -518,7 +518,7 @@
 .compat-modal-close-link {
   background: none;
   border: none;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
 
@@ -601,8 +601,8 @@
 .view-edit-upgrade-btn {
   font-size: 0.875rem;
   background: #fff;
-  border: 1px solid $color-dark-blue;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
   padding: 0.4rem 1rem;
   border-radius: 4px;
 
@@ -613,29 +613,29 @@
 
 .view-download-btn {
   font-size: 0.875rem;
-  background-color: $midpoint-special-color;
-  border: 1px solid $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: #fff;
   padding: 0.4rem 1rem;
   border-radius: 4px;
 
   &:hover {
-    background-color: $color-dark-blue;
-    border-color: $color-dark-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
   }
 }
 
 .view-start-review-btn {
   font-size: 0.875rem;
-  background-color: $midpoint-special-color;
-  border: 1px solid $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: #fff;
   padding: 0.4rem 1rem;
   border-radius: 4px;
 
   &:hover {
-    background-color: $color-dark-blue;
-    border-color: $color-dark-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
   }
 }
 
@@ -643,13 +643,13 @@
 .view-stop-review-btn {
   font-size: 0.875rem;
   background-color: transparent;
-  border: 1px solid $color-dark-blue;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
   padding: 0.4rem 1rem;
   border-radius: 4px;
 
   &:hover:not(:disabled) {
-    background-color: $color-dark-blue;
+    background-color: $color-brand-navy;
     color: #fff;
   }
 }

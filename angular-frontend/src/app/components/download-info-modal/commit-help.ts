@@ -31,6 +31,6 @@ export const COMMIT_HELP_STEPS: DownloadInfoStep[] = [
   },
   {
     title: 'Paste the commit hash',
-    description: 'Paste the copied commit hash into the *Commit hash* field in the Integration Catalog.'
+    description: 'Paste the copied commit hash into the *Commit hash* field in the MidPoint Integration Catalog.'
   }
 ];

@@ -118,8 +118,9 @@ export class EditConnectorModal implements OnInit {
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
       && !this.isGitCloneUrlInvalid();
+    // Class name is optional; when given it still has to be a well-formed Java class name.
     const javaOk = !this.isJavaBased
-      || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
+      || (!!this.devBuildTool() && !this.isClassNameInvalid());
     return devOk && javaOk;
   });
 

@@ -218,10 +218,19 @@ export class PublishFormImpl implements OnInit, OnChanges {
       if (this.isGitCloneUrlInvalid()) return false;
     }
     if (this.connectorType === 'java-based') {
-      if (!this.devBuildTool() || !this.devClassName().trim()) return false;
+      if (!this.devBuildTool()) return false;
     }
     if (this.isClassNameInvalid()) return false;
     return true;
+  }
+
+  /**
+   * The integration method's name, quoted, for the compatibility-step note. Empty when the method has
+   * not been named yet, so the sentence still reads correctly without it.
+   */
+  protected get compatScopeName(): string {
+    const name = this.reviewSummary?.methodName?.trim();
+    return name ? ` “${name}”` : '';
   }
 
   protected get connectorTypeLabel(): string {
@@ -480,7 +489,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
         `complies with Evolveum's Terms of Use and Acceptable Use Policy.`,
       `You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce, adapt, ` +
         `modify, translate, publish, publicly perform, publicly display and distribute this content solely for the ` +
-        `purpose of hosting and displaying it in the Integration Catalog under the license you have selected. Any ` +
+        `purpose of hosting and displaying it in the MidPoint Integration Catalog under the license you have selected. Any ` +
         `tutorial, documentation, or descriptive text accompanying your submission will be published under Evolveum's ` +
         `standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International ` +
         `(CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector or configuration ` +

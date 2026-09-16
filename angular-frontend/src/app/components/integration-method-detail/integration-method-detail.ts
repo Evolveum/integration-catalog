@@ -18,6 +18,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
 import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { ToastService } from '../../services/toast.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 // Single Asciidoctor engine instance shared by the component; the tutorial is
 // authored in AsciiDoc and rendered read-only here.
@@ -337,9 +338,7 @@ export class IntegrationMethodDetail implements OnInit {
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-    const withSpaces = text.replace(/_/g, ' ').toLowerCase();
-    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   protected getLogoUrl(): string {

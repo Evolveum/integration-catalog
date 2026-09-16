@@ -19,7 +19,7 @@
 	<artifactId>integration-catalog</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>integration-catalog</name>
-	<description>Integration catalog</description>
+	<description>MidPoint Integration catalog</description>
 	<url/>
 	<licenses>
 		<license/>

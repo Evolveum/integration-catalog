@@ -22,6 +22,7 @@ import { SubmissionSuccessModal } from '../submission-success-modal/submission-s
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 @Component({
   selector: 'app-edit-upgrade-form',
@@ -416,9 +417,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-    const withSpaces = text.replace(/_/g, ' ').toLowerCase();
-    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   /** A connector's object-class capabilities, with the Global class first when present. */

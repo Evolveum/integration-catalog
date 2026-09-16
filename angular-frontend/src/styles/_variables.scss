@@ -6,22 +6,26 @@
 
 @use 'sass:color';
 
-// Brand Colors
-$color-light-blue: #3C8DBC;
-$color-dark-blue: #206F9D;
-$color-darker-blue: #605CA2;
-$color-mid-blue: #367FAA;
 $color-black: #000000;
 $color-white: #ffffff;
 $color-modal-title: #5B656F;
-$midpoint-special-color: color.mix($color-light-blue, $color-dark-blue, 50%);
-$midpoint-special-color-20: color.mix($color-mid-blue, $color-black, 80%);
-$midpoint-special-color-10: color.mix($color-darker-blue, $color-black, 90%);
+
+// Brand Colors
+// The Evolveum brand ramp, taken from the evolveum.com theme CSS.
+// navy  - fills, borders, the header bar
+// steel - inline text and links, primary buttons
+// sky   - tints and gradient stops
+$color-brand-navy: #14205F;
+$color-brand-steel: #4E769A;
+$color-primary-500: #206F9D;
+$color-brand-sky: #A3CCDC;
+$color-brand-steel-dark: color.mix($color-brand-steel, $color-black, 80%);
+
+// Purple from the original palette; survives for a single tinted background.
+$color-darker-blue: #605CA2;
 
 // Button Colors
 $btn-download-color: #ffffff;
-$btn-more-details-blue: #367FAA;
-$btn-more-details-color: color.mix($btn-more-details-blue, $color-black, 80%);
 
 // Publishing Colors
 $text-publishing-blue: #17A2B8;

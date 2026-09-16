@@ -6,7 +6,7 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goBack()" style="cursor:pointer;">
       @if (showLogo()) {
@@ -152,7 +152,7 @@
 
       <!-- Integration tutorial (read-only preview) -->
       <div class="mb-4">
-        <label class="view-section-label">Integration tutorial <span class="text-muted fw-normal">(In ASCII DOC format)</span></label>
+        <label class="view-section-label">Integration tutorial <span class="text-muted fw-normal">(In Markdown format)</span></label>
         <div class="view-tutorial-wrapper">
           @if (methodTutorial().trim()) {
             <div class="view-tutorial-content asciidoc" [innerHTML]="tutorialHtml()"></div>
@@ -355,7 +355,7 @@
                       }
                       @if (c.className) {
                         <div class="view-connector-row">
-                          <span class="view-connector-label">Class name:</span>
+                          <span class="view-connector-label">Connector class name:</span>
                           <span class="view-connector-value">{{ c.className }}</span>
                         </div>
                       }

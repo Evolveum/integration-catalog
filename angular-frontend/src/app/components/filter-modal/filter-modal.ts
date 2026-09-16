@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ApplicationService } from '../../services/application.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 export interface FilterState {
   trending: boolean;
@@ -219,10 +220,7 @@ export class FilterModal implements OnInit {
   }
 
   protected formatCapability(capability: string): string {
-    return capability
-      .split('_')
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(' ');
+    return formatCapabilityLabel(capability);
   }
 
   protected closeModal(): void {
