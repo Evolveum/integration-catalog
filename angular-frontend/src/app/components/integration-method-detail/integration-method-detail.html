@@ -197,7 +197,7 @@
             <div class="view-connector-details">
                 <div class="view-connector-row">
                   <span class="view-connector-label">Maintainer:</span>
-                  <span class="view-connector-value">{{ formatMaintainer(c.maintainer, c.maintainerOrganization) }}</span>
+                  <span class="view-connector-value">{{ c.maintainerLabel || '—' }}</span>
                 </div>
                 <div class="view-connector-row">
                   <span class="view-connector-label">Connector version:</span>

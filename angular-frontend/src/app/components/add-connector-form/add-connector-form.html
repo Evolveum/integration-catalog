@@ -158,7 +158,7 @@
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
                          [class.input-disabled]="isExistingConnector"
-                         [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                         [value]="maintainerText()"
                          (input)="onMaintainerInput($event)"
                          (focus)="onMaintainerFocus()"
                          (blur)="onMaintainerBlur()"
@@ -166,8 +166,8 @@
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
-                      @for (option of filteredMaintainerOptions(); track option) {
-                        <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                      @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                        <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                       }
                     </div>
                   }

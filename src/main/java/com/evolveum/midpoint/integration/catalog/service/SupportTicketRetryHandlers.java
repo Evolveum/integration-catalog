@@ -45,6 +45,17 @@ public class SupportTicketRetryHandlers {
                 supportTicketService::appendConnector);
     }
 
+    /** Reports the outcome of a build on the work package of the revision it was built for. */
+    @Bean
+    public RetryableOperationHandler<BuildFinishedEvent> commentBuildOutcomeHandler(
+            SupportTicketService supportTicketService) {
+        return RetryableOperationHandler.of(
+                ExternalSystem.OPENPROJECT,
+                SupportTicketService.COMMENT_BUILD_OUTCOME,
+                BuildFinishedEvent.class,
+                supportTicketService::commentBuildOutcome);
+    }
+
     /** Attaches one of the author's uploaded files to the work package of its revision. */
     @Bean
     public RetryableOperationHandler<TutorialFileAddedEvent> attachFileHandler(

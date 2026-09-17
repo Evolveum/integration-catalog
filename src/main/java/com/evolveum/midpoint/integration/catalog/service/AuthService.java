@@ -7,6 +7,8 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.object.Maintainer;
 import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
@@ -20,9 +22,10 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.Set;
 
 /**
  * Identity questions, answered from the token claims of the current session plus the organizations
@@ -33,22 +36,25 @@ import java.util.TreeSet;
 public class AuthService {
 
     private final OrganizationService organizationService;
-    private final CatalogOwnerDirectory catalogOwnerDirectory;
+    private final OwnershipService ownershipService;
+    private final MaintainerRepository maintainerRepository;
     private final KeycloakUserDirectory keycloakUserDirectory;
     private final CatalogClaims claims;
 
     public AuthService(OrganizationService organizationService,
-                       CatalogOwnerDirectory catalogOwnerDirectory,
+                       OwnershipService ownershipService,
+                       MaintainerRepository maintainerRepository,
                        KeycloakUserDirectory keycloakUserDirectory,
                        CatalogClaims claims) {
         this.organizationService = organizationService;
-        this.catalogOwnerDirectory = catalogOwnerDirectory;
+        this.ownershipService = ownershipService;
+        this.maintainerRepository = maintainerRepository;
         this.keycloakUserDirectory = keycloakUserDirectory;
         this.claims = claims;
     }
 
     /**
-     * The authenticated user's profile. An organization identifier without a name means the
+     * The authenticated user's profile. An organization alias without a display name means the
      * organization is not seeded in the catalog and nothing may be published on its behalf —
      * the frontend warns about that combination.
      */
@@ -72,24 +78,53 @@ public class AuthService {
     }
 
     /**
-     * Maintainer options for a superuser: every user of the realm, plus every organization. The
-     * realm is asked first because only it knows a user who has not published anything yet; what
-     * the catalog knows is merged in behind it, so the list survives an unreachable Keycloak.
+     * Maintainer options for a superuser: every maintainer the catalog already has, plus every
+     * user of the realm and every organization that has not been one yet. The latter two carry no
+     * id - the row is created when an item is first published under them.
      */
-    public List<String> getAllMaintainers() {
-        SortedSet<String> people = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        people.addAll(keycloakUserDirectory.listUsernames());
-        people.addAll(catalogOwnerDirectory.findAllMaintainers());
+    public List<MaintainerDto> getAllMaintainers() {
+        List<MaintainerDto> all = new ArrayList<>();
+        Set<String> takenUsernames = new LinkedHashSet<>();
+        Set<String> takenOrganizations = new LinkedHashSet<>();
 
-        List<String> result = new ArrayList<>(people);
-        result.addAll(organizationService.allNames());
-        return result;
+        for (Maintainer maintainer : maintainerRepository.findAll()) {
+            all.add(ownershipService.toDto(maintainer));
+            if (maintainer.getUsername() != null) {
+                takenUsernames.add(maintainer.getUsername().toLowerCase());
+            }
+            if (maintainer.getOrganization() != null) {
+                takenOrganizations.add(maintainer.getOrganization().getName().toLowerCase());
+            }
+        }
+
+        keycloakUserDirectory.listUsernames().stream()
+                .filter(username -> !takenUsernames.contains(username.toLowerCase()))
+                .map(username -> new MaintainerDto(null, username, null, MaintainerType.USER, username))
+                .forEach(all::add);
+
+        organizationService.allAliases().stream()
+                .filter(alias -> !takenOrganizations.contains(alias.toLowerCase()))
+                .map(alias -> new MaintainerDto(
+                        null, null, alias, MaintainerType.ORG, organizationService.displayName(alias)))
+                .forEach(all::add);
+
+        // The two catalog-wide rows first, then everything else by what it is shown as, so the
+        // list reads the same however the rows happen to be ordered in the table.
+        all.sort(Comparator
+                .comparingInt((MaintainerDto m) -> switch (m.category()) {
+                    case EVOLVEUM -> 0;
+                    case COMMUNITY -> 1;
+                    default -> 2;
+                })
+                .thenComparing(MaintainerDto::label, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)));
+        return all;
     }
 
     /**
-     * Whether {@code username} may see/modify an item authored by {@code author} on behalf
-     * of {@code authorOrganizationId} and maintained by {@code maintainer} /
-     * {@code maintainerOrganizationId}.
+     * Whether {@code username} may modify an item maintained by {@code maintainer}. Only the
+     * maintainer decides: a Superuser may edit anything, a COMMUNITY item is open to every
+     * contributor, and otherwise the caller must be the maintainer or contribute for the
+     * organization that is. Who authored the item grants nothing - it is recorded for audit.
      */
     public boolean canEdit(String username, Maintainer maintainer) {
         if (username == null || username.isBlank()) {
@@ -137,8 +172,8 @@ public class AuthService {
      * @param callerRole their effective catalog role
      */
     private String contributingOrganizationName(OidcUser caller, CatalogRole callerRole) {
-        // An unregistered organization needs no check: no item can carry an identifier the
-        // organizations table does not have, the ownership columns being foreign keys into it.
+        // An unregistered organization needs no check: a maintainer row can only point at an
+        // organization the table has, organization_id being a foreign key into it.
         return CatalogRole.ORGANIZATION_CONTRIBUTOR.equals(callerRole)
                 ? claims.organizationName(caller)
                 : null;
@@ -154,27 +189,6 @@ public class AuthService {
         OidcUser caller = currentOidcUser();
         return caller != null && CatalogRole.SUPERUSER == claims.effectiveRole(caller);
     }
-
-    //TODO don't need it we resolve based on maintainer
-//    /**
-//     * Usernames sharing the caller's organization; just the caller when they have none. Derived
-//     * from the items published on its behalf, so it lists contributors, not every account.
-//     */
-//    public List<String> getOrganizationMembers(String username) {
-//        OidcUser caller = currentOidcUser();
-//        String organizationName = caller != null
-//                ? contributingOrganizationName(caller, claims.effectiveRole(caller))
-//                : null;
-//        if (organizationName == null || organizationName.isBlank()) {
-//            return List.of(username);
-//        }
-//        List<String> members = new ArrayList<>(
-//                catalogOwnerDirectory.findAuthorsOfOrganization(organizationName));
-//        if (!members.contains(username)) {
-//            members.add(username);
-//        }
-//        return members;
-//    }
 
     private static OidcUser currentOidcUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

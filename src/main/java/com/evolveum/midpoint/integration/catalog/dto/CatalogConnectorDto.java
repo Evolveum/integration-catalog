@@ -15,7 +15,8 @@ public record CatalogConnectorDto(
         String description,       // connector.description
         String version,           // connector.revision
         String bundleDisplayName, // connector_bundle.display_name
-        String maintainer,        // connector.maintainer
+        MaintainerDto maintainer, // connector.maintainer
+        String maintainerLabel,   // connector.maintainer as label
         String licenseType,       // connector_bundle.license
         String buildFramework,    // latest connector_bundle_version.build_framework
         String bundleFramework,   // connector_bundle.framework

@@ -39,9 +39,6 @@ public class SecurityConfig {
 
     private static final String CURRENT_USER = "/api/auth/me";
 
-    //TODO what is this ? we don't know org members
-    private static final String ORGANIZATION_MEMBERS = "/api/auth/organization/members";
-
     private static final String MAINTAINER_DIRECTORY = "/api/auth/all-maintainers";
 
     private static final String APPLICATION = "/api/applications/*";
@@ -75,8 +72,8 @@ public class SecurityConfig {
     private static final String SINGLE_REQUEST = "/api/requests/*";
 
     private static final String REQUEST_VOTE = "/api/requests/*/vote";
-
-    private static final String REQUEST_CHECK_VOTE = "/api/requests/*/vote/check";
+    // this is to check if user already voted
+    private static final String REQUEST_CHECK_VOTE = "/api/requests/*/votes/check";
 
     private static final String RECENTLY_USED_ITEM = "/api/recently-used/*";
 
@@ -138,7 +135,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, REQUEST_VOTE).authenticated()
                         .requestMatchers(REQUEST_CHECK_VOTE).authenticated()
                         .requestMatchers(CURRENT_USER).authenticated()
-                        .requestMatchers(ORGANIZATION_MEMBERS).authenticated()
                         .requestMatchers(HttpMethod.POST, RECENTLY_USED_ITEM).authenticated()
                         .requestMatchers(HttpMethod.GET, ALL_API).permitAll()
                         .requestMatchers(HttpMethod.POST, CATALOG_SEARCHES).permitAll()

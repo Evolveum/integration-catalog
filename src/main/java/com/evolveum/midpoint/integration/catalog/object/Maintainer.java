@@ -14,8 +14,8 @@ import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 
 /**
- * The canonical maintainer referred to by the relevant entry. 
- * The record contains the ID and details of the maintainer – that is, their identifier and category.
+ * Who maintains a catalog item, and so who may edit it. What the row carries depends on its
+ * {@link MaintainerType} - see there.
  */
 @Entity
 @Table(name = "maintainers")
@@ -27,11 +27,11 @@ public class Maintainer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** A person's username */
+    /** Set on a {@link MaintainerType#USER} row only; null on every other. */
     @Column(nullable = false)
     private String username;
 
-    /** An organization id (see {@link MaintainerType#ORG}) */
+    /** Set on a {@link MaintainerType#ORG} row only; null on every other. */
     @OneToOne
     @JoinColumn(name = "organization_id")
     private Organization organization;

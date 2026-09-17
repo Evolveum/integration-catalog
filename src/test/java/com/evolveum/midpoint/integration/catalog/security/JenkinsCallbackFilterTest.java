@@ -67,8 +67,18 @@ class JenkinsCallbackFilterTest {
         return new JenkinsProperties("http://jenkins.example", "apiToken", "jenkins", "build", callbackToken);
     }
 
+    /** The startup warning about a missing token is the only thing logged at WARN. */
     private List<ILoggingEvent> warnings() {
-        return logAppender.list.stream().filter(event -> event.getLevel() == Level.WARN).toList();
+        return logged(Level.WARN);
+    }
+
+    /** An invalid token header on a request is logged at ERROR: someone is trying to get in. */
+    private List<ILoggingEvent> errors() {
+        return logged(Level.ERROR);
+    }
+
+    private List<ILoggingEvent> logged(Level level) {
+        return logAppender.list.stream().filter(event -> event.getLevel() == level).toList();
     }
 
     private static MockHttpServletRequest request(String uri, String token) {
@@ -148,11 +158,15 @@ class JenkinsCallbackFilterTest {
         assertNull(filter(new JenkinsCallbackFilter(properties("secret")), request(CONTINUE, "wrong")));
     }
 
+    /**
+     * A caller that sends the header meant to be the pipeline is a stale or mistyped secret, not a
+     * browser, so it is logged at ERROR - named by header, deliberately telling the caller nothing.
+     */
     @Test
-    void warnsAboutAnInvalidTokenHeader() throws ServletException, IOException {
+    void reportsAnInvalidTokenHeader() throws ServletException, IOException {
         filter(new JenkinsCallbackFilter(properties("secret")), request(CONTINUE, "wrong"));
 
-        assertTrue(warnings().stream().anyMatch(event ->
+        assertTrue(errors().stream().anyMatch(event ->
                 event.getFormattedMessage().contains(JenkinsCallbackFilter.CALLBACK_TOKEN_HEADER)));
     }
 

@@ -1,3 +1,5 @@
+import { Maintainer } from './maintainer.model';
+
 export interface CatalogConnectorObjectClassCapability {
   objectName: string;          // conn_version_capability.object_class
   capabilities: string[];      // capability.name items
@@ -11,7 +13,8 @@ export interface CatalogConnector {
   description: string;       // connector.description
   version: string;           // connector.revision
   bundleDisplayName: string; // connector_bundle.display_name
-  maintainer: string;        // connector.maintainer
+  maintainer: Maintainer | null; // connector.maintainer
+  maintainerLabel: string;   // connector.maintainer as label
   licenseType: string;       // connector_bundle.license
   buildFramework: string;    // connector_bundle.build_framework
   bundleFramework: string;   // connector_bundle.framework

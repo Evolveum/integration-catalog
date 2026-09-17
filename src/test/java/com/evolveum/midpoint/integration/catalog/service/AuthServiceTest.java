@@ -7,6 +7,8 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.object.Maintainer;
 import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
@@ -29,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -44,24 +46,24 @@ class AuthServiceTest {
     private OrganizationService organizationService;
 
     @Mock
-    private CatalogOwnerDirectory catalogOwnerDirectory;
+    private OwnershipService ownershipService;
+
+    @Mock
+    private MaintainerRepository maintainerRepository;
 
     @Mock
     private KeycloakUserDirectory keycloakUserDirectory;
 
-    /** Catalog ids of the two seeded organizations, as {@code organizations.id} holds them. */
-    private static final Integer ACME = 1;
-    private static final Integer EVOLVEUM = 2;
+    /** Aliases of the two seeded organizations, as the organization claim carries them. */
+    private static final String ACME = "acme";
+    private static final String EVOLVEUM = "evolveum";
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(organizationService, catalogOwnerDirectory,
+        authService = new AuthService(organizationService, ownershipService, maintainerRepository,
                 keycloakUserDirectory, new CatalogClaims("roles", "organization"));
-        // Lenient: the ownership tests pass ids straight to canEdit and never reach the lookup.
-        lenient().when(organizationService.idOfAlias("acme")).thenReturn(ACME);
-        lenient().when(organizationService.idOfAlias("evolveum")).thenReturn(EVOLVEUM);
     }
 
     @AfterEach
@@ -226,66 +228,60 @@ class AuthServiceTest {
         assertFalse(authService.isSuperuser("ben"));
     }
 
-//    @Test
-//    void organizationMembersOfOrganizationLessUserIsJustThemselves() {
-//        callerIs("IndividualContributor", null);
-//
-//        assertEquals(List.of("ben"), authService.getOrganizationMembers("ben"));
-//    }
-//
-//    @Test
-//    void organizationMembersComeFromItemsPublishedForThatOrganization() {
-//        callerIs("OrganizationContributor", "acme");
-//        when(catalogOwnerDirectory.findAuthorsOfOrganization(ACME))
-//                .thenReturn(List.of("amber", "olivia"));
-//
-//        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
-//    }
-//
-//    @Test
-//    void organizationMembersOfIndividualContributorIsJustThemselves() {
-//        callerIs("IndividualContributor", "acme");
-//
-//        assertEquals(List.of("dana"), authService.getOrganizationMembers("dana"));
-//        verifyNoInteractions(catalogOwnerDirectory);
-//    }
-//
-//    @Test
-//    void organizationMembersAlwaysContainTheCallerThemselves() {
-//        callerIs("OrganizationContributor", "acme");
-//        when(catalogOwnerDirectory.findAuthorsOfOrganization(ACME))
-//                .thenReturn(List.of("amber"));
-//
-//        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
-//    }
-
     @Test
-    void allMaintainersMergeTheRealmWithTheCatalogsOwnMaintainers() {
-        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("olivia", "newcomer"));
-        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("ben", "olivia"));
-        when(organizationService.allNames()).thenReturn(List.of("Acme co.", "Evolveum"));
+    void allMaintainersMergeTheCatalogsRowsWithTheRealmAndTheOrganizations() {
+        when(maintainerRepository.findAll()).thenReturn(List.of(
+                seeded(1L, MaintainerType.COMMUNITY), seeded(2L, MaintainerType.EVOLVEUM),
+                createUserMaintainer("ben")));
+        when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
+        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("olivia", "ben"));
+        when(organizationService.allAliases()).thenReturn(List.of(ACME));
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
 
-        // People sorted and de-duplicated across both sources, organizations kept after them.
-        assertEquals(List.of("ben", "newcomer", "olivia", "Acme co.", "Evolveum"),
-                authService.getAllMaintainers());
+        List<MaintainerDto> all = authService.getAllMaintainers();
+
+        // The two catalog-wide rows first, then everything else by label; ben is not repeated.
+        assertEquals(List.of("Evolveum", "Community", "Acme co.", "ben", "olivia"),
+                all.stream().map(MaintainerDto::label).toList());
+        assertEquals(MaintainerType.ORG,
+                all.stream().filter(m -> "Acme co.".equals(m.label())).findFirst().orElseThrow().category());
     }
 
     @Test
     void allMaintainersSurviveAnUnreachableRealm() {
+        when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("ben")));
+        when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of());
-        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("ben", "olivia"));
-        when(organizationService.allNames()).thenReturn(List.of("Acme co."));
+        when(organizationService.allAliases()).thenReturn(List.of());
 
-        assertEquals(List.of("ben", "olivia", "Acme co."), authService.getAllMaintainers());
+        assertEquals(List.of("ben"), authService.getAllMaintainers().stream().map(MaintainerDto::label).toList());
     }
 
     @Test
     void allMaintainersDoNotRepeatAUserWhoseCaseDiffersBetweenSources() {
+        when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("olivia")));
+        when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("Olivia"));
-        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("olivia"));
-        when(organizationService.allNames()).thenReturn(List.of());
+        when(organizationService.allAliases()).thenReturn(List.of());
 
         assertEquals(1, authService.getAllMaintainers().size());
+    }
+
+    /** What OwnershipService.toDto does, as far as these tests need it. */
+    private static MaintainerDto dtoOf(Maintainer maintainer) {
+        String label = switch (maintainer.getCategory()) {
+            case USER -> maintainer.getUsername();
+            case ORG -> maintainer.getOrganization().getName();
+            case EVOLVEUM -> "Evolveum";
+            case COMMUNITY -> "Community";
+        };
+        return new MaintainerDto(maintainer.getId(), maintainer.getUsername(),
+                maintainer.getOrganization() != null ? maintainer.getOrganization().getName() : null,
+                maintainer.getCategory(), label);
+    }
+
+    private static Maintainer seeded(Long id, MaintainerType category) {
+        return new Maintainer().setCategory(category).setId(id);
     }
 
     private Maintainer createDefaultUserMaintainer() {

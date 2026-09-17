@@ -5,6 +5,7 @@
  */
 package com.evolveum.midpoint.integration.catalog.object;
 
+/** A catalog item maintained by exactly one maintainer. */
 public interface GetOwnershipOneMaintainer {
     Author getAuthor();
 

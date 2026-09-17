@@ -14,7 +14,7 @@ import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepos
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
-import com.evolveum.midpoint.integration.catalog.service.OrganizationService;
+import com.evolveum.midpoint.integration.catalog.service.OwnershipService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -28,19 +28,19 @@ public class ApplicationMapper {
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
-    private final OrganizationService organizationService;
+    private final OwnershipService ownershipService;
     private final MidpointVersionRepository midpointVersionRepository;
     private final AuthService authService;
     private final OpenProjectProperties openProjectProperties;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
-                             DownloadRepository downloadRepository, OrganizationService organizationService,
+                             DownloadRepository downloadRepository, OwnershipService ownershipService,
                              MidpointVersionRepository midpointVersionRepository,
                              AuthService authService, OpenProjectProperties openProjectProperties) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
-        this.organizationService = organizationService;
+        this.ownershipService = ownershipService;
         this.midpointVersionRepository = midpointVersionRepository;
         this.authService = authService;
         this.openProjectProperties = openProjectProperties;
@@ -88,12 +88,6 @@ public class ApplicationMapper {
                     List<String> capabilities = collectCapabilities(method);
                     String lifecycleState = method.getLifecycleState() != null
                             ? method.getLifecycleState().name() : null;
-
-//                    // Author's organization drives the org-mate access checks. It was
-//                    // stamped on the row at upload time, so an IndividualContributor's
-//                    // uploads stay personal even when they belong to an organization.
-//                    String authorOrganization =
-//                            organizationService.displayName(method.getAuthorOrgId());
 
                     // Connector info from first linked connector
                     String connectorVersion = null;
@@ -198,7 +192,6 @@ public class ApplicationMapper {
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
                             method.getAuthor() != null ? method.getAuthor().getUsername() : null,
-//                            authorOrganization,
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -213,7 +206,8 @@ public class ApplicationMapper {
                             method.getTutorial(),
                             method.getFilePath(),
                             method.getReviewedBy(),
-                            organizationService.maintainerLabel(method),
+                            ownershipService.toDto(method.getMaintainer()),
+                            ownershipService.maintainerLabel(method),
                             method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
                             method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
                             includedConnectors,
@@ -578,7 +572,8 @@ public class ApplicationMapper {
                 null,               // publishedDate (no direct field)
                 connectorVersion,
                 method.getDisplayName(),
-                maintainerToMaintainerDto(maintainer),
+                ownershipService.toDto(maintainer),
+                ownershipService.maintainerLabel(maintainer),
                 licenseType,
                 connectorDescription,
                 projectHomepage,
@@ -600,17 +595,6 @@ public class ApplicationMapper {
         );
     }
 
-    private MaintainerDto maintainerToMaintainerDto(Maintainer maintainer) {
-        if (maintainer == null) {
-            return null;
-        }
-
-        return new MaintainerDto(
-                maintainer.getId(),
-                maintainer.getUsername(),
-                maintainer.getOrganization() != null ? maintainer.getOrganization().getName() : null,
-                maintainer.getCategory());
-    }
 
     /**
      * Collects the object-class capabilities of the connector's first connector version,

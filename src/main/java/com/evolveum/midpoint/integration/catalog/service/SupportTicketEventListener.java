@@ -42,6 +42,12 @@ public class SupportTicketEventListener {
         submit(SupportTicketService.ATTACH_FILE, event);
     }
 
+    /** A build reported back, so the work package of the revision it built owes the outcome. */
+    @TransactionalEventListener
+    public void onBuildFinished(BuildFinishedEvent event) {
+        submit(SupportTicketService.COMMENT_BUILD_OUTCOME, event);
+    }
+
     /**
      * Records one operation and attempts it.
      */

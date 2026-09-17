@@ -4,6 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { Maintainer } from './maintainer.model';
+
 export interface ObjectClassCapability {
   objectName: string;             // conn_version_capability.object_class
   capabilities: string[];         // capability.name items
@@ -17,8 +19,8 @@ export interface ImplementationListItem {
   publishedDate: string;          // connector_bundle_version.released_date (null — no direct field yet)
   version: string;                // connector_bundle_version.revision
   displayName: string;            // integration_method.display_name
-  maintainer: string;             // connector.maintainer
-  maintainerOrganization: string | null; // organization.name of the maintainer user (null if none)
+  maintainer: Maintainer | null;  // connector.maintainer
+  maintainerLabel: string | null; // connector.maintainer as label
   licenseType: string;            // connector_bundle.license
   implementationDescription: string; // connector.description
   projectHomepage: string;        // connector_bundle.project_homepage

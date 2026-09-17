@@ -30,17 +30,4 @@ public enum CatalogRole {
     public boolean canEdit() {
         return canEdit;
     }
-
-//    public static String categoryOf(String role) {
-//        if (role == null) {
-//            return null;
-//        }
-//        //TODO this isn't true, user can have INDIVIDUAL_CONTRIBUTOR, but is from Partner
-//        return switch (role) {
-//            case SUPERUSER -> "Evolveum";
-//            case ORGANIZATION_CONTRIBUTOR -> "Partner";
-//            case INDIVIDUAL_CONTRIBUTOR -> "Community";
-//            default -> null;
-//        };
-//    }
 }

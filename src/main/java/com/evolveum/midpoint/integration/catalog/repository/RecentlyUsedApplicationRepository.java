@@ -18,5 +18,5 @@ public interface RecentlyUsedApplicationRepository extends JpaRepository<Recentl
 
     List<RecentlyUsedApplication> findAllByOrderByIdDesc();
 
-    void deleteByUserIdAndApplicationId(String userId, UUID applicationId);
+    void deleteByUsernameAndApplicationId(String username, UUID applicationId);
 }

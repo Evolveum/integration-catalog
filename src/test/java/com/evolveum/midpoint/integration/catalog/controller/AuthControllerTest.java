@@ -6,6 +6,8 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
+import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.object.Vote;
 import com.evolveum.midpoint.integration.catalog.security.CatalogOidcUserService;
@@ -117,23 +119,15 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("olivia"))
                 .andExpect(jsonPath("$.role").value("OrganizationContributor"))
-                .andExpect(jsonPath("$.organizationId").value("acme"))
-                .andExpect(jsonPath("$.organizationName").value("Acme co."));
+                .andExpect(jsonPath("$.organizationName").value("acme"))
+                .andExpect(jsonPath("$.organizationDisplayName").value("Acme co."));
     }
-
-//    @Test
-//    void organizationMembersRequireLogin() throws Exception {
-//        when(authService.getOrganizationMembers(any())).thenReturn(List.of("olivia", "dana"));
-//
-//        mockMvc.perform(get("/api/auth/organization/members"))
-//                .andExpect(status().isUnauthorized());
-//        mockMvc.perform(get("/api/auth/organization/members").with(readOnlyUser()))
-//                .andExpect(status().isOk());
-//    }
 
     @Test
     void allMaintainersIsSuperuserOnly() throws Exception {
-        when(authService.getAllMaintainers()).thenReturn(List.of("olivia", "Acme co."));
+        when(authService.getAllMaintainers()).thenReturn(List.of(
+                new MaintainerDto(null, "olivia", null, MaintainerType.USER, "olivia"),
+                new MaintainerDto(null, null, "acme", MaintainerType.ORG, "Acme co.")));
 
         mockMvc.perform(get("/api/auth/all-maintainers"))
                 .andExpect(status().isUnauthorized());
@@ -163,6 +157,20 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/requests/{id}/vote", 1L).with(readOnlyUser()).with(csrf()))
                 .andExpect(status().isCreated());
+    }
+
+    /**
+     * Guards the matcher as much as the rule: it read {@code /vote/check} once, which matches no
+     * request this application serves, so the endpoint was public while the matrix said otherwise.
+     */
+    @Test
+    void checkingOwnVoteNeedsASession() throws Exception {
+        when(applicationService.hasUserVoted(eq(1L), any())).thenReturn(true);
+
+        mockMvc.perform(get("/api/requests/{id}/votes/check", 1L))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/requests/{id}/votes/check", 1L).with(readOnlyUser()))
+                .andExpect(status().isOk());
     }
 
     @Test

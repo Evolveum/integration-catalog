@@ -4,6 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { Maintainer } from './maintainer.model';
+
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
   version: string;      // midpoint_version.version
@@ -33,8 +35,8 @@ export interface IntegrationMethod {
   systemVersion: string | null;            // integration_method.system_version
   releasedDate: string | null;             // connector_bundle_version.released_date
   author: string | null;                   // connector.author
-  authorOrganization: string | null;       // organization the author published for (org contributors only)
-  maintainer: string | null;               // integration_method.maintainer
+  maintainer: Maintainer | null;           // integration_method.maintainer
+  maintainerLabel: string | null;          // integration_method.maintainer as label
   lifecycleState: string | null;           // integration_method.lifecycle_state
   downloadLink: string | null;             // generated download URL
   framework: string | null;               // connector_bundle.framework

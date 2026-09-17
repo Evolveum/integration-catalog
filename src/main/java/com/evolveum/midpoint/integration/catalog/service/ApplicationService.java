@@ -20,6 +20,7 @@ import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
+import jakarta.persistence.criteria.Join;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -74,6 +75,7 @@ public class ApplicationService {
     private final ConnectorRepository connectorRepository;
     private final AuthService authService;
     private final OrganizationService organizationService;
+    private final OwnershipService ownershipService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -101,8 +103,10 @@ public class ApplicationService {
                               ConnectorVersionRepository connectorVersionRepository,
                               ConnectorRepository connectorRepository,
                               AuthService authService,
-                              OrganizationService organizationService) {
+                              OrganizationService organizationService,
+                              OwnershipService ownershipService) {
         this.organizationService = organizationService;
+        this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
@@ -536,7 +540,8 @@ public class ApplicationService {
                                     connector.getDescription(),
                                     connector.getRevision(),
                                     bundle.getDisplayName(),
-                                    organizationService.maintainerLabel(connector),
+                                    ownershipService.toDto(connector.getMaintainer()),
+                                    ownershipService.maintainerLabel(connector),
                                     bundle.getLicense() != null ? bundle.getLicense().name() : null,
                                     latest != null && latest.getBuildFramework() != null
                                             ? latest.getBuildFramework().name() : null,
@@ -604,11 +609,11 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void recordRecentlyUsed(UUID applicationId, String userId) {
-        recentlyUsedApplicationRepository.deleteByUserIdAndApplicationId(userId, applicationId);
+    public void recordRecentlyUsed(UUID applicationId, String username) {
+        recentlyUsedApplicationRepository.deleteByUsernameAndApplicationId(username, applicationId);
         recentlyUsedApplicationRepository.flush();
         RecentlyUsedApplication entry = new RecentlyUsedApplication()
-                .setUserId(userId)
+                .setUsername(username)
                 .setApplicationId(applicationId);
         recentlyUsedApplicationRepository.save(entry);
     }

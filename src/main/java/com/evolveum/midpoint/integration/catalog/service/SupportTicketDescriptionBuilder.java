@@ -68,7 +68,7 @@ public class SupportTicketDescriptionBuilder {
     private final MidpointVersionRepository midpointVersionRepository;
     private final TutorialStorageService tutorialStorageService;
     private final CatalogProperties catalogProperties;
-    private final OrganizationService organizationService;
+    private final OwnershipService ownershipService;
 
     /** The submission as markdown, ready to be posted as the work package description. */
     public String build(IntegrationMethod method) {
@@ -82,6 +82,32 @@ public class SupportTicketDescriptionBuilder {
         appendConnectors(body, method);
 
         body.append('\n').append(CLOSING_NOTE).append('\n');
+        return body.toString();
+    }
+
+    /**
+     * The outcome of a build as markdown, for a comment on the work package of the revision it
+     * belongs to. A failed build leads with the error, which is the whole of what a reviewer needs;
+     * a successful one names what came out of it, so the artifact can be checked without leaving
+     * the portal.
+     */
+    public String buildBuildOutcome(BuildFinishedEvent event) {
+        StringBuilder body = new StringBuilder();
+        if (!event.succeeded()) {
+            body.append("## Build failed\n\n");
+            body.append(StringUtils.isBlank(event.errorMessage())
+                    ? "The build reported no error message.\n"
+                    : "```\n" + event.errorMessage().strip() + "\n```\n");
+            return body.toString();
+        }
+
+        body.append("## Build succeeded\n\n");
+        bullet(body, "Bundle", event.bundleName());
+        bullet(body, "Version", event.bundleVersion());
+        bullet(body, "Connector classes", event.connectorClasses() == null || event.connectorClasses().isEmpty()
+                ? null
+                : String.join(", ", event.connectorClasses()));
+        bullet(body, "Artifact", event.artifactUrl());
         return body.toString();
     }
 
@@ -200,27 +226,21 @@ public class SupportTicketDescriptionBuilder {
         }
     }
 
-//TODO change javadoc
-//    /**
-//     * A name with its address and organization where those are known: {@code u1 (u1@acme.com), Acme co.}
-//     * Each part is optional, so a bare name is a normal result - see {@link CatalogContactResolver};
-//     * {@code item} is the row the name is stamped on, which is where both parts come from.
-//     */
+    /**
+     * The author with their address where one is recorded: {@code u1 (u1@acme.com)}. A bare name
+     * is a normal result - the address is optional on the row.
+     */
     private String authorWithEmail(Author author) {
         if (author == null || StringUtils.isBlank(author.getUsername())) {
             return null;
         }
         return author.getUsername() +
-                (StringUtils.isNotBlank(author.getEmail()) ? (" (" + author.getUsername() + ")") : "");
+                (StringUtils.isNotBlank(author.getEmail()) ? (" (" + author.getEmail() + ")") : "");
     }
 
-    /**
-     * The maintainer as the ticket names them: the maintaining person with their contact details,
-     * or just the name of the maintaining organization. Needed because an organization maintainer
-     * is recorded with no username, which reading the username alone would report as unmaintained.
-     */
+    /** The maintainer as the ticket names them, whichever category it is. */
     private String maintainer(GetOwnershipOneMaintainer item) {
-        return organizationService.maintainerLabel(item);
+        return ownershipService.maintainerLabel(item);
     }
 
     private String integrationMethodTypes(IntegrationMethod method) {

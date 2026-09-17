@@ -45,9 +45,10 @@ public class CatalogClaims {
     }
 
     /**
-     * The alias of the user's organization, or {@code null} when they belong to none. It is an
-     * alias rather than the catalog's own organization id because a token carries only what the
-     * provider knows; {@code OrganizationService.idOfAlias} turns it into the latter.
+     * The alias of the user's organization, or {@code null} when they belong to none. An alias
+     * rather than a display name because a token carries only what the provider knows;
+     * {@link com.evolveum.midpoint.integration.catalog.service.OrganizationService} turns it into
+     * the name shown in the catalog.
      *
      * <p>Only the first one is used: the catalog models a user as publishing on behalf of at
      * most one organization.

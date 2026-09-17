@@ -19,6 +19,7 @@ import { CatalogConnector } from '../../models/catalog-connector.model';
 import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -43,7 +44,7 @@ export interface ReviewSummary {
 export interface Step5FormData {
   connectorName: string;
   connectorVersion: string;
-  connectorMaintainer: string;
+  connectorMaintainer: Maintainer | null;
   connectorLicense: string;
   connectorDescription: string;
   connectorBundleName: string;
@@ -91,16 +92,21 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly connectorName = signal<string>('');
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
   protected readonly connectorVersion = signal<string>('');
-  protected readonly connectorMaintainer = signal<string>('');
-  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
-    return options.filter(o => o.toLowerCase().includes(search));
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
   });
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.connectorMaintainer()));
   protected readonly connectorLicense = signal<string>('');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
@@ -234,10 +240,10 @@ export class PublishFormImpl implements OnInit, OnChanges {
     private router: Router
   ) {
     if (this.authService.currentRole() === UserRole.Superuser) {
-      const currentUser = this.authService.currentUser();
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
       });
     } else {
       this.maintainerOptions.set(this.authService.maintainerOptions());
@@ -391,7 +397,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
       connector: {
         displayName: this.connectorName(),
         description: this.connectorDescription(),
-        maintainer: this.connectorMaintainer(),
+        maintainer: this.connectorMaintainer()!,
         framework: this.isExistingConnector
             ? (this.selectedCatalogConnector?.bundleFramework ?? 'JAVA_BASED')
             : this.mapConnectorTypeToFramework(this.connectorType),
@@ -533,15 +539,19 @@ export class PublishFormImpl implements OnInit, OnChanges {
     setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
   }
 
-  protected selectMaintainerOption(option: string): void {
+  protected selectMaintainerOption(option: Maintainer): void {
     this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
     this.emitChange();
   }
 
-  protected maintainerOptionLabel(option: string): string {
+  protected maintainerOptionLabel(option: Maintainer): string {
     return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.connectorMaintainer());
   }
 
   protected onLicenseBlur(): void {

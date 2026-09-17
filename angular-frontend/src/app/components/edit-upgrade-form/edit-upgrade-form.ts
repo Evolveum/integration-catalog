@@ -20,6 +20,7 @@ import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-moda
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 @Component({
   selector: 'app-edit-upgrade-form',
@@ -143,6 +144,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.hasMajorConnectorChanges() && !this.isDraftState()
   );
 
+  /** The label of a staged connector's maintainer, for the card that previews it. */
+  protected maintainerText(maintainer: Maintainer | null): string {
+    return maintainerLabel(maintainer);
+  }
+
   /** Whether a staged edit changes the connector identity (version, className). */
   private isMajorConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): boolean {
     const norm = (v: string | null | undefined): string => (v ?? '').trim();
@@ -164,13 +170,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       connectorDisplayName: p.displayName,
       bundleDisplayName: p.bundleDisplayName ?? c.bundleDisplayName,
       implementationDescription: p.description,
-      maintainer: p.maintainer,
-      // The staged maintainer's organization is only known locally for the current user;
-      // other picks (superuser) preview plain until the save reloads server data.
-      maintainerOrganization:
-        p.maintainer === c.maintainer ? c.maintainerOrganization
-          : p.maintainer === this.authService.currentUser() ? this.authService.displayedOrganization()
-          : null,
+      // Only the label previews the staged pick; the permission check keeps the saved maintainer.
+      maintainerLabel: maintainerLabel(p.maintainer),
       licenseType: p.license ?? '',
       projectHomepage: p.projectHomepage ?? '',
       ticketingLink: p.supportPortal ?? '',
@@ -383,19 +384,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 
-  /** A maintainer belonging to an organization is shown as "org (username)". */
-  protected formatMaintainer(maintainer: string, maintainerOrganization?: string | null): string {
-    if (!maintainer) return '—';
-    return maintainerOrganization ? `${maintainerOrganization} (${maintainer})` : maintainer;
-  }
-
-  /** Org of a locally staged maintainer: only resolvable when it is the current user. */
-  protected localMaintainerOrg(maintainer: string): string | null {
-    return maintainer === this.authService.currentUser()
-      ? this.authService.displayedOrganization()
-      : null;
-  }
-
   /**
    * Whether the current user may edit this connector's content. A connector is gated on its
    * own maintainer (not the IM's): the IM maintainer must not edit connectors maintained by
@@ -403,7 +391,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
    * actions, available to anyone who could open this edit form.)
    */
   protected canEditConnector(c: ImplementationListItem): boolean {
-    return this.authService.canEdit(null, null, c.maintainer, c.maintainerOrganization);
+    return this.authService.canEdit(c.maintainer);
   }
 
   protected formatCapabilityText(text: string): string {

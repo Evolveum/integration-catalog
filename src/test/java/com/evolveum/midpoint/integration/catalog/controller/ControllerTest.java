@@ -6,6 +6,8 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
+import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
@@ -17,10 +19,12 @@ import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Disabled;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -38,7 +42,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -48,12 +52,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration tests for the REST Controller, over MockMvc and a mocked ApplicationService.
  *
  * Security is deliberately switched off so these exercise the MVC layer only; the caller identity
- * is passed as a request principal instead. Excluding SecurityConfig leaves no HttpSecurity bean,
- * so the OAuth2 client auto-configuration has to be excluded with it.
+ * is passed as a request principal instead. Excluding SecurityConfig leaves neither an HttpSecurity
+ * bean nor the application's lazy client registration repository, so both halves of the OAuth2
+ * client auto-configuration have to go with it - the registration half would otherwise try to
+ * reach the identity provider while the context starts, which no test here needs running.
  */
 @WebMvcTest(controllers = Controller.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
-        excludeAutoConfiguration = OAuth2ClientWebSecurityAutoConfiguration.class)
+        excludeAutoConfiguration = {
+                OAuth2ClientAutoConfiguration.class,
+                OAuth2ClientWebSecurityAutoConfiguration.class })
 @AutoConfigureMockMvc(addFilters = false)
 class ControllerTest {
 
@@ -513,43 +521,52 @@ class ControllerTest {
         verify(applicationService).list(any(), eq(null), eq(null));
     }
 
-    // TODO, Set up positive scenario
-    @Disabled("TODO: Set up positive scenario")
+    /**
+     * The happy path: nothing else claims the class the build reports, so the service returns
+     * without complaint and the request is answered 200.
+     */
     @Test
-    void verifyConnectorBundleVersionNoBundleWithSuchClassName() throws Exception {
-        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
-        verifyBundleInformationForm.setVersion("1.0.0");
+    void verifyAcceptsAClassNoOtherConnectorClaims() throws Exception {
+        VerifyBundleInformationForm form = verifyForm();
 
-        applicationService.verify(testVersionId, any(VerifyBundleInformationForm.class));
-
-        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
+        mockMvc.perform(post("/api/upload/verify/{oid}", testVersionId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
+                        .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isOk());
 
-        verify(applicationService).verify(testVersionId, any(VerifyBundleInformationForm.class));
+        ArgumentCaptor<VerifyBundleInformationForm> sent =
+                ArgumentCaptor.forClass(VerifyBundleInformationForm.class);
+        verify(applicationService).verify(eq(testVersionId), sent.capture());
+        assertEquals("com.evolveum.polygon.connector.test.TestFooConnector", sent.getValue().getClassName());
+        assertEquals("1.0.0", sent.getValue().getVersion());
+        assertEquals("test-bundle", sent.getValue().getBundleName());
     }
 
-    // TODO, Set up conflict scenario
-    @Disabled("TODO: Set up conflict scenario")
+    /**
+     * The bundle version already holds that connector class, which the service reports by
+     * throwing. The controller answers 409 rather than letting a second connector claim it.
+     */
     @Test
-    void verifyConnectorBundleVersionBundleWithSuchClassName() throws Exception {
-        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
-        verifyBundleInformationForm.setVersion("1.0.0");
+    void verifyReportsAConflictWhenTheClassIsAlreadyInTheBundleVersion() throws Exception {
+        doThrow(new ObjectAlreadyExist("Bundle test-bundle version 1.0.0 already contains connector"
+                + " class com.evolveum.polygon.connector.test.TestFooConnector"))
+                .when(applicationService).verify(eq(testVersionId), any(VerifyBundleInformationForm.class));
 
-        assertThrows(
-                ObjectAlreadyExist.class,
-                () -> applicationService.verify(testVersionId, any(VerifyBundleInformationForm.class))
-        );
-
-        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
+        mockMvc.perform(post("/api/upload/verify/{oid}", testVersionId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
+                        .content(objectMapper.writeValueAsString(verifyForm())))
                 .andExpect(status().isConflict());
 
-        verify(applicationService).verify(testVersionId, any(VerifyBundleInformationForm.class));
+        verify(applicationService).verify(eq(testVersionId), any(VerifyBundleInformationForm.class));
+    }
+
+    /** What a build reports back about the bundle it has just produced. */
+    private static VerifyBundleInformationForm verifyForm() {
+        VerifyBundleInformationForm form = new VerifyBundleInformationForm();
+        form.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
+        form.setVersion("1.0.0");
+        form.setBundleName("test-bundle");
+        return form;
     }
 
     // ===== GET /api/connectors/catalog =====
@@ -563,6 +580,7 @@ class ControllerTest {
                 "LDAP connector for directory services",
                 "1.0.0",
                 "Polygon LDAP",
+                new MaintainerDto(2L, null, null, MaintainerType.EVOLVEUM, "Evolveum"),
                 "Evolveum",
                 "APACHE_2",
                 "MAVEN",

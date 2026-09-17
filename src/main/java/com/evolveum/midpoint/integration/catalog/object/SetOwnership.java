@@ -6,11 +6,11 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
-//TODO change javadoc
 /**
- * A catalog item that records who owns it: the connector, its bundle, their versions and
- * the integration method. Ownership is stamped when the item is written, because a token
- * describes only its own bearer and the application has no user directory to ask later.
+ * A catalog item whose ownership can be written: the connector, its bundle, their versions and
+ * the integration method. Implemented alongside one of the two reading interfaces - an item with a
+ * single maintainer implements {@link GetOwnershipOneMaintainer}, one that can have several
+ * {@link GetOwnershipListMaintainer} - which is why writing is an interface of its own.
  */
 public interface SetOwnership {
     Object setAuthor(Author author);

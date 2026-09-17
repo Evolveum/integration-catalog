@@ -207,12 +207,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return !!user && !!requester && requester.trim().toLowerCase() === user.trim().toLowerCase();
   }
 
-  /**
-   * Whether the current user may edit this method revision (own item, same-org item for
-   * organization contributors, or anything for superusers). The server enforces the same rule.
-   */
-  protected canEdit(version: { author?: string | null; authorOrganization?: string | null; maintainer?: string | null }): boolean {
-    return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
+  /** Whether the current user may edit this method revision; see AuthService.canEdit. */
+  protected canEdit(version: Pick<IntegrationMethod, 'maintainer'>): boolean {
+    return this.authService.canEdit(version.maintainer);
   }
 
   // ── Approve/Reject confirmation modal ─────────────────────────────────────
@@ -1052,15 +1049,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
 
     // IN_REVIEW, REVIEWING and REJECTED share the same restricted visibility, which is exactly the
-    // edit-ownership rule: only someone who may edit a draft can see it. Not logged in →
-    // hidden; Superuser → all; the designated maintainer (by username or org) → own;
-    // the uploader → own; OrganizationContributor → same-org uploads. Published (ACTIVE)
-    // revisions are visible to everyone.
+    // edit-ownership rule (AuthService.canEdit): only someone who may edit a draft can see it.
+    // Published (ACTIVE) revisions are visible to everyone.
     let filteredVersions = versions.filter(version => {
       if (version.lifecycleState !== 'IN_REVIEW'
           && version.lifecycleState !== 'REVIEWING'
           && version.lifecycleState !== 'REJECTED') return true;
-      return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
+      return this.authService.canEdit(version.maintainer);
     });
 
     // Apply filters

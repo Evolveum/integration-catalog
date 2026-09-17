@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -110,6 +111,14 @@ public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer
     @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnectorBundleVersion> bundleVersions = new ArrayList<>();
 
+    /**
+     * Adds one maintainer, as {@link SetOwnership} writes ownership one maintainer at a time.
+     *
+     * <p>Hidden from Jackson: it would otherwise be a second setter for the {@code maintainer}
+     * property beside the list one, which is ambiguous enough that building a deserializer for
+     * this class fails outright - and it is built, because a request DTO names an enum nested here.
+     */
+    @JsonIgnore
     @Override
     public ConnectorBundle setMaintainer(Maintainer maintainer) {
         if (!this.maintainer.contains(maintainer)) {

@@ -310,17 +310,16 @@ public class Controller {
         return ResponseEntity.ok(count);
     }
 
-    @Operation(summary = "Check if user has voted",
-            description = "Checks if a specific user has already voted for a request")
+    @Operation(summary = "Check if the caller has voted",
+            description = "Whether the session's own user has already voted for a request. The answer"
+                    + " says nothing without a session, so the endpoint requires one.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Check completed successfully")
+            @ApiResponse(responseCode = "200", description = "Check completed successfully"),
+            @ApiResponse(responseCode = "401", description = "No session to answer about")
     })
     @GetMapping("/requests/{requestId}/votes/check")
     public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, Authentication authentication) {
-        // Anonymous callers may ask; they have trivially not voted.
-        boolean hasVoted = authentication != null
-                && applicationService.hasUserVoted(requestId, authentication.getName());
-        return ResponseEntity.ok(hasVoted);
+        return ResponseEntity.ok(applicationService.hasUserVoted(requestId, authentication.getName()));
     }
 
     @Operation(summary = "Show counts of categories")

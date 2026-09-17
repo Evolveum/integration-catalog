@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -70,22 +71,6 @@ public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMai
     )
     private List<Maintainer> maintainer = new ArrayList<>();
 
-    // Ownership as it stood when the row was written - a token describes only its bearer, so none
-    // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
-    // reference to organizations.id, so renames need no change here) and leaves maintainer null.
-    @Column(name = "author_org_id")
-    private Integer authorOrgId;
-
-    @Column(name = "maintainer_org_id")
-    private Integer maintainerOrgId;
-
-    /** Evolveum, Partner or Community. */
-    @Column(name = "author_category")
-    private String authorCategory;
-
-    @Column(name = "author_email")
-    private String authorEmail;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -140,6 +125,15 @@ public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMai
     @OneToMany(mappedBy = "connectorBundleVersion", fetch = FetchType.LAZY)
     private List<Download> downloads = new ArrayList<>();
 
+    /**
+     * Adds one maintainer, as {@link SetOwnership} writes ownership one maintainer at a time.
+     *
+     * <p>Hidden from Jackson: it would otherwise be a second setter for the {@code maintainer}
+     * property beside the list one, which is ambiguous enough that building a deserializer for
+     * this class fails outright - and it is built, this class being reachable from one that a
+     * request DTO refers to.
+     */
+    @JsonIgnore
     @Override
     public ConnectorBundleVersion setMaintainer(Maintainer maintainer) {
         if (!this.maintainer.contains(maintainer)) {

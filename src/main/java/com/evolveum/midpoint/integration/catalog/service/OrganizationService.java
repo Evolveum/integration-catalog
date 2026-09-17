@@ -6,7 +6,6 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import com.evolveum.midpoint.integration.catalog.object.GetOwnershipOneMaintainer;
 import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -19,15 +18,14 @@ import java.util.Map;
 import java.util.function.LongSupplier;
 
 /**
- * Resolves organizations: the alias the OIDC claim carries to the catalog's own id, and that id
- * to the display name shown in the catalog.
+ * Resolves organizations both ways: the alias the OIDC claim carries to the display name shown in
+ * the catalog, and a display name back to the alias it belongs to. Cached, because a lookup
+ * happens on every item rendered and organizations change rarely.
  */
 @Service
 public class OrganizationService {
 
     static final long CACHE_TTL_MILLIS = 60_000;
-    private static final String DEFAULT_LABEL_EVOLVEUM = "Evolveum";
-    private static final String DEFAULT_LABEL_COMMUNITY = "Community";
 
     private final OrganizationRepository organizationRepository;
     private final LongSupplier clock;
@@ -50,8 +48,9 @@ public class OrganizationService {
     }
 
     /**
-     * The organization's display name, or {@code null} when the id is null or unknown — an item
-     * whose organization has since been removed stays readable, it just shows no organization.
+     * The display name of the organization with this alias, or {@code null} when the alias is
+     * blank or unknown — an item whose organization has since been removed stays readable, it
+     * just shows no organization.
      */
     public String displayName(String organizationName) {
         if (StringUtils.isEmpty(organizationName)) {
@@ -80,6 +79,15 @@ public class OrganizationService {
 //        return displayName(organizationId) != null ? String.valueOf(organizationId) : null;
 //    }
 
+    /** Aliases of all organizations, ordered by the display name each is shown under. */
+    public List<String> allAliases() {
+        return displayNames().entrySet().stream()
+                .filter(e -> e.getValue() != null && !e.getValue().isBlank())
+                .sorted(Map.Entry.comparingByValue(String.CASE_INSENSITIVE_ORDER))
+                .map(Map.Entry::getKey)
+                .toList();
+    }
+
     /** All organizations, ordered by display name. */
     public List<String> allNames() {
         return displayNames().values().stream()
@@ -88,7 +96,7 @@ public class OrganizationService {
                 .toList();
     }
 
-    /** The identifier of the organization with this display name, if any. */
+    /** The alias of the organization shown under this display name, if any. */
     public String displayNameOfName(String name) {
         if (name == null || name.isBlank()) {
             return null;
@@ -100,37 +108,7 @@ public class OrganizationService {
                 .orElse(null);
     }
 
-    //TODO This isn't right class for this method
-    /**
-     * What to show as an item's maintainer: the maintainer's username, or — when an
-     * organization maintains it and therefore no username is recorded — the organization's
-     * display name.
-     */
-    public String maintainerLabel(GetOwnershipOneMaintainer item) {
-        if (item == null || item.getMaintainer() == null) {
-            return null;
-        }
-        switch (item.getMaintainer().getCategory()) {
-            case null -> {
-                //TODO exception(has to exist)
-                return null;
-            }
-            case EVOLVEUM -> {
-                return DEFAULT_LABEL_EVOLVEUM;
-            }
-            case COMMUNITY -> {
-                return DEFAULT_LABEL_COMMUNITY;
-            }
-            case USER -> {
-                return item.getMaintainer().getUsername();
-            }
-            case ORG -> {
-                return displayName(item.getMaintainer().getOrganization());
-            }
-        }
-    }
-
-    /** Identifiers of the organizations whose display name contains the given text. */
+    /** Aliases of the organizations whose display name contains the given text. */
     public List<String> idsOfNamesContaining(String text) {
         if (text == null || text.isBlank()) {
             return List.of();

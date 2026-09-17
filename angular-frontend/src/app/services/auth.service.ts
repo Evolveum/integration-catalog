@@ -8,6 +8,13 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { catchError, map, Observable, of } from 'rxjs';
 import { environment } from '../../environments/environment';
+import {
+  Maintainer,
+  maintainerLabel,
+  organizationMaintainer,
+  sameMaintainer,
+  userMaintainer
+} from '../models/maintainer.model';
 
 export enum UserRole {
   ReadOnly = 'Read only',
@@ -22,9 +29,10 @@ interface CurrentUserResponse {
   fullName: string | null;
   email: string | null;
   role: string;
-  /** Organization identifier — stable across organization renames. */
-  organizationId: string | null;
+  /** The organization's alias — stable across renames, and what a maintainer row points at. */
   organizationName: string | null;
+  /** What that organization is called in the catalog; null when it has no row there. */
+  organizationDisplayName: string | null;
 }
 
 /**
@@ -39,8 +47,8 @@ export class AuthService {
 
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
-  private readonly _currentOrganizationName = signal<string | null>(null);
-  private readonly _currentOrganizationId = signal<string | null>(null);
+  private readonly _currentOrganizationAlias = signal<string | null>(null);
+  private readonly _currentOrganizationDisplayName = signal<string | null>(null);
 
   readonly currentUser = this._currentUser.asReadonly();
 
@@ -65,8 +73,8 @@ export class AuthService {
   private applyCurrentUser(user: CurrentUserResponse | null): void {
     this._currentUser.set(user?.username ?? null);
     this._currentRole.set(user ? (UserRole[user.role as keyof typeof UserRole] ?? null) : null);
-    this._currentOrganizationName.set(user?.organizationName ?? null);
-    this._currentOrganizationId.set(user?.organizationId ?? null);
+    this._currentOrganizationAlias.set(user?.organizationName ?? null);
+    this._currentOrganizationDisplayName.set(user?.organizationDisplayName ?? null);
   }
 
   /**
@@ -75,12 +83,13 @@ export class AuthService {
    */
   organizationIsUnregistered(): boolean {
     return this._currentRole() === UserRole.OrganizationContributor
-      && !!this._currentOrganizationId()
-      && !this._currentOrganizationName();
+      && !!this._currentOrganizationAlias()
+      && !this._currentOrganizationDisplayName();
   }
 
+  /** The alias, which is all there is to show when the organization has no row in the catalog. */
   currentOrganizationId(): string | null {
-    return this._currentOrganizationId();
+    return this._currentOrganizationAlias();
   }
 
   /** Starts the OIDC login flow: full-page redirect to the provider via the backend. */
@@ -98,37 +107,44 @@ export class AuthService {
     return environment.apiUrl.replace(/\/api\/?$/, '');
   }
 
+  /** What the caller's organization is called in the catalog; null when it has no row there. */
   currentOrganizationName(): string | null {
-    return this._currentOrganizationName();
+    return this._currentOrganizationDisplayName();
   }
 
-  getAllMaintainers(): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiUrl}/auth/all-maintainers`);
+  /** Every maintainer a superuser may choose from, the server deciding what each one is. */
+  getAllMaintainers(): Observable<Maintainer[]> {
+    return this.http.get<Maintainer[]>(`${environment.apiUrl}/auth/all-maintainers`);
   }
 
   /**
    * Default value for the maintainer combobox: an organization contributor maintains on
    * behalf of their organization; everyone else (including superusers) as themselves.
    */
-  defaultMaintainer(): string {
+  defaultMaintainer(): Maintainer | null {
     if (this._currentRole() === UserRole.OrganizationContributor) {
-      const orgName = this._currentOrganizationName();
-      if (orgName) return orgName;
+      const alias = this._currentOrganizationAlias();
+      if (alias) return organizationMaintainer(alias, this._currentOrganizationDisplayName());
     }
-    return this._currentUser() ?? '';
+    const user = this._currentUser();
+    return user ? userMaintainer(user) : null;
   }
 
   /**
    * Options for the maintainer combobox of a non-superuser: the organization plus the user
-   * themselves for an organization contributor, otherwise just the user.
+   * themselves for an organization contributor, otherwise just the user. A superuser picks from
+   * {@link getAllMaintainers} instead.
    */
-  maintainerOptions(): string[] {
+  maintainerOptions(): Maintainer[] {
     const user = this._currentUser();
+    const self = user ? [userMaintainer(user)] : [];
     if (this._currentRole() === UserRole.OrganizationContributor) {
-      const orgName = this._currentOrganizationName();
-      if (orgName) return user ? [orgName, user] : [orgName];
+      const alias = this._currentOrganizationAlias();
+      if (alias) {
+        return [organizationMaintainer(alias, this._currentOrganizationDisplayName()), ...self];
+      }
     }
-    return user ? [user] : [];
+    return self;
   }
 
   /**
@@ -137,16 +153,22 @@ export class AuthService {
    */
   displayedOrganization(): string | null {
     return this._currentRole() === UserRole.OrganizationContributor
-      ? this._currentOrganizationName()
+      ? this._currentOrganizationDisplayName()
       : null;
   }
 
   /** Display label for a maintainer dropdown option: the logged-in user is marked "(me)". */
-  maintainerOptionLabel(option: string): string {
+  maintainerOptionLabel(option: Maintainer): string {
+    const label = maintainerLabel(option);
     const user = this._currentUser();
-    return user && option.trim().toLowerCase() === user.trim().toLowerCase()
-      ? `${option} (me)`
-      : option;
+    return user && option.category === 'USER' && sameIgnoringCase(option.username, user)
+      ? `${label} (me)`
+      : label;
+  }
+
+  /** Whether an option is the one currently chosen, so the dropdown can mark it. */
+  isSameMaintainer(a: Maintainer | null, b: Maintainer | null): boolean {
+    return sameMaintainer(a, b);
   }
 
   isLoggedIn(): boolean {
@@ -178,35 +200,23 @@ export class AuthService {
   }
 
   /**
-   * Whether the current user may see/edit an item with the given owners, mirroring the server-side
-   * `AuthService.canEdit`. Decides which controls are shown only; the backend re-enforces the rule.
+   * Whether the current user may see/edit an item with this maintainer. A copy of the server-side
+   * `AuthService.canEdit`, which is authoritative: change that first, then mirror it here.
    */
-  canEdit(
-    author: string | null | undefined,
-    authorOrganization: string | null | undefined,
-    maintainer?: string | null,
-    maintainerOrganization?: string | null,
-  ): boolean {
+  canEdit(maintainer: Maintainer | null | undefined): boolean {
     const user = this._currentUser();
-    if (!user) return false;
     const role = this._currentRole();
+    if (!user || !role || role === UserRole.ReadOnly) return false;
     if (role === UserRole.Superuser) return true;
-    const orgName = this.displayedOrganization();
-    if (maintainer) {
-      const m = maintainer.trim().toLowerCase();
-      if (m === user.trim().toLowerCase()) return true;
-      if (orgName && m === orgName.trim().toLowerCase()) return true;
-    }
-    // An organization acts as a team: a contributor maintainer grants access to all org-mates.
-    if (orgName && maintainerOrganization
-        && orgName.trim().toLowerCase() === maintainerOrganization.trim().toLowerCase()) {
-      return true;
-    }
-    if (author && author.trim().toLowerCase() === user.trim().toLowerCase()) return true;
-    if (orgName && authorOrganization
-        && orgName.trim().toLowerCase() === authorOrganization.trim().toLowerCase()) {
-      return true;
-    }
-    return false;
+    if (!maintainer) return false;
+    if (maintainer.category === 'COMMUNITY') return true;
+    if (sameIgnoringCase(maintainer.username, user)) return true;
+    // An organization acts as a team: whatever it maintains, all of its contributors may edit.
+    return role === UserRole.OrganizationContributor
+      && sameIgnoringCase(maintainer.organizationName, this._currentOrganizationAlias());
   }
+}
+
+function sameIgnoringCase(a: string | null | undefined, b: string | null | undefined): boolean {
+  return !!a && !!b && a.toLowerCase() === b.toLowerCase();
 }

@@ -7,6 +7,7 @@ package com.evolveum.midpoint.integration.catalog.object;
 
 import java.util.List;
 
+/** A catalog item that can have several maintainers: a bundle and a bundle version. */
 public interface GetOwnershipListMaintainer {
     Author getAuthor();
 

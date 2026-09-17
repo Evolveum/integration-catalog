@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -47,18 +48,10 @@ public class AuthController {
         return ResponseEntity.ok(authService.getCurrentUser(authentication.getName(), oidcUser));
     }
 
-    //TODO Why we need this?
-//    @Operation(summary = "Get organization members",
-//            description = "Returns all usernames in the authenticated user's organization")
-//    @GetMapping("/organization/members")
-//    public ResponseEntity<List<String>> getOrganizationMembers(Authentication authentication) {
-//        return ResponseEntity.ok(authService.getOrganizationMembers(authentication.getName()));
-//    }
-
     @Operation(summary = "Get all maintainers",
-            description = "Returns all usernames and organization names — superuser only")
+            description = "Returns every maintainer that can be chosen — superuser only")
     @GetMapping("/all-maintainers")
-    public ResponseEntity<List<String>> getAllMaintainers() {
+    public ResponseEntity<List<MaintainerDto>> getAllMaintainers() {
         return ResponseEntity.ok(authService.getAllMaintainers());
     }
 }
