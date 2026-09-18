@@ -27,6 +27,9 @@ public class SupportTicketRetryHandlers {
     @Bean
     public RetryableOperationHandler<IntegrationMethodSubmittedEvent> openWorkPackageHandler(
             SupportTicketService supportTicketService) {
+        //TODO I think we could define handlers as separate objects;
+        // in that case, the operations they perform would be moved into those objects,
+        // and the whole thing would be clearer
         return RetryableOperationHandler.of(
                 ExternalSystem.OPENPROJECT,
                 SupportTicketService.OPEN_WORK_PACKAGE,

@@ -1131,6 +1131,7 @@ public class ConnectorUploadService {
             saveConnectorVersionCapabilities(dto.connectorCapabilities(), cv);
         }
 
+        //TODO Do we really save changes without approval?
         connectorRepository.save(connector);
     }
 

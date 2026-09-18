@@ -443,6 +443,7 @@ public class SupportTicketService {
 
     private boolean deleteAttachment(int workPackageId, OpenProjectClient.Attachment attachment) {
         try {
+            //TODO use return form deleteAttachment -> delete can failed
             openProjectClient.deleteAttachment(attachment.id());
             log.info("Removed {} from support work package {}", attachment.fileName(), workPackageId);
             return true;
@@ -687,13 +688,12 @@ public class SupportTicketService {
 
         String url = properties.workPackageUrl(ticketId);
         try {
-            Optional<String> status = openProjectClient.readStatus(ticketId);
-            if (status.isEmpty()) {
+            Optional<OpenProjectClient.WorkPackageStatus> status = openProjectClient.readStatus(ticketId);
+            if (status.isEmpty() || status.get().closed() == null) {
                 return new SupportTicketDto(true, ticketId, url, null, false,
                         "Work package #" + ticketId + " no longer exists in the support portal.");
             }
-            boolean ready = properties.isApprovalStatus(status.get());
-            return new SupportTicketDto(true, ticketId, url, status.get(), ready, null);
+            return new SupportTicketDto(true, ticketId, url, status.get().name(), status.get().closed(), null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return new SupportTicketDto(true, ticketId, url, null, false,

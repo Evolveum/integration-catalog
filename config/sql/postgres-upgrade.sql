@@ -121,7 +121,7 @@ $aa$);
 call apply_change(5, $aa$
 CREATE TABLE IF NOT EXISTS pending_operation (
     id              bigserial PRIMARY KEY,
-    target_system   varchar(50)  NOT NULL,
+    target_system   varchar(50)  NOT NULL, --TODO change to enum
     operation       varchar(100) NOT NULL,
     payload         text         NOT NULL,
     status          varchar(20)  NOT NULL,

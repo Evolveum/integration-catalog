@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import javax.net.ssl.SSLContext;
@@ -48,6 +49,7 @@ public class OpenProjectClient {
 
     /** Far more files than a submission has, so {@link #listAttachments} never has to page. */
     private static final int ATTACHMENT_PAGE_SIZE = 200;
+    private static final String DEFAULT_USERNAME_USING_API_KEY = "apikey";
 
     private final OpenProjectProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -58,18 +60,22 @@ public class OpenProjectClient {
         this.client = buildClient(properties);
     }
 
+
+    public record WorkPackageStatus(String name, Boolean closed) {}
+
     /**
      * Opens a work package in the configured project and returns its id.
      */
-    public int createWorkPackage(String subject, String description) throws IOException, InterruptedException {
+    public int createWorkPackage(String taskName, String description) throws IOException, InterruptedException {
         ObjectNode body = objectMapper.createObjectNode();
-        body.put("subject", subject);
+        body.put("subject", taskName);
         body.putObject("description")
                 .put("format", "markdown")
                 .put("raw", description);
         ObjectNode links = body.putObject("_links");
         links.putObject("type").put("href", "/api/v3/types/" + properties.typeId());
-        links.putObject("status").put("href", "/api/v3/statuses/" + properties.initialStatusId());
+        //TODO we don't need it OpenProject should use default status for new workPackage
+//        links.putObject("status").put("href", "/api/v3/statuses/" + properties.initialStatusId());
 
         HttpRequest request = authorized(properties.apiBase() + "/projects/" + properties.project() + "/work_packages")
                 .header("Content-Type", "application/json")
@@ -77,7 +83,7 @@ public class OpenProjectClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal rejected the work package (HTTP "
                     + response.statusCode() + "): " + response.body());
         }
@@ -122,7 +128,7 @@ public class OpenProjectClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             String detail = "Support portal rejected attachment '" + fileName + "' on work package "
                     + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body();
             if (isTooLarge(response.statusCode(), response.body())) {
@@ -175,7 +181,7 @@ public class OpenProjectClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal could not be queried for the attachments of work package "
                     + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
         }
@@ -215,7 +221,7 @@ public class OpenProjectClient {
         if (response.statusCode() == 404) {
             return false;
         }
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal refused to delete attachment " + attachmentId
                     + " (HTTP " + response.statusCode() + "): " + response.body());
         }
@@ -230,7 +236,7 @@ public class OpenProjectClient {
         HttpRequest request = authorized(properties.apiBase() + "/users/me").GET().build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal could not be asked who the catalog signs in as (HTTP "
                     + response.statusCode() + "): " + response.body());
         }
@@ -252,7 +258,7 @@ public class OpenProjectClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal rejected a comment on work package " + workPackageId
                     + " (HTTP " + response.statusCode() + "): " + response.body());
         }
@@ -303,7 +309,7 @@ public class OpenProjectClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal could not be queried for user '" + value
                     + "' (HTTP " + response.statusCode() + "): " + response.body());
         }
@@ -330,7 +336,7 @@ public class OpenProjectClient {
                 .build();
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal refused to add user " + userId + " as a watcher of "
                     + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
         }
@@ -339,14 +345,35 @@ public class OpenProjectClient {
     /**
      * Reads a work package's current status title, e.g. {@code "In progress"} or {@code "Resolved"}.
      */
-    public Optional<String> readStatus(int workPackageId) throws IOException, InterruptedException {
+    public Optional<WorkPackageStatus> readStatus(int workPackageId) throws IOException, InterruptedException {
         Optional<JsonNode> workPackage = readWorkPackage(workPackageId);
         if (workPackage.isEmpty()) {
             return Optional.empty();
         }
-        // The status is a link, carrying the human-readable name in its title.
-        JsonNode title = workPackage.get().path("_links").path("status").path("title");
-        return title.isTextual() ? Optional.of(title.asText()) : Optional.empty();
+        JsonNode href = workPackage.get().path("_links").path("status").path("href");
+
+        String statusHref = null;
+        if  (href.isTextual()) {
+            statusHref = href.asText();
+        }
+
+        if (StringUtils.isBlank(statusHref)) {
+            return Optional.empty();
+        }
+
+        Optional<JsonNode> statusInfo = readStatusInfo(statusHref);
+        if (statusInfo.isEmpty()) {
+            return Optional.empty();
+        }
+        JsonNode isClosed = statusInfo.get().path("isClosed");
+        Boolean closed = isClosed.isBoolean() ? isClosed.asBoolean() : null;
+
+        JsonNode statusName = statusInfo.get().path("name");
+        String name = statusName.isTextual() ? statusName.asText() : null;
+
+        WorkPackageStatus status = new WorkPackageStatus(name, closed);
+
+        return Optional.of(status);
     }
 
     /**
@@ -394,7 +421,7 @@ public class OpenProjectClient {
         if (response.statusCode() == 404) {
             return Optional.empty();
         }
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal rejected an update of work package " + workPackageId
                     + " (HTTP " + response.statusCode() + "): " + response.body());
         }
@@ -411,8 +438,24 @@ public class OpenProjectClient {
         if (response.statusCode() == 404) {
             return Optional.empty();
         }
-        if (!isSuccessful(response)) {
+        if (isFailed(response)) {
             throw new IOException("Support portal could not be queried for work package " + workPackageId
+                    + " (HTTP " + response.statusCode() + "): " + response.body());
+        }
+        return Optional.of(objectMapper.readTree(response.body()));
+    }
+
+    private Optional<JsonNode> readStatusInfo(String statusHref) throws IOException, InterruptedException {
+        HttpRequest request = authorized(properties.basicUrl() + statusHref)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 404) {
+            return Optional.empty();
+        }
+        if (isFailed(response)) {
+            throw new IOException("Couldn't get info about status with base url path " + statusHref
                     + " (HTTP " + response.statusCode() + "): " + response.body());
         }
         return Optional.of(objectMapper.readTree(response.body()));
@@ -427,12 +470,12 @@ public class OpenProjectClient {
     }
 
     private String basicAuthHeader() {
-        String auth = properties.username() + ":" + properties.password();
+        String auth = DEFAULT_USERNAME_USING_API_KEY + ":" + properties.apiKey();
         return "Basic " + Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static boolean isSuccessful(HttpResponse<String> response) {
-        return response.statusCode() >= 200 && response.statusCode() < 300;
+    private static boolean isFailed(HttpResponse<String> response) {
+        return response.statusCode() < 200 || response.statusCode() >= 300;
     }
 
     private static HttpClient buildClient(OpenProjectProperties properties) {
