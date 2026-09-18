@@ -25,6 +25,8 @@ import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapability;
 import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapabilityItem;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 
+import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
@@ -416,7 +418,11 @@ public class ConnectorUploadService {
         if (dto.minorBump() && editingDraft) {
             // "Save" on an in-review/rejected draft: a small correction. Bump in place (2.1 -> 2.2),
             // replacing the draft row so a draft keeps a single record while it is being revised.
-            return rewriteWithMinorBump(existing, methodId, currentRevision, dto);
+            String minorEdit = rewriteWithMinorBump(existing, methodId, currentRevision, dto);
+
+            events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, minorEdit,
+                    SubmissionFlow.EDIT, currentRevision));
+            return minorEdit;
         }
 
         // Otherwise spawn a fresh in-review draft, leaving the edited revision intact:
@@ -527,7 +533,9 @@ public class ConnectorUploadService {
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
         updated.setAuthor(existing.getAuthor());
         updated.setMaintainer(existing.getMaintainer());
-        updated.setSupportTicketId(existing.getSupportTicketId());
+        if (rewriteExisting) {
+            updated.setSupportTicketId(existing.getSupportTicketId());
+        }
         updated.setAppVersion(existing.getAppVersion());
         String tutorialFolder;
         if (rewriteExisting) {

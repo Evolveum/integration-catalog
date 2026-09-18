@@ -22,8 +22,14 @@ public record OpenProjectProperties(
         String project,
         Integer typeId,
         List<String> watchers,
-        boolean trustAllCertificates
+        boolean trustAllCertificates,
+        List<CustomField> customField
 ) {
+
+    public record CustomField(
+            int id,
+            int valueId
+    ) {}
 
     /**
      * Defaults, so a deployment configuring only URL, token and project still works. The numeric ids

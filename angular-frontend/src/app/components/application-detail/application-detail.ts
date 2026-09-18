@@ -373,6 +373,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected confirmCancel(): void {
     if (this.pendingCancelType === 'version' && this.pendingCancelVersionId) {
       this.cancelledVersionIds.update(ids => [...ids, this.pendingCancelVersionId!]);
+      //todo we need remove it from DB and add comment to ticket (probably also close ticket)
       this.closeCancelConfirm();
     } else if (this.pendingCancelType === 'request') {
       const requestId = this.application()?.requestId;

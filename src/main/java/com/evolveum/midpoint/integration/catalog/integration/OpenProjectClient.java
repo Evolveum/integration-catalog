@@ -73,6 +73,10 @@ public class OpenProjectClient {
                 .put("format", "markdown")
                 .put("raw", description);
         ObjectNode links = body.putObject("_links");
+        for (OpenProjectProperties.CustomField customField : properties.customField()) {
+            body.putObject("customField" + customField.id())
+                    .put("href", "/api/v3/custom_options/" + customField.valueId());
+        }
         links.putObject("type").put("href", "/api/v3/types/" + properties.typeId());
         //TODO we don't need it OpenProject should use default status for new workPackage
 //        links.putObject("status").put("href", "/api/v3/statuses/" + properties.initialStatusId());

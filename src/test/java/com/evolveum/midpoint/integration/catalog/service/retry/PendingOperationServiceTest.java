@@ -9,7 +9,7 @@ package com.evolveum.midpoint.integration.catalog.service.retry;
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
 import com.evolveum.midpoint.integration.catalog.object.PendingOperation;
 import com.evolveum.midpoint.integration.catalog.object.PendingOperationStatus;
-import com.evolveum.midpoint.integration.catalog.service.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import com.evolveum.midpoint.integration.catalog.service.SubmissionFlow;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

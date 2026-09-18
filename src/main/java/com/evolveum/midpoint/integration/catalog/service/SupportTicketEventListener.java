@@ -8,6 +8,9 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
+import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.PendingOperationService;
 
 import lombok.RequiredArgsConstructor;
