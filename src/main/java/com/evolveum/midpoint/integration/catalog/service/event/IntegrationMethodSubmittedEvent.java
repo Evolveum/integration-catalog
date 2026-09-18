@@ -4,7 +4,9 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-package com.evolveum.midpoint.integration.catalog.service;
+package com.evolveum.midpoint.integration.catalog.service.event;
+
+import com.evolveum.midpoint.integration.catalog.service.SubmissionFlow;
 
 import java.util.UUID;
 

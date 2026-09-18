@@ -25,6 +25,7 @@ public record CatalogConnectorDto(
         String gitCloneUrl,       // connector_bundle.git_clone_ulr
         String pathToProject,     // latest connector_bundle_version.path_to_project
         String className,         // connector.fully_qualified_class_name
-        List<ObjectClassCapabilityDto> objectClassCapabilities // conn_version_capability + items
+        List<ObjectClassCapabilityDto> objectClassCapabilities, // conn_version_capability + items
+        List<ConnectorTagDto> tags // connector_connector_tag + connector_tag
 ) {
 }

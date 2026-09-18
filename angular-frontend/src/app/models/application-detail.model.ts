@@ -6,6 +6,8 @@
 
 import { Maintainer } from './maintainer.model';
 
+import { ConnectorTag } from './connector-tag.model';
+
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
   version: string;      // midpoint_version.version
@@ -69,6 +71,7 @@ export interface IncludedConnector {
   displayName: string | null;  // connector.display_name
   version: string | null;      // connector_bundle_version.bundle_version of the current version
   description: string | null;  // connector.description
+  tags: ConnectorTag[];        // connector_connector_tag + connector_tag
 }
 
 export interface ApplicationDetail {
@@ -87,6 +90,8 @@ export interface ApplicationDetail {
   integrationMethods: IntegrationMethod[] | null; // integration_method
   requestId: number | null;                 // request.id
   voteCount: number | null;                 // computed: count of vote rows
+  integrationNeed: string | null;           // request.integration_need
+  requestedIntegrationMethodType: string | null; // integration_method_type.display_name via request
   frameworks: string[] | null;              // connector_bundle.framework
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
 }

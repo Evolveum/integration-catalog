@@ -18,12 +18,12 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-dark-blue;
+  color: $color-primary-500;
   cursor: pointer;
   text-decoration: none;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
     text-decoration: underline;
   }
 }
@@ -177,8 +177,8 @@
 
   &:hover,
   &.tutorial-dropzone-over {
-    border-color: $midpoint-special-color;
-    background-color: rgba($midpoint-special-color, 0.04);
+    border-color: $color-brand-steel;
+    background-color: rgba($color-brand-steel, 0.04);
   }
 }
 
@@ -196,7 +196,7 @@
 }
 
 .tutorial-dropzone-link {
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
   font-weight: 500;
 }
 
@@ -258,7 +258,7 @@
   text-decoration: none;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
     text-decoration: underline;
   }
 }
@@ -315,8 +315,8 @@
 
 .edit-add-connector-btn {
   font-size: 0.8rem;
-  color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  color: $color-brand-steel;
+  border-color: $color-brand-navy;
 
   &:hover {
     background-color: #f8f9fa;
@@ -337,7 +337,7 @@
 // A staged (not yet persisted) connector: dashed outline + tinted background to read as "pending".
 .edit-connector-card-pending {
   border-style: dashed;
-  border-color: $midpoint-special-color;
+  border-color: $color-brand-steel;
   background: #f8fbff;
 }
 
@@ -349,8 +349,22 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   background: #e3f0ff;
+}
+
+.edit-connector-obsolete-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #7a4f00;
+  background: #fff3cd;
+  border: 1px solid #f5e2b8;
 }
 
 .edit-connector-card-header {
@@ -379,11 +393,11 @@
 
 .edit-connector-edit-btn {
   font-size: 0.8125rem;
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
   font-weight: 500;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -440,7 +454,7 @@
   padding: 0;
   font-weight: 600;
   font-size: 0.8125rem;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   cursor: pointer;
 
   &:hover {
@@ -506,7 +520,7 @@
   color: #4b5563;
 
   a {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
     font-weight: 600;
     text-decoration: underline;
 
@@ -525,12 +539,12 @@
   align-items: center;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  border: 1px solid $color-dark-blue;
+  border: 1px solid $color-brand-navy;
   border-radius: 8px;
   background-color: #ffffff;
   font-size: 0.875rem;
   font-weight: 600;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
 
   &:hover {
     background-color: #f3f4f6;
@@ -549,21 +563,21 @@
 }
 
 .edit-cancel-btn {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.875rem;
   text-decoration: none;
   padding: 0;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
 .edit-save-btn {
   font-size: 0.875rem;
   background: #fff;
-  border: 1px solid $color-dark-blue;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
   padding: 0.4rem 1.25rem;
   border-radius: 4px;
 
@@ -574,15 +588,15 @@
 
 .edit-save-version-btn {
   font-size: 0.875rem;
-  background-color: $midpoint-special-color;
-  border: 1px solid $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: #fff;
   padding: 0.4rem 1.25rem;
   border-radius: 4px;
 
   &:hover {
-    background-color: $color-dark-blue;
-    border-color: $color-dark-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
   }
 }
 
@@ -697,7 +711,7 @@
 .cancel-keep-btn {
   background: none;
   border: none;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
 
@@ -770,7 +784,7 @@
 }
 
 .compat-label-info {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.75rem;
   margin-left: 0.25rem;
 }
@@ -811,7 +825,7 @@
 .compat-modal-close-link {
   background: none;
   border: none;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
 
@@ -821,8 +835,8 @@
 }
 
 .compat-modal-apply-btn {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
   color: $color-white;
   font-weight: 600;
   padding: 0.4rem 1.25rem;

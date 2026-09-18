@@ -149,7 +149,7 @@
         <!-- Deployment Type -->
         <div class="mb-2">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Deployment Type
+            Deployment type
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Choose how this application is deployed.</span>
@@ -186,7 +186,7 @@
 <div class="publish-page">
   <app-page-header [breadcrumb]="true" [showUnregisteredOrgWarning]="true">
     <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-      <a class="breadcrumb-link" (click)="closeModal()" style="cursor:pointer;">Integration catalog</a>
+      <a class="breadcrumb-link" (click)="closeModal()" style="cursor:pointer;">MidPoint Integration Catalog</a>
       @if (currentStep() > 1 && selectedApplication()) {
         <span class="breadcrumb-sep">›</span>
         <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goToStep(1)" style="cursor:pointer;">
@@ -314,13 +314,13 @@
                     </div>
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
-                        Integration method version <span class="text-danger">&nbsp;*</span>
+                        Integration method version
                         <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                           <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Version of this integration method (e.g. 1.0.0). Only numbers and dots allowed.</span>
+                          <span class="info-tooltip">Version of this integration method. It is assigned automatically; new integration methods start at 1.0.</span>
                         </span>
                       </label>
-                      <input type="text" class="form-control input-disabled" [value]="methodFormVersion()" disabled placeholder="e.g. 1.0.0">
+                      <div class="form-control-plaintext">{{ methodFormVersion() }}</div>
                     </div>
                   </div>
 
@@ -392,7 +392,7 @@
                       The documentation you provide in this section will be distributed by Evolveum under the terms of the
                       Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0) license.
                       Details are available in Evolveum's
-                      <a href="https://docs.evolveum.com/copyright/" target="_blank" rel="noopener">General Copyright and Licensing Guidelines.</a>
+                      <a [attr.href]="links()?.copyrightGuidelines" target="_blank" rel="noopener">General Copyright and Licensing Guidelines.</a>
                     </p>
                   </div>
 
@@ -727,7 +727,12 @@
                      class="form-check-input flex-shrink-0 radio-input"
                      style="pointer-events: none;">
               <div class="cc-connector-info">
-                <div class="cc-connector-name">{{ connector.displayName }}</div>
+                <div class="cc-connector-name">
+                  {{ connector.displayName }}
+                  @if (isObsoleteConnector(connector.tags)) {
+                    <span class="cc-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
+                </div>
                 @if (connector.description) {
                   <div class="cc-connector-desc">{{ connector.description }}</div>
                 }

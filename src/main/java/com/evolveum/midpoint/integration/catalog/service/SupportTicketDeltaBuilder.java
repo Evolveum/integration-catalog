@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -19,8 +20,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+//TODO add some junit tests for delta builder
 /**
- * Says what an edit changed about a submission, as a comment for its support work package, so a
+ * Says what an edit changed about a submission, as a comment for its work package in the support portal, so a
  * reviewer does not have to re-read the whole ticket to find the corrected line.
  *
  * <p>Compared on the rendered description rather than on the entities: an in-place edit deletes the
@@ -73,22 +75,23 @@ public class SupportTicketDeltaBuilder {
     /** Values are quoted in full up to this; a tutorial-sized description would drown the list. */
     private static final int MAX_VALUE = 300;
 
-    /**
-     * The changes between two descriptions of the same submission, as markdown.
-     */
-    public Optional<String> compare(String before, String after, String lead) {
-        return compare(before, after, lead, List.of());
-    }
+//    /**
+//     * The changes between two descriptions of the same submission, as markdown.
+//     */
+//    public Optional<String> compare(String before, String after, String lead) {
+//        return compare(before, after, lead, List.of());
+//    }
 
     /**
-     * The same, plus file changes, which the descriptions cannot show: the tutorial is attached rather
+     * The changes between two descriptions of the same submission, as markdown,
+     * and file changes, which the descriptions cannot show: the tutorial is attached rather
      * than written into the body, so only the caller that replaced the files knows.
      */
     public Optional<String> compare(String before, String after, String lead, List<String> fileChanges) {
         List<String> blocks = new ArrayList<>();
         boolean worthSaying = false;
 
-        if (before != null && !before.isBlank() && after != null && !after.isBlank()) {
+        if (StringUtils.isNotBlank(before) && StringUtils.isNotBlank(after)) {
             Map<String, Map<String, String>> was = parse(before);
             Map<String, Map<String, String>> now = parse(after);
 

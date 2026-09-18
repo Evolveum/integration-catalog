@@ -7,6 +7,9 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
+import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.RetryableOperationHandler;
 
 import org.springframework.context.annotation.Bean;
@@ -27,6 +30,9 @@ public class SupportTicketRetryHandlers {
     @Bean
     public RetryableOperationHandler<IntegrationMethodSubmittedEvent> openWorkPackageHandler(
             SupportTicketService supportTicketService) {
+        //TODO I think we could define handlers as separate objects;
+        // in that case, the operations they perform would be moved into those objects,
+        // and the whole thing would be clearer
         return RetryableOperationHandler.of(
                 ExternalSystem.OPENPROJECT,
                 SupportTicketService.OPEN_WORK_PACKAGE,

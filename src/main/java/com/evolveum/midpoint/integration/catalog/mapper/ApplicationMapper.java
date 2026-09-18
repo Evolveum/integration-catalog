@@ -149,7 +149,8 @@ public class ApplicationMapper {
                                                         ? cbv.getBundleVersion() : cbv.getRevision();
                                             })
                                             .orElse(null),
-                                    c.getDescription()))
+                                    c.getDescription(),
+                                    mapConnectorTags(c)))
                             .toList();
 
                     List<String> integMethodTypes = method.getIntegMethodTypes().stream()
@@ -270,6 +271,8 @@ public class ApplicationMapper {
         String requester = null;
         Long requestId = null;
         Long voteCount = null;
+        String integrationNeed = null;
+        String requestedIntegrationMethodType = null;
 
         if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
             Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
@@ -289,20 +292,24 @@ public class ApplicationMapper {
                 requester = request.getRequester();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(requestId);
+                integrationNeed = request.getIntegrationNeed();
+                requestedIntegrationMethodType = request.getIntegrationMethodType() != null
+                        ? request.getIntegrationMethodType().getDisplayName() : null;
             }
         }
         return mapToApplicationDto(app, capabilities, requester, requestId, voteCount,
-                objectClassCapabilities, viewer);
+                objectClassCapabilities, integrationNeed, requestedIntegrationMethodType, viewer);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount) {
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null);
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null, null, null);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount,
                                                List<ObjectClassCapabilityDto> objectClassCapabilities,
+                                               String integrationNeed, String requestedIntegrationMethodType,
                                                String viewer) {
         List<CountryOfOriginDto> origins = mapOrigins(app);
         List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
@@ -327,6 +334,8 @@ public class ApplicationMapper {
                 .integrationMethods(integrationMethods)
                 .requestId(requestId)
                 .voteCount(voteCount)
+                .integrationNeed(integrationNeed)
+                .requestedIntegrationMethodType(requestedIntegrationMethodType)
                 .frameworks(frameworks)
                 .objectClassCapabilities(objectClassCapabilities)
                 .build();
@@ -526,6 +535,7 @@ public class ApplicationMapper {
         String commitTag = null;
         boolean initialVersion = true;
         List<ObjectClassCapabilityDto> objectClassCapabilities = List.of();
+        List<ConnectorTagDto> connectorTags = List.of();
 
         if (connector != null) {
             connectorId = connector.getId();
@@ -561,6 +571,7 @@ public class ApplicationMapper {
                         ? latestCv.get().getFullyQualifiedClassName() : className;
             }
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
+            connectorTags = mapConnectorTags(connector);
         }
 
 
@@ -591,10 +602,22 @@ public class ApplicationMapper {
                 objectClassCapabilities,
                 connectorMinVersion,
                 connectorMaxVersion,
-                initialVersion
+                initialVersion,
+                connectorTags
         );
     }
 
+    public List<ConnectorTagDto> mapConnectorTags(Connector connector) {
+        if (connector.getConnectorConnectorTags() == null) {
+            return List.of();
+        }
+        return connector.getConnectorConnectorTags().stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(ConnectorTag::getName))
+                .map(tag -> new ConnectorTagDto(tag.getName(), tag.getDisplayName()))
+                .toList();
+    }
 
     /**
      * Collects the object-class capabilities of the connector's first connector version,

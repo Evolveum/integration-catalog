@@ -6,7 +6,7 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goBack()" style="cursor:pointer;">
       @if (showLogo()) {
@@ -152,7 +152,7 @@
 
       <!-- Integration tutorial (read-only preview) -->
       <div class="mb-4">
-        <label class="view-section-label">Integration tutorial <span class="text-muted fw-normal">(In ASCII DOC format)</span></label>
+        <label class="view-section-label">Integration tutorial <span class="text-muted fw-normal">(In Markdown format)</span></label>
         <div class="view-tutorial-wrapper">
           @if (methodTutorial().trim()) {
             <div class="view-tutorial-content asciidoc" [innerHTML]="tutorialHtml()"></div>
@@ -187,7 +187,12 @@
         @for (c of connectors(); track $index; let ci = $index) {
           <div class="view-connector-card">
             <div class="view-connector-card-header">
-              <span class="view-connector-name">{{ c.connectorDisplayName || c.name }}</span>
+              <span class="view-connector-name">
+                {{ c.connectorDisplayName || c.name }}
+                @if (isObsoleteConnector(c.connectorTags)) {
+                  <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                }
+              </span>
               <button type="button" class="view-connector-see-compat d-flex align-items-center gap-2"
                       (click)="openCompatibility(c)" title="See connector compatibility">
                 <i class="fa-regular fa-eye"></i>See compatibility
@@ -195,6 +200,13 @@
             </div>
 
             <div class="view-connector-details">
+                @if (isObsoleteConnector(c.connectorTags)) {
+                  <div class="version-exists-warning d-flex align-items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation version-exists-warning-icon"></i>
+                    <span><strong>Obsolete connector.</strong> It is still allowed, but it is superseded and
+                      should not be used for new deployments.</span>
+                  </div>
+                }
                 <div class="view-connector-row">
                   <span class="view-connector-label">Maintainer:</span>
                   <span class="view-connector-value">{{ c.maintainerLabel || '—' }}</span>
@@ -343,7 +355,7 @@
                       }
                       @if (c.className) {
                         <div class="view-connector-row">
-                          <span class="view-connector-label">Class name:</span>
+                          <span class="view-connector-label">Connector class name:</span>
                           <span class="view-connector-value">{{ c.className }}</span>
                         </div>
                       }

@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,13 +13,16 @@ import { toArray } from 'rxjs/operators';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
+import { LinksService } from '../../services/links.service';
 import { PageHeader } from '../page-header/page-header';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
 import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { formatCapabilityLabel } from '../../core/capability-label';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 @Component({
@@ -31,6 +34,7 @@ import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
   styleUrls: ['./edit-upgrade-form.scss']
 })
 export class EditUpgradeForm implements OnInit, OnDestroy {
+  protected readonly links = inject(LinksService).links;
   protected readonly loading = signal<boolean>(true);
   protected readonly showAddConnector = signal<boolean>(false);
   // Set once a connector is added directly to a mutable (in-review/rejected) revision this session.
@@ -93,6 +97,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
+  // Staged deletes stay in: adds are saved before deletes, so re-adding one would still hit the link.
+  protected readonly linkedConnectorIds = computed<number[]>(() => [
+    ...this.connectors().map(c => c.connectorId),
+    ...this.stagedConnectors().map(sc => sc.payload.existingConnectorId)
+  ].filter((id): id is number => id != null));
   protected readonly connectorCapsExpanded = signal<Set<string>>(new Set());
   protected readonly editingConnector = signal<ImplementationListItem | null>(null);
   protected readonly pendingDeleteConnector = signal<ImplementationListItem | null>(null);
@@ -395,9 +405,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-    const withSpaces = text.replace(/_/g, ' ').toLowerCase();
-    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   /** A connector's object-class capabilities, with the Global class first when present. */
@@ -595,7 +603,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const state = this.methodLifecycleState();
     return state === 'IN_REVIEW' || state === 'REJECTED' || state === 'REVIEWING';
   }
-  
+
   // A minor "Save" shows a confirmation modal; a major "Save as new version" shows an upgrade modal.
   // Both are the same modal the publish flow ends on, so an author sees one confirmation whichever
   // way their revision reached a reviewer; its "Done" then leaves to the app detail.

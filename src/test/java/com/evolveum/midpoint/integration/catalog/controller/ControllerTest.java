@@ -38,7 +38,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -347,6 +346,8 @@ class ControllerTest {
                 "Slack",
                 "cloud-based",
                 "Slack integration for team communication",
+                "Provision users and channels from midPoint",
+                1,
                 "1.0",
                 "test@example.com",
                 false,
@@ -373,6 +374,8 @@ class ControllerTest {
                 "", // Empty name - invalid
                 null,
                 "", // Empty description - invalid
+                "", // Empty integration need - invalid
+                null,
                 null,
                 null,
                 null,
@@ -590,7 +593,8 @@ class ControllerTest {
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
                 "com.evolveum.polygon.connector.ldap.LdapConnector",
-                List.of()
+                List.of(),
+                List.of(new ConnectorTagDto("obsolete", "Obsolete"))
         );
         when(applicationService.listCatalogConnectors()).thenReturn(List.of(dto));
 
@@ -598,7 +602,8 @@ class ControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].displayName").value("LDAP Connector"))
-                .andExpect(jsonPath("$[0].bundleFramework").value("JAVA_BASED"));
+                .andExpect(jsonPath("$[0].bundleFramework").value("JAVA_BASED"))
+                .andExpect(jsonPath("$[0].tags[0].name").value("obsolete"));
 
         verify(applicationService).listCatalogConnectors();
     }
@@ -614,48 +619,48 @@ class ControllerTest {
         verify(applicationService).listCatalogConnectors();
     }
 
-    // ===== POST /api/upload/connector =====
+    // ===== POST /api/upload/integration =====
 
     @Test
     void uploadConnectorShouldReturnOkWhenSuccessful() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenReturn("app-uuid|method-uuid");
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
                         .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     @Test
     void uploadConnectorShouldReturnBadRequestOnIllegalArgument() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenThrow(new IllegalArgumentException("Framework must be specified"));
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
                         .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     @Test
     void uploadConnectorShouldReturnConflictOnDuplicateBundle() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
                         .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isConflict());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     // ===== GET /api/connectors/active =====

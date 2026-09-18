@@ -18,6 +18,7 @@ import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/download-info-modal';
 import { ToastService } from '../../services/toast.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 @Component({
   selector: 'app-applications-list',
@@ -633,10 +634,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected formatCapability(capability: string): string {
-    return capability
-      .split('_')
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(' ');
+    return formatCapabilityLabel(capability);
   }
 
   protected formatAppStatus(status: string): string {
@@ -1029,7 +1027,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
     {
       title: 'Import the downloaded JSON file into midPoint',
-      description: 'The imported list will be used to verify which connectors are allowed to '
+      description: 'On the page for importing objects, tick the \'<b>Compatible mode</b>\' option.<br/>The imported list will be used to verify which connectors are allowed to '
         + 'run in a production environment.'
     }
   ];

@@ -131,4 +131,24 @@ public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer
         this.maintainer = maintainer;
         return this;
     }
+
+    public static ConnectorBundle createConnectorBundleDraft(ConnectorBundle source) {
+        ConnectorBundle clone = new ConnectorBundle();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setLifecycleState(LifecycleType.IN_REVIEW);
+        clone.setBundleName(source.getBundleName());
+        clone.setDisplayName(source.getDisplayName());
+        clone.setDescription(source.getDescription());
+        clone.setFramework(source.getFramework());
+        clone.setLicense(source.getLicense());
+        clone.setTicketingLink(source.getTicketingLink());
+        clone.setProjectHomepage(source.getProjectHomepage());
+        clone.setGitCloneUrl(source.getGitCloneUrl());
+        clone.setPathToProject(source.getPathToProject());
+        clone.setBuildFramework(source.getBuildFramework());
+        return clone;
+    }
+
 }

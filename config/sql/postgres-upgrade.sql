@@ -121,7 +121,7 @@ $aa$);
 call apply_change(5, $aa$
 CREATE TABLE IF NOT EXISTS pending_operation (
     id              bigserial PRIMARY KEY,
-    target_system   varchar(50)  NOT NULL,
+    target_system   varchar(50)  NOT NULL, --TODO change to enum
     operation       varchar(100) NOT NULL,
     payload         text         NOT NULL,
     status          varchar(20)  NOT NULL,
@@ -150,6 +150,31 @@ ALTER TABLE connector_bundle DROP CONSTRAINT IF EXISTS unique_connector_bundle_b
 CREATE UNIQUE INDEX unique_active_bundle_name
     ON connector_bundle (bundle_name, revision)
     WHERE lifecycle_state = 'ACTIVE';
+$aa$);
+-- end of region
+
+-- region change 7: a request says which integration it asks for
+-- The request form had a single "Short description" that was stored as application.description, so
+-- whatever the requester wrote about the integration they need showed up in the catalog as the
+-- application's description. integration_need keeps that text on the request instead. The integration
+-- method type picked on the form was sent but never stored; integration_method_type_id keeps it.
+-- ON DELETE SET NULL: removing a type must not take the requests that mention it along.
+call apply_change(7, $aa$
+ALTER TABLE request ADD COLUMN integration_need text;
+ALTER TABLE request ADD COLUMN integration_method_type_id integer;
+ALTER TABLE ONLY request
+    ADD CONSTRAINT fk_request_imt FOREIGN KEY (integration_method_type_id) REFERENCES integration_method_type(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+$aa$);
+-- end of region
+
+-- region change 8: obsolete connector tag
+-- Legacy connectors (e.g. DBTable, ScriptedSQL) stay allowed and counted, but the catalog warns about
+-- them. They are marked by linking this tag in connector_connector_tag. Tags are looked up by name, so
+-- the name becomes unique.
+call apply_change(8, $aa$
+ALTER TABLE ONLY connector_tag
+    ADD CONSTRAINT uq_connector_tag_name UNIQUE (name);
+INSERT INTO connector_tag (name, display_name) VALUES ('obsolete', 'Obsolete');
 $aa$);
 -- end of region
 

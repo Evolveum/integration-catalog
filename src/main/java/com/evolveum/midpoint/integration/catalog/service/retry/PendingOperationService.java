@@ -127,6 +127,7 @@ public class PendingOperationService {
             return 0;
         }
         long total = store.countPending(system);
+        //TODO why log only for condition?
         if (total > pending.size()) {
             log.info("{} operations are owed to {}; taking the oldest {} in this run",
                     total, system, pending.size());

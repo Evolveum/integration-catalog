@@ -152,7 +152,7 @@
 .filter-chip {
   padding: 0.5rem 0.75rem;
   background-color: white;
-  border: 2px solid $midpoint-special-color;
+  border: 2px solid $color-brand-steel;
   font-size: 0.875rem;
   font-weight: 600;
   transition: box-shadow 0.2s ease;
@@ -167,7 +167,7 @@
 }
 
 .badge-counter {
-  background-color: $midpoint-special-color;
+  background-color: $color-brand-steel;
   color: white;
   width: 20px;
   height: 20px;
@@ -379,7 +379,7 @@
    CARD LINKS & BUTTONS
    ======================================== */
 .link-details {
-  color: $btn-more-details-color;
+  color: $color-brand-steel-dark;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
@@ -418,7 +418,7 @@
    ======================================== */
 .publishing-icon {
   font-size: 36px;
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
 }
 
 .in-review-info-box {
@@ -531,12 +531,19 @@
   color: #6c757d;
 }
 
+/* The three advanced-option buttons sit in separate rows, so nothing lines them up
+   on its own; min-width fits the longest label and keeps all three the same size. */
 .btn-option {
   background-color: #e9ecef;
   border: 1px solid #ced4da;
   color: #212529;
   font-weight: 600;
   height: 44px;
+  min-width: 232px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 /* ========================================
@@ -564,8 +571,8 @@
 }
 
 .checkbox-checked {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
 }
 
 .checkbox-unchecked {
@@ -574,7 +581,7 @@
 }
 
 .link-clear-filter {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.875rem;
   text-decoration: none;
 }

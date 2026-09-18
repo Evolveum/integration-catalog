@@ -86,4 +86,25 @@ public class ConnectorVersion implements SetOwnership, GetOwnershipOneMaintainer
 
     @OneToMany(mappedBy = "connectorVersion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnVersionCapability> capabilities = new ArrayList<>();
+
+    public static ConnectorVersion createConnectorVersionDraft(
+            ConnectorVersion source, Connector connector, ConnectorBundleVersion connectorBundleVersion) {
+        ConnectorVersion clone = createConnectorVersion(source, connector, connectorBundleVersion);
+        clone.setLifecycleState(LifecycleType.IN_REVIEW);
+        return clone;
+    }
+
+    public static ConnectorVersion createConnectorVersion(
+            ConnectorVersion source, Connector connector, ConnectorBundleVersion connectorBundleVersion) {
+        ConnectorVersion clone = new ConnectorVersion();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setConnector(connector);
+        clone.setConnectorBundleVersion(connectorBundleVersion);
+        clone.setLifecycleState(source.getLifecycleState());
+        clone.setFullyQualifiedClassName(source.getFullyQualifiedClassName());
+        clone.setErrorMessage(source.getErrorMessage());
+        return clone;
+    }
 }

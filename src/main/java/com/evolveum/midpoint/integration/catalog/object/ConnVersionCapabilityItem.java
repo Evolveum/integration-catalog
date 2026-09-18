@@ -31,4 +31,12 @@ public class ConnVersionCapabilityItem {
     @ManyToOne
     @JoinColumn(name = "capability_id", insertable = false, updatable = false)
     private Capability capability;
+
+    public static ConnVersionCapabilityItem createConnVersionCapabilityItemDraft(
+            ConnVersionCapabilityItem srcItem, ConnVersionCapability savedCap) {
+        ConnVersionCapabilityItem clone = new ConnVersionCapabilityItem();
+        clone.setConnVersionCapabilityId(savedCap.getId());
+        clone.setCapabilityId(srcItem.getCapabilityId());
+        return clone;
+    }
 }

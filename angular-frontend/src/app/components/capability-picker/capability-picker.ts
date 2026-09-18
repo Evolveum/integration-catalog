@@ -7,6 +7,7 @@
 import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit, HostListener, HostBinding, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 export interface CapabilityGroup {
   objectClass: string;
@@ -111,7 +112,7 @@ export class CapabilityPicker implements OnInit, OnChanges {
   }
 
   protected fmt(cap: string): string {
-    return cap.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    return formatCapabilityLabel(cap);
   }
 
   protected onGlobalChange(event: Event, cap: string): void {

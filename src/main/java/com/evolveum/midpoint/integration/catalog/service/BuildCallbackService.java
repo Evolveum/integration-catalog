@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
+import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -55,7 +56,8 @@ public class BuildCallbackService {
      */
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
-        IntegrationMethod method = findIntegrationMethod(oid, continueForm.getIntegrationMethodRevision());
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, continueForm.getIntegrationMethodRevision(), integrationMethodRepository);
         ConnectorBundleVersion bundleVersion = resolveBundleVersion(
                 continueForm.getConnectorBundleVersionId(), continueForm.getConnectorBundleVersionRevision(),
                 continueForm.getConnectorVersionId(), continueForm.getConnectorVersionRevision());
@@ -119,7 +121,8 @@ public class BuildCallbackService {
      */
     @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
-        IntegrationMethod method = findIntegrationMethod(oid, failForm.getIntegrationMethodRevision());
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, failForm.getIntegrationMethodRevision(), integrationMethodRepository);
         ConnectorBundleVersion bundleVersion = resolveBundleVersion(
                 failForm.getConnectorBundleVersionId(), failForm.getConnectorBundleVersionRevision(),
                 failForm.getConnectorVersionId(), failForm.getConnectorVersionRevision());
@@ -231,16 +234,6 @@ public class BuildCallbackService {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private IntegrationMethod findIntegrationMethod(UUID id, String revision) {
-        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
-
-    private ConnectorVersion findConnectorVersion(String id, String revision) {
-        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
-
     /**
      * The bundle version a callback is about. Jenkins names it directly; a job that still reports only
      * the connector version it was given is answered through that version's bundle.
@@ -254,7 +247,8 @@ public class BuildCallbackService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             "Connector bundle version not found: " + bundleVersionId + "/" + bundleVersionRevision));
         }
-        ConnectorBundleVersion cbv = findConnectorVersion(connectorVersionId, connectorVersionRevision)
+        ConnectorBundleVersion cbv = RepositoryUtil.findConnectorVersion(
+                connectorVersionId, connectorVersionRevision, connectorVersionRepository)
                 .getConnectorBundleVersion();
         if (cbv == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
