@@ -161,7 +161,7 @@ public class GraviteeClient {
         List<ApiKeyState> states = new ArrayList<>();
         for (JsonNode key : keys) {
             states.add(new ApiKeyState(key.path("id").asText(null), instantOf(key, "expireAt"),
-                    key.path("revoked").asBoolean(false)));
+                    key.path("revoked").asBoolean(false), instantOf(key, "revokedAt")));
         }
         return states;
     }
@@ -194,7 +194,7 @@ public class GraviteeClient {
     }
 
     /** One key of a subscription without its value; a null expiration means it does not expire. */
-    public record ApiKeyState(String id, Instant expireAt, boolean revoked) {
+    public record ApiKeyState(String id, Instant expireAt, boolean revoked, Instant revokedAt) {
     }
 
     private String subscriptionUrl(String subscriptionId) {

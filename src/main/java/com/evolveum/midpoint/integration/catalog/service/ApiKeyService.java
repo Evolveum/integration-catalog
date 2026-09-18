@@ -27,7 +27,9 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Personal API keys of the logged-in user: Gravitee mints and owns them, this keeps the catalog's
@@ -55,11 +57,69 @@ public class ApiKeyService {
         this.properties = properties;
     }
 
-    /** Keys of the given user, newest first. Revoked and expired ones are included. */
+    /**
+     * Keys of the given user, newest first. Revoked and expired ones are included. The working ones
+     * are checked against Gravitee first, so a key ended there is not listed as active.
+     */
+    @Transactional
     public List<ApiKeyDto> list(OidcUser user) {
-        return repository.findByOwnerSubOrderByCreatedAtDesc(subjectOf(user)).stream()
+        List<ApiKey> keys = repository.findByOwnerSubOrderByCreatedAtDesc(subjectOf(user));
+        if (properties.enabled()) {
+            reconcile(keys);
+        }
+        return keys.stream()
                 .map(ApiKeyDto::of)
                 .toList();
+    }
+
+    /**
+     * Folds what Gravitee knows into the working keys: a revocation, or an expiration earlier than the
+     * recorded one. Catches what the catalog never saw - changes made in the Gravitee console, or a
+     * write here that failed after Gravitee had already acted. Only ever shortens a key's life; a
+     * subscription Gravitee cannot answer for keeps its recorded state.
+     */
+    private void reconcile(List<ApiKey> keys) {
+        Instant now = Instant.now();
+        Map<String, List<ApiKey>> workingBySubscription = keys.stream()
+                .filter(key -> isWorking(key, now))
+                .collect(Collectors.groupingBy(ApiKey::getGraviteeSubscriptionId));
+
+        for (Map.Entry<String, List<ApiKey>> entry : workingBySubscription.entrySet()) {
+            Map<String, GraviteeClient.ApiKeyState> states = new HashMap<>();
+            try {
+                for (GraviteeClient.ApiKeyState state : gravitee.listApiKeys(entry.getKey())) {
+                    if (state.id() != null) {
+                        states.put(state.id(), state);
+                    }
+                }
+            } catch (IOException e) {
+                LOGGER.warn("Could not read the keys of subscription {}; listing them as recorded.", entry.getKey(), e);
+                continue;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+
+            for (ApiKey key : entry.getValue()) {
+                GraviteeClient.ApiKeyState state = states.get(key.getGraviteeApiKeyId());
+                if (state == null) {
+                    continue;
+                }
+                boolean changed = false;
+                if (state.revoked()) {
+                    key.setRevokedAt(state.revokedAt() != null ? state.revokedAt() : now);
+                    changed = true;
+                }
+                Instant expiresAt = earliest(key.getExpiresAt(), state.expireAt());
+                if (!Objects.equals(expiresAt, key.getExpiresAt())) {
+                    key.setExpiresAt(expiresAt);
+                    changed = true;
+                }
+                if (changed) {
+                    repository.save(key);
+                }
+            }
+        }
     }
 
     /**
@@ -119,7 +179,9 @@ public class ApiKeyService {
     @Transactional
     public CreatedApiKeyDto renew(OidcUser user, String id) {
         requireConfigured();
-        ApiKey old = ownKey(subjectOf(user), id);
+        // Locked: a second rotation of the same key (double click, second tab) waits here and is then
+        // refused, instead of renewing again and recording the first new key without its grace end.
+        ApiKey old = ownKeyLocked(subjectOf(user), id);
         Instant now = Instant.now();
         if (!isWorking(old, now) || old.getReplacedAt() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -179,7 +241,9 @@ public class ApiKeyService {
     @Transactional
     public void revoke(OidcUser user, String id) {
         requireConfigured();
-        ApiKey key = ownKey(subjectOf(user), id);
+        // Locked like renew: a revoke racing a rotation could close the subscription without
+        // seeing the new key, leaving it listed as working.
+        ApiKey key = ownKeyLocked(subjectOf(user), id);
         if (key.getRevokedAt() != null) {
             return;
         }
@@ -244,15 +308,18 @@ public class ApiKeyService {
         }
     }
 
-    /** Somebody else's key is reported missing rather than forbidden: it is none of their business. */
-    private ApiKey ownKey(String subject, String id) {
+    /**
+     * The caller's key with its row locked for the rest of the transaction. Somebody else's key is
+     * reported missing rather than forbidden: it is none of their business.
+     */
+    private ApiKey ownKeyLocked(String subject, String id) {
         UUID keyId;
         try {
             keyId = UUID.fromString(id);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No such API key.", e);
         }
-        return repository.findById(keyId)
+        return repository.findByIdForUpdate(keyId)
                 .filter(key -> subject.equals(key.getOwnerSub()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such API key."));
     }
