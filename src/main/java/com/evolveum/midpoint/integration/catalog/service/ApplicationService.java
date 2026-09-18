@@ -32,12 +32,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -299,7 +296,7 @@ public class ApplicationService {
 
     @Transactional
     public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
-                                                AddConnectorDto dto, String username) {
+                                                  AddConnectorDto dto, String username) {
         assertCanEditMethod(username, methodId, revision);
         return connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
     }
@@ -481,9 +478,12 @@ public class ApplicationService {
                 })
                 .toList();
 
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.ENGLISH);
+
         return new AllowedConnectorsListDto(
                 new SignedActiveConnectorsListDto(
-                        "Connectors from Integration catalog",
+                        "Connectors from Integration catalog " + now.format(formatter),
                         list));
     }
 

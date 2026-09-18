@@ -1020,7 +1020,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
     {
       title: 'Import the downloaded JSON file into midPoint',
-      description: 'The imported list will be used to verify which connectors are allowed to '
+      description: 'On the page for importing objects, tick the \'<b>Compatible mode</b>\' option.<br/>The imported list will be used to verify which connectors are allowed to '
         + 'run in a production environment.'
     }
   ];
