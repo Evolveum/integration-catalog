@@ -827,7 +827,6 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);
         setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-        this.authService.login();
       } else {
         this.showPermissionDeniedMessage.set(true);
         setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
@@ -854,7 +853,6 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);
         setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-        this.authService.login();
       } else {
         this.showPermissionDeniedMessage.set(true);
         setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
