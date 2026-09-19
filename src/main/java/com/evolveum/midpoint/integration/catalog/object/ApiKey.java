@@ -29,10 +29,6 @@ public class ApiKey {
     @Column(name = "name", nullable = false)
     private String name;
 
-    /** The identity provider's {@code sub} claim: unlike the username, it survives a rename. */
-    @Column(name = "owner_sub", nullable = false)
-    private String ownerSub;
-
     /** Display copy, so a key can be attributed without asking the provider. */
     @Column(name = "owner_username", nullable = false)
     private String ownerUsername;
@@ -79,14 +75,6 @@ public class ApiKey {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getOwnerSub() {
-        return ownerSub;
-    }
-
-    public void setOwnerSub(String ownerSub) {
-        this.ownerSub = ownerSub;
     }
 
     public String getOwnerUsername() {

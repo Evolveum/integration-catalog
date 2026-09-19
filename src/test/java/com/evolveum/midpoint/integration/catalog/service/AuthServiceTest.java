@@ -93,9 +93,8 @@ class AuthServiceTest {
 
         assertEquals("olivia", user.username());
         assertEquals("OrganizationContributor", user.role());
-        assertEquals("acme", user.organizationId());
-        assertEquals("Acme co.", user.organizationName());
-        assertEquals("Olivia Parker", user.fullName());
+        assertEquals("acme", user.organizationName());
+        assertEquals("Acme co.", user.organizationDisplayName());
         assertEquals("olivia@acme.example", user.email());
     }
 
@@ -110,10 +109,6 @@ class AuthServiceTest {
 
         assertEquals("Olivia", user.firstName());
         assertEquals("Parker", user.lastName());
-        assertEquals("+421 900 000 000", user.phoneNumber());
-        assertEquals("sk-SK", user.locale());
-        assertEquals("Europe/Bratislava", user.zoneInfo());
-        assertEquals("https://iam.example/account", user.iamProfileUrl());
     }
 
     /** A claim the provider does not emit stays null, so the page can say "not provided". */
@@ -123,9 +118,6 @@ class AuthServiceTest {
 
         assertNull(user.firstName());
         assertNull(user.lastName());
-        assertNull(user.phoneNumber());
-        assertNull(user.locale());
-        assertNull(user.zoneInfo());
     }
 
     @Test
@@ -137,8 +129,8 @@ class AuthServiceTest {
 
         CurrentUserDto user = authService.getCurrentUser("olivia", oidcUser);
 
-        assertEquals("acme", user.organizationId());
-        assertEquals("Acme co.", user.organizationName());
+        assertEquals("acme", user.organizationName());
+        assertEquals("Acme co.", user.organizationDisplayName());
     }
 
     @Test
@@ -149,8 +141,8 @@ class AuthServiceTest {
                 oidcUser(Map.of("organization", List.of("acme"))));
 
         // Identifier without a name is what tells the frontend the organization is unregistered.
-        assertEquals("acme", user.organizationId());
-        assertNull(user.organizationName());
+        assertEquals("acme", user.organizationName());
+        assertNull(user.organizationDisplayName());
     }
 
     @Test
@@ -158,8 +150,8 @@ class AuthServiceTest {
         CurrentUserDto user = authService.getCurrentUser("ben", oidcUser(Map.of()));
 
         assertEquals("ReadOnly", user.role());
-        assertNull(user.organizationId());
         assertNull(user.organizationName());
+        assertNull(user.organizationDisplayName());
     }
 
     @Test
@@ -175,8 +167,8 @@ class AuthServiceTest {
         CurrentUserDto user = authService.getCurrentUser("anonymous", null);
 
         assertEquals("ReadOnly", user.role());
-        assertNull(user.organizationId());
         assertNull(user.organizationName());
+        assertNull(user.organizationDisplayName());
     }
 
     // ---- canEdit ----

@@ -40,12 +40,12 @@
           <strong>Profile data is managed in midPoint IAM</strong>
           <span>This information is read-only in Integration Catalog. To update your profile, make the change in midPoint IAM.</span>
         </div>
-        @if (profile()!.iamProfileUrl) {
+        <!-- TODO use property for href-->
           <a class="iam-banner-btn d-flex align-items-center gap-2 ms-auto"
-             [href]="profile()!.iamProfileUrl" target="_blank" rel="noopener noreferrer">
+             href="https://iam.evolveum.com/midpoint/self/profile/user"
+             target="_blank" rel="noopener noreferrer">
             Open midPoint IAM<i class="fa-solid fa-arrow-up-right-from-square"></i>
           </a>
-        }
       </div>
 
       <div class="settings-card">
@@ -63,8 +63,6 @@
             (click)="activeProfileTab.set('general')">General</button>
           <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'contact'"
             (click)="activeProfileTab.set('contact')">Contact information</button>
-          <!-- <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'regional'"
-            (click)="activeProfileTab.set('regional')">Regional settings</button> -->
         </div>
 
         <!-- Every field is read-only: the value is whatever the token carried. -->
@@ -82,11 +80,6 @@
                   [value]="profile()!.lastName || ''" placeholder="Not provided">
               </div>
               <div class="profile-field">
-                <label class="profile-label" for="display-name">Display name</label>
-                <input id="display-name" class="profile-input" type="text" readonly
-                  [value]="profile()!.fullName || ''" placeholder="Not provided">
-              </div>
-              <div class="profile-field">
                 <label class="profile-label" for="username">Username</label>
                 <input id="username" class="profile-input" type="text" readonly [value]="profile()!.username">
               </div>
@@ -98,7 +91,7 @@
               <div class="profile-field">
                 <label class="profile-label" for="organization">Organization</label>
                 <input id="organization" class="profile-input" type="text" readonly
-                  [value]="profile()!.organizationName || profile()!.organizationId || ''"
+                  [value]="profile()!.organizationDisplayName || profile()!.organizationName || ''"
                   placeholder="No organization">
               </div>
               <div class="profile-field profile-field-wide">
@@ -115,26 +108,6 @@
                 <input id="email" class="profile-input" type="text" readonly
                   [value]="profile()!.email || ''" placeholder="Not provided">
               </div>
-              <div class="profile-field">
-                <label class="profile-label" for="phone">Phone number</label>
-                <input id="phone" class="profile-input" type="text" readonly
-                  [value]="profile()!.phoneNumber || ''" placeholder="Not provided">
-              </div>
-            </div>
-          }
-          @case ('regional') {
-            <div class="profile-grid">
-              <div class="profile-field">
-                <label class="profile-label" for="locale">Language</label>
-                <input id="locale" class="profile-input" type="text" readonly
-                  [value]="profile()!.locale || ''" placeholder="Not provided">
-              </div>
-              <div class="profile-field">
-                <label class="profile-label" for="timezone">Time zone</label>
-                <input id="timezone" class="profile-input" type="text" readonly
-                  [value]="profile()!.zoneInfo || ''" placeholder="Not provided">
-              </div>
-            </div>
           }
         }
       </div>

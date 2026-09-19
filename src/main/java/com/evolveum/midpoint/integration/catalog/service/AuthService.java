@@ -54,26 +54,21 @@ public class AuthService {
      */
     public CurrentUserDto getCurrentUser(String username, OidcUser oidcUser) {
         String role = CatalogRole.READ_ONLY;
-        String organizationId = null;
         String organizationName = null;
+        String organizationDisplayName = null;
         if (oidcUser != null) {
             role = claims.effectiveRole(oidcUser);
-            organizationId = claims.organizationId(oidcUser);
-            organizationName = organizationService.displayName(organizationId);
+            organizationName = claims.organizationId(oidcUser);
+            organizationDisplayName = organizationService.displayName(organizationName);
         }
         return new CurrentUserDto(
                 username,
-                oidcUser != null ? oidcUser.getFullName() : null,
                 oidcUser != null ? oidcUser.getGivenName() : null,
                 oidcUser != null ? oidcUser.getFamilyName() : null,
                 oidcUser != null ? oidcUser.getEmail() : null,
-                oidcUser != null ? oidcUser.getPhoneNumber() : null,
-                oidcUser != null ? oidcUser.getLocale() : null,
-                oidcUser != null ? oidcUser.getZoneInfo() : null,
                 role,
-                organizationId,
                 organizationName,
-                iamProfileUrl == null || iamProfileUrl.isBlank() ? null : iamProfileUrl
+                organizationDisplayName
         );
     }
 

@@ -63,7 +63,7 @@ public class ApiKeyService {
      */
     @Transactional
     public List<ApiKeyDto> list(OidcUser user) {
-        List<ApiKey> keys = repository.findByOwnerSubOrderByCreatedAtDesc(subjectOf(user));
+        List<ApiKey> keys = repository.findByOwnerUsernameOrderByCreatedAtDesc(user.getName());
         if (properties.enabled()) {
             reconcile(keys);
         }
@@ -135,13 +135,12 @@ public class ApiKeyService {
         }
         Instant expiresAt = validExpiration(request.expiresAt());
 
-        String subject = subjectOf(user);
-        String username = user.getPreferredUsername() != null ? user.getPreferredUsername() : subject;
+        String username = user.getName();
 
         try {
             // One application per key: Gravitee refuses a second live subscription of the same
             // application to the same plan, so a shared per-user application would allow one key.
-            String applicationId = gravitee.createApplication(username, subject, name);
+            String applicationId = gravitee.createApplication(username, name);
 
             String subscriptionId = gravitee.createSubscription(applicationId);
             GraviteeClient.ApiKeyMaterial material = gravitee.fetchApiKey(subscriptionId);
@@ -151,7 +150,6 @@ public class ApiKeyService {
             ApiKey key = new ApiKey();
             key.setId(UUID.randomUUID());
             key.setName(name);
-            key.setOwnerSub(subject);
             key.setOwnerUsername(username);
             key.setGraviteeApplicationId(applicationId);
             key.setGraviteeSubscriptionId(subscriptionId);
@@ -181,7 +179,7 @@ public class ApiKeyService {
         requireConfigured();
         // Locked: a second rotation of the same key (double click, second tab) waits here and is then
         // refused, instead of renewing again and recording the first new key without its grace end.
-        ApiKey old = ownKeyLocked(subjectOf(user), id);
+        ApiKey old = ownKeyLocked(user.getName(), id);
         Instant now = Instant.now();
         if (!isWorking(old, now) || old.getReplacedAt() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -219,7 +217,6 @@ public class ApiKeyService {
         ApiKey renewed = new ApiKey();
         renewed.setId(UUID.randomUUID());
         renewed.setName(old.getName());
-        renewed.setOwnerSub(old.getOwnerSub());
         renewed.setOwnerUsername(old.getOwnerUsername());
         renewed.setGraviteeApplicationId(old.getGraviteeApplicationId());
         renewed.setGraviteeSubscriptionId(subscriptionId);
@@ -243,7 +240,7 @@ public class ApiKeyService {
         requireConfigured();
         // Locked like renew: a revoke racing a rotation could close the subscription without
         // seeing the new key, leaving it listed as working.
-        ApiKey key = ownKeyLocked(subjectOf(user), id);
+        ApiKey key = ownKeyLocked(user.getName(), id);
         if (key.getRevokedAt() != null) {
             return;
         }
@@ -312,7 +309,7 @@ public class ApiKeyService {
      * The caller's key with its row locked for the rest of the transaction. Somebody else's key is
      * reported missing rather than forbidden: it is none of their business.
      */
-    private ApiKey ownKeyLocked(String subject, String id) {
+    private ApiKey ownKeyLocked(String username, String id) {
         UUID keyId;
         try {
             keyId = UUID.fromString(id);
@@ -320,7 +317,7 @@ public class ApiKeyService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No such API key.", e);
         }
         return repository.findByIdForUpdate(keyId)
-                .filter(key -> subject.equals(key.getOwnerSub()))
+                .filter(key -> username.equals(key.getOwnerUsername()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such API key."));
     }
 
@@ -354,12 +351,5 @@ public class ApiKeyService {
 
     private static String hintOf(String value) {
         return value.length() <= HINT_LENGTH ? value : value.substring(value.length() - HINT_LENGTH);
-    }
-
-    private String subjectOf(OidcUser user) {
-        if (user == null || user.getSubject() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "API keys need a logged-in user.");
-        }
-        return user.getSubject();
     }
 }

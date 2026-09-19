@@ -88,9 +88,12 @@ public class OwnershipService {
         if (caller == null || maintainer == null || maintainer.isBlank()) {
             return null;
         }
-        String callerName = caller.getPreferredUsername() != null
-                ? caller.getPreferredUsername()
-                : caller.getSubject();
+        String callerName = caller.getPreferredUsername();
+        if (callerName == null) {
+
+        }
+
+
         if (callerName == null || !maintainer.trim().equalsIgnoreCase(callerName.trim())) {
             return null;
         }

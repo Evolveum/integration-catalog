@@ -52,12 +52,11 @@ public class GraviteeClient {
      * Creates the Gravitee application that carries one key; its name and description only keep the
      * Gravitee console readable.
      */
-    public String createApplication(String username, String subject, String keyName)
+    public String createApplication(String username, String keyName)
             throws IOException, InterruptedException {
         ObjectNode body = objectMapper.createObjectNode()
                 .put("name", "ic-" + username + "-" + keyName)
-                .put("description", "Integration Catalog key \"" + keyName + "\" of " + username
-                        + " (sub " + subject + ")");
+                .put("description", "Integration Catalog key \"" + keyName + "\" of " + username);
 
         JsonNode created = send(post(properties.managementV1Base() + "/applications", body), "create the application");
         return requireText(created, "id", "application");
