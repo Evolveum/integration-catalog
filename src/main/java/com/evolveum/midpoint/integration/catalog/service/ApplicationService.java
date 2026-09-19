@@ -144,7 +144,7 @@ public class ApplicationService {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException(
                         "Integration method not found: " + methodId + "/" + revision));
-        if (!authService.canEdit(username, method.getMaintainer())) {
+        if (!authService.canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this integration method.");
         }
@@ -181,7 +181,7 @@ public class ApplicationService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException(
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
-        if (!authService.canEdit(username, connector.getMaintainer())) {
+        if (!authService.canEdit(username, method.getLifecycleState(), connector.getAuthor(), connector.getMaintainer())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this connector.");
         }

@@ -231,7 +231,7 @@ public class ApplicationMapper {
         // The organization ids are part of the check: an item maintained by an organization
         // carries no maintainer username, so a name-only comparison would hide the ticket
         // from the very org-mates the review concerns.
-        return authService.canEdit(viewer, method.getMaintainer())
+        return authService.canEdit(viewer, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())
                 ? method.getSupportTicketId() : null;
     }
 

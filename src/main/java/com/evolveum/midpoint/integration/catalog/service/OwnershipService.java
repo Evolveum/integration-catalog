@@ -142,19 +142,14 @@ public class OwnershipService {
     }
 
     /**
-     * The organization a request names. An alias is what a read hands out, so it is tried first,
+     * The organization a request names. An name is what a read hands out, so it is tried first,
      * and a display name after it, which is what a form filled in by hand is likely to carry.
      */
     private Organization organizationOf(String organizationName) {
         if (StringUtils.isEmpty(organizationName)) {
             return null;
         }
-        Organization byAlias = organizationService.getOrganizationByName(organizationName);
-        if (byAlias != null) {
-            return byAlias;
-        }
-        String alias = organizationService.displayNameOfName(organizationName);
-        return alias != null ? organizationService.getOrganizationByName(alias) : null;
+        return organizationService.getOrganizationByName(organizationName);
     }
 
     /** A maintainer as the API carries it, labelled for display. */

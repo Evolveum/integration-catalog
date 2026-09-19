@@ -8,10 +8,8 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
-import com.evolveum.midpoint.integration.catalog.object.Maintainer;
-import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
-import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
@@ -89,11 +87,10 @@ public class AuthService {
 
         for (Maintainer maintainer : maintainerRepository.findAll()) {
             all.add(ownershipService.toDto(maintainer));
-            if (maintainer.getUsername() != null) {
-                takenUsernames.add(maintainer.getUsername().toLowerCase());
-            }
-            if (maintainer.getOrganization() != null) {
-                takenOrganizations.add(maintainer.getOrganization().getName().toLowerCase());
+
+            switch (maintainer.getCategory()){
+                case USER -> takenUsernames.add(maintainer.getUsername().toLowerCase());
+                case ORG -> takenOrganizations.add(maintainer.getOrganization().getName().toLowerCase());
             }
         }
 
@@ -102,7 +99,7 @@ public class AuthService {
                 .map(username -> new MaintainerDto(null, username, null, MaintainerType.USER, username))
                 .forEach(all::add);
 
-        organizationService.allAliases().stream()
+        organizationService.allNames().stream()
                 .filter(alias -> !takenOrganizations.contains(alias.toLowerCase()))
                 .map(alias -> new MaintainerDto(
                         null, null, alias, MaintainerType.ORG, organizationService.displayName(alias)))
@@ -126,7 +123,7 @@ public class AuthService {
      * contributor, and otherwise the caller must be the maintainer or contribute for the
      * organization that is. Who authored the item grants nothing - it is recorded for audit.
      */
-    public boolean canEdit(String username, Maintainer maintainer) {
+    public boolean canEdit(String username, LifecycleType lifecycleType, Author author, Maintainer maintainer) {
         if (username == null || username.isBlank()) {
             return false;
         }
@@ -146,7 +143,13 @@ public class AuthService {
         }
 
         if (maintainer.getCategory() == MaintainerType.COMMUNITY) {
-            return true;
+            if (LifecycleType.IN_REVIEW == lifecycleType
+                    || LifecycleType.REVIEWING == lifecycleType
+                    || LifecycleType.REJECTED == lifecycleType) {
+                return Strings.CS.equals(username, author.getUsername());
+            } else {
+                return true;
+            }
         }
 
         if (Strings.CI.equals(maintainer.getUsername(), username)) {

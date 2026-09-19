@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.integration.OpenProjectClient;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
@@ -301,7 +302,7 @@ public class SupportTicketService {
             log.error("Failed to report a build outcome on support work package {}: {}",
                     method.getSupportTicketId(), e.getMessage());
             return OperationResult.retry("Could not report a build outcome on work package #"
-                    + method.getSupportTicketId() + ": " + reason(e));
+                    + method.getSupportTicketId() + ": " + reasonFromException(e));
         }
     }
 
@@ -739,7 +740,7 @@ public class SupportTicketService {
         // canEdit already lets a superuser through, so the reviewer needs no separate case. The
         // organization ids go with the names: an item maintained by an organization carries no
         // maintainer username, so a name-only check would lock out the org-mates the review concerns.
-        if (!authService.canEdit(username, method.getMaintainer())) {
+        if (!authService.canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Not allowed to see the support ticket of " + methodId + "/" + revision);
         }

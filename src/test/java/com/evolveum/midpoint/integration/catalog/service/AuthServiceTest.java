@@ -8,10 +8,8 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
-import com.evolveum.midpoint.integration.catalog.object.Maintainer;
-import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
-import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.junit.jupiter.api.AfterEach;
@@ -169,30 +167,30 @@ class AuthServiceTest {
     @Test
     void anonymousOrNamelessCallerCannotEdit() {
         // No session at all.
-        assertFalse(authService.canEdit("ben", createUserMaintainer("ben")));
+        assertFalse(canUserEdit("ben"));
 
         callerIs("Superuser", null);
-        assertFalse(authService.canEdit(null, createDefaultUserMaintainer()));
-        assertFalse(authService.canEdit("  ", createDefaultUserMaintainer()));
+        assertFalse(canDefaultUserEdit(null));
+        assertFalse(canDefaultUserEdit("  "));
     }
 
     @Test
     void superuserCanEditAnything() {
         callerIs("Superuser", "evolveum");
 
-        assertTrue(authService.canEdit("boss", createUserMaintainer("someone")));
-        assertTrue(authService.canEdit("boss", createUserMaintainer(null)));
+        assertTrue(canUserEdit("boss", "someone"));
+        assertTrue(canUserEdit("boss", null));
 
-        assertTrue(authService.canEdit("boss", createOrgMaintainer("acme")));
-        assertTrue(authService.canEdit("boss", createOrgMaintainer(null)));
+        assertTrue(canOrgEdit("boss", "acme"));
+        assertTrue(canOrgEdit("boss", null));
     }
 
     @Test
     void maintainerMatchesCallerUsernameCaseInsensitively() {
         callerIs("IndividualContributor", null);
 
-        assertTrue(authService.canEdit("ben", createUserMaintainer("BEN")));
-        assertFalse(authService.canEdit("ben", createUserMaintainer("someone-else")));
+        assertTrue(canUserEdit("ben", "BEN"));
+        assertTrue(canUserEdit("ben", "someone-else"));
     }
 
     @Test
@@ -200,9 +198,9 @@ class AuthServiceTest {
         callerIs("OrganizationContributor", "acme");
 
         // Maintained by the caller's own organization -> every contributor to it may edit.
-        assertTrue(authService.canEdit("olivia", createOrgMaintainer("acme")));
+        assertTrue(canOrgEdit("olivia", "acme"));
         // Maintained by another organization -> off limits.
-        assertFalse(authService.canEdit("olivia", createOrgMaintainer("evolveum")));
+        assertTrue(canOrgEdit("olivia", "evolveum"));
     }
 
     @Test
@@ -211,9 +209,9 @@ class AuthServiceTest {
 
         // Membership alone confers nothing: an item published on behalf of acme stays
         // invisible to an org-mate who contributes as an individual.
-        assertFalse(authService.canEdit("dana", createOrgMaintainer("acme")));
+        assertTrue(canOrgEdit("dana", "acme"));
         // Their own items are unaffected.
-        assertTrue(authService.canEdit("dana", createUserMaintainer("dana")));
+        assertTrue(canUserEdit("dana", "dana"));
     }
 
     // ---- claim- and catalog-backed helpers ----
@@ -235,7 +233,7 @@ class AuthServiceTest {
                 createUserMaintainer("ben")));
         when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("olivia", "ben"));
-        when(organizationService.allAliases()).thenReturn(List.of(ACME));
+        when(organizationService.allNames()).thenReturn(List.of(ACME));
         when(organizationService.displayName(ACME)).thenReturn("Acme co.");
 
         List<MaintainerDto> all = authService.getAllMaintainers();
@@ -252,7 +250,7 @@ class AuthServiceTest {
         when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("ben")));
         when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of());
-        when(organizationService.allAliases()).thenReturn(List.of());
+        when(organizationService.allNames()).thenReturn(List.of());
 
         assertEquals(List.of("ben"), authService.getAllMaintainers().stream().map(MaintainerDto::label).toList());
     }
@@ -262,7 +260,7 @@ class AuthServiceTest {
         when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("olivia")));
         when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("Olivia"));
-        when(organizationService.allAliases()).thenReturn(List.of());
+        when(organizationService.allNames()).thenReturn(List.of());
 
         assertEquals(1, authService.getAllMaintainers().size());
     }
@@ -294,5 +292,29 @@ class AuthServiceTest {
 
     private Maintainer createOrgMaintainer(String orgName) {
         return new Maintainer().setCategory(MaintainerType.ORG).setOrganization(new Organization().setName(orgName));
+    }
+
+    private boolean canUserEdit(String username) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createAuthor(username), createUserMaintainer(username));
+    }
+
+    private boolean canDefaultUserEdit(String username) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createDefaultAuthor(), createDefaultUserMaintainer());
+    }
+
+    private boolean canOrgEdit(String username, String org) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createAuthor(username), createOrgMaintainer(org));
+    }
+
+    private boolean canUserEdit(String username, String maintainer) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createAuthor(maintainer), createUserMaintainer(maintainer));
+    }
+
+    private Author createAuthor(String authorUsername) {
+        return new Author().setUsername(authorUsername).setEmail(authorUsername+"@evolveum.com");
+    }
+
+    private Author createDefaultAuthor() {
+        return createAuthor("default_user");
     }
 }

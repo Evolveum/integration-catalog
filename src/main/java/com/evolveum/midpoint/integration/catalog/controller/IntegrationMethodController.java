@@ -163,7 +163,7 @@ public class IntegrationMethodController {
             @PathVariable String revision,
             Authentication authentication) {
         try {
-            applicationService.approveIntegrationMethod(methodId, revision, username);
+            applicationService.approveIntegrationMethod(methodId, revision, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -434,7 +434,7 @@ public class IntegrationMethodController {
             @PathVariable String revision,
             Authentication authentication) {
         try {
-            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, username));
+            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, authentication.getName()));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

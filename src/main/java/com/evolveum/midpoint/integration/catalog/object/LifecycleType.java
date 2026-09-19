@@ -12,8 +12,8 @@ public enum LifecycleType {
     // until the review is resolved (approve -> ACTIVE, reject -> REJECTED, or stop -> IN_REVIEW).
     REVIEWING,
     ACTIVE,
-    DEPRECATED,
-    ARCHIVED,
-    WITH_ERROR,
+//    DEPRECATED,
+//    ARCHIVED,
+//    WITH_ERROR,
     REJECTED
 }

@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.configuration.CatalogProperties
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

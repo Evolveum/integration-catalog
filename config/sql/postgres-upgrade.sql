@@ -188,7 +188,7 @@ $aa$);
 -- so it can answer "the caller's address" but never "that other person's address". Change 8
 -- therefore stamps author_email on the item at write time, the same way it stamps author_org_id,
 -- and change 4 becomes a column that existed only between these two changes.
-call apply_change(7, $aa$
+call apply_change(9, $aa$
 DROP TABLE IF EXISTS catalog_users;
 DROP INDEX IF EXISTS idx_catalog_users_org_id;
 $aa$);
@@ -205,7 +205,7 @@ $aa$);
 -- and the renameable human name moves to display_name. The database cannot know the aliases, so
 -- change 9 fills display_name from the name the rows already carry and the aliases have to be
 -- written into organizations.name by hand afterwards.
-call apply_change(8, $aa$
+call apply_change(10, $aa$
 ALTER TABLE organizations
     ADD COLUMN IF NOT EXISTS display_name character varying(355);
 
@@ -331,7 +331,7 @@ $aa$);
 --
 -- COMMUNITY rather than EVOLVEUM because it is the weaker of the two: it says nothing about who
 -- published the item, and change 8's rules let any contributor take over what it maintains.
-call apply_change(9, $aa$
+call apply_change(11, $aa$
 UPDATE organizations SET display_name = name WHERE display_name IS NULL;
 
 ALTER TABLE organizations
@@ -433,7 +433,7 @@ $aa$);
 -- The column has held the principal name since the catalog started reading identity from the
 -- token - that is preferred_username, not an id of anything. Renamed so it stops promising a
 -- key into a user table that does not exist, and cannot come to be read as one.
-call apply_change(10, $aa$
+call apply_change(12, $aa$
 ALTER TABLE recently_used_applications RENAME COLUMN user_id TO username;
 
 ALTER INDEX IF EXISTS idx_rua_user_id RENAME TO idx_rua_username;

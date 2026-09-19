@@ -213,8 +213,7 @@ public class ConnectorUploadService {
             connector = new Connector();
             connector.setDisplayName(connDto.displayName());
             connector.setRevision(DEFAULT_REVISION);
-            connector.setAuthor(username);
-            connector.setMaintainer(connDto.maintainer());
+            ownershipService.stampNew(bundle, username, connDto.maintainer());
             connector.setDescription(connDto.description());
             connector.setFullyQualifiedClassName(connDto.className());
             connector.setConnectorBundle(bundle);
@@ -242,7 +241,6 @@ public class ConnectorUploadService {
 
         ConnectorBundle bundle = new ConnectorBundle();
         bundle.setRevision(DEFAULT_REVISION);
-        bundle.setAuthor(username);
         bundle.setFramework(framework);
         bundle.setBuildFramework(dto.buildFramework());
         bundle.setLicense(dto.license() != null ? dto.license() : ConnectorBundle.LicenseType.EUPL);

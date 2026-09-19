@@ -79,8 +79,8 @@ public class OrganizationService {
 //        return displayName(organizationId) != null ? String.valueOf(organizationId) : null;
 //    }
 
-    /** Aliases of all organizations, ordered by the display name each is shown under. */
-    public List<String> allAliases() {
+    /** Names of all organizations, ordered by the display name each is shown under. */
+    public List<String> allNames() {
         return displayNames().entrySet().stream()
                 .filter(e -> e.getValue() != null && !e.getValue().isBlank())
                 .sorted(Map.Entry.comparingByValue(String.CASE_INSENSITIVE_ORDER))
@@ -88,8 +88,8 @@ public class OrganizationService {
                 .toList();
     }
 
-    /** All organizations, ordered by display name. */
-    public List<String> allNames() {
+    /** All display names of organizations, ordered by display name. */
+    public List<String> allDisplayNames() {
         return displayNames().values().stream()
                 .filter(name -> name != null && !name.isBlank())
                 .sorted(String.CASE_INSENSITIVE_ORDER)

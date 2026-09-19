@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
 import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
