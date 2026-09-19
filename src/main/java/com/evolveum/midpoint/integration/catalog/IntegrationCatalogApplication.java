@@ -29,6 +29,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		OpenProjectProperties.class,
 		PendingOperationProperties.class,
 		CatalogProperties.class,
+		LinksProperties.class,
 		GraviteeProperties.class
 })
 public class IntegrationCatalogApplication {

@@ -8,6 +8,10 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.PendingOperationService;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +44,12 @@ public class SupportTicketEventListener {
     @TransactionalEventListener
     public void onTutorialFileAdded(TutorialFileAddedEvent event) {
         submit(SupportTicketService.ATTACH_FILE, event);
+    }
+
+    /** A build reported back, so the work package of the revision it built owes the outcome. */
+    @TransactionalEventListener
+    public void onBuildFinished(BuildFinishedEvent event) {
+        submit(SupportTicketService.COMMENT_BUILD_OUTCOME, event);
     }
 
     /**

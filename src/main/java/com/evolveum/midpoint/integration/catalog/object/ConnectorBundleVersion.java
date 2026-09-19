@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,7 +27,7 @@ import java.util.List;
 @IdClass(ConnectorBundleVersionId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
+public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMaintainer, Persistable<Integer> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "connector_bundle_version_seq")
@@ -36,6 +37,7 @@ public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
     @Id
     private String revision;
 
+    //TODO what is this?
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;
@@ -46,24 +48,29 @@ public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
         this.isNew = false;
     }
 
-    private String author;
-    private String maintainer;
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
 
-    // Ownership as it stood when the row was written - a token describes only its bearer, so none
-    // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
-    // reference to organizations.id, so renames need no change here) and leaves maintainer null.
-    @Column(name = "author_org_id")
-    private String authorOrgId;
-
-    @Column(name = "maintainer_org_id")
-    private String maintainerOrgId;
-
-    /** Evolveum, Partner or Community. */
-    @Column(name = "author_category")
-    private String authorCategory;
-
-    @Column(name = "author_email")
-    private String authorEmail;
+    @ManyToMany
+    @JoinTable(
+            name = "connector_bundle_version_maintainers",
+            joinColumns = {
+                    @JoinColumn(
+                            name = "connector_bundle_version_id",
+                            referencedColumnName = "id"
+                    ),
+                    @JoinColumn(
+                            name = "connector_bundle_version_revision",
+                            referencedColumnName = "revision"
+                    )
+            },
+            inverseJoinColumns = @JoinColumn(
+                    name = "maintainer_id",
+                    referencedColumnName = "id"
+            )
+    )
+    private List<Maintainer> maintainer = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -118,4 +125,50 @@ public class ConnectorBundleVersion implements OwnedItem, Persistable<Integer> {
 
     @OneToMany(mappedBy = "connectorBundleVersion", fetch = FetchType.LAZY)
     private List<Download> downloads = new ArrayList<>();
+
+    /**
+     * Adds one maintainer, as {@link SetOwnership} writes ownership one maintainer at a time.
+     *
+     * <p>Hidden from Jackson: it would otherwise be a second setter for the {@code maintainer}
+     * property beside the list one, which is ambiguous enough that building a deserializer for
+     * this class fails outright - and it is built, this class being reachable from one that a
+     * request DTO refers to.
+     */
+    @JsonIgnore
+    @Override
+    public ConnectorBundleVersion setMaintainer(Maintainer maintainer) {
+        if (!this.maintainer.contains(maintainer)) {
+            this.maintainer.add(maintainer);
+        }
+        return this;
+    }
+
+    public ConnectorBundleVersion setMaintainer(List<Maintainer> maintainer) {
+        this.maintainer = maintainer;
+        return this;
+    }
+
+    public static ConnectorBundleVersion createConnectorBundleVersionDraft(ConnectorBundleVersion source, ConnectorBundle bundle) {
+        ConnectorBundleVersion clone = createConnectorBundleVersion(source, bundle);
+        clone.setLifecycleState(LifecycleType.IN_REVIEW);
+        return clone;
+    }
+
+    public static ConnectorBundleVersion createConnectorBundleVersion(ConnectorBundleVersion source, ConnectorBundle bundle) {
+        ConnectorBundleVersion clone = new ConnectorBundleVersion();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setLifecycleState(source.getLifecycleState());
+        clone.setConnectorBundle(bundle);
+        clone.setBundleVersion(source.getBundleVersion());
+        clone.setBrowseLink(source.getBrowseLink());
+        clone.setGitCloneUrl(source.getGitCloneUrl());
+        clone.setPathToProject(source.getPathToProject());
+        clone.setBuildFramework(source.getBuildFramework());
+        clone.setCommitTag(source.getCommitTag());
+        clone.setArtifactUrl(source.getArtifactUrl());
+        clone.setErrorMessage(source.getErrorMessage());
+        return clone;
+    }
 }

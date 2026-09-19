@@ -13,10 +13,15 @@ import com.evolveum.midpoint.integration.catalog.integration.OpenProjectClient;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.OperationResult;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -62,6 +67,12 @@ public class SupportTicketService {
 
     public static final String ATTACH_FILE = "ATTACH_FILE";
 
+    public static final String COMMENT_BUILD_OUTCOME = "COMMENT_BUILD_OUTCOME";
+
+    public static final String OBJECT_STATE_ADDED = "added";
+    public static final String OBJECT_STATE_REPLACED = "replaced";
+    public static final String OBJECT_STATE_REMOVED = "removed";
+
     private final IntegrationMethodRepository integrationMethodRepository;
     private final OpenProjectClient openProjectClient;
     private final OpenProjectProperties properties;
@@ -69,14 +80,26 @@ public class SupportTicketService {
     private final AuthService authService;
     private final SupportTicketDescriptionBuilder descriptionBuilder;
     private final SupportTicketDeltaBuilder deltaBuilder;
-    private final CatalogContactResolver contactResolver;
     private final TutorialStorageService tutorialStorageService;
+
+    /** A file the submission carries, read and named as it will be attached. */
+    private record SubmittedFile(String fileName, byte[] content, String contentType) {
+    }
+
+    /**
+     * The files of one revision.
+     *
+     * @param complete whether every file the revision lists could be read, i.e. whether an attachment
+     *                 missing from {@code files} really means the author withdrew it
+     */
+    private record SubmittedFiles(List<SubmittedFile> files, boolean complete) {
+    }
 
     /**
      * Opens a work package for a submitted revision, or rewrites the one it already has. Runs after
      * the submitting transaction commits, in its own transaction, so an unreachable portal costs the
      * author nothing but time: the operation stays pending and the scheduled retry opens the work
-     * package once the portal is back. Until then {@link #describe} reports no ticket, so the
+     * package once the portal is back. Until then {@link #getStatusOfWorkPackage} reports no ticket, so the
      * approval dialog has nothing to wait for.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -90,7 +113,7 @@ public class SupportTicketService {
                 .findById(new IntegrationMethodId(event.methodId(), event.revision()))
                 .orElse(null);
         if (method == null) {
-            log.debug("Revision {}/{} no longer exists, so no work package is opened for it",
+            log.error("Revision {}/{} no longer exists, so no work package is opened for it",
                     event.methodId(), event.revision());
             return OperationResult.obsolete("Revision " + event.methodId() + "/" + event.revision()
                     + " no longer exists; whatever replaced it carries the work package.");
@@ -99,11 +122,15 @@ public class SupportTicketService {
             return rewriteWorkPackage(method.getSupportTicketId(), method, event);
         }
 
+        return createWorkPackage(method, event);
+    }
+
+    private @NonNull OperationResult createWorkPackage(IntegrationMethod method, IntegrationMethodSubmittedEvent event) {
         try {
             int workPackageId = openProjectClient.createWorkPackage(
                     event.flow().taskName(method.getDisplayName()), descriptionBuilder.build(method));
             method.setSupportTicketId(workPackageId);
-            log.info("Opened support work package {} for integration method {}/{}",
+            log.info("Opened work package {} for integration method {}/{} in the support portal",
                     workPackageId, event.methodId(), event.revision());
             attachFiles(workPackageId, method);
             addWatchers(workPackageId, method);
@@ -111,13 +138,13 @@ public class SupportTicketService {
             return OperationResult.completed();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Interrupted while opening a support work package for integration method {}/{}",
+            log.error("Interrupted while opening a work package for integration method {}/{} in the support portal",
                     event.methodId(), event.revision(), e);
             return OperationResult.retry("Interrupted while opening the work package.");
         } catch (Exception e) {
-            log.error("Failed to open a support work package for integration method {}/{}: {}",
-                    event.methodId(), event.revision(), e.getMessage());
-            return OperationResult.retry("Could not open the work package: " + reason(e));
+            log.error("Failed to open a work package for integration method {}/{} in the support portal",
+                    event.methodId(), event.revision(), e);
+            return OperationResult.retry("Could not open the work package: " + reasonFromException(e));
         }
     }
 
@@ -129,23 +156,25 @@ public class SupportTicketService {
     private OperationResult rewriteWorkPackage(int workPackageId, IntegrationMethod method,
                                                IntegrationMethodSubmittedEvent event) {
         try {
-            String subject = SubmissionFlow.renamed(
-                    openProjectClient.readSubject(workPackageId).orElse(null), method.getDisplayName());
-            if (subject == null) {
+            String titleOfWorkPackage = SubmissionFlow.renamed(
+                    openProjectClient.getTitleOfWorkPackage(workPackageId).orElse(null), method.getDisplayName());
+            if (titleOfWorkPackage == null) {
                 // Nothing to keep - the portal has no subject to build on, so name it by this flow.
-                subject = event.flow().taskName(method.getDisplayName());
+                titleOfWorkPackage = event.flow().taskName(method.getDisplayName());
             }
             String description = descriptionBuilder.build(method);
-            Optional<String> replaced = openProjectClient.updateWorkPackage(workPackageId, subject, description);
+            Optional<String> replaced = openProjectClient.updateWorkPackage(workPackageId, titleOfWorkPackage, description);
             if (replaced.isEmpty()) {
-                log.warn("Support work package {} of integration method {}/{} no longer exists, "
+                log.warn("Work package {} of integration method {}/{} no longer exists in the support portal, "
                         + "so the edit was not written to it", workPackageId, event.methodId(), event.revision());
                 return OperationResult.obsolete("Work package #" + workPackageId
                         + " no longer exists in the support portal, so the edit could not be written to it.");
             }
-            log.info("Updated support work package {} after an edit of integration method {}/{}",
+            log.info("Updated work package {} after an edit of integration method {}/{} in the support portal",
                     workPackageId, event.methodId(), event.revision());
             List<String> fileChanges = refreshAttachments(workPackageId, method);
+
+            //TODO Do we really not need to handle the exception in the `comment` method? What if the comment doesn’t go through?
             comment(workPackageId, deltaBuilder.compare(replaced.get(), description,
                     "This submission was edited while under review. The description above and the files"
                             + " attached to this work package are up to date; what changed is listed here.",
@@ -153,14 +182,14 @@ public class SupportTicketService {
             return OperationResult.completed();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Interrupted while updating support work package {} of integration method {}/{}",
+            log.error("Interrupted while updating work package {} of integration method {}/{} in the support portal",
                     workPackageId, event.methodId(), event.revision(), e);
             return OperationResult.retry("Interrupted while rewriting work package #" + workPackageId + ".");
         } catch (Exception e) {
-            log.error("Failed to update support work package {} of integration method {}/{}: {}",
-                    workPackageId, event.methodId(), event.revision(), e.getMessage());
+            log.error("Failed to update work package {} of integration method {}/{} in the support portal",
+                    workPackageId, event.methodId(), event.revision(), e);
             return OperationResult.retry("Could not rewrite work package #" + workPackageId
-                    + " after the edit: " + reason(e));
+                    + " after the edit: " + reasonFromException(e));
         }
     }
 
@@ -189,26 +218,22 @@ public class SupportTicketService {
                     descriptionBuilder.build(previous), descriptionBuilder.build(method),
                     "This is an edit of revision " + event.previousRevision() + ", which it replaces once"
                             + " approved. What it changes about that revision is listed here.",
-                    tutorialChange(previous, method));
+                    checkTutorialChange(previous, method));
         } catch (Exception e) {
-            log.warn("Could not work out what {}/{} changes about {}: {}",
-                    event.methodId(), event.revision(), event.previousRevision(), e.getMessage());
+            log.error("Could not work out what {}/{} changes about {}",
+                    event.methodId(), event.revision(), event.previousRevision(), e);
             return;
         }
         comment(workPackageId, delta);
     }
 
-    /**
-     * Whether the tutorial differs between two revisions, worded as {@link #refreshAttachments} does.
-     * Needed separately because the description only points at the tutorial, never reproduces it.
-     */
-    private static List<String> tutorialChange(IntegrationMethod before, IntegrationMethod after) {
+    private static List<String> checkTutorialChange(IntegrationMethod before, IntegrationMethod after) {
         String was = blankToNull(before.getTutorial());
         String now = blankToNull(after.getTutorial());
         if (Objects.equals(was, now)) {
             return List.of();
         }
-        String what = was == null ? "added" : now == null ? "removed" : "rewritten";
+        String what = was == null ? OBJECT_STATE_ADDED : now == null ? OBJECT_STATE_REMOVED : OBJECT_STATE_REPLACED;
         return List.of("`" + TUTORIAL_ATTACHMENT + "` " + what);
     }
 
@@ -216,25 +241,13 @@ public class SupportTicketService {
         return value == null || value.isBlank() ? null : value;
     }
 
-    /**
-     * A failure in one line, for the reason stored on the pending row.
-     *
-     * <p>The type is named alongside the message because the messages that matter most here carry
-     * the least: a portal that is not running fails with {@code ConnectException: Connection
-     * refused}, where the message alone would not say what was refused, and a timeout often has no
-     * message at all.
-     */
-    private static String reason(Exception e) {
+    private static String reasonFromException(Exception e) {
         String message = e.getMessage();
         return message == null || message.isBlank()
                 ? e.getClass().getSimpleName()
                 : e.getClass().getSimpleName() + ": " + message;
     }
 
-    /**
-     * Posts a comment that only exists to make a review easier, so nothing about the submission
-     * depends on it arriving. An absent comment is one the caller found nothing to say in.
-     */
     private void comment(int workPackageId, Optional<String> comment) {
         if (comment.isEmpty()) {
             return;
@@ -243,9 +256,53 @@ public class SupportTicketService {
             openProjectClient.addComment(workPackageId, comment.get());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.warn("Interrupted while commenting on support work package {}", workPackageId);
+            log.error("Interrupted while commenting on work package {} in the support portal", workPackageId, e);
         } catch (Exception e) {
-            log.warn("Could not comment on support work package {}: {}", workPackageId, e.getMessage());
+            log.error("Could not comment on work package {} in the support portal", workPackageId, e);
+        }
+    }
+
+    /**
+     * Comments the outcome of a build onto the work package of the revision it was built for, so a
+     * reviewer sees the artifact arrive - or sees why it did not - without opening the catalog.
+     *
+     * @return whether the outcome is now on the work package, and if not, whether asking again
+     * could change that
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public OperationResult commentBuildOutcome(BuildFinishedEvent event) {
+        if (!properties.enabled()) {
+            log.debug("Support portal is not configured, so the build outcome of {}/{} keeps waiting",
+                    event.methodId(), event.revision());
+            return OperationResult.retry("No support portal is configured (openproject.url is empty).");
+        }
+        IntegrationMethod method = integrationMethodRepository
+                .findById(new IntegrationMethodId(event.methodId(), event.revision()))
+                .orElse(null);
+        if (method == null || method.getSupportTicketId() == null) {
+            log.debug("Revision {}/{} has no work package to report its build outcome on",
+                    event.methodId(), event.revision());
+            return OperationResult.obsolete("Revision " + event.methodId() + "/" + event.revision()
+                    + " has no work package; its build state is described by the one that opens it.");
+        }
+
+        try {
+            openProjectClient.addComment(method.getSupportTicketId(), descriptionBuilder.buildBuildOutcome(event));
+            log.info("Reported a {} build on support work package {} of integration method {}/{}",
+                    event.succeeded() ? "successful" : "failed", method.getSupportTicketId(),
+                    event.methodId(), event.revision());
+            return OperationResult.completed();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while reporting a build outcome on support work package {}",
+                    method.getSupportTicketId(), e);
+            return OperationResult.retry("Interrupted while reporting a build outcome on work package #"
+                    + method.getSupportTicketId() + ".");
+        } catch (Exception e) {
+            log.error("Failed to report a build outcome on support work package {}: {}",
+                    method.getSupportTicketId(), e.getMessage());
+            return OperationResult.retry("Could not report a build outcome on work package #"
+                    + method.getSupportTicketId() + ": " + reasonFromException(e));
         }
     }
 
@@ -272,7 +329,7 @@ public class SupportTicketService {
                 .findById(new IntegrationMethodId(event.methodId(), event.revision()))
                 .orElse(null);
         if (method == null || method.getSupportTicketId() == null) {
-            log.debug("Revision {}/{} has no work package to append connector {} to",
+            log.error("Revision {}/{} has no work package to append connector {} to",
                     event.methodId(), event.revision(), event.connectorId());
             return OperationResult.obsolete("Revision " + event.methodId() + "/" + event.revision()
                     + " has no work package; the connector is described by the one that opens it.");
@@ -281,43 +338,33 @@ public class SupportTicketService {
         try {
             openProjectClient.addComment(method.getSupportTicketId(),
                     descriptionBuilder.buildConnectorAddendum(method, event.connectorId()));
-            log.info("Appended connector {} to support work package {} of integration method {}/{}",
+            log.info("Appended connector {} to work package {} of integration method {}/{} in the support portal",
                     event.connectorId(), method.getSupportTicketId(), event.methodId(), event.revision());
             return OperationResult.completed();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Interrupted while appending connector {} to support work package {}",
+            log.error("Interrupted while appending connector {} to work package {} in the support portal",
                     event.connectorId(), method.getSupportTicketId(), e);
             return OperationResult.retry("Interrupted while appending connector " + event.connectorId()
                     + " to work package #" + method.getSupportTicketId() + ".");
         } catch (Exception e) {
-            log.error("Failed to append connector {} to support work package {}: {}",
-                    event.connectorId(), method.getSupportTicketId(), e.getMessage());
+            log.error("Failed to append connector {} to work package {} in the support portal",
+                    event.connectorId(), method.getSupportTicketId(), e);
             return OperationResult.retry("Could not append connector " + event.connectorId()
-                    + " to work package #" + method.getSupportTicketId() + ": " + reason(e));
+                    + " to work package #" + method.getSupportTicketId() + ": " + reasonFromException(e));
         }
     }
 
-    /**
-     * Puts the tutorial ({@value #TUTORIAL_ATTACHMENT}) and every sample uploaded so far on the work
-     * package's Files tab - attachments, because a tutorial is an unbounded {@code text} column and a
-     * sample is not text at all. On a first submission the samples arrive later, via
-     * {@link #attachTutorialFile}.
-     */
     private void attachFiles(int workPackageId, IntegrationMethod method) {
         List<String> refused = new ArrayList<>();
         for (SubmittedFile file : collectFiles(method, workPackageId).files()) {
-            if (attach(workPackageId, file).isObsolete()) {
+            if (addingAttachment(workPackageId, file).isObsolete()) {
                 refused.add(file.fileName());
             }
         }
         commentOnRefusedFiles(workPackageId, method, refused);
     }
 
-    /**
-     * The tutorial and the author's uploads, read and ready to attach. An unreadable file is skipped,
-     * and the result says so, so a caller does not mistake it for one the author removed.
-     */
     private SubmittedFiles collectFiles(IntegrationMethod method, int workPackageId) {
         List<SubmittedFile> files = new ArrayList<>();
         String tutorial = method.getTutorial();
@@ -361,9 +408,10 @@ public class SupportTicketService {
         try {
             OptionalInt self = openProjectClient.findSelfId();
             if (self.isEmpty()) {
+                //TODO note about this situation have to be added to ticket as commit
                 // Without knowing which uploads are the catalog's own, every deletion is a guess at
                 // somebody else's file and every upload is a duplicate. Better to leave it as it is.
-                log.warn("Support portal did not say who the catalog signs in as, so the files of work"
+                log.error("Support portal did not say who the catalog signs in as, so the files of work"
                         + " package {} were left as they are", workPackageId);
                 return List.of();
             }
@@ -373,12 +421,14 @@ public class SupportTicketService {
                     .collect(Collectors.groupingBy(OpenProjectClient.Attachment::fileName,
                             LinkedHashMap::new, Collectors.toList()));
         } catch (InterruptedException e) {
+            //TODO note about this situation have to be added to ticket as commit or scheduled for a repeat broadcast
             Thread.currentThread().interrupt();
-            log.warn("Interrupted while reading the files of support work package {}", workPackageId);
+            log.error("Interrupted while reading the files of work package {} in the support portal", workPackageId, e);
             return List.of();
         } catch (Exception e) {
-            log.warn("Could not read the files of support work package {}, so they were left as they are: {}",
-                    workPackageId, e.getMessage());
+            //TODO note about this situation have to be added to ticket as commit or scheduled for a repeat broadcast
+            log.error("Could not read the files of work package {} in the support portal, so they were left as they are",
+                    workPackageId, e);
             return List.of();
         }
 
@@ -393,72 +443,69 @@ public class SupportTicketService {
                     .orElse(null);
 
             if (same != null) {
-                deleteOthers(workPackageId, present, same);
+                deleteOthersAttachments(workPackageId, present, same);
                 continue;
             }
 
-            OperationResult attached = attach(workPackageId, file);
+            OperationResult attached = addingAttachment(workPackageId, file);
             if (!attached.isCompleted()) {
                 if (attached.isObsolete()) {
                     refused.add(file.fileName());
                 }
                 continue;
             }
-            boolean replaced = deleteOthers(workPackageId, present, null);
-            changes.add("`" + file.fileName() + "` " + (replaced ? "replaced" : "added"));
+            boolean replaced = deleteOthersAttachments(workPackageId, present, null);
+            changes.add("`" + file.fileName() + "` " + (replaced ? OBJECT_STATE_REPLACED : OBJECT_STATE_ADDED));
         }
 
         commentOnRefusedFiles(workPackageId, method, refused);
 
         if (!submitted.complete()) {
-            log.warn("Not everything {}/{} carries could be read, so nothing was removed from work package {}",
+            //TODO note about this situation have to be added to ticket as commit or scheduled for a repeat broadcast
+            log.error("Not everything {}/{} carries could be read, so nothing was removed from work package {}",
                     method.getId(), method.getRevision(), workPackageId);
             return changes;
         }
         for (List<OpenProjectClient.Attachment> withdrawn : ours.values()) {
             for (OpenProjectClient.Attachment attachment : withdrawn) {
-                if (delete(workPackageId, attachment)) {
-                    changes.add("`" + attachment.fileName() + "` removed");
+                if (deleteAttachment(workPackageId, attachment)) {
+                    changes.add("`" + attachment.fileName() + "` " + OBJECT_STATE_REMOVED);
                 }
             }
         }
         return changes;
     }
 
-    /**
-     * Removes every attachment of one name except the one being kept, which is either the copy that
-     * already matches the submission or, after a fresh upload, nothing.
-     *
-     * @return whether anything was removed, i.e. whether the file was replaced rather than added
-     */
-    private boolean deleteOthers(int workPackageId, List<OpenProjectClient.Attachment> present,
-                                 OpenProjectClient.Attachment keep) {
+    private boolean deleteOthersAttachments(int workPackageId, List<OpenProjectClient.Attachment> present,
+                                            OpenProjectClient.Attachment keep) {
         if (present == null) {
             return false;
         }
         boolean removed = false;
         for (OpenProjectClient.Attachment attachment : present) {
             if (attachment != keep) {
-                removed |= delete(workPackageId, attachment);
+                removed |= deleteAttachment(workPackageId, attachment);
             }
         }
         return removed;
     }
 
-    /** Removes one of the catalog's own attachments, reporting whether it is actually gone. */
-    private boolean delete(int workPackageId, OpenProjectClient.Attachment attachment) {
+    private boolean deleteAttachment(int workPackageId, OpenProjectClient.Attachment attachment) {
         try {
+            //TODO use return form deleteAttachment -> delete can failed
             openProjectClient.deleteAttachment(attachment.id());
             log.info("Removed {} from support work package {}", attachment.fileName(), workPackageId);
             return true;
         } catch (InterruptedException e) {
+            //TODO note about this situation have to be added to ticket as commit or scheduled for a repeat broadcast
             Thread.currentThread().interrupt();
-            log.warn("Interrupted while removing {} from support work package {}",
-                    attachment.fileName(), workPackageId);
+            log.error("Interrupted while removing {} from work package {} in support portal",
+                    attachment.fileName(), workPackageId, e);
             return false;
         } catch (Exception e) {
-            log.warn("Could not remove {} from support work package {}: {}",
-                    attachment.fileName(), workPackageId, e.getMessage());
+            //TODO note about this situation have to be added to ticket as commit or scheduled for a repeat broadcast
+            log.error("Could not remove {} from work package {} in support portal",
+                    attachment.fileName(), workPackageId, e);
             return false;
         }
     }
@@ -468,22 +515,10 @@ public class SupportTicketService {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("MD5").digest(content));
         } catch (NoSuchAlgorithmException e) {
-            log.warn("No md5 available, so attached files cannot be compared: {}", e.getMessage());
+            //TODO this error will go unnoticed
+            log.error("No md5 available, so attached files cannot be compared", e);
             return null;
         }
-    }
-
-    /** A file the submission carries, read and named as it will be attached. */
-    private record SubmittedFile(String fileName, byte[] content, String contentType) {
-    }
-
-    /**
-     * The files of one revision.
-     *
-     * @param complete whether every file the revision lists could be read, i.e. whether an attachment
-     *                 missing from {@code files} really means the author withdrew it
-     */
-    private record SubmittedFiles(List<SubmittedFile> files, boolean complete) {
     }
 
     /**
@@ -507,7 +542,7 @@ public class SupportTicketService {
                 .findById(new IntegrationMethodId(event.methodId(), event.revision()))
                 .orElse(null);
         if (method == null || method.getSupportTicketId() == null) {
-            log.debug("Revision {}/{} has no work package to attach {} to",
+            log.error("Revision {}/{} has no work package to attach {} to",
                     event.methodId(), event.revision(), event.fileName());
             return OperationResult.obsolete("Revision " + event.methodId() + "/" + event.revision()
                     + " has no work package; the file is attached by the operation that opens it.");
@@ -515,21 +550,15 @@ public class SupportTicketService {
         return attachStoredFile(method.getSupportTicketId(), method, event.fileName());
     }
 
-    /**
-     * Reads one stored file and attaches it, letting the filesystem name its type.
-     *
-     * <p>A file that is gone from the catalog's storage is given up on: it was withdrawn, or the
-     * revision it belonged to was, and no attempt will find it again. So is one the portal refuses
-     * for its size - offering it again would fail the same way every time - and the reviewer is told
-     * on the work package where to get it instead.
-     */
     private OperationResult attachStoredFile(int workPackageId, IntegrationMethod method, String fileName) {
         Optional<SubmittedFile> file = readStoredFile(method, fileName, workPackageId);
         if (file.isEmpty()) {
-            return OperationResult.obsolete("File " + fileName + " of " + method.getId() + "/"
-                    + method.getRevision() + " could not be read from the catalog's storage.");
+            String message = "File " + fileName + " of " + method.getId() + "/"
+                    + method.getRevision() + " could not be read from the catalog's storage.";
+            log.error(message);
+            return OperationResult.obsolete(message);
         }
-        OperationResult attached = attach(workPackageId, file.get());
+        OperationResult attached = addingAttachment(workPackageId, file.get());
         if (attached.isObsolete()) {
             commentOnRefusedFiles(workPackageId, method, List.of(fileName));
         }
@@ -545,27 +574,13 @@ public class SupportTicketService {
             return Optional.of(new SubmittedFile(fileName, content,
                     probed != null ? probed : "application/octet-stream"));
         } catch (Exception e) {
-            log.warn("Could not read file {} of {}/{} to attach it to work package {}: {}",
-                    fileName, method.getId(), method.getRevision(), workPackageId, e.getMessage());
+            log.error("Could not read file {} of {}/{} to attach it to work package {}",
+                    fileName, method.getId(), method.getRevision(), workPackageId, e);
             return Optional.empty();
         }
     }
 
-    /**
-     * One attachment, best effort - a submission is not worth losing over a file the portal refused.
-     *
-     * <p>The two ways it can fail are worth keeping apart. A portal that is unreachable, or that
-     * failed for a reason of its own, may take the file on the next attempt, so that is
-     * {@link OperationResult#retry}. A file over the portal's size limit will be refused every time
-     * it is offered, so that is {@link OperationResult#obsolete}: there is nothing to come back for,
-     * and the reviewer is told where the file really is instead - see
-     * {@link #commentOnRefusedFiles}.
-     *
-     * @return whether the file is now on the work package, and if not, whether offering it again
-     * could change that - which a caller about to drop the copy it replaces, about to announce it,
-     * or about to record the failure on a pending row has to know
-     */
-    private OperationResult attach(int workPackageId, SubmittedFile file) {
+    private OperationResult addingAttachment(int workPackageId, SubmittedFile file) {
         try {
             openProjectClient.addAttachment(workPackageId, file.fileName(), file.content(), file.contentType());
             log.info("Attached {} ({} bytes) to support work package {}",
@@ -573,21 +588,21 @@ public class SupportTicketService {
             return OperationResult.completed();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Interrupted while attaching {} to support work package {}", file.fileName(), workPackageId, e);
+            log.error("Interrupted while attaching {} to work package {} in the support portal", file.fileName(), workPackageId, e);
             return OperationResult.retry("Interrupted while attaching " + file.fileName()
                     + " to work package #" + workPackageId + ".");
         } catch (OpenProjectClient.AttachmentTooLargeException e) {
-            log.warn("Support work package {} would not take {} ({} bytes): it is over the portal's"
+            log.error("Work package {} would not take {} ({} bytes) in the support portal: it is over the portal's"
                             + " attachment size limit, so it stays in the catalog only",
-                    workPackageId, file.fileName(), file.content().length);
+                    workPackageId, file.fileName(), file.content().length, e);
             return OperationResult.obsolete("Work package #" + workPackageId + " would not take "
                     + file.fileName() + " (" + file.content().length
                     + " bytes): it is over the support portal's attachment size limit.");
         } catch (Exception e) {
-            log.error("Failed to attach {} to support work package {}: {}",
-                    file.fileName(), workPackageId, e.getMessage());
+            log.error("Failed to attach {} to work package {} in the support portal",
+                    file.fileName(), workPackageId, e);
             return OperationResult.retry("Could not attach " + file.fileName() + " to work package #"
-                    + workPackageId + ": " + reason(e));
+                    + workPackageId + ": " + reasonFromException(e));
         }
     }
 
@@ -623,45 +638,33 @@ public class SupportTicketService {
         comment(workPackageId, Optional.of(body.toString()));
     }
 
-    /**
-     * Subscribes everyone the submission concerns to its work package: the reviewers in
-     * {@code openproject.watchers} and the submitting side, matched by portal login — the one
-     * identifier that survived users moving to the identity provider, and the only way to reach a
-     * maintainer who is not the author. An organization maintainer has no name to look up and is
-     * skipped, the author representing it. Best effort: anyone the portal does not know is skipped.
-     */
     private void addWatchers(int workPackageId, IntegrationMethod method) {
         Set<Integer> watching = new LinkedHashSet<>();
 
         for (String login : properties.watchers()) {
-            OptionalInt userId = resolve(login, () -> openProjectClient.findUserIdByLogin(login), workPackageId);
-            watch(workPackageId, login, userId, watching);
+            OptionalInt userId = resolveUserIdOfOpUser(login, () -> openProjectClient.findUserIdByLogin(login), workPackageId);
+            addWatcher(workPackageId, login, userId, watching);
         }
 
-        for (String name : distinct(method.getAuthor(), method.getMaintainer())) {
+        for (String name : checkNullAndDistinctNames(method.getAuthor().getUsername(), method.getMaintainer().getUsername())) {
             OptionalInt userId = attempt(name, () -> openProjectClient.findUserIdByLogin(name));
             String who = name;
             if (userId.isEmpty()) {
                 // No account under that login: fall back to the address the row carries, which the
                 // author has and nobody else does.
-                String email = contactResolver.emailOf(method, name).orElse(null);
+                String email = method.getAuthor().getEmail();
                 if (email == null) {
                     log.debug("No portal login '{}' and no contact address for them, "
                             + "not watching work package {}", name, workPackageId);
                     continue;
                 }
-                userId = findByEmail(email, workPackageId);
                 who = email;
             }
-            watch(workPackageId, who, userId, watching);
+            addWatcher(workPackageId, who, userId, watching);
         }
     }
 
-    /**
-     * Attaches one resolved user, unless there is nobody to attach or they are attached already.
-     * {@code watching} carries the ids attached so far and is added to.
-     */
-    private void watch(int workPackageId, String who, OptionalInt userId, Set<Integer> watching) {
+    private void addWatcher(int workPackageId, String who, OptionalInt userId, Set<Integer> watching) {
         if (userId.isEmpty() || !watching.add(userId.getAsInt())) {
             return;
         }
@@ -670,23 +673,18 @@ public class SupportTicketService {
             log.debug("Added '{}' as a watcher of support work package {}", who, workPackageId);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.warn("Interrupted while adding watchers to support work package {}", workPackageId);
+            log.error("Interrupted while adding watchers to support work package {}", workPackageId, e);
         } catch (Exception e) {
-            log.warn("Could not add '{}' as a watcher of support work package {}: {}",
-                    who, workPackageId, e.getMessage());
+            log.error("Could not add '{}' as a watcher of support work package {}",
+                    who, workPackageId, e);
         }
     }
 
-    private OptionalInt findByEmail(String email, int workPackageId) {
-        return resolve(email, () -> openProjectClient.findUserIdByEmail(email), workPackageId);
+    private OptionalInt findOpUserByEmail(String email, int workPackageId) {
+        return resolveUserIdOfOpUser(email, () -> openProjectClient.findUserIdByEmail(email), workPackageId);
     }
 
-    /**
-     * Runs one portal lookup, reporting a miss and a failure the same way to the caller - neither
-     * yields somebody to attach - while keeping them apart in the log: an unknown person is normal,
-     * a failed query is not.
-     */
-    private OptionalInt resolve(String who, PortalLookup lookup, int workPackageId) {
+    private OptionalInt resolveUserIdOfOpUser(String who, PortalLookup lookup, int workPackageId) {
         OptionalInt userId = attempt(who, lookup);
         if (userId.isEmpty()) {
             log.info("Support portal has no user for '{}', not watching work package {}",
@@ -705,10 +703,10 @@ public class SupportTicketService {
             return lookup.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.warn("Interrupted while looking '{}' up in the support portal", who);
+            log.error("Interrupted while looking '{}' up in the support portal", who, e);
             return OptionalInt.empty();
         } catch (Exception e) {
-            log.warn("Could not look '{}' up in the support portal: {}", who, e.getMessage());
+            log.error("Could not look '{}' up in the support portal", who, e);
             return OptionalInt.empty();
         }
     }
@@ -719,11 +717,7 @@ public class SupportTicketService {
         OptionalInt get() throws IOException, InterruptedException;
     }
 
-    /**
-     * The given names without blanks and without repetition, because an author who maintains their
-     * own submission is named twice and would otherwise be resolved twice.
-     */
-    private static List<String> distinct(String... names) {
+    private static List<String> checkNullAndDistinctNames(String... names) {
         return Stream.of(names)
                 .filter(name -> name != null && !name.isBlank())
                 .distinct()
@@ -737,7 +731,7 @@ public class SupportTicketService {
      */
     // Deliberately not @Transactional: the portal call below can take seconds, and there is no
     // reason to hold a database connection open across it. The one read stands on its own.
-    public SupportTicketDto describe(UUID methodId, String revision, String username) {
+    public SupportTicketDto getStatusOfWorkPackage(UUID methodId, String revision, String username) {
         IntegrationMethod method = integrationMethodRepository
                 .findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -746,8 +740,7 @@ public class SupportTicketService {
         // canEdit already lets a superuser through, so the reviewer needs no separate case. The
         // organization ids go with the names: an item maintained by an organization carries no
         // maintainer username, so a name-only check would lock out the org-mates the review concerns.
-        if (!authService.canEdit(username, method.getAuthor(), method.getAuthorOrgId(),
-                method.getMaintainer(), method.getMaintainerOrgId())) {
+        if (!authService.canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Not allowed to see the support ticket of " + methodId + "/" + revision);
         }
@@ -763,13 +756,12 @@ public class SupportTicketService {
 
         String url = properties.workPackageUrl(ticketId);
         try {
-            Optional<String> status = openProjectClient.readStatus(ticketId);
-            if (status.isEmpty()) {
+            Optional<OpenProjectClient.WorkPackageStatus> status = openProjectClient.readStatus(ticketId);
+            if (status.isEmpty() || status.get().closed() == null) {
                 return new SupportTicketDto(true, ticketId, url, null, false,
                         "Work package #" + ticketId + " no longer exists in the support portal.");
             }
-            boolean ready = properties.isApprovalStatus(status.get());
-            return new SupportTicketDto(true, ticketId, url, status.get(), ready, null);
+            return new SupportTicketDto(true, ticketId, url, status.get().name(), status.get().closed(), null);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return new SupportTicketDto(true, ticketId, url, null, false,

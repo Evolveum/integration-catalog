@@ -13,6 +13,7 @@
     [appHasLogo]="appHasLogo()"
     [logoUrl]="getLogoUrl()"
     [deferSave]="true"
+    [excludedConnectorIds]="linkedConnectorIds()"
     (close)="closeAddConnector()"
     (saved)="onConnectorSaved($event)"
     (staged)="onConnectorStaged($event)">
@@ -21,7 +22,7 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="cancel()" style="cursor:pointer;">
       @if (showLogo()) {
@@ -200,6 +201,9 @@
               <div class="edit-connector-title-group">
                 <span class="edit-connector-name d-flex align-items-center gap-2">
                   {{ c.connectorDisplayName || c.name }}
+                  @if (isObsoleteConnector(c.connectorTags)) {
+                    <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
                   @if (isConnectorPending(c.connectorId)) {
                     <span class="edit-connector-pending-badge">Pending</span>
                   }
@@ -227,7 +231,7 @@
             <div class="edit-connector-details">
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Maintainer:</span>
-                <span class="edit-connector-value">{{ formatMaintainer(c.maintainer, c.maintainerOrganization) }}</span>
+                <span class="edit-connector-value">{{ c.maintainerLabel || '—' }}</span>
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Connector version:</span>
@@ -319,7 +323,7 @@
               }
               @if (c.className) {
                 <div class="edit-connector-row">
-                  <span class="edit-connector-label">Class name:</span>
+                  <span class="edit-connector-label">Connector class name:</span>
                   <span class="edit-connector-value">{{ c.className }}</span>
                 </div>
               }
@@ -333,6 +337,9 @@
             <div class="edit-connector-card-header">
               <span class="edit-connector-name d-flex align-items-center gap-2">
                 {{ sc.displayName || 'New connector' }}
+                @if (isObsoleteConnector(sc.tags)) {
+                  <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                }
                 <span class="edit-connector-pending-badge">Pending</span>
               </span>
               <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
@@ -348,7 +355,7 @@
               @if (sc.maintainer) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Maintainer:</span>
-                  <span class="edit-connector-value">{{ formatMaintainer(sc.maintainer, localMaintainerOrg(sc.maintainer)) }}</span>
+                  <span class="edit-connector-value">{{ maintainerText(sc.maintainer) }}</span>
                 </div>
               }
               @if (sc.license) {
@@ -371,8 +378,8 @@
       <!-- License / publishing notice -->
       <div class="edit-license-notice">
         <p class="edit-license-text">
-          By saving this change, you confirm that the updated content remains compliant with the license you originally selected and with Evolveum's <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> and
-          <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+          By saving this change, you confirm that the updated content remains compliant with the license you originally selected and with Evolveum's <a [attr.href]="links()?.termsOfUse" target="_blank" rel="noopener">Terms of Use</a> and
+          <a [attr.href]="links()?.acceptableUsePolicy" target="_blank" rel="noopener">Acceptable Use Policy</a>.
         </p>
       </div>
 
@@ -500,6 +507,15 @@
             Define the connector version range supported by this integration. Only connectors within
             the specified range will be available for use.
           </p>
+
+          <!-- The range is stored per integration method, not on the connector. -->
+          <div class="compat-modal-note d-flex gap-2 align-items-start mb-3">
+            <i class="fa-solid fa-circle-info compat-modal-note-icon flex-shrink-0"></i>
+            <span class="flex-grow-1">
+              <strong>Note</strong>&nbsp;This range belongs to this integration method, not to the connector itself.
+              Other integration methods using the same connector keep their own ranges.
+            </span>
+          </div>
 
           <div class="d-flex align-items-start gap-3 mb-1">
             <div class="flex-grow-1">

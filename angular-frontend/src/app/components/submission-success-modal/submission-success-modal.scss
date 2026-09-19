@@ -106,13 +106,13 @@
   white-space: nowrap;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
     text-decoration: underline;
   }
 }
 
 .submitted-ticket-open {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
 }
 
 /* Full-width divider above the footer button (spans past the dialog's padding) */
@@ -124,8 +124,8 @@
 }
 
 .submitted-modal-done {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
   color: $color-white;
   font-weight: 600;
   padding: 0.55rem 1rem;

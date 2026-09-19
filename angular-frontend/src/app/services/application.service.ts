@@ -4,6 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { Maintainer } from '../models/maintainer.model';
+
 import { Injectable } from '@angular/core';
 import {HttpClient, HttpErrorResponse, HttpParams, HttpResponse} from '@angular/common/http';
 import {catchError, from, mergeMap, Observable, of} from 'rxjs';
@@ -115,7 +117,7 @@ export class ApplicationService {
   }
 
   uploadConnector(payload: UploadConnectorPayload): Observable<string> {
-    return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
+    return this.http.post<string>(`${environment.apiUrl}/upload/integration`, payload, { responseType: 'text' as 'json' });
   }
 
   /**
@@ -290,9 +292,10 @@ export class ApplicationService {
     );
   }
 
+  /** Approves a reviewed revision, which is what publishes it. */
   publishIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/publish`,
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/approve`,
       {}
     );
   }
@@ -326,7 +329,7 @@ export class ApplicationService {
     revision: string,
     payload: {
       existingConnectorId: number | null;
-      displayName: string; description: string; maintainer: string;
+      displayName: string; description: string; maintainer: Maintainer;
       framework: string; license: string | null;
       projectHomepage: string | null; gitCloneUrl: string | null;
       buildFramework: string | null; pathToProject: string | null;
@@ -352,7 +355,7 @@ export class ApplicationService {
     revision: string,
     connectorId: number,
     payload: {
-      displayName: string; description: string; maintainer: string;
+      displayName: string; description: string; maintainer: Maintainer;
       license: string | null; projectHomepage: string | null;
       supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;

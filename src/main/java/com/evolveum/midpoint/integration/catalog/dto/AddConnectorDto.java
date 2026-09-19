@@ -20,7 +20,7 @@ public record AddConnectorDto(
         Integer existingConnectorId,                                 // connector.id (when linking an existing connector)
         String displayName,                                          // connector.display_name
         String description,                                          // connector.description
-        String maintainer,                                           // connector.maintainer
+        MaintainerDto maintainer,                                    // connector.maintainer
         ConnectorBundle.FrameworkType framework,                     // connector_bundle.framework
         ConnectorBundle.LicenseType license,                         // connector_bundle.license
         String projectHomepage,                                      // connector_bundle.project_homepage

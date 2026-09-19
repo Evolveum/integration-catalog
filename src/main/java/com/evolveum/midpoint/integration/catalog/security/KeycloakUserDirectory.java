@@ -35,6 +35,7 @@ import java.util.function.LongSupplier;
 @Slf4j
 @Service
 public class KeycloakUserDirectory {
+    //TODO I think that we don't need it
 
     private static final long CACHE_TTL_MILLIS = 60_000;
 
@@ -75,8 +76,11 @@ public class KeycloakUserDirectory {
             @Value("${spring.security.oauth2.client.provider.oidc.issuer-uri}") String issuerUri,
             @Value("${spring.security.oauth2.client.registration.oidc.client-id}") String clientId,
             @Value("${spring.security.oauth2.client.registration.oidc.client-secret}") String clientSecret,
-            @Value("${catalog.keycloak.directory-enabled:true}") boolean enabled) {
-        this(issuerUri, clientId, clientSecret, enabled, buildRestClient(), System::currentTimeMillis);
+            @Value("${catalog.keycloak.directory-enabled:true}") boolean enabled,
+            @Value("${catalog.keycloak.connect-timeout:2s}") Duration connectTimeout,
+            @Value("${catalog.keycloak.read-timeout:5s}") Duration readTimeout) {
+        this(issuerUri, clientId, clientSecret, enabled,
+                buildRestClient(connectTimeout, readTimeout), System::currentTimeMillis);
     }
 
     /** Test seam: lets tests supply a mock-bound {@link RestClient} and a controllable clock. */
@@ -151,11 +155,16 @@ public class KeycloakUserDirectory {
                 + " catalog itself knows for the next {} s", e.getMessage(), FAILURE_BACKOFF_MILLIS / 1000);
     }
 
-    /** Short timeouts: a dead Keycloak must degrade the list, not hang the request. */
-    private static RestClient buildRestClient() {
+    /**
+     * Short timeouts: a dead Keycloak must degrade the list, not hang the request.
+     *
+     * @param connectTimeout how long to wait for the connection to Keycloak
+     * @param readTimeout how long to wait for its response
+     */
+    private static RestClient buildRestClient(Duration connectTimeout, Duration readTimeout) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Duration.ofSeconds(2));
-        requestFactory.setReadTimeout(Duration.ofSeconds(5));
+        requestFactory.setConnectTimeout(connectTimeout);
+        requestFactory.setReadTimeout(readTimeout);
         return RestClient.builder().requestFactory(requestFactory).build();
     }
 

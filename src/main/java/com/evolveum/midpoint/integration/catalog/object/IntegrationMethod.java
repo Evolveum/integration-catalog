@@ -26,7 +26,7 @@ import java.util.UUID;
 @IdClass(IntegrationMethodId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class IntegrationMethod implements OwnedItem, Persistable<UUID> {
+public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintainer, Persistable<UUID> {
 
     @Id
     private UUID id;
@@ -95,24 +95,13 @@ public class IntegrationMethod implements OwnedItem, Persistable<UUID> {
     @Column(name = "lifecycle_state", columnDefinition = "LifecycleType", nullable = false)
     private LifecycleType lifecycleState;
 
-    private String author;
-    private String maintainer;
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
 
-    // Ownership as it stood when the row was written - a token describes only its bearer, so none
-    // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
-    // reference to organizations.id, so renames need no change here) and leaves maintainer null.
-    @Column(name = "author_org_id")
-    private String authorOrgId;
-
-    @Column(name = "maintainer_org_id")
-    private String maintainerOrgId;
-
-    /** Evolveum, Partner or Community. */
-    @Column(name = "author_category")
-    private String authorCategory;
-
-    @Column(name = "author_email")
-    private String authorEmail;
+    @OneToOne
+    @JoinColumn(name = "maintainer")
+    private Maintainer maintainer;
 
     // Not @CreationTimestamp: a forked revision inherits its source's created_at
     // (see assignDefaults / createDraft) so a method keeps its original ordering.

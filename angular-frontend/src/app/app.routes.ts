@@ -18,6 +18,6 @@ export const routes: Routes = [
   { path: 'applications/:id', component: ApplicationDetail },
   { path: 'applications/:appId/integration-method/:versionId/:revision/details', component: IntegrationMethodDetail },
   { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm },
-  { path: 'publish', component: PublishFormMain },
+  { path: 'approve', component: PublishFormMain },
   { path: 'settings', component: SettingsPage }
 ];

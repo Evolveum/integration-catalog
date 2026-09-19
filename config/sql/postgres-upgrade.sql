@@ -121,7 +121,7 @@ $aa$);
 call apply_change(5, $aa$
 CREATE TABLE IF NOT EXISTS pending_operation (
     id              bigserial PRIMARY KEY,
-    target_system   varchar(50)  NOT NULL,
+    target_system   varchar(50)  NOT NULL, --TODO change to enum
     operation       varchar(100) NOT NULL,
     payload         text         NOT NULL,
     status          varchar(20)  NOT NULL,
@@ -153,6 +153,31 @@ CREATE UNIQUE INDEX unique_active_bundle_name
 $aa$);
 -- end of region
 
+-- region change 7: a request says which integration it asks for
+-- The request form had a single "Short description" that was stored as application.description, so
+-- whatever the requester wrote about the integration they need showed up in the catalog as the
+-- application's description. integration_need keeps that text on the request instead. The integration
+-- method type picked on the form was sent but never stored; integration_method_type_id keeps it.
+-- ON DELETE SET NULL: removing a type must not take the requests that mention it along.
+call apply_change(7, $aa$
+ALTER TABLE request ADD COLUMN integration_need text;
+ALTER TABLE request ADD COLUMN integration_method_type_id integer;
+ALTER TABLE ONLY request
+    ADD CONSTRAINT fk_request_imt FOREIGN KEY (integration_method_type_id) REFERENCES integration_method_type(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+$aa$);
+-- end of region
+
+-- region change 8: obsolete connector tag
+-- Legacy connectors (e.g. DBTable, ScriptedSQL) stay allowed and counted, but the catalog warns about
+-- them. They are marked by linking this tag in connector_connector_tag. Tags are looked up by name, so
+-- the name becomes unique.
+call apply_change(8, $aa$
+ALTER TABLE ONLY connector_tag
+    ADD CONSTRAINT uq_connector_tag_name UNIQUE (name);
+INSERT INTO connector_tag (name, display_name) VALUES ('obsolete', 'Obsolete');
+$aa$);
+-- end of region
+
 -- region change 7: user data moved entirely to the identity provider
 -- Users, roles and organizations live in the identity provider (claims 'role', 'group',
 -- 'organization'); the application read them from token claims and, at the time, from the
@@ -163,148 +188,255 @@ $aa$);
 -- so it can answer "the caller's address" but never "that other person's address". Change 8
 -- therefore stamps author_email on the item at write time, the same way it stamps author_org_id,
 -- and change 4 becomes a column that existed only between these two changes.
-call apply_change(7, $aa$
+call apply_change(9, $aa$
 DROP TABLE IF EXISTS catalog_users;
-DROP TABLE IF EXISTS organizations;
+DROP INDEX IF EXISTS idx_catalog_users_org_id;
 $aa$);
 -- end of region
 
--- region change 8: organizations table + organization stamped on catalog items
--- The application stops calling the identity provider's administration API. Everything it
--- knows about the logged-in user comes from the OIDC token claims, so users, roles and
--- groups stay with the provider and no user table comes back. Organizations are the one
--- exception: the claim carries only the organization's identifier, so the display name
--- has to live somewhere - here.
+-- region change 8: authors and maintainers become rows of their own
+-- The author and the maintainer stop being strings on the item. An author is now a row in
+-- authors (audit only - it confers no rights), and a maintainer a row in maintainers carrying
+-- what its category needs: a username for USER, an organization for ORG, nothing for the two
+-- catalog-wide ones. A bundle and a bundle version can have several maintainers, so those two
+-- reach them through join tables; the other three keep a single reference.
 --
--- organizations.id is that identifier (immutable, unlike the name), which is what makes a
--- rename one UPDATE of organizations.name instead of a sweep over five tables.
---
--- Because a token only describes its own bearer, facts about *other* users are recorded
--- on the item when it is written: author_org_id, maintainer_org_id (set when an
--- organization rather than a person maintains the item - the maintainer column then holds
--- a username only) and author_category. Existing rows are converted once the
--- organizations are known - see change 9 below.
-call apply_change(8, $aa$
-CREATE TABLE IF NOT EXISTS organizations (
-    id          character varying(255) NOT NULL,
-    name        character varying(255) NOT NULL,
-    description text
+-- organizations.name changes meaning with it: it becomes the alias the identity provider emits,
+-- and the renameable human name moves to display_name. The database cannot know the aliases, so
+-- change 9 fills display_name from the name the rows already carry and the aliases have to be
+-- written into organizations.name by hand afterwards.
+call apply_change(10, $aa$
+ALTER TABLE organizations
+    ADD COLUMN IF NOT EXISTS display_name character varying(355);
+
+CREATE TYPE MaintainerType AS ENUM (
+	'USER',
+	'ORG',
+	'EVOLVEUM',
+	'COMMUNITY'
 );
 
-ALTER TABLE ONLY organizations
-    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
+CREATE TABLE maintainers (
+    id              bigint NOT NULL,
+    username      character varying(355),
+    organization_id integer,
+    category        MaintainerType NOT NULL
+);
 
-ALTER TABLE connector                ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
-ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS maintainer_org_id character varying(255);
+ALTER TABLE maintainers ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME maintainer_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
-ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
-ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_org_id character varying(255);
+ALTER TABLE maintainers
+ADD CONSTRAINT chk_maintainer_reference
+CHECK (
+    (category = 'USER'
+        AND username IS NOT NULL
+        AND organization_id IS NULL)
+    OR
+    (category = 'ORG'
+        AND username IS NULL
+        AND organization_id IS NOT NULL)
+    OR
+    (category IN ('EVOLVEUM', 'COMMUNITY')
+        AND username IS NULL
+        AND organization_id IS NULL)
+);
 
-ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_category character varying(32);
-ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_category character varying(32);
-ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_category character varying(32);
-ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_category character varying(32);
-ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_category character varying(32);
+ALTER TABLE ONLY maintainers
+    ADD CONSTRAINT maintainer_pkey PRIMARY KEY (id);
 
--- 320 = 64 local part + "@" + 255 domain, the longest address RFC 5321 allows. Nullable and not
--- backfilled: rows written before this change have no address recorded and none can be recovered,
--- so a support work package for one of them simply names the author without a contact - exactly
--- what change 4 settled for when the address was missing from catalog_users.
-ALTER TABLE connector                ADD COLUMN IF NOT EXISTS author_email character varying(320);
-ALTER TABLE connector_version        ADD COLUMN IF NOT EXISTS author_email character varying(320);
-ALTER TABLE connector_bundle         ADD COLUMN IF NOT EXISTS author_email character varying(320);
-ALTER TABLE connector_bundle_version ADD COLUMN IF NOT EXISTS author_email character varying(320);
-ALTER TABLE integration_method       ADD COLUMN IF NOT EXISTS author_email character varying(320);
+CREATE UNIQUE INDEX ux_maintainer_user
+    ON maintainers (category, username)
+    WHERE category = 'USER';
 
-ALTER TABLE ONLY connector
-    ADD CONSTRAINT fk_conn_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+CREATE UNIQUE INDEX ux_maintainer_org
+    ON maintainers (category, organization_id)
+    WHERE category = 'ORG';
 
-ALTER TABLE ONLY connector_version
-    ADD CONSTRAINT fk_conn_version_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+CREATE UNIQUE INDEX ux_maintainer_custom
+    ON maintainers (category)
+    WHERE category IN ('EVOLVEUM', 'COMMUNITY');
 
-ALTER TABLE ONLY connector_bundle
-    ADD CONSTRAINT fk_conn_bundle_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+CREATE TABLE connector_bundle_maintainers (
+    connector_bundle_id  integer NOT NULL,
+    maintainer_id       bigint NOT NULL
+);
 
-ALTER TABLE ONLY connector_bundle_version
-    ADD CONSTRAINT fk_conn_bundle_version_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+CREATE TABLE connector_bundle_version_maintainers (
+    connector_bundle_version_id   integer NOT NULL,
+    connector_bundle_version_revision character varying(255) NOT NULL,
+    maintainer_id                bigint NOT NULL
+);
 
-ALTER TABLE ONLY integration_method
-    ADD CONSTRAINT fk_integ_method_maintainer_org FOREIGN KEY (maintainer_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY connector_bundle_maintainers
+    ADD CONSTRAINT connector_bundle_maintainers_pkey PRIMARY KEY (connector_bundle_id, maintainer_id);
 
-ALTER TABLE ONLY connector
-    ADD CONSTRAINT fk_conn_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY connector_bundle_version_maintainers
+    ADD CONSTRAINT connector_bundle_version_maintainers_pkey PRIMARY KEY (connector_bundle_version_id, connector_bundle_version_revision, maintainer_id);
 
-ALTER TABLE ONLY connector_version
-    ADD CONSTRAINT fk_conn_version_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+CREATE INDEX idx_cbmaint_maintainers_item      			ON connector_bundle_maintainers USING btree (maintainer_id, connector_bundle_id);
+CREATE INDEX idx_cbvmaint_maintainers_item    			ON connector_bundle_version_maintainers USING btree (maintainer_id, connector_bundle_version_id, connector_bundle_version_revision);
 
-ALTER TABLE ONLY connector_bundle
-    ADD CONSTRAINT fk_conn_bundle_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY maintainers
+    ADD CONSTRAINT fk_maint_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE ONLY connector_bundle_version
-    ADD CONSTRAINT fk_conn_bundle_version_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY connector_bundle_maintainers
+    ADD CONSTRAINT fk_cb_maint_cb FOREIGN KEY (connector_bundle_id) REFERENCES connector_bundle(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
-ALTER TABLE ONLY integration_method
-    ADD CONSTRAINT fk_integ_method_author_org FOREIGN KEY (author_org_id) REFERENCES organizations(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY connector_bundle_maintainers
+    ADD CONSTRAINT fk_cb_maint_maint FOREIGN KEY (maintainer_id) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 
-CREATE INDEX idx_conn_maintainer_org         ON connector USING btree (maintainer_org_id);
-CREATE INDEX idx_cver_maintainer_org         ON connector_version USING btree (maintainer_org_id);
-CREATE INDEX idx_cbundle_maintainer_org      ON connector_bundle USING btree (maintainer_org_id);
-CREATE INDEX idx_cbundle_ver_maintainer_org  ON connector_bundle_version USING btree (maintainer_org_id);
-CREATE INDEX idx_integ_method_maintainer_org ON integration_method USING btree (maintainer_org_id);
-CREATE INDEX idx_conn_author_org             ON connector USING btree (author_org_id);
-CREATE INDEX idx_cver_author_org             ON connector_version USING btree (author_org_id);
-CREATE INDEX idx_cbundle_author_org          ON connector_bundle USING btree (author_org_id);
-CREATE INDEX idx_cbundle_ver_author_org      ON connector_bundle_version USING btree (author_org_id);
-CREATE INDEX idx_integ_method_author_org     ON integration_method USING btree (author_org_id);
+ALTER TABLE ONLY connector_bundle_version_maintainers
+    ADD CONSTRAINT fk_cbv_maint_cbv FOREIGN KEY (connector_bundle_version_id, connector_bundle_version_revision) REFERENCES connector_bundle_version(id, revision) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_version_maintainers
+    ADD CONSTRAINT fk_cbv_maint_maint FOREIGN KEY (maintainer_id) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+CREATE TABLE authors (
+    id            bigint NOT NULL,
+    username    character varying(355) NOT NULL,
+    email         character varying(355) NOT NULL
+);
+
+ALTER TABLE authors ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME author_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+ALTER TABLE ONLY authors
+    ADD CONSTRAINT authors_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY authors
+    ADD CONSTRAINT unique_authors UNIQUE (username);
+
 $aa$);
 -- end of region
 
--- region change 9: plain-text organization maintainers become references
--- Completes change 4 for databases that already held data. Before it, an item maintained by
--- an organization carried the organization's display name in the maintainer column, which is
--- exactly what a rename used to orphan; now it carries maintainer_org_id and the maintainer
--- column holds a username only.
+-- region change 9: existing rows move onto those tables
+-- Export the database before running this: the author and maintainer each item carries are
+-- strings that no row in the new tables answers to, and there is nothing to match them against -
+-- a username is not an author row, and a maintainer that was an organization's display name is
+-- not an organization id. Every item is therefore handed the seeded COMMUNITY maintainer and a
+-- placeholder author, and who wrote what survives only in the export.
 --
--- IMPORTANT: this converts only what matches a row in the organizations table, which change 4
--- created EMPTY. Insert the environment's organizations BEFORE running this script - the
--- change runs once, so an organization added afterwards will not be picked up and its items
--- keep their plain-text maintainer.
---
--- author_org_id and author_category are deliberately not filled in here: they describe the
--- uploader's role and organization at the time of upload, which no longer exists anywhere in
--- the database and cannot be recovered from it. Rows without them behave as personal items -
--- the author keeps access - and they are stamped the next time the item is written.
-call apply_change(9, $aa$
-UPDATE connector c
-    SET maintainer_org_id = o.id, maintainer = NULL
-    FROM organizations o
-    WHERE lower(c.maintainer) = lower(o.name) AND c.maintainer_org_id IS NULL;
+-- COMMUNITY rather than EVOLVEUM because it is the weaker of the two: it says nothing about who
+-- published the item, and change 8's rules let any contributor take over what it maintains.
+call apply_change(11, $aa$
+UPDATE organizations SET display_name = name WHERE display_name IS NULL;
 
-UPDATE connector_version cv
-    SET maintainer_org_id = o.id, maintainer = NULL
-    FROM organizations o
-    WHERE lower(cv.maintainer) = lower(o.name) AND cv.maintainer_org_id IS NULL;
+ALTER TABLE organizations
+    ALTER COLUMN display_name SET NOT NULL;
 
-UPDATE connector_bundle cb
-    SET maintainer_org_id = o.id, maintainer = NULL
-    FROM organizations o
-    WHERE lower(cb.maintainer) = lower(o.name) AND cb.maintainer_org_id IS NULL;
+INSERT INTO maintainers (id, username, organization_id, category) VALUES
+    (1,NULL,NULL,'COMMUNITY'),
+    (2,NULL,NULL,'EVOLVEUM');
 
-UPDATE connector_bundle_version cbv
-    SET maintainer_org_id = o.id, maintainer = NULL
-    FROM organizations o
-    WHERE lower(cbv.maintainer) = lower(o.name) AND cbv.maintainer_org_id IS NULL;
+SELECT setval('maintainer_id_seq', 2);
 
-UPDATE integration_method im
-    SET maintainer_org_id = o.id, maintainer = NULL
-    FROM organizations o
-    WHERE lower(im.maintainer) = lower(o.name) AND im.maintainer_org_id IS NULL;
+ALTER TABLE connector_version
+    ALTER COLUMN maintainer TYPE bigint USING 1;
+
+ALTER TABLE connector
+    ALTER COLUMN maintainer TYPE bigint USING 1;
+
+ALTER TABLE connector_bundle
+    DROP COLUMN IF EXISTS maintainer;
+
+ALTER TABLE connector_bundle_version
+    DROP COLUMN IF EXISTS maintainer;
+
+ALTER TABLE integration_method
+    ALTER COLUMN maintainer TYPE bigint USING 1;
+
+INSERT INTO authors (id, username, email) VALUES
+    (1, 'default user', 'default@user');
+
+SELECT setval('author_id_seq', 1);
+
+ALTER TABLE connector_version
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE connector
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE connector_bundle
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE connector_bundle_version
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE integration_method
+    ALTER COLUMN author TYPE bigint USING 1;
+
+-- The conversions above fill every row, so the columns can take the shape the baseline gives
+-- them: an item always has an author, and always has a maintainer - COMMUNITY when nothing else
+-- is chosen, which is what the default stands for.
+ALTER TABLE connector
+    ALTER COLUMN author SET NOT NULL,
+    ALTER COLUMN maintainer SET DEFAULT 1,
+    ALTER COLUMN maintainer SET NOT NULL;
+
+ALTER TABLE connector_version
+    ALTER COLUMN author SET NOT NULL,
+    ALTER COLUMN maintainer SET DEFAULT 1,
+    ALTER COLUMN maintainer SET NOT NULL;
+
+ALTER TABLE integration_method
+    ALTER COLUMN author SET NOT NULL,
+    ALTER COLUMN maintainer SET DEFAULT 1,
+    ALTER COLUMN maintainer SET NOT NULL;
+
+ALTER TABLE connector_bundle
+    ALTER COLUMN author SET NOT NULL;
+
+ALTER TABLE connector_bundle_version
+    ALTER COLUMN author SET NOT NULL;
+
+ALTER TABLE ONLY connector
+    ADD CONSTRAINT fk_c_maint FOREIGN KEY (maintainer) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_version
+    ADD CONSTRAINT fk_cv_maint FOREIGN KEY (maintainer) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY integration_method
+    ADD CONSTRAINT fk_im_maint FOREIGN KEY (maintainer) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector
+    ADD CONSTRAINT fk_conn_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_version
+    ADD CONSTRAINT fk_cv_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle
+    ADD CONSTRAINT fk_cb_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_version
+    ADD CONSTRAINT fk_cbv_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY integration_method
+    ADD CONSTRAINT fk_im_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+$aa$);
+-- end of region
+
+-- region change 10: recently_used_applications.user_id is a username
+-- The column has held the principal name since the catalog started reading identity from the
+-- token - that is preferred_username, not an id of anything. Renamed so it stops promising a
+-- key into a user table that does not exist, and cannot come to be read as one.
+call apply_change(12, $aa$
+ALTER TABLE recently_used_applications RENAME COLUMN user_id TO username;
+
+ALTER INDEX IF EXISTS idx_rua_user_id RENAME TO idx_rua_username;
 $aa$);
 -- end of region
 
@@ -350,11 +482,14 @@ $aa$);
 --        $aa$);
 --      ($aa$ dollar-quoting keeps inner $$ function bodies intact; the procedure advances 'schemaChangeNumber'
 --      in m_global_metadata within the same transaction.
---   2. bump REQUIRED_VERSION in DatabaseSchemaVersionValidator to N.
+--   2. fold the same DDL into config/sql/postgres.sql and raise its trailing apply_change stamp
+--      to N, so a schema created from that script alone is complete and needs no upgrade run.
+--   3. bump REQUIRED_VERSION in DatabaseSchemaVersionValidator to N.
 --
--- Do NOT touch config/sql/postgres.sql - neither the schema in it nor its trailing apply_change
--- stamp. This file is the only place schema changes are written, and the reason is in the header:
--- raising that stamp records a change as applied without running it, and no later run can repair it.
+-- Steps 1 and 2 go together, in that order, and neither is optional. This file is what brings a
+-- database that already exists up to date; postgres.sql is what a new one is built from. Raising
+-- that stamp without folding in the DDL records a change as applied without running it, and no
+-- later run can repair it - it has broken a fresh install twice.
 --
 -- Editing an already-applied section is limited to taking something out of it. A database that
 -- recorded change N skips it forever, so the edit reaches only databases below N - silently, with no

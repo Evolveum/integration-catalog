@@ -14,12 +14,13 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 /** Payload sent to updateConnector — also emitted for staging when deferSave is on. */
 export interface ConnectorEditPayload {
   displayName: string;
   description: string;
-  maintainer: string;
+  maintainer: Maintainer;
   license: string | null;
   projectHomepage: string | null;
   supportPortal: string | null;
@@ -60,16 +61,21 @@ export class EditConnectorModal implements OnInit {
   // ── Basic information & capabilities ──────────────────────
   protected readonly connectorName = signal<string>('');
   protected readonly connectorVersion = signal<string>('');
-  protected readonly connectorMaintainer = signal<string>('');
-  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
-    return options.filter(o => o.toLowerCase().includes(search));
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
   });
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.connectorMaintainer()));
   protected readonly connectorLicense = signal<string>('');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
@@ -112,14 +118,15 @@ export class EditConnectorModal implements OnInit {
 
   protected readonly isValid = computed(() => {
     const base = !!this.connectorName().trim()
-      && !!this.connectorMaintainer().trim()
+      && !!this.connectorMaintainer()
       && !!this.connectorLicense();
     if (!base) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
       && !this.isGitCloneUrlInvalid();
+    // Class name is optional; when given it still has to be a well-formed Java class name.
     const javaOk = !this.isJavaBased
-      || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
+      || (!!this.devBuildTool() && !this.isClassNameInvalid());
     return devOk && javaOk;
   });
 
@@ -135,7 +142,7 @@ export class EditConnectorModal implements OnInit {
 
     this.connectorName.set(c.connectorDisplayName || c.name || '');
     this.connectorVersion.set(c.version ?? '');
-    this.connectorMaintainer.set(c.maintainer ?? '');
+    this.connectorMaintainer.set(c.maintainer ?? null);
     this.connectorLicense.set(c.licenseType ?? '');
     this.connectorDescription.set(c.implementationDescription ?? '');
     // The "connector bundle name" field is the bundle's label (connector_bundle.display_name);
@@ -164,10 +171,10 @@ export class EditConnectorModal implements OnInit {
 
   private initMaintainerOptions(): void {
     if (this.authService.currentRole() === UserRole.Superuser) {
-      const currentUser = this.authService.currentUser();
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
       });
     } else {
       this.maintainerOptions.set(this.authService.maintainerOptions());
@@ -189,14 +196,18 @@ export class EditConnectorModal implements OnInit {
     setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
   }
 
-  protected selectMaintainerOption(option: string): void {
+  protected selectMaintainerOption(option: Maintainer): void {
     this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
   }
 
-  protected maintainerOptionLabel(option: string): string {
+  protected maintainerOptionLabel(option: Maintainer): string {
     return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.connectorMaintainer());
   }
 
   // ── License combobox ──────────────────────────────────────
@@ -229,7 +240,7 @@ export class EditConnectorModal implements OnInit {
     const payload: ConnectorEditPayload = {
       displayName: this.connectorName(),
       description: this.connectorDescription(),
-      maintainer: this.connectorMaintainer(),
+      maintainer: this.connectorMaintainer()!,
       license: this.connectorLicense() || null,
       projectHomepage: this.devProjectHomepage() || null,
       supportPortal: this.devSupportPortal() || null,

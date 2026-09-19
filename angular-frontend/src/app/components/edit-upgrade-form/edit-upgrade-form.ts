@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -13,13 +13,17 @@ import { toArray } from 'rxjs/operators';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
+import { LinksService } from '../../services/links.service';
 import { PageHeader } from '../page-header/page-header';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
 import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { formatCapabilityLabel } from '../../core/capability-label';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 @Component({
   selector: 'app-edit-upgrade-form',
@@ -30,6 +34,7 @@ import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../mod
   styleUrls: ['./edit-upgrade-form.scss']
 })
 export class EditUpgradeForm implements OnInit, OnDestroy {
+  protected readonly links = inject(LinksService).links;
   protected readonly loading = signal<boolean>(true);
   protected readonly showAddConnector = signal<boolean>(false);
   // Set once a connector is added directly to a mutable (in-review/rejected) revision this session.
@@ -92,6 +97,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
+  // Staged deletes stay in: adds are saved before deletes, so re-adding one would still hit the link.
+  protected readonly linkedConnectorIds = computed<number[]>(() => [
+    ...this.connectors().map(c => c.connectorId),
+    ...this.stagedConnectors().map(sc => sc.payload.existingConnectorId)
+  ].filter((id): id is number => id != null));
   protected readonly connectorCapsExpanded = signal<Set<string>>(new Set());
   protected readonly editingConnector = signal<ImplementationListItem | null>(null);
   protected readonly pendingDeleteConnector = signal<ImplementationListItem | null>(null);
@@ -143,6 +154,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.hasMajorConnectorChanges() && !this.isDraftState()
   );
 
+  /** The label of a staged connector's maintainer, for the card that previews it. */
+  protected maintainerText(maintainer: Maintainer | null): string {
+    return maintainerLabel(maintainer);
+  }
+
   /** Whether a staged edit changes the connector identity (version, className). */
   private isMajorConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): boolean {
     const norm = (v: string | null | undefined): string => (v ?? '').trim();
@@ -164,13 +180,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       connectorDisplayName: p.displayName,
       bundleDisplayName: p.bundleDisplayName ?? c.bundleDisplayName,
       implementationDescription: p.description,
-      maintainer: p.maintainer,
-      // The staged maintainer's organization is only known locally for the current user;
-      // other picks (superuser) preview plain until the save reloads server data.
-      maintainerOrganization:
-        p.maintainer === c.maintainer ? c.maintainerOrganization
-          : p.maintainer === this.authService.currentUser() ? this.authService.displayedOrganization()
-          : null,
+      // Only the label previews the staged pick; the permission check keeps the saved maintainer.
+      maintainerLabel: maintainerLabel(p.maintainer),
       licenseType: p.license ?? '',
       projectHomepage: p.projectHomepage ?? '',
       ticketingLink: p.supportPortal ?? '',
@@ -383,19 +394,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 
-  /** A maintainer belonging to an organization is shown as "org (username)". */
-  protected formatMaintainer(maintainer: string, maintainerOrganization?: string | null): string {
-    if (!maintainer) return '—';
-    return maintainerOrganization ? `${maintainerOrganization} (${maintainer})` : maintainer;
-  }
-
-  /** Org of a locally staged maintainer: only resolvable when it is the current user. */
-  protected localMaintainerOrg(maintainer: string): string | null {
-    return maintainer === this.authService.currentUser()
-      ? this.authService.displayedOrganization()
-      : null;
-  }
-
   /**
    * Whether the current user may edit this connector's content. A connector is gated on its
    * own maintainer (not the IM's): the IM maintainer must not edit connectors maintained by
@@ -403,13 +401,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
    * actions, available to anyone who could open this edit form.)
    */
   protected canEditConnector(c: ImplementationListItem): boolean {
-    return this.authService.canEdit(null, null, c.maintainer, c.maintainerOrganization);
+    return this.authService.canEdit(c.maintainer);
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-    const withSpaces = text.replace(/_/g, ' ').toLowerCase();
-    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   /** A connector's object-class capabilities, with the Global class first when present. */
@@ -607,7 +603,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const state = this.methodLifecycleState();
     return state === 'IN_REVIEW' || state === 'REJECTED' || state === 'REVIEWING';
   }
-  
+
   // A minor "Save" shows a confirmation modal; a major "Save as new version" shows an upgrade modal.
   // Both are the same modal the publish flow ends on, so an author sees one confirmation whichever
   // way their revision reached a reviewer; its "Done" then leaves to the app detail.

@@ -9,6 +9,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IncludedConnector, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
@@ -18,6 +19,7 @@ import { ConnectorWithoutDownload } from '../../services/application.service';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 interface MethodGroup {
   id: string;
@@ -26,6 +28,7 @@ interface MethodGroup {
   versions: IntegrationMethod[];
   publishedCount: number;
   pendingCount: number;
+  usesObsoleteConnector: boolean;
 }
 
 @Component({
@@ -89,11 +92,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           types: v.integMethodTypes ?? [],
           versions: [],
           publishedCount: 0,
-          pendingCount: 0
+          pendingCount: 0,
+          usesObsoleteConnector: false
         };
         groups.set(v.id, group);
       }
       group.versions.push(v);
+      if (v.connectors?.some((c: IncludedConnector) => isObsoleteConnector(c.tags))) group.usesObsoleteConnector = true;
       if (v.lifecycleState === 'ACTIVE') group.publishedCount++;
       // A revision under active review (REVIEWING) is still pending, not yet published.
       else if (v.lifecycleState === 'IN_REVIEW' || v.lifecycleState === 'REVIEWING') group.pendingCount++;
@@ -207,12 +212,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return !!user && !!requester && requester.trim().toLowerCase() === user.trim().toLowerCase();
   }
 
-  /**
-   * Whether the current user may edit this method revision (own item, same-org item for
-   * organization contributors, or anything for superusers). The server enforces the same rule.
-   */
-  protected canEdit(version: { author?: string | null; authorOrganization?: string | null; maintainer?: string | null }): boolean {
-    return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
+  /** Whether the current user may edit this method revision; see AuthService.canEdit. */
+  protected canEdit(version: Pick<IntegrationMethod, 'maintainer'>): boolean {
+    return this.authService.canEdit(version.maintainer);
   }
 
   // ── Approve/Reject confirmation modal ─────────────────────────────────────
@@ -376,6 +378,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected confirmCancel(): void {
     if (this.pendingCancelType === 'version' && this.pendingCancelVersionId) {
       this.cancelledVersionIds.update(ids => [...ids, this.pendingCancelVersionId!]);
+      //todo we need remove it from DB and add comment to ticket (probably also close ticket)
       this.closeCancelConfirm();
     } else if (this.pendingCancelType === 'request') {
       const requestId = this.application()?.requestId;
@@ -438,6 +441,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected isConnectorsSectionExpanded(key: string): boolean {
     return !this.collapsedConnectorSections().has(key);
   }
+
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   /** Chip label: fully qualified class name plus the connector version, e.g. "…CsvConnector v2.9". */
   protected connectorChipLabel(c: IncludedConnector): string {
@@ -562,10 +567,10 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return !!methods && methods.length > 0;
   }
 
-  protected navigateToPublish(): void {
+  protected navigateToApprove(): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.router.navigate(['/publish'], { queryParams: { appId } });
+      this.router.navigate(['/approve'], { queryParams: { appId } });
     }
   }
 
@@ -859,14 +864,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-
-    // Replace underscores with spaces
-    const withSpaces = text.replace(/_/g, ' ');
-
-    // Convert to lowercase and capitalize first letter
-    const formatted = withSpaces.toLowerCase();
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   protected formatConnectorType(framework: string | null): string {
@@ -1052,15 +1050,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
 
     // IN_REVIEW, REVIEWING and REJECTED share the same restricted visibility, which is exactly the
-    // edit-ownership rule: only someone who may edit a draft can see it. Not logged in →
-    // hidden; Superuser → all; the designated maintainer (by username or org) → own;
-    // the uploader → own; OrganizationContributor → same-org uploads. Published (ACTIVE)
-    // revisions are visible to everyone.
+    // edit-ownership rule (AuthService.canEdit): only someone who may edit a draft can see it.
+    // Published (ACTIVE) revisions are visible to everyone.
     let filteredVersions = versions.filter(version => {
       if (version.lifecycleState !== 'IN_REVIEW'
           && version.lifecycleState !== 'REVIEWING'
           && version.lifecycleState !== 'REJECTED') return true;
-      return this.authService.canEdit(version.author, version.authorOrganization, version.maintainer);
+      return this.authService.canEdit(version.maintainer);
     });
 
     // Apply filters

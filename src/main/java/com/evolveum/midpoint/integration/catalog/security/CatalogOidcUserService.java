@@ -36,12 +36,14 @@ public class CatalogOidcUserService extends OidcUserService {
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
         OidcUser oidcUser = super.loadUser(userRequest);
 
-        List<String> catalogRoles = claims.roles(oidcUser);
-        String effectiveRole = claims.effectiveRole(oidcUser);
+        List<CatalogRole> catalogRoles = claims.roles(oidcUser);
+        CatalogRole effectiveRole = claims.effectiveRole(oidcUser);
 
         Set<GrantedAuthority> authorities = new LinkedHashSet<>(oidcUser.getAuthorities());
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + effectiveRole));
-        catalogRoles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+        if (!catalogRoles.contains(effectiveRole)) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + effectiveRole.getIdentifier()));
+        }
+        catalogRoles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getIdentifier())));
 
         String userNameAttribute = userRequest.getClientRegistration()
                 .getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();

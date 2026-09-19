@@ -15,8 +15,11 @@ import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 // Single Asciidoctor engine instance shared by the component; the tutorial is
 // authored in AsciiDoc and rendered read-only here.
@@ -88,11 +91,8 @@ export class IntegrationMethodDetail implements OnInit {
 
   // Ownership of the opened revision, used to gate the "Edit and upgrade" action. The server
   // enforces the same rule; hiding the button just avoids offering an action that would be rejected.
-  // (methodAuthor is declared above and reused here.)
-  protected readonly methodAuthorOrganization = signal<string | null>(null);
-  protected readonly methodMaintainer = signal<string | null>(null);
-  protected readonly canEdit = computed(() =>
-    this.authService.canEdit(this.methodAuthor(), this.methodAuthorOrganization(), this.methodMaintainer()));
+  protected readonly methodMaintainer = signal<Maintainer | null>(null);
+  protected readonly canEdit = computed(() => this.authService.canEdit(this.methodMaintainer()));
 
   // Supported midPoint version range
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
@@ -103,6 +103,7 @@ export class IntegrationMethodDetail implements OnInit {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
   // Tutorial (AsciiDoc source) rendered to embeddable HTML for read-only display.
@@ -152,7 +153,6 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodCreatedAt.set(ver.createdAt ?? null);
           this.reviewerName.set(ver.reviewedBy ?? '');
           this.methodUpdated.set(ver.updated ?? null);
-          this.methodAuthorOrganization.set(ver.authorOrganization ?? null);
           this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
@@ -328,16 +328,8 @@ export class IntegrationMethodDetail implements OnInit {
     return this.licenseLabels[value] ?? value;
   }
 
-  /** A maintainer belonging to an organization is shown as "org (username)". */
-  protected formatMaintainer(maintainer: string, maintainerOrganization?: string | null): string {
-    if (!maintainer) return '—';
-    return maintainerOrganization ? `${maintainerOrganization} (${maintainer})` : maintainer;
-  }
-
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-    const withSpaces = text.replace(/_/g, ' ').toLowerCase();
-    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   protected getLogoUrl(): string {

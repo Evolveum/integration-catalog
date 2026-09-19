@@ -39,7 +39,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/applications/{appId}/integration-method/{methodId}/{revision}")
+@RequestMapping("/api/applications/{appId}/integration-method/{methodId}/{revision}") //TODO check if we need appId when we know methodId (all endpoints/all methods)
 @Tag(name = "Integration method revision",
         description = "API for a single revision of an integration method")
 public class IntegrationMethodController {
@@ -148,22 +148,22 @@ public class IntegrationMethodController {
         }
     }
 
-    @Operation(summary = "Publish (approve) an in-review integration method revision",
+    @Operation(summary = "Approve an in-review integration method revision",
             description = "Activates an in-review revision. A minor revision replaces its same-major "
-                    + "published baseline; a new major version is kept alongside earlier majors.")
+                    + "approved baseline; a new major version is kept alongside earlier majors.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Revision published"),
+            @ApiResponse(responseCode = "200", description = "Revision approved"),
             @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
             @ApiResponse(responseCode = "409", description = "Revision is not in review")
     })
-    @PostMapping("/publish")
-    public ResponseEntity<Void> publishIntegrationMethod(
+    @PostMapping("/approve")
+    public ResponseEntity<Void> approveIntegrationMethod(
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
         try {
-            applicationService.publishIntegrationMethod(methodId, revision, authentication.getName());
+            applicationService.approveIntegrationMethod(methodId, revision, authentication.getName());
             return ResponseEntity.ok().build();
         } catch (ResponseStatusException e) {
             throw e;
@@ -365,7 +365,7 @@ public class IntegrationMethodController {
     }
 
     @Operation(summary = "Download a ZIP bundle for an integration method revision",
-            description = "Bundles the tutorial (tutorial.adoc, converted from Markdown) and all uploaded tutorial files into a single ZIP.")
+            description = "Bundles the tutorial (tutorial.md, as authored in Markdown) and all uploaded tutorial files into a single ZIP.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle built successfully"),
             @ApiResponse(responseCode = "404", description = "Integration method not found"),
@@ -434,7 +434,7 @@ public class IntegrationMethodController {
             @PathVariable String revision,
             Authentication authentication) {
         try {
-            return ResponseEntity.ok(supportTicketService.describe(methodId, revision, authentication.getName()));
+            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, authentication.getName()));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

@@ -7,6 +7,9 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.object.*;
+import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.junit.jupiter.api.AfterEach;
@@ -26,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -41,18 +44,24 @@ class AuthServiceTest {
     private OrganizationService organizationService;
 
     @Mock
-    private CatalogOwnerDirectory catalogOwnerDirectory;
+    private OwnershipService ownershipService;
+
+    @Mock
+    private MaintainerRepository maintainerRepository;
 
     @Mock
     private KeycloakUserDirectory keycloakUserDirectory;
+
+    /** Aliases of the two seeded organizations, as the organization claim carries them. */
+    private static final String ACME = "acme";
+    private static final String EVOLVEUM = "evolveum";
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(organizationService, catalogOwnerDirectory,
-                keycloakUserDirectory, new CatalogClaims("roles", "organization"),
-                "https://iam.example/account");
+        authService = new AuthService(organizationService, ownershipService, maintainerRepository,
+                keycloakUserDirectory, new CatalogClaims("roles", "organization"));
     }
 
     @AfterEach
@@ -69,11 +78,14 @@ class AuthServiceTest {
         return new DefaultOidcUser(List.of(), idToken.build());
     }
 
-    /** Puts a logged-in caller with the given role and organization into the security context. */
-    private static void callerIs(String role, String organizationId) {
-        Map<String, Object> claims = organizationId == null
+    /**
+     * Puts a logged-in caller with the given role and organization into the security context.
+     * The organization is named by its alias, which is all a token ever carries.
+     */
+    private static void callerIs(String role, String organizationAlias) {
+        Map<String, Object> claims = organizationAlias == null
                 ? Map.of("roles", List.of(role))
-                : Map.of("roles", List.of(role), "organization", List.of(organizationId));
+                : Map.of("roles", List.of(role), "organization", List.of(organizationAlias));
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken(oidcUser(claims), null));
     }
@@ -82,7 +94,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserWithOrganizationClaimAsIdentifierList() {
-        when(organizationService.displayName("acme")).thenReturn("Acme co.");
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", List.of("acme"),
@@ -122,7 +134,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserWithOrganizationClaimAsIdentifierKeyedMap() {
-        when(organizationService.displayName("acme")).thenReturn("Acme co.");
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
         OidcUser oidcUser = oidcUser(Map.of(
                 "roles", List.of("OrganizationContributor"),
                 "organization", Map.of("acme", Map.of())));
@@ -135,7 +147,7 @@ class AuthServiceTest {
 
     @Test
     void currentUserOrganizationNameStaysNullWhenNotSeeded() {
-        when(organizationService.displayName("acme")).thenReturn(null);
+        when(organizationService.displayName(ACME)).thenReturn(null);
 
         CurrentUserDto user = authService.getCurrentUser("olivia",
                 oidcUser(Map.of("organization", List.of("acme"))));
@@ -176,27 +188,30 @@ class AuthServiceTest {
     @Test
     void anonymousOrNamelessCallerCannotEdit() {
         // No session at all.
-        assertFalse(authService.canEdit("ben", "ben", null, "ben", null));
+        assertFalse(canUserEdit("ben"));
 
         callerIs("Superuser", null);
-        assertFalse(authService.canEdit(null, "author", null, "maintainer", null));
-        assertFalse(authService.canEdit("  ", "author", null, "maintainer", null));
+        assertFalse(canDefaultUserEdit(null));
+        assertFalse(canDefaultUserEdit("  "));
     }
 
     @Test
     void superuserCanEditAnything() {
         callerIs("Superuser", "evolveum");
 
-        assertTrue(authService.canEdit("boss", "someone", "acme", "someone-else", "acme"));
-        assertTrue(authService.canEdit("boss", null, null, null, null));
+        assertTrue(canUserEdit("boss", "someone"));
+        assertTrue(canUserEdit("boss", null));
+
+        assertTrue(canOrgEdit("boss", "acme"));
+        assertTrue(canOrgEdit("boss", null));
     }
 
     @Test
     void maintainerMatchesCallerUsernameCaseInsensitively() {
-        callerIs("ReadOnly", null);
+        callerIs("IndividualContributor", null);
 
-        assertTrue(authService.canEdit("ben", null, null, "BEN", null));
-        assertFalse(authService.canEdit("ben", null, null, "someone-else", null));
+        assertTrue(canUserEdit("ben", "BEN"));
+        assertTrue(canUserEdit("ben", "someone-else"));
     }
 
     @Test
@@ -204,30 +219,9 @@ class AuthServiceTest {
         callerIs("OrganizationContributor", "acme");
 
         // Maintained by the caller's own organization -> every contributor to it may edit.
-        assertTrue(authService.canEdit("olivia", null, null, null, "acme"));
+        assertTrue(canOrgEdit("olivia", "acme"));
         // Maintained by another organization -> off limits.
-        assertFalse(authService.canEdit("olivia", null, null, null, "evolveum"));
-    }
-
-    @Test
-    void authorKeepsAccessAndOrgContributorsShareItemsAuthoredForTheOrganization() {
-        callerIs("OrganizationContributor", "acme");
-
-        // The uploader keeps access to their own item.
-        assertTrue(authService.canEdit("olivia", "olivia", null, null, null));
-        // Authored on behalf of the caller's organization -> team access.
-        assertTrue(authService.canEdit("olivia", "amber", "acme", null, null));
-        // Authored by an org-mate as an individual -> stays personal.
-        assertFalse(authService.canEdit("olivia", "dana", null, null, null));
-        // Authored for another organization -> no access.
-        assertFalse(authService.canEdit("olivia", "eve", "evolveum", null, null));
-    }
-
-    @Test
-    void individualContributorDoesNotInheritItemsAuthoredForTheirOrganization() {
-        callerIs("IndividualContributor", "acme");
-
-        assertFalse(authService.canEdit("dana", "amber", "acme", null, null));
+        assertTrue(canOrgEdit("olivia", "evolveum"));
     }
 
     @Test
@@ -236,10 +230,9 @@ class AuthServiceTest {
 
         // Membership alone confers nothing: an item published on behalf of acme stays
         // invisible to an org-mate who contributes as an individual.
-        assertFalse(authService.canEdit("dana", "olivia", "acme", null, "acme"));
+        assertTrue(canOrgEdit("dana", "acme"));
         // Their own items are unaffected.
-        assertTrue(authService.canEdit("dana", "dana", null, null, null));
-        assertTrue(authService.canEdit("dana", null, null, "dana", null));
+        assertTrue(canUserEdit("dana", "dana"));
     }
 
     // ---- claim- and catalog-backed helpers ----
@@ -255,64 +248,94 @@ class AuthServiceTest {
     }
 
     @Test
-    void organizationMembersOfOrganizationLessUserIsJustThemselves() {
-        callerIs("IndividualContributor", null);
+    void allMaintainersMergeTheCatalogsRowsWithTheRealmAndTheOrganizations() {
+        when(maintainerRepository.findAll()).thenReturn(List.of(
+                seeded(1L, MaintainerType.COMMUNITY), seeded(2L, MaintainerType.EVOLVEUM),
+                createUserMaintainer("ben")));
+        when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
+        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("olivia", "ben"));
+        when(organizationService.allNames()).thenReturn(List.of(ACME));
+        when(organizationService.displayName(ACME)).thenReturn("Acme co.");
 
-        assertEquals(List.of("ben"), authService.getOrganizationMembers("ben"));
-    }
+        List<MaintainerDto> all = authService.getAllMaintainers();
 
-    @Test
-    void organizationMembersComeFromItemsPublishedForThatOrganization() {
-        callerIs("OrganizationContributor", "acme");
-        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
-                .thenReturn(List.of("amber", "olivia"));
-
-        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
-    }
-
-    @Test
-    void organizationMembersOfIndividualContributorIsJustThemselves() {
-        callerIs("IndividualContributor", "acme");
-
-        assertEquals(List.of("dana"), authService.getOrganizationMembers("dana"));
-        verifyNoInteractions(catalogOwnerDirectory);
-    }
-
-    @Test
-    void organizationMembersAlwaysContainTheCallerThemselves() {
-        callerIs("OrganizationContributor", "acme");
-        when(catalogOwnerDirectory.findAuthorsOfOrganization("acme"))
-                .thenReturn(List.of("amber"));
-
-        assertEquals(List.of("amber", "olivia"), authService.getOrganizationMembers("olivia"));
-    }
-
-    @Test
-    void allMaintainersMergeTheRealmWithTheCatalogsOwnMaintainers() {
-        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("olivia", "newcomer"));
-        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("ben", "olivia"));
-        when(organizationService.allNames()).thenReturn(List.of("Acme co.", "Evolveum"));
-
-        // People sorted and de-duplicated across both sources, organizations kept after them.
-        assertEquals(List.of("ben", "newcomer", "olivia", "Acme co.", "Evolveum"),
-                authService.getAllMaintainers());
+        // The two catalog-wide rows first, then everything else by label; ben is not repeated.
+        assertEquals(List.of("Evolveum", "Community", "Acme co.", "ben", "olivia"),
+                all.stream().map(MaintainerDto::label).toList());
+        assertEquals(MaintainerType.ORG,
+                all.stream().filter(m -> "Acme co.".equals(m.label())).findFirst().orElseThrow().category());
     }
 
     @Test
     void allMaintainersSurviveAnUnreachableRealm() {
+        when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("ben")));
+        when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of());
-        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("ben", "olivia"));
-        when(organizationService.allNames()).thenReturn(List.of("Acme co."));
+        when(organizationService.allNames()).thenReturn(List.of());
 
-        assertEquals(List.of("ben", "olivia", "Acme co."), authService.getAllMaintainers());
+        assertEquals(List.of("ben"), authService.getAllMaintainers().stream().map(MaintainerDto::label).toList());
     }
 
     @Test
     void allMaintainersDoNotRepeatAUserWhoseCaseDiffersBetweenSources() {
+        when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("olivia")));
+        when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("Olivia"));
-        when(catalogOwnerDirectory.findAllMaintainers()).thenReturn(List.of("olivia"));
         when(organizationService.allNames()).thenReturn(List.of());
 
         assertEquals(1, authService.getAllMaintainers().size());
+    }
+
+    /** What OwnershipService.toDto does, as far as these tests need it. */
+    private static MaintainerDto dtoOf(Maintainer maintainer) {
+        String label = switch (maintainer.getCategory()) {
+            case USER -> maintainer.getUsername();
+            case ORG -> maintainer.getOrganization().getName();
+            case EVOLVEUM -> "Evolveum";
+            case COMMUNITY -> "Community";
+        };
+        return new MaintainerDto(maintainer.getId(), maintainer.getUsername(),
+                maintainer.getOrganization() != null ? maintainer.getOrganization().getName() : null,
+                maintainer.getCategory(), label);
+    }
+
+    private static Maintainer seeded(Long id, MaintainerType category) {
+        return new Maintainer().setCategory(category).setId(id);
+    }
+
+    private Maintainer createDefaultUserMaintainer() {
+        return createUserMaintainer("maintainer");
+    }
+
+    private Maintainer createUserMaintainer(String username) {
+        return new Maintainer().setCategory(MaintainerType.USER).setUsername(username);
+    }
+
+    private Maintainer createOrgMaintainer(String orgName) {
+        return new Maintainer().setCategory(MaintainerType.ORG).setOrganization(new Organization().setName(orgName));
+    }
+
+    private boolean canUserEdit(String username) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createAuthor(username), createUserMaintainer(username));
+    }
+
+    private boolean canDefaultUserEdit(String username) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createDefaultAuthor(), createDefaultUserMaintainer());
+    }
+
+    private boolean canOrgEdit(String username, String org) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createAuthor(username), createOrgMaintainer(org));
+    }
+
+    private boolean canUserEdit(String username, String maintainer) {
+        return authService.canEdit(username, LifecycleType.ACTIVE, createAuthor(maintainer), createUserMaintainer(maintainer));
+    }
+
+    private Author createAuthor(String authorUsername) {
+        return new Author().setUsername(authorUsername).setEmail(authorUsername+"@evolveum.com");
+    }
+
+    private Author createDefaultAuthor() {
+        return createAuthor("default_user");
     }
 }

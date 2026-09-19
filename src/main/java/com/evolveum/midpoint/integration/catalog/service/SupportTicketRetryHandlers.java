@@ -7,6 +7,10 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.RetryableOperationHandler;
 
 import org.springframework.context.annotation.Bean;
@@ -27,6 +31,9 @@ public class SupportTicketRetryHandlers {
     @Bean
     public RetryableOperationHandler<IntegrationMethodSubmittedEvent> openWorkPackageHandler(
             SupportTicketService supportTicketService) {
+        //TODO I think we could define handlers as separate objects;
+        // in that case, the operations they perform would be moved into those objects,
+        // and the whole thing would be clearer
         return RetryableOperationHandler.of(
                 ExternalSystem.OPENPROJECT,
                 SupportTicketService.OPEN_WORK_PACKAGE,
@@ -43,6 +50,17 @@ public class SupportTicketRetryHandlers {
                 SupportTicketService.APPEND_CONNECTOR,
                 ConnectorAddedToReviewEvent.class,
                 supportTicketService::appendConnector);
+    }
+
+    /** Reports the outcome of a build on the work package of the revision it was built for. */
+    @Bean
+    public RetryableOperationHandler<BuildFinishedEvent> commentBuildOutcomeHandler(
+            SupportTicketService supportTicketService) {
+        return RetryableOperationHandler.of(
+                ExternalSystem.OPENPROJECT,
+                SupportTicketService.COMMENT_BUILD_OUTCOME,
+                BuildFinishedEvent.class,
+                supportTicketService::commentBuildOutcome);
     }
 
     /** Attaches one of the author's uploaded files to the work package of its revision. */

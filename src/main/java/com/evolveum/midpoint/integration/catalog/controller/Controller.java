@@ -146,13 +146,13 @@ public class Controller {
                 bundleName, className, version, excludeConnectorId));
     }
 
-    @Operation(summary = "Upload connector implementation")
-    @PostMapping("/upload/connector")
+    @Operation(summary = "Upload integration")
+    @PostMapping("/upload/integration")
     public ResponseEntity<String> uploadConnector(
-            @RequestBody UploadImplementationDto dto,
+            @RequestBody UploadIntegrationDto dto,
             Authentication authentication) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadConnector(dto, authentication.getName()));
+            return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadIntegration(dto, authentication.getName()));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -166,6 +166,7 @@ public class Controller {
     @Operation(summary = "Upload status - success")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Upload status - success worked"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "Upload status - success did not work")
     })
     @PostMapping("/upload/continue/{oid}")
@@ -310,17 +311,16 @@ public class Controller {
         return ResponseEntity.ok(count);
     }
 
-    @Operation(summary = "Check if user has voted",
-            description = "Checks if a specific user has already voted for a request")
+    @Operation(summary = "Check if the caller has voted",
+            description = "Whether the session's own user has already voted for a request. The answer"
+                    + " says nothing without a session, so the endpoint requires one.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Check completed successfully")
+            @ApiResponse(responseCode = "200", description = "Check completed successfully"),
+            @ApiResponse(responseCode = "401", description = "No session to answer about")
     })
     @GetMapping("/requests/{requestId}/votes/check")
     public ResponseEntity<Boolean> hasUserVoted(@PathVariable Long requestId, Authentication authentication) {
-        // Anonymous callers may ask; they have trivially not voted.
-        boolean hasVoted = authentication != null
-                && applicationService.hasUserVoted(requestId, authentication.getName());
-        return ResponseEntity.ok(hasVoted);
+        return ResponseEntity.ok(applicationService.hasUserVoted(requestId, authentication.getName()));
     }
 
     @Operation(summary = "Show counts of categories")
@@ -411,6 +411,7 @@ public class Controller {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle verified successfully"),
             @ApiResponse(responseCode = "400", description = "Verification failed"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "409", description = "Connector class already exists for this bundle version")
     })
     @PostMapping("/upload/verify/{oid}")
@@ -452,13 +453,11 @@ public class Controller {
         return ResponseEntity.ok(items);
     }
 
-    // TODO access this endpoint only for superuser
-
     @Operation(summary = "Update application details",
             description = "Updates the display name and/or description of an application. Superuser only.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Application updated successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden (not a superuser)"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @PutMapping("/applications/{appId}")

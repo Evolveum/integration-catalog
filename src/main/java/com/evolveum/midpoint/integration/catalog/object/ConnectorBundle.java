@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,7 +24,7 @@ import java.util.List;
 @Table(name = "connector_bundle")
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorBundle implements OwnedItem {
+public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer {
 
     public enum FrameworkType {
         JAVA_BASED,
@@ -42,24 +43,18 @@ public class ConnectorBundle implements OwnedItem {
     private Integer id;
 
     private String revision;
-    private String author;
-    private String maintainer;
 
-    // Ownership as it stood when the row was written - a token describes only its bearer, so none
-    // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
-    // reference to organizations.id, so renames need no change here) and leaves maintainer null.
-    @Column(name = "author_org_id")
-    private String authorOrgId;
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
 
-    @Column(name = "maintainer_org_id")
-    private String maintainerOrgId;
-
-    /** Evolveum, Partner or Community. */
-    @Column(name = "author_category")
-    private String authorCategory;
-
-    @Column(name = "author_email")
-    private String authorEmail;
+    @ManyToMany
+    @JoinTable(
+            name = "connector_bundle_maintainers",
+            joinColumns = @JoinColumn(name = "connector_bundle_id"),
+            inverseJoinColumns = @JoinColumn(name = "maintainer_id")
+    )
+    private List<Maintainer> maintainer = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -115,4 +110,45 @@ public class ConnectorBundle implements OwnedItem {
 
     @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnectorBundleVersion> bundleVersions = new ArrayList<>();
+
+    /**
+     * Adds one maintainer, as {@link SetOwnership} writes ownership one maintainer at a time.
+     *
+     * <p>Hidden from Jackson: it would otherwise be a second setter for the {@code maintainer}
+     * property beside the list one, which is ambiguous enough that building a deserializer for
+     * this class fails outright - and it is built, because a request DTO names an enum nested here.
+     */
+    @JsonIgnore
+    @Override
+    public ConnectorBundle setMaintainer(Maintainer maintainer) {
+        if (!this.maintainer.contains(maintainer)) {
+            this.maintainer.add(maintainer);
+        }
+        return this;
+    }
+
+    public ConnectorBundle setMaintainer(List<Maintainer> maintainer) {
+        this.maintainer = maintainer;
+        return this;
+    }
+
+    public static ConnectorBundle createConnectorBundleDraft(ConnectorBundle source) {
+        ConnectorBundle clone = new ConnectorBundle();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setLifecycleState(LifecycleType.IN_REVIEW);
+        clone.setBundleName(source.getBundleName());
+        clone.setDisplayName(source.getDisplayName());
+        clone.setDescription(source.getDescription());
+        clone.setFramework(source.getFramework());
+        clone.setLicense(source.getLicense());
+        clone.setTicketingLink(source.getTicketingLink());
+        clone.setProjectHomepage(source.getProjectHomepage());
+        clone.setGitCloneUrl(source.getGitCloneUrl());
+        clone.setPathToProject(source.getPathToProject());
+        clone.setBuildFramework(source.getBuildFramework());
+        return clone;
+    }
+
 }

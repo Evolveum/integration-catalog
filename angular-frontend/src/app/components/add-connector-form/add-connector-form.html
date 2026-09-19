@@ -7,7 +7,7 @@
 <!-- Breadcrumb -->
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" style="cursor:pointer;" (click)="goToCatalog()">Integration catalog</a>
+    <a class="breadcrumb-link" style="cursor:pointer;" (click)="goToCatalog()">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" style="cursor:pointer;" (click)="goToApp()">
       @if (showLogo()) {
@@ -158,7 +158,7 @@
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
                          [class.input-disabled]="isExistingConnector"
-                         [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                         [value]="maintainerText()"
                          (input)="onMaintainerInput($event)"
                          (focus)="onMaintainerFocus()"
                          (blur)="onMaintainerBlur()"
@@ -166,8 +166,8 @@
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
-                      @for (option of filteredMaintainerOptions(); track option) {
-                        <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                      @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                        <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                       }
                     </div>
                   }
@@ -215,24 +215,6 @@
                           [disabled]="isExistingConnector"></textarea>
                 <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
               </div>
-
-              <!-- Bundle name (java-based only) -->
-              @if (isJavaBasedConnector) {
-                <div class="mb-4">
-                  <label class="form-label form-label-upload">
-                    Connector bundle name
-                    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Display name for the connector bundle grouping related connector versions.">
-                      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                    </button>
-                  </label>
-                  <input type="text" class="form-control"
-                         [class.input-disabled]="isExistingConnector"
-                         [value]="connectorBundleName()"
-                         (input)="connectorBundleName.set($any($event.target).value)"
-                         [disabled]="isExistingConnector"
-                         placeholder="Enter connector bundle name">
-                </div>
-              }
 
               <!-- Capabilities -->
               <div class="mb-3">
@@ -369,10 +351,20 @@
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
-                  <a href="https://google.com" target="_blank" rel="noopener" class="commit-help-link d-inline-flex align-items-center gap-1">
+                  <button type="button" class="commit-help-link d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
                     How to find it <i class="fa-solid fa-arrow-right"></i>
-                  </a>
+                  </button>
                 </div>
+                @if (isCommitHelpOpen()) {
+                  <app-download-info-modal
+                    [title]="commitHelpTitle"
+                    lead=""
+                    icon="fa-code-commit"
+                    [steps]="commitHelpSteps"
+                    note=""
+                    (closed)="isCommitHelpOpen.set(false)">
+                  </app-download-info-modal>
+                }
               </div>
 
               <!-- Project folder path -->
@@ -395,7 +387,7 @@
               @if (isJavaBasedConnector) {
                 <div class="mb-3">
                   <label class="form-label form-label-upload">
-                    Class name@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    Connector class name
                     <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Fully qualified Java class name of the connector (e.g. com.example.MyConnector).">
                       <i class="fa-solid fa-circle-info info-icon-sm"></i>
                     </button>
@@ -511,7 +503,12 @@
                      class="form-check-input flex-shrink-0 radio-input"
                      style="pointer-events: none;">
               <div class="cc-connector-info">
-                <div class="cc-connector-name">{{ connector.displayName }}</div>
+                <div class="cc-connector-name">
+                  {{ connector.displayName }}
+                  @if (isObsoleteConnector(connector.tags)) {
+                    <span class="cc-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
+                </div>
                 @if (connector.description) {
                   <div class="cc-connector-desc">{{ connector.description }}</div>
                 }

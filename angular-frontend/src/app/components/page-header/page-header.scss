@@ -1,7 +1,7 @@
 @use 'variables' as *;
 
 .page-header {
-  background-color: #36538B;
+  background-color: $color-brand-navy;
   height: 86px;
   border-bottom: 30px solid rgba(255, 255, 255, 1);
 
@@ -25,16 +25,16 @@
 
 .breadcrumb-link {
   font-size: 0.8125rem;
-  color: $color-dark-blue;
+  color: $color-primary-500;
   text-decoration: none;
 
   &:link,
   &:visited {
-    color: $color-dark-blue;
+    color: $color-primary-500;
   }
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-primary-500;
     text-decoration: underline;
   }
 }
@@ -74,9 +74,11 @@
   }
 }
 
-.header-globe-icon {
-  font-size: 22px;
-  color: $color-white;
+/* Brand logo; height matches the two-line title block, width follows the aspect ratio. */
+.header-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
 }
 
 .header-title {

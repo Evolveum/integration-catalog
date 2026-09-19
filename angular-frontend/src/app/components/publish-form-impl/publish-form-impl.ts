@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, computed, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, signal, computed, inject, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -19,6 +19,10 @@ import { CatalogConnector } from '../../models/catalog-connector.model';
 import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
+import { LinksService } from '../../services/links.service';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -43,7 +47,7 @@ export interface ReviewSummary {
 export interface Step5FormData {
   connectorName: string;
   connectorVersion: string;
-  connectorMaintainer: string;
+  connectorMaintainer: Maintainer | null;
   connectorLicense: string;
   connectorDescription: string;
   connectorBundleName: string;
@@ -62,7 +66,7 @@ export interface Step5FormData {
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal],
+  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })
@@ -91,17 +95,22 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly connectorName = signal<string>('');
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
   protected readonly connectorVersion = signal<string>('');
-  protected readonly connectorMaintainer = signal<string>('');
-  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
-    return options.filter(o => o.toLowerCase().includes(search));
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
   });
-  protected readonly connectorLicense = signal<string>('');
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.connectorMaintainer()));
+  protected readonly connectorLicense = signal<string>('EUPL');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
@@ -130,6 +139,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly devRepoOwnership = signal<'evolveum' | 'own'>('evolveum');
   protected readonly devGithubApiKey = signal<string>('');
   protected readonly showGithubApiKey = signal<boolean>(false);
+  protected readonly isCommitHelpOpen = signal<boolean>(false);
+  protected readonly commitHelpTitle = COMMIT_HELP_TITLE;
+  protected readonly commitHelpSteps = COMMIT_HELP_STEPS;
   protected readonly devSourceFile = signal<File | null>(null);
   protected readonly devSourceFileDragOver = signal<boolean>(false);
 
@@ -146,6 +158,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   // Publish state
   protected readonly publishConfirmed = signal<boolean>(false);
   protected readonly licenseExpanded = signal<boolean>(false);
+  protected readonly links = inject(LinksService).links;
   protected readonly isPublishing = signal<boolean>(false);
   protected readonly publishComplete = signal<boolean>(false);
   protected readonly publishedVersionId = signal<string | null>(null);
@@ -211,10 +224,19 @@ export class PublishFormImpl implements OnInit, OnChanges {
       if (this.isGitCloneUrlInvalid()) return false;
     }
     if (this.connectorType === 'java-based') {
-      if (!this.devBuildTool() || !this.devClassName().trim()) return false;
+      if (!this.devBuildTool()) return false;
     }
     if (this.isClassNameInvalid()) return false;
     return true;
+  }
+
+  /**
+   * The integration method's name, quoted, for the compatibility-step note. Empty when the method has
+   * not been named yet, so the sentence still reads correctly without it.
+   */
+  protected get compatScopeName(): string {
+    const name = this.reviewSummary?.methodName?.trim();
+    return name ? ` “${name}”` : '';
   }
 
   protected get connectorTypeLabel(): string {
@@ -234,10 +256,10 @@ export class PublishFormImpl implements OnInit, OnChanges {
     private router: Router
   ) {
     if (this.authService.currentRole() === UserRole.Superuser) {
-      const currentUser = this.authService.currentUser();
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
       });
     } else {
       this.maintainerOptions.set(this.authService.maintainerOptions());
@@ -311,7 +333,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorVersionFrom.set('');
     this.connectorVersionTo.set('');
     this.connectorMaintainer.set(this.authService.defaultMaintainer());
-    this.connectorLicense.set('');
+    this.connectorLicense.set('EUPL');
     this.connectorDescription.set('');
     this.connectorBundleName.set('');
     this.connectorCapabilities.set([]);
@@ -391,7 +413,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
       connector: {
         displayName: this.connectorName(),
         description: this.connectorDescription(),
-        maintainer: this.connectorMaintainer(),
+        maintainer: this.connectorMaintainer()!,
         framework: this.isExistingConnector
             ? (this.selectedCatalogConnector?.bundleFramework ?? 'JAVA_BASED')
             : this.mapConnectorTypeToFramework(this.connectorType),
@@ -407,7 +429,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
         bundleDisplayName: this.connectorBundleName() || null,
         // Picking a published connector links it as it is; every field above is disabled in that case,
         // so there is nothing to copy it for. Without this the backend would build a duplicate of it.
-        existingConnectorId: this.isExistingConnector ? (this.selectedCatalogConnector?.connectorId ?? null) : null
+        existingConnectorId: this.isExistingConnector ? (this.selectedCatalogConnector?.connectorId ?? null) : null,
+        connectorMinVersion: this.connectorVersionFrom() || null,
+        connectorMaxVersion: this.connectorVersionTo() || null
       },
       files: [],
       integrationMethodCapabilities: summary?.imCapabilities ?? [],
@@ -471,7 +495,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
         `complies with Evolveum's Terms of Use and Acceptable Use Policy.`,
       `You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce, adapt, ` +
         `modify, translate, publish, publicly perform, publicly display and distribute this content solely for the ` +
-        `purpose of hosting and displaying it in the Integration Catalog under the license you have selected. Any ` +
+        `purpose of hosting and displaying it in the MidPoint Integration Catalog under the license you have selected. Any ` +
         `tutorial, documentation, or descriptive text accompanying your submission will be published under Evolveum's ` +
         `standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International ` +
         `(CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector or configuration ` +
@@ -533,15 +557,19 @@ export class PublishFormImpl implements OnInit, OnChanges {
     setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
   }
 
-  protected selectMaintainerOption(option: string): void {
+  protected selectMaintainerOption(option: Maintainer): void {
     this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
     this.emitChange();
   }
 
-  protected maintainerOptionLabel(option: string): string {
+  protected maintainerOptionLabel(option: Maintainer): string {
     return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.connectorMaintainer());
   }
 
   protected onLicenseBlur(): void {

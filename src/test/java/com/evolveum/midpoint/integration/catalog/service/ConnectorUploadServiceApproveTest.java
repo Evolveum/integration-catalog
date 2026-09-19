@@ -220,7 +220,7 @@ class ConnectorUploadServiceApproveTest {
      */
     @Test
     void versionBumpOnSharedBundleMovesSiblingsAcrossAndDropsTheOldBundleRow() {
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         verify(connectorVersionRepository).moveAllToBundleVersion(original100, clone100);
         verify(connectorBundleVersionRepository).deleteRow(OLD_VERSION_ID, ROW_REVISION);
@@ -241,7 +241,7 @@ class ConnectorUploadServiceApproveTest {
     /** Downloads cascade with their bundle version, so they have to be repointed before it is deleted. */
     @Test
     void downloadHistoryMovesBeforeTheOldVersionRowIsDeleted() {
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         InOrder order = inOrder(downloadRepository, connectorBundleVersionRepository);
         order.verify(downloadRepository).save(download);
@@ -256,7 +256,7 @@ class ConnectorUploadServiceApproveTest {
         original100.getConnectorVersions().remove(siblingCv);
         connectorsById.remove(SIBLING_CONNECTOR_ID);
 
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         verify(connectorBundleRepository).deleteRow(ORIGINAL_BUNDLE_ID);
         verify(connectorBundleRepository, never()).delete(any(ConnectorBundle.class));
@@ -276,7 +276,7 @@ class ConnectorUploadServiceApproveTest {
         clone.setDisplayName("LDAP Connector (fixed)");
         cloneBundle.setProjectHomepage("https://example.org/ldap");
 
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         assertEquals("LDAP Connector (fixed)", original.getDisplayName());
         assertEquals("https://example.org/ldap", originalBundle.getProjectHomepage());
@@ -292,7 +292,7 @@ class ConnectorUploadServiceApproveTest {
     void cloneInAnotherBundleStaysItsOwnConnector() {
         cloneBundle.setBundleName(BUNDLE_NAME + ".v2");
 
-        service.publishIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
 
         verify(connectorBundleRepository, never()).deleteRow(anyInt());
         verify(connectorRepository, never()).delete(any(Connector.class));
@@ -311,7 +311,7 @@ class ConnectorUploadServiceApproveTest {
         connector.setRevision("1.0.0");
         connector.setDisplayName(className);
         connector.setFullyQualifiedClassName("com.evolveum.polygon.connector." + className);
-        connector.setMaintainer("owner");
+        connector.setMaintainer(new Maintainer().setCategory(MaintainerType.USER).setUsername("owner"));
         connector.setConnectorBundle(bundle);
         bundle.getConnectors().add(connector);
         connectorsById.put(id, connector);

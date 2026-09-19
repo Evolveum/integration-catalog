@@ -6,7 +6,7 @@
 
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, computed
+  signal, computed, input
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +15,11 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { PageHeader } from '../page-header/page-header';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
 import { CatalogConnector } from '../../models/catalog-connector.model';
+import { ConnectorTag, isObsoleteConnector } from '../../models/connector-tag.model';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 type Step = 1 | 2;
 
@@ -24,7 +28,7 @@ export interface AddConnectorPayload {
   existingConnectorId: number | null;
   displayName: string;
   description: string;
-  maintainer: string;
+  maintainer: Maintainer;
   framework: string;
   license: string | null;
   projectHomepage: string | null;
@@ -48,14 +52,15 @@ export interface StagedConnector {
   displayName: string;
   version: string;
   description: string;
-  maintainer: string;
+  maintainer: Maintainer;
   license: string | null;
+  tags: ConnectorTag[]; // of the picked catalog connector; empty for a new one
 }
 
 @Component({
   selector: 'app-add-connector-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader],
+  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal],
   templateUrl: './add-connector-form.html',
   styleUrls: ['./add-connector-form.scss']
 })
@@ -68,6 +73,8 @@ export class AddConnectorForm implements OnInit {
   @Input() logoUrl = '';
   /** When true, saving the form does not persist anything; it stages the connector back to the parent. */
   @Input() deferSave = false;
+  /** Connectors the method already has; the catalog picker hides them. */
+  readonly excludedConnectorIds = input<number[]>([]);
   @Output() close = new EventEmitter<void>();
   @Output() saved = new EventEmitter<string>();
   @Output() staged = new EventEmitter<StagedConnector>();
@@ -89,10 +96,12 @@ export class AddConnectorForm implements OnInit {
   protected readonly catalogSearchTooShort = computed(() => this.catalogSearch().trim().length === 1);
   protected readonly pendingCatalogConnector = signal<CatalogConnector | null>(null);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   protected readonly filteredCatalogConnectors = computed(() => {
     const q = this.catalogSearch().toLowerCase().trim();
-    const all = this.catalogConnectors();
+    const excluded = new Set(this.excludedConnectorIds());
+    const all = this.catalogConnectors().filter(c => !excluded.has(c.connectorId));
     // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
     const matched = q.length < 2
       ? all
@@ -110,20 +119,24 @@ export class AddConnectorForm implements OnInit {
   protected readonly connectorName = signal<string>('');
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
   protected readonly connectorVersion = signal<string>('1.0.0');
-  protected readonly connectorMaintainer = signal<string>('');
-  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
-    return options.filter(o => o.toLowerCase().includes(search));
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
   });
-  protected readonly connectorLicense = signal<string>('');
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.connectorMaintainer()));
+  protected readonly connectorLicense = signal<string>('EUPL');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
-  protected readonly connectorBundleName = signal<string>('');
   protected readonly connectorCapabilities = signal<CapabilityGroup[]>([]);
   protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
 
@@ -134,6 +147,9 @@ export class AddConnectorForm implements OnInit {
   protected readonly devCommitTag = signal<string>('');
   protected readonly devProjectFolderPath = signal<string>('');
   protected readonly devClassName = signal<string>('');
+  protected readonly isCommitHelpOpen = signal<boolean>(false);
+  protected readonly commitHelpTitle = COMMIT_HELP_TITLE;
+  protected readonly commitHelpSteps = COMMIT_HELP_STEPS;
 
   protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
   protected readonly licenseLabels: Record<string, string> = {
@@ -167,14 +183,15 @@ export class AddConnectorForm implements OnInit {
     if (this.selectedCatalogConnector()) return true;
     const base = !!this.connectorName().trim()
       && !!this.connectorVersion().trim()
-      && !!this.connectorMaintainer().trim()
+      && !!this.connectorMaintainer()
       && !!this.connectorLicense();
     if (!base) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
       && !this.isGitCloneUrlInvalid();
+    // Class name is optional; when given it still has to be a well-formed Java class name.
     const javaOk = !this.isJavaBasedConnector
-      || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
+      || (!!this.devBuildTool() && !this.isClassNameInvalid());
     return devOk && javaOk;
   });
 
@@ -191,10 +208,10 @@ export class AddConnectorForm implements OnInit {
 
   private initMaintainerOptions(): void {
     if (this.authService.currentRole() === UserRole.Superuser) {
-      const currentUser = this.authService.currentUser();
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
       });
     } else {
       this.maintainerOptions.set(this.authService.maintainerOptions());
@@ -215,14 +232,18 @@ export class AddConnectorForm implements OnInit {
     setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
   }
 
-  protected selectMaintainerOption(option: string): void {
+  protected selectMaintainerOption(option: Maintainer): void {
     this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
   }
 
-  protected maintainerOptionLabel(option: string): string {
+  protected maintainerOptionLabel(option: Maintainer): string {
     return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.connectorMaintainer());
   }
 
   protected fmtLicense(key: string): string {
@@ -284,10 +305,9 @@ export class AddConnectorForm implements OnInit {
     this.connectorMaintainer.set(this.authService.defaultMaintainer());
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
-    this.connectorLicense.set('');
+    this.connectorLicense.set('EUPL');
     this.isLicenseDropdownOpen.set(false);
     this.connectorDescription.set('');
-    this.connectorBundleName.set('');
     this.connectorCapabilities.set([]);
     this.initialCapabilities.set([]);
     this.devProjectHomepage.set('');
@@ -350,7 +370,7 @@ export class AddConnectorForm implements OnInit {
       existingConnectorId: cc ? cc.id : null,
       displayName: this.connectorName(),
       description: this.connectorDescription(),
-      maintainer: this.connectorMaintainer(),
+      maintainer: this.connectorMaintainer()!,
       framework: this.isJavaBasedConnector ? 'JAVA_BASED' : 'LOW_CODE',
       license: this.connectorLicense() || null,
       projectHomepage: this.devProjectHomepage() || null,
@@ -358,7 +378,8 @@ export class AddConnectorForm implements OnInit {
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
       className: this.devClassName() || null,
-      bundleDisplayName: this.connectorBundleName() || null,
+      // The form no longer asks for a bundle display name; the backend leaves it unset.
+      bundleDisplayName: null,
       version: this.connectorVersion() || null,
       commitTag: this.devCommitTag() || null,
       // midPoint range is set on the edit form; connector range via the "Set up compatibility" modal.
@@ -384,7 +405,8 @@ export class AddConnectorForm implements OnInit {
         version: payload.version ?? '',
         description: payload.description ?? '',
         maintainer: payload.maintainer,
-        license: payload.license
+        license: payload.license,
+        tags: cc?.tags ?? []
       });
       return;
     }

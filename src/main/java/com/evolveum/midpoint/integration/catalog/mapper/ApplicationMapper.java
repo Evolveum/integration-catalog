@@ -14,7 +14,8 @@ import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepos
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
-import com.evolveum.midpoint.integration.catalog.service.OrganizationService;
+import com.evolveum.midpoint.integration.catalog.service.OwnershipService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -27,19 +28,19 @@ public class ApplicationMapper {
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
-    private final OrganizationService organizationService;
+    private final OwnershipService ownershipService;
     private final MidpointVersionRepository midpointVersionRepository;
     private final AuthService authService;
     private final OpenProjectProperties openProjectProperties;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
-                             DownloadRepository downloadRepository, OrganizationService organizationService,
+                             DownloadRepository downloadRepository, OwnershipService ownershipService,
                              MidpointVersionRepository midpointVersionRepository,
                              AuthService authService, OpenProjectProperties openProjectProperties) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
-        this.organizationService = organizationService;
+        this.ownershipService = ownershipService;
         this.midpointVersionRepository = midpointVersionRepository;
         this.authService = authService;
         this.openProjectProperties = openProjectProperties;
@@ -87,12 +88,6 @@ public class ApplicationMapper {
                     List<String> capabilities = collectCapabilities(method);
                     String lifecycleState = method.getLifecycleState() != null
                             ? method.getLifecycleState().name() : null;
-
-                    // Author's organization drives the org-mate access checks. It was
-                    // stamped on the row at upload time, so an IndividualContributor's
-                    // uploads stay personal even when they belong to an organization.
-                    String authorOrganization =
-                            organizationService.displayName(method.getAuthorOrgId());
 
                     // Connector info from first linked connector
                     String connectorVersion = null;
@@ -154,7 +149,8 @@ public class ApplicationMapper {
                                                         ? cbv.getBundleVersion() : cbv.getRevision();
                                             })
                                             .orElse(null),
-                                    c.getDescription()))
+                                    c.getDescription(),
+                                    mapConnectorTags(c)))
                             .toList();
 
                     List<String> integMethodTypes = method.getIntegMethodTypes().stream()
@@ -196,8 +192,7 @@ public class ApplicationMapper {
                             connectorVersion,
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
-                            method.getAuthor(),
-                            authorOrganization,
+                            method.getAuthor() != null ? method.getAuthor().getUsername() : null,
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -212,7 +207,8 @@ public class ApplicationMapper {
                             method.getTutorial(),
                             method.getFilePath(),
                             method.getReviewedBy(),
-                            organizationService.maintainerLabel(method),
+                            ownershipService.toDto(method.getMaintainer()),
+                            ownershipService.maintainerLabel(method),
                             method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
                             method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
                             includedConnectors,
@@ -235,8 +231,7 @@ public class ApplicationMapper {
         // The organization ids are part of the check: an item maintained by an organization
         // carries no maintainer username, so a name-only comparison would hide the ticket
         // from the very org-mates the review concerns.
-        return authService.canEdit(viewer, method.getAuthor(), method.getAuthorOrgId(),
-                method.getMaintainer(), method.getMaintainerOrgId())
+        return authService.canEdit(viewer, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())
                 ? method.getSupportTicketId() : null;
     }
 
@@ -276,6 +271,8 @@ public class ApplicationMapper {
         String requester = null;
         Long requestId = null;
         Long voteCount = null;
+        String integrationNeed = null;
+        String requestedIntegrationMethodType = null;
 
         if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
             Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
@@ -295,20 +292,24 @@ public class ApplicationMapper {
                 requester = request.getRequester();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(requestId);
+                integrationNeed = request.getIntegrationNeed();
+                requestedIntegrationMethodType = request.getIntegrationMethodType() != null
+                        ? request.getIntegrationMethodType().getDisplayName() : null;
             }
         }
         return mapToApplicationDto(app, capabilities, requester, requestId, voteCount,
-                objectClassCapabilities, viewer);
+                objectClassCapabilities, integrationNeed, requestedIntegrationMethodType, viewer);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount) {
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null);
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null, null, null);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount,
                                                List<ObjectClassCapabilityDto> objectClassCapabilities,
+                                               String integrationNeed, String requestedIntegrationMethodType,
                                                String viewer) {
         List<CountryOfOriginDto> origins = mapOrigins(app);
         List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
@@ -333,6 +334,8 @@ public class ApplicationMapper {
                 .integrationMethods(integrationMethods)
                 .requestId(requestId)
                 .voteCount(voteCount)
+                .integrationNeed(integrationNeed)
+                .requestedIntegrationMethodType(requestedIntegrationMethodType)
                 .frameworks(frameworks)
                 .objectClassCapabilities(objectClassCapabilities)
                 .build();
@@ -457,8 +460,9 @@ public class ApplicationMapper {
         List<String> maintainers = null;
         if (app.getIntegrationMethods() != null) {
             maintainers = app.getIntegrationMethods().stream()
-                    .map(IntegrationMethod::getAuthorCategory)
-                    .filter(category -> category != null)
+                    .map(IntegrationMethod::getMaintainer)
+                    .map(maintainer -> maintainer.getCategory().getDisplayName())
+                    .filter(StringUtils::isNotBlank)
                     .distinct()
                     .toList();
             if (maintainers.isEmpty()) {
@@ -520,7 +524,7 @@ public class ApplicationMapper {
         String buildFramework = null;
         String pathToProject = null;
         String className = null;
-        String maintainer = null;
+        Maintainer maintainer = null;
         String connectorDescription = null;
         String licenseType = null;
         String ticketingLink = null;
@@ -531,6 +535,7 @@ public class ApplicationMapper {
         String commitTag = null;
         boolean initialVersion = true;
         List<ObjectClassCapabilityDto> objectClassCapabilities = List.of();
+        List<ConnectorTagDto> connectorTags = List.of();
 
         if (connector != null) {
             connectorId = connector.getId();
@@ -566,15 +571,9 @@ public class ApplicationMapper {
                         ? latestCv.get().getFullyQualifiedClassName() : className;
             }
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
+            connectorTags = mapConnectorTags(connector);
         }
 
-        // Ownership as stamped on the connector
-        String maintainerOrganizationName = connector == null ? null
-                : organizationService.displayName(connector.getMaintainerOrgId());
-        String maintainerOrganization = maintainer == null ? null : maintainerOrganizationName;
-        if (maintainer == null) {
-            maintainer = maintainerOrganizationName;
-        }
 
         return new ImplementationListItemDto(
                 method.getId(),
@@ -584,8 +583,8 @@ public class ApplicationMapper {
                 null,               // publishedDate (no direct field)
                 connectorVersion,
                 method.getDisplayName(),
-                maintainer,
-                maintainerOrganization,
+                ownershipService.toDto(maintainer),
+                ownershipService.maintainerLabel(maintainer),
                 licenseType,
                 connectorDescription,
                 projectHomepage,
@@ -603,8 +602,21 @@ public class ApplicationMapper {
                 objectClassCapabilities,
                 connectorMinVersion,
                 connectorMaxVersion,
-                initialVersion
+                initialVersion,
+                connectorTags
         );
+    }
+
+    public List<ConnectorTagDto> mapConnectorTags(Connector connector) {
+        if (connector.getConnectorConnectorTags() == null) {
+            return List.of();
+        }
+        return connector.getConnectorConnectorTags().stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(ConnectorTag::getName))
+                .map(tag -> new ConnectorTagDto(tag.getName(), tag.getDisplayName()))
+                .toList();
     }
 
     /**

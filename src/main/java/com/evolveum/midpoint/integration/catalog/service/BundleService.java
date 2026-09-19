@@ -55,7 +55,7 @@ public class BundleService {
 
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
-    private final OrganizationService organizationService;
+    private final OwnershipService ownershipService;
     private final ObjectWriter jsonWriter;
     private final HttpClient httpClient = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
@@ -66,11 +66,11 @@ public class BundleService {
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService,
-                         OrganizationService organizationService,
+                         OwnershipService ownershipService,
                          ObjectMapper objectMapper) {
         this.integrationMethodRepository = integrationMethodRepository;
         this.tutorialStorageService = tutorialStorageService;
-        this.organizationService = organizationService;
+        this.ownershipService = ownershipService;
         this.jsonWriter = objectMapper.writerWithDefaultPrettyPrinter();
     }
 
@@ -100,7 +100,7 @@ public class BundleService {
         List<String> warnings = new ArrayList<>();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {
-            addTutorialXml(zip, method, warnings);
+            addTutorial(zip, method, warnings);
             addTutorialFiles(zip, methodId, revision, warnings);
             addMetadata(zip, method);
             addConnectorJars(zip, method, errors);
@@ -113,28 +113,45 @@ public class BundleService {
         return new Bundle(buildFileName(method), baos.toByteArray(), warning);
     }
 
-    /** Builds a download file name from the method's display name and revision, sanitised for filesystems. */
+    /** Builds the download file name as "application name (integration method name).zip". */
     private String buildFileName(IntegrationMethod method) {
-        String displayName = (method.getDisplayName() == null || method.getDisplayName().isBlank())
-                ? method.getId().toString()
-                : method.getDisplayName();
-        String revision = method.getRevision() == null ? "" : method.getRevision();
-        String raw = displayName + "-" + revision;
-        String safe = raw.trim().replaceAll("[^a-zA-Z0-9._-]+", "_");
-        return safe + ".zip";
+        String appName = method.getApplication() == null ? null : method.getApplication().getDisplayName();
+        String methodName = method.getDisplayName();
+        String safeApp = sanitiseNamePart(appName);
+        String safeMethod = sanitiseNamePart(methodName);
+        if (safeMethod.isEmpty()) {
+            safeMethod = method.getId().toString();
+        }
+        return safeApp.isEmpty()
+                ? safeMethod + ".zip"
+                : safeApp + " (" + safeMethod + ").zip";
     }
 
-    private void addTutorialXml(ZipOutputStream zip, IntegrationMethod method, List<String> warnings) throws IOException {
+    /**
+     * Keeps a name part to characters every filesystem accepts, and that are safe to place inside the
+     * quoted Content-Disposition filename: letters, digits, spaces, brackets and . _ - are kept, any
+     * other run (quotes and line breaks included) collapses to a single underscore.
+     */
+    private String sanitiseNamePart(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.trim()
+                .replaceAll("[^a-zA-Z0-9 ._()\\[\\]-]+", "_")
+                .replaceAll("\\s{2,}", " ")
+                .trim();
+    }
+
+    private void addTutorial(ZipOutputStream zip, IntegrationMethod method, List<String> warnings) throws IOException {
         String tutorial = method.getTutorial();
         if (tutorial == null || tutorial.isBlank()) {
-            log.debug("No tutorial text for {}/{}; skipping tutorial.adoc", method.getId(), method.getRevision());
-            warnings.add("No tutorial text: tutorial.adoc was not included.");
+            log.debug("No tutorial text for {}/{}; skipping tutorial.md", method.getId(), method.getRevision());
+            warnings.add("No tutorial text: tutorial.md was not included.");
             return;
         }
-        // The tutorial is authored as Markdown; convert it to AsciiDoc for the bundle.
-        String asciidoc = MarkdownToAsciiDocConverter.convert(tutorial);
-        zip.putNextEntry(new ZipEntry("tutorial.adoc"));
-        zip.write(asciidoc.getBytes(StandardCharsets.UTF_8));
+        // The tutorial is authored as Markdown and ships that way, unconverted.
+        zip.putNextEntry(new ZipEntry("tutorial.md"));
+        zip.write(tutorial.getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
     }
 
@@ -338,7 +355,7 @@ public class BundleService {
         meta.put("description", method.getDescription());
         meta.put("lifecycleState", method.getLifecycleState());
         meta.put("author", method.getAuthor());
-        meta.put("maintainer", organizationService.maintainerLabel(method));
+        meta.put("maintainer", ownershipService.maintainerLabel(method));
         meta.put("appVersion", method.getAppVersion());
         meta.put("midpointMinVersionId", method.getMidpointMinVersionId());
         meta.put("midpointMaxVersionId", method.getMidpointMaxVersionId());
@@ -381,7 +398,7 @@ public class BundleService {
             meta.put("fullyQualifiedClassName", connector.getFullyQualifiedClassName());
             meta.put("description", connector.getDescription());
             meta.put("author", connector.getAuthor());
-            meta.put("maintainer", organizationService.maintainerLabel(connector));
+            meta.put("maintainer", ownershipService.maintainerLabel(connector));
             meta.put("revision", connector.getRevision());
             meta.put("connectorMinVersion", link.getConnectorMinVersion());
             meta.put("connectorMaxVersion", link.getConnectorMaxVersion());

@@ -20,6 +20,8 @@ import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
+import jakarta.persistence.criteria.Join;
+import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,12 +33,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -74,6 +73,7 @@ public class ApplicationService {
     private final ConnectorRepository connectorRepository;
     private final AuthService authService;
     private final OrganizationService organizationService;
+    private final OwnershipService ownershipService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -101,8 +101,10 @@ public class ApplicationService {
                               ConnectorVersionRepository connectorVersionRepository,
                               ConnectorRepository connectorRepository,
                               AuthService authService,
-                              OrganizationService organizationService) {
+                              OrganizationService organizationService,
+                              OwnershipService ownershipService) {
         this.organizationService = organizationService;
+        this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
@@ -142,8 +144,7 @@ public class ApplicationService {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException(
                         "Integration method not found: " + methodId + "/" + revision));
-        if (!authService.canEdit(username, method.getAuthor(), method.getAuthorOrgId(),
-                method.getMaintainer(), method.getMaintainerOrgId())) {
+        if (!authService.canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this integration method.");
         }
@@ -180,8 +181,7 @@ public class ApplicationService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException(
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
-        if (!authService.canEdit(username, connector.getAuthor(), connector.getAuthorOrgId(),
-                connector.getMaintainer(), connector.getMaintainerOrgId())) {
+        if (!authService.canEdit(username, method.getLifecycleState(), connector.getAuthor(), connector.getMaintainer())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "You are not allowed to modify this connector.");
         }
@@ -248,8 +248,8 @@ public class ApplicationService {
     }
 
     @Transactional
-    public String uploadConnector(UploadImplementationDto dto, String username) {
-        return connectorUploadService.uploadConnector(dto, username);
+    public String uploadIntegration(UploadIntegrationDto dto, String username) {
+        return connectorUploadService.uploadIntegration(dto, username);
     }
 
     @Transactional
@@ -281,14 +281,14 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void publishIntegrationMethod(UUID methodId, String revision, String username) {
+    public void approveIntegrationMethod(UUID methodId, String revision, String username) {
         // Approving a revision is a superuser-only action (the client already restricts it to
         // superusers; this is the server-side enforcement).
         if (!authService.isSuperuser(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Only a superuser may publish an integration method.");
         }
-        connectorUploadService.publishIntegrationMethod(methodId, revision, username);
+        connectorUploadService.approveIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
@@ -302,7 +302,7 @@ public class ApplicationService {
 
     @Transactional
     public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
-                                                AddConnectorDto dto, String username) {
+                                                  AddConnectorDto dto, String username) {
         assertCanEditMethod(username, methodId, revision);
         return connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
     }
@@ -378,12 +378,19 @@ public class ApplicationService {
             // An item maintained by an organization carries no maintainer username, so the
             // search has to match the organization's name as well as the username.
             String pattern = "%" + searchForm.getMaintainer().toLowerCase() + "%";
-            List<String> organizationIds = organizationService.idsOfNamesContaining(searchForm.getMaintainer());
+            List<String> organizationNames = organizationService.idsOfNamesContaining(searchForm.getMaintainer());
             spec = spec.and((root, query, cb) -> {
-                var byUsername = cb.like(cb.lower(root.get("maintainer")), pattern);
-                return organizationIds.isEmpty()
-                        ? byUsername
-                        : cb.or(byUsername, root.get("maintainerOrgId").in(organizationIds));
+                Join<IntegrationMethod, Maintainer> maintainerJoin =
+                        root.join("maintainers");
+
+                var byUsername = cb.like(cb.lower(maintainerJoin.get("username")), pattern);
+                if (organizationNames.isEmpty()) {
+                    return byUsername;
+                }
+                Join<Maintainer, Organization> organizationJoin =
+                        maintainerJoin.join("organizations");
+
+                return cb.or(byUsername, organizationJoin.get("name").in(organizationNames));
             });
         }
 
@@ -501,9 +508,12 @@ public class ApplicationService {
                 })
                 .toList();
 
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.ENGLISH);
+
         return new AllowedConnectorsListDto(
                 new SignedActiveConnectorsListDto(
-                        "Connectors from Integration catalog",
+                        "Connectors from Integration catalog " + now.format(formatter),
                         list));
     }
 
@@ -531,7 +541,8 @@ public class ApplicationService {
                                     connector.getDescription(),
                                     connector.getRevision(),
                                     bundle.getDisplayName(),
-                                    organizationService.maintainerLabel(connector),
+                                    ownershipService.toDto(connector.getMaintainer()),
+                                    ownershipService.maintainerLabel(connector),
                                     bundle.getLicense() != null ? bundle.getLicense().name() : null,
                                     latest != null && latest.getBuildFramework() != null
                                             ? latest.getBuildFramework().name() : null,
@@ -541,7 +552,8 @@ public class ApplicationService {
                                     bundle.getGitCloneUrl(),
                                     latest != null ? latest.getPathToProject() : null,
                                     connector.getFullyQualifiedClassName(),
-                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector)
+                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector),
+                                    applicationMapper.mapConnectorTags(connector)
                             ));
                 })
                 .toList();
@@ -558,8 +570,14 @@ public class ApplicationService {
      */
     @Transactional
     public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
-        ConnectorVersion connectorVersion = findConnectorVersion(triggerBuildForm.getConnectorVersionId(), triggerBuildForm.getConnectorVersionRevision());
-        IntegrationMethod integrationMethod = findIntegrationMethod(oid, triggerBuildForm.getIntegrationMethodRevision());
+        ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
+                triggerBuildForm.getConnectorVersionId(),
+                triggerBuildForm.getConnectorVersionRevision(),
+                connectorVersionRepository);
+        IntegrationMethod integrationMethod = RepositoryUtil.findIntegrationMethod(
+                oid,
+                triggerBuildForm.getIntegrationMethodRevision(),
+                integrationMethodRepository);
 
         ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
         if (bundleVersion == null) {
@@ -567,16 +585,6 @@ public class ApplicationService {
                     "Connector version " + connectorVersion.getId() + " has no bundle version to build.");
         }
         return connectorUploadService.triggerJenkinsPipeline(bundleVersion, integrationMethod);
-    }
-
-    private IntegrationMethod findIntegrationMethod(UUID id, String revision) {
-        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
-
-    private ConnectorVersion findConnectorVersion(String id, String revision) {
-        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
     }
 
     @Transactional(readOnly = true)
@@ -599,11 +607,11 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void recordRecentlyUsed(UUID applicationId, String userId) {
-        recentlyUsedApplicationRepository.deleteByUserIdAndApplicationId(userId, applicationId);
+    public void recordRecentlyUsed(UUID applicationId, String username) {
+        recentlyUsedApplicationRepository.deleteByUsernameAndApplicationId(username, applicationId);
         recentlyUsedApplicationRepository.flush();
         RecentlyUsedApplication entry = new RecentlyUsedApplication()
-                .setUserId(userId)
+                .setUsername(username)
                 .setApplicationId(applicationId);
         recentlyUsedApplicationRepository.save(entry);
     }

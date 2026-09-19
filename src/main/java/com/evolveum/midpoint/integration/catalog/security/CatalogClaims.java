@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -31,39 +32,39 @@ public class CatalogClaims {
     }
 
     /** The catalog roles carried by the token, in the order the provider listed them. */
-    public List<String> roles(OidcUser oidcUser) {
-        return stringList(claim(oidcUser, rolesClaim)).stream()
-                .filter(CatalogRole.BY_PRECEDENCE::contains)
+    public List<CatalogRole> roles(OidcUser oidcUser) {
+        List<String> claimRoles = stringList(claim(oidcUser, rolesClaim));
+        return Arrays.stream(CatalogRole.values())
+                .filter(catalogRole -> claimRoles.contains(catalogRole.getIdentifier()))
                 .toList();
     }
 
-    /** The strongest catalog role the token carries; ReadOnly when it carries none. */
-    public String effectiveRole(OidcUser oidcUser) {
-        List<String> roles = roles(oidcUser);
-        return CatalogRole.BY_PRECEDENCE.stream()
-                .filter(roles::contains)
-                .findFirst()
-                .orElse(CatalogRole.READ_ONLY);
+    public CatalogRole effectiveRole(OidcUser oidcUser) {
+        List<CatalogRole> roles = roles(oidcUser);
+        return roles.stream().findFirst().orElse(CatalogRole.READ_ONLY);
     }
 
     /**
-     * The identifier of the user's organization, or {@code null} when they belong to none.
-     * Only the first one is used: the catalog models a user as publishing on behalf of at
+     * The alias of the user's organization, or {@code null} when they belong to none. An alias
+     * rather than a display name because a token carries only what the provider knows;
+     * {@link com.evolveum.midpoint.integration.catalog.service.OrganizationService} turns it into
+     * the name shown in the catalog.
+     *
+     * <p>Only the first one is used: the catalog models a user as publishing on behalf of at
      * most one organization.
      */
-    public String organizationId(OidcUser oidcUser) {
-        return organizationIds(oidcUser).stream().findFirst().orElse(null);
+    public String organizationName(OidcUser oidcUser) {
+        return organizationNames(oidcUser).stream().findFirst().orElse(null);
     }
 
     /**
-     * All organization identifiers in the claim. The claim is an array of identifiers when
-     * the provider emits strings, and an object keyed by identifier when it emits JSON;
-     * both shapes are accepted.
+     * All organization aliases in the claim. The claim is an array of aliases when the provider
+     * emits strings, and an object keyed by alias when it emits JSON; both shapes are accepted.
      */
-    private List<String> organizationIds(OidcUser oidcUser) {
+    private List<String> organizationNames(OidcUser oidcUser) {
         Object claim = claim(oidcUser, organizationClaim);
-        List<String> raw = claim instanceof Map<?, ?> byIdentifier
-                ? byIdentifier.keySet().stream().map(String::valueOf).toList()
+        List<String> raw = claim instanceof Map<?, ?> byName
+                ? byName.keySet().stream().map(String::valueOf).toList()
                 : stringList(claim);
         return raw.stream()
                 .map(String::trim)

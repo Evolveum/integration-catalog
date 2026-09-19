@@ -65,15 +65,15 @@
               </label>
               <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                 <input type="text" class="form-select"
-                       [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                       [value]="maintainerText()"
                        (input)="onMaintainerInput($event)"
                        (focus)="onMaintainerFocus()"
                        (blur)="onMaintainerBlur()"
                        placeholder="Select maintainer...">
                 @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                   <div class="maintainer-dropdown">
-                    @for (option of filteredMaintainerOptions(); track option) {
-                      <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                    @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                      <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                     }
                   </div>
                 }
@@ -125,22 +125,6 @@
                         (input)="connectorDescription.set($any($event.target).value)"></textarea>
               <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
             </div>
-
-            <!-- Bundle name (java-based only) -->
-            @if (isJavaBased) {
-              <div class="mb-4">
-                <label class="form-label form-label-upload">
-                  Connector bundle name
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Display name for the connector bundle grouping related connector versions.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
-                </label>
-                <input type="text" class="form-control"
-                       [value]="connectorBundleName()"
-                       (input)="connectorBundleName.set($any($event.target).value)"
-                       placeholder="Enter connector bundle name">
-              </div>
-            }
 
             <!-- Capabilities -->
             <div class="mb-3">
@@ -293,7 +277,7 @@
             @if (isJavaBased) {
               <div class="mb-3">
                 <label class="form-label form-label-upload">
-                  Class name <span class="text-danger">*</span>
+                  Connector class name
                   <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Fully qualified Java class name of the connector (e.g. com.example.MyConnector).">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>

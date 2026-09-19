@@ -15,6 +15,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -22,31 +23,21 @@ import java.util.Set;
 @Table(name = "connector")
 @Getter @Setter
 @Accessors(chain = true)
-public class Connector implements OwnedItem {
+public class Connector implements SetOwnership, GetOwnershipOneMaintainer {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     private String revision;
-    private String author;
-    private String maintainer;
 
-    // Ownership as it stood when the row was written - a token describes only its bearer, so none
-    // of this can be looked up afterwards. An organization maintainer sets maintainerOrgId (a
-    // reference to organizations.id, so renames need no change here) and leaves maintainer null.
-    @Column(name = "author_org_id")
-    private String authorOrgId;
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
 
-    @Column(name = "maintainer_org_id")
-    private String maintainerOrgId;
-
-    /** Evolveum, Partner or Community. */
-    @Column(name = "author_category")
-    private String authorCategory;
-
-    @Column(name = "author_email")
-    private String authorEmail;
+    @OneToOne
+    @JoinColumn(name = "maintainer")
+    private Maintainer maintainer;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -83,4 +74,26 @@ public class Connector implements OwnedItem {
 
     @OneToMany(mappedBy = "connector", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ConnectorConnectorTag> connectorConnectorTags;
+
+    public static Connector createConnectorDraft(Connector source) {
+        Connector clone = new Connector();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setDisplayName(source.getDisplayName());
+        clone.setFullyQualifiedClassName(source.getFullyQualifiedClassName());
+        clone.setDescription(source.getDescription());
+        clone.setClonedFrom(source.getClonedFrom());
+        // A version-bump approval deletes the original and keeps the this, so the tags must travel with it.
+        Set<ConnectorConnectorTag> thisTags = new HashSet<>();
+        if (source.getConnectorConnectorTags() != null) {
+            for (ConnectorConnectorTag srcTag : source.getConnectorConnectorTags()) {
+                ConnectorConnectorTag tag = new ConnectorConnectorTag(srcTag);
+                tag.setConnector(clone);
+                thisTags.add(tag);
+            }
+        }
+        clone.setConnectorConnectorTags(thisTags);
+        return clone;
+    }
 }

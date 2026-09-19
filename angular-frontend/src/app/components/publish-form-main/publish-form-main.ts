@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, computed, effect, inject, OnInit, OnDestroy } from '@angular/core';
 import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,6 +7,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CatalogConnector } from '../../models/catalog-connector.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
@@ -14,6 +15,7 @@ import { PageHeader } from '../page-header/page-header';
 import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
+import { LinksService } from '../../services/links.service';
 
 @Component({
   selector: 'app-publish-form-main',
@@ -62,6 +64,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly isLoadingCountries = signal<boolean>(true);
 
   // Step 3 – method-specific form fields
+  protected readonly links = inject(LinksService).links;
   protected readonly methodFormDisplayName = signal<string>('');
   protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
@@ -109,6 +112,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   // True when the connector search box holds a single character: prompt for at least 2.
   protected readonly connectorCatalogSearchTooShort = computed(() => this.connectorCatalogSearch().trim().length === 1);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   protected readonly filteredCatalogConnectors = computed<CatalogConnector[]>(() => {
     const query = this.connectorCatalogSearch().toLowerCase().trim();
@@ -490,20 +494,6 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   protected handleCompatibilityLabelChange(label: string): void {
     this.childMidpointLabel.set(label);
-  }
-
-  protected onMethodVersionInput(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const filtered = el.value.replace(/[^0-9.]/g, '');
-    el.value = filtered;
-    this.methodFormVersion.set(filtered);
-  }
-
-  protected onMethodVersionBlur(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const trimmed = el.value.replace(/\.+$/, '');
-    el.value = trimmed;
-    this.methodFormVersion.set(trimmed);
   }
 
   protected onMethodFormDescriptionChange(event: Event): void {

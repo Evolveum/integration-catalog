@@ -21,8 +21,8 @@ public record ImplementationListItemDto(
         String publishedDate,              // connector_bundle_version.released_date (null — no direct field yet)
         String version,                    // connector_bundle_version.revision
         String displayName,                // integration_method.display_name
-        String maintainer,                 // connector.maintainer
-        String maintainerOrganization,     // organization the maintainer publishes for (null if none)
+        MaintainerDto maintainer,          // connector.maintainer
+        String maintainerLabel,            // connector.maintainer as label
         String licenseType,                // connector_bundle.license
         String implementationDescription,  // connector.description
         String projectHomepage,            // connector_bundle.project_homepage
@@ -42,5 +42,6 @@ public record ImplementationListItemDto(
         String connectorMaxVersion,        // integration_method_connector.connector_maxversion
         // Whether the bundle is still on its first version, i.e. whether the edit form may still offer
         // the fields that are fixed once a version has been published (license, git clone URL).
-        boolean initialVersion
+        boolean initialVersion,
+        List<ConnectorTagDto> connectorTags // connector_connector_tag + connector_tag
 ) {}

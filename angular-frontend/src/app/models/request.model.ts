@@ -4,6 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { Maintainer } from './maintainer.model';
+
 export interface Request {
   id?: number;               // request.id
   applicationId: string;     // request.application_id (FK → application.id)
@@ -27,10 +29,11 @@ export interface ObjectClassCapabilityEntry {
  */
 export interface IntegrationRequest {
   integrationApplicationName: string;
-  integrationMethod: string;
+  integrationMethodTypeId: number | null;
   deploymentType: string;
   capabilities: ObjectClassCapabilityEntry[];
   description: string;
+  integrationNeed: string;
   systemVersion: string;
   contactEmail: string;
   openToCollaborate: boolean;
@@ -77,7 +80,7 @@ export interface UploadIntegrationMethodData {
 export interface UploadConnectorData {
   displayName: string;               // connector.display_name
   description: string;               // connector.description
-  maintainer: string;                // connector.maintainer
+  maintainer: Maintainer;            // connector.maintainer
   framework: string;                 // connector_bundle.framework
   license: string | null;            // connector_bundle.license
   ticketingSystemLink: string | null; // connector_bundle.ticketing_link
@@ -130,7 +133,7 @@ export interface ImplementationFormData {
   isEditingVersion: boolean;
   selectedImplementation: import('./implementation-list-item.model').ImplementationListItem | null;
   displayName: string;
-  maintainer: string;
+  maintainer: Maintainer | null;
   licenseType: string;
   implementationDescription: string;
   projectHomepage: string;

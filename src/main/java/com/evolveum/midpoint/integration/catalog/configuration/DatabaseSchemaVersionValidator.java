@@ -22,17 +22,19 @@ import org.springframework.stereotype.Component;
  * not (missing version table, outdated database, or database newer than the application).
  *
  * The version is tracked as the 'schemaChangeNumber' row of the m_global_metadata table
- * (the same mechanism midPoint's native repository uses), maintained by the cumulative
- * config/sql/postgres-upgrade.sql script.
+ * (the same mechanism midPoint's native repository uses), written by config/sql/postgres.sql on a
+ * new database and advanced by the cumulative config/sql/postgres-upgrade.sql script on one that
+ * already exists.
  */
 @Component
 public class DatabaseSchemaVersionValidator {
 
     /**
-     * Schema change number required by this build. Bump with every new apply_change section in
-     * config/sql/postgres-upgrade.sql - and only there; postgres.sql is deliberately left behind.
+     * Schema change number required by this build. Bump with every new apply_change section, which
+     * goes into config/sql/postgres-upgrade.sql and, folded into the baseline, postgres.sql - the
+     * two must agree, or a database built from one of them fails against a build expecting the other.
      */
-    public static final int REQUIRED_VERSION = 10;
+    public static final int REQUIRED_VERSION = 14;
 
     private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
 

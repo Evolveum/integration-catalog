@@ -13,8 +13,11 @@ import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
+import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,21 +46,19 @@ public class BuildCallbackService {
     private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
     private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final ConnectorRepository connectorRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Successful build. A build produces one artifact, so the callback is about one connector bundle
      * version and everything on it: the artifact URL and version land on that row, and every connector
      * version built from it gets its class name, its capabilities and a cleared error.
      *
-     * <p>The build also reports the Maven bundle name, which is the bundle's real identity. If an active
-     * bundle already carries that name, this build belongs to it: the two are merged (see
-     * {@link #mergeIntoBundle}) rather than left as two rows claiming the same artifact.
-     *
      * <p>The OID is the IntegrationMethod UUID.
      */
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
-        IntegrationMethod method = findIntegrationMethod(oid, continueForm.getIntegrationMethodRevision());
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, continueForm.getIntegrationMethodRevision(), integrationMethodRepository);
         ConnectorBundleVersion bundleVersion = resolveBundleVersion(
                 continueForm.getConnectorBundleVersionId(), continueForm.getConnectorBundleVersionRevision(),
                 continueForm.getConnectorVersionId(), continueForm.getConnectorVersionRevision());
@@ -97,20 +99,31 @@ public class BuildCallbackService {
             log.error("Failed save state after success building", e);
         }
 
+        // Read while the rows still say something: adoptBundleName below clears the persistence context.
+        BuildFinishedEvent outcome = BuildFinishedEvent.succeeded(
+                method.getId(), method.getRevision(), newBundleName,
+                bundleVersion.getBundleVersion(), bundleVersion.getArtifactUrl(),
+                builtVersions.stream()
+                        .map(ConnectorVersion::getFullyQualifiedClassName)
+                        .filter(Objects::nonNull)
+                        .toList());
+
         // Last, because it re-parents rows with bulk updates and clears the persistence context: nothing
         // loaded above may be touched afterwards.
         adoptBundleName(sourceBundle, bundleVersion, newBundleName);
 
-        //TODO adding comment to ticket on support portal
+        eventPublisher.publishEvent(outcome);
     }
 
     /**
      * Failed build: record the error on the bundle version and on every connector version built from it,
-     * so the reviewer sees it on each connector rather than only on the one that happened to be named.
+     * so the reviewer sees it on each connector rather than only on the one that happened to be named,
+     * and report it on the revision's support work package.
      */
     @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
-        IntegrationMethod method = findIntegrationMethod(oid, failForm.getIntegrationMethodRevision());
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, failForm.getIntegrationMethodRevision(), integrationMethodRepository);
         ConnectorBundleVersion bundleVersion = resolveBundleVersion(
                 failForm.getConnectorBundleVersionId(), failForm.getConnectorBundleVersionRevision(),
                 failForm.getConnectorVersionId(), failForm.getConnectorVersionRevision());
@@ -123,7 +136,9 @@ public class BuildCallbackService {
         connectorBundleVersionRepository.save(bundleVersion);
 
         integrationMethodRepository.save(method);
-        //TODO adding comment to ticket on support portal
+
+        eventPublisher.publishEvent(BuildFinishedEvent.failed(
+                method.getId(), method.getRevision(), errorMessage));
     }
 
     @Transactional
@@ -220,16 +235,6 @@ public class BuildCallbackService {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private IntegrationMethod findIntegrationMethod(UUID id, String revision) {
-        return integrationMethodRepository.findById(new IntegrationMethodId(id, revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
-
-    private ConnectorVersion findConnectorVersion(String id, String revision) {
-        return connectorVersionRepository.findById(new ConnectorVersionId(Integer.valueOf(id), revision))
-                .orElseThrow(() -> new RuntimeException("Integration method not found, UUID: " + id + ", revision: " + revision));
-    }
-
     /**
      * The bundle version a callback is about. Jenkins names it directly; a job that still reports only
      * the connector version it was given is answered through that version's bundle.
@@ -243,7 +248,8 @@ public class BuildCallbackService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             "Connector bundle version not found: " + bundleVersionId + "/" + bundleVersionRevision));
         }
-        ConnectorBundleVersion cbv = findConnectorVersion(connectorVersionId, connectorVersionRevision)
+        ConnectorBundleVersion cbv = RepositoryUtil.findConnectorVersion(
+                connectorVersionId, connectorVersionRevision, connectorVersionRepository)
                 .getConnectorBundleVersion();
         if (cbv == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
