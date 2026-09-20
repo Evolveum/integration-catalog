@@ -10,10 +10,9 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApiKeysPanel } from '../api-keys-panel/api-keys-panel';
+import { LinksService } from '../../services/links.service';
 
 type SettingsTab = 'profile' | 'api-keys';
-
-type ProfileTab = 'general' | 'contact' | 'regional';
 
 /**
  * Account settings, reached from the account menu. The profile is read-only: the identity
@@ -33,7 +32,7 @@ export class SettingsPage {
 
   protected readonly profile = this.authService.profile;
   protected readonly activeTab = signal<SettingsTab>('profile');
-  protected readonly activeProfileTab = signal<ProfileTab>('general');
+  protected readonly links = inject(LinksService).links;
 
   /** Name on the profile card: the provider's full name, or the username without one. */
   protected readonly displayName = computed(() =>

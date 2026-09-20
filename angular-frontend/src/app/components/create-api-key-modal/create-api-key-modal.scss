@@ -4,6 +4,10 @@
 */
 @use 'variables' as *;
 
+//TODO missing colors
+$color-dark-blue: blue;
+$color-mid-blue: blue;
+
 .create-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
   z-index: 1050;

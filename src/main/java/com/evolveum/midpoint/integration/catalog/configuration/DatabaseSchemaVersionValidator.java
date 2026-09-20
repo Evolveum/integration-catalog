@@ -34,7 +34,7 @@ public class DatabaseSchemaVersionValidator {
      * goes into config/sql/postgres-upgrade.sql and, folded into the baseline, postgres.sql - the
      * two must agree, or a database built from one of them fails against a build expecting the other.
      */
-    public static final int REQUIRED_VERSION = 14;
+    public static final int REQUIRED_VERSION = 13;
 
     private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
 

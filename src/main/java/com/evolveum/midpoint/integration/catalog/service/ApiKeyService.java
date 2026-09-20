@@ -81,13 +81,13 @@ public class ApiKeyService {
     private void reconcile(List<ApiKey> keys) {
         Instant now = Instant.now();
         Map<String, List<ApiKey>> workingBySubscription = keys.stream()
-                .filter(key -> isWorking(key, now))
+                .filter(key -> isActive(key, now))
                 .collect(Collectors.groupingBy(ApiKey::getGraviteeSubscriptionId));
 
         for (Map.Entry<String, List<ApiKey>> entry : workingBySubscription.entrySet()) {
-            Map<String, GraviteeClient.ApiKeyState> states = new HashMap<>();
+            Map<String, GraviteeClient.GraviteeApiKey> states = new HashMap<>();
             try {
-                for (GraviteeClient.ApiKeyState state : gravitee.listApiKeys(entry.getKey())) {
+                for (GraviteeClient.GraviteeApiKey state : gravitee.listApiKeys(entry.getKey())) {
                     if (state.id() != null) {
                         states.put(state.id(), state);
                     }
@@ -101,7 +101,7 @@ public class ApiKeyService {
             }
 
             for (ApiKey key : entry.getValue()) {
-                GraviteeClient.ApiKeyState state = states.get(key.getGraviteeApiKeyId());
+                GraviteeClient.GraviteeApiKey state = states.get(key.getGraviteeApiKeyId());
                 if (state == null) {
                     continue;
                 }
@@ -128,7 +128,7 @@ public class ApiKeyService {
      */
     @Transactional
     public CreatedApiKeyDto create(OidcUser user, CreateApiKeyRequestDto request) {
-        requireConfigured();
+        checkRequiredConfiguration();
         String name = request.name() == null ? "" : request.name().trim();
         if (name.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The key needs a name.");
@@ -176,12 +176,12 @@ public class ApiKeyService {
      */
     @Transactional
     public CreatedApiKeyDto renew(OidcUser user, String id) {
-        requireConfigured();
+        checkRequiredConfiguration();
         // Locked: a second rotation of the same key (double click, second tab) waits here and is then
         // refused, instead of renewing again and recording the first new key without its grace end.
         ApiKey old = ownKeyLocked(user.getName(), id);
         Instant now = Instant.now();
-        if (!isWorking(old, now) || old.getReplacedAt() != null) {
+        if (!isActive(old, now) || old.getReplacedAt() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Only an active key that has not been replaced yet can be rotated.");
         }
@@ -201,12 +201,12 @@ public class ApiKeyService {
         }
 
         // Gravitee has just given every working key of the subscription an end; record it.
-        Map<String, Instant> graceEnds = graceEnds(subscriptionId);
+        Map<String, Instant> keysWithExpireAt = keysWithExpireAt(subscriptionId);
         for (ApiKey sibling : repository.findByGraviteeSubscriptionId(subscriptionId)) {
-            if (!isWorking(sibling, now)) {
+            if (!isActive(sibling, now)) {
                 continue;
             }
-            Instant graceEnd = graceEnds.getOrDefault(sibling.getGraviteeApiKeyId(), now.plus(RENEWAL_GRACE));
+            Instant graceEnd = keysWithExpireAt.getOrDefault(sibling.getGraviteeApiKeyId(), now.plus(RENEWAL_GRACE));
             sibling.setExpiresAt(earliest(graceEnd, subscriptionEnd));
             if (sibling.getReplacedAt() == null) {
                 sibling.setReplacedAt(now);
@@ -237,7 +237,7 @@ public class ApiKeyService {
      */
     @Transactional
     public void revoke(OidcUser user, String id) {
-        requireConfigured();
+        checkRequiredConfiguration();
         // Locked like renew: a revoke racing a rotation could close the subscription without
         // seeing the new key, leaving it listed as working.
         ApiKey key = ownKeyLocked(user.getName(), id);
@@ -247,7 +247,7 @@ public class ApiKeyService {
         Instant now = Instant.now();
         String subscriptionId = key.getGraviteeSubscriptionId();
         List<ApiKey> otherWorking = repository.findByGraviteeSubscriptionId(subscriptionId).stream()
-                .filter(other -> !other.getId().equals(key.getId()) && isWorking(other, now))
+                .filter(other -> !other.getId().equals(key.getId()) && isActive(other, now))
                 .toList();
         boolean closeSubscription = otherWorking.isEmpty() || key.getGraviteeApiKeyId() == null;
         try {
@@ -279,12 +279,12 @@ public class ApiKeyService {
      * happened, so an unreadable answer falls back to the documented grace period rather than
      * losing the new key.
      */
-    private Map<String, Instant> graceEnds(String subscriptionId) {
+    private Map<String, Instant> keysWithExpireAt(String subscriptionId) {
         Map<String, Instant> ends = new HashMap<>();
         try {
-            for (GraviteeClient.ApiKeyState state : gravitee.listApiKeys(subscriptionId)) {
-                if (state.id() != null && state.expireAt() != null) {
-                    ends.put(state.id(), state.expireAt());
+            for (GraviteeClient.GraviteeApiKey apiKey : gravitee.listApiKeys(subscriptionId)) {
+                if (apiKey.id() != null && apiKey.expireAt() != null) {
+                    ends.put(apiKey.id(), apiKey.expireAt());
                 }
             }
         } catch (IOException | InterruptedException e) {
@@ -298,7 +298,7 @@ public class ApiKeyService {
     }
 
     /** Says so plainly, rather than letting the call reach Gravitee without an api id or a token. */
-    private void requireConfigured() {
+    private void checkRequiredConfiguration() {
         if (!properties.enabled()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "API key management is not configured - set the gravitee.* properties.");
@@ -337,7 +337,7 @@ public class ApiKeyService {
         return expiresAt;
     }
 
-    private static boolean isWorking(ApiKey key, Instant now) {
+    private static boolean isActive(ApiKey key, Instant now) {
         return key.getRevokedAt() == null && (key.getExpiresAt() == null || key.getExpiresAt().isAfter(now));
     }
 

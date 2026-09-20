@@ -249,11 +249,10 @@
 
 .user-menu {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 7px);
   right: 0;
   z-index: 2;
   min-width: 250px;
-  padding: 0.5rem 0;
   background-color: $color-white;
   border: 1px solid $color-border-light;
   border-radius: 6px;
@@ -265,7 +264,7 @@
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 1.25rem;
+  padding: 0.75rem 1.25rem;
   border: none;
   background: none;
   color: $color-text-dark;
@@ -300,7 +299,6 @@
 
 .user-menu-separator {
   height: 1px;
-  margin: 0.5rem 0;
   background-color: $color-separator;
 }
 

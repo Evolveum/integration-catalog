@@ -66,11 +66,6 @@ export class ApiKeysPanel implements OnInit {
     this.modalOpen.set(true);
   }
 
-  /** The scoped variant additionally attaches catalog items to the key; that screen is next. */
-  protected createWithScope(): void {
-    this.toastService.show('Create key (with scope)', 'Scoped keys are not available yet.', 'info');
-  }
-
   /** Creates the key and shows its value; the list is reloaded so it shows what was stored. */
   protected onCreate(request: CreateApiKeyRequest): void {
     this.creating.set(true);

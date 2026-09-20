@@ -453,11 +453,10 @@ $aa$);
 -- apart for the user; on its own it is not a usable secret. replaced_at marks the row a renewal
 -- superseded. owner_sub is the identity provider's 'sub' claim rather than the username, because
 -- it survives a rename in the provider; owner_username is a display copy.
-call apply_change(10, $aa$
+call apply_change(13, $aa$
 CREATE TABLE api_key (
     id                       uuid                     NOT NULL,
     name                     character varying(255)   NOT NULL,
-    owner_sub                character varying(255)   NOT NULL,
     owner_username           character varying(255)   NOT NULL,
     gravitee_application_id  character varying(64)    NOT NULL,
     gravitee_subscription_id character varying(64)    NOT NULL,
@@ -470,7 +469,7 @@ CREATE TABLE api_key (
 );
 ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_gravitee_key_uk UNIQUE (gravitee_api_key_id);
-CREATE INDEX api_key_owner_idx ON api_key (owner_sub);
+CREATE INDEX api_key_owner_idx ON api_key (owner_username);
 CREATE INDEX api_key_subscription_idx ON api_key (gravitee_subscription_id);
 $aa$);
 -- end of region

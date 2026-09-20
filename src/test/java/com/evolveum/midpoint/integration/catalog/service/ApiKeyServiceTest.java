@@ -271,7 +271,7 @@ class ApiKeyServiceTest {
         key.setGraviteeApiKeyId("key-1");
         when(repository.findByOwnerUsernameOrderByCreatedAtDesc(user().getName())).thenReturn(List.of(key));
         when(gravitee.listApiKeys("sub-1")).thenReturn(List.of(
-                new GraviteeClient.ApiKeyState("key-1", null, true, revokedAt)));
+                new GraviteeClient.GraviteeApiKey("key-1", null, true, revokedAt)));
 
         List<ApiKeyDto> listed = serviceWith(configured()).list(user());
 
@@ -287,7 +287,7 @@ class ApiKeyServiceTest {
         key.setGraviteeApiKeyId("key-1");
         when(repository.findByOwnerUsernameOrderByCreatedAtDesc(user().getName())).thenReturn(List.of(key));
         when(gravitee.listApiKeys("sub-1")).thenReturn(List.of(
-                new GraviteeClient.ApiKeyState("key-1", graviteeEnd, false, null)));
+                new GraviteeClient.GraviteeApiKey("key-1", graviteeEnd, false, null)));
 
         serviceWith(configured()).list(user());
 
@@ -304,7 +304,7 @@ class ApiKeyServiceTest {
         key.setExpiresAt(recordedEnd);
         when(repository.findByOwnerUsernameOrderByCreatedAtDesc(user().getName())).thenReturn(List.of(key));
         when(gravitee.listApiKeys("sub-1")).thenReturn(List.of(
-                new GraviteeClient.ApiKeyState("key-1", Instant.now().plus(5, ChronoUnit.DAYS), false, null)));
+                new GraviteeClient.GraviteeApiKey("key-1", Instant.now().plus(5, ChronoUnit.DAYS), false, null)));
 
         serviceWith(configured()).list(user());
 
@@ -361,8 +361,8 @@ class ApiKeyServiceTest {
         when(repository.findByGraviteeSubscriptionId("sub-1")).thenReturn(List.of(old));
         when(gravitee.renewApiKey("sub-1")).thenReturn(new GraviteeClient.ApiKeyMaterial("key-2", "new-secret-abcd"));
         when(gravitee.listApiKeys("sub-1")).thenReturn(List.of(
-                new GraviteeClient.ApiKeyState("key-1", graceEnd, false, null),
-                new GraviteeClient.ApiKeyState("key-2", null, false, null)));
+                new GraviteeClient.GraviteeApiKey("key-1", graceEnd, false, null),
+                new GraviteeClient.GraviteeApiKey("key-2", null, false, null)));
 
         CreatedApiKeyDto renewed = serviceWith(configured()).renew(user(), old.getId().toString());
 
@@ -392,7 +392,7 @@ class ApiKeyServiceTest {
         when(repository.findByGraviteeSubscriptionId("sub-1")).thenReturn(List.of(old));
         when(gravitee.renewApiKey("sub-1")).thenReturn(new GraviteeClient.ApiKeyMaterial("key-2", "new-secret"));
         when(gravitee.listApiKeys("sub-1")).thenReturn(List.of(
-                new GraviteeClient.ApiKeyState("key-1", Instant.now().plus(2, ChronoUnit.HOURS), false, null)));
+                new GraviteeClient.GraviteeApiKey("key-1", Instant.now().plus(2, ChronoUnit.HOURS), false, null)));
 
         CreatedApiKeyDto renewed = serviceWith(configured()).renew(user(), old.getId().toString());
 

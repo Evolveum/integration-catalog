@@ -4,6 +4,10 @@
 */
 @use 'variables' as *;
 
+//TODO missing colors
+$color-dark-blue: blue;
+$color-mid-blue: blue;
+
 .keys-card {
   background-color: $color-white;
   border: 1px solid $color-border-light;
@@ -38,7 +42,6 @@
 .keys-empty-text {
   font-size: 0.8125rem;
   color: $color-text-muted;
-  max-width: 420px;
   margin-bottom: 1.25rem;
 }
 

@@ -4,6 +4,10 @@
 */
 @use 'variables' as *;
 
+//TODO missing colors
+$midpoint-special-color: blue;
+$color-dark-blue: blue;
+
 .revoke-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
   z-index: 1050;

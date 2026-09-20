@@ -39,20 +39,17 @@ public class AuthService {
     private final MaintainerRepository maintainerRepository;
     private final KeycloakUserDirectory keycloakUserDirectory;
     private final CatalogClaims claims;
-    private final String iamProfileUrl;
 
     public AuthService(OrganizationService organizationService,
                        OwnershipService ownershipService,
                        MaintainerRepository maintainerRepository,
                        KeycloakUserDirectory keycloakUserDirectory,
-                       CatalogClaims claims,
-                       @Value("${catalog.iam.profile-url:}") String iamProfileUrl) {
+                       CatalogClaims claims) {
         this.organizationService = organizationService;
         this.ownershipService = ownershipService;
         this.maintainerRepository = maintainerRepository;
         this.keycloakUserDirectory = keycloakUserDirectory;
         this.claims = claims;
-        this.iamProfileUrl = iamProfileUrl;
     }
 
     /**

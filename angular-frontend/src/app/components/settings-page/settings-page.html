@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<app-page-header [hideBorder]="true" />
+<app-page-header [hideBorder]="true"/>
 
 <div class="settings-page">
   <div class="settings-content">
@@ -17,105 +17,97 @@
 
     <div class="settings-tabs d-flex">
       <button type="button" class="settings-tab" [class.settings-tab-active]="activeTab() === 'profile'"
-        (click)="activeTab.set('profile')">Profile</button>
+              (click)="activeTab.set('profile')">Profile
+      </button>
       <button type="button" class="settings-tab" [class.settings-tab-active]="activeTab() === 'api-keys'"
-        (click)="activeTab.set('api-keys')">API keys</button>
+              (click)="activeTab.set('api-keys')">API keys
+      </button>
     </div>
 
     @if (!profile()) {
-      <div class="settings-card settings-empty">
-        <p class="mb-0">You are not signed in, so there is no profile to show.</p>
-      </div>
+    <div class="settings-card settings-empty">
+      <p class="mb-0">You are not signed in, so there is no profile to show.</p>
+    </div>
     } @else if (activeTab() === 'profile') {
 
-      <h2 class="settings-section-title">Profile</h2>
-      <p class="settings-section-subtitle">
-        Manage the personal information associated with your Integration Catalog account.
-      </p>
+    <h2 class="settings-section-title">Profile</h2>
+    <p class="settings-section-subtitle">
+      Manage the personal information associated with your Integration Catalog account.
+    </p>
 
-      <!-- The catalog never writes profile data: it comes from the identity provider's token. -->
-      <div class="iam-banner d-flex align-items-center gap-3">
-        <i class="fa-solid fa-circle-info iam-banner-icon"></i>
-        <div class="iam-banner-text">
-          <strong>Profile data is managed in midPoint IAM</strong>
-          <span>This information is read-only in Integration Catalog. To update your profile, make the change in midPoint IAM.</span>
+    <!-- The catalog never writes profile data: it comes from the identity provider's token. -->
+    <div class="iam-banner d-flex align-items-center gap-3">
+      <i class="fa-solid fa-circle-info iam-banner-icon"></i>
+      <div class="iam-banner-text">
+        <strong>Profile data is managed in midPoint IAM</strong>
+        <span>This information is read-only in Integration Catalog. To update your profile, make the change in midPoint IAM.</span>
+      </div>
+      @if (links()!.iamProfileUrl) {
+      <a class="iam-banner-btn d-flex align-items-center gap-2 ms-auto"
+         [href]="links()!.iamProfileUrl" target="_blank" rel="noopener noreferrer">
+        Open midPoint IAM<i class="fa-solid fa-arrow-up-right-from-square"></i>
+      </a>
+      }
+    </div>
+
+    <div class="settings-card">
+      <div class="profile-head d-flex align-items-center gap-3">
+        <span class="profile-avatar">{{ initials() }}</span>
+        <div class="profile-identity">
+          <div class="profile-name">{{ displayName() }}</div>
+          <div class="profile-email">{{ profile()!.email || 'No e-mail address' }}</div>
         </div>
-        <!-- TODO use property for href-->
-          <a class="iam-banner-btn d-flex align-items-center gap-2 ms-auto"
-             href="https://iam.evolveum.com/midpoint/self/profile/user"
-             target="_blank" rel="noopener noreferrer">
-            Open midPoint IAM<i class="fa-solid fa-arrow-up-right-from-square"></i>
-          </a>
+        <span class="profile-role-badge ms-auto">{{ authService.currentRole() }}</span>
       </div>
 
-      <div class="settings-card">
-        <div class="profile-head d-flex align-items-center gap-3">
-          <span class="profile-avatar">{{ initials() }}</span>
-          <div class="profile-identity">
-            <div class="profile-name">{{ displayName() }}</div>
-            <div class="profile-email">{{ profile()!.email || 'No e-mail address' }}</div>
-          </div>
-          <span class="profile-role-badge ms-auto">{{ authService.currentRole() }}</span>
-        </div>
+<!--      <div class="profile-tabs d-flex">-->
+<!--        <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'general'"-->
+<!--                (click)="activeProfileTab.set('general')">General-->
+<!--        </button>-->
+<!--        <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'contact'"-->
+<!--                (click)="activeProfileTab.set('contact')">Contact information-->
+<!--        </button>-->
+<!--      </div>-->
 
-        <div class="profile-tabs d-flex">
-          <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'general'"
-            (click)="activeProfileTab.set('general')">General</button>
-          <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'contact'"
-            (click)="activeProfileTab.set('contact')">Contact information</button>
+      <!-- Every field is read-only: the value is whatever the token carried. -->
+      <div class="profile-grid">
+        <div class="profile-field">
+          <label class="profile-label" for="username">Username</label>
+          <input id="username" class="profile-input" type="text" readonly [value]="profile()!.username">
         </div>
-
-        <!-- Every field is read-only: the value is whatever the token carried. -->
-        @switch (activeProfileTab()) {
-          @case ('general') {
-            <div class="profile-grid">
-              <div class="profile-field">
-                <label class="profile-label" for="first-name">First name</label>
-                <input id="first-name" class="profile-input" type="text" readonly
-                  [value]="profile()!.firstName || ''" placeholder="Not provided">
-              </div>
-              <div class="profile-field">
-                <label class="profile-label" for="last-name">Last name</label>
-                <input id="last-name" class="profile-input" type="text" readonly
-                  [value]="profile()!.lastName || ''" placeholder="Not provided">
-              </div>
-              <div class="profile-field">
-                <label class="profile-label" for="username">Username</label>
-                <input id="username" class="profile-input" type="text" readonly [value]="profile()!.username">
-              </div>
-              <div class="profile-field">
-                <label class="profile-label" for="role">Role</label>
-                <input id="role" class="profile-input" type="text" readonly
-                  [value]="authService.currentRole() || ''" placeholder="Not provided">
-              </div>
-              <div class="profile-field">
-                <label class="profile-label" for="organization">Organization</label>
-                <input id="organization" class="profile-input" type="text" readonly
-                  [value]="profile()!.organizationDisplayName || profile()!.organizationName || ''"
-                  placeholder="No organization">
-              </div>
-              <div class="profile-field profile-field-wide">
-                <label class="profile-label" for="about">About</label>
-                <textarea id="about" class="profile-input profile-textarea" rows="4" readonly
-                  placeholder="Not provided"></textarea>
-              </div>
-            </div>
-          }
-          @case ('contact') {
-            <div class="profile-grid">
-              <div class="profile-field">
-                <label class="profile-label" for="email">E-mail</label>
-                <input id="email" class="profile-input" type="text" readonly
-                  [value]="profile()!.email || ''" placeholder="Not provided">
-              </div>
-          }
-        }
+        <div class="profile-field">
+          <label class="profile-label" for="email">E-mail</label>
+          <input id="email" class="profile-input" type="text" readonly
+                 [value]="profile()!.email || ''" placeholder="Not provided">
+        </div>
+        <div class="profile-field">
+          <label class="profile-label" for="first-name">First name</label>
+          <input id="first-name" class="profile-input" type="text" readonly
+                 [value]="profile()!.firstName || ''" placeholder="Not provided">
+        </div>
+        <div class="profile-field">
+          <label class="profile-label" for="last-name">Last name</label>
+          <input id="last-name" class="profile-input" type="text" readonly
+                 [value]="profile()!.lastName || ''" placeholder="Not provided">
+        </div>
+        <div class="profile-field">
+          <label class="profile-label" for="role">Role</label>
+          <input id="role" class="profile-input" type="text" readonly
+                 [value]="authService.currentRole() || ''" placeholder="Not provided">
+        </div>
+        <div class="profile-field">
+          <label class="profile-label" for="organization">Organization</label>
+          <input id="organization" class="profile-input" type="text" readonly
+                 [value]="profile()!.organizationDisplayName || profile()!.organizationName || ''"
+                 placeholder="No organization">
+        </div>
       </div>
+    </div>
 
     } @else {
 
-      <!-- Title, subtitle and the create button belong to the panel: it owns the creation flow. -->
-      <app-api-keys-panel />
+    <!-- Title, subtitle and the create button belong to the panel: it owns the creation flow. -->
+    <app-api-keys-panel/>
     }
   </div>
 </div>

@@ -4,6 +4,9 @@
 */
 @use 'variables' as *;
 
+//TODO missing colors
+$color-dark-blue: blue;
+
 .settings-page {
   background-color: $color-white;
   min-height: calc(100vh - 56px);

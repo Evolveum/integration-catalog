@@ -34,6 +34,7 @@ import java.util.List;
 public class GraviteeClient {
 
     /** A key is minted while the user waits, so a stalled APIM must fail rather than hang. */
+    //TODO move to properties
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
     private static final int HTTP_NOT_FOUND = 404;
@@ -48,6 +49,18 @@ public class GraviteeClient {
         this.properties = properties;
     }
 
+    /** The key as Gravitee minted it: its id, the value the user sees once, and its own expiration. */
+    public record ApiKeyMaterial(String id, String value, Instant expireAt) {
+
+        public ApiKeyMaterial(String id, String value) {
+            this(id, value, null);
+        }
+    }
+
+    /** One key of a subscription without its value; a null expiration means it does not expire. */
+    public record GraviteeApiKey(String id, Instant expireAt, boolean revoked, Instant revokedAt) {
+    }
+
     /**
      * Creates the Gravitee application that carries one key; its name and description only keep the
      * Gravitee console readable.
@@ -56,7 +69,7 @@ public class GraviteeClient {
             throws IOException, InterruptedException {
         ObjectNode body = objectMapper.createObjectNode()
                 .put("name", "ic-" + username + "-" + keyName)
-                .put("description", "Integration Catalog key \"" + keyName + "\" of " + username);
+                .put("description", "Key created by Midpoint Integration Catalog \"" + keyName + "\" of " + username);
 
         JsonNode created = send(post(properties.managementV1Base() + "/applications", body), "create the application");
         return requireText(created, "id", "application");
@@ -155,11 +168,11 @@ public class GraviteeClient {
     }
 
     /** The keys of a subscription as Gravitee sees them now; their values are left out. */
-    public List<ApiKeyState> listApiKeys(String subscriptionId) throws IOException, InterruptedException {
+    public List<GraviteeApiKey> listApiKeys(String subscriptionId) throws IOException, InterruptedException {
         JsonNode keys = send(get(subscriptionUrl(subscriptionId) + "/api-keys"), "read the API keys").path("data");
-        List<ApiKeyState> states = new ArrayList<>();
+        List<GraviteeApiKey> states = new ArrayList<>();
         for (JsonNode key : keys) {
-            states.add(new ApiKeyState(key.path("id").asText(null), instantOf(key, "expireAt"),
+            states.add(new GraviteeApiKey(key.path("id").asText(null), instantOf(key, "expireAt"),
                     key.path("revoked").asBoolean(false), instantOf(key, "revokedAt")));
         }
         return states;
@@ -182,18 +195,6 @@ public class GraviteeClient {
             throw new IOException("Gravitee refused to revoke the API key (HTTP "
                     + response.statusCode() + "): " + response.body());
         }
-    }
-
-    /** The key as Gravitee minted it: its id, the value the user sees once, and its own expiration. */
-    public record ApiKeyMaterial(String id, String value, Instant expireAt) {
-
-        public ApiKeyMaterial(String id, String value) {
-            this(id, value, null);
-        }
-    }
-
-    /** One key of a subscription without its value; a null expiration means it does not expire. */
-    public record ApiKeyState(String id, Instant expireAt, boolean revoked, Instant revokedAt) {
     }
 
     private String subscriptionUrl(String subscriptionId) {
