@@ -280,8 +280,6 @@ public class ConnectorUploadService {
         cbv.setConnectorBundle(bundle);
         cbv.setBuildFramework(dto.buildFramework());
         cbv.setPathToProject(dto.pathToProject());
-        // One link, not two: the browse link is the project homepage, kept on the version because that is
-        // what the build reads as BRANCH_URL.
         cbv.setBrowseLink(dto.projectHomepage());
         cbv.setGitCloneUrl(dto.gitCloneUrl());
         cbv.setCommitTag(dto.commitTag());
@@ -348,7 +346,8 @@ public class ConnectorUploadService {
         try {
             ConnectorBundle bundle = cbv.getConnectorBundle();
             List<ConnectorVersion> versions = cbv.getConnectorVersions();
-            String browseLink = blankIfNull(cbv.getBrowseLink());
+            //TODO rename to commitHash
+            String commitHash = blankIfNull(cbv.getCommitTag());
             // The bundle is the source of truth for the clone URL; the version keeps a copy of it.
             String gitCloneUrl = blankIfNull(bundle != null && bundle.getGitCloneUrl() != null
                     ? bundle.getGitCloneUrl() : cbv.getGitCloneUrl());
@@ -370,7 +369,7 @@ public class ConnectorUploadService {
             HttpResponse<String> response = jenkinsClient.triggerJob(
                     Map.ofEntries(
                             Map.entry("REPOSITORY_URL", gitCloneUrl),
-                            Map.entry("BRANCH_URL", browseLink),
+                            Map.entry("COMMIT_HASH", commitHash),
                             Map.entry("INTEGRATION_METHOD_UUID", method.getId().toString()),
                             Map.entry("INTEGRATION_METHOD_REVISION", method.getRevision()),
                             Map.entry("INTEGRATION_METHOD_TITLE", method.getDisplayName() != null ? method.getDisplayName() : ""),
