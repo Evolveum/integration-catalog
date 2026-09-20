@@ -14,6 +14,7 @@ export interface ExternalLinks {
   acceptableUsePolicy: string;
   copyrightGuidelines: string;
   githubTokenGuide: string;
+  iamProfileUrl: string;
 }
 
 /**

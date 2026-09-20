@@ -6,10 +6,14 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-/** The authenticated user's profile as the frontend sees it. */
+/**
+ * The authenticated user's profile as the frontend sees it. Mostly OIDC claims, so a claim the
+ * provider does not emit arrives here as null.
+ */
 public record CurrentUserDto(
         String username,
-        String fullName,
+        String firstName,
+        String lastName,
         String email,
         String role,
         String organizationName,

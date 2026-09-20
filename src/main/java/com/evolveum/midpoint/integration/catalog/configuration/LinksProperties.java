@@ -17,6 +17,7 @@ public record LinksProperties(
         String termsOfUse,
         String acceptableUsePolicy,
         String copyrightGuidelines,
-        String githubTokenGuide
+        String githubTokenGuide,
+        String iamProfileUrl
 ) {
 }

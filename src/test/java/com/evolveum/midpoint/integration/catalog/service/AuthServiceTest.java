@@ -107,8 +107,29 @@ class AuthServiceTest {
         assertEquals("OrganizationContributor", user.role());
         assertEquals("acme", user.organizationName());
         assertEquals("Acme co.", user.organizationDisplayName());
-        assertEquals("Olivia Parker", user.fullName());
         assertEquals("olivia@acme.example", user.email());
+    }
+
+    @Test
+    void currentUserCarriesTheProfileClaimsAndTheIamLink() {
+        CurrentUserDto user = authService.getCurrentUser("olivia", oidcUser(Map.of(
+                "given_name", "Olivia",
+                "family_name", "Parker",
+                "phone_number", "+421 900 000 000",
+                "locale", "sk-SK",
+                "zoneinfo", "Europe/Bratislava")));
+
+        assertEquals("Olivia", user.firstName());
+        assertEquals("Parker", user.lastName());
+    }
+
+    /** A claim the provider does not emit stays null, so the page can say "not provided". */
+    @Test
+    void currentUserProfileClaimsAreNullWhenAbsent() {
+        CurrentUserDto user = authService.getCurrentUser("ben", oidcUser(Map.of()));
+
+        assertNull(user.firstName());
+        assertNull(user.lastName());
     }
 
     @Test

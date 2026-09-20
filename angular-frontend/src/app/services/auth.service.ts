@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { catchError, map, Observable, of } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -23,14 +23,21 @@ export enum UserRole {
   Superuser = 'Superuser'
 }
 
-/** Profile served by GET /api/auth/me for the authenticated session. */
-interface CurrentUserResponse {
+/** Profile served by GET /api/auth/me; a field the provider does not emit is null. */
+export interface CurrentUserResponse {
   username: string;
   fullName: string | null;
+  firstName: string | null;
+  lastName: string | null;
   email: string | null;
+  phoneNumber: string | null;
+  locale: string | null;
+  zoneInfo: string | null;
   role: string;
   /** The organization's alias — stable across renames, and what a maintainer row points at. */
   organizationName: string | null;
+  /** Where the profile is edited; null when none is configured. */
+  iamProfileUrl: string | null;
   /** What that organization is called in the catalog; null when it has no row there. */
   organizationDisplayName: string | null;
 }
@@ -47,10 +54,30 @@ export class AuthService {
 
   private readonly _currentUser = signal<string | null>(null);
   private readonly _currentRole = signal<UserRole | null>(null);
-  private readonly _currentOrganizationAlias = signal<string | null>(null);
+  private readonly _currentOrganizationName = signal<string | null>(null);
   private readonly _currentOrganizationDisplayName = signal<string | null>(null);
+  private readonly _profile = signal<CurrentUserResponse | null>(null);
 
   readonly currentUser = this._currentUser.asReadonly();
+
+  /** The whole profile, for pages that show more than the name and role. */
+  readonly profile = this._profile.asReadonly();
+
+  /** Letters for the avatar circles: first and last name, else the full name, else the username. */
+  readonly initials = computed(() => {
+    const profile = this._profile();
+    const first = profile?.firstName?.trim();
+    const last = profile?.lastName?.trim();
+    if (first || last) {
+      return ((first?.charAt(0) ?? '') + (last?.charAt(0) ?? '')).toUpperCase();
+    }
+    // No given/family name in the token: split whatever name there is, e.g. "john.doe" -> "JD".
+    const parts = (profile?.fullName?.trim() || profile?.username || '')
+      .split('@')[0].split(/[\s._-]+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    const tail = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+    return (parts[0].charAt(0) + tail).toUpperCase();
+  });
 
   /**
    * Loads the profile of the current backend session. Completes rather than fails on every
@@ -71,9 +98,10 @@ export class AuthService {
 
   /** Mirrors a loaded profile — or, for null, the anonymous state — into the session signals. */
   private applyCurrentUser(user: CurrentUserResponse | null): void {
+    this._profile.set(user);
     this._currentUser.set(user?.username ?? null);
     this._currentRole.set(user ? (UserRole[user.role as keyof typeof UserRole] ?? null) : null);
-    this._currentOrganizationAlias.set(user?.organizationName ?? null);
+    this._currentOrganizationName.set(user?.organizationName ?? null);
     this._currentOrganizationDisplayName.set(user?.organizationDisplayName ?? null);
   }
 
@@ -83,13 +111,13 @@ export class AuthService {
    */
   organizationIsUnregistered(): boolean {
     return this._currentRole() === UserRole.OrganizationContributor
-      && !!this._currentOrganizationAlias()
+      && !!this._currentOrganizationName()
       && !this._currentOrganizationDisplayName();
   }
 
   /** The alias, which is all there is to show when the organization has no row in the catalog. */
   currentOrganizationId(): string | null {
-    return this._currentOrganizationAlias();
+    return this._currentOrganizationName();
   }
 
   /** Starts the OIDC login flow: full-page redirect to the provider via the backend. */
@@ -123,7 +151,7 @@ export class AuthService {
    */
   defaultMaintainer(): Maintainer | null {
     if (this._currentRole() === UserRole.OrganizationContributor) {
-      const alias = this._currentOrganizationAlias();
+      const alias = this._currentOrganizationName();
       if (alias) return organizationMaintainer(alias, this._currentOrganizationDisplayName());
     }
     const user = this._currentUser();
@@ -139,7 +167,7 @@ export class AuthService {
     const user = this._currentUser();
     const self = user ? [userMaintainer(user)] : [];
     if (this._currentRole() === UserRole.OrganizationContributor) {
-      const alias = this._currentOrganizationAlias();
+      const alias = this._currentOrganizationName();
       if (alias) {
         return [organizationMaintainer(alias, this._currentOrganizationDisplayName()), ...self];
       }
@@ -213,7 +241,7 @@ export class AuthService {
     if (sameIgnoringCase(maintainer.username, user)) return true;
     // An organization acts as a team: whatever it maintains, all of its contributors may edit.
     return role === UserRole.OrganizationContributor
-      && sameIgnoringCase(maintainer.organizationName, this._currentOrganizationAlias());
+      && sameIgnoringCase(maintainer.organizationName, this._currentOrganizationName());
   }
 }
 

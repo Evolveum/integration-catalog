@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
+import org.springframework.beans.factory.annotation.Value;
 import org.apache.commons.lang3.Strings;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -67,7 +68,8 @@ public class AuthService {
         }
         return new CurrentUserDto(
                 username,
-                oidcUser != null ? oidcUser.getFullName() : null,
+                oidcUser != null ? oidcUser.getGivenName() : null,
+                oidcUser != null ? oidcUser.getFamilyName() : null,
                 oidcUser != null ? oidcUser.getEmail() : null,
                 role.getIdentifier(),
                 organizationName,
