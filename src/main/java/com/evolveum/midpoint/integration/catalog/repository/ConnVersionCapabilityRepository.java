@@ -16,4 +16,5 @@ public interface ConnVersionCapabilityRepository extends JpaRepository<ConnVersi
         JpaSpecificationExecutor<ConnVersionCapability> {
 
     List<ConnVersionCapability> findByConnectorVersionId(Integer connectorVersionId);
+    List<ConnVersionCapability> findByObjectClass(String objectClass);
 }

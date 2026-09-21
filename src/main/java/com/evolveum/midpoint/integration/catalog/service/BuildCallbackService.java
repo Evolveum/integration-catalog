@@ -17,6 +17,7 @@ import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEven
 import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Strings;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -312,13 +313,25 @@ public class BuildCallbackService {
 
     private void persistCapabilitiesOnConnectorVersions(ConnectorVersion connectorVersion,
                                                         List<CapabilityType> capabilityTypes) {
-        ConnVersionCapability group = new ConnVersionCapability();
-        group.setObjectClass("Global");
-        group.setConnectorVersion(connectorVersion);
-        connVersionCapabilityRepository.save(group);
+
+        List<ConnVersionCapability> currentCapabilities = connVersionCapabilityRepository.findByObjectClass("Global");
+        ConnVersionCapability currentCapability = currentCapabilities.stream().findFirst().orElseGet(() -> {
+            ConnVersionCapability group = new ConnVersionCapability();
+            group.setObjectClass("Global");
+            group.setConnectorVersion(connectorVersion);
+            connVersionCapabilityRepository.save(group);
+            return group;
+        });
 
         for (CapabilityType capType : capabilityTypes) {
             if (!capType.isGlobal()){
+                continue;
+            }
+
+            if (currentCapability.getItems().stream()
+                    .anyMatch(capability ->
+                            capability.getCapability() != null
+                                    && Strings.CS.equals(capability.getCapability().getName(), capType.name()))) {
                 continue;
             }
 
@@ -330,11 +343,11 @@ public class BuildCallbackService {
                     });
 
             ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
-            item.setConnVersionCapabilityId(group.getId());
+            item.setConnVersionCapabilityId(currentCapability.getId());
             item.setCapabilityId(cap.getId());
-            item.setConnVersionCapability(group);
+            item.setConnVersionCapability(currentCapability);
             item.setCapability(cap);
-            group.getItems().add(item);
+            currentCapability.getItems().add(item);
         }
     }
 
