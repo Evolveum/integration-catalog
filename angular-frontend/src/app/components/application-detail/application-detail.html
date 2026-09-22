@@ -479,83 +479,25 @@
                                 @if (version.objectClassCapabilities && version.objectClassCapabilities.length > 0) {
                                   <hr class="im-divider">
                                   <div>
-                                    @if (isGlobalMethod(version)) {
-                                      @let allCaps = version.objectClassCapabilities[0].capabilities;
-                                      @let remaining = allCaps.length - 10;
-                                      @let visibleCaps = isMethodGlobalCapabilitiesExpanded(rowKey(version)) ? allCaps : allCaps.slice(0, 10);
-                                      <p class="text-sm mb-2 im-capabilities-header">
-                                        Global capabilities: <span class="text-muted fw-normal">(All object classes)</span>
-                                      </p>
-                                      <div class="d-flex flex-wrap gap-2">
-                                        @for (cap of visibleCaps; track cap) {
-                                          <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                        }
-                                        @if (remaining > 0) {
-                                          <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleMethodGlobalCapabilities(rowKey(version)); $event.stopPropagation()">
-                                            @if (isMethodGlobalCapabilitiesExpanded(rowKey(version))) {
-                                              <i class="fa-solid fa-eye-slash icon-sm"></i> Show less
-                                            } @else {
-                                              <i class="fa-solid fa-eye icon-sm"></i> + {{ remaining }} more
-                                            }
-                                          </span>
-                                        }
-                                      </div>
-                                    } @else if (isCombinedMethod(version)) {
-                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(rowKey(version) + '-combo-global'); $event.stopPropagation()" style="cursor:pointer;">
-                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(rowKey(version) + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(rowKey(version) + '-combo-global')"></i>
-                                        <p class="text-sm mb-0 im-capabilities-header">Global capabilities: <span class="text-muted fw-normal">(All object classes)</span></p>
-                                      </div>
-                                      @if (isComboSectionExpanded(rowKey(version) + '-combo-global')) {
-                                        <div class="d-flex flex-wrap gap-2 ms-3 mb-2">
-                                          @for (cap of getGlobalCaps(version); track cap) {
-                                            <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                          }
+                                    <p class="text-sm mb-2 im-capabilities-header">
+                                      Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
+                                    </p>
+                                    @for (occ of version.objectClassCapabilities; track occ.objectName) {
+                                      @let expandKey = rowKey(version) + '-' + occ.objectName;
+                                      <div class="mb-2">
+                                        <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
+                                          <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                                          <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
+                                          <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
                                         </div>
-                                      }
-                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(rowKey(version) + '-combo-specific'); $event.stopPropagation()" style="cursor:pointer;">
-                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(rowKey(version) + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(rowKey(version) + '-combo-specific')"></i>
-                                        <p class="text-sm mb-0 im-capabilities-header">Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span></p>
-                                      </div>
-                                      @if (isComboSectionExpanded(rowKey(version) + '-combo-specific')) {
-                                        @for (occ of getSpecificOccs(version); track occ.objectName) {
-                                          @let expandKey = rowKey(version) + '-' + occ.objectName;
-                                          <div class="mb-2 ms-3">
-                                            <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
-                                              <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
-                                              <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
-                                              <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
-                                            </div>
-                                            @if (isObjectClassExpanded(expandKey)) {
-                                              <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
-                                                @for (cap of occ.capabilities; track cap) {
-                                                  <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                                }
-                                              </div>
+                                        @if (isObjectClassExpanded(expandKey)) {
+                                          <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                            @for (cap of occ.capabilities; track cap) {
+                                              <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
                                             }
                                           </div>
                                         }
-                                      }
-                                    } @else {
-                                      <p class="text-sm mb-2 im-capabilities-header">
-                                        Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
-                                      </p>
-                                      @for (occ of version.objectClassCapabilities; track occ.objectName) {
-                                        @let expandKey = rowKey(version) + '-' + occ.objectName;
-                                        <div class="mb-2">
-                                          <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
-                                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
-                                            <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
-                                            <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
-                                          </div>
-                                          @if (isObjectClassExpanded(expandKey)) {
-                                            <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
-                                              @for (cap of occ.capabilities; track cap) {
-                                                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                              }
-                                            </div>
-                                          }
-                                        </div>
-                                      }
+                                      </div>
                                     }
                                   </div>
                                 }

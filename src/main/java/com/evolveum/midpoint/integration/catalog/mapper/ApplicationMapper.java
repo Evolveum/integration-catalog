@@ -25,6 +25,12 @@ import java.util.stream.Stream;
 @Component
 public class ApplicationMapper {
 
+    /**
+     * The reserved object class holding resource-wide capabilities. It is a connector's to declare;
+     * integration methods never report it, not even from revisions saved before that split.
+     */
+    private static final String GLOBAL_OBJECT_CLASS = "Global";
+
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
@@ -158,6 +164,7 @@ public class ApplicationMapper {
                             .toList();
 
                     List<ObjectClassCapabilityDto> objectClassCapabilities = method.getCapabilities().stream()
+                            .filter(cap -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(cap.getObjectClass()))
                             .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
                             .map(cap -> new ObjectClassCapabilityDto(
                                     cap.getObjectClass(),
@@ -238,6 +245,7 @@ public class ApplicationMapper {
     private List<String> collectCapabilities(IntegrationMethod method) {
         if (method.getCapabilities() == null) return null;
         return method.getCapabilities().stream()
+                .filter(cap -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(cap.getObjectClass()))
                 .filter(cap -> cap.getItems() != null)
                 .flatMap(cap -> cap.getItems().stream())
                 .filter(item -> item.getCapability() != null && item.getCapability().getName() != null)

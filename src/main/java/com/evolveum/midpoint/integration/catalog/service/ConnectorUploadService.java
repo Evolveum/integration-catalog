@@ -55,6 +55,11 @@ import java.util.stream.Collectors;
 public class ConnectorUploadService {
 
     public static final String DEFAULT_REVISION = "1.0";
+    /**
+     * The reserved object class holding resource-wide capabilities. Connectors keep it; integration
+     * methods do not declare it any more, so it is dropped from everything they save.
+     */
+    private static final String GLOBAL_OBJECT_CLASS = "Global";
     private final ApplicationRepository applicationRepository;
     private final IntegrationMethodRepository integrationMethodRepository;
     private final ConnectorRepository connectorRepository;
@@ -751,6 +756,10 @@ public class ConnectorUploadService {
             if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) {
                 continue;
             }
+            // Resource-wide capabilities are the connector's; a method that still sends them is ignored.
+            if (GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.objectClass())) {
+                continue;
+            }
             IntegrationMethodCapability cap = new IntegrationMethodCapability();
             cap.setObjectClass(group.objectClass());
             cap.setIntegrationMethod(target);
@@ -862,10 +871,14 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Deep-copies a method's object-class capabilities (and their capability items) onto another revision.
+     * Deep-copies a method's object-class capabilities (and their capability items) onto another
+     * revision, leaving behind any resource-wide group a revision from before the split still carries.
      */
     private void copyCapabilities(IntegrationMethod from, IntegrationMethod to) {
         for (IntegrationMethodCapability oldCap : from.getCapabilities()) {
+            if (GLOBAL_OBJECT_CLASS.equalsIgnoreCase(oldCap.getObjectClass())) {
+                continue;
+            }
             IntegrationMethodCapability newCap = new IntegrationMethodCapability();
             newCap.setObjectClass(oldCap.getObjectClass());
             newCap.setIntegrationMethod(to);

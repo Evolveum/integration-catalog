@@ -25,6 +25,9 @@ export class CapabilityPicker implements OnInit, OnChanges {
   @Input() initialCapabilities: CapabilityGroup[] = [];
   // When true the whole picker is read-only (used for existing connectors).
   @Input() disabled = false;
+  // Resource-wide capabilities belong to the connector, so integration methods turn the Global
+  // section off: it is neither shown nor emitted, and any Global group in the input is ignored.
+  @Input() showGlobal = true;
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
 
   @HostBinding('class.cp-disabled') get isDisabled(): boolean {
@@ -75,7 +78,7 @@ export class CapabilityPicker implements OnInit, OnChanges {
 
   private applyInitialCapabilities(): void {
     const global = this.initialCapabilities.find(g => g.objectClass === 'Global');
-    this.globalCaps.set(global ? global.capabilityNames : []);
+    this.globalCaps.set(global && this.showGlobal ? global.capabilityNames : []);
 
     const specific = this.initialCapabilities.filter(g => g.objectClass !== 'Global');
     const current = this.entries();
@@ -102,7 +105,7 @@ export class CapabilityPicker implements OnInit, OnChanges {
   private emit(): void {
     const groups: CapabilityGroup[] = [];
     const global = this.globalCaps();
-    if (global.length > 0) {
+    if (this.showGlobal && global.length > 0) {
       groups.push({ objectClass: 'Global', capabilityNames: global });
     }
     this.entries()

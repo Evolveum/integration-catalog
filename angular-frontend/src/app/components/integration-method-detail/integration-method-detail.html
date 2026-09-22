@@ -92,24 +92,8 @@
         </div>
       </div>
 
-      <!-- Capabilities (divided by globality, each group collapsible) -->
+      <!-- Capabilities, grouped per object class and each group collapsible -->
       <div class="mb-4">
-        @if (globalCapabilities().length > 0) {
-          <button type="button" class="caps-group-header d-flex align-items-center gap-2" (click)="toggleCaps('global')">
-            <i class="fa-solid icon-sm"
-               [class.fa-chevron-up]="isCapsExpanded('global')"
-               [class.fa-chevron-down]="!isCapsExpanded('global')"></i>
-            <span class="view-section-label mb-0">Global Capabilities</span>
-          </button>
-          @if (isCapsExpanded('global')) {
-            <div class="view-caps-box d-flex flex-wrap gap-2 mb-3">
-              @for (cap of globalCapabilities(); track cap) {
-                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-              }
-            </div>
-          }
-        }
-
         @if (specificCapabilities().length > 0) {
           <!-- Layer 1: parent section wrapping all specific object classes -->
           <button type="button" class="caps-group-header d-flex align-items-center gap-2" (click)="toggleCaps('specific')">
@@ -144,8 +128,8 @@
           }
         }
 
-        @if (globalCapabilities().length === 0 && specificCapabilities().length === 0) {
-          <label class="view-section-label">Global Capabilities</label>
+        @if (specificCapabilities().length === 0) {
+          <label class="view-section-label">Capabilities</label>
           <div class="view-caps-box text-muted">No capabilities defined.</div>
         }
       </div>

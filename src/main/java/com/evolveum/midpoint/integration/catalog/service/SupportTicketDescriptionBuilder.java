@@ -278,19 +278,16 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The method's capabilities, resource-wide ones first and the rest under the object class they
-     * were declared for. Ordered by the display order the catalog itself uses, so the ticket lists
-     * them the way the detail page does rather than in insertion order.
+     * The method's capabilities, each under the object class it was declared for. Resource-wide ones
+     * are the connector's and are listed with its version instead. Ordered by the display order the
+     * catalog itself uses, so the ticket lists them the way the detail page does rather than in
+     * insertion order.
      */
     private void appendCapabilities(StringBuilder body, IntegrationMethod method) {
         body.append("\n### Integration method capabilities\n\n");
         List<IntegrationMethodCapability> groups = method.getCapabilities() == null
                 ? List.of()
                 : method.getCapabilities();
-
-        bullet(body, "Global", capabilityNames(groups.stream()
-                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
-                .flatMap(this::capabilitiesOf)));
 
         List<IntegrationMethodCapability> specific = groups.stream()
                 .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
