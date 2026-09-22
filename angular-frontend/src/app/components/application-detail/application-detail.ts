@@ -267,8 +267,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
     const action$ = mode === 'approve'
-      ? this.applicationService.publishIntegrationMethod(appId, version.id, version.revision ?? '')
-      : this.applicationService.rejectIntegrationMethod(appId, version.id, version.revision ?? '');
+      ? this.applicationService.publishIntegrationMethod(version.id, version.revision ?? '')
+      : this.applicationService.rejectIntegrationMethod(version.id, version.revision ?? '');
     action$.subscribe({
       next: () => {
         this.isProcessingApproval.set(false);
@@ -311,7 +311,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     if (!appId || !version || this.isProcessingStartReview()) return;
     this.startReviewError.set('');
     this.isProcessingStartReview.set(true);
-    this.applicationService.startReviewIntegrationMethod(appId, version.id, version.revision ?? '').subscribe({
+    this.applicationService.startReviewIntegrationMethod(version.id, version.revision ?? '').subscribe({
       next: () => {
         this.isProcessingStartReview.set(false);
         this.startReviewVersion.set(null);
@@ -334,7 +334,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const appId = this.application()?.id;
     if (!appId || this.isProcessingStopReview()) return;
     this.isProcessingStopReview.set(true);
-    this.applicationService.stopReviewIntegrationMethod(appId, version.id, version.revision ?? '').subscribe({
+    this.applicationService.stopReviewIntegrationMethod(version.id, version.revision ?? '').subscribe({
       next: () => {
         this.isProcessingStopReview.set(false);
         this.loadApplication(appId);
@@ -944,7 +944,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
-      this.applicationService.downloadBundle(appId, methodId, revision ?? '').subscribe({
+      this.applicationService.downloadBundle(methodId, revision ?? '').subscribe({
         next: (result) => {
           if (result.warning) {
             this.toastService.show(

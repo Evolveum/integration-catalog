@@ -472,7 +472,6 @@
   @if (confirmMode(); as mode) {
     <app-approval-confirm-modal
       [mode]="mode"
-      [appId]="appId()"
       [methodId]="versionId()"
       [revision]="methodVersion()"
       [connectorName]="confirmConnectorName()"

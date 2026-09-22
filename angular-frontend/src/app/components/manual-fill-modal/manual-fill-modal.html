@@ -50,9 +50,9 @@
                  [(ngModel)]="className" placeholder="e.g. com.evolveum.connector.csv.CsvFileConnector" required />
         </div>
         <div class="mb-3">
-          <label class="form-label small mb-1">Download link <span class="text-muted">(optional)</span></label>
+          <label class="form-label small mb-1">Download link <span class="text-danger">*</span></label>
           <input type="text" class="form-control" name="downloadLink"
-                 [(ngModel)]="downloadLink" placeholder="https://..." />
+                 [(ngModel)]="downloadLink" placeholder="https://..." required />
         </div>
       </div>
 

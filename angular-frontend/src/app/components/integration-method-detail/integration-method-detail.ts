@@ -160,9 +160,9 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodMinVersionId.set(ver.midpointMinVersionId);
           this.methodMaxVersionId.set(ver.midpointMaxVersionId);
           this.setCapabilities(ver.objectClassCapabilities);
-          this.loadTutorialFiles(aId, vId, ver.revision ?? '');
-          this.loadConnectors(aId, vId, ver.revision ?? '');
-          this.loadSupportTicket(aId, vId, ver.revision ?? '');
+          this.loadTutorialFiles(vId, ver.revision ?? '');
+          this.loadConnectors(vId, ver.revision ?? '');
+          this.loadSupportTicket(vId, ver.revision ?? '');
         } else {
           this.finishLoading();
         }
@@ -196,28 +196,28 @@ export class IntegrationMethodDetail implements OnInit {
    * entitled to it — the endpoint answers 403 to anyone else, and asking would just log noise.
    * Any failure leaves the ticket null, which simply hides the link.
    */
-  private loadSupportTicket(appId: string, methodId: string, revision: string): void {
+  private loadSupportTicket(methodId: string, revision: string): void {
     if (!this.isInReview() && !this.isReviewing()) return;
     if (!this.canEdit()) return;
-    this.applicationService.getSupportTicket(appId, methodId, revision).subscribe({
+    this.applicationService.getSupportTicket(methodId, revision).subscribe({
       next: (ticket) => this.supportTicket.set(ticket),
       error: () => this.supportTicket.set(null)
     });
   }
 
-  private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
-    this.applicationService.listTutorialFiles(appId, methodId, revision).subscribe({
+  private loadTutorialFiles(methodId: string, revision: string): void {
+    this.applicationService.listTutorialFiles(methodId, revision).subscribe({
       next: (names) => this.tutorialFiles.set(names),
       error: () => this.tutorialFiles.set([])
     });
   }
 
   protected tutorialFileUrl(name: string): string {
-    return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
+    return this.applicationService.getTutorialFileUrl(this.versionId(), this.methodVersion(), name);
   }
 
-  private loadConnectors(appId: string, methodId: string, revision: string): void {
-    this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
+  private loadConnectors(methodId: string, revision: string): void {
+    this.applicationService.getConnectorsForIntegrationMethod(methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
         this.checkDuplicateVersions(connectors);
@@ -392,7 +392,7 @@ export class IntegrationMethodDetail implements OnInit {
     if (this.isProcessingApproval()) return;
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
-    this.applicationService.publishIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.publishIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => this.goBack(),
       error: (err) => this.handleApprovalError(err)
     });
@@ -402,7 +402,7 @@ export class IntegrationMethodDetail implements OnInit {
     if (this.isProcessingApproval()) return;
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
-    this.applicationService.rejectIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.rejectIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => this.goBack(),
       error: (err) => this.handleApprovalError(err)
     });
@@ -414,7 +414,7 @@ export class IntegrationMethodDetail implements OnInit {
   protected stopReview(): void {
     if (this.isProcessingStopReview()) return;
     this.isProcessingStopReview.set(true);
-    this.applicationService.stopReviewIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.stopReviewIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => {
         this.isProcessingStopReview.set(false);
         // Mirror the backend: back to IN_REVIEW with no reviewer, so the footer swaps to Start review.
@@ -459,7 +459,7 @@ export class IntegrationMethodDetail implements OnInit {
     if (this.isProcessingStartReview()) return;
     this.startReviewError.set('');
     this.isProcessingStartReview.set(true);
-    this.applicationService.startReviewIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.startReviewIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => {
         this.isProcessingStartReview.set(false);
         this.isStartReviewOpen.set(false);
@@ -482,7 +482,7 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly downloadInfoFileSize = signal<number | null>(null);
 
   protected downloadConnector(): void {
-    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.downloadBundle(this.versionId(), this.methodVersion()).subscribe({
       next: (result) => {
         if (result.warning) {
           this.toastService.show(

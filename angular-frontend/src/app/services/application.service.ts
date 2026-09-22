@@ -153,29 +153,29 @@ export class ApplicationService {
     return this.http.get<number>(`${environment.apiUrl}/applications/${applicationId}/downloads-count`);
   }
 
-  uploadTutorialFile(appId: string, methodId: string, revision: string, file: File): Observable<void> {
+  uploadTutorialFile(methodId: string, revision: string, file: File): Observable<void> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`,
       formData
     );
   }
 
-  listTutorialFiles(appId: string, methodId: string, revision: string): Observable<string[]> {
+  listTutorialFiles(methodId: string, revision: string): Observable<string[]> {
     return this.http.get<string[]>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`
     );
   }
 
-  deleteTutorialFile(appId: string, methodId: string, revision: string, name: string): Observable<void> {
+  deleteTutorialFile(methodId: string, revision: string, name: string): Observable<void> {
     return this.http.delete<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`
     );
   }
 
-  getTutorialFileUrl(appId: string, methodId: string, revision: string, name: string): string {
-    return `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`;
+  getTutorialFileUrl(methodId: string, revision: string, name: string): string {
+    return `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`;
   }
 
   /**
@@ -184,8 +184,8 @@ export class ApplicationService {
    * `X-Bundle-Warning` response header (or `null`) so callers can notify the user when the
    * connector build file could not be included.
    */
-  downloadBundle(appId: string, methodId: string, revision: string): Observable<BundleDownloadResult> {
-    const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
+  downloadBundle(methodId: string, revision: string): Observable<BundleDownloadResult> {
+    const url = `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
     return this.http.get(url, { observe: 'response', responseType: 'blob' }).pipe(
       map((response: HttpResponse<Blob>) => {
         const fileName = this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'bundle.zip';
@@ -255,13 +255,12 @@ export class ApplicationService {
   }
 
   editIntegrationMethod(
-    appId: string,
     methodId: string,
     currentRevision: string,
     payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null }
   ): Observable<string> {
     return this.http.put<string>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
       payload,
       { responseType: 'text' as 'json' }
     );
@@ -272,44 +271,44 @@ export class ApplicationService {
    * The backend restricts this to the submitting side and the reviewer, taking the caller
    * from the session.
    */
-  getSupportTicket(appId: string, methodId: string, revision: string): Observable<SupportTicket> {
+  getSupportTicket(methodId: string, revision: string): Observable<SupportTicket> {
     return this.http.get<SupportTicket>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`
     );
   }
 
-  startReviewIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+  startReviewIntegrationMethod(methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/start-review`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/start-review`,
       {}
     );
   }
 
-  stopReviewIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+  stopReviewIntegrationMethod(methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/stop-review`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/stop-review`,
       {}
     );
   }
 
   /** Approves a reviewed revision, which is what publishes it. */
-  publishIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+  publishIntegrationMethod(methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/approve`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/approve`,
       {}
     );
   }
 
-  rejectIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+  rejectIntegrationMethod(methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,
       {}
     );
   }
 
-  getConnectorsForIntegrationMethod(appId: string, methodId: string, revision: string): Observable<ImplementationListItem[]> {
+  getConnectorsForIntegrationMethod(methodId: string, revision: string): Observable<ImplementationListItem[]> {
     return this.http.get<ImplementationListItem[]>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors`
     );
   }
 
@@ -317,14 +316,13 @@ export class ApplicationService {
    * Returns connectors linked to an integration method revision that do NOT have
    * download information (no artifactUrl set on the ConnectorBundleVersion).
    */
-  getConnectorsWithoutDownload(appId: string, methodId: string, revision: string): Observable<ConnectorWithoutDownload[]> {
+  getConnectorsWithoutDownload(methodId: string, revision: string): Observable<ConnectorWithoutDownload[]> {
     return this.http.get<ConnectorWithoutDownload[]>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors-without-download`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors-without-download`
     );
   }
 
   addConnectorToIntegrationMethod(
-    appId: string,
     versionId: string,
     revision: string,
     payload: {
@@ -343,14 +341,13 @@ export class ApplicationService {
     // Returns the revision the connector was added to: the current revision, or a newly forked draft
     // revision when the source was a published version.
     return this.http.post(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${versionId}/${encodeURIComponent(revision)}/connectors`,
+      `${environment.apiUrl}/integration-method/${versionId}/${encodeURIComponent(revision)}/connectors`,
       payload,
       { responseType: 'text' }
     );
   }
 
   updateConnector(
-    appId: string,
     methodId: string,
     revision: string,
     connectorId: number,
@@ -360,31 +357,30 @@ export class ApplicationService {
       supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
       pathToProject: string | null; className: string | null; bundleDisplayName: string | null;
-      commitTag: string | null; version: string | null;
+      commitTag: string | null; version: string | null; baseVersion: string | null;
       connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
     }
   ): Observable<void> {
     return this.http.put<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`,
       payload
     );
   }
 
-  deleteConnector(appId: string, methodId: string, revision: string, connectorId: number): Observable<void> {
+  deleteConnector(methodId: string, revision: string, connectorId: number): Observable<void> {
     return this.http.delete<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`
     );
   }
 
   updateConnectorCompatibility(
-    appId: string,
     methodId: string,
     revision: string,
     connectorId: number,
     payload: { connectorVersionFrom: string | null; connectorVersionTo: string | null }
   ): Observable<void> {
     return this.http.put<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/compatibility`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/compatibility`,
       payload
     );
   }

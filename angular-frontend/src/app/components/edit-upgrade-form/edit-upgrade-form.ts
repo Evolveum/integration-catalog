@@ -247,14 +247,14 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
               this.editorPreviewActivated = true;
             }
           }
-          this.loadTutorialFiles(aId, vId, ver.revision ?? '');
+          this.loadTutorialFiles(vId, ver.revision ?? '');
           this.initialCapabilities.set(
             (ver.objectClassCapabilities ?? []).map(oc => ({
               objectClass: oc.objectName,
               capabilityNames: oc.capabilities ?? []
             }))
           );
-          this.loadConnectors(aId, vId, ver.revision ?? '');
+          this.loadConnectors(vId, ver.revision ?? '');
         } else {
           this.finishLoading();
         }
@@ -263,8 +263,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
   }
 
-  private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
-    this.applicationService.listTutorialFiles(appId, methodId, revision).subscribe({
+  private loadTutorialFiles(methodId: string, revision: string): void {
+    this.applicationService.listTutorialFiles(methodId, revision).subscribe({
       next: (names) => {
         this.tutorialFiles.set(names.map(n => ({ name: n, isNew: false })));
         this.initialFileNames.set(names);
@@ -276,8 +276,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
   }
 
-  private loadConnectors(appId: string, methodId: string, revision: string): void {
-    this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
+  private loadConnectors(methodId: string, revision: string): void {
+    this.applicationService.getConnectorsForIntegrationMethod(methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
         this.finishLoading();
@@ -348,7 +348,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   protected tutorialFileUrl(name: string): string {
-    return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
+    return this.applicationService.getTutorialFileUrl(this.versionId(), this.methodVersion(), name);
   }
 
   protected removeTutorialFile(i: number): void {
@@ -458,9 +458,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     if (newRevision && newRevision !== this.methodVersion()) {
       this.methodVersion.set(newRevision);
       this.methodLifecycleState.set('IN_REVIEW');
-      this.loadTutorialFiles(this.appId(), this.versionId(), newRevision);
+      this.loadTutorialFiles(this.versionId(), newRevision);
     }
-    this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
+    this.loadConnectors(this.versionId(), this.methodVersion());
     // loadConnectors -> finishLoading rebuilds the editor, but rebuild explicitly too so the tutorial
     // field never shows as a bare textarea.
     setTimeout(() => this.initEditor(), 50);
@@ -666,7 +666,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const removedNames = this.initialFileNames().filter(n => !keptNames.includes(n));
 
     this.applicationService.editIntegrationMethod(
-      this.appId(),
       this.versionId(),
       this.methodVersion(),
       {
@@ -692,14 +691,14 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         const deletes = Array.from(this.stagedDeletes());
         const connectorOps: Observable<unknown>[] = [
           ...adds.map(sc =>
-            this.applicationService.addConnectorToIntegrationMethod(this.appId(), this.versionId(), savedRevision, sc.payload)),
+            this.applicationService.addConnectorToIntegrationMethod(this.versionId(), savedRevision, sc.payload)),
           ...edits.map(([connectorId, payload]) =>
-            this.applicationService.updateConnector(this.appId(), this.versionId(), savedRevision, connectorId, payload)),
+            this.applicationService.updateConnector(this.versionId(), savedRevision, connectorId, payload)),
           ...compat.map(([connectorId, range]) =>
-            this.applicationService.updateConnectorCompatibility(this.appId(), this.versionId(), savedRevision, connectorId,
+            this.applicationService.updateConnectorCompatibility(this.versionId(), savedRevision, connectorId,
               { connectorVersionFrom: range.from, connectorVersionTo: range.to })),
           ...deletes.map(connectorId =>
-            this.applicationService.deleteConnector(this.appId(), this.versionId(), savedRevision, connectorId))
+            this.applicationService.deleteConnector(this.versionId(), savedRevision, connectorId))
         ];
         const connectors$: Observable<unknown[]> = connectorOps.length
           ? concat(...connectorOps).pipe(toArray())
@@ -714,8 +713,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             // The new revision starts with the previous revision's files copied forward by the backend;
             // here we delete the files the user removed and upload the ones they added.
             const ops: Observable<void>[] = [
-              ...removedNames.map(n => this.applicationService.deleteTutorialFile(this.appId(), this.versionId(), savedRevision, n)),
-              ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), savedRevision, f))
+              ...removedNames.map(n => this.applicationService.deleteTutorialFile(this.versionId(), savedRevision, n)),
+              ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.versionId(), savedRevision, f))
             ];
             if (ops.length === 0) {
               this.isSaving.set(false);
@@ -734,21 +733,43 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           error: (err) => {
             console.error('Persisting staged connector changes failed', err);
             this.isSaving.set(false);
-            this.saveError.set(
-              err?.error?.message || err?.error || err?.message ||
-              'The new version was created, but applying a staged connector change failed. Please review the connectors.'
-            );
+            this.saveError.set(this.failureMessage(err,
+              'The new version was created, but applying a staged connector change failed. Please review the connectors.'));
           }
         });
       },
       error: (err) => {
         console.error('Save failed', err);
         this.isSaving.set(false);
-        this.saveError.set(
-          err?.error?.message || err?.error || err?.message ||
-          'Saving failed. Please try again — if it keeps failing, reload the page and retry.'
-        );
+        this.saveError.set(this.failureMessage(err,
+          'Saving failed. Please try again — if it keeps failing, reload the page and retry.'));
       }
     });
+  }
+
+  /**
+   * What went wrong, as something a person can read. A failed response body is an object as often as
+   * a string, and one without a usable message used to be shown verbatim - which reads "[object
+   * Object]" and tells nobody anything.
+   */
+  private failureMessage(err: unknown, fallback: string): string {
+    const response = err as { error?: unknown; message?: string; status?: number };
+    const body = response?.error;
+
+    if (typeof body === 'string' && body.trim()) {
+      return body;
+    }
+    if (body && typeof body === 'object') {
+      const detail = body as { message?: string; error?: string; detail?: string };
+      for (const candidate of [detail.message, detail.detail, detail.error]) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+          return candidate;
+        }
+      }
+    }
+    if (typeof response?.message === 'string' && response.message.trim()) {
+      return response.message;
+    }
+    return fallback;
   }
 }

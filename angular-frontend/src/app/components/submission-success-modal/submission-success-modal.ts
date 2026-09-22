@@ -36,8 +36,7 @@ export class SubmissionSuccessModal implements OnInit {
   /** Line under the headline; omitted when blank. */
   @Input() subtitle = '';
 
-  /** The revision whose ticket is shown - all three parts are needed to ask for it. */
-  @Input() appId = '';
+  /** The revision whose ticket is shown - both parts are needed to ask for it. */
   @Input() methodId = '';
   @Input() revision = '';
 
@@ -68,10 +67,10 @@ export class SubmissionSuccessModal implements OnInit {
    * and leaves the panel out.
    */
   private loadTicket(): void {
-    if (!this.appId || !this.methodId || !this.revision) {
+    if (!this.methodId || !this.revision) {
       return;
     }
-    this.applicationService.getSupportTicket(this.appId, this.methodId, this.revision).subscribe({
+    this.applicationService.getSupportTicket(this.methodId, this.revision).subscribe({
       next: (ticket) => this.ticket.set(ticket),
       error: (error: HttpErrorResponse) => {
         this.ticket.set(null);

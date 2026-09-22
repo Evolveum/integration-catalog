@@ -327,6 +327,7 @@ export class AddConnectorForm implements OnInit {
     this.devProjectHomepage.set(c.projectHomepage ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(c.pathToProject ?? '');
+    this.devCommitTag.set(c.commitTag ?? '');
     this.devClassName.set(c.className ?? '');
     const bf = (c.buildFramework ?? '').toLowerCase();
     this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
@@ -411,7 +412,7 @@ export class AddConnectorForm implements OnInit {
       return;
     }
 
-    this.appService.addConnectorToIntegrationMethod(this.appId, this.versionId, this.revision, payload).subscribe({
+    this.appService.addConnectorToIntegrationMethod(this.versionId, this.revision, payload).subscribe({
       next: (savedRevision) => { this.isSaving.set(false); this.saved.emit(savedRevision); },
       error: err => {
         this.isSaving.set(false);

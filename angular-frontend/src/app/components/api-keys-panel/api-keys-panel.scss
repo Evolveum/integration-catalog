@@ -4,9 +4,6 @@
 */
 @use 'variables' as *;
 
-//TODO missing colors
-$color-dark-blue: blue;
-$color-mid-blue: blue;
 
 .keys-card {
   background-color: $color-white;
@@ -27,7 +24,7 @@ $color-mid-blue: blue;
   height: 44px;
   border-radius: 50%;
   background-color: #DCE7F5;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 16px;
   margin-bottom: 1rem;
 }
@@ -58,21 +55,21 @@ $color-mid-blue: blue;
 }
 
 .keys-btn-primary {
-  background-color: $color-dark-blue;
-  border: 1px solid $color-dark-blue;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: $color-white;
   margin-bottom: 0.6rem;
 
   &:hover {
-    background-color: $color-mid-blue;
-    border-color: $color-mid-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
   }
 }
 
 .keys-btn-outline {
   background-color: $color-white;
   border: 1px solid $color-border-light;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
 
   &:hover {
     background-color: $color-bg-hover;

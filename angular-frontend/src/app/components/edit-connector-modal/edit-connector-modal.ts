@@ -31,6 +31,8 @@ export interface ConnectorEditPayload {
   bundleDisplayName: string | null;
   commitTag: string | null;
   version: string | null;
+  /** The version this edit was opened on, so the backend edits that row rather than guessing. */
+  baseVersion: string | null;
   connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
 }
 
@@ -42,7 +44,6 @@ export interface ConnectorEditPayload {
   styleUrls: ['./edit-connector-modal.scss']
 })
 export class EditConnectorModal implements OnInit {
-  @Input() appId = '';
   @Input() methodId = '';
   @Input() revision = '';
   @Input({ required: true }) connector!: ImplementationListItem;
@@ -61,6 +62,8 @@ export class EditConnectorModal implements OnInit {
   // ── Basic information & capabilities ──────────────────────
   protected readonly connectorName = signal<string>('');
   protected readonly connectorVersion = signal<string>('');
+  /** The version as loaded, kept while connectorVersion follows what the user types. */
+  private loadedVersion = '';
   protected readonly connectorMaintainer = signal<Maintainer | null>(null);
   protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
@@ -142,6 +145,7 @@ export class EditConnectorModal implements OnInit {
 
     this.connectorName.set(c.connectorDisplayName || c.name || '');
     this.connectorVersion.set(c.version ?? '');
+    this.loadedVersion = c.version ?? '';
     this.connectorMaintainer.set(c.maintainer ?? null);
     this.connectorLicense.set(c.licenseType ?? '');
     this.connectorDescription.set(c.implementationDescription ?? '');
@@ -251,6 +255,7 @@ export class EditConnectorModal implements OnInit {
       bundleDisplayName: this.connectorBundleName() || null,
       commitTag: this.devCommitTag() || null,
       version: this.connectorVersion().trim() || null,
+      baseVersion: this.loadedVersion.trim() || null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
         capabilityNames: g.capabilityNames
@@ -264,7 +269,7 @@ export class EditConnectorModal implements OnInit {
     }
 
     this.isSaving.set(true);
-    this.appService.updateConnector(this.appId, this.methodId, this.revision, connectorId, payload)
+    this.appService.updateConnector(this.methodId, this.revision, connectorId, payload)
       .subscribe({
         next: () => { this.isSaving.set(false); this.saved.emit(); },
         error: err => {

@@ -24,6 +24,7 @@ export interface CatalogConnector {
   branchUrl: string;         // latest connector_bundle_version.browse_link
   gitCloneUrl: string;       // connector_bundle.git_clone_ulr
   pathToProject: string;     // latest connector_bundle_version.path_to_project
+  commitTag: string;         // latest connector_bundle_version.commit_tag
   className: string;         // connector.fully_qualified_class_name
   objectClassCapabilities: CatalogConnectorObjectClassCapability[]; // conn_version_capability + items
   tags: ConnectorTag[];      // connector_connector_tag + connector_tag

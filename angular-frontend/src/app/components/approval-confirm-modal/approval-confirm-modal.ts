@@ -39,7 +39,6 @@ import { ApplicationService, ConnectorWithoutDownload, SupportTicket } from '../
 })
 export class ApprovalConfirmModal implements OnInit {
   @Input({ required: true }) mode!: 'approve' | 'reject';
-  @Input({ required: true }) appId!: string;
   @Input({ required: true }) methodId!: string;
   @Input({ required: true }) revision!: string;
   @Input() connectorName = '';
@@ -111,7 +110,7 @@ export class ApprovalConfirmModal implements OnInit {
     if (this.loading()) return;
     this.loading.set(true);
     this.lookupError.set('');
-    this.applicationService.getSupportTicket(this.appId, this.methodId, this.revision).subscribe({
+    this.applicationService.getSupportTicket(this.methodId, this.revision).subscribe({
       next: (ticket) => {
         this.loading.set(false);
         this.ticket.set(ticket);
@@ -133,7 +132,7 @@ export class ApprovalConfirmModal implements OnInit {
 
   private loadConnectorsWithoutDownload(): void {
     this.loadingConnectors.set(true);
-    this.applicationService.getConnectorsWithoutDownload(this.appId, this.methodId, this.revision).subscribe({
+    this.applicationService.getConnectorsWithoutDownload(this.methodId, this.revision).subscribe({
       next: (connectors) => {
         this.connectorsWithoutDownload.set(connectors);
         this.loadingConnectors.set(false);

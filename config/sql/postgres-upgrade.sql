@@ -121,7 +121,9 @@ $aa$);
 call apply_change(5, $aa$
 CREATE TABLE IF NOT EXISTS pending_operation (
     id              bigserial PRIMARY KEY,
-    target_system   varchar(50)  NOT NULL, --TODO change to enum
+    -- Text rather than an enum type on purpose: a system joins the retry mechanism by being handled,
+    -- not by being declared, so adding one must not need a migration. Same for operation below.
+    target_system   varchar(50)  NOT NULL,
     operation       varchar(100) NOT NULL,
     payload         text         NOT NULL,
     status          varchar(20)  NOT NULL,
@@ -457,6 +459,7 @@ call apply_change(13, $aa$
 CREATE TABLE api_key (
     id                       uuid                     NOT NULL,
     name                     character varying(255)   NOT NULL,
+    owner_sub                character varying(255)   NOT NULL,
     owner_username           character varying(255)   NOT NULL,
     gravitee_application_id  character varying(64)    NOT NULL,
     gravitee_subscription_id character varying(64)    NOT NULL,
@@ -471,6 +474,21 @@ ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_gravitee_key_uk UNIQUE (gravitee_api_key_id);
 CREATE INDEX api_key_owner_idx ON api_key (owner_username);
 CREATE INDEX api_key_subscription_idx ON api_key (gravitee_subscription_id);
+$aa$);
+-- end of region
+
+-- region change 14: the API key's owner is the username
+-- The 'sub' claim was dropped from the identity the catalog keeps: a key is owned by a username,
+-- which is what ApiKeyService reads and writes, so owner_sub was never used and is removed here
+-- rather than left as a second, diverging owner. The owner index follows the surviving column.
+--
+-- Both steps are written to be harmless where they have already happened: a database installed from
+-- a baseline newer than change 13 never had owner_sub, and its index already names owner_username.
+call apply_change(14, $aa$
+ALTER TABLE api_key DROP COLUMN IF EXISTS owner_sub;
+
+DROP INDEX IF EXISTS api_key_owner_idx;
+CREATE INDEX api_key_owner_idx ON api_key (owner_username);
 $aa$);
 -- end of region
 
