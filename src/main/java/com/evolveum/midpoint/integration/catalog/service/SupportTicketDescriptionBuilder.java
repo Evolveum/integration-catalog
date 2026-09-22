@@ -79,6 +79,7 @@ public class SupportTicketDescriptionBuilder {
         appendApplication(body, method);
         appendSummary(body, method);
         appendCapabilities(body, method);
+        appendLimitations(body, method);
         appendTutorial(body, method);
         appendConnectors(body, method);
 
@@ -278,19 +279,16 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The method's capabilities, resource-wide ones first and the rest under the object class they
-     * were declared for. Ordered by the display order the catalog itself uses, so the ticket lists
-     * them the way the detail page does rather than in insertion order.
+     * The method's capabilities, each under the object class it was declared for. Resource-wide ones
+     * are the connector's and are listed with its version instead. Ordered by the display order the
+     * catalog itself uses, so the ticket lists them the way the detail page does rather than in
+     * insertion order.
      */
     private void appendCapabilities(StringBuilder body, IntegrationMethod method) {
         body.append("\n### Integration method capabilities\n\n");
         List<IntegrationMethodCapability> groups = method.getCapabilities() == null
                 ? List.of()
                 : method.getCapabilities();
-
-        bullet(body, "Global", capabilityNames(groups.stream()
-                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
-                .flatMap(this::capabilitiesOf)));
 
         List<IntegrationMethodCapability> specific = groups.stream()
                 .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
@@ -299,11 +297,11 @@ public class SupportTicketDescriptionBuilder {
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .toList();
         if (specific.isEmpty()) {
-            bullet(body, "Object class specific", null);
+            bullet(body, "Object specific", null);
             return;
         }
         for (IntegrationMethodCapability group : specific) {
-            bullet(body, "Object class `" + group.getObjectClass() + "`",
+            bullet(body, "Object `" + group.getObjectClass() + "`",
                     capabilityNames(capabilitiesOf(group)));
         }
     }
@@ -374,6 +372,21 @@ public class SupportTicketDescriptionBuilder {
         return Comparator
                 .comparing(Capability::getDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(Capability::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+    }
+
+    /**
+     * What the author says the method cannot do. Pointed at rather than reproduced, for the reason the
+     * tutorial is: it is a paragraph of prose, and the body is a summary a reviewer skims.
+     */
+    private void appendLimitations(StringBuilder body, IntegrationMethod method) {
+        body.append("\n### Stated limitations\n\n");
+        if (method.getLimitations() == null || method.getLimitations().isBlank()) {
+            body.append(NOT_PROVIDED).append('\n');
+        } else {
+            body.append("Attached to this work package as `")
+                    .append(SupportTicketService.LIMITATIONS_ATTACHMENT)
+                    .append("` - see the **Files** tab above.\n");
+        }
     }
 
     /**
@@ -557,11 +570,11 @@ public class SupportTicketDescriptionBuilder {
         body.append("* **Capabilities:**\n");
         bullet(body, NESTED, "Global", global);
         if (specific.isEmpty()) {
-            bullet(body, NESTED, "Object class specific", null);
+            bullet(body, NESTED, "Object specific", null);
             return;
         }
         for (ConnVersionCapability group : specific) {
-            bullet(body, NESTED, "Object class `" + group.getObjectClass() + "`",
+            bullet(body, NESTED, "Object `" + group.getObjectClass() + "`",
                     capabilityNames(capabilitiesOf(group)));
         }
     }

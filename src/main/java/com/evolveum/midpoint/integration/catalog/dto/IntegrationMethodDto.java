@@ -13,6 +13,7 @@ import java.util.UUID;
 public record IntegrationMethodDto(
         UUID id,                                                    // integration_method.id
         String description,                                         // integration_method.description
+        String limitations,                                         // integration_method.limitations
         List<String> implementationTags,                            // integration_method_type.name
         List<String> capabilities,                                  // capability.name via integration_method_capability
         List<ObjectClassCapabilityDto> objectClassCapabilities,     // object_class_capabilities

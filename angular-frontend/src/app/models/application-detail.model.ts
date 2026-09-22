@@ -51,6 +51,7 @@ export interface IntegrationMethod {
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
   revision: string | null;                // integration_method.revision
   displayName: string | null;             // integration_method.display_name
+  limitations: string | null;            // integration_method.limitations
   tutorial: string | null;               // integration_method.tutorial
   filePath: string | null;               // integration_method.file_path
   reviewedBy: string | null;             // integration_method.reviewed_by (set at start-review, kept on approve/reject)

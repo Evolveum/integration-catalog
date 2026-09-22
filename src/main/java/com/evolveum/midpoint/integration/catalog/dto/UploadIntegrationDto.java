@@ -9,6 +9,8 @@ package com.evolveum.midpoint.integration.catalog.dto;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 
 /**
@@ -16,6 +18,7 @@ import java.util.List;
  */
 public record UploadIntegrationDto(
         Application application,                                                  // application table entity
+        @Valid
         UploadIntegrationMethodDto integrationMethod,                             // integration_method table
         UploadConnectorDto connector,                                             // connector + connector_bundle tables
         List<ItemFile> files,                                                     // uploaded connector JAR files

@@ -45,7 +45,6 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   // Bundle download warning toast (stays until dismissed)
   protected readonly expandedVersions = new Set<number>();
   protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
-  protected readonly expandedGlobalCapabilities = signal<Set<string>>(new Set());
   protected readonly expandedComboSections = signal<Set<string>>(new Set());
   protected readonly globalCapabilitiesExpanded = signal<boolean>(false);
   protected readonly activeEvolvumVersions = signal<any[]>([]);
@@ -395,21 +394,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return !!caps && caps.length > 0 && caps.every(c => c.objectName.toLowerCase() === 'global');
   }
 
-  protected isGlobalMethod(version: IntegrationMethod): boolean {
-    return !!version.objectClassCapabilities &&
-      version.objectClassCapabilities.length > 0 &&
-      version.objectClassCapabilities.every(c => c.objectName.toLowerCase() === 'global');
-  }
-
   protected isCombinedRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
-    if (!caps || caps.length === 0) return false;
-    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
-           caps.some(c => c.objectName.toLowerCase() !== 'global');
-  }
-
-  protected isCombinedMethod(version: IntegrationMethod): boolean {
-    const caps = version.objectClassCapabilities;
     if (!caps || caps.length === 0) return false;
     return caps.some(c => c.objectName.toLowerCase() === 'global') &&
            caps.some(c => c.objectName.toLowerCase() !== 'global');
@@ -452,14 +438,6 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return `${name} ${version}`;
   }
 
-  protected getGlobalCaps(version: IntegrationMethod): string[] {
-    return version.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
-  }
-
-  protected getSpecificOccs(version: IntegrationMethod): ObjectClassCapability[] {
-    return version.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
-  }
-
   protected getRequestGlobalCaps(): string[] {
     return this.application()?.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
   }
@@ -482,18 +460,6 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected toggleGlobalCapabilities(): void {
     this.globalCapabilitiesExpanded.update(v => !v);
-  }
-
-  protected toggleMethodGlobalCapabilities(versionId: string): void {
-    this.expandedGlobalCapabilities.update(set => {
-      const next = new Set(set);
-      if (next.has(versionId)) { next.delete(versionId); } else { next.add(versionId); }
-      return next;
-    });
-  }
-
-  protected isMethodGlobalCapabilitiesExpanded(versionId: string): boolean {
-    return this.expandedGlobalCapabilities().has(versionId);
   }
 
   protected toggleCapabilities(versionIndex: number): void {

@@ -44,8 +44,8 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly methodName = signal<string>('');
   protected readonly methodVersion = signal<string>('');
   protected readonly methodDescription = signal<string>('');
+  protected readonly methodLimitations = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
-  protected readonly globalCapabilities = signal<string[]>([]);
   protected readonly specificCapabilities = signal<ObjectClassCapability[]>([]);
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);
@@ -155,6 +155,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodUpdated.set(ver.updated ?? null);
           this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
+          this.methodLimitations.set(ver.limitations ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
           this.methodMinVersionId.set(ver.midpointMinVersionId);
@@ -171,18 +172,15 @@ export class IntegrationMethodDetail implements OnInit {
     });
   }
 
-  // Global capabilities are stored under the reserved 'Global' object class; the rest are
-  // grouped per object class so we can show their globality separately.
+  // A method's capabilities are always declared for a specific object class - the resource-wide
+  // ones belong to the connector - so the reserved 'Global' class is ignored here.
   private setCapabilities(occs: ObjectClassCapability[] | null): void {
-    const groups = occs ?? [];
-    this.globalCapabilities.set(
-      groups.filter(o => o.objectName === 'Global').flatMap(o => o.capabilities ?? [])
-    );
-    const specifics = groups.filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0);
+    const specifics = (occs ?? [])
+      .filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0);
     this.specificCapabilities.set(specifics);
-    // Start with Global expanded and the specific groups collapsed; each can then be toggled independently.
+    // Open the parent section and leave each object class collapsed; both toggle independently.
     const expanded = new Set<string>();
-    if (this.globalCapabilities().length > 0) expanded.add('global');
+    if (specifics.length > 0) expanded.add('specific');
     this.expandedCaps.set(expanded);
   }
 

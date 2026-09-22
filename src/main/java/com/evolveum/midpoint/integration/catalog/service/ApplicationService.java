@@ -243,7 +243,8 @@ public class ApplicationService {
     public List<CapabilityDto> getCapabilities() {
         return capabilityRepository.findAll().stream()
                 .sorted(java.util.Comparator.comparingInt(c -> c.getDisplayOrder() != null ? c.getDisplayOrder() : 0))
-                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder()))
+                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder(),
+                        c.isOfferedForMethod()))
                 .toList();
     }
 

@@ -238,7 +238,7 @@ class ControllerTest {
                 List.of(CapabilityType.SCHEMA,
                         CapabilityType.TEST,
                         CapabilityType.VALIDATE,
-                        CapabilityType.GET,
+                        CapabilityType.READ,
                         CapabilityType.SEARCH
                 ));
 
@@ -352,7 +352,7 @@ class ControllerTest {
                 "test@example.com",
                 false,
                 "Test User",
-                List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("GET", "SEARCH")))
+                List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("READ", "SEARCH")))
         );
 
         when(applicationService.createRequestFromForm(any(RequestFormDto.class), anyString()))

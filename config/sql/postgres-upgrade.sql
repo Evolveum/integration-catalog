@@ -474,6 +474,70 @@ CREATE INDEX api_key_subscription_idx ON api_key (gravitee_subscription_id);
 $aa$);
 -- end of region
 
+-- region change 14: which capability options each side offers
+-- An integration method says what it exposes per object class; the connector declares what it can
+-- technically do, so it keeps the wider list (and the resource-wide "Global" class, which methods
+-- no longer use at all). offered_for_method marks the rows a method may choose from - the nine
+-- object-specific ones below. Everything else, the request form included, still sees them all.
+--
+-- GET becomes READ: the capability always meant "read individual objects", and READ is the name
+-- midPoint uses. Both link tables reference capability by id, so every stored pick survives it,
+-- and RENAME VALUE rewrites the label in object_class_capabilities.capabilities in place.
+--
+-- ALTER TYPE ... ADD VALUE runs inside apply_change's transaction, which needs PostgreSQL 12 or
+-- newer and forbids using the new value before it commits. Nothing here does: the three new rows
+-- carry their names as capability.name text, never as "CapabilityType".
+call apply_change(14, $aa$
+ALTER TYPE "CapabilityType" RENAME VALUE 'GET' TO 'READ';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'PASSWORD';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'ACTIVATION';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'ASSOCIATIONS';
+
+ALTER TABLE capability ADD COLUMN offered_for_method boolean DEFAULT true NOT NULL;
+
+UPDATE capability SET name = 'READ' WHERE name = 'GET';
+
+INSERT INTO capability (id, name, description, display_order, globality) VALUES
+    (19, 'PASSWORD',     'Manage the object password',         7, 'SPECIFIC'),
+    (20, 'ACTIVATION',   'Enable and disable the object',      8, 'SPECIFIC'),
+    (21, 'ASSOCIATIONS', 'Manage associations of the object',  9, 'SPECIFIC');
+
+SELECT setval('capability_id_seq', 21);
+
+-- Object-specific options in the order a method offers them, connector-only ones after.
+UPDATE capability SET display_order =  1 WHERE name = 'READ';
+UPDATE capability SET display_order =  2 WHERE name = 'CREATE';
+UPDATE capability SET display_order =  3 WHERE name = 'UPDATE';
+UPDATE capability SET display_order =  4 WHERE name = 'DELETE';
+UPDATE capability SET display_order =  5 WHERE name = 'SEARCH';
+UPDATE capability SET display_order =  6 WHERE name = 'LIVE_SYNC';
+UPDATE capability SET display_order = 10 WHERE name = 'UPDATE_DELTA';
+UPDATE capability SET display_order = 11 WHERE name = 'COMPLEX_UPDATE_DELTA';
+UPDATE capability SET display_order = 12 WHERE name = 'SYNC';
+UPDATE capability SET display_order = 13 WHERE name = 'VALIDATE';
+
+UPDATE capability SET offered_for_method = false
+ WHERE globality = 'GLOBAL'
+    OR name IN ('UPDATE_DELTA', 'COMPLEX_UPDATE_DELTA', 'SYNC', 'VALIDATE');
+$aa$);
+-- end of region
+
+-- region change 15: integration_method.limitations
+-- What the method cannot do, in the author's own words, so a consumer reads the gaps beside the
+-- capabilities rather than discovering them in use. Capabilities say what is supported; this says
+-- what is not, and nothing else in the model can express it.
+--
+-- 1000 characters here against 500 accepted by the API and the form: the room is deliberate, so a
+-- later relaxation of the limit is a change of validation rather than of the schema, and so a value
+-- that predates a tightening is never truncated by the column.
+--
+-- Nullable and not backfilled: a method published before this change states no limitations, which
+-- reads as "none given" and is exactly what was true of it.
+call apply_change(15, $aa$
+ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS limitations character varying(1000);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

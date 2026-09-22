@@ -149,7 +149,7 @@ public class Controller {
     @Operation(summary = "Upload integration")
     @PostMapping("/upload/integration")
     public ResponseEntity<String> uploadConnector(
-            @RequestBody UploadIntegrationDto dto,
+            @Valid @RequestBody UploadIntegrationDto dto,
             Authentication authentication) {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadIntegration(dto, authentication.getName()));

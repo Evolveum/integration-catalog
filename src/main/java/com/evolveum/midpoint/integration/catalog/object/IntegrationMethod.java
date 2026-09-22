@@ -78,6 +78,17 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
     private String displayName;
 
     private String description;
+
+    /**
+     * Longest limitations text the API and the form accept. The column takes 1000, so the limit can
+     * be relaxed without a schema change and a stored value is never truncated by tightening it.
+     */
+    public static final int LIMITATIONS_MAX = 500;
+
+    /** What the method cannot do, stated by its author; the column takes more than the API accepts. */
+    @Column(length = 1000)
+    private String limitations;
+
     @Column(columnDefinition = "TEXT")
     private String tutorial;
 

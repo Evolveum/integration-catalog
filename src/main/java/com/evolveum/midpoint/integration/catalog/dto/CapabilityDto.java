@@ -7,7 +7,8 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
 public record CapabilityDto(
-        String name,         // capability.name
-        String globality,    // capability.globality
-        Integer displayOrder // capability.display_order
+        String name,              // capability.name
+        String globality,         // capability.globality
+        Integer displayOrder,     // capability.display_order
+        boolean offeredForMethod  // capability.offered_for_method
 ) {}

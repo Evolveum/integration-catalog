@@ -53,6 +53,9 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class BundleService {
 
+    /** The reserved object class holding resource-wide capabilities; a connector's, not a method's. */
+    private static final String GLOBAL_OBJECT_CLASS = "Global";
+
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
     private final OwnershipService ownershipService;
@@ -370,6 +373,10 @@ public class BundleService {
 
         List<Map<String, Object>> capabilities = new ArrayList<>();
         for (IntegrationMethodCapability cap : method.getCapabilities()) {
+            // Resource-wide capabilities are exported with the connector, not with the method.
+            if (GLOBAL_OBJECT_CLASS.equalsIgnoreCase(cap.getObjectClass())) {
+                continue;
+            }
             Map<String, Object> capMeta = new LinkedHashMap<>();
             capMeta.put("objectClass", cap.getObjectClass());
             List<String> names = new ArrayList<>();
