@@ -337,7 +337,7 @@
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
                     <label class="form-label form-label-upload">Define capabilities for:<span class="text-danger">&nbsp;*</span></label>
-                    <app-capability-picker [initialCapabilities]="imCapabilities()" [showGlobal]="false" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+                    <app-capability-picker [initialCapabilities]="imCapabilities()" [forIntegrationMethod]="true" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
                   </div>
 
                   <!-- Integration Tutorial -->

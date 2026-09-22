@@ -240,8 +240,8 @@ INSERT INTO request (id, application_id, requester, mail, collab, base_url, syst
 SELECT setval('request_id_seq', 1);
 
 INSERT INTO object_class_capabilities (request_id, object_name, capabilities) VALUES
-    (1, 'Account', ARRAY['CREATE','GET','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),
-    (1, 'Group',   ARRAY['GET','SEARCH']::"CapabilityType"[]);
+    (1, 'Account', ARRAY['CREATE','READ','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),
+    (1, 'Group',   ARRAY['READ','SEARCH']::"CapabilityType"[]);
 
 INSERT INTO vote (request_id, voter) VALUES
     (1, 'u1'),
