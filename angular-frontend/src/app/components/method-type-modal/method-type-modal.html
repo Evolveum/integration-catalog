@@ -1,0 +1,57 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<div class="method-type-backdrop bg-dark bg-opacity-50 position-fixed top-0 start-0 w-100 h-100" (click)="onCancel()"></div>
+<div class="method-type-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="method-type-dialog bg-white rounded-3 shadow-lg p-4 overflow-auto">
+
+    <!-- Header -->
+    <div class="pb-3 border-bottom mb-3 d-flex align-items-center justify-content-between">
+      <span class="fw-semibold fs-6 d-flex align-items-center gap-2">
+        <i class="fa-solid fa-pen-to-square"></i>Edit integration method type
+      </span>
+      <button type="button" class="btn p-0 text-secondary fs-5" (click)="onCancel()" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <p class="step-subtitle">
+      Choose one or more integration method types to best fit your environment. You can select
+      multiple methods to create a hybrid integration tailored to your environment.
+    </p>
+
+    @if (isLoading()) {
+      <div class="text-muted py-3">Loading integration method types...</div>
+    } @else if (loadError()) {
+      <div class="field-error py-3">{{ loadError() }}</div>
+    } @else {
+      <div class="im-grid">
+        @for (type of types(); track type.id) {
+          <div class="im-card" [class.im-card-selected]="isPicked(type.displayName)" (click)="toggle(type.displayName)">
+            <div class="d-flex align-items-center">
+              <input type="checkbox" class="im-checkbox flex-shrink-0 me-2" [checked]="isPicked(type.displayName)">
+              <div class="im-card-text">
+                <div class="im-title">{{ type.displayName }}</div>
+                <div class="im-desc" appOverflowTitle>{{ type.description }}</div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+      @if (!canSave) {
+        <div class="field-error mt-2">Select at least one integration method type.</div>
+      }
+    }
+
+    <!-- Footer -->
+    <div class="pt-3 border-top mt-3 d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
+      <button type="button" class="btn btn-primary" [disabled]="!canSave || isLoading()" (click)="onSave()">
+        Save
+      </button>
+    </div>
+  </div>
+</div>

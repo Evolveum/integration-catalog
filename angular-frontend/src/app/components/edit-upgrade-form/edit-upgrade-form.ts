@@ -19,6 +19,7 @@ import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capabili
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
 import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
+import { MethodTypeModal } from '../method-type-modal/method-type-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
@@ -30,7 +31,7 @@ import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
   selector: 'app-edit-upgrade-form',
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker, AddConnectorForm, EditConnectorModal,
-    SubmissionSuccessModal],
+    SubmissionSuccessModal, MethodTypeModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })
@@ -62,6 +63,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly methodLimitations = signal<string>('');
   protected readonly limitationsMax = LIMITATIONS_MAX;
   protected readonly methodTypes = signal<string[]>([]);
+  protected readonly isMethodTypeModalOpen = signal<boolean>(false);
+  /**
+   * The catalog's types, loaded so the chosen names can be sent back as ids - the revision carries
+   * its types by name, and the publish flow matches them the same way.
+   */
+  private readonly allMethodTypes = signal<{ id: number; displayName: string }[]>([]);
   protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
   protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
 
@@ -223,6 +230,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       error: () => this.midpointVersions.set([])
     });
 
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.allMethodTypes.set(types),
+      error: () => this.allMethodTypes.set([])
+    });
+
     this.applicationService.getById(aId).subscribe({
       next: (app) => {
         this.appName.set(app.displayName);
@@ -353,6 +365,24 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   protected tutorialFileUrl(name: string): string {
     return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
+  }
+
+  protected openMethodTypeModal(): void {
+    this.isMethodTypeModalOpen.set(true);
+  }
+
+  protected onMethodTypesChosen(types: string[]): void {
+    this.methodTypes.set(types);
+    this.isMethodTypeModalOpen.set(false);
+  }
+
+  /** The chosen types as ids, or null when they could not be resolved - which leaves them untouched. */
+  private chosenMethodTypeIds(): number[] | null {
+    const known = this.allMethodTypes();
+    if (known.length === 0) {
+      return null;
+    }
+    return known.filter(t => this.methodTypes().includes(t.displayName)).map(t => t.id);
   }
 
   protected removeTutorialFile(i: number): void {
@@ -677,6 +707,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         displayName: this.methodName(),
         description: this.methodDescription(),
         limitations: this.methodLimitations(),
+        typeIds: this.chosenMethodTypeIds(),
         tutorial,
         capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
         removeFile: false,

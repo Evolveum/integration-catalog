@@ -152,6 +152,10 @@
           } @else {
             <span class="text-muted" style="font-size:0.875rem;">—</span>
           }
+          <button type="button" class="btn btn-link p-0 ms-1 edit-method-type-btn"
+                  (click)="openMethodTypeModal()" aria-label="Edit integration method type">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
         </div>
       </div>
 
@@ -441,6 +445,14 @@
     </div><!-- end edit-page-content -->
 
   </div><!-- end edit-page -->
+
+  @if (isMethodTypeModalOpen()) {
+    <app-method-type-modal
+      [selected]="methodTypes()"
+      (save)="onMethodTypesChosen($event)"
+      (cancel)="isMethodTypeModalOpen.set(false)">
+    </app-method-type-modal>
+  }
 
   @if (editingConnector()) {
     <app-edit-connector-modal

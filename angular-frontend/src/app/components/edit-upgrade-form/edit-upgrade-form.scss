@@ -142,6 +142,78 @@
 }
 
 /* ========================================
+   INFO ICON + TOOLTIP
+   The shared pattern, which lives in each component's own stylesheet rather than globally.
+   Keep in step with publish-form-main.scss.
+   ======================================== */
+.info-icon {
+  font-size: 14px;
+  color: $text-publishing-blue;
+}
+
+.info-icon-wrapper {
+  vertical-align: middle;
+}
+
+.info-icon-wrapper .info-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -2px;
+  transform: none;
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  width: 250px;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.info-icon-wrapper .info-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 5px;
+  transform: none;
+  border: 6px solid transparent;
+  border-width: 8px 4px;
+  border-bottom-color: $color-text-dark;
+}
+
+.info-icon-wrapper:hover .info-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-icon-wrapper svg {
+  transition: transform 0.2s ease;
+}
+
+.info-icon-wrapper:hover svg {
+  transform: scale(1.1);
+}
+
+.edit-method-type-btn {
+  font-size: 0.8rem;
+  color: $color-brand-steel;
+  text-decoration: none;
+  line-height: 1;
+
+  &:hover {
+    color: $color-brand-navy;
+  }
+}
+
+/* ========================================
    TUTORIAL EDITOR
    ======================================== */
 .edit-tutorial-wrapper {

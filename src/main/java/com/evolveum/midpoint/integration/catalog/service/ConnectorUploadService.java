@@ -541,7 +541,11 @@ public class ConnectorUploadService {
             tutorialFolder = tutorialStorageService.copyTutorialFolder(existing.getId(), existing.getRevision(), newRevision);
         }
         updated.setFilePath(tutorialFolder);
-        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
+        // The types the edit chose, or the ones the source revision had when it did not say. A list of
+        // the new revision's own either way: two revisions may not share one collection instance.
+        updated.setIntegMethodTypes(dto != null && dto.typeIds() != null
+                ? new ArrayList<>(integrationMethodTypeRepository.findAllById(dto.typeIds()))
+                : new ArrayList<>(existing.getIntegMethodTypes()));
         if (dto != null) {
             updated.setMidpointMinVersionId(dto.midpointMinVersion());
             updated.setMidpointMaxVersionId(dto.midpointMaxVersion());

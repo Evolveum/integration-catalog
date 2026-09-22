@@ -18,6 +18,7 @@ public record EditIntegrationMethodDto(
         @Size(max = IntegrationMethod.LIMITATIONS_MAX)
         String limitations,                                          // integration_method.limitations
         String tutorial,                                             // integration_method.tutorial
+        List<Integer> typeIds,                                       // integration_method_type.id; null leaves the types as they are
         List<IntegrationMethodCapabilityGroupDto> capabilities,      // integration_method_capability + items
         boolean removeFile,                                          // true → clear integration_method.file_path
         boolean minorBump,                                           // true → increment minor (x.Y.z → x.Y+1.1), false → patch (x.y.Z → x.y.Z+1)
