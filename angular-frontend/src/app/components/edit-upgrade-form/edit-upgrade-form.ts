@@ -23,6 +23,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
 import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 
 @Component({
@@ -58,6 +59,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly methodVersion = signal<string>('');
   protected readonly methodLifecycleState = signal<string | null>(null);
   protected readonly methodDescription = signal<string>('');
+  protected readonly methodLimitations = signal<string>('');
+  protected readonly limitationsMax = LIMITATIONS_MAX;
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
   protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
@@ -236,6 +239,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');
+          this.methodLimitations.set(ver.limitations ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.midpointMinVersionId.set(ver.midpointMinVersionId);
           this.midpointMaxVersionId.set(ver.midpointMaxVersionId);
@@ -672,6 +676,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       {
         displayName: this.methodName(),
         description: this.methodDescription(),
+        limitations: this.methodLimitations(),
         tutorial,
         capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
         removeFile: false,

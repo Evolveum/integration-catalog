@@ -16,6 +16,7 @@ import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-i
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
 import { LinksService } from '../../services/links.service';
+import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 
 @Component({
   selector: 'app-publish-form-main',
@@ -68,6 +69,9 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly methodFormDisplayName = signal<string>('');
   protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
+  protected readonly methodFormLimitations = signal<string>('');
+  /** Kept in the template too, so the counter and the cap cannot drift apart. */
+  protected readonly limitationsMax = LIMITATIONS_MAX;
   protected readonly methodFormTutorial    = signal<string>('');
   protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
   protected readonly tutorialDragOver      = signal<boolean>(false);
@@ -255,6 +259,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
     methodName: this.methodFormDisplayName(),
     methodVersion: this.methodFormVersion(),
     methodDescription: this.methodFormDescription(),
+    methodLimitations: this.methodFormLimitations(),
     methodTutorial: this.methodFormTutorial(),
     applicationDescription: this.description(),
     origins: this.origins(),
@@ -500,6 +505,13 @@ export class PublishFormMain implements OnInit, OnDestroy {
     const value = (event.target as HTMLTextAreaElement).value;
     if (value.length <= 350) {
       this.methodFormDescription.set(value);
+    }
+  }
+
+  protected onMethodFormLimitationsChange(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    if (value.length <= LIMITATIONS_MAX) {
+      this.methodFormLimitations.set(value);
     }
   }
 

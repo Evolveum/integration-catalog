@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
@@ -82,7 +83,7 @@ public class IntegrationMethodController {
             @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestBody EditIntegrationMethodDto dto,
+            @Valid @RequestBody EditIntegrationMethodDto dto,
             Authentication authentication) {
         try {
             String newRevision = applicationService.editIntegrationMethod(methodId, revision, dto, authentication.getName());

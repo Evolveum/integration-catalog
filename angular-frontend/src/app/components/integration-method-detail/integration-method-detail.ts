@@ -44,6 +44,7 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly methodName = signal<string>('');
   protected readonly methodVersion = signal<string>('');
   protected readonly methodDescription = signal<string>('');
+  protected readonly methodLimitations = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly specificCapabilities = signal<ObjectClassCapability[]>([]);
   protected readonly methodTutorial = signal<string>('');
@@ -154,6 +155,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodUpdated.set(ver.updated ?? null);
           this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
+          this.methodLimitations.set(ver.limitations ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
           this.methodMinVersionId.set(ver.midpointMinVersionId);

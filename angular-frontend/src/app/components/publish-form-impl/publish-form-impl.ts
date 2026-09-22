@@ -34,6 +34,7 @@ export interface ReviewSummary {
   methodName: string;
   methodVersion: string;
   methodDescription: string;
+  methodLimitations: string;
   methodTutorial: string;
   applicationDescription: string;
   origins: string[];
@@ -405,6 +406,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
         displayName: summary?.methodName ?? '',
         revision: summary?.methodVersion ?? '',
         description: summary?.methodDescription ?? '',
+        limitations: summary?.methodLimitations ?? '',
         tutorial: summary?.methodTutorial ?? '',
         typeIds: summary?.methodTypeIds ?? [],
         midpointMinVersion: this.midpointMinVersionId(),

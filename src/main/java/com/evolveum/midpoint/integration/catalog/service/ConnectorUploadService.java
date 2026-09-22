@@ -196,6 +196,9 @@ public class ConnectorUploadService {
         if (imDto.description() != null) {
             integrationMethod.setDescription(imDto.description());
         }
+        if (imDto.limitations() != null) {
+            integrationMethod.setLimitations(imDto.limitations());
+        }
         if (imDto.tutorial() != null) {
             integrationMethod.setTutorial(imDto.tutorial());
         }
@@ -544,12 +547,14 @@ public class ConnectorUploadService {
             updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
             updated.setDisplayName(dto.displayName());
             updated.setDescription(dto.description());
+            updated.setLimitations(dto.limitations());
             updated.setTutorial(dto.tutorial());
         } else {
             updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
             updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
             updated.setDisplayName(existing.getDisplayName());
             updated.setDescription(existing.getDescription());
+            updated.setLimitations(existing.getLimitations());
             updated.setTutorial(existing.getTutorial());
         }
 

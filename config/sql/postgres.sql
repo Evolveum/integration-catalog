@@ -432,6 +432,7 @@ CREATE TABLE integration_method (
 	application_id uuid NOT NULL,
 	display_name character varying(255),
 	description character varying(350),
+	limitations character varying(1000),
 	tutorial text,
 	file_path character varying(255),
 	midpoint_minVersion integer,
@@ -1081,5 +1082,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(14, $$ SELECT 1 $$, true);
+call apply_change(15, $$ SELECT 1 $$, true);
 -- end of region

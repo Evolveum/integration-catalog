@@ -79,6 +79,7 @@ public class SupportTicketDescriptionBuilder {
         appendApplication(body, method);
         appendSummary(body, method);
         appendCapabilities(body, method);
+        appendLimitations(body, method);
         appendTutorial(body, method);
         appendConnectors(body, method);
 
@@ -371,6 +372,21 @@ public class SupportTicketDescriptionBuilder {
         return Comparator
                 .comparing(Capability::getDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(Capability::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+    }
+
+    /**
+     * What the author says the method cannot do. Pointed at rather than reproduced, for the reason the
+     * tutorial is: it is a paragraph of prose, and the body is a summary a reviewer skims.
+     */
+    private void appendLimitations(StringBuilder body, IntegrationMethod method) {
+        body.append("\n### Stated limitations\n\n");
+        if (method.getLimitations() == null || method.getLimitations().isBlank()) {
+            body.append(NOT_PROVIDED).append('\n');
+        } else {
+            body.append("Attached to this work package as `")
+                    .append(SupportTicketService.LIMITATIONS_ATTACHMENT)
+                    .append("` - see the **Files** tab above.\n");
+        }
     }
 
     /**

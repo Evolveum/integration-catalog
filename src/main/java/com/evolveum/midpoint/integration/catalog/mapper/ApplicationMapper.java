@@ -193,6 +193,7 @@ public class ApplicationMapper {
                     return new IntegrationMethodDto(
                             method.getId(),
                             method.getDescription(),
+                            method.getLimitations(),
                             null,           // implementationTags
                             capabilities,
                             objectClassCapabilities,

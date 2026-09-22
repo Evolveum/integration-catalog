@@ -6,11 +6,17 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+
+import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 public record EditIntegrationMethodDto(
         String displayName,                                          // integration_method.display_name
         String description,                                          // integration_method.description
+        @Size(max = IntegrationMethod.LIMITATIONS_MAX)
+        String limitations,                                          // integration_method.limitations
         String tutorial,                                             // integration_method.tutorial
         List<IntegrationMethodCapabilityGroupDto> capabilities,      // integration_method_capability + items
         boolean removeFile,                                          // true → clear integration_method.file_path

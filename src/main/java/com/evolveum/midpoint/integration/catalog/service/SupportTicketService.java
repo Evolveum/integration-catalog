@@ -61,6 +61,9 @@ public class SupportTicketService {
     /** Name the tutorial is attached under, also named by the description. */
     public static final String TUTORIAL_ATTACHMENT = "tutorial.md";
 
+    /** Name the stated limitations are attached under; too long for the body, like the tutorial. */
+    public static final String LIMITATIONS_ATTACHMENT = "limitations.md";
+
     public static final String OPEN_WORK_PACKAGE = "OPEN_WORK_PACKAGE";
 
     public static final String APPEND_CONNECTOR = "APPEND_CONNECTOR";
@@ -218,7 +221,7 @@ public class SupportTicketService {
                     descriptionBuilder.build(previous), descriptionBuilder.build(method),
                     "This is an edit of revision " + event.previousRevision() + ", which it replaces once"
                             + " approved. What it changes about that revision is listed here.",
-                    checkTutorialChange(previous, method));
+                    checkAttachedTextChanges(previous, method));
         } catch (Exception e) {
             log.error("Could not work out what {}/{} changes about {}",
                     event.methodId(), event.revision(), event.previousRevision(), e);
@@ -227,14 +230,23 @@ public class SupportTicketService {
         comment(workPackageId, delta);
     }
 
-    private static List<String> checkTutorialChange(IntegrationMethod before, IntegrationMethod after) {
-        String was = blankToNull(before.getTutorial());
-        String now = blankToNull(after.getTutorial());
+    /** The attached texts an edit changed, named as the Files tab shows them. */
+    private static List<String> checkAttachedTextChanges(IntegrationMethod before, IntegrationMethod after) {
+        List<String> changes = new ArrayList<>();
+        attachedTextChange(TUTORIAL_ATTACHMENT, before.getTutorial(), after.getTutorial()).ifPresent(changes::add);
+        attachedTextChange(LIMITATIONS_ATTACHMENT, before.getLimitations(), after.getLimitations())
+                .ifPresent(changes::add);
+        return changes;
+    }
+
+    private static Optional<String> attachedTextChange(String fileName, String before, String after) {
+        String was = blankToNull(before);
+        String now = blankToNull(after);
         if (Objects.equals(was, now)) {
-            return List.of();
+            return Optional.empty();
         }
         String what = was == null ? OBJECT_STATE_ADDED : now == null ? OBJECT_STATE_REMOVED : OBJECT_STATE_REPLACED;
-        return List.of("`" + TUTORIAL_ATTACHMENT + "` " + what);
+        return Optional.of("`" + fileName + "` " + what);
     }
 
     private static String blankToNull(String value) {
@@ -371,6 +383,11 @@ public class SupportTicketService {
         if (tutorial != null && !tutorial.isBlank()) {
             files.add(new SubmittedFile(TUTORIAL_ATTACHMENT,
                     tutorial.getBytes(StandardCharsets.UTF_8), "text/markdown"));
+        }
+        String limitations = method.getLimitations();
+        if (limitations != null && !limitations.isBlank()) {
+            files.add(new SubmittedFile(LIMITATIONS_ATTACHMENT,
+                    limitations.getBytes(StandardCharsets.UTF_8), "text/markdown"));
         }
 
         List<String> names;

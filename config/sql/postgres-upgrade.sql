@@ -522,6 +522,22 @@ UPDATE capability SET offered_for_method = false
 $aa$);
 -- end of region
 
+-- region change 15: integration_method.limitations
+-- What the method cannot do, in the author's own words, so a consumer reads the gaps beside the
+-- capabilities rather than discovering them in use. Capabilities say what is supported; this says
+-- what is not, and nothing else in the model can express it.
+--
+-- 1000 characters here against 500 accepted by the API and the form: the room is deliberate, so a
+-- later relaxation of the limit is a change of validation rather than of the schema, and so a value
+-- that predates a tightening is never truncated by the column.
+--
+-- Nullable and not backfilled: a method published before this change states no limitations, which
+-- reads as "none given" and is exactly what was true of it.
+call apply_change(15, $aa$
+ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS limitations character varying(1000);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

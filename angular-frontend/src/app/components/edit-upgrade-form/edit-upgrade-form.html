@@ -115,6 +115,24 @@
         </div>
       </div>
 
+      <!-- Limitations -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload">
+          Limitations
+          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+            <i class="fa-solid fa-circle-info info-icon"></i>
+            <span class="info-tooltip">What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</span>
+          </span>
+        </label>
+        <div class="position-relative">
+          <textarea class="form-control" rows="4" [attr.maxlength]="limitationsMax"
+                    placeholder="Describe what this integration method does not support..."
+                    [value]="methodLimitations()"
+                    (input)="methodLimitations.set($any($event.target).value)"></textarea>
+          <div class="char-counter text-end text-muted">{{ methodLimitations().length }} / {{ limitationsMax }} characters</div>
+        </div>
+      </div>
+
       <!-- Capabilities -->
       <div class="mb-4">
         <label class="form-label form-label-upload">
