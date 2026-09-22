@@ -90,10 +90,17 @@
           <span class="view-label">Description:</span>
           <span class="view-value">{{ methodDescription() || '—' }}</span>
         </div>
-        <div class="view-row">
-          <span class="view-label">Limitations:</span>
-          <span class="view-value">{{ methodLimitations() || '—' }}</span>
-        </div>
+        <!--
+          Stated limitations are shown to everyone, but an empty one only to whoever could fill it:
+          a consumer reading "Limitations: —" cannot tell "none" from "nobody has said", and every
+          method published before the field existed would say it.
+        -->
+        @if (methodLimitations() || canEdit()) {
+          <div class="view-row">
+            <span class="view-label">Limitations:</span>
+            <span class="view-value">{{ methodLimitations() || 'None stated' }}</span>
+          </div>
+        }
       </div>
 
       <!-- Capabilities, grouped per object class and each group collapsible -->
