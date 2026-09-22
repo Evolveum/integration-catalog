@@ -37,7 +37,12 @@ public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMai
     @Id
     private String revision;
 
-    //TODO what is this?
+    /**
+     * Whether {@code save()} inserts or merges: the key is composite, so Spring Data cannot tell a
+     * fresh instance from a loaded one by its id and would merge every time - a wasted SELECT, and
+     * for the sequence-generated id a write through a managed copy that never reaches this
+     * instance. Lombok's getter is the {@link Persistable#isNew()} the class implements.
+     */
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;
@@ -158,7 +163,8 @@ public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMai
         ConnectorBundleVersion clone = new ConnectorBundleVersion();
         clone.setRevision(source.getRevision());
         clone.setAuthor(source.getAuthor());
-        clone.setMaintainer(source.getMaintainer());
+        // A list of the clone's own - see createConnectorBundleDraft on sharing one collection.
+        clone.setMaintainer(new ArrayList<>(source.getMaintainer()));
         clone.setLifecycleState(source.getLifecycleState());
         clone.setConnectorBundle(bundle);
         clone.setBundleVersion(source.getBundleVersion());

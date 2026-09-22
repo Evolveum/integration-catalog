@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//TODO add some junit tests for delta builder
 /**
  * Says what an edit changed about a submission, as a comment for its work package in the support portal, so a
  * reviewer does not have to re-read the whole ticket to find the corrected line.

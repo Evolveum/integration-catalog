@@ -77,9 +77,8 @@ public class OpenProjectClient {
             body.putObject("customField" + customField.id())
                     .put("href", "/api/v3/custom_options/" + customField.valueId());
         }
+        // No status is sent: the portal opens the work package in the default status of its workflow.
         links.putObject("type").put("href", "/api/v3/types/" + properties.typeId());
-        //TODO we don't need it OpenProject should use default status for new workPackage
-//        links.putObject("status").put("href", "/api/v3/statuses/" + properties.initialStatusId());
 
         HttpRequest request = authorized(properties.apiBase() + "/projects/" + properties.project() + "/work_packages")
                 .header("Content-Type", "application/json")

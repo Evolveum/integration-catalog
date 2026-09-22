@@ -122,8 +122,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.organizationName").value("acme"))
                 .andExpect(jsonPath("$.organizationDisplayName").value("Acme co."))
                 .andExpect(jsonPath("$.firstName").value("Olivia"))
-                .andExpect(jsonPath("$.lastName").value("Parker"))
-                .andExpect(jsonPath("$.iamProfileUrl").value("https://iam.example/account"));
+                .andExpect(jsonPath("$.lastName").value("Parker"));
     }
 
     @Test
@@ -194,7 +193,7 @@ class AuthControllerTest {
 
     @Test
     void reviewWorkflowIsSuperuserOnly() throws Exception {
-        mockMvc.perform(post("/api/applications/1/integration-method/2/3/start-review")
+        mockMvc.perform(post("/api/integration-method/2/3/start-review")
                         .with(contributor()).with(csrf()))
                 .andExpect(status().isForbidden());
     }

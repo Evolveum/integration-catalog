@@ -301,10 +301,10 @@ public class ApplicationService {
     }
 
     @Transactional
-    public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+    public String addConnectorToIntegrationMethod(UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
         assertCanEditMethod(username, methodId, revision);
-        return connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+        return connectorUploadService.addConnectorToIntegrationMethod(methodId, revision, dto, username);
     }
 
     @Transactional
@@ -551,6 +551,7 @@ public class ApplicationService {
                                     latest != null ? latest.getBrowseLink() : null,
                                     bundle.getGitCloneUrl(),
                                     latest != null ? latest.getPathToProject() : null,
+                                    latest != null ? latest.getCommitTag() : null,
                                     connector.getFullyQualifiedClassName(),
                                     applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector),
                                     applicationMapper.mapConnectorTags(connector)
@@ -655,9 +656,11 @@ public class ApplicationService {
                             if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
                                 continue;
                             }
-                            // Iterate all connector versions, only consider those in REVIEWING state
+                            // Only the versions this review is about: a published one's build is not the
+                            // reviewer's business, and start-review moves a submitted row to REVIEWING,
+                            // so both under-review states have to count.
                             for (ConnectorVersion connectorVersion : connector.getConnectorVersions()) {
-                                if (connectorVersion.getLifecycleState() != LifecycleType.IN_REVIEW) {
+                                if (!ConnectorUploadService.UNDER_REVIEW.contains(connectorVersion.getLifecycleState())) {
                                     continue;
                                 }
                                 ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();

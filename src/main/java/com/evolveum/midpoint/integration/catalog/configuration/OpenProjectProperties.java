@@ -31,10 +31,7 @@ public record OpenProjectProperties(
             int valueId
     ) {}
 
-    /**
-     * Defaults, so a deployment configuring only URL, token and project still works. The numeric ids
-     * follow their constant when unset, so both always answer with the id to send.
-     */
+    /** Defaults, so a deployment configuring only URL, token and project still works. */
     public OpenProjectProperties {
         // An empty "openproject.watchers=" binds to a list holding one blank string, not to no list.
         watchers = watchers == null ? List.of() : watchers.stream()

@@ -31,25 +31,25 @@ public class SupportTicketEventListener {
     /** A revision was put in front of a reviewer, so the portal owes it a work package. */
     @TransactionalEventListener
     public void onIntegrationMethodSubmitted(IntegrationMethodSubmittedEvent event) {
-        submit(SupportTicketService.OPEN_WORK_PACKAGE, event);
+        submit(OpenWorkPackageHandler.OPERATION, event);
     }
 
     /** A connector was added to a revision already under review, so its work package owes a comment. */
     @TransactionalEventListener
     public void onConnectorAddedToReview(ConnectorAddedToReviewEvent event) {
-        submit(SupportTicketService.APPEND_CONNECTOR, event);
+        submit(AppendConnectorHandler.OPERATION, event);
     }
 
     /** A file was stored for a revision, so the work package of a revision under review owes an attachment. */
     @TransactionalEventListener
     public void onTutorialFileAdded(TutorialFileAddedEvent event) {
-        submit(SupportTicketService.ATTACH_FILE, event);
+        submit(AttachTutorialFileHandler.OPERATION, event);
     }
 
     /** A build reported back, so the work package of the revision it built owes the outcome. */
     @TransactionalEventListener
     public void onBuildFinished(BuildFinishedEvent event) {
-        submit(SupportTicketService.COMMENT_BUILD_OUTCOME, event);
+        submit(CommentBuildOutcomeHandler.OPERATION, event);
     }
 
     /**

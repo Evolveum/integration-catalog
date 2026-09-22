@@ -151,7 +151,8 @@ class ConnectorUploadServiceApproveTest {
 
     /**
      * The draft side: what {@code updateConnector} leaves behind when a connector on two links is edited
-     * into a new version — a clone in its own IN_REVIEW bundle carrying the same name and revision.
+     * into a new version — a clone in its own bundle carrying the same name and revision. REVIEWING is
+     * where start-review left it; only rows in that state are the review's to promote.
      */
     private void buildDraftClone() {
         cloneBundle = new ConnectorBundle();
@@ -159,21 +160,25 @@ class ConnectorUploadServiceApproveTest {
         cloneBundle.setRevision(ROW_REVISION);
         cloneBundle.setBundleName(BUNDLE_NAME);
         cloneBundle.setDisplayName("LDAP Connector");
-        cloneBundle.setLifecycleState(LifecycleType.IN_REVIEW);
+        cloneBundle.setLifecycleState(LifecycleType.REVIEWING);
         cloneBundle.setFramework(ConnectorBundle.FrameworkType.JAVA_BASED);
         cloneBundle.setLicense(ConnectorBundle.LicenseType.APACHE_2);
         cloneBundle.setProjectHomepage("https://example.org/ldap-old");
 
-        clone100 = bundleVersion(95, "1.0.0", cloneBundle, LifecycleType.IN_REVIEW);
-        clone110 = bundleVersion(96, "1.1.0", cloneBundle, LifecycleType.IN_REVIEW);
+        clone100 = bundleVersion(95, "1.0.0", cloneBundle, LifecycleType.REVIEWING);
+        clone110 = bundleVersion(96, "1.1.0", cloneBundle, LifecycleType.REVIEWING);
 
         clone = connector(CLONE_CONNECTOR_ID, "LdapConnector", cloneBundle);
         clone.setClonedFrom(ORIGINAL_CONNECTOR_ID);
-        connectorVersion(201, clone, clone100, LifecycleType.IN_REVIEW);
-        cloneCv110 = connectorVersion(202, clone, clone110, LifecycleType.IN_REVIEW);
+        connectorVersion(201, clone, clone100, LifecycleType.REVIEWING);
+        cloneCv110 = connectorVersion(202, clone, clone110, LifecycleType.REVIEWING);
     }
 
-    /** The revision under review, already pointing at the clone, plus a second method on the original. */
+    /**
+     * The revision under review, already pointing at the clone, plus a second method on the original.
+     * REVIEWING is where start-review leaves it, and the only state approval accepts; the rows beneath
+     * it stay IN_REVIEW, which is what start-review does to them and what approval promotes.
+     */
     private void buildMethod() {
         Application application = new Application();
         application.setId(UUID.randomUUID());
@@ -182,7 +187,7 @@ class ConnectorUploadServiceApproveTest {
         draft = new IntegrationMethod();
         draft.setId(METHOD_ID);
         draft.setRevision(METHOD_REVISION);
-        draft.setLifecycleState(LifecycleType.IN_REVIEW);
+        draft.setLifecycleState(LifecycleType.REVIEWING);
         draft.setApplication(application);
 
         draftLink = new IntegrationMethodConnector();
@@ -236,6 +241,22 @@ class ConnectorUploadServiceApproveTest {
         assertEquals(LifecycleType.ACTIVE, clone110.getLifecycleState());
         assertEquals(LifecycleType.ACTIVE, cloneCv110.getLifecycleState());
         assertEquals(LifecycleType.ACTIVE, draft.getLifecycleState());
+    }
+
+    /**
+     * A superuser may edit a revision that is already under review, and the rows that adds are
+     * IN_REVIEW rather than REVIEWING. Publishing takes both, or a published method would carry a
+     * connector version the catalog never shows.
+     */
+    @Test
+    void approvalAlsoPromotesRowsAddedWhileTheRevisionWasUnderReview() {
+        ConnectorBundleVersion addedLate = bundleVersion(97, "1.0.5", cloneBundle, LifecycleType.IN_REVIEW);
+        ConnectorVersion addedLateCv = connectorVersion(150, clone, addedLate, LifecycleType.IN_REVIEW);
+
+        service.approveIntegrationMethod(METHOD_ID, METHOD_REVISION, REVIEWER);
+
+        assertEquals(LifecycleType.ACTIVE, addedLate.getLifecycleState());
+        assertEquals(LifecycleType.ACTIVE, addedLateCv.getLifecycleState());
     }
 
     /** Downloads cascade with their bundle version, so they have to be repointed before it is deleted. */
@@ -301,6 +322,11 @@ class ConnectorUploadServiceApproveTest {
         assertEquals(LifecycleType.ACTIVE, cloneBundle.getLifecycleState());
         assertEquals(ORIGINAL_CONNECTOR_ID, clone.getClonedFrom(),
                 "still a clone of the original, which keeps its own methods");
+
+        assertEquals(LifecycleType.ACTIVE, originalBundle.getLifecycleState(),
+                "the published connector takes no part in this review");
+        assertEquals(LifecycleType.ACTIVE, original100.getLifecycleState());
+        assertEquals(LifecycleType.ACTIVE, originalCv.getLifecycleState());
     }
 
     // ── fixture helpers ─────────────────────────────────────────────────────

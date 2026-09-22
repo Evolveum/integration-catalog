@@ -36,6 +36,12 @@ public class ConnectorVersion implements SetOwnership, GetOwnershipOneMaintainer
     @Id
     private String revision;
 
+    /**
+     * Whether {@code save()} inserts or merges: the key is composite, so Spring Data cannot tell a
+     * fresh instance from a loaded one by its id and would merge every time - a wasted SELECT, and
+     * for the sequence-generated id a write through a managed copy that never reaches this
+     * instance. Lombok's getter is the {@link Persistable#isNew()} the class implements.
+     */
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;

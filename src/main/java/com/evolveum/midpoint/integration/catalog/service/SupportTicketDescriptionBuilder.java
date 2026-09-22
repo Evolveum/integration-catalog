@@ -387,7 +387,7 @@ public class SupportTicketDescriptionBuilder {
             body.append(NOT_PROVIDED).append('\n');
         } else {
             body.append("Attached to this work package as `")
-                    .append(SupportTicketService.TUTORIAL_ATTACHMENT)
+                    .append(SupportTicketAttachments.TUTORIAL_ATTACHMENT)
                     .append("` - see the **Files** tab above.\n");
         }
 

@@ -55,6 +55,14 @@ import java.util.stream.Collectors;
 public class ConnectorUploadService {
 
     public static final String DEFAULT_REVISION = "1.0";
+
+    /**
+     * The states a row is in while it awaits approval. A superuser may edit a revision that is already
+     * REVIEWING, and the rows that adds are IN_REVIEW, so publishing has to promote both or they would
+     * stay out of the catalog under a published method.
+     */
+    static final Set<LifecycleType> UNDER_REVIEW =
+            Set.of(LifecycleType.IN_REVIEW, LifecycleType.REVIEWING);
     private final ApplicationRepository applicationRepository;
     private final IntegrationMethodRepository integrationMethodRepository;
     private final ConnectorRepository connectorRepository;
@@ -213,7 +221,7 @@ public class ConnectorUploadService {
             connector = new Connector();
             connector.setDisplayName(connDto.displayName());
             connector.setRevision(DEFAULT_REVISION);
-            ownershipService.stampNew(bundle, username, connDto.maintainer());
+            ownershipService.stampNew(connector, username, connDto.maintainer());
             connector.setDescription(connDto.description());
             connector.setFullyQualifiedClassName(connDto.className());
             connector.setConnectorBundle(bundle);
@@ -333,20 +341,14 @@ public class ConnectorUploadService {
         }
     }
 
-    // TODO minimise Javadoc
-
     /**
-     * Starts the build of one connector bundle version — one artifact, one build, with every class
-     * on the version passed as a comma-separated {@code CONNECTOR_CLASS}. Build parameters are read
-     * from the bundle version, never from the bundle, which would supply an older version's inputs.
-     * {@code CONNECTOR_VERSION_*} is still sent alongside {@code CONNECTOR_BUNDLE_VERSION_*} so a
-     * job that has not been updated yet still reports something the callback can resolve.
+     * Starts the build of one connector bundle version - one artifact, one build. Parameters come
+     * from the bundle version, not the bundle, which would supply an older version's inputs.
      */
     public String triggerJenkinsPipeline(ConnectorBundleVersion cbv, IntegrationMethod method) {
         try {
             ConnectorBundle bundle = cbv.getConnectorBundle();
             List<ConnectorVersion> versions = cbv.getConnectorVersions();
-            //TODO rename to commitHash
             String commitHash = blankIfNull(cbv.getCommitTag());
             // The bundle is the source of truth for the clone URL; the version keeps a copy of it.
             String gitCloneUrl = blankIfNull(bundle != null && bundle.getGitCloneUrl() != null
@@ -590,17 +592,27 @@ public class ConnectorUploadService {
     }
 
     private void setConditionallyLifecycleState(Connector connector, LifecycleType inState, LifecycleType newState) {
+        setConditionallyLifecycleState(connector, Set.of(inState), newState);
+    }
+
+    /**
+     * Moves the rows beneath a connector out of the given lifecycle states, leaving every row in any
+     * other state alone - so a published connector reused by the revision keeps its ACTIVE rows
+     * through the review it takes no part in.
+     */
+    private void setConditionallyLifecycleState(Connector connector, Set<LifecycleType> inStates,
+                                                LifecycleType newState) {
         ConnectorBundle bundle = connector.getConnectorBundle();
         if (bundle != null) {
-            if (bundle.getLifecycleState() != inState) {
+            if (inStates.contains(bundle.getLifecycleState())) {
                 bundle.setLifecycleState(newState);
             }
             bundle.getBundleVersions().stream()
-                    .filter(bv -> bv.getLifecycleState() != inState)
+                    .filter(bv -> inStates.contains(bv.getLifecycleState()))
                     .forEach(bv -> bv.setLifecycleState(newState));
         }
         connector.getConnectorVersions().stream()
-                .filter(cv -> cv.getLifecycleState() != inState)
+                .filter(cv -> inStates.contains(cv.getLifecycleState()))
                 .forEach(cv -> cv.setLifecycleState(newState));
     }
 
@@ -674,12 +686,10 @@ public class ConnectorUploadService {
      * method's connectors become visible. Only IN_REVIEW records are promoted.
      */
     private void promoteConnectorsToActive(IntegrationMethod method) {
+        // A link always has a connector: connector_id is NOT NULL, and deleting a connector cascades
+        // the link away rather than blanking it.
         for (IntegrationMethodConnector link : method.getConnectors()) {
             Connector connector = reload(link.getConnector());
-            //TODO How can connector be null?
-            if (connector == null) {
-                continue;
-            }
 
             // A copy-on-write clone is folded back into the connector it came from here, so an
             // approved correction shows on EVERY method linking that connector, and a new version joins
@@ -688,7 +698,7 @@ public class ConnectorUploadService {
             connector = mergeCloneIntoOriginal(method, link, connector);
             connector = reload(connector);
 
-            setConditionallyLifecycleState(connector, LifecycleType.REVIEWING, LifecycleType.ACTIVE);
+            setConditionallyLifecycleState(connector, UNDER_REVIEW, LifecycleType.ACTIVE);
         }
     }
 
@@ -699,12 +709,7 @@ public class ConnectorUploadService {
      */
     private void rejectConnectorsOfMethod(IntegrationMethod method) {
         for (IntegrationMethodConnector link : method.getConnectors()) {
-            Connector connector = link.getConnector();
-            if (connector == null) {
-                continue;
-            }
-
-            setConditionallyLifecycleState(connector, LifecycleType.REVIEWING, LifecycleType.REJECTED);
+            setConditionallyLifecycleState(link.getConnector(), LifecycleType.REVIEWING, LifecycleType.REJECTED);
         }
     }
 
@@ -768,7 +773,7 @@ public class ConnectorUploadService {
     }
 
     @Transactional
-    public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+    public String addConnectorToIntegrationMethod(UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
         IntegrationMethod source = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
@@ -930,6 +935,12 @@ public class ConnectorUploadService {
      * Deep-copies a connector and everything beneath it into new rows, for copy-on-write when one
      * revision edits a connector shared with another: the edit lands on the copy and leaves the
      * original untouched. The clone takes a fresh bundle revision to keep that key unique.
+     *
+     * <p>The older versions are copied too because the clone is a candidate replacement for the
+     * connector, not a new version of it: on approval of a version bump
+     * {@link #absorbOriginalIntoClone} moves every other method's link onto the clone and deletes
+     * the original, and a clone that stays a separate connector is never backfilled at all. Only
+     * the metadata-fold path discards them again, which is where the copying is wasted work.
      */
     private Connector cloneConnectorWithRelatedObjects(Connector src) {
         ConnectorBundle srcBundle = src.getConnectorBundle();
@@ -937,13 +948,17 @@ public class ConnectorUploadService {
         connectorBundleRepository.save(bundle);
 
         Connector connectorClone = Connector.createConnectorDraft(src);
+        // The clone belongs to the bundle cloned with it, and points back at what it was cloned from:
+        // approval finds the original through cloned_from, and folds a same-version edit back into it.
+        connectorClone.setConnectorBundle(bundle);
+        connectorClone.setClonedFrom(src.getId());
         connectorRepository.save(connectorClone);
 
-        //TODO why do we need it? We want new version (that have to be approved), but we don't need copy of all older versions?
         for (ConnectorVersion srcCv : src.getConnectorVersions()) {
             ConnectorBundleVersion srcCbv = srcCv.getConnectorBundleVersion();
             ConnectorBundleVersion cbv = null;
-            //TODO how srcCbv can be null?
+            // connector_bundle_version_id is nullable: a version row can exist before a build gave it
+            // one, which is why newestVersionOf() screens for it too.
             if (srcCbv != null) {
                 cbv = ConnectorBundleVersion.createConnectorBundleVersionDraft(srcCbv, bundle);
                 connectorBundleVersionRepository.save(cbv);
@@ -972,7 +987,6 @@ public class ConnectorUploadService {
         }
     }
 
-    //TODO I need to explain this method; let’s go through it together.
     /**
      * Applies an "Edit connector" modal save. The connector version is NEVER changed automatically —
      * it has to match the Maven artifact, and catching duplicates is the reviewer's job.
@@ -984,6 +998,14 @@ public class ConnectorUploadService {
         events.publishEvent(new IntegrationMethodSubmittedEvent(methodId, revision, SubmissionFlow.EDIT, null));
     }
 
+    /**
+     * The edit itself, in three steps: take the edit private if the connector is shared, write the
+     * metadata onto it, then either correct the version row in place or add a new one.
+     *
+     * <p>That guarantee is the caller's, not this method's: nothing below checks that the revision is
+     * unpublished, and {@code canEdit} admits an ACTIVE one. Calling the endpoint directly, without
+     * the save that forks the revision, edits a published connector in place.
+     */
     private void applyConnectorEdit(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
                                     String username) {
         IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
@@ -999,26 +1021,28 @@ public class ConnectorUploadService {
 
         assertFixedFieldsUnchanged(connector.getConnectorBundle(), dto);
 
-        //TODO why when count > 1, what is different when it is only one?
+        // This condition is needed for published connectors that user wants to edit.
+        // After edit is done to connector, this will secure that other linked IM to this connector dont see the wanted change.
+        // Only case when count == 1 is, when we add new connector (record does now exist in DB) to unpublished IM.
         if (integrationMethodConnectorRepository.countByConnector_Id(connectorId) > 1) {
             connector = cloneConnectorWithRelatedObjects(connector);
-            //TODO why we save it to original connector link?
             link.setConnector(connector);
             integrationMethodRepository.save(method);
         }
 
         ConnectorBundle bundle = connector.getConnectorBundle();
 
-        ConnectorVersion baseCv = newestVersionOf(connector);
+        ConnectorVersion baseCv = baseVersionOf(connector, dto.baseVersion());
         ConnectorBundleVersion baseCbv = baseCv != null ? baseCv.getConnectorBundleVersion() : null;
 
         String currentVersion = firstNonBlank(
                 baseCbv != null ? baseCbv.getBundleVersion() : null,
                 baseCv != null ? baseCv.getRevision() : null,
                 connector.getRevision(), DEFAULT_REVISION);
-        //TODO I don't think that use version of connector for revision is good idea, A revision should have its own life cycle
-        // mainly because what if you create version 1.2 -> then someone edits the connector, for example change the description, so you create version 1.2.1,
-        // and then someone uploads connector version 1.2.1 -> what happens then?
+        // The version is whatever the editor typed; the connector's own revision is only the fallback
+        // for a connector with no version row yet. Editing metadata therefore never invents a version -
+        // a row is added only for a version string no row carries - and a version that collides with an
+        // existing row is stamped with a duplicate error for the reviewer rather than merged silently.
         String requestedVersion = (dto.version() != null && !dto.version().isBlank())
                 ? dto.version().trim() : currentVersion;
 
@@ -1054,7 +1078,6 @@ public class ConnectorUploadService {
             connectorBundleRepository.save(bundle);
         }
 
-        //TODO Do we really save changes without approval?
         if (!versionChanged && !classNameChanged) {
             if (baseCv != null) {
                 applyVersionEdit(baseCv, baseCbv, dto, requestedClassName, requestedCommitTag, null);
@@ -1063,8 +1086,9 @@ public class ConnectorUploadService {
             return;
         }
 
-        //TODO I'm not sure if using the latest version of the connector is a good idea.
-        // The GUI shows the specific version, so we can use the version that the user edited.
+        // A version was asked for that the edited row does not carry: reuse the row already holding it
+        // if there is one, otherwise add a row below. Rows are matched by version string, which is the
+        // only identity they have outside this service.
         ConnectorVersion target = connector.getConnectorVersions().stream()
                 .filter(v -> v.getConnectorBundleVersion() != null)
                 .filter(v -> requestedVersion.equals(firstNonBlank(
@@ -1119,8 +1143,30 @@ public class ConnectorUploadService {
             saveConnectorVersionCapabilities(dto.connectorCapabilities(), cv);
         }
 
-        //TODO Do we really save changes without approval?
         connectorRepository.save(connector);
+    }
+
+    /** The version a connector is at, falling back to the connector's own revision. */
+    private static String versionOf(Connector connector, ConnectorVersion version) {
+        return firstNonBlank(versionKeyOf(version), connector.getRevision());
+    }
+
+    /**
+     * The version row an edit was made against - the one the editor was shown. Falls back to the
+     * newest when the request does not name it, which is also what every caller got before it could:
+     * the connector list shows one entry per connector at its newest row, so the two coincide until
+     * some screen offers a different one.
+     */
+    private static ConnectorVersion baseVersionOf(Connector connector, String baseVersion) {
+        if (baseVersion == null || baseVersion.isBlank()) {
+            return newestVersionOf(connector);
+        }
+        String wanted = baseVersion.trim();
+        return connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getConnectorBundleVersion() != null)
+                .filter(cv -> wanted.equals(versionKeyOf(cv)))
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
+                .orElseGet(() -> newestVersionOf(connector));
     }
 
     /**
@@ -1146,35 +1192,31 @@ public class ConnectorUploadService {
             return clone;
         }
 
+        // cloned_from carries no foreign key, so it outlives what it points at: absorbOriginalIntoClone
+        // deletes originals and repoints the siblings it can find. Anything it missed arrives here, as
+        // does a pointer to self; either way the clone is simply no longer a copy of anything.
         Connector original = connectorRepository.findById(originId).orElse(null);
-        //TODO why? This situation should not arise
         if (original == null || original.getId().equals(clone.getId())) {
             clone.setClonedFrom(null);
             connectorRepository.save(clone);
             return clone;
         }
 
+        // Newest on both sides, which is the version the edit worked from: the connector list shows one
+        // entry per connector at its newest row (ApplicationMapper), and that is what the modal loads.
+        // Listing versions individually would have to bring a version id with the edit, and change this.
         ConnectorVersion cloneCv = newestVersionOf(clone);
-        //TODO I think that it isn't ok because sometime somewhere can edit old version of connector
         ConnectorVersion origCv = newestVersionOf(original);
 
-        //TODO duplicate of code
-        String cloneVersion = firstNonBlank(
-                cloneCv != null && cloneCv.getConnectorBundleVersion() != null
-                        ? cloneCv.getConnectorBundleVersion().getBundleVersion() : null,
-                cloneCv != null ? cloneCv.getRevision() : null, clone.getRevision());
-        String origVersion = firstNonBlank(
-                origCv != null && origCv.getConnectorBundleVersion() != null
-                        ? origCv.getConnectorBundleVersion().getBundleVersion() : null,
-                origCv != null ? origCv.getRevision() : null, original.getRevision());
+        String cloneVersion = versionOf(clone, cloneCv);
+        String origVersion = versionOf(original, origCv);
 
+        // Both are persisted connectors and connector_bundle_id is NOT NULL, so neither bundle is null.
         ConnectorBundle cloneBundle = clone.getConnectorBundle();
         ConnectorBundle origBundle = original.getConnectorBundle();
-        //TODO cloneBundle and origBundle can be null?
-        //TODO for same connectors compare connector.fullyQualifiedClassName or rename sameConnector to sameBundle
-        boolean sameConnector = Objects.equals(cloneBundle != null ? cloneBundle.getBundleName() : null,
+        boolean sameBundle = Objects.equals(cloneBundle != null ? cloneBundle.getBundleName() : null,
                 origBundle != null ? origBundle.getBundleName() : null);
-        if (cloneVersion == null || !sameConnector) {
+        if (cloneVersion == null || !sameBundle) {
             return clone;
         }
         if (!Objects.equals(cloneVersion, origVersion)) {
@@ -1353,7 +1395,8 @@ public class ConnectorUploadService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(HashSet::new));
 
-        //TODO why ordering?
+        // The dedupe below is first-wins, so the order decides which row a duplicated version key is
+        // copied from. Oldest id first makes that the earliest row, and the copy order reproducible.
         List<ConnectorVersion> ordered = from.getConnectorVersions().stream()
                 .sorted(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                 .toList();

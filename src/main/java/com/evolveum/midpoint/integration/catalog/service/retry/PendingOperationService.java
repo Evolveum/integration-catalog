@@ -127,7 +127,9 @@ public class PendingOperationService {
             return 0;
         }
         long total = store.countPending(system);
-        //TODO why log only for condition?
+        // Only a backlog is worth a line here: pending() takes at most a batch, so more owed than this
+        // run takes means the queue is growing faster than it drains. An ordinary run is reported by
+        // the closing line below, which would otherwise be said twice.
         if (total > pending.size()) {
             log.info("{} operations are owed to {}; taking the oldest {} in this run",
                     total, system, pending.size());

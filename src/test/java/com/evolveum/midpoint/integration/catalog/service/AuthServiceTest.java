@@ -211,7 +211,7 @@ class AuthServiceTest {
         callerIs("IndividualContributor", null);
 
         assertTrue(canUserEdit("ben", "BEN"));
-        assertTrue(canUserEdit("ben", "someone-else"));
+        assertFalse(canUserEdit("ben", "someone-else"));
     }
 
     @Test
@@ -221,7 +221,7 @@ class AuthServiceTest {
         // Maintained by the caller's own organization -> every contributor to it may edit.
         assertTrue(canOrgEdit("olivia", "acme"));
         // Maintained by another organization -> off limits.
-        assertTrue(canOrgEdit("olivia", "evolveum"));
+        assertFalse(canOrgEdit("olivia", "evolveum"));
     }
 
     @Test
@@ -230,7 +230,7 @@ class AuthServiceTest {
 
         // Membership alone confers nothing: an item published on behalf of acme stays
         // invisible to an org-mate who contributes as an individual.
-        assertTrue(canOrgEdit("dana", "acme"));
+        assertFalse(canOrgEdit("dana", "acme"));
         // Their own items are unaffected.
         assertTrue(canUserEdit("dana", "dana"));
     }

@@ -13,6 +13,13 @@ import java.util.function.Function;
 /**
  * Knows how to carry out one kind of operation against one external system, and is asked to do so
  * both when the operation first arises and on every later retry.
+ *
+ * <p>Implementing this is the whole of what joining the mechanism takes: a component per operation,
+ * saying which system it belongs to, what it is called on the pending row, what its payload is, and
+ * how it is performed. Every implementation is collected automatically, so a second external system
+ * is more classes like these - no column, no query and no change to the scheduled job. That is why
+ * {@code pending_operation.target_system} is text rather than a database enum: a system joins by
+ * being handled, not by being declared, and adding one must not need a migration.
  */
 public interface RetryableOperationHandler<T> {
 

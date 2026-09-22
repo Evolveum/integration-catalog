@@ -34,6 +34,12 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
     @Id
     private String revision;
 
+    /**
+     * Whether {@code save()} inserts or merges: the key is composite and its id is assigned rather
+     * than generated, so Spring Data cannot tell a fresh revision from a loaded one and would merge
+     * every time, costing a SELECT per save. Lombok's getter is the {@link Persistable#isNew()} the
+     * class implements.
+     */
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;
