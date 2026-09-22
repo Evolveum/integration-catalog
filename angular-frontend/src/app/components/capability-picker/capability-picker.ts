@@ -35,6 +35,25 @@ export class CapabilityPicker implements OnInit, OnChanges {
     return this.disabled;
   }
 
+  /**
+   * What the thing being configured is called: an integration method names the object it exposes,
+   * a connector the object class it implements. Used wherever the noun appears mid-sentence.
+   */
+  protected get objectNoun(): string {
+    return this.forIntegrationMethod ? 'object' : 'object class';
+  }
+
+  /** Plural {@link objectNoun}, spelled out because "class" does not pluralise by adding an s. */
+  protected get objectNounPlural(): string {
+    return this.forIntegrationMethod ? 'objects' : 'object classes';
+  }
+
+  /** {@link objectNoun} for labels that start with it rather than embed it. */
+  protected get objectNounCapitalized(): string {
+    const noun = this.objectNoun;
+    return noun.charAt(0).toUpperCase() + noun.slice(1);
+  }
+
   protected readonly isLoading         = signal<boolean>(false);
   protected readonly globalAvailable   = signal<string[]>([]);
   protected readonly specificAvailable = signal<string[]>([]);

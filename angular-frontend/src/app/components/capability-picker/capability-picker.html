@@ -55,21 +55,21 @@
   </div>
 }
 
-<!-- Specific object classes -->
+<!-- Specific objects, or object classes for a connector -->
 <div>
   <label class="form-label form-label-upload">
-    Specific object classes
+    Specific {{ objectNounPlural }}
     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
       <i class="fa-solid fa-circle-info info-icon"></i>
-      <span class="info-tooltip">Capabilities that apply to a specific object class (e.g. Account, Group).</span>
+      <span class="info-tooltip">Capabilities that apply to a specific {{ objectNoun }} (e.g. Account, Group).</span>
     </span>
   </label>
   @for (entry of entries(); track $index; let i = $index) {
     <div class="cp-oc-card">
       <div class="cp-oc-card-header">
         <div>
-          <div class="cp-oc-card-title">{{ entry.objectClass || 'New object class' }}</div>
-          @if (entry.objectClass) { <div class="cp-oc-card-subtitle">Object</div> }
+          <div class="cp-oc-card-title">{{ entry.objectClass || ('New ' + objectNoun) }}</div>
+          @if (entry.objectClass) { <div class="cp-oc-card-subtitle">{{ objectNounCapitalized }}</div> }
         </div>
         @if (i > 0) {
           <button type="button" class="btn cp-remove-oc-btn" (click)="removeEntry(i)" [disabled]="disabled">
@@ -79,7 +79,7 @@
       </div>
       <div class="form-control d-flex align-items-center cp-oc-field mb-2">
         <input type="text" class="border-0 flex-fill cp-oc-input"
-               placeholder="Type object class to configure"
+               [placeholder]="'Type ' + objectNoun + ' to configure'"
                [value]="entry.objectClass"
                (input)="updateObjectClass(i, $any($event.target).value)"
                [disabled]="disabled"
@@ -90,7 +90,7 @@
              [class.cp-trigger-disabled]="!entry.objectClass"
              (click)="toggleEntryDropdown(i)">
           @if (!entry.objectClass) {
-            <span class="cp-placeholder cp-placeholder-disabled">Disabled until object class is selected</span>
+            <span class="cp-placeholder cp-placeholder-disabled">Disabled until {{ objectNoun }} is selected</span>
           } @else if (entry.capabilities.length === 0) {
             <span class="cp-placeholder">At least one capability must be selected</span>
           } @else {
@@ -131,6 +131,6 @@
     </div>
   }
   <button type="button" class="btn cp-add-oc-btn" (click)="addEntry()" [disabled]="disabled">
-    <i class="fa-solid fa-plus me-1"></i>Add another object class
+    <i class="fa-solid fa-plus me-1"></i>Add another {{ objectNoun }}
   </button>
 </div>
