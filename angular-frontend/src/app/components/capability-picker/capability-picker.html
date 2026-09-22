@@ -67,7 +67,7 @@
       <div class="cp-oc-card-header">
         <div>
           <div class="cp-oc-card-title">{{ entry.objectClass || 'New object class' }}</div>
-          @if (entry.objectClass) { <div class="cp-oc-card-subtitle">Object class</div> }
+          @if (entry.objectClass) { <div class="cp-oc-card-subtitle">Object</div> }
         </div>
         @if (i > 0) {
           <button type="button" class="btn cp-remove-oc-btn" (click)="removeEntry(i)" [disabled]="disabled">

@@ -299,11 +299,11 @@ public class SupportTicketDescriptionBuilder {
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .toList();
         if (specific.isEmpty()) {
-            bullet(body, "Object class specific", null);
+            bullet(body, "Object specific", null);
             return;
         }
         for (IntegrationMethodCapability group : specific) {
-            bullet(body, "Object class `" + group.getObjectClass() + "`",
+            bullet(body, "Object `" + group.getObjectClass() + "`",
                     capabilityNames(capabilitiesOf(group)));
         }
     }
@@ -557,11 +557,11 @@ public class SupportTicketDescriptionBuilder {
         body.append("* **Capabilities:**\n");
         bullet(body, NESTED, "Global", global);
         if (specific.isEmpty()) {
-            bullet(body, NESTED, "Object class specific", null);
+            bullet(body, NESTED, "Object specific", null);
             return;
         }
         for (ConnVersionCapability group : specific) {
-            bullet(body, NESTED, "Object class `" + group.getObjectClass() + "`",
+            bullet(body, NESTED, "Object `" + group.getObjectClass() + "`",
                     capabilityNames(capabilitiesOf(group)));
         }
     }
