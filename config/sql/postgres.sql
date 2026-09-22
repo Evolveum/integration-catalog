@@ -1001,14 +1001,15 @@ INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM
 SELECT setval('application_tag_id_seq', 8);
 
 INSERT INTO integration_method_type (id, display_name, description) OVERRIDING SYSTEM VALUE VALUES
-    (1, 'SCIM',          'Standards-based provisioning of users and groups using the SCIM 2.0 protocol.'),
-    (2, 'REST API',      'Integrate directly with the application''s REST API endpoints.'),
-    (3, 'OpenLDAP',      'Connect to an OpenLDAP directory to read and manage identities.'),
-    (4, 'Manual / ITSM', 'Fulfil provisioning requests manually through an ITSM ticketing workflow.'),
-    (5, 'Database',      'Read and write identity data directly in a relational database.'),
-    (6, 'CSV',           'Exchange identity data through CSV file import and export.'),
-    (7, 'SSH',           'Connect to a remote system using SSH to provision and manage identities.'),
-    (8, 'SAP',           'Integrate with SAP systems to provision and manage identities.');
+    (1,  'Native/Proprietary API',           'TODO'),
+    (2,  'Standardized API',                 'TODO'),
+    (3,  'Intermediary directory service',   'TODO'),
+    (4,  'Direct repository access',         'TODO'),
+    (5,  'File-based integration',           'TODO'),
+    (6,  'Intermediary repository',          'TODO'),
+    (7,  'Manual/ITSM integration',          'TODO'),
+    (8,  'Scripting',                        'TODO'),
+    (9,  'Other',                            'TODO');
 
 SELECT setval('integration_method_type_id_seq', 6);
 
