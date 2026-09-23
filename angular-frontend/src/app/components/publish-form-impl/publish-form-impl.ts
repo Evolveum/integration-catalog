@@ -177,8 +177,10 @@ export class PublishFormImpl implements OnInit, OnChanges {
     return this.connectorType === 'java-based';
   }
 
+  /** Both "from" versions are the ones the method is stated to have been tested with, so both are required. */
   protected get isCompatibilityStepValid(): boolean {
-    return this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid();
+    return this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid()
+            && this.connectorVersionFrom().trim() !== '';
   }
 
   protected getMidpointVersionLabel(id: number | null): string {

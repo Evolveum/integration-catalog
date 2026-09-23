@@ -132,8 +132,10 @@ public class ConnectorUploadService {
 
         IntegrationMethodConnector imc = new IntegrationMethodConnector();
         imc.setConnector(uploadRes.connector());
-        imc.setConnectorMinVersion(dto.connector().connectorMinVersion());
-        imc.setConnectorMaxVersion(dto.connector().connectorMaxVersion());
+        // connector_minversion is NOT NULL: same fallback as addConnector when the request leaves it blank.
+        imc.setConnectorMinVersion(firstNonBlank(
+                dto.connector().connectorMinVersion(), uploadRes.connector().getRevision(), DEFAULT_REVISION));
+        imc.setConnectorMaxVersion(emptyToNull(dto.connector().connectorMaxVersion()));
         imc.setIntegrationMethod(uploadRes.integrationMethod());
         uploadRes.integrationMethod().getConnectors().add(imc);
 
