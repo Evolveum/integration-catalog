@@ -221,7 +221,7 @@ public class ConnectorUploadService {
             connector = new Connector();
             connector.setDisplayName(connDto.displayName());
             connector.setRevision(DEFAULT_REVISION);
-            ownershipService.stampNew(bundle, username, connDto.maintainer());
+            ownershipService.stampNew(connector, username, connDto.maintainer());
             connector.setDescription(connDto.description());
             connector.setFullyQualifiedClassName(connDto.className());
             connector.setConnectorBundle(bundle);
