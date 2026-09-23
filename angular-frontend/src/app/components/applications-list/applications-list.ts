@@ -821,6 +821,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openRequestModal(): void {
+    this.authService.verifySession().subscribe(() => {
+      if (!this.authService.sessionLost()) this.startRequest();
+    });
+  }
+
+  private startRequest(): void {
     if (!this.authService.canRequest()) {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);
@@ -847,6 +853,14 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openUploadModal(): void {
+    // This tab may still show a session that ended elsewhere, so ask the backend before starting.
+    this.authService.verifySession().subscribe(() => {
+      // A session that just turned out to be gone gets the app-wide "logged out" dialog instead.
+      if (!this.authService.sessionLost()) this.startUpload();
+    });
+  }
+
+  private startUpload(): void {
     if (!this.authService.canUpload()) {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);

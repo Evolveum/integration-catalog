@@ -535,9 +535,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected navigateToApprove(): void {
     const appId = this.application()?.id;
-    if (appId) {
-      this.router.navigate(['/approve'], { queryParams: { appId } });
-    }
+    if (!appId) return;
+    // This tab may still show a session that ended elsewhere; a lost one gets the app-wide dialog.
+    this.authService.verifySession().subscribe(() => {
+      if (!this.authService.sessionLost()) {
+        this.router.navigate(['/approve'], { queryParams: { appId } });
+      }
+    });
   }
 
   protected navigateToEdit(versionId: string, revision: string | null): void {

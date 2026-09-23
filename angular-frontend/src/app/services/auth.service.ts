@@ -57,8 +57,15 @@ export class AuthService {
   private readonly _currentOrganizationName = signal<string | null>(null);
   private readonly _currentOrganizationDisplayName = signal<string | null>(null);
   private readonly _profile = signal<CurrentUserResponse | null>(null);
+  private readonly _sessionLost = signal<boolean>(false);
 
   readonly currentUser = this._currentUser.asReadonly();
+
+  /**
+   * Set when a session this tab still showed turns out to be gone on the backend — a logout in
+   * another tab, or expiry. The app shell then asks the user to log in again.
+   */
+  readonly sessionLost = this._sessionLost.asReadonly();
 
   /** The whole profile, for pages that show more than the name and role. */
   readonly profile = this._profile.asReadonly();
@@ -87,7 +94,10 @@ export class AuthService {
     return this.http.get<CurrentUserResponse>(`${environment.apiUrl}/auth/me`).pipe(
       map(user => this.applyCurrentUser(user)),
       catchError((error: HttpErrorResponse) => {
-        this.applyCurrentUser(null);
+        // Only a 401 says the session is gone; an unreachable backend must not log a live one out.
+        if (error.status === HttpStatusCode.Unauthorized || !this.isLoggedIn()) {
+          this.applyCurrentUser(null);
+        }
         if (error.status !== HttpStatusCode.Unauthorized) {
           console.error('Could not load the current user profile; continuing as anonymous.', error);
         }
@@ -96,8 +106,18 @@ export class AuthService {
     );
   }
 
+  /** Asks the backend again whether the session is alive; emits whether the user is logged in. */
+  verifySession(): Observable<boolean> {
+    return this.loadCurrentUser().pipe(map(() => this.isLoggedIn()));
+  }
+
+  dismissSessionLost(): void {
+    this._sessionLost.set(false);
+  }
+
   /** Mirrors a loaded profile — or, for null, the anonymous state — into the session signals. */
   private applyCurrentUser(user: CurrentUserResponse | null): void {
+    this._sessionLost.set(!user && this.isLoggedIn());
     this._profile.set(user);
     this._currentUser.set(user?.username ?? null);
     this._currentRole.set(user ? (UserRole[user.role as keyof typeof UserRole] ?? null) : null);

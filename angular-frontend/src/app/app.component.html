@@ -5,3 +5,6 @@
  -->
 
 <router-outlet />
+@if (authService.sessionLost()) {
+  <app-session-expired-modal />
+}
