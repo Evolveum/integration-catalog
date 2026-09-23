@@ -4,72 +4,70 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<!-- All object classes (Global) - off for integration methods, which leave these to the connector -->
-@if (!forIntegrationMethod) {
-  <div class="mb-4">
-    <label class="form-label form-label-upload">
-      All object classes (Global)
-      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-        <i class="fa-solid fa-circle-info info-icon"></i>
-        <span class="info-tooltip">Capabilities that apply to all object classes regardless of type.</span>
-      </span>
-    </label>
-    <div class="position-relative">
-      <div class="form-control d-flex flex-wrap align-items-center gap-2 cp-trigger"
-           (click)="isGlobalOpen.set(!isGlobalOpen())">
-        @if (globalCaps().length === 0) {
-          <span class="cp-placeholder">Select capabilities</span>
-        } @else {
-          @for (cap of globalCaps(); track cap) {
-            <span class="badge d-inline-flex align-items-center cp-badge">
-              {{ fmt(cap) }}
-              <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center cp-remove-btn"
-                      (click)="removeGlobal(cap, $event)" [disabled]="disabled" aria-label="Remove">
-                <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
-              </button>
-            </span>
-          }
-        }
-        <i class="fa-solid fa-caret-down cp-caret" [class.cp-caret-open]="isGlobalOpen()"></i>
-      </div>
-      @if (isGlobalOpen()) {
-        <div class="position-absolute w-100 bg-white mt-1 cp-dropdown overflow-auto">
-          @if (isLoading()) {
-            <div class="p-4 text-center text-muted">Loading capabilities…</div>
-          } @else if (globalAvailable().length === 0) {
-            <div class="p-4 text-center text-muted">No global capabilities available</div>
-          } @else {
-            <div class="p-4 cp-grid">
-              @for (cap of globalAvailable(); track cap) {
-                <label class="d-flex align-items-center cp-label">
-                  <input type="checkbox" (change)="onGlobalChange($event, cap)"
-                         [checked]="globalCaps().includes(cap)" [disabled]="disabled" class="cp-checkbox">
-                  <span class="cp-label-text">{{ fmt(cap) }}</span>
-                </label>
-              }
-            </div>
-          }
-        </div>
-      }
-    </div>
-  </div>
-}
-
-<!-- Specific objects, or object classes for a connector -->
-<div>
+<!-- All object classes (Global) -->
+<div class="mb-4">
   <label class="form-label form-label-upload">
-    Specific {{ objectNounPlural }}
+    All object classes (Global)
     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
       <i class="fa-solid fa-circle-info info-icon"></i>
-      <span class="info-tooltip">Capabilities that apply to a specific {{ objectNoun }} (e.g. Account, Group).</span>
+      <span class="info-tooltip">Capabilities that apply to all object classes regardless of type.</span>
+    </span>
+  </label>
+  <div class="position-relative">
+    <div class="form-control d-flex flex-wrap align-items-center gap-2 cp-trigger"
+         (click)="isGlobalOpen.set(!isGlobalOpen())">
+      @if (globalCaps().length === 0) {
+        <span class="cp-placeholder">Select capabilities</span>
+      } @else {
+        @for (cap of globalCaps(); track cap) {
+          <span class="badge d-inline-flex align-items-center cp-badge">
+            {{ fmt(cap) }}
+            <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center cp-remove-btn"
+                    (click)="removeGlobal(cap, $event)" [disabled]="disabled" aria-label="Remove">
+              <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
+            </button>
+          </span>
+        }
+      }
+      <i class="fa-solid fa-caret-down cp-caret" [class.cp-caret-open]="isGlobalOpen()"></i>
+    </div>
+    @if (isGlobalOpen()) {
+      <div class="position-absolute w-100 bg-white mt-1 cp-dropdown overflow-auto">
+        @if (isLoading()) {
+          <div class="p-4 text-center text-muted">Loading capabilities…</div>
+        } @else if (globalAvailable().length === 0) {
+          <div class="p-4 text-center text-muted">No global capabilities available</div>
+        } @else {
+          <div class="p-4 cp-grid">
+            @for (cap of globalAvailable(); track cap) {
+              <label class="d-flex align-items-center cp-label">
+                <input type="checkbox" (change)="onGlobalChange($event, cap)"
+                       [checked]="globalCaps().includes(cap)" [disabled]="disabled" class="cp-checkbox">
+                <span class="cp-label-text">{{ fmt(cap) }}</span>
+              </label>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Specific object classes -->
+<div>
+  <label class="form-label form-label-upload">
+    Specific object classes
+    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+      <i class="fa-solid fa-circle-info info-icon"></i>
+      <span class="info-tooltip">Capabilities that apply to a specific object class (e.g. Account, Group).</span>
     </span>
   </label>
   @for (entry of entries(); track $index; let i = $index) {
     <div class="cp-oc-card">
       <div class="cp-oc-card-header">
         <div>
-          <div class="cp-oc-card-title">{{ entry.objectClass || ('New ' + objectNoun) }}</div>
-          @if (entry.objectClass) { <div class="cp-oc-card-subtitle">{{ objectNounCapitalized }}</div> }
+          <div class="cp-oc-card-title">{{ entry.objectClass || 'New object class' }}</div>
+          @if (entry.objectClass) { <div class="cp-oc-card-subtitle">Object class</div> }
         </div>
         @if (i > 0) {
           <button type="button" class="btn cp-remove-oc-btn" (click)="removeEntry(i)" [disabled]="disabled">
@@ -79,7 +77,7 @@
       </div>
       <div class="form-control d-flex align-items-center cp-oc-field mb-2">
         <input type="text" class="border-0 flex-fill cp-oc-input"
-               [placeholder]="'Type ' + objectNoun + ' to configure'"
+               placeholder="Type object class to configure"
                [value]="entry.objectClass"
                (input)="updateObjectClass(i, $any($event.target).value)"
                [disabled]="disabled"
@@ -90,7 +88,7 @@
              [class.cp-trigger-disabled]="!entry.objectClass"
              (click)="toggleEntryDropdown(i)">
           @if (!entry.objectClass) {
-            <span class="cp-placeholder cp-placeholder-disabled">Disabled until {{ objectNoun }} is selected</span>
+            <span class="cp-placeholder cp-placeholder-disabled">Disabled until object class is selected</span>
           } @else if (entry.capabilities.length === 0) {
             <span class="cp-placeholder">At least one capability must be selected</span>
           } @else {
@@ -131,6 +129,6 @@
     </div>
   }
   <button type="button" class="btn cp-add-oc-btn" (click)="addEntry()" [disabled]="disabled">
-    <i class="fa-solid fa-plus me-1"></i>Add another {{ objectNoun }}
+    <i class="fa-solid fa-plus me-1"></i>Add another object class
   </button>
 </div>

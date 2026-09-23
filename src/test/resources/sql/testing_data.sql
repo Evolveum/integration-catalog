@@ -198,13 +198,23 @@ INSERT INTO integration_method_capability (id, integ_method_id, integ_method_rev
     (5, 'dddddddd-dddd-dddd-dddd-dddddddddddd', '2.0', 'Account'),
     (6, 'dddddddd-dddd-dddd-dddd-dddddddddddd', '2.0', 'Group');
 
-INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id) VALUES
-    (1,9),(1,10),(1,11),(1,12),(1,15),(1,19),(1,20),
-    (2,9),(2,10),(2,11),(2,12),(2,15),(2,21),
-    (3,10),(3,11),(3,12),(3,16),
-    (4,9),(4,10),(4,11),
-    (5,9),(5,10),(5,11),(5,12),(5,15),
-    (6,10),(6,21);
+INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id, state) VALUES
+    (1,9,'YES'),(1,10,'YES'),(1,11,'YES'),(1,12,'YES'),(1,15,'YES'),(1,19,'YES'),(1,20,'YES'),
+    (2,9,'YES'),(2,10,'YES'),(2,11,'YES'),(2,12,'YES'),(2,15,'YES'),(2,21,'YES'),
+    (3,10,'YES'),(3,11,'YES'),(3,12,'YES'),(3,16,'YES'),
+    (4,9,'YES'),(4,10,'YES'),(4,11,'YES'),
+    (5,9,'YES'),(5,10,'YES'),(5,11,'YES'),(5,12,'YES'),(5,15,'YES'),
+    (6,10,'YES'),(6,21,'YES');
+
+-- Every object carries every offered capability: the rest is NO, except on groups 3 and 6,
+-- which stay UNKNOWN so the seed shows all three states.
+INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id, state)
+SELECT imc.id, c.id, (CASE WHEN imc.id IN (3, 6) THEN 'UNKNOWN' ELSE 'NO' END)::CapabilityState
+  FROM integration_method_capability imc
+ CROSS JOIN capability c
+ WHERE c.offered_for_method
+   AND NOT EXISTS (SELECT 1 FROM integration_method_capability_item i
+                    WHERE i.integration_method_capability_id = imc.id AND i.capability_id = c.id);
 
 -- Connector versions may carry any capability, including the connector-only ones.
 INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) OVERRIDING SYSTEM VALUE VALUES

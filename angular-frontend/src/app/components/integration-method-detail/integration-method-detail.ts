@@ -16,7 +16,7 @@ import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
-import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { CapabilityStateEntry, hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
@@ -46,7 +46,7 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly methodDescription = signal<string>('');
   protected readonly methodLimitations = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
-  protected readonly specificCapabilities = signal<ObjectClassCapability[]>([]);
+  protected readonly specificCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);
 
@@ -174,9 +174,9 @@ export class IntegrationMethodDetail implements OnInit {
 
   // A method's capabilities are always declared for a specific object class - the resource-wide
   // ones belong to the connector - so the reserved 'Global' class is ignored here.
-  private setCapabilities(occs: ObjectClassCapability[] | null): void {
+  private setCapabilities(occs: IntegrationMethodObjectCapabilities[] | null): void {
     const specifics = (occs ?? [])
-      .filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0);
+      .filter(o => o.objectClass !== 'Global' && (o.capabilities?.length ?? 0) > 0);
     this.specificCapabilities.set(specifics);
     // Open the parent section and leave each object class collapsed; both toggle independently.
     const expanded = new Set<string>();
@@ -324,6 +324,10 @@ export class IntegrationMethodDetail implements OnInit {
   protected formatLicense(value: string): string {
     if (!value) return '—';
     return this.licenseLabels[value] ?? value;
+  }
+
+  protected supportedCount(caps: CapabilityStateEntry[]): number {
+    return caps.filter(c => c.state === 'YES').length;
   }
 
   protected formatCapabilityText(text: string): string {

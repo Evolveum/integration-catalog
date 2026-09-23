@@ -115,21 +115,22 @@
           </button>
           @if (isCapsExpanded('specific')) {
             <div class="ms-3 mb-3">
-              @for (occ of specificCapabilities(); track occ.objectName) {
-                @let occKey = 'occ:' + occ.objectName;
+              @for (occ of specificCapabilities(); track occ.objectClass) {
+                @let occKey = 'occ:' + occ.objectClass;
                 <!-- Layer 2: each object class collapses independently -->
                 <div class="mb-2">
                   <button type="button" class="caps-object-row d-flex align-items-center gap-2" (click)="toggleCaps(occKey)">
-                    <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                    <span class="fw-semibold text-sm">{{ occ.objectClass }}</span>
                     <i class="fa-solid icon-sm"
                        [class.fa-chevron-up]="isCapsExpanded(occKey)"
                        [class.fa-chevron-down]="!isCapsExpanded(occKey)"></i>
-                    <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
+                    <span class="text-muted text-sm">{{ supportedCount(occ.capabilities) }} of {{ occ.capabilities.length }} supported</span>
                   </button>
                   @if (isCapsExpanded(occKey)) {
                     <div class="view-caps-box d-flex flex-wrap gap-2 mt-2 ms-3">
-                      @for (cap of occ.capabilities; track cap) {
-                        <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                      @for (cap of occ.capabilities; track cap.name) {
+                        <span class="badge badge-capability" [ngClass]="'badge-capability-' + cap.state.toLowerCase()"
+                              [title]="cap.state === 'YES' ? 'Supported' : cap.state === 'NO' ? 'Not supported' : 'Not determined'">{{ formatCapabilityText(cap.name) }}</span>
                       }
                     </div>
                   }

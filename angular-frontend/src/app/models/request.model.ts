@@ -5,6 +5,7 @@
  */
 
 import { Maintainer } from './maintainer.model';
+import { IntegrationMethodObjectCapabilities } from './application-detail.model';
 
 export interface Request {
   id?: number;               // request.id
@@ -121,7 +122,7 @@ export interface UploadConnectorPayload {
   integrationMethod: UploadIntegrationMethodData;
   connector: UploadConnectorData;
   files: UploadFileItem[];
-  integrationMethodCapabilities: IntegrationMethodCapabilityGroup[];
+  integrationMethodCapabilities: IntegrationMethodObjectCapabilities[];
   connectorCapabilities: IntegrationMethodCapabilityGroup[];
 }
 

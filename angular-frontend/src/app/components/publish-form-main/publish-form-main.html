@@ -354,7 +354,7 @@
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
                     <label class="form-label form-label-upload">Define capabilities for:<span class="text-danger">&nbsp;*</span></label>
-                    <app-capability-picker [initialCapabilities]="imCapabilities()" [forIntegrationMethod]="true" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+                    <app-im-capability-picker [initialCapabilities]="imCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
                   </div>
 
                   <!-- Integration Tutorial -->
@@ -622,7 +622,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || imCapabilities().length === 0">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !imCapabilitiesValid(imCapabilities())">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>

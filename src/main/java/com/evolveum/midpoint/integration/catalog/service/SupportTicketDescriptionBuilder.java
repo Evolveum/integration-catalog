@@ -300,10 +300,18 @@ public class SupportTicketDescriptionBuilder {
             bullet(body, "Object specific", null);
             return;
         }
+        // One bullet per capability, so an edit comment names only the capabilities whose state changed.
         for (IntegrationMethodCapability group : specific) {
-            bullet(body, "Object `" + group.getObjectClass() + "`",
-                    capabilityNames(capabilitiesOf(group)));
+            body.append("* **Object `").append(group.getObjectClass()).append("`:**\n");
+            group.getItems().stream()
+                    .filter(item -> item.getCapability() != null && item.getCapability().getName() != null)
+                    .sorted(Comparator.comparing(IntegrationMethodCapabilityItem::getCapability, byDisplayOrder()))
+                    .forEach(item -> bullet(body, NESTED, capabilityLabel(item.getCapability()), stateLabel(item.getState())));
         }
+    }
+
+    private static String stateLabel(CapabilityState state) {
+        return state == null ? null : StringUtils.capitalize(state.name().toLowerCase());
     }
 
     /** One group's capabilities as a single comma-separated value, in the catalog's own order. */

@@ -14,6 +14,7 @@ import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
+import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodObjectCapabilitiesDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationMethodDto;
@@ -756,13 +757,18 @@ public class ConnectorUploadService {
         log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
     }
 
-    private void saveIntegrationMethodCapabilities(List<IntegrationMethodCapabilityGroupDto> groups,
+    /**
+     * Stores every capability offered to methods on each object, with the state sent for it; one
+     * the request leaves out is stored as UNKNOWN.
+     */
+    private void saveIntegrationMethodCapabilities(List<IntegrationMethodObjectCapabilitiesDto> groups,
                                                    IntegrationMethod target) {
         if (groups == null) {
             return;
         }
-        for (IntegrationMethodCapabilityGroupDto group : groups) {
-            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) {
+        List<Capability> offered = capabilityRepository.findByOfferedForMethodTrueOrderByDisplayOrderAsc();
+        for (IntegrationMethodObjectCapabilitiesDto group : groups) {
+            if (group.objectClass() == null || group.objectClass().isBlank()) {
                 continue;
             }
             // Resource-wide capabilities are the connector's; a method that still sends them is ignored.
@@ -773,14 +779,18 @@ public class ConnectorUploadService {
             cap.setObjectClass(group.objectClass());
             cap.setIntegrationMethod(target);
             cap = integrationMethodCapabilityRepository.save(cap);
-            final Integer capId = cap.getId();
-            for (String capabilityName : group.capabilityNames()) {
-                capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
-                    IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
-                    item.setIntegrationMethodCapabilityId(capId);
-                    item.setCapabilityId(capability.getId());
-                    integrationMethodCapabilityItemRepository.save(item);
-                });
+            Map<String, CapabilityState> sent = new HashMap<>();
+            if (group.capabilities() != null) {
+                group.capabilities().stream()
+                        .filter(c -> c.name() != null && c.state() != null)
+                        .forEach(c -> sent.put(c.name(), c.state()));
+            }
+            for (Capability capability : offered) {
+                IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
+                item.setIntegrationMethodCapabilityId(cap.getId());
+                item.setCapabilityId(capability.getId());
+                item.setState(sent.getOrDefault(capability.getName(), CapabilityState.UNKNOWN));
+                integrationMethodCapabilityItemRepository.save(item);
             }
         }
     }
@@ -896,6 +906,7 @@ public class ConnectorUploadService {
                 IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
                 item.setIntegrationMethodCapabilityId(saved.getId());
                 item.setCapabilityId(oldItem.getCapabilityId());
+                item.setState(oldItem.getState());
                 integrationMethodCapabilityItemRepository.save(item);
             }
         }

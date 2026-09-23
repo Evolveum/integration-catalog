@@ -829,6 +829,16 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
   }
 
+  /** The application detail lists supported capabilities only; NO and UNKNOWN show on the method's own page. */
+  protected supportedObjectCapabilities(version: IntegrationMethod): ObjectClassCapability[] {
+    return (version.objectClassCapabilities ?? [])
+      .map(o => ({
+        objectName: o.objectClass,
+        capabilities: o.capabilities.filter(c => c.state === 'YES').map(c => c.name)
+      }))
+      .filter(o => o.capabilities.length > 0);
+  }
+
   protected formatCapabilityText(text: string): string {
     return formatCapabilityLabel(text);
   }

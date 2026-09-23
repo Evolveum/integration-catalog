@@ -15,8 +15,8 @@ public record IntegrationMethodDto(
         String description,                                         // integration_method.description
         String limitations,                                         // integration_method.limitations
         List<String> implementationTags,                            // integration_method_type.name
-        List<String> capabilities,                                  // capability.name via integration_method_capability
-        List<ObjectClassCapabilityDto> objectClassCapabilities,     // object_class_capabilities
+        List<String> capabilities,                                  // capability.name via integration_method_capability, YES only
+        List<IntegrationMethodObjectCapabilitiesDto> objectClassCapabilities, // integration_method_capability + items, every state
         String connectorVersion,                                    // connector_bundle_version.bundle_version
         String systemVersion,                                       // integration_method.system_version
         LocalDate releasedDate,                                     // connector_bundle_version.created_at

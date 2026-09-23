@@ -10,13 +10,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
-import { MidpointVersion } from '../../models/application-detail.model';
+import { IntegrationMethodObjectCapabilities, MidpointVersion } from '../../models/application-detail.model';
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CatalogConnector } from '../../models/catalog-connector.model';
-import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
@@ -42,7 +41,7 @@ export interface ReviewSummary {
   deploymentType: string;
   logoFile: File | null;
   tutorialFiles: File[];
-  imCapabilities: IntegrationMethodCapabilityGroup[];
+  imCapabilities: IntegrationMethodObjectCapabilities[];
 }
 
 export interface Step5FormData {

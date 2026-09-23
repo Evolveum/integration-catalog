@@ -12,7 +12,7 @@ import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
-import { ApplicationDetail, ApplicationTag } from '../models/application-detail.model';
+import { ApplicationDetail, ApplicationTag, IntegrationMethodObjectCapabilities } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
 import { CatalogConnector } from '../models/catalog-connector.model';
@@ -258,7 +258,7 @@ export class ApplicationService {
     appId: string,
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null }
+    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,

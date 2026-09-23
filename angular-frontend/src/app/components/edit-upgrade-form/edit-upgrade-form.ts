@@ -15,14 +15,14 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { LinksService } from '../../services/links.service';
 import { PageHeader } from '../page-header/page-header';
-import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
 import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { MethodTypeModal } from '../method-type-modal/method-type-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
-import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
@@ -30,7 +30,7 @@ import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker, AddConnectorForm, EditConnectorModal,
+  imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal,
     SubmissionSuccessModal, MethodTypeModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
@@ -69,8 +69,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
    * its types by name, and the publish flow matches them the same way.
    */
   private readonly allMethodTypes = signal<{ id: number; displayName: string }[]>([]);
-  protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
-  protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  protected readonly initialCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
 
   // Supported midPoint version range (loaded from DB, editable)
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
@@ -264,12 +264,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             }
           }
           this.loadTutorialFiles(aId, vId, ver.revision ?? '');
-          this.initialCapabilities.set(
-            (ver.objectClassCapabilities ?? []).map(oc => ({
-              objectClass: oc.objectName,
-              capabilityNames: oc.capabilities ?? []
-            }))
-          );
+          this.initialCapabilities.set(ver.objectClassCapabilities ?? []);
           this.loadConnectors(aId, vId, ver.revision ?? '');
         } else {
           this.finishLoading();
@@ -334,7 +329,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     }
   }
 
-  protected onImCapabilitiesChange(caps: CapabilityGroup[]): void {
+  protected onImCapabilitiesChange(caps: IntegrationMethodObjectCapabilities[]): void {
     this.imCapabilities.set(caps);
   }
 
@@ -682,6 +677,11 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.doSave(false);
   }
 
+  /** The capabilities the save would send: the picker's once touched, the loaded ones before that. */
+  protected capabilitiesValid(): boolean {
+    return imCapabilitiesValid(this.imCapabilities().length > 0 ? this.imCapabilities() : this.initialCapabilities());
+  }
+
   protected saveAsNewVersion(): void {
     this.doSave(true);
   }
@@ -709,7 +709,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         limitations: this.methodLimitations(),
         typeIds: this.chosenMethodTypeIds(),
         tutorial,
-        capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
+        capabilities,
         removeFile: false,
         // "Save" (major=false) is a minor in-place bump; "Save as new version" (major=true) is a major bump.
         minorBump: !major,

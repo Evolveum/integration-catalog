@@ -25,33 +25,10 @@ export class CapabilityPicker implements OnInit, OnChanges {
   @Input() initialCapabilities: CapabilityGroup[] = [];
   // When true the whole picker is read-only (used for existing connectors).
   @Input() disabled = false;
-  // An integration method offers a narrower set than a connector: only the object-specific options
-  // marked offeredForMethod, and no resource-wide ones at all - those belong to the connector. The
-  // Global section is then neither shown nor emitted, and a Global group in the input is ignored.
-  @Input() forIntegrationMethod = false;
   @Output() capabilitiesChange = new EventEmitter<CapabilityGroup[]>();
 
   @HostBinding('class.cp-disabled') get isDisabled(): boolean {
     return this.disabled;
-  }
-
-  /**
-   * What the thing being configured is called: an integration method names the object it exposes,
-   * a connector the object class it implements. Used wherever the noun appears mid-sentence.
-   */
-  protected get objectNoun(): string {
-    return this.forIntegrationMethod ? 'object' : 'object class';
-  }
-
-  /** Plural {@link objectNoun}, spelled out because "class" does not pluralise by adding an s. */
-  protected get objectNounPlural(): string {
-    return this.forIntegrationMethod ? 'objects' : 'object classes';
-  }
-
-  /** {@link objectNoun} for labels that start with it rather than embed it. */
-  protected get objectNounCapitalized(): string {
-    const noun = this.objectNoun;
-    return noun.charAt(0).toUpperCase() + noun.slice(1);
   }
 
   protected readonly isLoading         = signal<boolean>(false);
@@ -84,7 +61,7 @@ export class CapabilityPicker implements OnInit, OnChanges {
           (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
         this.globalAvailable.set(caps.filter(c => c.globality === 'GLOBAL').sort(byOrder).map(c => c.name));
         this.specificAvailable.set(
-          caps.filter(c => c.globality === 'SPECIFIC' && (!this.forIntegrationMethod || c.offeredForMethod))
+          caps.filter(c => c.globality === 'SPECIFIC')
             .sort(byOrder).map(c => c.name)
         );
         this.isLoading.set(false);
@@ -101,7 +78,7 @@ export class CapabilityPicker implements OnInit, OnChanges {
 
   private applyInitialCapabilities(): void {
     const global = this.initialCapabilities.find(g => g.objectClass === 'Global');
-    this.globalCaps.set(global && !this.forIntegrationMethod ? global.capabilityNames : []);
+    this.globalCaps.set(global ? global.capabilityNames : []);
 
     const specific = this.initialCapabilities.filter(g => g.objectClass !== 'Global');
     const current = this.entries();
@@ -128,7 +105,7 @@ export class CapabilityPicker implements OnInit, OnChanges {
   private emit(): void {
     const groups: CapabilityGroup[] = [];
     const global = this.globalCaps();
-    if (!this.forIntegrationMethod && global.length > 0) {
+    if (global.length > 0) {
       groups.push({ objectClass: 'Global', capabilityNames: global });
     }
     this.entries()

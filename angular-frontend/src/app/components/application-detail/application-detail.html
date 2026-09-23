@@ -476,13 +476,14 @@
                                   @if (version.description) { {{ version.description }} } @else { <em class="text-muted">No description available</em> }
                                 </p>
 
-                                @if (version.objectClassCapabilities && version.objectClassCapabilities.length > 0) {
+                                @let supportedCaps = supportedObjectCapabilities(version);
+                                @if (supportedCaps.length > 0) {
                                   <hr class="im-divider">
                                   <div>
                                     <p class="text-sm mb-2 im-capabilities-header">
                                       Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
                                     </p>
-                                    @for (occ of version.objectClassCapabilities; track occ.objectName) {
+                                    @for (occ of supportedCaps; track occ.objectName) {
                                       @let expandKey = rowKey(version) + '-' + occ.objectName;
                                       <div class="mb-2">
                                         <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
@@ -503,7 +504,7 @@
                                 }
 
                                 @if (version.connectors && version.connectors.length > 0) {
-                                  @if (!version.objectClassCapabilities || version.objectClassCapabilities.length === 0) {
+                                  @if (supportedCaps.length === 0) {
                                     <hr class="im-divider">
                                   }
                                   <div class="d-flex align-items-center gap-2 object-class-row mt-2 mb-2" (click)="toggleConnectorsSection(rowKey(version)); $event.stopPropagation()" style="cursor:pointer;">

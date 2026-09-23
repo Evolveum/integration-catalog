@@ -1,0 +1,35 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
+// The shared look comes from capability-picker.scss; this adds the per-state colours.
+
+.im-cp-state-yes     { background-color: #d4edda; }
+.im-cp-state-no      { background-color: #f8d7da; }
+.im-cp-state-unknown { background-color: #e8eef5; }
+
+// Fixed label width keeps the dropdowns right next to their capability yet aligned in a column.
+.im-cp-label-text {
+  flex: 0 0 6.5rem;
+  overflow-wrap: anywhere;
+}
+
+.im-cp-select {
+  width: auto;
+  min-width: 110px;
+  font-size: 13px;
+  color: #000000;
+  cursor: pointer;
+}
+
+.im-cp-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #bb2d3b;
+}
+
+@media (max-width: 575.98px) {
+  .im-cp-grid { grid-template-columns: 1fr; }
+}

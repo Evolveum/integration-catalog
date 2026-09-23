@@ -13,7 +13,6 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapability;
-import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapabilityItem;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnector;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
@@ -379,13 +378,18 @@ public class BundleService {
             }
             Map<String, Object> capMeta = new LinkedHashMap<>();
             capMeta.put("objectClass", cap.getObjectClass());
-            List<String> names = new ArrayList<>();
-            for (IntegrationMethodCapabilityItem item : cap.getItems()) {
-                if (item.getCapability() != null) {
-                    names.add(item.getCapability().getName());
-                }
-            }
-            capMeta.put("capabilities", names);
+            List<Map<String, Object>> states = new ArrayList<>();
+            cap.getItems().stream()
+                    .filter(item -> item.getCapability() != null)
+                    .sorted(Comparator.comparing(item -> item.getCapability().getDisplayOrder(),
+                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .forEach(item -> {
+                        Map<String, Object> state = new LinkedHashMap<>();
+                        state.put("name", item.getCapability().getName());
+                        state.put("state", item.getState());
+                        states.add(state);
+                    });
+            capMeta.put("capabilities", states);
             capabilities.add(capMeta);
         }
         meta.put("capabilities", capabilities);

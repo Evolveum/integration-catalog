@@ -13,7 +13,8 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
-import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
+import { IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
 import { LinksService } from '../../services/links.service';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
@@ -21,7 +22,7 @@ import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, CapabilityPicker, OverflowTitleDirective],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
 })
@@ -80,7 +81,8 @@ export class PublishFormMain implements OnInit, OnDestroy {
   );
 
   // Step 3 – integration method capabilities
-  protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  protected readonly imCapabilitiesValid = imCapabilitiesValid;
 
   protected readonly selectedMethodTitles = computed(() =>
     this.integrationMethodTypes()
@@ -843,7 +845,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
     }
   }
 
-  protected onImCapabilitiesChange(groups: CapabilityGroup[]): void {
+  protected onImCapabilitiesChange(groups: IntegrationMethodObjectCapabilities[]): void {
     this.imCapabilities.set(groups);
   }
 

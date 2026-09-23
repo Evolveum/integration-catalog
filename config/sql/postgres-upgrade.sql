@@ -538,6 +538,33 @@ ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS limitations character va
 $aa$);
 -- end of region
 
+-- region change 16: integration_method_capability_item.state
+-- A method's capability is now YES, NO or UNKNOWN instead of "linked or not", so a consumer can tell
+-- a confirmed gap from one nobody determined. Every object of a method carries a row for every
+-- capability offered to methods; the connector side (conn_version_capability_item) is untouched.
+--
+-- Existing links become YES. The offered capabilities an object was missing become NO, since an
+-- absent link meant "not supported" until now.
+call apply_change(16, $aa$
+CREATE TYPE CapabilityState AS ENUM (
+	'YES',
+	'NO',
+	'UNKNOWN'
+);
+
+ALTER TABLE integration_method_capability_item ADD COLUMN state CapabilityState DEFAULT 'YES' NOT NULL;
+ALTER TABLE integration_method_capability_item ALTER COLUMN state DROP DEFAULT;
+
+INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id, state)
+SELECT imc.id, c.id, 'NO'
+  FROM integration_method_capability imc
+ CROSS JOIN capability c
+ WHERE c.offered_for_method
+   AND NOT EXISTS (SELECT 1 FROM integration_method_capability_item i
+                    WHERE i.integration_method_capability_id = imc.id AND i.capability_id = c.id);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

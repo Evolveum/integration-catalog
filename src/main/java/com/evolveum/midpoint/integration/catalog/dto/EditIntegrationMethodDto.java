@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.dto;
 
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public record EditIntegrationMethodDto(
         String limitations,                                          // integration_method.limitations
         String tutorial,                                             // integration_method.tutorial
         List<Integer> typeIds,                                       // integration_method_type.id; null leaves the types as they are
-        List<IntegrationMethodCapabilityGroupDto> capabilities,      // integration_method_capability + items
+        List<@Valid IntegrationMethodObjectCapabilitiesDto> capabilities, // integration_method_capability + items
         boolean removeFile,                                          // true → clear integration_method.file_path
         boolean minorBump,                                           // true → increment minor (x.Y.z → x.Y+1.1), false → patch (x.y.Z → x.y.Z+1)
         Integer midpointMinVersion,                                  // integration_method.midpoint_minversion (FK → midpoint_version.id)
