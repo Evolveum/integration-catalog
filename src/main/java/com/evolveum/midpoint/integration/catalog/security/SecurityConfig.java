@@ -54,10 +54,10 @@ public class SecurityConfig {
 
     private static final String INTEGRATION_METHOD = "/api/applications/*/integration-method/**";
 
-    private static final String[] CONNECTOR_UPLOADS = {
-            "/api/upload/**",
-            "/api/applications/*/integration-method/*/*/connectors"
-    };
+    private static final String CONNECTOR_UPLOADS = "/api/upload/**";
+
+    /** Adding a connector is for contributors; listing them (GET, same path) is public like the rest of the detail. */
+    private static final String METHOD_CONNECTORS = "/api/applications/*/integration-method/*/*/connectors";
 
     private static final String APPLICATION_LOGO = "/api/applications/*/logo";
 
@@ -139,6 +139,8 @@ public class SecurityConfig {
                         .requestMatchers(UNFINISHED_CONNECTOR).hasRole(SUPERUSER)
                         .requestMatchers(HttpMethod.POST, REVIEW_DECISIONS).hasRole(SUPERUSER)
                         .requestMatchers(CONNECTOR_UPLOADS)
+                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
+                        .requestMatchers(HttpMethod.POST, METHOD_CONNECTORS)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
                         .requestMatchers(HttpMethod.PUT, INTEGRATION_METHOD)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)

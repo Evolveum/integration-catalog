@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,7 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * opposite setup to {@link ControllerTest}, which switches security off. Sessions are fabricated
  * with {@code oidcLogin()}, mirroring what {@link CatalogOidcUserService} grants after a real login.
  */
-@WebMvcTest(controllers = {AuthController.class, Controller.class})
+@WebMvcTest(controllers = {AuthController.class, Controller.class, IntegrationMethodController.class})
 @Import(SecurityConfig.class)
 class AuthControllerTest {
 
@@ -88,6 +90,10 @@ class AuthControllerTest {
 
     @MockitoBean
     private com.evolveum.midpoint.integration.catalog.repository.DownloadRepository downloadRepository;
+
+    // Collaborator of IntegrationMethodController; the others above are shared with Controller.
+    @MockitoBean
+    private com.evolveum.midpoint.integration.catalog.service.SupportTicketService supportTicketService;
 
     private static RequestPostProcessor readOnlyUser() {
         return oidcLogin().authorities(new SimpleGrantedAuthority("ROLE_ReadOnly"));
@@ -195,6 +201,30 @@ class AuthControllerTest {
     void reviewWorkflowIsSuperuserOnly() throws Exception {
         mockMvc.perform(post("/api/applications/1/integration-method/2/3/start-review")
                         .with(contributor()).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    // ---- integration method connectors ----
+
+    private static final String METHOD_CONNECTORS =
+            "/api/applications/{appId}/integration-method/{methodId}/{revision}/connectors";
+
+    /** The detail page lists a method's connectors to anyone, like the rest of the page. */
+    @Test
+    void listingConnectorsOfAMethodIsPublic() throws Exception {
+        when(applicationService.getConnectorsForIntegrationMethod(any(), eq("1.0"))).thenReturn(List.of());
+
+        mockMvc.perform(get(METHOD_CONNECTORS, UUID.randomUUID(), UUID.randomUUID(), "1.0"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void addingAConnectorNeedsAContributor() throws Exception {
+        mockMvc.perform(post(METHOD_CONNECTORS, UUID.randomUUID(), UUID.randomUUID(), "1.0")
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post(METHOD_CONNECTORS, UUID.randomUUID(), UUID.randomUUID(), "1.0")
+                        .with(readOnlyUser()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
     }
 }
