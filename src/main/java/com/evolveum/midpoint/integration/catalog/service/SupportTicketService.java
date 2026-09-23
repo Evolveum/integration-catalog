@@ -107,7 +107,7 @@ public class SupportTicketService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult openWorkPackage(IntegrationMethodSubmittedEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so {}/{} keeps waiting for its work package",
                     event.methodId(), event.revision());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");
@@ -283,7 +283,7 @@ public class SupportTicketService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult commentBuildOutcome(BuildFinishedEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so the build outcome of {}/{} keeps waiting",
                     event.methodId(), event.revision());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");
@@ -332,7 +332,7 @@ public class SupportTicketService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult appendConnector(ConnectorAddedToReviewEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so connector {} keeps waiting to be appended",
                     event.connectorId());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");
@@ -550,7 +550,7 @@ public class SupportTicketService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult attachTutorialFile(TutorialFileAddedEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so {} keeps waiting to be attached",
                     event.fileName());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");
@@ -762,7 +762,7 @@ public class SupportTicketService {
                     "Not allowed to see the support ticket of " + methodId + "/" + revision);
         }
 
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             return new SupportTicketDto(false, null, null, null, true, null);
         }
 

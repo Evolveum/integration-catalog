@@ -56,7 +56,7 @@ public class SupportTicketEventListener {
      * Records one operation and attempts it.
      */
     private void submit(String operation, Object event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             return;
         }
         pendingOperationService.submit(ExternalSystem.OPENPROJECT, operation, event);
