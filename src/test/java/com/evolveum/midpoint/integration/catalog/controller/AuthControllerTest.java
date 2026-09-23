@@ -122,8 +122,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.organizationName").value("acme"))
                 .andExpect(jsonPath("$.organizationDisplayName").value("Acme co."))
                 .andExpect(jsonPath("$.firstName").value("Olivia"))
-                .andExpect(jsonPath("$.lastName").value("Parker"))
-                .andExpect(jsonPath("$.iamProfileUrl").value("https://iam.example/account"));
+                .andExpect(jsonPath("$.lastName").value("Parker"));
     }
 
     @Test

@@ -67,7 +67,7 @@ class ApiKeyServiceTest {
                 .expiresAt(Instant.now().plusSeconds(300))
                 .claim("preferred_username", "olivia")
                 .build();
-        return new DefaultOidcUser(List.of(), idToken);
+        return new DefaultOidcUser(List.of(), idToken, "preferred_username");
     }
 
     private ApiKeyService serviceWith(GraviteeProperties properties) {
@@ -188,6 +188,7 @@ class ApiKeyServiceTest {
     private ApiKey ownedKey(UUID id) {
         ApiKey key = new ApiKey();
         key.setId(id);
+        key.setOwnerUsername("olivia");
         key.setName("qwe");
         key.setGraviteeSubscriptionId("sub-1");
         return key;
@@ -225,6 +226,7 @@ class ApiKeyServiceTest {
     void revokingAKeyOfAnotherUserIsNotFound() {
         UUID id = UUID.randomUUID();
         ApiKey key = ownedKey(id);
+        key.setOwnerUsername("someone-else");
         when(repository.findByIdForUpdate(id)).thenReturn(Optional.of(key));
 
         ResponseStatusException failure = assertThrows(ResponseStatusException.class,

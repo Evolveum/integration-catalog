@@ -34,7 +34,7 @@
             <div class="d-flex align-items-center">
               <input type="checkbox" class="im-checkbox flex-shrink-0 me-2" [checked]="isPicked(type.displayName)">
               <div class="im-card-text">
-                <div class="im-title">{{ type.displayName }}</div>
+                <div class="im-title" appOverflowTitle>{{ type.displayName }}</div>
                 <div class="im-desc" appOverflowTitle>{{ type.description }}</div>
               </div>
             </div>

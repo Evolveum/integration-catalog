@@ -182,7 +182,7 @@ class ConnectorUploadServiceApproveTest {
         draft = new IntegrationMethod();
         draft.setId(METHOD_ID);
         draft.setRevision(METHOD_REVISION);
-        draft.setLifecycleState(LifecycleType.IN_REVIEW);
+        draft.setLifecycleState(LifecycleType.REVIEWING);
         draft.setApplication(application);
 
         draftLink = new IntegrationMethodConnector();

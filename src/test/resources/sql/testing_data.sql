@@ -3,46 +3,58 @@
 --
 -- Licensed under the EUPL-1.2 or later.
 --
--- Seed/demo data. Run it LAST, after both schema scripts:
+-- Seed/demo data. Run it LAST, after both schema scripts, in one transaction:
 --
 --   psql ... -f config/sql/postgres.sql
 --   psql ... -f config/sql/postgres-upgrade.sql
---   psql ... -f src/test/resources/sql/testing_data.sql
+--   psql ... -1 -f src/test/resources/sql/testing_data.sql
 --
--- The upgrade script is not optional here even on a fresh database: schema changes go into it
--- alone, so postgres.sql lands behind and lacks both the organizations table this file writes to
--- and the author_email column beside it (changes 8 and 10). Skipping it fails with "relation organizations
--- does not exist".
-
 -- Users, roles and group membership live entirely in the identity provider (see
--- keycloak_for_auth/import/integration-catalog-realm.json for the dev test users); the
--- catalog database stores no user data. Organizations are the exception: the token claim
--- carries only the alias, so the display name lives in the organizations table and the rows
--- below mirror the organizations of the development realm.
+-- keycloak_for_auth/import/integration-catalog-realm.json for the dev test users):
+--   kcuser, u5 = Superuser (Evolveum)      u1 = OrganizationContributor (Acme)
+--   u3, u4     = IndividualContributor     u2 = ReadOnly
+-- The catalog only records who authored an item (authors) and who maintains it (maintainers);
+-- the maintainer alone decides who may edit (AuthService.canEdit). The four published
+-- integration methods of "My Test App" cover one maintainer kind each, so the "Edit and upgrade"
+-- flow can be tried from every role:
+--   Test 1 - maintained by Evolveum   -> superusers only
+--   Test 2 - maintained by Acme (org) -> u1 + superusers
+--   Test 3 - maintained by u3         -> u3 + superusers (not u4)
+--   Test 4 - maintained by Community  -> every contributor
 --
--- The id is left to the identity column and looked up by alias wherever an item below is owned
--- by an organization, so this file never has to know which number an organization was given.
+-- postgres.sql already seeds maintainers 1 (COMMUNITY) and 2 (EVOLVEUM) and author 1, so rows here
+-- start above those. Every identity sequence is re-synced at the end.
 
-INSERT INTO organizations (alias, name, description) VALUES
-    ('evolveum', 'Evolveum', 'Maintainer of midPoint and the Integration catalog'),
-    ('acme',     'Acme co.', 'Demo partner organization')
-ON CONFLICT (alias) DO NOTHING;
+-- ============================================================
+-- ORGANIZATIONS, AUTHORS, MAINTAINERS
+-- name = the Keycloak organization alias carried in the token claim
+-- ============================================================
+
+INSERT INTO organizations (id, name, display_name, description) OVERRIDING SYSTEM VALUE VALUES
+    (1, 'evolveum', 'Evolveum', 'Maintainer of midPoint and the Integration catalog'),
+    (2, 'acme',     'Acme co.', 'Demo partner organization');
+
+INSERT INTO authors (id, username, email) OVERRIDING SYSTEM VALUE VALUES
+    (2, 'u5', 'u5@example.com'),
+    (3, 'u1', 'u1@example.com'),
+    (4, 'u3', 'u3@example.com'),
+    (5, 'u4', 'u4@example.com');
+
+INSERT INTO maintainers (id, username, organization_id, category) OVERRIDING SYSTEM VALUE VALUES
+    (3, NULL, 2,    'ORG'),
+    (4, 'u3', NULL, 'USER');
 
 -- ============================================================
 -- LOOKUP TABLES
 -- ============================================================
 
-INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM VALUE VALUES    
+INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM VALUE VALUES
     (9, 'us', 'USA based', 'LOCALITY');
-
-SELECT setval('application_tag_id_seq', 9);
 
 INSERT INTO country_of_origin (id, name, display_name) OVERRIDING SYSTEM VALUE VALUES
     (1, 'czech_republic', 'Czech Republic'),
     (2, 'united_states_of_america', 'United States of America'),
     (3, 'germany', 'Germany');
-
-SELECT setval('country_of_origin_id_seq', 3);
 
 -- ============================================================
 -- APPLICATIONS
@@ -50,18 +62,17 @@ SELECT setval('country_of_origin_id_seq', 3);
 
 INSERT INTO application (id, name, display_name, description, lifecycle_state, created_at, updated, logo_path) VALUES
     ('11111111-1111-1111-1111-111111111111', 'my_test_app', 'My Test App',
-     'My Test App - Microsoft Active Directory LDAP connector for identity management', 'ACTIVE', NOW(), NOW(), null),
+     'Demo application with one published integration method per maintainer kind', 'ACTIVE', NOW(), NOW(), NULL),
     ('22222222-2222-2222-2222-222222222222', 'sap_hr', 'SAP HR',
      'SAP Human Resources system integration requested by the community. Some more text to test limit of chars that can hold in this DB column.'
      'SAP Human SAP Human SAP Human SAP Human SAP Human SAP Human SAP Human SAP .'
-     'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), null),
+     'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), NULL),
     ('33333333-3333-3333-3333-333333333333', 'empty_app', 'Empty App',
-     'Existing published application that currently has no integration methods or connectors', 'ACTIVE', NOW(), NOW(), null);
+     'Existing published application that currently has no integration methods or connectors', 'ACTIVE', NOW(), NOW(), NULL);
 
 INSERT INTO application_application_tag (application_id, tag_id) VALUES
     ('11111111-1111-1111-1111-111111111111', 1),
     ('11111111-1111-1111-1111-111111111111', 6),
-    -- Empty App: HR Systems category + On Premise deployment (so the sidebar is populated)
     ('33333333-3333-3333-3333-333333333333', 2),
     ('33333333-3333-3333-3333-333333333333', 5);
 
@@ -70,165 +81,143 @@ INSERT INTO application_origin (application_id, country_id) VALUES
     ('33333333-3333-3333-3333-333333333333', 3);
 
 -- ============================================================
--- CONNECTOR BUNDLES  (id 1..4)
+-- CONNECTOR BUNDLES, BUNDLE VERSIONS, CONNECTORS, CONNECTOR VERSIONS
 -- ============================================================
 
-INSERT INTO connector_bundle (id, revision, author, maintainer, created_at, updated, lifecycle_state,
-    bundle_name, display_name, description, framework, license, ticketing_link, build_framework,
-    author_org_id, author_category)
+INSERT INTO connector_bundle (id, revision, author, created_at, updated, lifecycle_state,
+    bundle_name, display_name, description, framework, license, ticketing_link, project_homepage,
+    git_clone_ulr, path_to_project, build_framework)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
-     'ConnId LDAP connector for Java-based', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues', 'MAVEN', NULL, 'Evolveum'),
-    (2, '1.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
-     'ConnId ServiceNow  with LOW CODE', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues', 'GRADLE', (SELECT id FROM organizations WHERE alias = 'acme'), 'Partner'),
-    (3, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 'com.evolveum.polygon.connector-csv', 'CSV File Connector Bundle',
-     'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues', 'MAVEN', NULL, 'Evolveum');
+    (1, '1.0', 2, NOW(), NOW(), 'ACTIVE', 'connector-ldap', 'LDAP Connector Bundle',
+     'ConnId LDAP connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-ldap/issues',
+     'https://github.com/Evolveum/connector-ldap', 'https://github.com/Evolveum/connector-ldap.git', NULL, 'MAVEN'),
+    (2, '1.0', 3, NOW(), NOW(), 'ACTIVE', 'connector-servicenow', 'ServiceNow Connector Bundle',
+     'ConnId ServiceNow connector, low code', 'LOW_CODE', 'MIT', 'https://github.com/ExampleOrg/connector-servicenow/issues',
+     'https://github.com/ExampleOrg/connector-servicenow', 'https://github.com/ExampleOrg/connector-servicenow.git', NULL, 'GRADLE'),
+    (3, '1.0', 2, NOW(), NOW(), 'ACTIVE', 'com.evolveum.polygon.connector-csv', 'CSV File Connector Bundle',
+     'ConnId CSV file connector', 'JAVA_BASED', 'APACHE_2', 'https://github.com/Evolveum/connector-csv/issues',
+     'https://github.com/Evolveum/connector-csv', 'https://github.com/Evolveum/connector-csv.git', NULL, 'MAVEN');
 
-SELECT setval('connector_bundle_id_seq', 4);
+INSERT INTO connector_bundle_maintainers (connector_bundle_id, maintainer_id) VALUES
+    (1, 2),
+    (2, 3),
+    (3, 2);
 
--- ============================================================
--- CONNECTOR BUNDLE VERSIONS  (id 1..4, composite PK id+revision)
--- ============================================================
-
-INSERT INTO connector_bundle_version (id, revision, author, maintainer, created_at, updated,
-    lifecycle_state, connector_bundle_id, bundle_version, browse_link, git_clone_ULR,
-    path_to_project, build_framework, artifact_url, error_message,
-    author_org_id, author_category)
+INSERT INTO connector_bundle_version (id, revision, author, created_at, updated, lifecycle_state,
+    connector_bundle_id, bundle_version, browse_link, git_clone_ulr, path_to_project, build_framework,
+    commit_tag, artifact_url, error_message)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0', 'u5','u5', NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
-     'https://github.com/Evolveum/connector-ldap.git', '/path_to_project', 'MAVEN', NULL, NULL, NULL, 'Evolveum'),
-    (2, '1.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-salesforce/tree/1.0.5',
-     'https://github.com/ExampleOrg/connector-salesforce.git', '/path_to_project', NULL, NULL, NULL, (SELECT id FROM organizations WHERE alias = 'acme'), 'Partner'),
-    (3, '1.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 3, '2.9',
+    (1, '1.0', 2, NOW(), NOW(), 'ACTIVE', 1, '3.8', 'https://github.com/Evolveum/connector-ldap/tree/v3.8',
+     'https://github.com/Evolveum/connector-ldap.git', NULL, 'MAVEN', 'v3.8', NULL, NULL),
+    (2, '1.0', 3, NOW(), NOW(), 'ACTIVE', 2, '1.5.0', 'https://github.com/ExampleOrg/connector-servicenow/tree/1.5.0',
+     'https://github.com/ExampleOrg/connector-servicenow.git', NULL, 'GRADLE', '1.5.0', NULL, NULL),
+    (3, '1.0', 2, NOW(), NOW(), 'ACTIVE', 3, '2.9',
      'https://nexus.evolveum.com/nexus/#browse/browse:releases:com%2Fevolveum%2Fpolygon%2Fconnector-csvfile',
-     'https://github.com/Evolveum/connector-csv.git', '/path_to_project', 'MAVEN',
-     'https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar', NULL, NULL, 'Evolveum');
+     'https://github.com/Evolveum/connector-csv.git', NULL, 'MAVEN', 'v2.9',
+     'https://nexus.evolveum.com/nexus/repository/releases/com/evolveum/polygon/connector-csvfile/1.4.2.0/connector-csvfile-1.4.2.0.jar', NULL);
 
-SELECT setval('connector_bundle_version_id_seq', 4);
-
--- ============================================================
--- CONNECTORS  (id 1..4)
--- ============================================================
+INSERT INTO connector_bundle_version_maintainers (connector_bundle_version_id, connector_bundle_version_revision, maintainer_id) VALUES
+    (1, '1.0', 2),
+    (2, '1.0', 3),
+    (3, '1.0', 2);
 
 INSERT INTO connector (id, revision, author, maintainer, created_at, updated, display_name,
     fully_qualified_class_name, connector_bundle_id, description, cloned_from)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0.0', 'Conn author 1', 'u5', NOW(), NOW(), 'Display name Connector Java-based',
-	'Fully.qualified.conn.class.name.1', 1, 'Description Connector 1', NUll),
-    (2, '1.0.0', 'Conn author 2', 'u5', NOW(), NOW(), 'Display name Connector LOW CODE',
-	'Fully.qualified.conn.class.name.2', 2, 'Description connector 2', NUll),
-    (3, '1.0.0', 'Conn author 3', 'u5', NOW(), NOW(), 'CSV File Connector',
-	'com.evolveum.polygon.connector.csv.CsvConnector', 3, 'CSV file connector', NUll);
-
-SELECT setval('connector_id_seq', 3);
+    (1, '1.0', 2, 2, NOW(), NOW(), 'LDAP Connector',
+     'com.evolveum.polygon.connector.ldap.LdapConnector', 1, 'LDAP connector', NULL),
+    (2, '1.0', 3, 3, NOW(), NOW(), 'ServiceNow Connector',
+     'com.example.connector.servicenow.ServiceNowConnector', 2, 'ServiceNow low-code connector', NULL),
+    (3, '1.0', 2, 2, NOW(), NOW(), 'CSV File Connector',
+     'com.evolveum.polygon.connector.csv.CsvConnector', 3, 'CSV file connector', NULL);
 
 INSERT INTO connector_connector_tag (connector_id, tag_id) VALUES
     (1, 1);
 
--- The obsolete tag comes from postgres-upgrade.sql change 8, so it is looked up by name. Connector 3 is
--- linked to an active integration method, so the warning shows in the UI.
+-- The obsolete tag comes from a postgres-upgrade.sql change, so it is looked up by name (no row when absent).
 INSERT INTO connector_connector_tag (connector_id, tag_id)
 SELECT 3, id FROM connector_tag WHERE name = 'obsolete';
 
-SELECT setval('connector_connector_tag_id_seq', 1);
-
--- ============================================================
--- CONNECTOR VERSIONS  (id 1..4, composite PK id+revision)
--- FK references connector_bundle_version(id, revision)
--- ============================================================
-
 INSERT INTO connector_version (id, revision, author, maintainer, created_at, updated,
     lifecycle_state, connector_bundle_version_id, connector_bundle_version_revision,
-    connector_id, fully_qualified_class_name, error_message, author_org_id, author_category)
+    connector_id, fully_qualified_class_name, error_message)
 OVERRIDING SYSTEM VALUE VALUES
-    (1, '1.0.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'Fully.qualified.conn.ver.class.name.1', NULL, NULL, 'Evolveum'),
-    (2, '1.0.0', 'u1', 'u5', NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'Fully.qualified.conn.ver.class.name.2', NULL, (SELECT id FROM organizations WHERE alias = 'acme'), 'Partner'),
-    (3, '1.0.0', 'u5', 'u5', NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL, NULL, 'Evolveum');
-
-SELECT setval('connector_version_id_seq', 3);
+    (1, '1.0', 2, 2, NOW(), NOW(), 'ACTIVE', 1, '1.0', 1, 'com.evolveum.polygon.connector.ldap.LdapConnector', NULL),
+    (2, '1.0', 3, 3, NOW(), NOW(), 'ACTIVE', 2, '1.0', 2, 'com.example.connector.servicenow.ServiceNowConnector', NULL),
+    (3, '1.0', 2, 2, NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL);
 
 -- ============================================================
--- INTEGRATION METHODS  (composite PK uuid + revision)
+-- INTEGRATION METHODS  (composite PK uuid + revision; midpoint versions are midpoint_version ids)
 -- ============================================================
 
--- 'Test 2' is published the way an organization contributor publishes for their
--- organization: no maintainer username, the organization maintains it.
-INSERT INTO integration_method (id, application_id, display_name, description,
-     tutorial, file_path,  midpoint_minVersion, midpoint_maxVersion, lifecycle_state, revision, author, maintainer, created_at, updated, app_version, reviewed_by,
-     author_org_id, author_category, maintainer_org_id, author_email)
+INSERT INTO integration_method (id, application_id, display_name, description, limitations,
+     tutorial, file_path, midpoint_minversion, midpoint_maxversion, lifecycle_state, revision,
+     author, maintainer, created_at, updated, app_version, reviewed_by)
 VALUES
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111','Test 1 - Integration method','Test 1 - Integration method description',
-	 'Tutorial 1','/file_path',5,6,'ACTIVE','1.0','IM author 1','u5',NOW(),NOW(),'2025.1',NULL,NULL,NULL,NULL,NULL),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111', 'Test 2 - Integration method','Test 2 - Integration method description',
-	 'Tutorial 2','/file_path',4,8,'ACTIVE','1.0','u1',NULL,NOW(),NOW(),'2024.2',NULL,
-     (SELECT id FROM organizations WHERE alias = 'acme'),'Partner',
-     (SELECT id FROM organizations WHERE alias = 'acme'),'u1@example.com');
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111',
+     'Test 1 - Evolveum maintained', 'LDAP-based method maintained by Evolveum',
+     'Nested groups are not resolved.', 'Tutorial 1', NULL, 5, 9, 'ACTIVE', '1.0', 2, 2, NOW(), NOW(), '2025.1', 'u5'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111',
+     'Test 2 - Acme maintained', 'ServiceNow method maintained by the Acme organization',
+     NULL, 'Tutorial 2', NULL, 4, 8, 'ACTIVE', '1.0', 3, 3, NOW(), NOW(), '2024.2', 'u5'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111',
+     'Test 3 - u3 maintained', 'CSV export method maintained by the individual contributor u3',
+     'Deletes are not propagated; rows must be removed by hand.', 'Tutorial 3', NULL, 6, 10, 'ACTIVE', '1.0', 4, 4, NOW(), NOW(), '3.2', 'u5'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', '11111111-1111-1111-1111-111111111111',
+     'Test 4 - Community maintained', 'LDAP method open to every contributor',
+     NULL, 'Tutorial 4', NULL, 7, NULL, 'ACTIVE', '2.0', 5, 1, NOW(), NOW(), '2025.2', 'u5');
 
--- ============================================================
--- INTEGRATION METHOD → CONNECTOR links
--- unique constraint: one connector link per (integ_method_id, integ_method_revision)
--- ============================================================
-
-INSERT INTO integration_method_connector (id, integ_method_id, integ_method_revision,
-    connector_id, connector_minVersion, connector_maxVersion)
+INSERT INTO integration_method_connector (integ_method_id, integ_method_revision,
+    connector_id, connector_minversion, connector_maxversion)
 VALUES
-    (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 3, '4.7', '4.9'),
-    (2, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 2, '4.3', '4.5');
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 1, '3.8', NULL),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 2, '1.5.0', NULL),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', '1.0', 3, '2.9', NULL),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', '2.0', 1, '3.8', NULL);
 
-SELECT setval('integration_method_connector_id_seq', 2);
+-- Types: 1 Native/Proprietary API, 2 Standardized API, 3 Intermediary directory service,
+-- 4 Direct repository access, 5 File-based integration, ...
+INSERT INTO int_method_int_method_type (integration_method_id, integration_method_revision, integration_method_type_id) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 2),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 3),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 1),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', '1.0', 5),
+    ('dddddddd-dddd-dddd-dddd-dddddddddddd', '2.0', 3);
 
 -- ============================================================
--- INTEGRATION METHOD → INTEGRATION METHOD TYPE links
--- unique constraint: one int method type link per (integ_method_id, integ_method_revision)
--- ============================================================
-
-INSERT INTO int_method_int_method_type (id, integration_method_id, integration_method_revision, integration_method_type_id) OVERRIDING SYSTEM VALUE
-VALUES
-    (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 1),
-	(2, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 2),
-	(3, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 3);
-
-SELECT setval('int_method_int_method_type_id_seq', 3);
-	
--- ============================================================
--- INTEGRATION METHOD CAPABILITIES
--- (no IDENTITY on id — explicit values required)
+-- CAPABILITIES
+-- Methods may only offer capabilities with offered_for_method = true:
+-- SEARCH(9) READ(10) CREATE(11) UPDATE(12) DELETE(15) LIVE_SYNC(16) PASSWORD(19) ACTIVATION(20) ASSOCIATIONS(21)
 -- ============================================================
 
 INSERT INTO integration_method_capability (id, integ_method_id, integ_method_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
     (1, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Account'),
     (2, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Group'),
-    (3, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '1.0', 'Global');
-
-SELECT setval('integration_method_capability_id_seq', 3);
+    (3, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '1.0', 'Account'),
+    (4, 'cccccccc-cccc-cccc-cccc-cccccccccccc', '1.0', 'Account'),
+    (5, 'dddddddd-dddd-dddd-dddd-dddddddddddd', '2.0', 'Account'),
+    (6, 'dddddddd-dddd-dddd-dddd-dddddddddddd', '2.0', 'Group');
 
 INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id) VALUES
-    -- Account: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
-    (1,11),(1,10),(1,12),(1,15),(1,17),(1,18),
-    -- Group: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1)
-    (2,11),(2,10),(2,12),(2,15),
-    -- Global: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
-    (3,1),(3,2),(3,3),(3,4),(3,5),(3,6);
+    (1,9),(1,10),(1,11),(1,12),(1,15),(1,19),(1,20),
+    (2,9),(2,10),(2,11),(2,12),(2,15),(2,21),
+    (3,10),(3,11),(3,12),(3,16),
+    (4,9),(4,10),(4,11),
+    (5,9),(5,10),(5,11),(5,12),(5,15),
+    (6,10),(6,21);
 
--- ============================================================
--- CONNECTOR VERSION CAPABILITIES
--- (no IDENTITY on id — explicit values required)
--- ============================================================
-
+-- Connector versions may carry any capability, including the connector-only ones.
 INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
-    (1, 3, '1.0.0', 'Account'),
-    (2, 3, '1.0.0', 'Group'),
-    (3, 3, '1.0.0', 'Global');
-
-SELECT setval('conn_version_capability_id_seq', 3);
+    (1, 1, '1.0', 'Account'),
+    (2, 1, '1.0', 'Group'),
+    (3, 1, '1.0', 'Global'),
+    (4, 3, '1.0', 'Account');
 
 INSERT INTO conn_version_capability_item (conn_version_capability_id, capability_id) VALUES
-    -- Account: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
-    (1,11),(1,10),(1,12),(1,15),(1,17),(1,18),
-    -- Group: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1)
-    (2,11),(2,10),(2,12),(2,15),
-    -- Global: CREATE(11) GET(10) UPDATE(12) DELETE(15) TEST(1) SCRIPT_ON_CONNECTOR(6) SCRIPT_ON_RESOURCE(7) AUTHENTICATION(5)
-    (3,1),(3,2),(3,3),(3,4),(3,5),(3,6);
+    (1,9),(1,10),(1,11),(1,12),(1,15),(1,19),(1,20),
+    (2,9),(2,10),(2,11),(2,12),(2,15),(2,21),
+    (3,1),(3,2),(3,4),(3,5),(3,6),(3,17),
+    (4,9),(4,10),(4,11),(4,12),(4,15);
 
 -- ============================================================
 -- REQUEST for SAP HR (REQUESTED lifecycle)
@@ -236,8 +225,6 @@ INSERT INTO conn_version_capability_item (conn_version_capability_id, capability
 
 INSERT INTO request (id, application_id, requester, mail, collab, base_url, system_version) OVERRIDING SYSTEM VALUE VALUES
     (1, '22222222-2222-2222-2222-222222222222', 'jane', 'jane@example.com', true, 'https://sap-hr.example.com', '2024');
-
-SELECT setval('request_id_seq', 1);
 
 INSERT INTO object_class_capabilities (request_id, object_name, capabilities) VALUES
     (1, 'Account', ARRAY['CREATE','READ','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),
@@ -248,7 +235,7 @@ INSERT INTO vote (request_id, voter) VALUES
     (1, 'u2');
 
 -- ============================================================
--- SAMPLE DOWNLOADS (AD connector — connector_bundle_version id=1)
+-- SAMPLE DOWNLOADS
 -- ============================================================
 
 INSERT INTO download (connector_bundle_version_id, connector_bundle_version_revision, ip_address, user_agent, downloaded_at) VALUES
@@ -256,4 +243,21 @@ INSERT INTO download (connector_bundle_version_id, connector_bundle_version_revi
     (1, '1.0', '10.0.0.5',      'Firefox,Desktop', NOW() - INTERVAL '2 days'),
     (1, '1.0', '172.16.0.10',   'Chrome,Mobile',   NOW() - INTERVAL '1 day'),
     (2, '1.0', '192.168.1.101', 'Chrome,Desktop',  NOW() - INTERVAL '5 days');
-	
+
+-- ============================================================
+-- Re-sync every identity sequence past the explicit ids above
+-- ============================================================
+
+DO $$
+DECLARE
+    col record;
+BEGIN
+    FOR col IN
+        SELECT table_name, column_name FROM information_schema.columns
+         WHERE table_schema = 'public' AND is_identity = 'YES'
+    LOOP
+        EXECUTE format(
+            'SELECT setval(pg_get_serial_sequence(%L, %L), COALESCE(MAX(%I), 1), MAX(%I) IS NOT NULL) FROM %I',
+            col.table_name, col.column_name, col.column_name, col.column_name, col.table_name);
+    END LOOP;
+END $$;
