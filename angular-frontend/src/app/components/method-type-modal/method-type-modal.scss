@@ -19,7 +19,7 @@
 .method-type-dialog {
   pointer-events: auto;
   width: 100%;
-  max-width: 720px;
+  max-width: 1000px;
   max-height: 85vh;
 }
 
@@ -32,7 +32,9 @@
 
 .im-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* minmax(0, ...) lets a column shrink below its nowrap title, which then ellipsizes instead of
+     pushing the grid out of the dialog */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: 90px;
   gap: 1rem;
 }
