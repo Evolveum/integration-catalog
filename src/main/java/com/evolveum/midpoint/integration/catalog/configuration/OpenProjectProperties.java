@@ -23,7 +23,8 @@ public record OpenProjectProperties(
         Integer typeId,
         List<String> watchers,
         boolean trustAllCertificates,
-        List<CustomField> customField
+        List<CustomField> customField,
+        Boolean enabled
 ) {
 
     public record CustomField(
@@ -41,11 +42,12 @@ public record OpenProjectProperties(
                 .filter(watcher -> watcher != null && !watcher.isBlank())
                 .map(String::trim)
                 .toList();
+        enabled = enabled == null || enabled;
     }
 
     /** Whether the portal is configured at all; when false the catalog behaves as it did before. */
-    public boolean enabled() {
-        return url != null && !url.isBlank();
+    public boolean isEnabled() {
+        return Boolean.TRUE.equals(enabled) && url != null && !url.isBlank();
     }
 
     /** Browser URL of a work package, for the reviewer's and the author's links. */

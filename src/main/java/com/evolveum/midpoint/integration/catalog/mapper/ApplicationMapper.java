@@ -233,7 +233,7 @@ public class ApplicationMapper {
     private Integer visibleSupportTicketId(IntegrationMethod method, String viewer) {
         if (viewer == null || viewer.isBlank()
                 || method.getSupportTicketId() == null
-                || !openProjectProperties.enabled()) {
+                || !openProjectProperties.isEnabled()) {
             return null;
         }
         // The organization ids are part of the check: an item maintained by an organization
