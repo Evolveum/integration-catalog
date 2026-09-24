@@ -307,6 +307,7 @@ export class IntegrationMethodDetail implements OnInit {
     APACHE_2: 'Apache 2.0',
     BSD: 'BSD',
     EUPL: 'EUPL 1.2',
+    CDDL: 'CDDL'
   };
 
   protected formatLicense(value: string): string {

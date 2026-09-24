@@ -35,7 +35,8 @@ public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer
         MIT,
         APACHE_2,
         BSD,
-        EUPL
+        EUPL,
+        CDDL
     }
 
     @Id

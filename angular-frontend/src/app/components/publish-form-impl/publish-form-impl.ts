@@ -116,12 +116,13 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
+  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL', 'CDDL'];
   protected readonly licenseLabels: Record<string, string> = {
     'MIT': 'MIT',
     'APACHE_2': 'Apache 2.0',
     'BSD': 'BSD',
-    'EUPL': 'EUPL 1.2'
+    'EUPL': 'EUPL 1.2',
+    'CDDL': 'CDDL'
   };
   protected fmtLicense(key: string): string {
     return this.licenseLabels[key] ?? key;

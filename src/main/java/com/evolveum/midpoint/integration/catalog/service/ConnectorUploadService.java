@@ -780,6 +780,8 @@ public class ConnectorUploadService {
             if (group.objectClass() == null || group.objectClass().isBlank()) {
                 continue;
             }
+
+            //TODO object can have name 'Global' -> you see some problem with this?
             // Resource-wide capabilities are the connector's; a method that still sends them is ignored.
             if (GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.objectClass())) {
                 continue;

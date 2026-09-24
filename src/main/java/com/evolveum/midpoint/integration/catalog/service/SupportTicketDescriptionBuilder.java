@@ -354,6 +354,8 @@ public class SupportTicketDescriptionBuilder {
         return value == null ? null : sentenceCase(value.name());
     }
 
+
+    //TODO add display name as string to enum LicenseType, and use this enum in GUI (don't repeat options for every use)
     /**
      * Licenses are proper names rather than words, so casing rules do not help: they are spelled out
      * the way the publish form offers them.
@@ -367,6 +369,7 @@ public class SupportTicketDescriptionBuilder {
             case APACHE_2 -> "Apache 2.0";
             case BSD -> "BSD";
             case EUPL -> "EUPL 1.2";
+            case CDDL -> "CDDL";
         };
     }
 

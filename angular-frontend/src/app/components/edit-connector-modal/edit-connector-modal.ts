@@ -99,9 +99,9 @@ export class EditConnectorModal implements OnInit {
    */
   protected isInitialVersion = true;
 
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
+  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL', 'CDDL'];
   protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
+    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2', 'CDDL': 'CDDL'
   };
 
   // ── Validation ────────────────────────────────────────────

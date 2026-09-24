@@ -563,6 +563,17 @@ SELECT imc.id, c.id, 'NO'
    AND NOT EXISTS (SELECT 1 FROM integration_method_capability_item i
                     WHERE i.integration_method_capability_id = imc.id AND i.capability_id = c.id);
 $aa$);
+
+-- region change 17: integration_method_capability_item.state
+-- A method's capability is now YES, NO or UNKNOWN instead of "linked or not", so a consumer can tell
+-- a confirmed gap from one nobody determined. Every object of a method carries a row for every
+-- capability offered to methods; the connector side (conn_version_capability_item) is untouched.
+--
+-- Existing links become YES. The offered capabilities an object was missing become NO, since an
+-- absent link meant "not supported" until now.
+call apply_change(17, $aa$
+ALTER TYPE LicenseType ADD VALUE IF NOT EXISTS 'CDDL';
+$aa$);
 -- end of region
 
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
