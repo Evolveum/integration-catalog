@@ -75,7 +75,10 @@ public class Connector implements SetOwnership, GetOwnershipOneMaintainer {
     @OneToMany(mappedBy = "connector", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ConnectorConnectorTag> connectorConnectorTags;
 
-    public static Connector createConnectorDraft(Connector source) {
+    /**
+     * @param bundle the bundle the clone belongs to, itself a draft of the source's bundle
+     */
+    public static Connector createConnectorDraft(Connector source, ConnectorBundle bundle) {
         Connector clone = new Connector();
         clone.setRevision(source.getRevision());
         clone.setAuthor(source.getAuthor());
@@ -83,7 +86,9 @@ public class Connector implements SetOwnership, GetOwnershipOneMaintainer {
         clone.setDisplayName(source.getDisplayName());
         clone.setFullyQualifiedClassName(source.getFullyQualifiedClassName());
         clone.setDescription(source.getDescription());
-        clone.setClonedFrom(source.getClonedFrom());
+        clone.setConnectorBundle(bundle);
+        // Always the first original, so a clone of a clone still folds back into it on approve.
+        clone.setClonedFrom(source.getClonedFrom() != null ? source.getClonedFrom() : source.getId());
         // A version-bump approval deletes the original and keeps the this, so the tags must travel with it.
         Set<ConnectorConnectorTag> thisTags = new HashSet<>();
         if (source.getConnectorConnectorTags() != null) {

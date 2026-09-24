@@ -978,7 +978,7 @@ public class ConnectorUploadService {
         ConnectorBundle bundle = ConnectorBundle.createConnectorBundleDraft(srcBundle);
         connectorBundleRepository.save(bundle);
 
-        Connector connectorClone = Connector.createConnectorDraft(src);
+        Connector connectorClone = Connector.createConnectorDraft(src, bundle);
         connectorRepository.save(connectorClone);
 
         //TODO why do we need it? We want new version (that have to be approved), but we don't need copy of all older versions?

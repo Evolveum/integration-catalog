@@ -9,6 +9,7 @@ import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/h
 import { catchError, map, Observable, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
+  communityMaintainer,
   Maintainer,
   maintainerLabel,
   organizationMaintainer,
@@ -180,8 +181,8 @@ export class AuthService {
 
   /**
    * Options for the maintainer combobox of a non-superuser: the organization plus the user
-   * themselves for an organization contributor, otherwise just the user. A superuser picks from
-   * {@link getAllMaintainers} instead.
+   * themselves for an organization contributor, otherwise just the user; Community for everyone.
+   * A superuser picks from {@link getAllMaintainers} instead.
    */
   maintainerOptions(): Maintainer[] {
     const user = this._currentUser();
@@ -189,10 +190,10 @@ export class AuthService {
     if (this._currentRole() === UserRole.OrganizationContributor) {
       const alias = this._currentOrganizationName();
       if (alias) {
-        return [organizationMaintainer(alias, this._currentOrganizationDisplayName()), ...self];
+        return [organizationMaintainer(alias, this._currentOrganizationDisplayName()), ...self, communityMaintainer()];
       }
     }
-    return self;
+    return [...self, communityMaintainer()];
   }
 
   /**
