@@ -10,9 +10,13 @@ import { ApplicationService } from '../../services/application.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { CapabilityState, IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
 
-/** Mirrors the backend rule: at least one object, and every object supports something. */
-export function imCapabilitiesValid(groups: IntegrationMethodObjectCapabilities[]): boolean {
-  return groups.length > 0 && groups.every(g => g.capabilities.some(c => c.state === 'YES'));
+/**
+ * Every object sent supports something (the backend rule), and there is at least one object unless
+ * {@code allowNone}: a superuser may publish a method without capabilities. The backend never
+ * required an object, so that exception lives here only.
+ */
+export function imCapabilitiesValid(groups: IntegrationMethodObjectCapabilities[], allowNone = false): boolean {
+  return (allowNone || groups.length > 0) && groups.every(g => g.capabilities.some(c => c.state === 'YES'));
 }
 
 interface Entry {
