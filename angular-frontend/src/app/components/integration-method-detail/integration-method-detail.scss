@@ -325,9 +325,10 @@
   border-radius: 4px;
   overflow: hidden;
 
-  // Rendered AsciiDoc tutorial (read-only).
+  // Rendered markdown tutorial (read-only).
   .view-tutorial-content {
     padding: 1rem;
+    overflow-wrap: anywhere;
     min-height: 200px;
     font-size: 0.875rem;
     overflow-x: auto;
