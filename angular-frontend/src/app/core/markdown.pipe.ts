@@ -16,6 +16,8 @@ export class MarkdownPipe implements PipeTransform {
   transform(text: string | null | undefined): string {
     if (!text?.trim()) return '';
     // The renderer reads nothing from an editor but its options; an empty set is the defaults.
-    return (EasyMDE.prototype.markdown as (this: unknown, text: string) => string).call({ options: {} }, text);
+    // Not in EasyMDE's typings, though it has shipped since the first release, hence the cast.
+    const prototype = EasyMDE.prototype as unknown as { markdown(this: unknown, text: string): string };
+    return prototype.markdown.call({ options: {} }, text);
   }
 }
