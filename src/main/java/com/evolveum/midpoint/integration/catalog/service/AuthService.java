@@ -22,9 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Identity questions, answered from the token claims of the current session plus the organizations
@@ -78,44 +76,26 @@ public class AuthService {
     }
 
     /**
-     * Maintainer options for a superuser: every maintainer the catalog already has, plus every
-     * user of the realm and every organization that has not been one yet. The latter two carry no
-     * id - the row is created when an item is first published under them.
+     * Maintainer options for a superuser: Community, then every user of the realm and every
+     * organization. Users and organizations carry no id; assigning one reuses its existing row or
+     * creates it. The catalog-wide EVOLVEUM row is left out, as it read the same as the evolveum
+     * organization.
      */
     public List<MaintainerDto> getAllMaintainers() {
         List<MaintainerDto> all = new ArrayList<>();
-        Set<String> takenUsernames = new LinkedHashSet<>();
-        Set<String> takenOrganizations = new LinkedHashSet<>();
-
-        for (Maintainer maintainer : maintainerRepository.findAll()) {
-            all.add(ownershipService.toDto(maintainer));
-
-            switch (maintainer.getCategory()){
-                case USER -> takenUsernames.add(maintainer.getUsername().toLowerCase());
-                case ORG -> takenOrganizations.add(maintainer.getOrganization().getName().toLowerCase());
-            }
-        }
 
         keycloakUserDirectory.listUsernames().stream()
-                .filter(username -> !takenUsernames.contains(username.toLowerCase()))
                 .map(username -> new MaintainerDto(null, username, null, MaintainerType.USER, username))
                 .forEach(all::add);
 
         organizationService.allNames().stream()
-                .filter(alias -> !takenOrganizations.contains(alias.toLowerCase()))
                 .map(alias -> new MaintainerDto(
                         null, null, alias, MaintainerType.ORG, organizationService.displayName(alias)))
                 .forEach(all::add);
 
-        // The two catalog-wide rows first, then everything else by what it is shown as, so the
-        // list reads the same however the rows happen to be ordered in the table.
-        all.sort(Comparator
-                .comparingInt((MaintainerDto m) -> switch (m.category()) {
-                    case EVOLVEUM -> 0;
-                    case COMMUNITY -> 1;
-                    default -> 2;
-                })
-                .thenComparing(MaintainerDto::label, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)));
+        all.sort(Comparator.comparing(MaintainerDto::label, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)));
+        maintainerRepository.findByCategory(MaintainerType.COMMUNITY)
+                .ifPresent(community -> all.add(0, ownershipService.toDto(community)));
         return all;
     }
 

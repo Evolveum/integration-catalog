@@ -35,6 +35,7 @@ export interface ReviewSummary {
   methodDescription: string;
   methodLimitations: string;
   methodTutorial: string;
+  methodMaintainer: Maintainer | null;
   applicationDescription: string;
   origins: string[];
   category: string;
@@ -96,6 +97,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
   protected readonly connectorVersion = signal<string>('');
   protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerLabel = maintainerLabel;
   protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
@@ -409,6 +411,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
         description: summary?.methodDescription ?? '',
         limitations: summary?.methodLimitations ?? '',
         tutorial: summary?.methodTutorial ?? '',
+        maintainer: summary?.methodMaintainer ?? null,
         typeIds: summary?.methodTypeIds ?? [],
         midpointMinVersion: this.midpointMinVersionId(),
         midpointMaxVersion: this.midpointMaxVersionId()

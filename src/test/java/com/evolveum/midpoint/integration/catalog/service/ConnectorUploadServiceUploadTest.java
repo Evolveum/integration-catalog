@@ -116,7 +116,7 @@ class ConnectorUploadServiceUploadTest {
 
         UploadIntegrationMethodDto method = new UploadIntegrationMethodDto(
                 null, "PeopleSoft via HCM connector", "1.0", "Method description", null,
-                null, List.of(), 5, 9);
+                null, MAINTAINER, List.of(), 5, 9);
 
         UploadConnectorDto connector = new UploadConnectorDto(
                 "PeopleSoft HCM connector", ConnectorBundle.FrameworkType.JAVA_BASED, "1.0.0",

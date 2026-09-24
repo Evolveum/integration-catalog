@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -248,10 +249,9 @@ class AuthServiceTest {
     }
 
     @Test
-    void allMaintainersMergeTheCatalogsRowsWithTheRealmAndTheOrganizations() {
-        when(maintainerRepository.findAll()).thenReturn(List.of(
-                seeded(1L, MaintainerType.COMMUNITY), seeded(2L, MaintainerType.EVOLVEUM),
-                createUserMaintainer("ben")));
+    void allMaintainersAreCommunityThenTheRealmAndTheOrganizations() {
+        when(maintainerRepository.findByCategory(MaintainerType.COMMUNITY))
+                .thenReturn(Optional.of(seeded(1L, MaintainerType.COMMUNITY)));
         when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("olivia", "ben"));
         when(organizationService.allNames()).thenReturn(List.of(ACME));
@@ -259,8 +259,8 @@ class AuthServiceTest {
 
         List<MaintainerDto> all = authService.getAllMaintainers();
 
-        // The two catalog-wide rows first, then everything else by label; ben is not repeated.
-        assertEquals(List.of("Evolveum", "Community", "Acme co.", "ben", "olivia"),
+        // Community first, then everything else by label; the EVOLVEUM row is never offered.
+        assertEquals(List.of("Community", "Acme co.", "ben", "olivia"),
                 all.stream().map(MaintainerDto::label).toList());
         assertEquals(MaintainerType.ORG,
                 all.stream().filter(m -> "Acme co.".equals(m.label())).findFirst().orElseThrow().category());
@@ -268,22 +268,13 @@ class AuthServiceTest {
 
     @Test
     void allMaintainersSurviveAnUnreachableRealm() {
-        when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("ben")));
+        when(maintainerRepository.findByCategory(MaintainerType.COMMUNITY))
+                .thenReturn(Optional.of(seeded(1L, MaintainerType.COMMUNITY)));
         when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
         when(keycloakUserDirectory.listUsernames()).thenReturn(List.of());
         when(organizationService.allNames()).thenReturn(List.of());
 
-        assertEquals(List.of("ben"), authService.getAllMaintainers().stream().map(MaintainerDto::label).toList());
-    }
-
-    @Test
-    void allMaintainersDoNotRepeatAUserWhoseCaseDiffersBetweenSources() {
-        when(maintainerRepository.findAll()).thenReturn(List.of(createUserMaintainer("olivia")));
-        when(ownershipService.toDto(any())).thenAnswer(call -> dtoOf(call.getArgument(0)));
-        when(keycloakUserDirectory.listUsernames()).thenReturn(List.of("Olivia"));
-        when(organizationService.allNames()).thenReturn(List.of());
-
-        assertEquals(1, authService.getAllMaintainers().size());
+        assertEquals(List.of("Community"), authService.getAllMaintainers().stream().map(MaintainerDto::label).toList());
     }
 
     /** What OwnershipService.toDto does, as far as these tests need it. */

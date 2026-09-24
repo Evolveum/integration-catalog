@@ -70,6 +70,7 @@ export interface UploadIntegrationMethodData {
   revision: string;               // integration_method.revision
   description: string;            // integration_method.description
   tutorial: string;               // integration_method.tutorial
+  maintainer: Maintainer | null;  // integration_method.maintainer
   typeIds: number[];              // integration_method_type.id
   midpointMinVersion: number | null; // midpoint_version.id (FK for min version)
   midpointMaxVersion: number | null; // midpoint_version.id (FK for max version)

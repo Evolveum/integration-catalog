@@ -617,6 +617,12 @@
             <div class="d-flex align-items-center gap-2 mb-1">
               <span class="review-detail-name">{{ reviewSummary?.methodName }}</span>
             </div>
+            @if (reviewSummary?.methodMaintainer) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Maintainer:</span>
+                <span class="review-detail-value">{{ maintainerLabel(reviewSummary?.methodMaintainer) }}</span>
+              </div>
+            }
             <p class="review-description mb-0">Integration method description: {{ reviewSummary?.methodDescription }}</p>
           </div>
         </div>

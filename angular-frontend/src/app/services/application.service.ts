@@ -258,7 +258,7 @@ export class ApplicationService {
     appId: string,
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null }
+    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null; maintainer: Maintainer | null }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,

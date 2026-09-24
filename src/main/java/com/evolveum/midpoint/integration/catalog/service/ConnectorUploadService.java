@@ -15,6 +15,7 @@ import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodObjectCapabilitiesDto;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationMethodDto;
@@ -107,7 +108,10 @@ public class ConnectorUploadService {
         ApplicationResolution appRes = resolveApplication(dto);
         UploadResolution uploadRes = resolveUpload(dto, appRes.application(), username);
 
-        ownershipService.stampNew(uploadRes.integrationMethod(), username, dto.connector().maintainer());
+        MaintainerDto methodMaintainer = dto.integrationMethod().maintainer() != null
+                ? dto.integrationMethod().maintainer()
+                : dto.connector().maintainer();
+        ownershipService.stampNew(uploadRes.integrationMethod(), username, methodMaintainer);
 
         applicationTagService.processOrigins(appRes.application(), appRes.originNames(), appRes.isNew());
         applicationTagService.processTags(appRes.application(), appRes.tagDtos(), appRes.isNew());
@@ -528,6 +532,9 @@ public class ConnectorUploadService {
         updated.setCreatedAt(existing.getCreatedAt());
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
         ownershipService.copyOwnership(existing, updated);
+        if (dto != null && dto.maintainer() != null) {
+            ownershipService.assignMaintainer(updated, dto.maintainer());
+        }
         if (rewriteExisting) {
             updated.setSupportTicketId(existing.getSupportTicketId());
         }

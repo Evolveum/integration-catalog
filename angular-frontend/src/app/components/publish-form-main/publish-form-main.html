@@ -324,6 +324,32 @@
                     </div>
                   </div>
 
+                  <!-- Maintainer -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center form-label-upload">
+                      Maintainer <span class="text-danger">&nbsp;*</span>
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
+                        <span class="info-tooltip">Select the person or team responsible for maintaining this integration method.</span>
+                      </span>
+                    </label>
+                    <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
+                      <input type="text" class="form-select"
+                             [value]="maintainerText()"
+                             (input)="onMaintainerInput($event)"
+                             (focus)="onMaintainerFocus()"
+                             (blur)="onMaintainerBlur()"
+                             placeholder="Select maintainer...">
+                      @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
+                        <div class="maintainer-dropdown">
+                          @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                            <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+
                   <!-- Description -->
                   <div class="mb-4">
                     <label class="form-label form-label-upload">Description</label>
@@ -622,7 +648,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !imCapabilitiesValid(imCapabilities())">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !methodFormMaintainer() || !imCapabilitiesValid(imCapabilities())">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>

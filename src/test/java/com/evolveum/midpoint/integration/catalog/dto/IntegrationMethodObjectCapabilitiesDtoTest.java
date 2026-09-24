@@ -70,7 +70,7 @@ class IntegrationMethodObjectCapabilitiesDtoTest {
     void editRequestValidatesEachObject() {
         EditIntegrationMethodDto edit = new EditIntegrationMethodDto(null, null, null, null, null,
                 List.of(object("Account", CapabilityState.YES), object("Group", CapabilityState.NO)),
-                false, false, null, null);
+                false, false, null, null, null);
 
         assertThat(validator.validate(edit)).hasSize(1);
     }

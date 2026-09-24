@@ -21,6 +21,7 @@ public record UploadIntegrationMethodDto(
         @Size(max = IntegrationMethod.LIMITATIONS_MAX)
         String limitations,         // integration_method.limitations
         String tutorial,            // integration_method.tutorial
+        MaintainerDto maintainer,   // integration_method.maintainer; null falls back to the connector's
         List<Integer> typeIds,      // integration_method_type.id
         Integer midpointMinVersion, // midpoint_version.id (FK for min version)
         Integer midpointMaxVersion  // midpoint_version.id (FK for max version)

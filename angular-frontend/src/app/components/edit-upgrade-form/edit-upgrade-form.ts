@@ -12,7 +12,7 @@ import { concat, forkJoin, of, Observable } from 'rxjs';
 import { toArray } from 'rxjs/operators';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { LinksService } from '../../services/links.service';
 import { PageHeader } from '../page-header/page-header';
 import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
@@ -62,6 +62,21 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly methodDescription = signal<string>('');
   protected readonly methodLimitations = signal<string>('');
   protected readonly limitationsMax = LIMITATIONS_MAX;
+  protected readonly methodMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
+  protected readonly maintainerSearch = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
+  });
+  /** What the maintainer combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly methodMaintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.methodMaintainer()));
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly isMethodTypeModalOpen = signal<boolean>(false);
   /**
@@ -164,6 +179,34 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.hasMajorConnectorChanges() && !this.isDraftState()
   );
 
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: Maintainer): void {
+    this.methodMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
+  }
+
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.methodMaintainer());
+  }
+
   /** The label of a staged connector's maintainer, for the card that previews it. */
   protected maintainerText(maintainer: Maintainer | null): string {
     return maintainerLabel(maintainer);
@@ -225,6 +268,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.appId.set(aId);
     this.versionId.set(vId);
 
+    if (this.authService.currentRole() === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
+      });
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
+    }
+
     this.applicationService.getMidpointVersions().subscribe({
       next: (versions) => this.midpointVersions.set(versions),
       error: () => this.midpointVersions.set([])
@@ -252,6 +305,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');
           this.methodLimitations.set(ver.limitations ?? '');
+          this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.midpointMinVersionId.set(ver.midpointMinVersionId);
           this.midpointMaxVersionId.set(ver.midpointMaxVersionId);
@@ -714,7 +768,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         // "Save" (major=false) is a minor in-place bump; "Save as new version" (major=true) is a major bump.
         minorBump: !major,
         midpointMinVersion: this.midpointMinVersionId(),
-        midpointMaxVersion: this.midpointMaxVersionId()
+        midpointMaxVersion: this.midpointMaxVersionId(),
+        maintainer: this.methodMaintainer()
       }
     ).subscribe({
       next: (savedRevision) => {
