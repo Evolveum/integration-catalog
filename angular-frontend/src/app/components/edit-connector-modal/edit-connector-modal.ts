@@ -15,6 +15,7 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 
 /** Payload sent to updateConnector — also emitted for staging when deferSave is on. */
 export interface ConnectorEditPayload {
@@ -37,7 +38,7 @@ export interface ConnectorEditPayload {
 @Component({
   selector: 'app-edit-connector-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker],
+  imports: [CommonModule, FormsModule, CapabilityPicker, MarkdownEditor],
   templateUrl: './edit-connector-modal.html',
   styleUrls: ['./edit-connector-modal.scss']
 })

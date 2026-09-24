@@ -20,6 +20,7 @@ import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { MarkdownPipe } from '../../core/markdown.pipe';
 
 interface MethodGroup {
   id: string;
@@ -33,7 +34,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']

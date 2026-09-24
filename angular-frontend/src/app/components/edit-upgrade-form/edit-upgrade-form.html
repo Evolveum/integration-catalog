@@ -291,7 +291,7 @@
               @if (c.implementationDescription) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Connector description:</span>
-                  <span class="edit-connector-value">{{ c.implementationDescription }}</span>
+                  <div class="edit-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
                 </div>
               }
 
@@ -414,7 +414,7 @@
               @if (sc.description) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Connector description:</span>
-                  <span class="edit-connector-value">{{ sc.description }}</span>
+                  <div class="edit-connector-value markdown-rendered" [innerHTML]="sc.description | markdown"></div>
                 </div>
               }
             </div>

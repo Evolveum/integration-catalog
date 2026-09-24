@@ -252,7 +252,7 @@ CREATE TABLE connector (
 	display_name character varying(255),
 	fully_qualified_class_name character varying(255),
 	connector_bundle_id integer NOT NULL,
-	description character varying(350),
+	description text,
 	cloned_from integer
 );
 
@@ -1097,5 +1097,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(16, $$ SELECT 1 $$, true);
+call apply_change(17, $$ SELECT 1 $$, true);
 -- end of region

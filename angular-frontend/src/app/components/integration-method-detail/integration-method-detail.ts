@@ -24,11 +24,12 @@ import { formatCapabilityLabel } from '../../core/capability-label';
 // Single Asciidoctor engine instance shared by the component; the tutorial is
 // authored in AsciiDoc and rendered read-only here.
 const asciidoctor = Asciidoctor();
+import { MarkdownPipe } from '../../core/markdown.pipe';
 
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, MarkdownPipe],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })

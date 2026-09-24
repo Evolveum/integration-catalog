@@ -156,12 +156,10 @@
               <!-- Description -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
-                <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
-                          [class.input-disabled]="isExistingConnector"
-                          [value]="connectorDescription()"
-                          (input)="connectorDescription.set($any($event.target).value); onFieldChange()"
-                          [disabled]="isExistingConnector"></textarea>
-                <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+                <app-markdown-editor [value]="connectorDescription()"
+                                     (valueChange)="connectorDescription.set($event); onFieldChange()"
+                                     [disabled]="isExistingConnector"
+                                     placeholder="Type description..."></app-markdown-editor>
               </div>
 
               <!-- Connector capabilities -->

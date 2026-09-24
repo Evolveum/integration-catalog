@@ -581,6 +581,11 @@
 .view-connector-value {
   color: #212529;
   word-break: break-all;
+
+  // Prose (a rendered connector description) breaks between words, not inside them.
+  &.markdown-rendered {
+    word-break: normal;
+  }
 }
 
 .icon-sm {

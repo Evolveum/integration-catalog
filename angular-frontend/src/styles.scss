@@ -45,3 +45,27 @@ input[type="radio"] {
   box-shadow: none;
   outline: 0;
 }
+
+/* Markdown rendered through the markdown pipe. Global: [innerHTML] content gets no component
+   style scoping. Kept compact, as it shows inside cards and lists. */
+.markdown-rendered {
+  overflow-wrap: anywhere;
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  p,
+  ul,
+  ol {
+    margin-bottom: 0.5rem;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.25rem;
+  }
+}
