@@ -99,7 +99,6 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   // Step 3 – integration method capabilities
   protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
-  protected readonly imCapabilitiesValid = imCapabilitiesValid;
 
   protected readonly selectedMethodTitles = computed(() =>
     this.integrationMethodTypes()
@@ -900,6 +899,14 @@ export class PublishFormMain implements OnInit, OnDestroy {
     if (value.length <= 350) {
       this.description.set(value);
     }
+  }
+
+  protected isSuperuser(): boolean {
+    return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  protected capabilitiesValid(): boolean {
+    return imCapabilitiesValid(this.imCapabilities(), this.isSuperuser());
   }
 
   protected onImCapabilitiesChange(groups: IntegrationMethodObjectCapabilities[]): void {

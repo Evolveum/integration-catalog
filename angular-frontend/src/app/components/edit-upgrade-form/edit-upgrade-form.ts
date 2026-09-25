@@ -87,6 +87,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   private readonly allMethodTypes = signal<{ id: number; displayName: string }[]>([]);
   protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
   protected readonly initialCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  private readonly capabilitiesTouched = signal<boolean>(false);
 
   // Supported midPoint version range (loaded from DB, editable)
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
@@ -118,7 +119,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   // License type display labels
   private readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
+    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2', 'CDDL': 'CDDL'
   };
 
   // Connectors
@@ -386,6 +387,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   protected onImCapabilitiesChange(caps: IntegrationMethodObjectCapabilities[]): void {
     this.imCapabilities.set(caps);
+    this.capabilitiesTouched.set(true);
   }
 
   protected onTutorialFileDrop(event: DragEvent): void {
@@ -732,9 +734,20 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.doSave(false);
   }
 
-  /** The capabilities the save would send: the picker's once touched, the loaded ones before that. */
+  protected isSuperuser(): boolean {
+    return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  /**
+   * The picker's list once it has changed, the loaded one before that. Keyed on a change rather than
+   * on an empty list, so a superuser who removes every object sends none instead of the loaded ones.
+   */
+  private capabilitiesToSend(): IntegrationMethodObjectCapabilities[] {
+    return this.capabilitiesTouched() ? this.imCapabilities() : this.initialCapabilities();
+  }
+
   protected capabilitiesValid(): boolean {
-    return imCapabilitiesValid(this.imCapabilities().length > 0 ? this.imCapabilities() : this.initialCapabilities());
+    return imCapabilitiesValid(this.capabilitiesToSend(), this.isSuperuser());
   }
 
   protected saveAsNewVersion(): void {
@@ -746,9 +759,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.saveError.set('');
     this.isSaving.set(true);
     const tutorial = this.easyMde ? this.easyMde.value() : this.methodTutorial();
-    const capabilities = this.imCapabilities().length > 0
-      ? this.imCapabilities()
-      : this.initialCapabilities();
+    const capabilities = this.capabilitiesToSend();
 
     const newFiles = this.tutorialFiles().filter(f => f.isNew && f.file).map(f => f.file!);
     const keptNames = this.tutorialFiles().filter(f => !f.isNew).map(f => f.name);

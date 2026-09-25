@@ -151,7 +151,7 @@
         <label class="view-section-label">Integration tutorial <span class="text-muted fw-normal">(In Markdown format)</span></label>
         <div class="view-tutorial-wrapper">
           @if (methodTutorial().trim()) {
-            <div class="view-tutorial-content asciidoc" [innerHTML]="tutorialHtml()"></div>
+            <div class="view-tutorial-content" [innerHTML]="methodTutorial() | markdown"></div>
           } @else {
             <div class="view-tutorial-content text-muted">No tutorial provided.</div>
           }

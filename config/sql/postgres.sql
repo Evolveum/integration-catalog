@@ -99,7 +99,8 @@ CREATE TYPE LicenseType AS ENUM (
 	'MIT',
 	'APACHE_2',
 	'BSD',
-	'EUPL'
+	'EUPL',
+	'CDDL'
 );
 
 CREATE TYPE LifecycleType AS ENUM (

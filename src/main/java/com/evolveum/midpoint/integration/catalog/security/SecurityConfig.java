@@ -50,6 +50,9 @@ public class SecurityConfig {
             "/api/applications/*/integration-method/*/*/reject"
     };
 
+    /** Withdrawing a revision from review is for whoever may edit it, not only the reviewer. */
+    private static final String CANCEL_REVISION = "/api/applications/*/integration-method/*/*/cancel";
+
     private static final String UNFINISHED_CONNECTOR = "/api/applications/*/integration-method/*/connectors-without-download";
 
     private static final String INTEGRATION_METHOD = "/api/applications/*/integration-method/**";
@@ -141,6 +144,8 @@ public class SecurityConfig {
                         .requestMatchers(CONNECTOR_UPLOADS)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
                         .requestMatchers(HttpMethod.POST, METHOD_CONNECTORS)
+                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
+                        .requestMatchers(HttpMethod.POST, CANCEL_REVISION)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
                         .requestMatchers(HttpMethod.PUT, INTEGRATION_METHOD)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)

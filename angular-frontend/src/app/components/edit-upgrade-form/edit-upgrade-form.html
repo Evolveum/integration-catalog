@@ -161,7 +161,7 @@
       <!-- Capabilities -->
       <div class="mb-4">
         <label class="form-label form-label-upload">
-          Define capabilities for: <span class="text-danger">*</span>
+          Define capabilities for: @if (!isSuperuser()) {<span class="text-danger">*</span>}
         </label>
         <app-im-capability-picker [initialCapabilities]="initialCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
       </div>

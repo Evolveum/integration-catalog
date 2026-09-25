@@ -136,12 +136,6 @@
       <div class="col-lg-8 im-main-col">
 
         <div class="bg-white p-4 rounded mb-4">
-          <!-- Description Section -->
-          <div class="mb-4">
-            <h2 class="h5 mb-3">Description</h2>
-            <p class="app-description-text">{{ application()!.description }}</p>
-          </div>
-
           <!-- Requested integration (REQUESTED apps) -->
           @if (application()!.lifecycleState === 'REQUESTED'
                && (application()!.requestedIntegrationMethodType || application()!.integrationNeed)) {

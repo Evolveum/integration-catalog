@@ -300,6 +300,14 @@ export class ApplicationService {
     );
   }
 
+  /** Withdraws an in-review revision; the app is deleted too when that revision was all it had. */
+  cancelIntegrationMethod(appId: string, methodId: string, revision: string): Observable<{ applicationDeleted: boolean }> {
+    return this.http.post<{ applicationDeleted: boolean }>(
+      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/cancel`,
+      {}
+    );
+  }
+
   rejectIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,

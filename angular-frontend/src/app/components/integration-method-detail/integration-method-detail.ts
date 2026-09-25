@@ -7,7 +7,6 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
-import Asciidoctor from 'asciidoctor';
 import { ApplicationService, SupportTicket } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
@@ -20,10 +19,6 @@ import { CapabilityStateEntry, hasLogoDetail, IntegrationMethodObjectCapabilitie
 import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
-
-// Single Asciidoctor engine instance shared by the component; the tutorial is
-// authored in AsciiDoc and rendered read-only here.
-const asciidoctor = Asciidoctor();
 import { MarkdownPipe } from '../../core/markdown.pipe';
 
 @Component({
@@ -106,14 +101,6 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly connectors = signal<ImplementationListItem[]>([]);
   protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
-
-  // Tutorial (AsciiDoc source) rendered to embeddable HTML for read-only display.
-  // Angular sanitizes the bound HTML; Asciidoctor's default 'secure' mode also
-  // disables includes and scripts.
-  protected readonly tutorialHtml = computed(() => {
-    const content = this.methodTutorial().trim();
-    return content ? String(asciidoctor.convert(content)) : '';
-  });
 
   constructor(
     private route: ActivatedRoute,
@@ -320,6 +307,7 @@ export class IntegrationMethodDetail implements OnInit {
     APACHE_2: 'Apache 2.0',
     BSD: 'BSD',
     EUPL: 'EUPL 1.2',
+    CDDL: 'CDDL'
   };
 
   protected formatLicense(value: string): string {

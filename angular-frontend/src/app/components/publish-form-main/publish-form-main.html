@@ -379,7 +379,7 @@
 
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
-                    <label class="form-label form-label-upload">Define capabilities for:<span class="text-danger">&nbsp;*</span></label>
+                    <label class="form-label form-label-upload">Define capabilities for:@if (!isSuperuser()) {<span class="text-danger">&nbsp;*</span>}</label>
                     <app-im-capability-picker [initialCapabilities]="imCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
                   </div>
 
@@ -648,7 +648,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !methodFormMaintainer() || !imCapabilitiesValid(imCapabilities())">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !methodFormMaintainer() || !capabilitiesValid()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
