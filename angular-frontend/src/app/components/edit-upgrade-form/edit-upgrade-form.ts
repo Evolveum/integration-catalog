@@ -26,11 +26,12 @@ import { hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, Ob
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownPipe } from '../../core/markdown.pipe';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal,
+  imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal, MarkdownPipe,
     SubmissionSuccessModal, MethodTypeModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
@@ -253,7 +254,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   private easyMde: EasyMDE | null = null;
-  private editorPreviewActivated = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -313,10 +313,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodTutorial.set(ver.tutorial ?? '');
           if (this.easyMde && ver.tutorial) {
             this.easyMde.value(ver.tutorial);
-            if (!this.editorPreviewActivated) {
-              EasyMDE.togglePreview(this.easyMde);
-              this.editorPreviewActivated = true;
-            }
           }
           this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.initialCapabilities.set(ver.objectClassCapabilities ?? []);
@@ -379,8 +375,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
     if (this.methodTutorial()) {
       this.easyMde.value(this.methodTutorial());
-      EasyMDE.togglePreview(this.easyMde);
-      this.editorPreviewActivated = true;
     }
   }
 
@@ -813,6 +807,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             this.stagedEdits.set(new Map());
             this.stagedCompat.set(new Map());
             this.stagedDeletes.set(new Set());
+            // The cards previewed the staged edits; without them they fall back to the list loaded
+            // with the page, so reload it or every saved connector change looks undone.
+            this.loadConnectors(this.appId(), this.versionId(), savedRevision);
             // The new revision starts with the previous revision's files copied forward by the backend;
             // here we delete the files the user removed and upload the ones they added.
             const ops: Observable<void>[] = [

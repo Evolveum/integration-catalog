@@ -6,9 +6,9 @@
 
 @if (isOpen()) {
   <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
-  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto" (click)="closeModal()">
+  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto" [appBackdropClose]="filterDialog" (backdropClose)="closeModal()">
     <div class="modal-dialog modal-dialog-centered modal-dialog-filter">
-      <div class="modal-content modal-content-filter" (click)="$event.stopPropagation()">
+      <div #filterDialog class="modal-content modal-content-filter" (click)="$event.stopPropagation()">
 
         <div class="d-flex filter-layout">
           <!-- Left Sidebar -->

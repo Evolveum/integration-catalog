@@ -136,12 +136,6 @@
       <div class="col-lg-8 im-main-col">
 
         <div class="bg-white p-4 rounded mb-4">
-          <!-- Description Section -->
-          <div class="mb-4">
-            <h2 class="h5 mb-3">Description</h2>
-            <p class="app-description-text">{{ application()!.description }}</p>
-          </div>
-
           <!-- Requested integration (REQUESTED apps) -->
           @if (application()!.lifecycleState === 'REQUESTED'
                && (application()!.requestedIntegrationMethodType || application()!.integrationNeed)) {
@@ -359,8 +353,8 @@
 
                   <!-- Filter Modal -->
                   @if (isFilterModalOpen()) {
-                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" (click)="toggleFilterModal()">
-                      <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
+                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" [appBackdropClose]="filterDialog" (backdropClose)="toggleFilterModal()">
+                      <div #filterDialog class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
                         <div class="d-flex flex-column h-100">
                           <div class="d-flex flex-grow-1 overflow-hidden">
                             <div class="border-end modal-sidebar overflow-auto">
@@ -520,7 +514,7 @@
                                             <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
                                           }
                                           @if (connector.description) {
-                                            <span class="connector-tooltip">{{ connector.description }}</span>
+                                            <span class="connector-tooltip markdown-rendered" [innerHTML]="connector.description | markdown"></span>
                                           }
                                         </span>
                                       }

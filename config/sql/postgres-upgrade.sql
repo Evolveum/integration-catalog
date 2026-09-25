@@ -576,6 +576,15 @@ ALTER TYPE LicenseType ADD VALUE IF NOT EXISTS 'CDDL';
 $aa$);
 -- end of region
 
+-- region change 18: connector.description as text
+-- The connector description is now written in the same markdown editor as the integration tutorial,
+-- so it is formatted text of no set length rather than a 350-character blurb. Widening keeps every
+-- existing value as it is.
+call apply_change(18, $aa$
+ALTER TABLE connector ALTER COLUMN description TYPE text;
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

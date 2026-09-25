@@ -1,7 +1,7 @@
 <!-- Define New Application Modal -->
 @if (showDefineNewModal()) {
-  <div class="define-new-overlay" (click)="cancelDefineNewModal()">
-    <div class="define-new-modal" (click)="$event.stopPropagation()">
+  <div class="define-new-overlay" [appBackdropClose]="defineNewDialog" (backdropClose)="cancelDefineNewModal()">
+    <div #defineNewDialog class="define-new-modal" (click)="$event.stopPropagation()">
       <div class="define-new-modal-header d-flex justify-content-between align-items-center">
         <div>
           <h5 class="define-new-modal-title mb-1">Define new target application</h5>
@@ -712,8 +712,8 @@
 
 <!-- Connector Catalog Modal -->
 @if (showConnectorCatalogModal()) {
-  <div class="cc-overlay" (click)="closeConnectorCatalogModal()">
-    <div class="cc-modal" (click)="$event.stopPropagation()">
+  <div class="cc-overlay" [appBackdropClose]="catalogDialog" (backdropClose)="closeConnectorCatalogModal()">
+    <div #catalogDialog class="cc-modal" (click)="$event.stopPropagation()">
 
       <!-- Header -->
       <div class="cc-modal-header d-flex justify-content-between align-items-start">
@@ -777,7 +777,7 @@
                   }
                 </div>
                 @if (connector.description) {
-                  <div class="cc-connector-desc">{{ connector.description }}</div>
+                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                 }
               </div>
             </div>

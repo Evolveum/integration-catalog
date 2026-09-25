@@ -20,6 +20,9 @@ import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/com
 import { CatalogConnector } from '../../models/catalog-connector.model';
 import { ConnectorTag, isObsoleteConnector } from '../../models/connector-tag.model';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
+import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 type Step = 1 | 2;
 
@@ -60,7 +63,7 @@ export interface StagedConnector {
 @Component({
   selector: 'app-add-connector-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal],
+  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal, MarkdownEditor, MarkdownPipe, BackdropCloseDirective],
   templateUrl: './add-connector-form.html',
   styleUrls: ['./add-connector-form.scss']
 })

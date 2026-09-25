@@ -28,6 +28,7 @@ import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapabilityIte
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -599,32 +601,37 @@ public class ConnectorUploadService {
         if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
             throw new IllegalStateException("Only in-review revisions can be put under review: " + methodId + "/" + revision);
         }
-        setConditionallyLifecycleState(draft, LifecycleType.IN_REVIEW, LifecycleType.REVIEWING);
+        setConditionallyLifecycleState(draft, Set.of(LifecycleType.IN_REVIEW), LifecycleType.REVIEWING);
         draft.setReviewedBy(username);
         log.info("Started review of integration method {}/{} by {}", methodId, revision, username);
     }
 
-    private void setConditionallyLifecycleState(IntegrationMethod draft, LifecycleType inState, LifecycleType newState) {
+    private void setConditionallyLifecycleState(IntegrationMethod draft, Set<LifecycleType> inStates, LifecycleType newState) {
         draft.setLifecycleState(newState);
         draft.getConnectors()
                 .forEach(imc -> {
                     Connector connector = imc.getConnector();
-                    setConditionallyLifecycleState(connector, inState, newState);
+                    setConditionallyLifecycleState(connector, inStates, newState);
                 });
     }
 
-    private void setConditionallyLifecycleState(Connector connector, LifecycleType inState, LifecycleType newState) {
+    /**
+     * Moves the connector's bundle, bundle versions and connector versions that are in one of
+     * {@code inStates} to {@code newState}. Rows in any other state - above all the ACTIVE ones of a
+     * published connector the method merely reuses - are left alone.
+     */
+    private void setConditionallyLifecycleState(Connector connector, Set<LifecycleType> inStates, LifecycleType newState) {
         ConnectorBundle bundle = connector.getConnectorBundle();
         if (bundle != null) {
-            if (bundle.getLifecycleState() != inState) {
+            if (inStates.contains(bundle.getLifecycleState())) {
                 bundle.setLifecycleState(newState);
             }
             bundle.getBundleVersions().stream()
-                    .filter(bv -> bv.getLifecycleState() != inState)
+                    .filter(bv -> inStates.contains(bv.getLifecycleState()))
                     .forEach(bv -> bv.setLifecycleState(newState));
         }
         connector.getConnectorVersions().stream()
-                .filter(cv -> cv.getLifecycleState() != inState)
+                .filter(cv -> inStates.contains(cv.getLifecycleState()))
                 .forEach(cv -> cv.setLifecycleState(newState));
     }
 
@@ -639,7 +646,7 @@ public class ConnectorUploadService {
         if (draft.getLifecycleState() != LifecycleType.REVIEWING) {
             throw new IllegalStateException("Only revisions under review can have the review stopped: " + methodId + "/" + revision);
         }
-        setConditionallyLifecycleState(draft, LifecycleType.REVIEWING, LifecycleType.IN_REVIEW);
+        setConditionallyLifecycleState(draft, Set.of(LifecycleType.REVIEWING), LifecycleType.IN_REVIEW);
         draft.setReviewedBy(null);
         log.info("Stopped review of integration method {}/{} by {}", methodId, revision, username);
     }
@@ -695,7 +702,8 @@ public class ConnectorUploadService {
 
     /**
      * Activates everything beneath every connector linked to a method revision, so a published
-     * method's connectors become visible. Only IN_REVIEW records are promoted.
+     * method's connectors become visible. Only draft records are promoted: REVIEWING, and IN_REVIEW
+     * for a connector added while the review was already running.
      */
     private void promoteConnectorsToActive(IntegrationMethod method) {
         for (IntegrationMethodConnector link : method.getConnectors()) {
@@ -712,13 +720,13 @@ public class ConnectorUploadService {
             connector = mergeCloneIntoOriginal(method, link, connector);
             connector = reload(connector);
 
-            setConditionallyLifecycleState(connector, LifecycleType.REVIEWING, LifecycleType.ACTIVE);
+            setConditionallyLifecycleState(connector, Set.of(LifecycleType.IN_REVIEW, LifecycleType.REVIEWING), LifecycleType.ACTIVE);
         }
     }
 
     /**
      * Mark the connectors introduced with a rejected method revision as REJECTED — the mirror of
-     * promoteConnectorsToActive. Only IN_REVIEW records (newly introduced with this revision) are
+     * promoteConnectorsToActive. Only draft records (newly introduced with this revision) are
      * rejected; existing ACTIVE catalog connectors reused by the method are left untouched.
      */
     private void rejectConnectorsOfMethod(IntegrationMethod method) {
@@ -728,7 +736,7 @@ public class ConnectorUploadService {
                 continue;
             }
 
-            setConditionallyLifecycleState(connector, LifecycleType.REVIEWING, LifecycleType.REJECTED);
+            setConditionallyLifecycleState(connector, Set.of(LifecycleType.IN_REVIEW, LifecycleType.REVIEWING), LifecycleType.REJECTED);
         }
     }
 
@@ -743,7 +751,7 @@ public class ConnectorUploadService {
                 continue;
             }
 
-            setConditionallyLifecycleState(connector, LifecycleType.REJECTED, LifecycleType.IN_REVIEW);
+            setConditionallyLifecycleState(connector, Set.of(LifecycleType.REJECTED), LifecycleType.IN_REVIEW);
         }
     }
 
@@ -764,6 +772,103 @@ public class ConnectorUploadService {
         // Reject the connectors introduced with this revision too (mirrors promoteConnectorsToActive).
         rejectConnectorsOfMethod(draft);
         log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
+    }
+
+    /**
+     * Withdraws an in-review revision: deletes it, the connectors it introduced, and the application
+     * too when that revision was all a never-published application had, so no app is left stuck in
+     * review with nothing to review.
+     *
+     * @return whether the application was deleted too
+     */
+    @Transactional
+    public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
+        IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+            throw new IllegalStateException("Only in-review revisions can be cancelled: " + methodId + "/" + revision);
+        }
+
+        Application application = draft.getApplication();
+        Integer workPackageId = draft.getSupportTicketId();
+        List<Connector> linkedConnectors = draft.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        application.getIntegrationMethods().remove(draft);
+        tutorialStorageService.deleteTutorialFolder(methodId, revision);
+        integrationMethodRepository.delete(draft);
+        integrationMethodRepository.flush();
+
+        deleteConnectorsIntroducedBy(linkedConnectors);
+
+        // Only an app the publish flow created is removed; a REQUESTED app keeps its request and votes.
+        boolean deleteApplication = application.getLifecycleState() == Application.ApplicationLifecycleType.IN_REVIEW
+                && integrationMethodRepository.findByApplicationId(application.getId()).isEmpty();
+        if (deleteApplication) {
+            applicationRepository.delete(application);
+        }
+
+        if (workPackageId != null) {
+            events.publishEvent(new IntegrationMethodCancelledEvent(methodId, revision, workPackageId, username));
+        }
+        log.info("Cancelled integration method {}/{} by {}{}", methodId, revision, username,
+                deleteApplication ? "; deleted its application " + application.getId() : "");
+        return deleteApplication;
+    }
+
+    /**
+     * Deletes the connectors a cancelled revision brought in - new ones and copy-on-write clones - i.e.
+     * those no other revision links and that never had a version published. A connector reused from
+     * the catalog is left alone.
+     *
+     * <p>Every such connector starts in a bundle of its own, deleted with it. Only a build can have
+     * merged it into a published bundle, which then stays and loses just what the revision brought.
+     */
+    private void deleteConnectorsIntroducedBy(List<Connector> connectors) {
+        List<Connector> introduced = connectors.stream()
+                .filter(c -> integrationMethodConnectorRepository.findByConnector_Id(c.getId()).isEmpty())
+                .filter(c -> c.getConnectorVersions().stream()
+                        .noneMatch(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE))
+                .toList();
+
+        Map<Integer, ConnectorBundle> bundles = new LinkedHashMap<>();
+        for (Connector connector : introduced) {
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle == null) {
+                connectorRepository.delete(connector);
+            } else {
+                bundles.putIfAbsent(bundle.getId(), bundle);
+            }
+        }
+
+        for (ConnectorBundle bundle : bundles.values()) {
+            List<Connector> leaving = bundle.getConnectors().stream().filter(introduced::contains).toList();
+            if (bundle.getLifecycleState() != LifecycleType.ACTIVE && leaving.size() == bundle.getConnectors().size()) {
+                connectorBundleRepository.delete(bundle);
+                continue;
+            }
+            // Both parents hold the connector versions with orphanRemoval, so they leave through the
+            // collections; deleting them directly would be undone by the cascade from the bundle.
+            Set<ConnectorBundleVersion> touched = new HashSet<>();
+            for (Connector connector : leaving) {
+                for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                    ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+                    if (cbv != null) {
+                        cbv.getConnectorVersions().remove(cv);
+                        touched.add(cbv);
+                    }
+                }
+                bundle.getConnectors().remove(connector);
+            }
+            bundle.getBundleVersions().removeIf(cbv -> touched.contains(cbv)
+                    && cbv.getLifecycleState() != LifecycleType.ACTIVE
+                    && cbv.getConnectorVersions().isEmpty());
+        }
+        connectorRepository.flush();
+        log.info("Deleted {} connector(s) introduced by the cancelled revision", introduced.size());
     }
 
     /**
@@ -1163,8 +1268,40 @@ public class ConnectorUploadService {
             saveConnectorVersionCapabilities(dto.connectorCapabilities(), cv);
         }
 
+        // A draft version that was never built only stands for the build to come, so a version change
+        // replaces it; kept, it would ask for a build of its own beside the new version.
+        if (versionChanged && isUnbuiltDraft(baseCv) && baseCv != target) {
+            dropDraftVersion(connector, baseCv);
+        }
+
         //TODO Do we really save changes without approval?
         connectorRepository.save(connector);
+    }
+
+    private static boolean isUnbuiltDraft(ConnectorVersion cv) {
+        if (cv == null || (cv.getLifecycleState() != LifecycleType.IN_REVIEW
+                && cv.getLifecycleState() != LifecycleType.REVIEWING)) {
+            return false;
+        }
+        ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+        return cbv == null || cbv.getArtifactUrl() == null || cbv.getArtifactUrl().isBlank();
+    }
+
+    /**
+     * Removes a draft connector version, and its bundle version once no connector version of the
+     * bundle is left on it. Both parents hold it with orphanRemoval, so it leaves through the collections.
+     */
+    private static void dropDraftVersion(Connector connector, ConnectorVersion cv) {
+        ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+        connector.getConnectorVersions().remove(cv);
+        if (cbv == null) {
+            return;
+        }
+        cbv.getConnectorVersions().remove(cv);
+        ConnectorBundle bundle = cbv.getConnectorBundle();
+        if (bundle != null && cbv.getLifecycleState() != LifecycleType.ACTIVE && cbv.getConnectorVersions().isEmpty()) {
+            bundle.getBundleVersions().remove(cbv);
+        }
     }
 
     /**

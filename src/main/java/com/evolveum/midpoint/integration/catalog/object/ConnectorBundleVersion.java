@@ -158,7 +158,8 @@ public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMai
         ConnectorBundleVersion clone = new ConnectorBundleVersion();
         clone.setRevision(source.getRevision());
         clone.setAuthor(source.getAuthor());
-        clone.setMaintainer(source.getMaintainer());
+        // Own list: Hibernate rejects two entities sharing one collection instance.
+        clone.setMaintainer(new ArrayList<>(source.getMaintainer()));
         clone.setLifecycleState(source.getLifecycleState());
         clone.setConnectorBundle(bundle);
         clone.setBundleVersion(source.getBundleVersion());

@@ -467,21 +467,26 @@ public class SupportTicketDescriptionBuilder {
     private boolean needsPublishing(Connector connector) {
         ConnectorBundle bundle = connector.getConnectorBundle();
         if (bundle != null) {
-            if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
+            if (isDraft(bundle.getLifecycleState())) {
                 return true;
             }
             if (bundle.getBundleVersions() != null && bundle.getBundleVersions().stream()
-                    .anyMatch(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW)) {
+                    .anyMatch(version -> isDraft(version.getLifecycleState()))) {
                 return true;
             }
         }
         return connector.getConnectorVersions() != null && connector.getConnectorVersions().stream()
-                .anyMatch(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW);
+                .anyMatch(version -> isDraft(version.getLifecycleState()));
+    }
+
+    /** Not yet published: submitted, or under review. */
+    private static boolean isDraft(LifecycleType state) {
+        return state == LifecycleType.IN_REVIEW || state == LifecycleType.REVIEWING;
     }
 
     private void appendPublishedConnector(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - already published\n\n");
-        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Maintainer", maintainer(connector));
@@ -490,7 +495,7 @@ public class SupportTicketDescriptionBuilder {
 
     private void appendConnectorForReview(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - to be published with this method\n\n");
-        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Author", authorWithEmail(connector.getAuthor()));
@@ -503,6 +508,15 @@ public class SupportTicketDescriptionBuilder {
 
         appendBundle(body, connector.getConnectorBundle());
         appendConnectorVersions(body, connector);
+    }
+
+    /**
+     * Where the connector's description is: attached, as the tutorial is, since it is formatted text
+     * of no set length. Null when there is none, which the bullet shows as not provided.
+     */
+    private static String describedIn(IntegrationMethodConnector link, Connector connector) {
+        String fileName = SupportTicketService.connectorDescriptionAttachment(link.getIntegrationMethod(), connector);
+        return fileName == null ? null : "attached as `" + fileName + "` - see the **Files** tab above";
     }
 
     private void appendBundle(StringBuilder body, ConnectorBundle bundle) {
@@ -528,7 +542,7 @@ public class SupportTicketDescriptionBuilder {
         List<ConnectorVersion> versions = connector.getConnectorVersions() == null
                 ? List.of()
                 : connector.getConnectorVersions().stream()
-                        .filter(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW)
+                        .filter(version -> isDraft(version.getLifecycleState()))
                         .sorted(Comparator.comparing(ConnectorVersion::getRevision,
                                 Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                         .toList();
@@ -625,7 +639,7 @@ public class SupportTicketDescriptionBuilder {
                 ? List.of()
                 : connector.getConnectorVersions();
         String submitted = bundleRevision(versions.stream()
-                .filter(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW));
+                .filter(version -> isDraft(version.getLifecycleState())));
         if (submitted == null) {
             submitted = bundleRevision(versions.stream());
         }

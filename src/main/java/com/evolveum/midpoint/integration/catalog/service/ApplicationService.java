@@ -301,6 +301,13 @@ public class ApplicationService {
         connectorUploadService.rejectIntegrationMethod(methodId, revision, username);
     }
 
+    /** Whoever may edit the revision may withdraw it; returns whether its application went too. */
+    @Transactional
+    public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
+        assertCanEditMethod(username, methodId, revision);
+        return connectorUploadService.cancelIntegrationMethod(methodId, revision, username);
+    }
+
     @Transactional
     public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
@@ -656,9 +663,11 @@ public class ApplicationService {
                             if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
                                 continue;
                             }
-                            // Iterate all connector versions, only consider those in REVIEWING state
+                            // Only draft versions are awaiting a build; the approve dialog asks while the
+                            // revision is under review, which has moved them to REVIEWING.
                             for (ConnectorVersion connectorVersion : connector.getConnectorVersions()) {
-                                if (connectorVersion.getLifecycleState() != LifecycleType.IN_REVIEW) {
+                                if (connectorVersion.getLifecycleState() != LifecycleType.IN_REVIEW
+                                        && connectorVersion.getLifecycleState() != LifecycleType.REVIEWING) {
                                     continue;
                                 }
                                 ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();

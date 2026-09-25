@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
 import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.RetryableOperationHandler;
@@ -61,6 +62,17 @@ public class SupportTicketRetryHandlers {
                 SupportTicketService.COMMENT_BUILD_OUTCOME,
                 BuildFinishedEvent.class,
                 supportTicketService::commentBuildOutcome);
+    }
+
+    /** Tells the reviewer on the work package of a cancelled revision that it was withdrawn. */
+    @Bean
+    public RetryableOperationHandler<IntegrationMethodCancelledEvent> commentCancellationHandler(
+            SupportTicketService supportTicketService) {
+        return RetryableOperationHandler.of(
+                ExternalSystem.OPENPROJECT,
+                SupportTicketService.COMMENT_CANCELLATION,
+                IntegrationMethodCancelledEvent.class,
+                supportTicketService::commentCancellation);
     }
 
     /** Attaches one of the author's uploaded files to the work package of its revision. */
