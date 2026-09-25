@@ -19,8 +19,16 @@ public class SpaForwardingController {
 
     /**
      * Forward Angular routes to index.html so client-side routing works on page refresh.
+     * Keep in sync with angular-frontend/src/app/app.routes.ts.
      */
-    @GetMapping(value = {"/applications", "/applications/{id}"})
+    @GetMapping(value = {
+            "/applications",
+            "/applications/{id}",
+            "/applications/{appId}/integration-method/{versionId}/{revision}/details",
+            "/applications/{appId}/integration-method/{versionId}/{revision}/edit",
+            "/approve",
+            "/settings"
+    })
     public String forwardApplications() {
         return "forward:/index.html";
     }
