@@ -807,6 +807,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             this.stagedEdits.set(new Map());
             this.stagedCompat.set(new Map());
             this.stagedDeletes.set(new Set());
+            // The cards previewed the staged edits; without them they fall back to the list loaded
+            // with the page, so reload it or every saved connector change looks undone.
+            this.loadConnectors(this.appId(), this.versionId(), savedRevision);
             // The new revision starts with the previous revision's files copied forward by the backend;
             // here we delete the files the user removed and upload the ones they added.
             const ops: Observable<void>[] = [
