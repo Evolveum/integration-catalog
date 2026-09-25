@@ -254,7 +254,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   private easyMde: EasyMDE | null = null;
-  private editorPreviewActivated = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -314,10 +313,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodTutorial.set(ver.tutorial ?? '');
           if (this.easyMde && ver.tutorial) {
             this.easyMde.value(ver.tutorial);
-            if (!this.editorPreviewActivated) {
-              EasyMDE.togglePreview(this.easyMde);
-              this.editorPreviewActivated = true;
-            }
           }
           this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.initialCapabilities.set(ver.objectClassCapabilities ?? []);
@@ -380,8 +375,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
     if (this.methodTutorial()) {
       this.easyMde.value(this.methodTutorial());
-      EasyMDE.togglePreview(this.easyMde);
-      this.editorPreviewActivated = true;
     }
   }
 
