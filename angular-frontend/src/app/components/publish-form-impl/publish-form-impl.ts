@@ -22,6 +22,7 @@ import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
 import { LinksService } from '../../services/links.service';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -67,7 +68,7 @@ export interface Step5FormData {
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal],
+  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal, MarkdownEditor],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })

@@ -1,0 +1,8 @@
+@if (disabled()) {
+  <div class="markdown-readonly markdown-rendered" [innerHTML]="value() | markdown"></div>
+} @else {
+  <!-- Wrapped, so dropping the textarea also drops the editor EasyMDE builds beside it. -->
+  <div class="markdown-editor-host">
+    <textarea #editor></textarea>
+  </div>
+}

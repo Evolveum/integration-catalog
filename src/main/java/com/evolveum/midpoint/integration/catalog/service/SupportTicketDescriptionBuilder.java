@@ -486,7 +486,7 @@ public class SupportTicketDescriptionBuilder {
 
     private void appendPublishedConnector(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - already published\n\n");
-        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Maintainer", maintainer(connector));
@@ -495,7 +495,7 @@ public class SupportTicketDescriptionBuilder {
 
     private void appendConnectorForReview(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - to be published with this method\n\n");
-        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Author", authorWithEmail(connector.getAuthor()));
@@ -508,6 +508,15 @@ public class SupportTicketDescriptionBuilder {
 
         appendBundle(body, connector.getConnectorBundle());
         appendConnectorVersions(body, connector);
+    }
+
+    /**
+     * Where the connector's description is: attached, as the tutorial is, since it is formatted text
+     * of no set length. Null when there is none, which the bullet shows as not provided.
+     */
+    private static String describedIn(IntegrationMethodConnector link, Connector connector) {
+        String fileName = SupportTicketService.connectorDescriptionAttachment(link.getIntegrationMethod(), connector);
+        return fileName == null ? null : "attached as `" + fileName + "` - see the **Files** tab above";
     }
 
     private void appendBundle(StringBuilder body, ConnectorBundle bundle) {

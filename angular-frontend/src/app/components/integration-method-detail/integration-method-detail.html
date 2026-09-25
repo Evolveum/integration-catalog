@@ -226,7 +226,7 @@
                 @if (c.implementationDescription) {
                   <div class="view-connector-row">
                     <span class="view-connector-label">Connector description:</span>
-                    <span class="view-connector-value">{{ c.implementationDescription }}</span>
+                    <div class="view-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
                   </div>
                 }
 

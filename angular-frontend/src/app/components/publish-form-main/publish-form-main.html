@@ -777,7 +777,7 @@
                   }
                 </div>
                 @if (connector.description) {
-                  <div class="cc-connector-desc">{{ connector.description }}</div>
+                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                 }
               </div>
             </div>

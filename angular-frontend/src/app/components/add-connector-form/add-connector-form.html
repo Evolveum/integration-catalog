@@ -208,12 +208,10 @@
               <!-- Description -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
-                <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
-                          [class.input-disabled]="isExistingConnector"
-                          [value]="connectorDescription()"
-                          (input)="connectorDescription.set($any($event.target).value)"
-                          [disabled]="isExistingConnector"></textarea>
-                <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+                <app-markdown-editor [value]="connectorDescription()"
+                                     (valueChange)="connectorDescription.set($event)"
+                                     [disabled]="isExistingConnector"
+                                     placeholder="Type description..."></app-markdown-editor>
               </div>
 
               <!-- Capabilities -->
@@ -510,7 +508,7 @@
                   }
                 </div>
                 @if (connector.description) {
-                  <div class="cc-connector-desc">{{ connector.description }}</div>
+                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                 }
               </div>
             </div>

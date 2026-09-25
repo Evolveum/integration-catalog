@@ -514,7 +514,7 @@
                                             <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
                                           }
                                           @if (connector.description) {
-                                            <span class="connector-tooltip">{{ connector.description }}</span>
+                                            <span class="connector-tooltip markdown-rendered" [innerHTML]="connector.description | markdown"></span>
                                           }
                                         </span>
                                       }
