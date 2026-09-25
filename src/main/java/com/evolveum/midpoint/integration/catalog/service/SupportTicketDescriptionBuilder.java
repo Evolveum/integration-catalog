@@ -467,16 +467,21 @@ public class SupportTicketDescriptionBuilder {
     private boolean needsPublishing(Connector connector) {
         ConnectorBundle bundle = connector.getConnectorBundle();
         if (bundle != null) {
-            if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
+            if (isDraft(bundle.getLifecycleState())) {
                 return true;
             }
             if (bundle.getBundleVersions() != null && bundle.getBundleVersions().stream()
-                    .anyMatch(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW)) {
+                    .anyMatch(version -> isDraft(version.getLifecycleState()))) {
                 return true;
             }
         }
         return connector.getConnectorVersions() != null && connector.getConnectorVersions().stream()
-                .anyMatch(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW);
+                .anyMatch(version -> isDraft(version.getLifecycleState()));
+    }
+
+    /** Not yet published: submitted, or under review. */
+    private static boolean isDraft(LifecycleType state) {
+        return state == LifecycleType.IN_REVIEW || state == LifecycleType.REVIEWING;
     }
 
     private void appendPublishedConnector(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
@@ -528,7 +533,7 @@ public class SupportTicketDescriptionBuilder {
         List<ConnectorVersion> versions = connector.getConnectorVersions() == null
                 ? List.of()
                 : connector.getConnectorVersions().stream()
-                        .filter(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW)
+                        .filter(version -> isDraft(version.getLifecycleState()))
                         .sorted(Comparator.comparing(ConnectorVersion::getRevision,
                                 Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                         .toList();
@@ -625,7 +630,7 @@ public class SupportTicketDescriptionBuilder {
                 ? List.of()
                 : connector.getConnectorVersions();
         String submitted = bundleRevision(versions.stream()
-                .filter(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW));
+                .filter(version -> isDraft(version.getLifecycleState())));
         if (submitted == null) {
             submitted = bundleRevision(versions.stream());
         }

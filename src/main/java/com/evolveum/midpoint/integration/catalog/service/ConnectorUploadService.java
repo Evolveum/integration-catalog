@@ -1268,8 +1268,40 @@ public class ConnectorUploadService {
             saveConnectorVersionCapabilities(dto.connectorCapabilities(), cv);
         }
 
+        // A draft version that was never built only stands for the build to come, so a version change
+        // replaces it; kept, it would ask for a build of its own beside the new version.
+        if (versionChanged && isUnbuiltDraft(baseCv) && baseCv != target) {
+            dropDraftVersion(connector, baseCv);
+        }
+
         //TODO Do we really save changes without approval?
         connectorRepository.save(connector);
+    }
+
+    private static boolean isUnbuiltDraft(ConnectorVersion cv) {
+        if (cv == null || (cv.getLifecycleState() != LifecycleType.IN_REVIEW
+                && cv.getLifecycleState() != LifecycleType.REVIEWING)) {
+            return false;
+        }
+        ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+        return cbv == null || cbv.getArtifactUrl() == null || cbv.getArtifactUrl().isBlank();
+    }
+
+    /**
+     * Removes a draft connector version, and its bundle version once no connector version of the
+     * bundle is left on it. Both parents hold it with orphanRemoval, so it leaves through the collections.
+     */
+    private static void dropDraftVersion(Connector connector, ConnectorVersion cv) {
+        ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+        connector.getConnectorVersions().remove(cv);
+        if (cbv == null) {
+            return;
+        }
+        cbv.getConnectorVersions().remove(cv);
+        ConnectorBundle bundle = cbv.getConnectorBundle();
+        if (bundle != null && cbv.getLifecycleState() != LifecycleType.ACTIVE && cbv.getConnectorVersions().isEmpty()) {
+            bundle.getBundleVersions().remove(cbv);
+        }
     }
 
     /**
