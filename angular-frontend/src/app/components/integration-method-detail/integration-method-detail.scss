@@ -230,39 +230,70 @@
   padding: 0.25rem 0;
 }
 
-/* Collapsible capability group header (label + chevron toggle) */
-.caps-group-header {
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 0.4rem;
+/* Capabilities: object-class tabs over a grid of capability cards */
+.caps-tab {
+  padding: 0.2rem 0.85rem;
+  font-size: 0.8rem;
+  color: #495057;
+  background: #ffffff;
+  border: 1px solid #ced4da;
+  border-radius: 999px;
   cursor: pointer;
-  color: #1a202c;
+  overflow-wrap: anywhere;
 
-  .icon-sm {
-    color: #6c757d;
-  }
-
-  &:hover .view-section-label {
-    text-decoration: underline;
+  &:hover {
+    background: #f8f9fa;
   }
 }
 
-/* Second-layer collapsible row: a single specific object class */
-.caps-object-row {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
+.caps-tab-active,
+.caps-tab-active:hover {
+  color: #0a4b8c;
+  background: #e7f1ff;
+  border-color: #0a4b8c;
+}
+
+.caps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.caps-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.caps-card-name {
+  font-size: 0.875rem;
   color: #1a202c;
+  overflow-wrap: anywhere;
+}
 
-  .icon-sm {
-    color: #6c757d;
-  }
+.caps-state {
+  flex-shrink: 0;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  white-space: nowrap;
+}
 
-  &:hover .fw-semibold {
-    text-decoration: underline;
-  }
+.caps-state-yes     { color: #146c43; background: #d1e7dd; }
+.caps-state-no      { color: #b02a37; background: #f8d7da; }
+.caps-state-unknown { color: #495057; background: #ffffff; border: 1px solid #dee2e6; }
+
+@media (max-width: 991.98px) {
+  .caps-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 575.98px) {
+  .caps-grid { grid-template-columns: 1fr; }
 }
 
 .im-method-tag {
@@ -314,8 +345,6 @@
   font-weight: 400;
 }
 
-.badge-capability-yes { background-color: #d4edda; }
-.badge-capability-no  { background-color: #f8d7da; }
 
 /* ========================================
    TUTORIAL (read-only preview)

@@ -160,10 +160,7 @@
 
       <!-- Capabilities -->
       <div class="mb-4">
-        <label class="form-label form-label-upload">
-          Define capabilities for: @if (!isSuperuser()) {<span class="text-danger">*</span>}
-        </label>
-        <app-im-capability-picker [initialCapabilities]="initialCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
+        <app-im-capability-picker [initialCapabilities]="initialCapabilities()" [required]="!isSuperuser()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
       </div>
 
       <!-- Integration method type -->

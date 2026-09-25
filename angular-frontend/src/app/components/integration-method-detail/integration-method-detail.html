@@ -103,45 +103,30 @@
         }
       </div>
 
-      <!-- Capabilities, grouped per object class and each group collapsible -->
+      <!-- Capabilities: one tab per object class, its capabilities as a grid of state cards -->
       <div class="mb-4">
+        <label class="view-section-label">Capabilities</label>
         @if (specificCapabilities().length > 0) {
-          <!-- Layer 1: parent section wrapping all specific object classes -->
-          <button type="button" class="caps-group-header d-flex align-items-center gap-2" (click)="toggleCaps('specific')">
-            <i class="fa-solid icon-sm"
-               [class.fa-chevron-up]="isCapsExpanded('specific')"
-               [class.fa-chevron-down]="!isCapsExpanded('specific')"></i>
-            <span class="view-section-label mb-0">Specific Capabilities <span class="text-muted fw-normal">(Per object class)</span></span>
-          </button>
-          @if (isCapsExpanded('specific')) {
-            <div class="ms-3 mb-3">
-              @for (occ of specificCapabilities(); track occ.objectClass) {
-                @let occKey = 'occ:' + occ.objectClass;
-                <!-- Layer 2: each object class collapses independently -->
-                <div class="mb-2">
-                  <button type="button" class="caps-object-row d-flex align-items-center gap-2" (click)="toggleCaps(occKey)">
-                    <span class="fw-semibold text-sm">{{ occ.objectClass }}</span>
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isCapsExpanded(occKey)"
-                       [class.fa-chevron-down]="!isCapsExpanded(occKey)"></i>
-                    <span class="text-muted text-sm">{{ supportedCount(occ.capabilities) }} of {{ occ.capabilities.length }} supported</span>
-                  </button>
-                  @if (isCapsExpanded(occKey)) {
-                    <div class="view-caps-box d-flex flex-wrap gap-2 mt-2 ms-3">
-                      @for (cap of occ.capabilities; track cap.name) {
-                        <span class="badge badge-capability" [ngClass]="'badge-capability-' + cap.state.toLowerCase()"
-                              [title]="cap.state === 'YES' ? 'Supported' : cap.state === 'NO' ? 'Not supported' : 'Not determined'">{{ formatCapabilityText(cap.name) }}</span>
-                      }
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-        }
-
-        @if (specificCapabilities().length === 0) {
-          <label class="view-section-label">Capabilities</label>
+          <div class="caps-tabs d-flex flex-wrap gap-2 mb-2" role="tablist">
+            @for (occ of specificCapabilities(); track occ.objectClass) {
+              <button type="button" class="caps-tab" role="tab"
+                      [class.caps-tab-active]="occ.objectClass === selectedCapsObject()"
+                      [attr.aria-selected]="occ.objectClass === selectedCapsObject()"
+                      (click)="selectedCapsObject.set(occ.objectClass)">{{ occ.objectClass }}</button>
+            }
+          </div>
+          <div class="caps-grid">
+            @for (cap of selectedObjectCapabilities(); track cap.name) {
+              @let st = capabilityStates[cap.state];
+              <div class="caps-card">
+                <span class="caps-card-name">{{ formatCapabilityText(cap.name) }}</span>
+                <span class="caps-state" [ngClass]="'caps-state-' + cap.state.toLowerCase()">
+                  <i class="fa-regular me-1" [ngClass]="st.icon"></i>{{ st.label }}
+                </span>
+              </div>
+            }
+          </div>
+        } @else {
           <div class="view-caps-box text-muted">No capabilities defined.</div>
         }
       </div>

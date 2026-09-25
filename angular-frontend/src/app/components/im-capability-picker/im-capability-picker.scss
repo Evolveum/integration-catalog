@@ -3,33 +3,236 @@
  *
  * Licensed under the EUPL-1.2 or later.
  */
+@use 'variables' as *;
 
-// The shared look comes from capability-picker.scss; this adds the per-state colours.
+$state-yes: #146c43;
+$state-yes-bg: $color-success-bg;
+$state-no: #b02a37;
+$state-no-bg: #f8d7da;
 
-.im-cp-state-yes     { background-color: #d4edda; }
-.im-cp-state-no      { background-color: #f8d7da; }
-.im-cp-state-unknown { background-color: #e8eef5; }
+.imcp-heading {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
 
-// Fixed label width keeps the dropdowns right next to their capability yet aligned in a column.
-.im-cp-label-text {
-  flex: 0 0 6.5rem;
+.imcp-subtitle {
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  margin: 0.25rem 0 0.75rem;
+}
+
+/* Info icon tooltip — unified with the styled tooltip used across the publish form. */
+.info-icon-wrapper {
+  vertical-align: middle;
+}
+
+.info-icon-wrapper .info-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -2px;
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  width: 400px;
+  max-width: 80vw;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.info-icon-wrapper .info-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 5px;
+  border: 6px solid transparent;
+  border-width: 8px 4px;
+  border-bottom-color: $color-text-dark;
+}
+
+.info-icon-wrapper:hover .info-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-icon {
+  font-size: 14px;
+  color: $text-publishing-blue;
+}
+
+/* Accordion of objects */
+.imcp-list {
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+}
+
+.imcp-object + .imcp-object {
+  border-top: 1px solid $color-border-light;
+}
+
+.imcp-object-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover { background-color: $color-bg-light; }
+}
+
+.imcp-chevron {
+  font-size: 0.8rem;
+  color: $color-text-secondary;
+  width: 1rem;
+}
+
+.imcp-object-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: $color-text-dark;
   overflow-wrap: anywhere;
 }
 
-.im-cp-select {
-  width: auto;
-  min-width: 110px;
-  font-size: 13px;
-  color: #000000;
-  cursor: pointer;
+.imcp-counts {
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  white-space: nowrap;
 }
 
-.im-cp-hint {
-  margin-top: 4px;
+.imcp-count-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 0.35rem;
+  font-size: 0.55rem;
+  border-radius: 50%;
+}
+
+.imcp-state-yes     { color: $state-yes; background: $state-yes-bg; }
+.imcp-state-no      { color: $state-no; background: $state-no-bg; }
+.imcp-state-unknown { color: $color-text-secondary; background: $color-bg-muted; }
+
+.imcp-remove-btn {
+  padding: 0.1rem 0.35rem;
+  border: none;
+  background: none;
+  color: $color-text-secondary;
+
+  &:hover { color: $state-no; }
+}
+
+.imcp-object-body {
+  padding: 0 1rem 1rem;
+}
+
+.imcp-field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-text-dark;
+  margin-bottom: 0.35rem;
+}
+
+.imcp-name-input {
+  font-size: 0.875rem;
+}
+
+.imcp-note {
+  font-size: 0.8125rem;
+}
+
+/* Capability cards with a Supported / Not supported / Unknown segmented toggle */
+.imcp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.imcp-cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.75rem;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+}
+
+.imcp-cap-name {
+  font-size: 0.875rem;
+  color: $color-text-dark;
+  overflow-wrap: anywhere;
+}
+
+.imcp-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid $color-border-light;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.imcp-toggle-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 0.8rem;
+  color: $color-text-dark;
+  background: $color-white;
+  border: none;
+  cursor: pointer;
+
+  & + & { border-left: 1px solid $color-border-light; }
+
+  &:hover:not(:disabled):not(.imcp-toggle-active) { background: $color-bg-hover; }
+
+  &:disabled {
+    color: $color-text-light;
+    cursor: not-allowed;
+  }
+}
+
+.imcp-toggle-yes.imcp-toggle-active     { color: $state-yes; background: $state-yes-bg; }
+.imcp-toggle-no.imcp-toggle-active      { color: $state-no; background: $state-no-bg; }
+.imcp-toggle-unknown.imcp-toggle-active { color: $color-text-dark; background: $color-bg-muted; }
+
+.imcp-hint {
+  margin-top: 0.4rem;
   font-size: 12px;
   color: #bb2d3b;
 }
 
+.imcp-add-btn {
+  margin-top: 0.75rem;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: $color-brand-steel;
+  background: none;
+  border: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+@media (max-width: 991.98px) {
+  .imcp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 575.98px) {
-  .im-cp-grid { grid-template-columns: 1fr; }
+  .imcp-grid { grid-template-columns: 1fr; }
 }

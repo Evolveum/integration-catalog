@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit, HostListener, ElementRef } from '@angular/core';
+import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
@@ -25,6 +25,10 @@ interface Entry {
   isOpen: boolean;
 }
 
+function newEntry(): Entry {
+  return { objectClass: '', states: {}, isOpen: true };
+}
+
 /**
  * Capability picker of an integration method: every capability offered to methods gets a state per
  * object. Connectors and the request form use {@link CapabilityPicker}, which only lists what is supported.
@@ -34,30 +38,25 @@ interface Entry {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './im-capability-picker.html',
-  styleUrls: ['../capability-picker/capability-picker.scss', './im-capability-picker.scss']
+  styleUrls: ['./im-capability-picker.scss']
 })
 export class ImCapabilityPicker implements OnInit, OnChanges {
   @Input() initialCapabilities: IntegrationMethodObjectCapabilities[] = [];
+  /** Only marks the heading; validity is checked by the parent via {@link imCapabilitiesValid}. */
+  @Input() required = false;
   @Output() capabilitiesChange = new EventEmitter<IntegrationMethodObjectCapabilities[]>();
 
-  protected readonly stateOptions: { value: CapabilityState; label: string }[] = [
-    { value: 'YES', label: 'Yes' },
-    { value: 'NO', label: 'No' },
-    { value: 'UNKNOWN', label: 'Unknown' }
+  protected readonly stateOptions: { value: CapabilityState; label: string; icon: string }[] = [
+    { value: 'YES', label: 'Supported', icon: 'fa-check' },
+    { value: 'NO', label: 'Not supported', icon: 'fa-xmark' },
+    { value: 'UNKNOWN', label: 'Unknown', icon: 'fa-question' }
   ];
 
   protected readonly isLoading = signal<boolean>(false);
   protected readonly available = signal<string[]>([]);
-  protected readonly entries = signal<Entry[]>([{ objectClass: '', states: {}, isOpen: false }]);
+  protected readonly entries = signal<Entry[]>([newEntry()]);
 
-  constructor(private applicationService: ApplicationService, private elementRef: ElementRef) {}
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    if (!this.elementRef.nativeElement.contains(event.target)) {
-      this.entries.update(es => es.map(e => ({ ...e, isOpen: false })));
-    }
-  }
+  constructor(private applicationService: ApplicationService) {}
 
   ngOnInit(): void {
     if (this.initialCapabilities.length > 0) {
@@ -84,17 +83,21 @@ export class ImCapabilityPicker implements OnInit, OnChanges {
 
   private applyInitialCapabilities(): void {
     const current = this.entries();
+    // On the first load only the first object starts expanded; afterwards each keeps its own state.
+    const firstLoad = !current.some(e => e.objectClass);
     const fromInit: Entry[] = this.initialCapabilities
       .filter(g => g.objectClass !== 'Global')
-      .map(g => ({
+      .map((g, idx) => ({
         objectClass: g.objectClass,
         states: Object.fromEntries(g.capabilities.map(c => [c.name, c.state])),
-        isOpen: current.find(e => e.objectClass === g.objectClass)?.isOpen ?? false
+        isOpen: firstLoad ? idx === 0 : current.find(e => e.objectClass === g.objectClass)?.isOpen ?? false
       }));
-    // Keep objects typed in but not yet known to the parent.
-    const inProgress = current.filter(e => e.objectClass && !fromInit.some(f => f.objectClass === e.objectClass));
+    // Keep objects not yet known to the parent, including freshly added unnamed ones.
+    const inProgress = current.filter(e => !e.objectClass
+      ? !firstLoad
+      : !fromInit.some(f => f.objectClass === e.objectClass));
     const merged = [...fromInit, ...inProgress];
-    this.entries.set(merged.length > 0 ? merged : [{ objectClass: '', states: {}, isOpen: false }]);
+    this.entries.set(merged.length > 0 ? merged : [newEntry()]);
   }
 
   private emit(): void {
@@ -114,12 +117,21 @@ export class ImCapabilityPicker implements OnInit, OnChanges {
     return this.available().some(cap => this.stateOf(entry, cap) === 'YES');
   }
 
+  protected counts(entry: Entry): Record<'yes' | 'no' | 'unknown', number> {
+    const states = this.available().map(cap => this.stateOf(entry, cap));
+    return {
+      yes: states.filter(s => s === 'YES').length,
+      no: states.filter(s => s === 'NO').length,
+      unknown: states.filter(s => s === 'UNKNOWN').length
+    };
+  }
+
   protected fmt(cap: string): string {
     return formatCapabilityLabel(cap);
   }
 
   protected addEntry(): void {
-    this.entries.update(es => [...es, { objectClass: '', states: {}, isOpen: false }]);
+    this.entries.update(es => [...es, newEntry()]);
   }
 
   protected removeEntry(i: number): void {
@@ -128,20 +140,17 @@ export class ImCapabilityPicker implements OnInit, OnChanges {
   }
 
   protected updateObjectClass(i: number, value: string): void {
-    this.entries.update(es => es.map((e, idx) => idx !== i ? e : {
-      ...e, objectClass: value, isOpen: value ? e.isOpen : false
-    }));
+    this.entries.update(es => es.map((e, idx) => idx !== i ? e : { ...e, objectClass: value }));
     this.emit();
   }
 
-  protected toggleEntryDropdown(i: number): void {
-    if (!this.entries()[i]?.objectClass) return;
+  protected toggleEntry(i: number): void {
     this.entries.update(es => es.map((e, idx) => idx === i ? { ...e, isOpen: !e.isOpen } : e));
   }
 
-  protected onStateChange(i: number, cap: string, state: string): void {
+  protected onStateChange(i: number, cap: string, state: CapabilityState): void {
     this.entries.update(es => es.map((e, idx) =>
-      idx !== i ? e : { ...e, states: { ...e.states, [cap]: state as CapabilityState } }
+      idx !== i ? e : { ...e, states: { ...e.states, [cap]: state } }
     ));
     this.emit();
   }
