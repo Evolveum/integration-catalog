@@ -64,8 +64,10 @@ export class ManualFillModal implements OnChanges {
 
   /** Submit the form: calls verify then complete sequentially. */
   onSubmit(): void {
-    if (!this.bundleName || !this.version || !this.className) {
-      this.errorMessage = 'Bundle name, version, and class name are required.';
+    // The download link is what this dialog exists to supply: it becomes the artifact URL whose
+    // absence is what reported the connector as missing its build information.
+    if (!this.bundleName || !this.version || !this.className || !this.downloadLink.trim()) {
+      this.errorMessage = 'Bundle name, version, class name, and download link are required.';
       return;
     }
 

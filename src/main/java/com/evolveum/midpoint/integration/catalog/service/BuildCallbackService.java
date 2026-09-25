@@ -70,6 +70,12 @@ public class BuildCallbackService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The build reported no connector bundle name; the bundle's identity cannot be set from it.");
         }
+        // A missing artifact URL is what reports a connector as lacking build information, so a success
+        // without one would leave it reported that way.
+        if (continueForm.getDownloadLink() == null || continueForm.getDownloadLink().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "The build reported no download link; the connector cannot be downloaded without it.");
+        }
 
         // The classes this build actually produced, in the order the job listed them.
         List<String> builtClasses = splitClassNames(continueForm.getConnectorClass());
