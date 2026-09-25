@@ -20,11 +20,12 @@ import { LinksService } from '../../services/links.service';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe, BackdropCloseDirective],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
 })

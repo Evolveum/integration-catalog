@@ -21,6 +21,7 @@ import { EditApplicationModal } from '../edit-application-modal/edit-application
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 interface MethodGroup {
   id: string;
@@ -34,7 +35,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe, BackdropCloseDirective],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']

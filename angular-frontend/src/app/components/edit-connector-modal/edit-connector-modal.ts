@@ -16,6 +16,7 @@ import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capabili
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /** Payload sent to updateConnector — also emitted for staging when deferSave is on. */
 export interface ConnectorEditPayload {
@@ -38,7 +39,7 @@ export interface ConnectorEditPayload {
 @Component({
   selector: 'app-edit-connector-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, MarkdownEditor],
+  imports: [CommonModule, FormsModule, CapabilityPicker, MarkdownEditor, BackdropCloseDirective],
   templateUrl: './edit-connector-modal.html',
   styleUrls: ['./edit-connector-modal.scss']
 })

@@ -22,6 +22,7 @@ import { ConnectorTag, isObsoleteConnector } from '../../models/connector-tag.mo
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 type Step = 1 | 2;
 
@@ -62,7 +63,7 @@ export interface StagedConnector {
 @Component({
   selector: 'app-add-connector-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal, MarkdownEditor, MarkdownPipe],
+  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal, MarkdownEditor, MarkdownPipe, BackdropCloseDirective],
   templateUrl: './add-connector-form.html',
   styleUrls: ['./add-connector-form.scss']
 })

@@ -353,8 +353,8 @@
 
                   <!-- Filter Modal -->
                   @if (isFilterModalOpen()) {
-                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" (click)="toggleFilterModal()">
-                      <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
+                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" [appBackdropClose]="filterDialog" (backdropClose)="toggleFilterModal()">
+                      <div #filterDialog class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
                         <div class="d-flex flex-column h-100">
                           <div class="d-flex flex-grow-1 overflow-hidden">
                             <div class="border-end modal-sidebar overflow-auto">
