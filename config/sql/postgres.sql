@@ -1020,15 +1020,15 @@ INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM
 SELECT setval('application_tag_id_seq', 8);
 
 INSERT INTO integration_method_type (id, display_name, description) OVERRIDING SYSTEM VALUE VALUES
-    (1,  'Native/Proprietary API',           'TODO'),
-    (2,  'Standardized API',                 'TODO'),
-    (3,  'Intermediary directory service',   'TODO'),
-    (4,  'Direct repository access',         'TODO'),
-    (5,  'File-based integration',           'TODO'),
-    (6,  'Intermediary repository',          'TODO'),
-    (7,  'Manual/ITSM integration',          'TODO'),
-    (8,  'Scripting',                        'TODO'),
-    (9,  'Other',                            'TODO');
+    (1,  'Native/Proprietary API',           'Integrate the application directly via its own API'),
+    (2,  'Standardized API',                 'Use a standardized vendor-agnostic API'),
+    (3,  'Intermediary directory service',   'Integrate via an intermediary LDAP/AD data store'),
+    (4,  'Direct repository access',         'Manage data directly in the data store of the application'),
+    (5,  'File-based integration',           'Exchange identity data via a file'),
+    (6,  'Intermediary repository',          'Integrate via an intermediary database or message queue'),
+    (7,  'Manual/ITSM integration',          'Provision via an ITSM ticketing workflow'),
+    (8,  'Scripting',                        'Run scripts directly in the target application'),
+    (9,  'Other',                            'An approach outside any more specific category');
 
 SELECT setval('integration_method_type_id_seq', 9);
 
