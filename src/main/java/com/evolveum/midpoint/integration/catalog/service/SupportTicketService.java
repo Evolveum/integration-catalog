@@ -15,6 +15,7 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.OperationResult;
@@ -71,6 +72,8 @@ public class SupportTicketService {
     public static final String ATTACH_FILE = "ATTACH_FILE";
 
     public static final String COMMENT_BUILD_OUTCOME = "COMMENT_BUILD_OUTCOME";
+
+    public static final String COMMENT_CANCELLATION = "COMMENT_CANCELLATION";
 
     public static final String OBJECT_STATE_ADDED = "added";
     public static final String OBJECT_STATE_REPLACED = "replaced";
@@ -315,6 +318,35 @@ public class SupportTicketService {
                     method.getSupportTicketId(), e.getMessage());
             return OperationResult.retry("Could not report a build outcome on work package #"
                     + method.getSupportTicketId() + ": " + reasonFromException(e));
+        }
+    }
+
+    /**
+     * Tells the reviewer on the work package that the author withdrew the revision, so it is not
+     * reviewed for nothing. The work package is left open for the reviewer to close.
+     */
+    public OperationResult commentCancellation(IntegrationMethodCancelledEvent event) {
+        if (!properties.isEnabled()) {
+            return OperationResult.retry("No support portal is configured (openproject.url is empty).");
+        }
+        try {
+            openProjectClient.addComment(event.workPackageId(), "This submission (revision " + event.revision()
+                    + ") was cancelled by " + event.cancelledBy() + " and removed from the catalog."
+                    + " There is nothing left to review, so this work package can be closed.");
+            log.info("Reported the cancellation of {}/{} on support work package {}",
+                    event.methodId(), event.revision(), event.workPackageId());
+            return OperationResult.completed();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while reporting a cancellation on support work package {}",
+                    event.workPackageId(), e);
+            return OperationResult.retry("Interrupted while reporting a cancellation on work package #"
+                    + event.workPackageId() + ".");
+        } catch (Exception e) {
+            log.error("Failed to report a cancellation on support work package {}: {}",
+                    event.workPackageId(), e.getMessage());
+            return OperationResult.retry("Could not report a cancellation on work package #"
+                    + event.workPackageId() + ": " + reasonFromException(e));
         }
     }
 

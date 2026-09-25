@@ -68,10 +68,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly versionSearchQuery = signal<string>('');
   protected readonly isContinuePressed = signal<boolean>(true);
   protected readonly allVersions = signal<any[]>([]);
-  protected readonly cancelledVersionIds = signal<string[]>([]);
   protected readonly isCancelConfirmOpen = signal<boolean>(false);
   private pendingCancelType: 'request' | 'version' | null = null;
-  private pendingCancelVersionId: string | null = null;
+  private pendingCancelVersion: { id: string; revision: string | null } | null = null;
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 3;
   protected readonly expandedMethods = signal<Set<string>>(new Set());
@@ -80,9 +79,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   // (integration_method.id is stable across revisions; revision distinguishes versions).
   protected readonly groupedMethods = computed<MethodGroup[]>(() => {
     const groups = new Map<string, MethodGroup>();
-    const cancelled = this.cancelledVersionIds();
     for (const v of this.allVersions()) {
-      if (cancelled.includes(this.versionKey(v.id, v.revision))) continue;
       let group = groups.get(v.id);
       if (!group) {
         group = {
@@ -194,7 +191,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected cancelVersion(id: string, revision: string | null): void {
     this.pendingCancelType = 'version';
-    this.pendingCancelVersionId = this.versionKey(id, revision);
+    this.pendingCancelVersion = { id, revision };
     this.isCancelConfirmOpen.set(true);
   }
 
@@ -364,21 +361,39 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected cancelRequest(): void {
     this.pendingCancelType = 'request';
-    this.pendingCancelVersionId = null;
+    this.pendingCancelVersion = null;
     this.isCancelConfirmOpen.set(true);
   }
 
   protected closeCancelConfirm(): void {
     this.isCancelConfirmOpen.set(false);
     this.pendingCancelType = null;
-    this.pendingCancelVersionId = null;
+    this.pendingCancelVersion = null;
   }
 
   protected confirmCancel(): void {
-    if (this.pendingCancelType === 'version' && this.pendingCancelVersionId) {
-      this.cancelledVersionIds.update(ids => [...ids, this.pendingCancelVersionId!]);
-      //todo we need remove it from DB and add comment to ticket (probably also close ticket)
-      this.closeCancelConfirm();
+    if (this.pendingCancelType === 'version' && this.pendingCancelVersion) {
+      const appId = this.application()?.id;
+      const { id, revision } = this.pendingCancelVersion;
+      if (!appId) { this.closeCancelConfirm(); return; }
+      this.applicationService.cancelIntegrationMethod(appId, id, revision ?? '').subscribe({
+        next: ({ applicationDeleted }) => {
+          this.closeCancelConfirm();
+          // The app goes with its only never-published revision, so there is no detail page to return to.
+          if (applicationDeleted) {
+            this.router.navigate(['/applications']);
+          } else {
+            this.loadApplication(appId);
+          }
+        },
+        error: (err) => {
+          console.error('Failed to cancel integration method', err);
+          this.closeCancelConfirm();
+          const e = err as { error?: { message?: string } | string; message?: string };
+          const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+          this.toastService.show('Cancel request failed', message || 'The action failed. Please try again.', 'danger');
+        }
+      });
     } else if (this.pendingCancelType === 'request') {
       const requestId = this.application()?.requestId;
       if (!requestId) { this.closeCancelConfirm(); return; }

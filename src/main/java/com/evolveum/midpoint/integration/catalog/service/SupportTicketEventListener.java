@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProper
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
 import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.PendingOperationService;
@@ -50,6 +51,12 @@ public class SupportTicketEventListener {
     @TransactionalEventListener
     public void onBuildFinished(BuildFinishedEvent event) {
         submit(SupportTicketService.COMMENT_BUILD_OUTCOME, event);
+    }
+
+    /** The author withdrew a revision, so its work package owes the reviewer a note. */
+    @TransactionalEventListener
+    public void onIntegrationMethodCancelled(IntegrationMethodCancelledEvent event) {
+        submit(SupportTicketService.COMMENT_CANCELLATION, event);
     }
 
     /**

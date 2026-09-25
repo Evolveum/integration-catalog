@@ -301,6 +301,13 @@ public class ApplicationService {
         connectorUploadService.rejectIntegrationMethod(methodId, revision, username);
     }
 
+    /** Whoever may edit the revision may withdraw it; returns whether its application went too. */
+    @Transactional
+    public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
+        assertCanEditMethod(username, methodId, revision);
+        return connectorUploadService.cancelIntegrationMethod(methodId, revision, username);
+    }
+
     @Transactional
     public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
