@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 @Service
 public class ApplicationService {
 
+    private static final int RECENTLY_USED_KEPT = 10;
+
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagRepository applicationTagRepository;
     private final CountryOfOriginRepository countryOfOriginRepository;
@@ -616,14 +618,19 @@ public class ApplicationService {
                 .toList();
     }
 
+    /**
+     * The list is shared by all users, so an application keeps one row whoever opened it, and only the
+     * newest {@link #RECENTLY_USED_KEPT} rows are kept.
+     */
     @Transactional
     public void recordRecentlyUsed(UUID applicationId, String username) {
-        recentlyUsedApplicationRepository.deleteByUsernameAndApplicationId(username, applicationId);
+        recentlyUsedApplicationRepository.deleteByApplicationId(applicationId);
         recentlyUsedApplicationRepository.flush();
         RecentlyUsedApplication entry = new RecentlyUsedApplication()
                 .setUsername(username)
                 .setApplicationId(applicationId);
-        recentlyUsedApplicationRepository.save(entry);
+        recentlyUsedApplicationRepository.saveAndFlush(entry);
+        recentlyUsedApplicationRepository.deleteAllButNewest(RECENTLY_USED_KEPT);
     }
 
     public long getTotalDownloadsCount() {
