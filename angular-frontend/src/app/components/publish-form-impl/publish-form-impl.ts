@@ -375,8 +375,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devClassName.set(connector.className ?? '');
     const bf = (connector.buildFramework ?? '').toLowerCase();
     this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
-    this.devSupportPortal.set('');
-    this.devCommitTag.set('');
+    this.devSupportPortal.set(connector.ticketingLink ?? '');
+    this.devCommitTag.set(connector.commitTag ?? '');
     this.devRepoOwnership.set('evolveum');
     this.devGithubApiKey.set('');
     this.showGithubApiKey.set(false);

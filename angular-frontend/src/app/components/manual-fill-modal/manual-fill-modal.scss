@@ -17,3 +17,9 @@
   width: 90%;
   max-height: 90vh;
 }
+
+// Bundle and class names are long dotted strings with no natural break points.
+.error-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

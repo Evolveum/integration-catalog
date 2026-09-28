@@ -1244,8 +1244,7 @@ public class ConnectorUploadService {
                 ownershipService.stampNew(cbv, username, dto.maintainer());
                 cbv.setLifecycleState(LifecycleType.IN_REVIEW);
                 cbv.setBrowseLink(dto.projectHomepage());  // one link, not two - see createBundleVersion
-                cbv.setPathToProject(firstNonBlank(dto.pathToProject(),
-                        baseCbv != null ? baseCbv.getPathToProject() : null));
+                cbv.setPathToProject(emptyToNull(dto.pathToProject()));
                 cbv.setCommitTag(requestedCommitTag);
                 cbv.setBuildFramework(dto.buildFramework() != null ? dto.buildFramework()
                         : (baseCbv != null ? baseCbv.getBuildFramework() : null));
@@ -1606,7 +1605,8 @@ public class ConnectorUploadService {
         if (cbv != null) {
             ownershipService.assignMaintainer(cbv, dto.maintainer());
             cbv.setBrowseLink(dto.projectHomepage());  // one link, not two - see createBundleVersion
-            cbv.setPathToProject(firstNonBlank(dto.pathToProject(), cbv.getPathToProject()));
+            // Optional (blank = repository root), so unlike the identifiers a blank value clears it.
+            cbv.setPathToProject(emptyToNull(dto.pathToProject()));
             cbv.setCommitTag(commitTag);
             if (dto.buildFramework() != null) {
                 cbv.setBuildFramework(dto.buildFramework());

@@ -327,7 +327,16 @@ export class AddConnectorForm implements OnInit {
     this.connectorVersion.set(c.version ?? '');
     this.connectorMaintainer.set(c.maintainer ?? this.authService.defaultMaintainer());
     this.connectorLicense.set(c.licenseType ?? '');
+    this.connectorDescription.set(c.description ?? '');
+    const caps: CapabilityGroup[] = (c.objectClassCapabilities ?? []).map(oc => ({
+      objectClass: oc.objectName,
+      capabilityNames: oc.capabilities ?? []
+    }));
+    this.connectorCapabilities.set(caps);
+    this.initialCapabilities.set(caps);
     this.devProjectHomepage.set(c.projectHomepage ?? '');
+    this.devSupportPortal.set(c.ticketingLink ?? '');
+    this.devCommitTag.set(c.commitTag ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(c.pathToProject ?? '');
     this.devClassName.set(c.className ?? '');

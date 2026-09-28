@@ -592,6 +592,8 @@ class ControllerTest {
                 "https://github.com/Evolveum/connector-ldap/tree/v1.0.0",
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
+                "v1.0.0",
+                null,
                 "com.evolveum.polygon.connector.ldap.LdapConnector",
                 List.of(),
                 List.of(new ConnectorTagDto("obsolete", "Obsolete"))

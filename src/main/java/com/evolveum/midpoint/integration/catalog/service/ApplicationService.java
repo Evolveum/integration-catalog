@@ -558,6 +558,8 @@ public class ApplicationService {
                                     bundle.getProjectHomepage(),
                                     latest != null ? latest.getBrowseLink() : null,
                                     bundle.getGitCloneUrl(),
+                                    bundle.getTicketingLink(),
+                                    latest != null ? latest.getCommitTag() : null,
                                     latest != null ? latest.getPathToProject() : null,
                                     connector.getFullyQualifiedClassName(),
                                     applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector),

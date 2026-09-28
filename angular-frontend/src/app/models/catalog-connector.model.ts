@@ -23,6 +23,8 @@ export interface CatalogConnector {
   projectHomepage: string;   // connector_bundle.project_homepage
   branchUrl: string;         // latest connector_bundle_version.browse_link
   gitCloneUrl: string;       // connector_bundle.git_clone_ulr
+  ticketingLink: string | null; // connector_bundle.ticketing_link
+  commitTag: string | null;  // latest connector_bundle_version.commit_tag
   pathToProject: string;     // latest connector_bundle_version.path_to_project
   className: string;         // connector.fully_qualified_class_name
   objectClassCapabilities: CatalogConnectorObjectClassCapability[]; // conn_version_capability + items
