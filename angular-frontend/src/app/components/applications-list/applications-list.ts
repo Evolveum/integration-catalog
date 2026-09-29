@@ -109,7 +109,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
     }
-    return apps;
+    // Only what a superuser marked with "Toggle Featured" on the application detail.
+    return apps.filter(app => app.tags?.some(tag => tag.name === 'featured' && tag.tagType === 'COMMON'));
   });
 
   protected readonly moreApplications = computed(() => {

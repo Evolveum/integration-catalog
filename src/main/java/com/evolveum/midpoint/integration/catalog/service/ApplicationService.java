@@ -718,4 +718,13 @@ public class ApplicationService {
         }
         return applicationRepository.save(application);
     }
+
+    @Transactional
+    public void setFeatured(UUID applicationId, boolean featured) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Application not found with id: " + applicationId));
+        applicationTagService.setFeatured(application, featured);
+        applicationRepository.save(application);
+    }
 }

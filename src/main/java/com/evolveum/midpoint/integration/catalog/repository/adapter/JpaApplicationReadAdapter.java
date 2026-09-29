@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.repository.adapter;
 
 import com.evolveum.midpoint.integration.catalog.object.Application;
+import com.evolveum.midpoint.integration.catalog.object.ApplicationTag;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class JpaApplicationReadAdapter implements ApplicationReadPort {
 
     @Override
     public Page<Application> findFeatured(Pageable pageable) {
-        return repo.findByNameContainingIgnoreCase("", pageable); // TODO: Implement featured when field is added to Application
+        return repo.findDistinctByApplicationApplicationTags_ApplicationTag_Name(ApplicationTag.FEATURED, pageable);
     }
 
     @Override

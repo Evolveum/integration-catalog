@@ -453,6 +453,13 @@ public class Controller {
         return ResponseEntity.ok(items);
     }
 
+    @Operation(summary = "Mark an application as featured on the homepage, or not (superuser only)")
+    @PutMapping("/applications/{appId}/featured")
+    public ResponseEntity<Void> setApplicationFeatured(@PathVariable UUID appId, @RequestBody FeaturedDto dto) {
+        applicationService.setFeatured(appId, dto.featured());
+        return ResponseEntity.ok().build();
+    }
+
     @Operation(summary = "Update application details",
             description = "Updates the display name and/or description of an application. Superuser only.")
     @ApiResponses(value = {

@@ -184,6 +184,28 @@
 /* ========================================
    BADGES
    ======================================== */
+// "Toggle Featured": grey = not featured, green = featured on the homepage.
+.btn-featured {
+  background-color: #e9ecef;
+  color: #6c757d;
+
+  &:hover:not(:disabled) {
+    background-color: #dee2e6;
+    color: #495057;
+  }
+}
+
+.btn-featured-on {
+  background-color: #198754;
+  border-color: #198754 !important;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background-color: #157347;
+    color: #fff;
+  }
+}
+
 .badge-popular {
   background-color: #ffdd8c;
   color: #7A510B;

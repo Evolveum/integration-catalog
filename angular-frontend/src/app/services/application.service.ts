@@ -454,6 +454,10 @@ export class ApplicationService {
   /**
    * Update application details (displayName, description) - superuser only
    */
+  setApplicationFeatured(applicationId: string, featured: boolean): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/applications/${applicationId}/featured`, { featured });
+  }
+
   updateApplication(applicationId: string, payload: { displayName: string; description: string | null }): Observable<void> {
     return this.http.put<void>(
       `${environment.apiUrl}/applications/${applicationId}`,

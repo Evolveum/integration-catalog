@@ -63,6 +63,7 @@ public class SecurityConfig {
     private static final String METHOD_CONNECTORS = "/api/applications/*/integration-method/*/*/connectors";
 
     private static final String APPLICATION_LOGO = "/api/applications/*/logo";
+    private static final String APPLICATION_FEATURED = "/api/applications/*/featured";
 
     private static final String[] ITEM_ATTACHMENTS = {
             "/api/applications/*/integration-method/*/*/tutorial",
@@ -167,6 +168,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, ALL_API).permitAll()
                         .requestMatchers(HttpMethod.POST, CATALOG_SEARCHES).permitAll()
                         .requestMatchers(HttpMethod.PUT, APPLICATION).hasRole(SUPERUSER) //edit application
+                        .requestMatchers(HttpMethod.PUT, APPLICATION_FEATURED).hasRole(SUPERUSER)
                         .requestMatchers(ALL_API).authenticated()
                         .anyRequest().permitAll())
                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(

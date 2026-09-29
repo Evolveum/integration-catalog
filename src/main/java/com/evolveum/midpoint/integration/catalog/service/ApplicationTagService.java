@@ -125,6 +125,36 @@ public class ApplicationTagService {
     }
 
     /**
+     * Marks an application as featured (shown on the homepage) or not. The tag is a COMMON one,
+     * which no tag list or filter shows, and it is created on first use.
+     */
+    @Transactional
+    public void setFeatured(Application application, boolean featured) {
+        initializeTagsSet(application, false);
+        if (!featured) {
+            application.getApplicationApplicationTags().removeIf(join -> isFeaturedTag(join.getApplicationTag()));
+            return;
+        }
+        ApplicationTag tag = applicationTagRepository
+                .findByNameAndTagType(ApplicationTag.FEATURED, ApplicationTag.ApplicationTagType.COMMON)
+                .orElseGet(() -> {
+                    ApplicationTag created = new ApplicationTag();
+                    created.setName(ApplicationTag.FEATURED);
+                    created.setDisplayName("Featured");
+                    created.setTagType(ApplicationTag.ApplicationTagType.COMMON);
+                    return applicationTagRepository.save(created);
+                });
+        if (!hasTag(application, tag)) {
+            application.getApplicationApplicationTags().add(createTagJoin(application, tag));
+        }
+    }
+
+    private static boolean isFeaturedTag(ApplicationTag tag) {
+        return tag != null && ApplicationTag.FEATURED.equals(tag.getName())
+                && tag.getTagType() == ApplicationTag.ApplicationTagType.COMMON;
+    }
+
+    /**
      * add deployment tags to an application and save directly to DB.
      * used in request form flow where application is already persisted.
      *

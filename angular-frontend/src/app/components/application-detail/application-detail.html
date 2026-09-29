@@ -118,9 +118,17 @@
 
           <!-- Management buttons (superuser only) -->
           @if (isSuperuser()) {
-          <div class="mt-2">
+          <div class="mt-2 d-flex flex-wrap gap-2">
             <button type="button" class="btn btn-light border d-inline-flex align-items-center gap-2" (click)="openEditModal()">
               <i class="fa-solid fa-pen-to-square"></i>Edit application
+            </button>
+            <button type="button" class="btn border d-inline-flex align-items-center gap-2 btn-featured"
+                    [class.btn-featured-on]="isFeatured()"
+                    [attr.aria-pressed]="isFeatured()"
+                    [title]="isFeatured() ? 'Featured on the homepage - click to remove' : 'Not featured - click to feature on the homepage'"
+                    [disabled]="isTogglingFeatured()"
+                    (click)="toggleFeatured()">
+              Toggle Featured
             </button>
           </div>
           }

@@ -202,6 +202,34 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
+  // Featured = carries the COMMON "featured" tag; such applications fill the homepage's first row.
+  protected readonly isFeatured = computed(() =>
+    (this.application()?.tags ?? []).some(t => t.name === 'featured' && t.tagType === 'COMMON'));
+  protected readonly isTogglingFeatured = signal<boolean>(false);
+
+  protected toggleFeatured(): void {
+    const app = this.application();
+    if (!app || this.isTogglingFeatured()) return;
+    const featured = !this.isFeatured();
+    this.isTogglingFeatured.set(true);
+    this.applicationService.setApplicationFeatured(app.id, featured).subscribe({
+      next: () => {
+        this.isTogglingFeatured.set(false);
+        const others = (app.tags ?? []).filter(t => !(t.name === 'featured' && t.tagType === 'COMMON'));
+        this.application.set({
+          ...app,
+          tags: featured
+            ? [...others, { id: 0, name: 'featured', displayName: 'Featured', tagType: 'COMMON' }]
+            : others
+        });
+      },
+      error: (err) => {
+        this.isTogglingFeatured.set(false);
+        console.error('Toggling featured failed', err);
+      }
+    });
+  }
+
   /** The requester may cancel their own request; a superuser may cancel any (server-enforced). */
   protected canCancelRequest(): boolean {
     if (this.isSuperuser()) return true;

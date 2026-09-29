@@ -20,5 +20,7 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID>,
         JpaSpecificationExecutor<Application> {
     Optional<Application> findByName(String name);
     Page<Application> findByNameContainingIgnoreCase(String q, Pageable pageable);
+
+    Page<Application> findDistinctByApplicationApplicationTags_ApplicationTag_Name(String tagName, Pageable pageable);
     List<Application> findByLifecycleState(Application.ApplicationLifecycleType lifecycleState);
 }
