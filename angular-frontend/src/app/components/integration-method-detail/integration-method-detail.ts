@@ -20,6 +20,7 @@ import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { SupportTier, supportTierLabel } from '../../core/support-tier';
 
 @Component({
   selector: 'app-integration-method-detail',
@@ -42,6 +43,8 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly methodDescription = signal<string>('');
   protected readonly methodLimitations = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
+  protected readonly supportTier = signal<SupportTier | null>(null);
+  protected readonly supportTierLabel = supportTierLabel;
   protected readonly specificCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
   protected readonly selectedCapsObject = signal<string>('');
   protected readonly selectedObjectCapabilities = computed(() =>
@@ -163,6 +166,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodDescription.set(ver.description ?? '');
           this.methodLimitations.set(ver.limitations ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
+          this.supportTier.set(ver.supportTier ?? null);
           this.methodTutorial.set(ver.tutorial ?? '');
           this.methodMinVersionId.set(ver.midpointMinVersionId);
           this.methodMaxVersionId.set(ver.midpointMaxVersionId);
@@ -482,8 +486,14 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly isDownloadInfoOpen = signal<boolean>(false);
   protected readonly downloadInfoFileName = signal<string>('');
   protected readonly downloadInfoFileSize = signal<number | null>(null);
+  protected readonly isDownloadPreparing = signal<boolean>(false);
 
   protected downloadConnector(): void {
+    // Open right away: building the bundle can take a while and the click must show a reaction.
+    this.downloadInfoFileName.set('');
+    this.downloadInfoFileSize.set(null);
+    this.isDownloadPreparing.set(true);
+    this.isDownloadInfoOpen.set(true);
     this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion()).subscribe({
       next: (result) => {
         if (result.warning) {
@@ -495,12 +505,16 @@ export class IntegrationMethodDetail implements OnInit {
         }
         this.downloadInfoFileName.set(result.fileName);
         this.downloadInfoFileSize.set(result.size);
-        this.isDownloadInfoOpen.set(true);
+        this.isDownloadPreparing.set(false);
       },
-      error: () => this.toastService.show(
-        'Download error',
-        'Failed to download the bundle. Please try again.',
-        'danger')
+      error: () => {
+        this.isDownloadPreparing.set(false);
+        this.isDownloadInfoOpen.set(false);
+        this.toastService.show(
+          'Download error',
+          'Failed to download the bundle. Please try again.',
+          'danger');
+      }
     });
   }
 }

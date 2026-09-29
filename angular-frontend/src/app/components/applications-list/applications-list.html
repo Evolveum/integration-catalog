@@ -710,6 +710,7 @@
       <app-download-info-modal
         [fileName]="sheetInfoFileName()"
         [fileSize]="sheetInfoFileSize()"
+        [preparing]="isSheetPreparing()"
         [steps]="sheetDownloadSteps"
         [note]="''"
         (closed)="isSheetInfoOpen.set(false)">

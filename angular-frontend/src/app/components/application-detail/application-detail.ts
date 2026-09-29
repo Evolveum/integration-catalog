@@ -925,6 +925,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   // Post-download help modal (where to copy the connectors in midPoint home)
   protected readonly isDownloadInfoOpen = signal<boolean>(false);
+  protected readonly isDownloadPreparing = signal<boolean>(false);
   protected readonly downloadInfoFileName = signal<string>('');
   protected readonly downloadInfoFileSize = signal<number | null>(null);
 
@@ -988,6 +989,11 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
+      // Open right away: building the bundle can take a while and the click must show a reaction.
+      this.downloadInfoFileName.set('');
+      this.downloadInfoFileSize.set(null);
+      this.isDownloadPreparing.set(true);
+      this.isDownloadInfoOpen.set(true);
       this.applicationService.downloadBundle(appId, methodId, revision ?? '').subscribe({
         next: (result) => {
           if (result.warning) {
@@ -999,12 +1005,16 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           }
           this.downloadInfoFileName.set(result.fileName);
           this.downloadInfoFileSize.set(result.size);
-          this.isDownloadInfoOpen.set(true);
+          this.isDownloadPreparing.set(false);
         },
-        error: () => this.toastService.show(
-          'Download error',
-          'Failed to download the bundle. Please try again.',
-          'danger')
+        error: () => {
+          this.isDownloadPreparing.set(false);
+          this.isDownloadInfoOpen.set(false);
+          this.toastService.show(
+            'Download error',
+            'Failed to download the bundle. Please try again.',
+            'danger');
+        }
       }
       );
     }

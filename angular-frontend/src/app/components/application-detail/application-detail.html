@@ -893,6 +893,7 @@
     <app-download-info-modal
       [fileName]="downloadInfoFileName()"
       [fileSize]="downloadInfoFileSize()"
+      [preparing]="isDownloadPreparing()"
       (closed)="isDownloadInfoOpen.set(false)">
     </app-download-info-modal>
   }

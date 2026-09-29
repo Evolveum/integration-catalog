@@ -64,12 +64,29 @@
   padding: 2rem 1.5rem 3rem;
 }
 
+.view-page-title-row {
+  margin-bottom: 2rem;
+}
+
 .view-page-title {
   font-size: 1.6rem;
   font-weight: 700;
   color: #1a202c;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
 }
+
+/* Support tier chip, same colors as on the application detail. */
+.im-tier-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.15rem 0.6rem;
+}
+
+.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
 
 /* ========================================
    IN-REVIEW CONTEXT (banner + submission meta)

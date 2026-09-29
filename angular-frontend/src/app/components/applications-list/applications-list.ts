@@ -1058,6 +1058,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isSheetInfoOpen = signal<boolean>(false);
   protected readonly sheetInfoFileName = signal<string>('');
   protected readonly sheetInfoFileSize = signal<number | null>(null);
+  protected readonly isSheetPreparing = signal<boolean>(false);
   protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
     {
       title: 'Import the downloaded JSON file into midPoint',
@@ -1071,17 +1072,27 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
    * with the error message if the download failed.
    */
   protected downloadActiveConnectors(): void {
+    // Open right away so the click shows a reaction while the sheet is being prepared.
+    this.sheetInfoFileName.set('');
+    this.sheetInfoFileSize.set(null);
+    this.isSheetPreparing.set(true);
+    this.isSheetInfoOpen.set(true);
     this.applicationService.downloadActiveConnectors().subscribe({
       next: (result) => {
+        this.isSheetPreparing.set(false);
         if (result.error) {
+          this.isSheetInfoOpen.set(false);
           this.showDownloadToast(result.error);
         } else {
           this.sheetInfoFileName.set(result.fileName ?? '');
           this.sheetInfoFileSize.set(result.size);
-          this.isSheetInfoOpen.set(true);
         }
       },
-      error: () => this.showDownloadToast('Download of active connectors failed.')
+      error: () => {
+        this.isSheetPreparing.set(false);
+        this.isSheetInfoOpen.set(false);
+        this.showDownloadToast('Download of active connectors failed.');
+      }
     });
   }
 

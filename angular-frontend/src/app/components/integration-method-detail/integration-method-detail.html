@@ -39,7 +39,12 @@
         </div>
       }
 
-      <h2 class="view-page-title">{{ methodName() }}</h2>
+      <div class="view-page-title-row d-flex align-items-center flex-wrap gap-3">
+        <h2 class="view-page-title">{{ methodName() }}</h2>
+        @if (supportTier(); as tier) {
+          <span class="im-tier-badge" [class]="'tier-' + tier.toLowerCase()">{{ supportTierLabel(tier) }}</span>
+        }
+      </div>
 
       @if (isInReview() || isReviewing()) {
         <div class="review-meta d-flex align-items-center flex-wrap gap-3 mb-4">
@@ -492,6 +497,7 @@
     <app-download-info-modal
       [fileName]="downloadInfoFileName()"
       [fileSize]="downloadInfoFileSize()"
+      [preparing]="isDownloadPreparing()"
       (closed)="isDownloadInfoOpen.set(false)">
     </app-download-info-modal>
   }

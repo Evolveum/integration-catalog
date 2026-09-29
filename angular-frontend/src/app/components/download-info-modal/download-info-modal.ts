@@ -58,6 +58,11 @@ export class DownloadInfoModal {
   @Input() steps: DownloadInfoStep[] = BUNDLE_STEPS;
   /** Optional info note under the steps (empty = hidden); defaults to the bundle samples note. */
   @Input() note = BUNDLE_NOTE;
+  /**
+   * True while the file is still being prepared: the modal opens on the click, since building a
+   * bundle can take a while, and shows the file name and size once they are known.
+   */
+  @Input() preparing = false;
   @Output() closed = new EventEmitter<void>();
 
   protected onClose(): void {
