@@ -585,6 +585,27 @@ ALTER TABLE connector ALTER COLUMN description TYPE text;
 $aa$);
 -- end of region
 
+-- region change 19: request capability states
+-- The request form now uses the integration method's capability picker, so a request states every
+-- offered capability as YES / NO / UNKNOWN, like a method does (change 16). 'capabilities' keeps
+-- holding YES, so everything reading requests is unchanged; NO and UNKNOWN get columns of their own.
+--
+-- As in change 16, the offered capabilities an existing object did not request become NO.
+call apply_change(19, $aa$
+ALTER TABLE object_class_capabilities
+    ADD COLUMN unsupported_capabilities "CapabilityType"[] DEFAULT '{}'::"CapabilityType"[] NOT NULL,
+    ADD COLUMN unknown_capabilities "CapabilityType"[] DEFAULT '{}'::"CapabilityType"[] NOT NULL;
+
+UPDATE object_class_capabilities occ
+   SET unsupported_capabilities = COALESCE((
+        SELECT array_agg(c.name::"CapabilityType" ORDER BY c.display_order)
+          FROM capability c
+         WHERE c.offered_for_method
+           AND NOT c.name::"CapabilityType" = ANY (occ.capabilities)
+       ), '{}'::"CapabilityType"[]);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

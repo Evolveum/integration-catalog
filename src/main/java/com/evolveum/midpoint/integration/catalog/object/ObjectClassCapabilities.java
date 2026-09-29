@@ -31,8 +31,21 @@ public class ObjectClassCapabilities {
     @Column(name = "object_name", nullable = false, length = 30)
     private String objectName;
 
+    /** Requested (state YES); everything that reads requests shows only these. */
     @Convert(converter = CapabilitiesArrayConverter.class)
     @ColumnTransformer(write = "?::\"CapabilityType\"[]")
     @Column(name = "capabilities")
     private CapabilityType[] capabilities;
+
+    /** State NO. */
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
+    @Column(name = "unsupported_capabilities")
+    private CapabilityType[] unsupportedCapabilities;
+
+    /** State UNKNOWN. */
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
+    @Column(name = "unknown_capabilities")
+    private CapabilityType[] unknownCapabilities;
 }

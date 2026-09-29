@@ -20,11 +20,6 @@ export interface CreateRequest {
   requester: string;
 }
 
-export interface ObjectClassCapabilityEntry {
-  objectName: string;
-  capabilities: string[];
-}
-
 /**
  * Request payload for submitting an integration request
  */
@@ -32,7 +27,7 @@ export interface IntegrationRequest {
   integrationApplicationName: string;
   integrationMethodTypeId: number | null;
   deploymentType: string;
-  capabilities: ObjectClassCapabilityEntry[];
+  capabilities: IntegrationMethodObjectCapabilities[]; // → object_class_capabilities, one array per state
   description: string;
   integrationNeed: string;
   systemVersion: string;

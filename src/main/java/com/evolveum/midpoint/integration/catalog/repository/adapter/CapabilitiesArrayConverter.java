@@ -18,8 +18,9 @@ public class CapabilitiesArrayConverter implements AttributeConverter<Capability
 
     @Override
     public String convertToDatabaseColumn(CapabilityType[] attribute) {
+        // The array columns are NOT NULL, so "none" is the empty array.
         if (attribute == null || attribute.length == 0) {
-            return null;
+            return "{}";
         }
 
         StringBuilder sb = new StringBuilder("{");

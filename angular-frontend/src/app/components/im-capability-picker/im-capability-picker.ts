@@ -100,6 +100,11 @@ export class ImCapabilityPicker implements OnInit, OnChanges {
     this.entries.set(merged.length > 0 ? merged : [newEntry()]);
   }
 
+  public reset(): void {
+    this.entries.set([newEntry()]);
+    this.capabilitiesChange.emit([]);
+  }
+
   private emit(): void {
     this.capabilitiesChange.emit(this.entries()
       .filter(e => e.objectClass)
