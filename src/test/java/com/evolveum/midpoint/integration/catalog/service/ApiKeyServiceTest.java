@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -54,6 +55,7 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ApiKeyServiceTest {
 
+    private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
     @Mock
     private ApiKeyRepository repository;
@@ -77,12 +79,12 @@ class ApiKeyServiceTest {
     }
 
     private static GraviteeProperties configured() {
-        return new GraviteeProperties("http://localhost:8083", null, null, "api-1", "plan-1", "token", null);
+        return new GraviteeProperties("http://localhost:8083", null, null, "api-1", "plan-1", "token", TIMEOUT);
     }
 
     @Test
     void unconfiguredGraviteeIsServiceUnavailableAndNothingIsCalled() {
-        ApiKeyService service = serviceWith(new GraviteeProperties(null, null, null, null, null, null, null));
+        ApiKeyService service = serviceWith(new GraviteeProperties(null, null, null, null, null, null, TIMEOUT));
 
         ResponseStatusException failure = assertThrows(ResponseStatusException.class,
                 () -> service.create(user(), new CreateApiKeyRequestDto("My key", null)));
@@ -349,7 +351,7 @@ class ApiKeyServiceTest {
         ApiKey key = ownedKey(UUID.randomUUID());
         when(repository.findByOwnerUsernameOrderByCreatedAtDesc(user().getName())).thenReturn(List.of(key));
 
-        serviceWith(new GraviteeProperties(null, null, null, null, null, null, null)).list(user());
+        serviceWith(new GraviteeProperties(null, null, null, null, null, null, TIMEOUT)).list(user());
 
         verify(gravitee, never()).listApiKeys(anyString());
     }

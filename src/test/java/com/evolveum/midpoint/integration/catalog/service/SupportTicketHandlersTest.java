@@ -35,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Duration;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -111,12 +112,12 @@ class SupportTicketHandlersTest {
     }
 
     private static OpenProjectProperties configuredPortal() {
-        return new OpenProjectProperties("http://portal", "key", "project", 1, List.of(), false, List.of(), null);
+        return new OpenProjectProperties("http://portal", "key", "project", 1, List.of(), false, List.of(), null, Duration.ofSeconds(15));
     }
 
     /** No URL is how a deployment says it has no support portal. */
     private static OpenProjectProperties noPortal() {
-        return new OpenProjectProperties(null, null, null, 1, List.of(), false, List.of(), null);
+        return new OpenProjectProperties(null, null, null, 1, List.of(), false, List.of(), null, Duration.ofSeconds(15));
     }
 
     private IntegrationMethod method(Integer workPackageId) {

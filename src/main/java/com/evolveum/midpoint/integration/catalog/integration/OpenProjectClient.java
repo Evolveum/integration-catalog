@@ -26,7 +26,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -43,9 +42,6 @@ import java.util.UUID;
  */
 @Component
 public class OpenProjectClient {
-
-    /** Fails the submission fast rather than holding the request open on an unreachable portal. */
-    private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
     /** Far more files than a submission has, so {@link #listAttachments} never has to page. */
     private static final int ATTACHMENT_PAGE_SIZE = 200;
@@ -467,7 +463,7 @@ public class OpenProjectClient {
     private HttpRequest.Builder authorized(String uri) {
         return HttpRequest.newBuilder()
                 .uri(URI.create(uri))
-                .timeout(TIMEOUT)
+                .timeout(properties.timeout())
                 .header("Accept", "application/json")
                 .header("Authorization", basicAuthHeader());
     }
@@ -482,7 +478,7 @@ public class OpenProjectClient {
     }
 
     private static HttpClient buildClient(OpenProjectProperties properties) {
-        HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(TIMEOUT);
+        HttpClient.Builder builder = HttpClient.newBuilder().connectTimeout(properties.timeout());
         if (properties.trustAllCertificates()) {
             builder.sslContext(trustAllContext());
             SSLParameters parameters = new SSLParameters();

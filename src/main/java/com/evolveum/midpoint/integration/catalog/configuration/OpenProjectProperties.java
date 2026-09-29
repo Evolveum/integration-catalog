@@ -8,7 +8,9 @@ package com.evolveum.midpoint.integration.catalog.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Connection to the support portal holding the review conversation for a submitted integration
@@ -24,7 +26,10 @@ public record OpenProjectProperties(
         List<String> watchers,
         boolean trustAllCertificates,
         List<CustomField> customField,
-        Boolean enabled
+        Boolean enabled,
+
+        /** How long one portal call may take; the submission fails fast rather than hang on it. */
+        Duration timeout
 ) {
 
     public record CustomField(
@@ -40,6 +45,7 @@ public record OpenProjectProperties(
                 .map(String::trim)
                 .toList();
         enabled = enabled == null || enabled;
+        Objects.requireNonNull(timeout, "openproject.timeout must be set");
     }
 
     /** Whether the portal is configured at all; when false the catalog behaves as it did before. */
