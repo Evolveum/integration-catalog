@@ -727,20 +727,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.doSave(false);
   }
 
-  protected isSuperuser(): boolean {
-    return this.authService.currentRole() === UserRole.Superuser;
-  }
-
   /**
    * The picker's list once it has changed, the loaded one before that. Keyed on a change rather than
-   * on an empty list, so a superuser who removes every object sends none instead of the loaded ones.
+   * on an empty list, so removing every object sends none instead of the loaded ones.
    */
   private capabilitiesToSend(): IntegrationMethodObjectCapabilities[] {
     return this.capabilitiesTouched() ? this.imCapabilities() : this.initialCapabilities();
   }
 
   protected capabilitiesValid(): boolean {
-    return imCapabilitiesValid(this.capabilitiesToSend(), this.isSuperuser());
+    return imCapabilitiesValid(this.capabilitiesToSend());
   }
 
   protected saveAsNewVersion(): void {

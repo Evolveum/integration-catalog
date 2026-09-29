@@ -379,7 +379,7 @@
 
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
-                    <app-im-capability-picker [initialCapabilities]="imCapabilities()" [required]="!isSuperuser()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
+                    <app-im-capability-picker [initialCapabilities]="imCapabilities()"(capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
                   </div>
 
                   <!-- Integration Tutorial -->

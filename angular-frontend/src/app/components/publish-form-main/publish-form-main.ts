@@ -902,12 +902,8 @@ export class PublishFormMain implements OnInit, OnDestroy {
     }
   }
 
-  protected isSuperuser(): boolean {
-    return this.authService.currentRole() === UserRole.Superuser;
-  }
-
   protected capabilitiesValid(): boolean {
-    return imCapabilitiesValid(this.imCapabilities(), this.isSuperuser());
+    return imCapabilitiesValid(this.imCapabilities());
   }
 
   protected onImCapabilitiesChange(groups: IntegrationMethodObjectCapabilities[]): void {

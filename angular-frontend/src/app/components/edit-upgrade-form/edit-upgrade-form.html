@@ -160,7 +160,7 @@
 
       <!-- Capabilities -->
       <div class="mb-4">
-        <app-im-capability-picker [initialCapabilities]="initialCapabilities()" [required]="!isSuperuser()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
+        <app-im-capability-picker [initialCapabilities]="initialCapabilities()"(capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
       </div>
 
       <!-- Integration method type -->

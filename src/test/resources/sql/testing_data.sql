@@ -236,9 +236,16 @@ INSERT INTO conn_version_capability_item (conn_version_capability_id, capability
 INSERT INTO request (id, application_id, requester, mail, collab, base_url, system_version) OVERRIDING SYSTEM VALUE VALUES
     (1, '22222222-2222-2222-2222-222222222222', 'jane', 'jane@example.com', true, 'https://sap-hr.example.com', '2024');
 
-INSERT INTO object_class_capabilities (request_id, object_name, capabilities) VALUES
-    (1, 'Account', ARRAY['CREATE','READ','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),
-    (1, 'Group',   ARRAY['READ','SEARCH']::"CapabilityType"[]);
+-- capabilities = YES, unsupported_capabilities = NO, unknown_capabilities = UNKNOWN (change 19).
+INSERT INTO object_class_capabilities (request_id, object_name, capabilities, unsupported_capabilities, unknown_capabilities) VALUES
+    (1, 'Account',
+        ARRAY['CREATE','READ','UPDATE','DELETE','SEARCH']::"CapabilityType"[],
+        ARRAY['LIVE_SYNC','PASSWORD']::"CapabilityType"[],
+        ARRAY['ACTIVATION','ASSOCIATIONS']::"CapabilityType"[]),
+    (1, 'Group',
+        ARRAY['READ','SEARCH']::"CapabilityType"[],
+        ARRAY['CREATE','UPDATE','DELETE','LIVE_SYNC','PASSWORD','ACTIVATION']::"CapabilityType"[],
+        ARRAY['ASSOCIATIONS']::"CapabilityType"[]);
 
 INSERT INTO vote (request_id, voter) VALUES
     (1, 'u1'),

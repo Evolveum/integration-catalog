@@ -47,7 +47,7 @@ export class RequestForm implements OnInit {
   protected readonly isIntegrationMethodExpanded = signal<boolean>(false);
   protected readonly capabilityGroups = signal<IntegrationMethodObjectCapabilities[]>([]);
   // Capabilities stay optional on a request, but every object given needs at least one Supported.
-  protected readonly capabilitiesValid = computed(() => imCapabilitiesValid(this.capabilityGroups(), true));
+  protected readonly capabilitiesValid = computed(() => imCapabilitiesValid(this.capabilityGroups()));
   protected readonly isSubmitting = signal<boolean>(false);
   protected readonly submitSuccess = signal<boolean>(false);
   protected readonly submitError = signal<string | null>(null);
