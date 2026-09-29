@@ -98,3 +98,6 @@ integration-catalog
 
 # Gravitee ids and token of the local APIM, written by docker/gravitee/seed.sh
 gravitee-local.properties
+
+# Local database of the integration tests (src/test/resources/application-integration-test.properties)
+it-db.local.properties
