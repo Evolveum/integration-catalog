@@ -461,7 +461,7 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @PutMapping("/applications/{appId}")
-    public ResponseEntity<Void> updateApplication(@PathVariable UUID appId, @RequestBody UpdateApplicationDto dto) {
+    public ResponseEntity<Void> updateApplication(@PathVariable UUID appId, @Valid @RequestBody UpdateApplicationDto dto) {
         try {
             applicationService.updateApplication(appId, dto);
             return ResponseEntity.ok().build();
