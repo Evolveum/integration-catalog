@@ -126,6 +126,9 @@
           <button class="btn btn-reset-filter" type="button" (click)="resetFilter()">
             Reset filter
           </button>
+          <a class="btn btn-reset-filter text-nowrap" routerLink="/support-tiers">
+            Support tiers
+          </a>
         </div>
       </div>
     </div>
@@ -284,7 +287,7 @@
         </button>
 
         <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
-          <div class="d-flex gap-4 pe-5">
+          <div class="d-flex gap-4">
             @for (app of featuredApplications(); track app.id) {
               <div #featuredCard class="card position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
                 <!-- Status indicators at top right -->

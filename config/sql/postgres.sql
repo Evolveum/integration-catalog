@@ -159,6 +159,12 @@ CREATE TYPE CapabilityState AS ENUM (
 	'NO',
 	'UNKNOWN'
 );
+
+CREATE TYPE SupportTier AS ENUM (
+	'STANDARD',
+	'ADVANCED',
+	'PREMIUM'
+);
 -- end of region
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
@@ -457,7 +463,8 @@ CREATE TABLE integration_method (
 	updated timestamp without time zone NOT NULL,
 	app_version character varying(255),
 	reviewed_by character varying(255),
-	support_ticket_id integer
+	support_ticket_id integer,
+	support_tier SupportTier
 );
 
 CREATE TABLE integration_method_type (
@@ -1100,5 +1107,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(19, $$ SELECT 1 $$, true);
+call apply_change(20, $$ SELECT 1 $$, true);
 -- end of region

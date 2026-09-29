@@ -7,7 +7,7 @@
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ViewChildren, ElementRef, AfterViewInit, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationsListStateService } from '../../services/applications-list-state.service';
 import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
@@ -23,7 +23,7 @@ import { formatCapabilityLabel } from '../../core/capability-label';
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
+  imports: [CommonModule, FormsModule, RouterLink, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })
@@ -64,6 +64,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   private activeChipElement: HTMLElement | null = null;
   private scrollListener: (() => void) | null = null;
+  private featuredScrollTarget: number | null = null;
 
   protected filterState = signal<FilterState>({
     trending: false,
@@ -747,13 +748,27 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected scrollLeft(): void {
-    const container = this.scrollContainer.nativeElement;
-    container.scrollBy({ left: -300, behavior: 'smooth' });
+    this.scrollFeaturedBy(-1);
   }
 
   protected scrollRight(): void {
+    this.scrollFeaturedBy(1);
+  }
+
+  /** Moves the featured row exactly one card, measuring the step from the rendered cards so it tracks the More apps grid geometry. */
+  private scrollFeaturedBy(direction: 1 | -1): void {
     const container = this.scrollContainer.nativeElement;
-    container.scrollBy({ left: 300, behavior: 'smooth' });
+    const cards = this.featuredCards.map(ref => ref.nativeElement);
+    if (cards.length < 2) return;
+
+    const step = cards[1].offsetLeft - cards[0].offsetLeft;
+    // Rapid clicks start from the pending target, not the mid-animation position, so none is lost.
+    const from = this.featuredScrollTarget ?? container.scrollLeft;
+    const maxLeft = container.scrollWidth - container.clientWidth;
+    const target = Math.min(maxLeft, Math.max(0, (Math.round(from / step) + direction) * step));
+
+    this.featuredScrollTarget = target;
+    container.scrollTo({ left: target, behavior: 'smooth' });
   }
 
   protected nextPage(): void {
@@ -773,6 +788,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected onScroll(): void {
+    const left = this.scrollContainer.nativeElement.scrollLeft;
+    if (this.featuredScrollTarget !== null && Math.abs(left - this.featuredScrollTarget) < 1) {
+      this.featuredScrollTarget = null;
+    }
     this.updateScrollButtons();
     this.updateCardOpacities();
   }

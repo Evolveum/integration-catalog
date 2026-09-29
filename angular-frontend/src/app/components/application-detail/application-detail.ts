@@ -22,11 +22,13 @@ import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { SUPPORT_TIERS, SupportTier, supportTierLabel } from '../../core/support-tier';
 
 interface MethodGroup {
   id: string;
   name: string;
   types: string[];
+  supportTier: SupportTier | null; // the same on every revision
   versions: IntegrationMethod[];
   publishedCount: number;
   pendingCount: number;
@@ -88,6 +90,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           id: v.id,
           name: v.displayName || v.connectorDisplayName || 'Integration method',
           types: v.integMethodTypes ?? [],
+          supportTier: v.supportTier ?? null,
           versions: [],
           publishedCount: 0,
           pendingCount: 0,
@@ -200,6 +203,22 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   /** Only superusers may approve (publish) an in-review revision. */
   protected isSuperuser(): boolean {
     return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  protected readonly supportTiers = SUPPORT_TIERS;
+  protected readonly supportTierLabel = supportTierLabel;
+
+  /** Reviewer's pick in a method card header; '' clears the tier. */
+  protected onSupportTierChange(methodId: string, previous: SupportTier | null, event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const tier = (select.value || null) as SupportTier | null;
+    this.applicationService.setSupportTier(methodId, tier).subscribe({
+      next: () => this.allVersions.update(vs => vs.map(v => v.id === methodId ? { ...v, supportTier: tier } : v)),
+      error: (err) => {
+        console.error('Setting the support tier failed', err);
+        select.value = previous ?? '';
+      }
+    });
   }
 
   // Featured = carries the COMMON "featured" tag; such applications fill the homepage's first row.

@@ -218,7 +218,8 @@ public class ApplicationMapper {
                             method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
                             includedConnectors,
                             supportTicketId,
-                            supportTicketUrl
+                            supportTicketUrl,
+                            method.getSupportTier()
                     );
                 })
                 .toList();

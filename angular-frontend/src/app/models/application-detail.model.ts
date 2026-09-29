@@ -7,6 +7,17 @@
 import { Maintainer } from './maintainer.model';
 
 import { ConnectorTag } from './connector-tag.model';
+import { SupportTier } from '../core/support-tier';
+
+/** One published integration method in the support-tier overview. */
+export interface IntegrationMethodTier {
+  applicationId: string;          // application.id
+  applicationName: string;        // application.display_name
+  methodId: string;               // integration_method.id
+  revision: string;               // integration_method.revision
+  methodName: string;             // integration_method.display_name
+  supportTier: SupportTier | null; // integration_method.support_tier, null = not tiered
+}
 
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
@@ -60,6 +71,7 @@ export interface IntegrationMethod {
   connectors: IncludedConnector[] | null; // connectors linked via integration_method_connector
   supportTicketId: number | null;        // integration_method.support_ticket_id, only sent to those allowed to see it
   supportTicketUrl: string | null;       // built from supportTicketId by the backend
+  supportTier: SupportTier | null;       // integration_method.support_tier, null = not tiered
 }
 
 export interface ObjectClassCapability {

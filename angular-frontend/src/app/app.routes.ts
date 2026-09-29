@@ -11,6 +11,7 @@ import { PublishFormMain } from './components/publish-form-main/publish-form-mai
 import { EditUpgradeForm } from './components/edit-upgrade-form/edit-upgrade-form';
 import { IntegrationMethodDetail } from './components/integration-method-detail/integration-method-detail';
 import { SettingsPage } from './components/settings-page/settings-page';
+import { SupportTiersPage } from './components/support-tiers-page/support-tiers-page';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
@@ -19,5 +20,6 @@ export const routes: Routes = [
   { path: 'applications/:appId/integration-method/:versionId/:revision/details', component: IntegrationMethodDetail },
   { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm },
   { path: 'approve', component: PublishFormMain },
-  { path: 'settings', component: SettingsPage }
+  { path: 'settings', component: SettingsPage },
+  { path: 'support-tiers', component: SupportTiersPage }
 ];

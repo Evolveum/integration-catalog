@@ -606,6 +606,16 @@ UPDATE object_class_capabilities occ
 $aa$);
 -- end of region
 
+-- region change 20: integration method support tier
+-- A reviewer assigns each integration method a support tier by hand (Standard / Advanced / Premium,
+-- where a subscription to a tier covers the ones below it). The tier belongs to the method, so it
+-- is kept equal on all its revisions. NULL = not tiered, which every existing method starts as.
+call apply_change(20, $aa$
+CREATE TYPE SupportTier AS ENUM ('STANDARD', 'ADVANCED', 'PREMIUM');
+ALTER TABLE integration_method ADD COLUMN support_tier SupportTier;
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

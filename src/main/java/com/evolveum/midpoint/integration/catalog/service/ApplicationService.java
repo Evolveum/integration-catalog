@@ -720,6 +720,28 @@ public class ApplicationService {
     }
 
     @Transactional
+    public void setSupportTier(UUID methodId, SupportTier tier) {
+        if (integrationMethodRepository.updateSupportTier(methodId, tier) == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Integration method not found: " + methodId);
+        }
+    }
+
+    /** Every published method with its tier, for the support-tier overview; the grouping is the page's. */
+    @Transactional(readOnly = true)
+    public List<IntegrationMethodTierDto> listSupportTiers() {
+        return integrationMethodRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .filter(m -> m.getApplication() != null)
+                .map(m -> new IntegrationMethodTierDto(
+                        m.getApplication().getId(),
+                        m.getApplication().getDisplayName(),
+                        m.getId(),
+                        m.getRevision(),
+                        m.getDisplayName(),
+                        m.getSupportTier()))
+                .toList();
+    }
+
+    @Transactional
     public void setFeatured(UUID applicationId, boolean featured) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,

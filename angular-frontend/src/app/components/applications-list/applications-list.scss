@@ -214,8 +214,14 @@
 /* ========================================
    SCROLL CONTAINER
    ======================================== */
+/* Snap on card starts so trackpad / shift+wheel scrolling also lands one whole card at a time. */
 .scroll-container {
   scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+
+  .app-card {
+    scroll-snap-align: start;
+  }
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

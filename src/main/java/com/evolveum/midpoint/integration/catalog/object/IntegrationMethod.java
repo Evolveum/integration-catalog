@@ -126,6 +126,12 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
     @Column(name = "app_version")
     private String appVersion;
 
+    /** Set by a reviewer on every revision of the method at once; null = not tiered. */
+    @Enumerated(EnumType.STRING)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "support_tier", columnDefinition = "SupportTier")
+    private SupportTier supportTier;
+
     /**
      * Username of the reviewer: set when a review is started (REVIEWING) and kept when the
      * revision is approved or rejected. Requires the reviewed_by column

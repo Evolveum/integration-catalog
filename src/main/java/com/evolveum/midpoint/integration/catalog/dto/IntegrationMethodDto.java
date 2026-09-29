@@ -6,6 +6,8 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import com.evolveum.midpoint.integration.catalog.object.SupportTier;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -41,5 +43,6 @@ public record IntegrationMethodDto(
         LocalDate updated,                                          // integration_method.updated (= review start date while REVIEWING)
         List<IncludedConnectorDto> connectors,                      // connectors linked via integration_method_connector
         Integer supportTicketId,                                    // integration_method.support_ticket_id, only for those allowed to see it
-        String supportTicketUrl                                     // generated from supportTicketId
+        String supportTicketUrl,                                    // generated from supportTicketId
+        SupportTier supportTier                                     // integration_method.support_tier, null = not tiered
 ) {}

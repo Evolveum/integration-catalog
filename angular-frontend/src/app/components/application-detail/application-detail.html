@@ -431,6 +431,22 @@
                                 @for (type of method.types; track type) {
                                   <span class="im-method-tag">{{ type }}</span>
                                 }
+                                @if (isSuperuser()) {
+                                  <!-- Reviewer sets the tier by hand; the click must not collapse the card. -->
+                                  <select class="form-select form-select-sm im-tier-select"
+                                          [class]="'tier-' + (method.supportTier ?? 'none').toLowerCase()"
+                                          [value]="method.supportTier ?? ''"
+                                          title="Support tier"
+                                          (click)="$event.stopPropagation()"
+                                          (change)="onSupportTierChange(method.id, method.supportTier, $event)">
+                                    <option value="">No tier</option>
+                                    @for (t of supportTiers; track t.value) {
+                                      <option [value]="t.value">{{ t.label }}</option>
+                                    }
+                                  </select>
+                                } @else if (method.supportTier) {
+                                  <span class="im-tier-badge" [class]="'tier-' + method.supportTier.toLowerCase()">{{ supportTierLabel(method.supportTier) }}</span>
+                                }
                               </div>
                               <div class="d-flex align-items-center gap-3">
                                 @if (method.publishedCount > 0) {

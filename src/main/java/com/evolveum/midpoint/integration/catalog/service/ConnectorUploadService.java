@@ -544,6 +544,7 @@ public class ConnectorUploadService {
         updated.setMidpointMinVersionId(dto.midpointMinVersion());
         updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
         updated.setAppVersion(existing.getAppVersion());
+        updated.setSupportTier(existing.getSupportTier());
         String tutorialFolder;
         if (rewriteExisting) {
             // Move the single tutorial folder over to the bumped revision and point file_path at it.
