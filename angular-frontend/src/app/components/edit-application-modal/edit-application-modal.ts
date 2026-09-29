@@ -30,6 +30,10 @@ export class EditApplicationModal implements OnInit {
   protected readonly saveError = signal<string>('');
   protected readonly saveSuccess = signal<string>('');
 
+  // Mirror Application.DISPLAY_NAME_MAX / DESCRIPTION_MAX (the column sizes) on the backend.
+  protected readonly displayNameMax = 255;
+  protected readonly descriptionMax = 350;
+
   // Form fields
   protected readonly displayName = signal<string>('');
   protected readonly description = signal<string>('');
@@ -127,8 +131,10 @@ export class EditApplicationModal implements OnInit {
       error: (err) => {
         this.isSaving.set(false);
         console.error('Update application failed', err);
-        const e = err as { error?: { message?: string } | string; message?: string };
-        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        // Only the server's own text is shown; HttpErrorResponse.message is the unreadable
+        // "Http failure response for <url>: 500 OK".
+        const e = err as { error?: { message?: string } | string };
+        const message = typeof e?.error === 'object' ? e.error?.message : e?.error;
         this.saveError.set(message || 'Failed to save changes. Please try again.');
       }
     });

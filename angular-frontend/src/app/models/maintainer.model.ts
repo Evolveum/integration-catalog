@@ -24,6 +24,11 @@ export function organizationMaintainer(alias: string, label: string | null): Mai
   return { id: null, username: null, organizationName: alias, category: 'ORG', label: label ?? alias };
 }
 
+/** The catalog-wide Community maintainer; the server resolves it to its seeded row. */
+export function communityMaintainer(): Maintainer {
+  return { id: null, username: null, organizationName: null, category: 'COMMUNITY', label: 'Community' };
+}
+
 /** What to show for a maintainer, whatever the server sent. */
 export function maintainerLabel(maintainer: Maintainer | null | undefined): string {
   if (!maintainer) return '';

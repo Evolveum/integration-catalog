@@ -106,17 +106,17 @@ class SupportTicketHandlersTest {
         buildOutcome = new CommentBuildOutcomeHandler(integrationMethodRepository, openProjectClient,
                 properties, descriptionBuilder);
         appendConnector = new AppendConnectorHandler(integrationMethodRepository, openProjectClient,
-                properties, descriptionBuilder);
+                properties, descriptionBuilder, attachments);
         attachFile = new AttachTutorialFileHandler(integrationMethodRepository, properties, attachments);
     }
 
     private static OpenProjectProperties configuredPortal() {
-        return new OpenProjectProperties("http://portal", "key", "project", 1, List.of(), false, List.of());
+        return new OpenProjectProperties("http://portal", "key", "project", 1, List.of(), false, List.of(), null);
     }
 
     /** No URL is how a deployment says it has no support portal. */
     private static OpenProjectProperties noPortal() {
-        return new OpenProjectProperties(null, null, null, 1, List.of(), false, List.of());
+        return new OpenProjectProperties(null, null, null, 1, List.of(), false, List.of(), null);
     }
 
     private IntegrationMethod method(Integer workPackageId) {

@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
@@ -80,7 +81,7 @@ public class IntegrationMethodController {
     public ResponseEntity<String> editIntegrationMethod(
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestBody EditIntegrationMethodDto dto,
+            @Valid @RequestBody EditIntegrationMethodDto dto,
             Authentication authentication) {
         try {
             String newRevision = applicationService.editIntegrationMethod(methodId, revision, dto, authentication.getName());
@@ -185,6 +186,32 @@ public class IntegrationMethodController {
         try {
             applicationService.rejectIntegrationMethod(methodId, revision, authentication.getName());
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Cancel an in-review integration method revision",
+            description = "Deletes the revision; when it was the only one of a never-published application, "
+                    + "the application is deleted too. Allowed to whoever may edit the revision.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Revision cancelled"),
+            @ApiResponse(responseCode = "403", description = "Not allowed to edit this revision"),
+            @ApiResponse(responseCode = "404", description = "Integration method revision not found"),
+            @ApiResponse(responseCode = "409", description = "Revision is not in review")
+    })
+    @PostMapping("/cancel")
+    public ResponseEntity<CancelIntegrationMethodResultDto> cancelIntegrationMethod(
+            @PathVariable UUID methodId,
+            @PathVariable String revision,
+            Authentication authentication) {
+        try {
+            boolean applicationDeleted = applicationService.cancelIntegrationMethod(methodId, revision, authentication.getName());
+            return ResponseEntity.ok(new CancelIntegrationMethodResultDto(applicationDeleted));
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {

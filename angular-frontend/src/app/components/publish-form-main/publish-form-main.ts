@@ -10,17 +10,22 @@ import { CatalogConnector } from '../../models/catalog-connector.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
-import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
+import { IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
 import { LinksService } from '../../services/links.service';
+import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, CapabilityPicker, OverflowTitleDirective],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe, BackdropCloseDirective],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
 })
@@ -68,7 +73,25 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly methodFormDisplayName = signal<string>('');
   protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
+  protected readonly methodFormLimitations = signal<string>('');
+  /** Kept in the template too, so the counter and the cap cannot drift apart. */
+  protected readonly limitationsMax = LIMITATIONS_MAX;
   protected readonly methodFormTutorial    = signal<string>('');
+  protected readonly methodFormMaintainer  = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
+  protected readonly maintainerSearch = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
+  });
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.methodFormMaintainer()));
   protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
   protected readonly tutorialDragOver      = signal<boolean>(false);
   protected readonly tutorialWordCount     = computed(() =>
@@ -76,7 +99,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   );
 
   // Step 3 – integration method capabilities
-  protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
 
   protected readonly selectedMethodTitles = computed(() =>
     this.integrationMethodTypes()
@@ -255,7 +278,9 @@ export class PublishFormMain implements OnInit, OnDestroy {
     methodName: this.methodFormDisplayName(),
     methodVersion: this.methodFormVersion(),
     methodDescription: this.methodFormDescription(),
+    methodLimitations: this.methodFormLimitations(),
     methodTutorial: this.methodFormTutorial(),
+    methodMaintainer: this.methodFormMaintainer(),
     applicationDescription: this.description(),
     origins: this.origins(),
     category: this.category(),
@@ -416,6 +441,17 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
     this.preselectAppId = this.route.snapshot.queryParamMap.get('appId');
 
+    this.methodFormMaintainer.set(this.authService.defaultMaintainer());
+    if (this.authService.currentRole() === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
+      });
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
+    }
+
     this.applicationService.getAll().subscribe({
       next: (data) => { this.applications.set(data); this.appsLoaded = true; this.tryPreselectApp(); },
       // Without this the list stays empty and the search silently finds nothing - including
@@ -501,6 +537,41 @@ export class PublishFormMain implements OnInit, OnDestroy {
     if (value.length <= 350) {
       this.methodFormDescription.set(value);
     }
+  }
+
+  protected onMethodFormLimitationsChange(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    if (value.length <= LIMITATIONS_MAX) {
+      this.methodFormLimitations.set(value);
+    }
+  }
+
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: Maintainer): void {
+    this.methodFormMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
+  }
+
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.methodFormMaintainer());
   }
 
   protected onTutorialChange(event: Event): void {
@@ -831,7 +902,15 @@ export class PublishFormMain implements OnInit, OnDestroy {
     }
   }
 
-  protected onImCapabilitiesChange(groups: CapabilityGroup[]): void {
+  protected isSuperuser(): boolean {
+    return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  protected capabilitiesValid(): boolean {
+    return imCapabilitiesValid(this.imCapabilities(), this.isSuperuser());
+  }
+
+  protected onImCapabilitiesChange(groups: IntegrationMethodObjectCapabilities[]): void {
     this.imCapabilities.set(groups);
   }
 

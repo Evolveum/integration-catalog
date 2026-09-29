@@ -12,24 +12,28 @@ import { concat, forkJoin, of, Observable } from 'rxjs';
 import { toArray } from 'rxjs/operators';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { LinksService } from '../../services/links.service';
 import { PageHeader } from '../page-header/page-header';
-import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
 import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
+import { MethodTypeModal } from '../method-type-modal/method-type-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
-import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownPipe } from '../../core/markdown.pipe';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker, AddConnectorForm, EditConnectorModal,
-    SubmissionSuccessModal],
+  imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal, MarkdownPipe,
+    SubmissionSuccessModal, MethodTypeModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })
@@ -58,9 +62,33 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly methodVersion = signal<string>('');
   protected readonly methodLifecycleState = signal<string | null>(null);
   protected readonly methodDescription = signal<string>('');
+  protected readonly methodLimitations = signal<string>('');
+  protected readonly limitationsMax = LIMITATIONS_MAX;
+  protected readonly methodMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
+  protected readonly maintainerSearch = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
+  });
+  /** What the maintainer combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly methodMaintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.methodMaintainer()));
   protected readonly methodTypes = signal<string[]>([]);
-  protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
-  protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly isMethodTypeModalOpen = signal<boolean>(false);
+  /**
+   * The catalog's types, loaded so the chosen names can be sent back as ids - the revision carries
+   * its types by name, and the publish flow matches them the same way.
+   */
+  private readonly allMethodTypes = signal<{ id: number; displayName: string }[]>([]);
+  protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  protected readonly initialCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  private readonly capabilitiesTouched = signal<boolean>(false);
 
   // Supported midPoint version range (loaded from DB, editable)
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
@@ -90,10 +118,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly tutorialFiles = signal<{ name: string; file?: File; isNew: boolean }[]>([]);
   private readonly initialFileNames = signal<string[]>([]);
 
-  // License type display labels
-  private readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
@@ -154,6 +179,34 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.hasMajorConnectorChanges() && !this.isDraftState()
   );
 
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: Maintainer): void {
+    this.methodMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
+  }
+
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.methodMaintainer());
+  }
+
   /** The label of a staged connector's maintainer, for the card that previews it. */
   protected maintainerText(maintainer: Maintainer | null): string {
     return maintainerLabel(maintainer);
@@ -193,13 +246,13 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       version: p.version ?? c.version,
       objectClassCapabilities: p.connectorCapabilities.map(g => ({
         objectName: g.objectClass,
-        capabilities: g.capabilityNames
+        capabilities: g.capabilityNames,
+        resourceWide: g.resourceWide
       }))
     };
   }
 
   private easyMde: EasyMDE | null = null;
-  private editorPreviewActivated = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -215,9 +268,24 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.appId.set(aId);
     this.versionId.set(vId);
 
+    if (this.authService.currentRole() === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
+      });
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
+    }
+
     this.applicationService.getMidpointVersions().subscribe({
       next: (versions) => this.midpointVersions.set(versions),
       error: () => this.midpointVersions.set([])
+    });
+
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.allMethodTypes.set(types),
+      error: () => this.allMethodTypes.set([])
     });
 
     this.applicationService.getById(aId).subscribe({
@@ -236,24 +304,17 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');
+          this.methodLimitations.set(ver.limitations ?? '');
+          this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.midpointMinVersionId.set(ver.midpointMinVersionId);
           this.midpointMaxVersionId.set(ver.midpointMaxVersionId);
           this.methodTutorial.set(ver.tutorial ?? '');
           if (this.easyMde && ver.tutorial) {
             this.easyMde.value(ver.tutorial);
-            if (!this.editorPreviewActivated) {
-              EasyMDE.togglePreview(this.easyMde);
-              this.editorPreviewActivated = true;
-            }
           }
           this.loadTutorialFiles(vId, ver.revision ?? '');
-          this.initialCapabilities.set(
-            (ver.objectClassCapabilities ?? []).map(oc => ({
-              objectClass: oc.objectName,
-              capabilityNames: oc.capabilities ?? []
-            }))
-          );
+          this.initialCapabilities.set(ver.objectClassCapabilities ?? []);
           this.loadConnectors(vId, ver.revision ?? '');
         } else {
           this.finishLoading();
@@ -313,13 +374,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
     if (this.methodTutorial()) {
       this.easyMde.value(this.methodTutorial());
-      EasyMDE.togglePreview(this.easyMde);
-      this.editorPreviewActivated = true;
     }
   }
 
-  protected onImCapabilitiesChange(caps: CapabilityGroup[]): void {
+  protected onImCapabilitiesChange(caps: IntegrationMethodObjectCapabilities[]): void {
     this.imCapabilities.set(caps);
+    this.capabilitiesTouched.set(true);
   }
 
   protected onTutorialFileDrop(event: DragEvent): void {
@@ -349,6 +409,24 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   protected tutorialFileUrl(name: string): string {
     return this.applicationService.getTutorialFileUrl(this.versionId(), this.methodVersion(), name);
+  }
+
+  protected openMethodTypeModal(): void {
+    this.isMethodTypeModalOpen.set(true);
+  }
+
+  protected onMethodTypesChosen(types: string[]): void {
+    this.methodTypes.set(types);
+    this.isMethodTypeModalOpen.set(false);
+  }
+
+  /** The chosen types as ids, or null when they could not be resolved - which leaves them untouched. */
+  private chosenMethodTypeIds(): number[] | null {
+    const known = this.allMethodTypes();
+    if (known.length === 0) {
+      return null;
+    }
+    return known.filter(t => this.methodTypes().includes(t.displayName)).map(t => t.id);
   }
 
   protected removeTutorialFile(i: number): void {
@@ -384,8 +462,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   protected fmtLicense(key: string | null | undefined): string {
-    if (!key) return '—';
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   /** Turn a build-framework enum (e.g. "MAVEN") into a friendly label ("Maven"). */
@@ -408,11 +485,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return formatCapabilityLabel(text);
   }
 
-  /** A connector's object-class capabilities, with the Global class first when present. */
+  /** A connector's object-class capabilities, with the resource-wide group first when present. */
   protected orderedConnectorCaps(caps: ObjectClassCapability[] | null | undefined): ObjectClassCapability[] {
-    return [...(caps ?? [])].sort((a, b) =>
-      (a.objectName === 'Global' ? 0 : 1) - (b.objectName === 'Global' ? 0 : 1)
-    );
+    return [...(caps ?? [])].sort((a, b) => (a.resourceWide ? 0 : 1) - (b.resourceWide ? 0 : 1));
   }
 
   protected getLogoUrl(): string {
@@ -648,6 +723,22 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.doSave(false);
   }
 
+  protected isSuperuser(): boolean {
+    return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  /**
+   * The picker's list once it has changed, the loaded one before that. Keyed on a change rather than
+   * on an empty list, so a superuser who removes every object sends none instead of the loaded ones.
+   */
+  private capabilitiesToSend(): IntegrationMethodObjectCapabilities[] {
+    return this.capabilitiesTouched() ? this.imCapabilities() : this.initialCapabilities();
+  }
+
+  protected capabilitiesValid(): boolean {
+    return imCapabilitiesValid(this.capabilitiesToSend(), this.isSuperuser());
+  }
+
   protected saveAsNewVersion(): void {
     this.doSave(true);
   }
@@ -657,9 +748,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.saveError.set('');
     this.isSaving.set(true);
     const tutorial = this.easyMde ? this.easyMde.value() : this.methodTutorial();
-    const capabilities = this.imCapabilities().length > 0
-      ? this.imCapabilities()
-      : this.initialCapabilities();
+    const capabilities = this.capabilitiesToSend();
 
     const newFiles = this.tutorialFiles().filter(f => f.isNew && f.file).map(f => f.file!);
     const keptNames = this.tutorialFiles().filter(f => !f.isNew).map(f => f.name);
@@ -671,13 +760,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       {
         displayName: this.methodName(),
         description: this.methodDescription(),
+        limitations: this.methodLimitations(),
+        typeIds: this.chosenMethodTypeIds(),
         tutorial,
-        capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
+        capabilities,
         removeFile: false,
         // "Save" (major=false) is a minor in-place bump; "Save as new version" (major=true) is a major bump.
         minorBump: !major,
         midpointMinVersion: this.midpointMinVersionId(),
-        midpointMaxVersion: this.midpointMaxVersionId()
+        midpointMaxVersion: this.midpointMaxVersionId(),
+        maintainer: this.methodMaintainer()
       }
     ).subscribe({
       next: (savedRevision) => {
@@ -710,6 +802,9 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             this.stagedEdits.set(new Map());
             this.stagedCompat.set(new Map());
             this.stagedDeletes.set(new Set());
+            // The cards previewed the staged edits; without them they fall back to the list loaded
+            // with the page, so reload it or every saved connector change looks undone.
+            this.loadConnectors(this.versionId(), savedRevision);
             // The new revision starts with the previous revision's files copied forward by the backend;
             // here we delete the files the user removed and upload the ones they added.
             const ops: Observable<void>[] = [

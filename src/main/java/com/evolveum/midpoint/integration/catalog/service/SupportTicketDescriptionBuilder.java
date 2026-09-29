@@ -39,9 +39,6 @@ public class SupportTicketDescriptionBuilder {
 
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    /** Object class holding the resource-wide capabilities, as the detail page splits them. */
-    private static final String GLOBAL_OBJECT_CLASS = "Global";
-
     private static final String NOT_PROVIDED = "_not provided_";
 
     private static final String NO_BUILD_ERROR = "_check comments if any_";
@@ -79,6 +76,7 @@ public class SupportTicketDescriptionBuilder {
         appendApplication(body, method);
         appendSummary(body, method);
         appendCapabilities(body, method);
+        appendLimitations(body, method);
         appendTutorial(body, method);
         appendConnectors(body, method);
 
@@ -278,9 +276,10 @@ public class SupportTicketDescriptionBuilder {
     }
 
     /**
-     * The method's capabilities, resource-wide ones first and the rest under the object class they
-     * were declared for. Ordered by the display order the catalog itself uses, so the ticket lists
-     * them the way the detail page does rather than in insertion order.
+     * The method's capabilities, each under the object class it was declared for. Resource-wide ones
+     * are the connector's and are listed with its version instead. Ordered by the display order the
+     * catalog itself uses, so the ticket lists them the way the detail page does rather than in
+     * insertion order.
      */
     private void appendCapabilities(StringBuilder body, IntegrationMethod method) {
         body.append("\n### Integration method capabilities\n\n");
@@ -288,24 +287,27 @@ public class SupportTicketDescriptionBuilder {
                 ? List.of()
                 : method.getCapabilities();
 
-        bullet(body, "Global", capabilityNames(groups.stream()
-                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
-                .flatMap(this::capabilitiesOf)));
-
         List<IntegrationMethodCapability> specific = groups.stream()
-                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
                 .filter(group -> capabilitiesOf(group).findAny().isPresent())
                 .sorted(Comparator.comparing(IntegrationMethodCapability::getObjectClass,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .toList();
         if (specific.isEmpty()) {
-            bullet(body, "Object class specific", null);
+            bullet(body, "Object specific", null);
             return;
         }
+        // One bullet per capability, so an edit comment names only the capabilities whose state changed.
         for (IntegrationMethodCapability group : specific) {
-            bullet(body, "Object class `" + group.getObjectClass() + "`",
-                    capabilityNames(capabilitiesOf(group)));
+            body.append("* **Object `").append(group.getObjectClass()).append("`:**\n");
+            group.getItems().stream()
+                    .filter(item -> item.getCapability() != null && item.getCapability().getName() != null)
+                    .sorted(Comparator.comparing(IntegrationMethodCapabilityItem::getCapability, byDisplayOrder()))
+                    .forEach(item -> bullet(body, NESTED, capabilityLabel(item.getCapability()), stateLabel(item.getState())));
         }
+    }
+
+    private static String stateLabel(CapabilityState state) {
+        return state == null ? null : StringUtils.capitalize(state.name().toLowerCase());
     }
 
     /** One group's capabilities as a single comma-separated value, in the catalog's own order. */
@@ -348,20 +350,9 @@ public class SupportTicketDescriptionBuilder {
         return value == null ? null : sentenceCase(value.name());
     }
 
-    /**
-     * Licenses are proper names rather than words, so casing rules do not help: they are spelled out
-     * the way the publish form offers them.
-     */
+    /** Licenses are proper names, so casing rules do not apply: the enum spells them out. */
     private static String licenseLabel(ConnectorBundle.LicenseType license) {
-        if (license == null) {
-            return null;
-        }
-        return switch (license) {
-            case MIT -> "MIT";
-            case APACHE_2 -> "Apache 2.0";
-            case BSD -> "BSD";
-            case EUPL -> "EUPL 1.2";
-        };
+        return license == null ? null : license.getDisplayName();
     }
 
     /** {@code PARTIAL_SCHEMA} to "Partial schema". */
@@ -374,6 +365,21 @@ public class SupportTicketDescriptionBuilder {
         return Comparator
                 .comparing(Capability::getDisplayOrder, Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(Capability::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+    }
+
+    /**
+     * What the author says the method cannot do. Pointed at rather than reproduced, for the reason the
+     * tutorial is: it is a paragraph of prose, and the body is a summary a reviewer skims.
+     */
+    private void appendLimitations(StringBuilder body, IntegrationMethod method) {
+        body.append("\n### Stated limitations\n\n");
+        if (method.getLimitations() == null || method.getLimitations().isBlank()) {
+            body.append(NOT_PROVIDED).append('\n');
+        } else {
+            body.append("Attached to this work package as `")
+                    .append(SupportTicketAttachments.LIMITATIONS_ATTACHMENT)
+                    .append("` - see the **Files** tab above.\n");
+        }
     }
 
     /**
@@ -443,21 +449,26 @@ public class SupportTicketDescriptionBuilder {
     private boolean needsPublishing(Connector connector) {
         ConnectorBundle bundle = connector.getConnectorBundle();
         if (bundle != null) {
-            if (bundle.getLifecycleState() == LifecycleType.IN_REVIEW) {
+            if (isDraft(bundle.getLifecycleState())) {
                 return true;
             }
             if (bundle.getBundleVersions() != null && bundle.getBundleVersions().stream()
-                    .anyMatch(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW)) {
+                    .anyMatch(version -> isDraft(version.getLifecycleState()))) {
                 return true;
             }
         }
         return connector.getConnectorVersions() != null && connector.getConnectorVersions().stream()
-                .anyMatch(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW);
+                .anyMatch(version -> isDraft(version.getLifecycleState()));
+    }
+
+    /** Not yet published: submitted, or under review. */
+    private static boolean isDraft(LifecycleType state) {
+        return state == LifecycleType.IN_REVIEW || state == LifecycleType.REVIEWING;
     }
 
     private void appendPublishedConnector(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - already published\n\n");
-        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Maintainer", maintainer(connector));
@@ -466,7 +477,7 @@ public class SupportTicketDescriptionBuilder {
 
     private void appendConnectorForReview(StringBuilder body, IntegrationMethodConnector link, Connector connector) {
         body.append("\n### ").append(connectorLabel(connector)).append(" - to be published with this method\n\n");
-        bullet(body, "Description", singleLine(connector.getDescription()));
+        bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         bullet(body, "Author", authorWithEmail(connector.getAuthor()));
@@ -479,6 +490,15 @@ public class SupportTicketDescriptionBuilder {
 
         appendBundle(body, connector.getConnectorBundle());
         appendConnectorVersions(body, connector);
+    }
+
+    /**
+     * Where the connector's description is: attached, as the tutorial is, since it is formatted text
+     * of no set length. Null when there is none, which the bullet shows as not provided.
+     */
+    private static String describedIn(IntegrationMethodConnector link, Connector connector) {
+        String fileName = SupportTicketAttachments.connectorDescriptionAttachment(link.getIntegrationMethod(), connector);
+        return fileName == null ? null : "attached as `" + fileName + "` - see the **Files** tab above";
     }
 
     private void appendBundle(StringBuilder body, ConnectorBundle bundle) {
@@ -504,7 +524,7 @@ public class SupportTicketDescriptionBuilder {
         List<ConnectorVersion> versions = connector.getConnectorVersions() == null
                 ? List.of()
                 : connector.getConnectorVersions().stream()
-                        .filter(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW)
+                        .filter(version -> isDraft(version.getLifecycleState()))
                         .sorted(Comparator.comparing(ConnectorVersion::getRevision,
                                 Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                         .toList();
@@ -541,10 +561,10 @@ public class SupportTicketDescriptionBuilder {
                 : version.getCapabilities();
 
         String global = capabilityNames(groups.stream()
-                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .filter(ConnVersionCapability::isResourceWide)
                 .flatMap(this::capabilitiesOf));
         List<ConnVersionCapability> specific = groups.stream()
-                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .filter(group -> !group.isResourceWide())
                 .filter(group -> capabilitiesOf(group).findAny().isPresent())
                 .sorted(Comparator.comparing(ConnVersionCapability::getObjectClass,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
@@ -557,11 +577,11 @@ public class SupportTicketDescriptionBuilder {
         body.append("* **Capabilities:**\n");
         bullet(body, NESTED, "Global", global);
         if (specific.isEmpty()) {
-            bullet(body, NESTED, "Object class specific", null);
+            bullet(body, NESTED, "Object specific", null);
             return;
         }
         for (ConnVersionCapability group : specific) {
-            bullet(body, NESTED, "Object class `" + group.getObjectClass() + "`",
+            bullet(body, NESTED, "Object `" + group.getObjectClass() + "`",
                     capabilityNames(capabilitiesOf(group)));
         }
     }
@@ -601,7 +621,7 @@ public class SupportTicketDescriptionBuilder {
                 ? List.of()
                 : connector.getConnectorVersions();
         String submitted = bundleRevision(versions.stream()
-                .filter(version -> version.getLifecycleState() == LifecycleType.IN_REVIEW));
+                .filter(version -> isDraft(version.getLifecycleState())));
         if (submitted == null) {
             submitted = bundleRevision(versions.stream());
         }

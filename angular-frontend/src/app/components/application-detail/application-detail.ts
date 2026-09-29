@@ -20,6 +20,8 @@ import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 interface MethodGroup {
   id: string;
@@ -33,7 +35,7 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe, BackdropCloseDirective],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -45,7 +47,6 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   // Bundle download warning toast (stays until dismissed)
   protected readonly expandedVersions = new Set<number>();
   protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
-  protected readonly expandedGlobalCapabilities = signal<Set<string>>(new Set());
   protected readonly expandedComboSections = signal<Set<string>>(new Set());
   protected readonly globalCapabilitiesExpanded = signal<boolean>(false);
   protected readonly activeEvolvumVersions = signal<any[]>([]);
@@ -69,10 +70,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly versionSearchQuery = signal<string>('');
   protected readonly isContinuePressed = signal<boolean>(true);
   protected readonly allVersions = signal<any[]>([]);
-  protected readonly cancelledVersionIds = signal<string[]>([]);
   protected readonly isCancelConfirmOpen = signal<boolean>(false);
   private pendingCancelType: 'request' | 'version' | null = null;
-  private pendingCancelVersionId: string | null = null;
+  private pendingCancelVersion: { id: string; revision: string | null } | null = null;
   protected readonly currentPage = signal<number>(0);
   protected readonly itemsPerPage = 3;
   protected readonly expandedMethods = signal<Set<string>>(new Set());
@@ -81,9 +81,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   // (integration_method.id is stable across revisions; revision distinguishes versions).
   protected readonly groupedMethods = computed<MethodGroup[]>(() => {
     const groups = new Map<string, MethodGroup>();
-    const cancelled = this.cancelledVersionIds();
     for (const v of this.allVersions()) {
-      if (cancelled.includes(this.versionKey(v.id, v.revision))) continue;
       let group = groups.get(v.id);
       if (!group) {
         group = {
@@ -195,7 +193,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected cancelVersion(id: string, revision: string | null): void {
     this.pendingCancelType = 'version';
-    this.pendingCancelVersionId = this.versionKey(id, revision);
+    this.pendingCancelVersion = { id, revision };
     this.isCancelConfirmOpen.set(true);
   }
 
@@ -365,21 +363,39 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected cancelRequest(): void {
     this.pendingCancelType = 'request';
-    this.pendingCancelVersionId = null;
+    this.pendingCancelVersion = null;
     this.isCancelConfirmOpen.set(true);
   }
 
   protected closeCancelConfirm(): void {
     this.isCancelConfirmOpen.set(false);
     this.pendingCancelType = null;
-    this.pendingCancelVersionId = null;
+    this.pendingCancelVersion = null;
   }
 
   protected confirmCancel(): void {
-    if (this.pendingCancelType === 'version' && this.pendingCancelVersionId) {
-      this.cancelledVersionIds.update(ids => [...ids, this.pendingCancelVersionId!]);
-      //todo we need remove it from DB and add comment to ticket (probably also close ticket)
-      this.closeCancelConfirm();
+    if (this.pendingCancelType === 'version' && this.pendingCancelVersion) {
+      const appId = this.application()?.id;
+      const { id, revision } = this.pendingCancelVersion;
+      if (!appId) { this.closeCancelConfirm(); return; }
+      this.applicationService.cancelIntegrationMethod(id, revision ?? '').subscribe({
+        next: ({ applicationDeleted }) => {
+          this.closeCancelConfirm();
+          // The app goes with its only never-published revision, so there is no detail page to return to.
+          if (applicationDeleted) {
+            this.router.navigate(['/applications']);
+          } else {
+            this.loadApplication(appId);
+          }
+        },
+        error: (err) => {
+          console.error('Failed to cancel integration method', err);
+          this.closeCancelConfirm();
+          const e = err as { error?: { message?: string } | string; message?: string };
+          const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+          this.toastService.show('Cancel request failed', message || 'The action failed. Please try again.', 'danger');
+        }
+      });
     } else if (this.pendingCancelType === 'request') {
       const requestId = this.application()?.requestId;
       if (!requestId) { this.closeCancelConfirm(); return; }
@@ -392,27 +408,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected isGlobalRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
-    return !!caps && caps.length > 0 && caps.every(c => c.objectName.toLowerCase() === 'global');
-  }
-
-  protected isGlobalMethod(version: IntegrationMethod): boolean {
-    return !!version.objectClassCapabilities &&
-      version.objectClassCapabilities.length > 0 &&
-      version.objectClassCapabilities.every(c => c.objectName.toLowerCase() === 'global');
+    return !!caps && caps.length > 0 && caps.every(c => c.resourceWide);
   }
 
   protected isCombinedRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
     if (!caps || caps.length === 0) return false;
-    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
-           caps.some(c => c.objectName.toLowerCase() !== 'global');
-  }
-
-  protected isCombinedMethod(version: IntegrationMethod): boolean {
-    const caps = version.objectClassCapabilities;
-    if (!caps || caps.length === 0) return false;
-    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
-           caps.some(c => c.objectName.toLowerCase() !== 'global');
+    return caps.some(c => c.resourceWide) && caps.some(c => !c.resourceWide);
   }
 
   protected toggleComboSection(key: string): void {
@@ -452,20 +454,12 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return `${name} ${version}`;
   }
 
-  protected getGlobalCaps(version: IntegrationMethod): string[] {
-    return version.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
-  }
-
-  protected getSpecificOccs(version: IntegrationMethod): ObjectClassCapability[] {
-    return version.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
-  }
-
   protected getRequestGlobalCaps(): string[] {
-    return this.application()?.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
+    return this.application()?.objectClassCapabilities?.find(c => c.resourceWide)?.capabilities ?? [];
   }
 
   protected getRequestSpecificOccs(): ObjectClassCapability[] {
-    return this.application()?.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
+    return this.application()?.objectClassCapabilities?.filter(c => !c.resourceWide) ?? [];
   }
 
   protected toggleObjectClass(name: string): void {
@@ -482,18 +476,6 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected toggleGlobalCapabilities(): void {
     this.globalCapabilitiesExpanded.update(v => !v);
-  }
-
-  protected toggleMethodGlobalCapabilities(versionId: string): void {
-    this.expandedGlobalCapabilities.update(set => {
-      const next = new Set(set);
-      if (next.has(versionId)) { next.delete(versionId); } else { next.add(versionId); }
-      return next;
-    });
-  }
-
-  protected isMethodGlobalCapabilitiesExpanded(versionId: string): boolean {
-    return this.expandedGlobalCapabilities().has(versionId);
   }
 
   protected toggleCapabilities(versionIndex: number): void {
@@ -569,9 +551,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected navigateToApprove(): void {
     const appId = this.application()?.id;
-    if (appId) {
-      this.router.navigate(['/approve'], { queryParams: { appId } });
-    }
+    if (!appId) return;
+    // This tab may still show a session that ended elsewhere; a lost one gets the app-wide dialog.
+    this.authService.verifySession().subscribe(() => {
+      if (!this.authService.sessionLost()) {
+        this.router.navigate(['/approve'], { queryParams: { appId } });
+      }
+    });
   }
 
   protected navigateToEdit(versionId: string, revision: string | null): void {
@@ -861,6 +847,17 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     } else {
       return 'Updated today';
     }
+  }
+
+  /** The application detail lists supported capabilities only; NO and UNKNOWN show on the method's own page. */
+  protected supportedObjectCapabilities(version: IntegrationMethod): ObjectClassCapability[] {
+    return (version.objectClassCapabilities ?? [])
+      .map(o => ({
+        objectName: o.objectClass,
+        capabilities: o.capabilities.filter(c => c.state === 'YES').map(c => c.name),
+        resourceWide: false
+      }))
+      .filter(o => o.capabilities.length > 0);
   }
 
   protected formatCapabilityText(text: string): string {

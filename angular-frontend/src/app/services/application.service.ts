@@ -12,7 +12,7 @@ import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
-import { ApplicationDetail, ApplicationTag } from '../models/application-detail.model';
+import { ApplicationDetail, ApplicationTag, IntegrationMethodObjectCapabilities } from '../models/application-detail.model';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
 import { CatalogConnector } from '../models/catalog-connector.model';
@@ -104,8 +104,8 @@ export class ApplicationService {
     return this.http.post<void>(`${environment.apiUrl}/requests`, request);
   }
 
-  getCapabilities(): Observable<{ name: string; globality: string; displayOrder: number | null }[]> {
-    return this.http.get<{ name: string; globality: string; displayOrder: number | null }[]>(`${environment.apiUrl}/capabilities`);
+  getCapabilities(): Observable<{ name: string; globality: string; displayOrder: number | null; offeredForMethod: boolean }[]> {
+    return this.http.get<{ name: string; globality: string; displayOrder: number | null; offeredForMethod: boolean }[]>(`${environment.apiUrl}/capabilities`);
   }
 
   getImplementationsByApplicationId(applicationId: string): Observable<ImplementationListItem[]> {
@@ -257,7 +257,7 @@ export class ApplicationService {
   editIntegrationMethod(
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null }
+    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null; maintainer: Maintainer | null }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
@@ -299,6 +299,14 @@ export class ApplicationService {
     );
   }
 
+  /** Withdraws an in-review revision; the app is deleted too when that revision was all it had. */
+  cancelIntegrationMethod(methodId: string, revision: string): Observable<{ applicationDeleted: boolean }> {
+    return this.http.post<{ applicationDeleted: boolean }>(
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/cancel`,
+      {}
+    );
+  }
+
   rejectIntegrationMethod(methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
       `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,
@@ -335,7 +343,7 @@ export class ApplicationService {
       version: string | null; commitTag: string | null;
       midpointMinVersion: number | null; midpointMaxVersion: number | null;
       connectorVersionFrom: string | null; connectorVersionTo: string | null;
-      connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+      connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
     }
   ): Observable<string> {
     // Returns the revision the connector was added to: the current revision, or a newly forked draft
@@ -358,7 +366,7 @@ export class ApplicationService {
       gitCloneUrl: string | null; buildFramework: string | null;
       pathToProject: string | null; className: string | null; bundleDisplayName: string | null;
       commitTag: string | null; version: string | null; baseVersion: string | null;
-      connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+      connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
     }
   ): Observable<void> {
     return this.http.put<void>(

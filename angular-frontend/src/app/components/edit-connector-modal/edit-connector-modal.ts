@@ -6,15 +6,17 @@
 
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, computed
-} from '@angular/core';
+  signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /** Payload sent to updateConnector — also emitted for staging when deferSave is on. */
 export interface ConnectorEditPayload {
@@ -33,13 +35,13 @@ export interface ConnectorEditPayload {
   version: string | null;
   /** The version this edit was opened on, so the backend edits that row rather than guessing. */
   baseVersion: string | null;
-  connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+  connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
 }
 
 @Component({
   selector: 'app-edit-connector-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker],
+  imports: [CommonModule, FormsModule, CapabilityPicker, MarkdownEditor, BackdropCloseDirective],
   templateUrl: './edit-connector-modal.html',
   styleUrls: ['./edit-connector-modal.scss']
 })
@@ -102,10 +104,7 @@ export class EditConnectorModal implements OnInit {
    */
   protected isInitialVersion = true;
 
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   // ── Validation ────────────────────────────────────────────
   protected readonly isGitCloneUrlInvalid = computed(() => {
@@ -164,7 +163,8 @@ export class EditConnectorModal implements OnInit {
 
     const caps: CapabilityGroup[] = (c.objectClassCapabilities ?? []).map(oc => ({
       objectClass: oc.objectName,
-      capabilityNames: oc.capabilities ?? []
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
     }));
     this.initialCapabilities.set(caps);
     this.connectorCapabilities.set(caps);
@@ -216,7 +216,7 @@ export class EditConnectorModal implements OnInit {
 
   // ── License combobox ──────────────────────────────────────
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   protected onLicenseBlur(): void {
@@ -258,7 +258,8 @@ export class EditConnectorModal implements OnInit {
       baseVersion: this.loadedVersion.trim() || null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
-        capabilityNames: g.capabilityNames
+        capabilityNames: g.capabilityNames,
+        resourceWide: g.resourceWide
       }))
     };
 

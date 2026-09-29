@@ -94,7 +94,8 @@ export class RequestForm implements OnInit {
 
     const capabilities = this.capabilityGroups().map(g => ({
       objectName: g.objectClass,
-      capabilities: g.capabilityNames
+      capabilities: g.capabilityNames,
+      resourceWide: g.resourceWide
     }));
 
     const request = {

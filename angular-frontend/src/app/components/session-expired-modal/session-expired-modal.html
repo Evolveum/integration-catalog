@@ -1,0 +1,31 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+-->
+
+<div class="session-expired-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onClose()"></div>
+<div class="session-expired-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="session-expired-dialog" (click)="$event.stopPropagation()">
+    <div class="session-expired-body d-flex align-items-start gap-3">
+      <span class="session-expired-icon d-flex align-items-center justify-content-center flex-shrink-0">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </span>
+      <div>
+        <h2 class="session-expired-title">You have been logged out</h2>
+        <p class="session-expired-desc">
+          Your session has ended &mdash; you logged out in another tab, or it expired. Nothing can be
+          saved until you log in again. Logging in reloads the page, so changes not yet saved in an
+          open form will be lost.
+        </p>
+      </div>
+    </div>
+
+    <div class="session-expired-footer d-flex align-items-center justify-content-between">
+      <button type="button" class="btn session-expired-cancel" (click)="onClose()">Close</button>
+      <button type="button" class="btn session-expired-confirm d-flex align-items-center gap-2" (click)="onLogin()">
+        <i class="fa-solid fa-right-to-bracket"></i>Log in
+      </button>
+    </div>
+  </div>
+</div>

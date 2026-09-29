@@ -31,4 +31,8 @@ public class Capability {
 
     @Column(name = "globality", length = 30)
     private String globality;
+
+    /** Whether an integration method may choose this option; a connector is offered every row. */
+    @Column(name = "offered_for_method")
+    private boolean offeredForMethod;
 }

@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProper
 import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
 import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import com.evolveum.midpoint.integration.catalog.service.retry.PendingOperationService;
@@ -52,11 +53,17 @@ public class SupportTicketEventListener {
         submit(CommentBuildOutcomeHandler.OPERATION, event);
     }
 
+    /** The author withdrew a revision, so its work package owes the reviewer a note. */
+    @TransactionalEventListener
+    public void onIntegrationMethodCancelled(IntegrationMethodCancelledEvent event) {
+        submit(CommentCancellationHandler.OPERATION, event);
+    }
+
     /**
      * Records one operation and attempts it.
      */
     private void submit(String operation, Object event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             return;
         }
         pendingOperationService.submit(ExternalSystem.OPENPROJECT, operation, event);

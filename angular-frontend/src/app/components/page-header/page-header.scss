@@ -1,5 +1,12 @@
 @use 'variables' as *;
 
+/* Matches the pages' min-width: 1080px, so below that width the header (with its breadcrumb and
+   staging banner) scrolls along with the page instead of ending at the viewport edge */
+:host {
+  display: block;
+  min-width: 1080px;
+}
+
 .page-header {
   background-color: $color-brand-navy;
   height: 86px;

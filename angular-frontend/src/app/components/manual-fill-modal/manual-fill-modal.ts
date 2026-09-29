@@ -126,7 +126,11 @@ export class ManualFillModal implements OnChanges {
         this.hadError = true;
         this.submitting = false;
         try {
-          const message = err.error?.detail || err.error?.message || err.message || 'Verification failed.';
+          // 409 = the catalog already holds this bundle version with this connector class.
+          const message = err.status === 409
+            ? `A connector with bundle name "${this.bundleName}" and class name "${this.className}" `
+              + `already exists in version ${this.version}.`
+            : err.error?.detail || err.error?.message || err.message || 'Verification failed.';
           this.errorMessage = String(message);
           this.error.emit(this.errorMessage);
         } catch {

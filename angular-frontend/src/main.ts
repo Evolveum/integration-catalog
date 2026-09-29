@@ -7,10 +7,11 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { inject, provideAppInitializer } from '@angular/core';
 import { AppComponent } from './app/app.component';
-import { provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { routes } from './app/app.routes';
 import { AuthService } from './app/services/auth.service';
+import { sessionExpiryInterceptor } from './app/services/session-expiry.interceptor';
 
 // Identity travels in the backend session cookie (OIDC login); the XSRF cookie is mirrored into
 // a header for mutating calls. Both names are the catalog's own: cookies ignore the port, so the
@@ -21,7 +22,7 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(withXsrfConfiguration({
       cookieName: 'IC-XSRF-TOKEN',
       headerName: 'X-IC-XSRF-TOKEN'
-    })),
+    }), withInterceptors([sessionExpiryInterceptor])),
     provideAppInitializer(() => inject(AuthService).loadCurrentUser())
   ]
 }).catch(err => console.error(err));

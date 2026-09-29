@@ -7,6 +7,8 @@
 package com.evolveum.midpoint.integration.catalog.object;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,4 +33,9 @@ public class IntegrationMethodCapabilityItem {
     @ManyToOne
     @JoinColumn(name = "capability_id", insertable = false, updatable = false)
     private Capability capability;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "state", columnDefinition = "CapabilityState", nullable = false)
+    private CapabilityState state;
 }

@@ -60,7 +60,7 @@ public class AttachTutorialFileHandler implements RetryableOperationHandler<Tuto
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult execute(TutorialFileAddedEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so {} keeps waiting to be attached",
                     event.fileName());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");

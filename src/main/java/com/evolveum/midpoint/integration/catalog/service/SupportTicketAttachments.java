@@ -8,7 +8,9 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.CatalogProperties;
 import com.evolveum.midpoint.integration.catalog.integration.OpenProjectClient;
+import com.evolveum.midpoint.integration.catalog.object.Connector;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnector;
 import com.evolveum.midpoint.integration.catalog.service.retry.OperationResult;
 
 import lombok.RequiredArgsConstructor;
@@ -21,12 +23,17 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +48,12 @@ public class SupportTicketAttachments {
 
     /** Name the tutorial is attached under, also named by the description. */
     public static final String TUTORIAL_ATTACHMENT = "tutorial.md";
+
+    /** Name the stated limitations are attached under; too long for the body, like the tutorial. */
+    public static final String LIMITATIONS_ATTACHMENT = "limitations.md";
+
+    /** Start of the name a connector's description is attached under; the connector's name follows. */
+    private static final String CONNECTOR_DESCRIPTION_PREFIX = "connector-description-";
 
     public static final String OBJECT_STATE_ADDED = "added";
     public static final String OBJECT_STATE_REPLACED = "replaced";
@@ -194,6 +207,99 @@ public class SupportTicketAttachments {
         return attached;
     }
 
+    /**
+     * The description of a connector just added to a revision under review. A file that fails is
+     * logged and put right by the next edit's {@link #refresh}.
+     */
+    public void attachConnectorDescription(int workPackageId, IntegrationMethod method, Integer connectorId) {
+        connectorDescriptionAttachments(method).forEach((fileName, connector) -> {
+            if (Objects.equals(connector.getId(), connectorId)) {
+                addingAttachment(workPackageId, connectorDescriptionFile(fileName, connector));
+            }
+        });
+    }
+
+    /** The attached texts an edit changed, named as the Files tab shows them. */
+    public static List<String> attachedTextChanges(IntegrationMethod before, IntegrationMethod after) {
+        List<String> changes = new ArrayList<>();
+        attachedTextChange(TUTORIAL_ATTACHMENT, before.getTutorial(), after.getTutorial()).ifPresent(changes::add);
+        attachedTextChange(LIMITATIONS_ATTACHMENT, before.getLimitations(), after.getLimitations())
+                .ifPresent(changes::add);
+
+        Map<String, Connector> was = connectorDescriptionAttachments(before);
+        Map<String, Connector> now = connectorDescriptionAttachments(after);
+        Set<String> fileNames = new LinkedHashSet<>(was.keySet());
+        fileNames.addAll(now.keySet());
+        for (String fileName : fileNames) {
+            attachedTextChange(fileName, descriptionOf(was.get(fileName)), descriptionOf(now.get(fileName)))
+                    .ifPresent(changes::add);
+        }
+        return changes;
+    }
+
+    /**
+     * The linked connectors that have a description, keyed by the file each is attached under. Named
+     * after the connector rather than its id, so a copy-on-write clone keeps the file of the connector
+     * it copies; connectors sharing a name are told apart by a counter.
+     */
+    public static Map<String, Connector> connectorDescriptionAttachments(IntegrationMethod method) {
+        Map<String, Connector> attachments = new LinkedHashMap<>();
+        if (method.getConnectors() == null) {
+            return attachments;
+        }
+        Map<String, Integer> taken = new HashMap<>();
+        for (IntegrationMethodConnector link : method.getConnectors()) {
+            Connector connector = link.getConnector();
+            if (connector == null || descriptionOf(connector) == null) {
+                continue;
+            }
+            String base = CONNECTOR_DESCRIPTION_PREFIX + fileNamePart(connector);
+            int seen = taken.merge(base, 1, Integer::sum);
+            attachments.put(base + (seen > 1 ? "-" + seen : "") + ".md", connector);
+        }
+        return attachments;
+    }
+
+    /** The file a connector's description is attached under, or null when it has none. */
+    public static String connectorDescriptionAttachment(IntegrationMethod method, Connector connector) {
+        return connectorDescriptionAttachments(method).entrySet().stream()
+                .filter(entry -> entry.getValue() == connector)
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static String fileNamePart(Connector connector) {
+        String name = connector.getDisplayName() == null ? "" : connector.getDisplayName()
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-+|-+$)", "");
+        return name.isEmpty() ? String.valueOf(connector.getId()) : name;
+    }
+
+    private static String descriptionOf(Connector connector) {
+        return connector == null ? null : blankToNull(connector.getDescription());
+    }
+
+    private static SubmittedFile connectorDescriptionFile(String fileName, Connector connector) {
+        return new SubmittedFile(fileName, connector.getDescription().getBytes(StandardCharsets.UTF_8),
+                "text/markdown");
+    }
+
+    private static Optional<String> attachedTextChange(String fileName, String before, String after) {
+        String was = blankToNull(before);
+        String now = blankToNull(after);
+        if (Objects.equals(was, now)) {
+            return Optional.empty();
+        }
+        String what = was == null ? OBJECT_STATE_ADDED : now == null ? OBJECT_STATE_REMOVED : OBJECT_STATE_REPLACED;
+        return Optional.of("`" + fileName + "` " + what);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
     private SubmittedFiles collectFiles(IntegrationMethod method, int workPackageId) {
         List<SubmittedFile> files = new ArrayList<>();
         String tutorial = method.getTutorial();
@@ -201,6 +307,13 @@ public class SupportTicketAttachments {
             files.add(new SubmittedFile(TUTORIAL_ATTACHMENT,
                     tutorial.getBytes(StandardCharsets.UTF_8), "text/markdown"));
         }
+        String limitations = method.getLimitations();
+        if (limitations != null && !limitations.isBlank()) {
+            files.add(new SubmittedFile(LIMITATIONS_ATTACHMENT,
+                    limitations.getBytes(StandardCharsets.UTF_8), "text/markdown"));
+        }
+        connectorDescriptionAttachments(method).forEach((fileName, connector) -> files.add(
+                connectorDescriptionFile(fileName, connector)));
 
         List<String> names;
         try {

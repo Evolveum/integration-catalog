@@ -23,8 +23,9 @@ public record CatalogConnectorDto(
         String projectHomepage,   // connector_bundle.project_homepage
         String branchUrl,         // latest connector_bundle_version.browse_link
         String gitCloneUrl,       // connector_bundle.git_clone_ulr
-        String pathToProject,     // latest connector_bundle_version.path_to_project
+        String ticketingLink,     // connector_bundle.ticketing_link
         String commitTag,         // latest connector_bundle_version.commit_tag
+        String pathToProject,     // latest connector_bundle_version.path_to_project
         String className,         // connector.fully_qualified_class_name
         List<ObjectClassCapabilityDto> objectClassCapabilities, // conn_version_capability + items
         List<ConnectorTagDto> tags // connector_connector_tag + connector_tag

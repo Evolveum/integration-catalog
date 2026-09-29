@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 @Service
 public class ApplicationService {
 
+    private static final int RECENTLY_USED_KEPT = 10;
+
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagRepository applicationTagRepository;
     private final CountryOfOriginRepository countryOfOriginRepository;
@@ -243,7 +245,8 @@ public class ApplicationService {
     public List<CapabilityDto> getCapabilities() {
         return capabilityRepository.findAll().stream()
                 .sorted(java.util.Comparator.comparingInt(c -> c.getDisplayOrder() != null ? c.getDisplayOrder() : 0))
-                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder()))
+                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder(),
+                        c.isOfferedForMethod()))
                 .toList();
     }
 
@@ -298,6 +301,13 @@ public class ApplicationService {
                     "Only a superuser may reject an integration method.");
         }
         connectorUploadService.rejectIntegrationMethod(methodId, revision, username);
+    }
+
+    /** Whoever may edit the revision may withdraw it; returns whether its application went too. */
+    @Transactional
+    public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
+        assertCanEditMethod(username, methodId, revision);
+        return connectorUploadService.cancelIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
@@ -550,8 +560,9 @@ public class ApplicationService {
                                     bundle.getProjectHomepage(),
                                     latest != null ? latest.getBrowseLink() : null,
                                     bundle.getGitCloneUrl(),
-                                    latest != null ? latest.getPathToProject() : null,
+                                    bundle.getTicketingLink(),
                                     latest != null ? latest.getCommitTag() : null,
+                                    latest != null ? latest.getPathToProject() : null,
                                     connector.getFullyQualifiedClassName(),
                                     applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector),
                                     applicationMapper.mapConnectorTags(connector)
@@ -607,14 +618,19 @@ public class ApplicationService {
                 .toList();
     }
 
+    /**
+     * The list is shared by all users, so an application keeps one row whoever opened it, and only the
+     * newest {@link #RECENTLY_USED_KEPT} rows are kept.
+     */
     @Transactional
     public void recordRecentlyUsed(UUID applicationId, String username) {
-        recentlyUsedApplicationRepository.deleteByUsernameAndApplicationId(username, applicationId);
+        recentlyUsedApplicationRepository.deleteByApplicationId(applicationId);
         recentlyUsedApplicationRepository.flush();
         RecentlyUsedApplication entry = new RecentlyUsedApplication()
                 .setUsername(username)
                 .setApplicationId(applicationId);
-        recentlyUsedApplicationRepository.save(entry);
+        recentlyUsedApplicationRepository.saveAndFlush(entry);
+        recentlyUsedApplicationRepository.deleteAllButNewest(RECENTLY_USED_KEPT);
     }
 
     public long getTotalDownloadsCount() {

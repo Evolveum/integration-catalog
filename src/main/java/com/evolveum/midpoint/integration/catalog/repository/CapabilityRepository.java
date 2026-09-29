@@ -10,10 +10,13 @@ import com.evolveum.midpoint.integration.catalog.object.Capability;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CapabilityRepository extends JpaRepository<Capability, Integer>,
         JpaSpecificationExecutor<Capability> {
 
     Optional<Capability> findByName(String name);
+
+    List<Capability> findByOfferedForMethodTrueOrderByDisplayOrderAsc();
 }

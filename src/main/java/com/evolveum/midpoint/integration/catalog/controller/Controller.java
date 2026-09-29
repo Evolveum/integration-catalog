@@ -36,6 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -149,7 +150,7 @@ public class Controller {
     @Operation(summary = "Upload integration")
     @PostMapping("/upload/integration")
     public ResponseEntity<String> uploadConnector(
-            @RequestBody UploadIntegrationDto dto,
+            @Valid @RequestBody UploadIntegrationDto dto,
             Authentication authentication) {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadIntegration(dto, authentication.getName()));
@@ -387,6 +388,16 @@ public class Controller {
         return ResponseEntity.ok(applicationService.getCapabilities());
     }
 
+    @Operation(summary = "Get license types",
+            description = "Returns every license a connector may be published under, with its display name")
+    @ApiResponse(responseCode = "200", description = "License types retrieved successfully")
+    @GetMapping("/license-types")
+    public ResponseEntity<List<LicenseTypeDto>> getLicenseTypes() {
+        return ResponseEntity.ok(Arrays.stream(ConnectorBundle.LicenseType.values())
+                .map(license -> new LicenseTypeDto(license.name(), license.getDisplayName()))
+                .toList());
+    }
+
     @Operation(summary = "Get total downloads count",
             description = "Returns the total number of downloads across all applications")
     @ApiResponses(value = {
@@ -461,7 +472,7 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @PutMapping("/applications/{appId}")
-    public ResponseEntity<Void> updateApplication(@PathVariable UUID appId, @RequestBody UpdateApplicationDto dto) {
+    public ResponseEntity<Void> updateApplication(@PathVariable UUID appId, @Valid @RequestBody UpdateApplicationDto dto) {
         try {
             applicationService.updateApplication(appId, dto);
             return ResponseEntity.ok().build();

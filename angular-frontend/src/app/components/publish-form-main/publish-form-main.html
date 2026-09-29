@@ -1,7 +1,7 @@
 <!-- Define New Application Modal -->
 @if (showDefineNewModal()) {
-  <div class="define-new-overlay" (click)="cancelDefineNewModal()">
-    <div class="define-new-modal" (click)="$event.stopPropagation()">
+  <div class="define-new-overlay" [appBackdropClose]="defineNewDialog" (backdropClose)="cancelDefineNewModal()">
+    <div #defineNewDialog class="define-new-modal" (click)="$event.stopPropagation()">
       <div class="define-new-modal-header d-flex justify-content-between align-items-center">
         <div>
           <h5 class="define-new-modal-title mb-1">Define new target application</h5>
@@ -324,6 +324,32 @@
                     </div>
                   </div>
 
+                  <!-- Maintainer -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center form-label-upload">
+                      Maintainer <span class="text-danger">&nbsp;*</span>
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
+                        <span class="info-tooltip">Select the person or team responsible for maintaining this integration method.</span>
+                      </span>
+                    </label>
+                    <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
+                      <input type="text" class="form-select"
+                             [value]="maintainerText()"
+                             (input)="onMaintainerInput($event)"
+                             (focus)="onMaintainerFocus()"
+                             (blur)="onMaintainerBlur()"
+                             placeholder="Select maintainer...">
+                      @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
+                        <div class="maintainer-dropdown">
+                          @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                            <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+
                   <!-- Description -->
                   <div class="mb-4">
                     <label class="form-label form-label-upload">Description</label>
@@ -334,10 +360,26 @@
                     </div>
                   </div>
 
+                  <!-- Limitations -->
+                  <div class="mb-4">
+                    <label class="form-label form-label-upload">
+                      Limitations
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
+                        <span class="info-tooltip">What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</span>
+                      </span>
+                    </label>
+                    <div class="position-relative">
+                      <textarea class="form-control" [value]="methodFormLimitations()" (input)="onMethodFormLimitationsChange($event)"
+                                placeholder="Describe what this integration method does not support..." rows="4"
+                                [attr.maxlength]="limitationsMax"></textarea>
+                      <div class="text-end text-muted char-counter">{{ methodFormLimitations().length }}/{{ limitationsMax }} characters</div>
+                    </div>
+                  </div>
+
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
-                    <label class="form-label form-label-upload">Define capabilities for:<span class="text-danger">&nbsp;*</span></label>
-                    <app-capability-picker [initialCapabilities]="imCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+                    <app-im-capability-picker [initialCapabilities]="imCapabilities()" [required]="!isSuperuser()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
                   </div>
 
                   <!-- Integration Tutorial -->
@@ -605,7 +647,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || imCapabilities().length === 0">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !methodFormMaintainer() || !capabilitiesValid()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
@@ -669,8 +711,8 @@
 
 <!-- Connector Catalog Modal -->
 @if (showConnectorCatalogModal()) {
-  <div class="cc-overlay" (click)="closeConnectorCatalogModal()">
-    <div class="cc-modal" (click)="$event.stopPropagation()">
+  <div class="cc-overlay" [appBackdropClose]="catalogDialog" (backdropClose)="closeConnectorCatalogModal()">
+    <div #catalogDialog class="cc-modal" (click)="$event.stopPropagation()">
 
       <!-- Header -->
       <div class="cc-modal-header d-flex justify-content-between align-items-start">
@@ -734,7 +776,7 @@
                   }
                 </div>
                 @if (connector.description) {
-                  <div class="cc-connector-desc">{{ connector.description }}</div>
+                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                 }
               </div>
             </div>

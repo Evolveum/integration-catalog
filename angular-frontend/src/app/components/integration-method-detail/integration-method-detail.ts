@@ -4,31 +4,28 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
-import Asciidoctor from 'asciidoctor';
 import { ApplicationService, SupportTicket } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
-import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { CapabilityState, hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
-
-// Single Asciidoctor engine instance shared by the component; the tutorial is
-// authored in AsciiDoc and rendered read-only here.
-const asciidoctor = Asciidoctor();
+import { MarkdownPipe } from '../../core/markdown.pipe';
 
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, MarkdownPipe],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -44,9 +41,18 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly methodName = signal<string>('');
   protected readonly methodVersion = signal<string>('');
   protected readonly methodDescription = signal<string>('');
+  protected readonly methodLimitations = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
-  protected readonly globalCapabilities = signal<string[]>([]);
-  protected readonly specificCapabilities = signal<ObjectClassCapability[]>([]);
+  protected readonly specificCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  protected readonly selectedCapsObject = signal<string>('');
+  protected readonly selectedObjectCapabilities = computed(() =>
+    this.specificCapabilities().find(o => o.objectClass === this.selectedCapsObject())?.capabilities ?? []
+  );
+  protected readonly capabilityStates: Record<CapabilityState, { label: string; icon: string }> = {
+    YES: { label: 'Supported', icon: 'fa-circle-check' },
+    NO: { label: 'Not supported', icon: 'fa-circle-xmark' },
+    UNKNOWN: { label: 'Unknown', icon: 'fa-circle-question' }
+  };
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);
 
@@ -103,16 +109,17 @@ export class IntegrationMethodDetail implements OnInit {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  /** Each connector's compatibility range; the connector name only matters once there is more than one. */
+  protected readonly applicationVersionRanges = computed(() => {
+    const connectors = this.connectors();
+    return connectors.map(c => ({
+      name: connectors.length > 1 ? (c.connectorDisplayName || c.name || '') : '',
+      from: c.connectorMinVersion,
+      to: c.connectorMaxVersion
+    }));
+  });
   protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
-
-  // Tutorial (AsciiDoc source) rendered to embeddable HTML for read-only display.
-  // Angular sanitizes the bound HTML; Asciidoctor's default 'secure' mode also
-  // disables includes and scripts.
-  protected readonly tutorialHtml = computed(() => {
-    const content = this.methodTutorial().trim();
-    return content ? String(asciidoctor.convert(content)) : '';
-  });
 
   constructor(
     private route: ActivatedRoute,
@@ -155,6 +162,7 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodUpdated.set(ver.updated ?? null);
           this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
+          this.methodLimitations.set(ver.limitations ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.methodTutorial.set(ver.tutorial ?? '');
           this.methodMinVersionId.set(ver.midpointMinVersionId);
@@ -171,19 +179,11 @@ export class IntegrationMethodDetail implements OnInit {
     });
   }
 
-  // Global capabilities are stored under the reserved 'Global' object class; the rest are
-  // grouped per object class so we can show their globality separately.
-  private setCapabilities(occs: ObjectClassCapability[] | null): void {
-    const groups = occs ?? [];
-    this.globalCapabilities.set(
-      groups.filter(o => o.objectName === 'Global').flatMap(o => o.capabilities ?? [])
-    );
-    const specifics = groups.filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0);
+  private setCapabilities(occs: IntegrationMethodObjectCapabilities[] | null): void {
+    const specifics = (occs ?? [])
+      .filter(o => (o.capabilities?.length ?? 0) > 0);
     this.specificCapabilities.set(specifics);
-    // Start with Global expanded and the specific groups collapsed; each can then be toggled independently.
-    const expanded = new Set<string>();
-    if (this.globalCapabilities().length > 0) expanded.add('global');
-    this.expandedCaps.set(expanded);
+    this.selectedCapsObject.set(specifics[0]?.objectClass ?? '');
   }
 
   private resolveMidpointVersion(id: number | null): string {
@@ -296,11 +296,9 @@ export class IntegrationMethodDetail implements OnInit {
     this.compatConnector.set(null);
   }
 
-  /** A connector's object-class capabilities, with the Global class first when present. */
+  /** A connector's object-class capabilities, with the resource-wide group first when present. */
   protected orderedConnectorCaps(caps: ObjectClassCapability[] | null | undefined): ObjectClassCapability[] {
-    return [...(caps ?? [])].sort((a, b) =>
-      (a.objectName === 'Global' ? 0 : 1) - (b.objectName === 'Global' ? 0 : 1)
-    );
+    return [...(caps ?? [])].sort((a, b) => (a.resourceWide ? 0 : 1) - (b.resourceWide ? 0 : 1));
   }
 
   /** Derive the version badge ("v1", "v2", …) from the major part of the revision. */
@@ -315,17 +313,10 @@ export class IntegrationMethodDetail implements OnInit {
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 
-  /** Friendly labels for the LicenseType enum (mirrors the publish form). */
-  private readonly licenseLabels: Record<string, string> = {
-    MIT: 'MIT',
-    APACHE_2: 'Apache 2.0',
-    BSD: 'BSD',
-    EUPL: 'EUPL 1.2',
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   protected formatLicense(value: string): string {
-    if (!value) return '—';
-    return this.licenseLabels[value] ?? value;
+    return this.licenseTypes.label(value);
   }
 
   protected formatCapabilityText(text: string): string {

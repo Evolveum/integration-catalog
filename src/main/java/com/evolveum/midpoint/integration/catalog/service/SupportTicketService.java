@@ -59,7 +59,7 @@ public class SupportTicketService {
                     "Not allowed to see the support ticket of " + methodId + "/" + revision);
         }
 
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             return new SupportTicketDto(false, null, null, null, true, null);
         }
 

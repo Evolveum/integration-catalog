@@ -38,6 +38,7 @@ public class AppendConnectorHandler implements RetryableOperationHandler<Connect
     private final OpenProjectClient openProjectClient;
     private final OpenProjectProperties properties;
     private final SupportTicketDescriptionBuilder descriptionBuilder;
+    private final SupportTicketAttachments attachments;
 
     @Override
     public ExternalSystem system() {
@@ -61,7 +62,7 @@ public class AppendConnectorHandler implements RetryableOperationHandler<Connect
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult execute(ConnectorAddedToReviewEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so connector {} keeps waiting to be appended",
                     event.connectorId());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");
@@ -79,6 +80,8 @@ public class AppendConnectorHandler implements RetryableOperationHandler<Connect
         try {
             openProjectClient.addComment(method.getSupportTicketId(),
                     descriptionBuilder.buildConnectorAddendum(method, event.connectorId()));
+            // After the comment, so a retry never repeats it.
+            attachments.attachConnectorDescription(method.getSupportTicketId(), method, event.connectorId());
             log.info("Appended connector {} to work package {} of integration method {}/{} in the support portal",
                     event.connectorId(), method.getSupportTicketId(), event.methodId(), event.revision());
             return OperationResult.completed();

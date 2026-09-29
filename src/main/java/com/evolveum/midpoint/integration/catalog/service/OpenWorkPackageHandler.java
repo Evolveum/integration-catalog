@@ -69,7 +69,7 @@ public class OpenWorkPackageHandler implements RetryableOperationHandler<Integra
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult execute(IntegrationMethodSubmittedEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so {}/{} keeps waiting for its work package",
                     event.methodId(), event.revision());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");
@@ -185,28 +185,12 @@ public class OpenWorkPackageHandler implements RetryableOperationHandler<Integra
                     descriptionBuilder.build(previous), descriptionBuilder.build(method),
                     "This is an edit of revision " + event.previousRevision() + ", which it replaces once"
                             + " approved. What it changes about that revision is listed here.",
-                    checkTutorialChange(previous, method));
+                    SupportTicketAttachments.attachedTextChanges(previous, method));
         } catch (Exception e) {
             log.error("Could not work out what {}/{} changes about {}",
                     event.methodId(), event.revision(), event.previousRevision(), e);
             return;
         }
         comments.post(workPackageId, delta);
-    }
-
-    private static List<String> checkTutorialChange(IntegrationMethod before, IntegrationMethod after) {
-        String was = blankToNull(before.getTutorial());
-        String now = blankToNull(after.getTutorial());
-        if (Objects.equals(was, now)) {
-            return List.of();
-        }
-        String what = was == null ? SupportTicketAttachments.OBJECT_STATE_ADDED
-                : now == null ? SupportTicketAttachments.OBJECT_STATE_REMOVED
-                : SupportTicketAttachments.OBJECT_STATE_REPLACED;
-        return List.of("`" + SupportTicketAttachments.TUTORIAL_ATTACHMENT + "` " + what);
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value;
     }
 }

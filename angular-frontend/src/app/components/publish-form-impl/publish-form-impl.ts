@@ -10,19 +10,20 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
-import { MidpointVersion } from '../../models/application-detail.model';
+import { IntegrationMethodObjectCapabilities, MidpointVersion } from '../../models/application-detail.model';
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CatalogConnector } from '../../models/catalog-connector.model';
-import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
 import { LinksService } from '../../services/links.service';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -34,14 +35,16 @@ export interface ReviewSummary {
   methodName: string;
   methodVersion: string;
   methodDescription: string;
+  methodLimitations: string;
   methodTutorial: string;
+  methodMaintainer: Maintainer | null;
   applicationDescription: string;
   origins: string[];
   category: string;
   deploymentType: string;
   logoFile: File | null;
   tutorialFiles: File[];
-  imCapabilities: IntegrationMethodCapabilityGroup[];
+  imCapabilities: IntegrationMethodObjectCapabilities[];
 }
 
 export interface Step5FormData {
@@ -66,7 +69,7 @@ export interface Step5FormData {
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal],
+  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal, MarkdownEditor],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })
@@ -96,6 +99,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
   protected readonly connectorVersion = signal<string>('');
   protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerLabel = maintainerLabel;
   protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
@@ -114,15 +118,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT',
-    'APACHE_2': 'Apache 2.0',
-    'BSD': 'BSD',
-    'EUPL': 'EUPL 1.2'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   // Connector capabilities (from CapabilityPicker child)
@@ -371,7 +369,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devClassName.set(connector.className ?? '');
     const bf = (connector.buildFramework ?? '').toLowerCase();
     this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
-    this.devSupportPortal.set('');
+    this.devSupportPortal.set(connector.ticketingLink ?? '');
     this.devCommitTag.set(connector.commitTag ?? '');
     this.devRepoOwnership.set('evolveum');
     this.devGithubApiKey.set('');
@@ -379,7 +377,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
     const caps: CapabilityGroup[] = (connector.objectClassCapabilities ?? []).map(oc => ({
       objectClass: oc.objectName,
-      capabilityNames: oc.capabilities ?? []
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
     }));
     this.connectorCapabilities.set(caps);
   }
@@ -407,7 +406,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
         displayName: summary?.methodName ?? '',
         revision: summary?.methodVersion ?? '',
         description: summary?.methodDescription ?? '',
+        limitations: summary?.methodLimitations ?? '',
         tutorial: summary?.methodTutorial ?? '',
+        maintainer: summary?.methodMaintainer ?? null,
         typeIds: summary?.methodTypeIds ?? [],
         midpointMinVersion: this.midpointMinVersionId(),
         midpointMaxVersion: this.midpointMaxVersionId()

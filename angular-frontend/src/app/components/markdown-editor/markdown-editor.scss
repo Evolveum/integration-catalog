@@ -1,0 +1,25 @@
+@use 'variables' as *;
+
+.markdown-editor-host {
+  ::ng-deep .EasyMDEContainer {
+    .editor-toolbar {
+      border-radius: 4px 4px 0 0;
+      opacity: 1;
+    }
+
+    .CodeMirror {
+      border-radius: 0 0 4px 4px;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+/* An already published connector: its description is shown, not edited. */
+.markdown-readonly {
+  min-height: 2.5rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid $color-border-light;
+  border-radius: 0.375rem;
+  background-color: $color-bg-muted;
+  color: $color-text-secondary;
+}

@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ApplicationService } from '../../services/application.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 export interface FilterState {
   trending: boolean;
@@ -31,7 +32,7 @@ interface CategoryCount {
 @Component({
   selector: 'app-filter-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BackdropCloseDirective],
   templateUrl: './filter-modal.html',
   styleUrls: ['./filter-modal.scss']
 })

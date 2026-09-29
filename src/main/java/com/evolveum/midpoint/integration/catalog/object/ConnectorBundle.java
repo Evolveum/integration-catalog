@@ -31,11 +31,23 @@ public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer
         LOW_CODE
     }
 
+    /** Stored by constant name; the display name is how the catalog and its UI spell the license. */
     public enum LicenseType {
-        MIT,
-        APACHE_2,
-        BSD,
-        EUPL
+        MIT("MIT"),
+        APACHE_2("Apache 2.0"),
+        BSD("BSD"),
+        EUPL("EUPL 1.2"),
+        CDDL("CDDL");
+
+        private final String displayName;
+
+        LicenseType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 
     @Id

@@ -27,7 +27,8 @@ public record RequestFormDto(
         List<ObjectClassCapabilityEntry> capabilities // → object_class_capabilities
 ) {
     public record ObjectClassCapabilityEntry(
-            String objectName,        // object_class_capabilities.object_name
-            List<String> capabilities // capability.name items
+            String objectName,         // object_class_capabilities.object_name
+            List<String> capabilities, // capability.name items
+            boolean resourceWide       // object_class_capabilities.resource_wide; objectName is then only a label
     ) {}
 }

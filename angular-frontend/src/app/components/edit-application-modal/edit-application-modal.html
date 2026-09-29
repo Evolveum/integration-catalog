@@ -34,6 +34,7 @@
           [class.is-invalid]="displayNameInvalid()"
           [value]="displayName()"
           (input)="onDisplayNameInput($event)"
+          [attr.maxlength]="displayNameMax"
           placeholder="e.g. Active Directory, LDAP Server"
         />
         @if (displayNameInvalid()) {
@@ -51,8 +52,10 @@
           rows="4"
           [value]="description()"
           (input)="onDescriptionInput($event)"
+          [attr.maxlength]="descriptionMax"
           placeholder="Brief description of the application..."
         ></textarea>
+        <div class="text-end text-muted char-counter">{{ description().length }}/{{ descriptionMax }} characters</div>
       </div>
 
       <!-- Logo -->

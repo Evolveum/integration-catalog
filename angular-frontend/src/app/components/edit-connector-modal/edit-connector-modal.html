@@ -4,8 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<div class="ecm-overlay" (click)="close.emit()">
-  <div class="ecm-modal" (click)="$event.stopPropagation()">
+<div class="ecm-overlay" [appBackdropClose]="ecmDialog" (backdropClose)="close.emit()">
+  <div #ecmDialog class="ecm-modal" (click)="$event.stopPropagation()">
 
     <!-- Header -->
     <div class="ecm-modal-header d-flex justify-content-between align-items-center">
@@ -101,10 +101,10 @@
                   </div>
                   @if (isLicenseDropdownOpen()) {
                     <div class="license-dropdown">
-                      @for (opt of licenseOptions; track opt) {
+                      @for (opt of licenseTypes.options(); track opt.name) {
                         <div class="license-option"
-                             [class.license-option-selected]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                             [class.license-option-selected]="connectorLicense() === opt.name"
+                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</div>
                       }
                     </div>
                   }
@@ -120,10 +120,9 @@
             <!-- Description -->
             <div class="mb-3">
               <label class="form-label form-label-upload">Connector description</label>
-              <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
-                        [value]="connectorDescription()"
-                        (input)="connectorDescription.set($any($event.target).value)"></textarea>
-              <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+              <app-markdown-editor [value]="connectorDescription()"
+                                   (valueChange)="connectorDescription.set($event)"
+                                   placeholder="Type description..."></app-markdown-editor>
             </div>
 
             <!-- Capabilities -->

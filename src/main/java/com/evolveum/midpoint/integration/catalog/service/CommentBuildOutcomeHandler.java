@@ -61,7 +61,7 @@ public class CommentBuildOutcomeHandler implements RetryableOperationHandler<Bui
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public OperationResult execute(BuildFinishedEvent event) {
-        if (!properties.enabled()) {
+        if (!properties.isEnabled()) {
             log.debug("Support portal is not configured, so the build outcome of {}/{} keeps waiting",
                     event.methodId(), event.revision());
             return OperationResult.retry("No support portal is configured (openproject.url is empty).");

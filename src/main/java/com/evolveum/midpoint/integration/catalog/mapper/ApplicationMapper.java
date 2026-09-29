@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.mapper;
 import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.object.*;
+import com.evolveum.midpoint.integration.catalog.repository.CapabilityRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
@@ -32,11 +33,13 @@ public class ApplicationMapper {
     private final MidpointVersionRepository midpointVersionRepository;
     private final AuthService authService;
     private final OpenProjectProperties openProjectProperties;
+    private final CapabilityRepository capabilityRepository;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
                              DownloadRepository downloadRepository, OwnershipService ownershipService,
                              MidpointVersionRepository midpointVersionRepository,
-                             AuthService authService, OpenProjectProperties openProjectProperties) {
+                             AuthService authService, OpenProjectProperties openProjectProperties,
+                             CapabilityRepository capabilityRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
@@ -44,6 +47,7 @@ public class ApplicationMapper {
         this.midpointVersionRepository = midpointVersionRepository;
         this.authService = authService;
         this.openProjectProperties = openProjectProperties;
+        this.capabilityRepository = capabilityRepository;
     }
 
     // ── Tag helpers ───────────────────────────────────────────────────────────
@@ -83,6 +87,7 @@ public class ApplicationMapper {
     public List<IntegrationMethodDto> mapIntegrationMethods(Application app, String viewer) {
         if (app.getIntegrationMethods() == null) return null;
 
+        List<Capability> offered = capabilityRepository.findByOfferedForMethodTrueOrderByDisplayOrderAsc();
         return app.getIntegrationMethods().stream()
                 .map(method -> {
                     List<String> capabilities = collectCapabilities(method);
@@ -157,16 +162,8 @@ public class ApplicationMapper {
                             .map(IntegrationMethodType::getDisplayName)
                             .toList();
 
-                    List<ObjectClassCapabilityDto> objectClassCapabilities = method.getCapabilities().stream()
-                            .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
-                            .map(cap -> new ObjectClassCapabilityDto(
-                                    cap.getObjectClass(),
-                                    cap.getItems().stream()
-                                            .filter(item -> item.getCapability() != null
-                                                    && item.getCapability().getName() != null)
-                                            .map(item -> item.getCapability().getName())
-                                            .toList()
-                            ))
+                    List<IntegrationMethodObjectCapabilitiesDto> objectClassCapabilities = method.getCapabilities().stream()
+                            .map(cap -> mapObjectCapabilities(cap, offered))
                             .toList();
 
                     long downloadCount = method.getConnectors().stream()
@@ -186,6 +183,7 @@ public class ApplicationMapper {
                     return new IntegrationMethodDto(
                             method.getId(),
                             method.getDescription(),
+                            method.getLimitations(),
                             null,           // implementationTags
                             capabilities,
                             objectClassCapabilities,
@@ -225,7 +223,7 @@ public class ApplicationMapper {
     private Integer visibleSupportTicketId(IntegrationMethod method, String viewer) {
         if (viewer == null || viewer.isBlank()
                 || method.getSupportTicketId() == null
-                || !openProjectProperties.enabled()) {
+                || !openProjectProperties.isEnabled()) {
             return null;
         }
         // The organization ids are part of the check: an item maintained by an organization
@@ -235,11 +233,32 @@ public class ApplicationMapper {
                 ? method.getSupportTicketId() : null;
     }
 
+    /**
+     * Every capability offered to methods, in display order, with the object's state for it; one
+     * without a row (offered only after the object was saved) is UNKNOWN.
+     */
+    private IntegrationMethodObjectCapabilitiesDto mapObjectCapabilities(IntegrationMethodCapability cap,
+                                                                         List<Capability> offered) {
+        Map<Integer, CapabilityState> stored = new HashMap<>();
+        if (cap.getItems() != null) {
+            cap.getItems().stream()
+                    .filter(item -> item.getState() != null)
+                    .forEach(item -> stored.put(item.getCapabilityId(), item.getState()));
+        }
+        List<IntegrationMethodCapabilityStateDto> states = offered.stream()
+                .map(c -> new IntegrationMethodCapabilityStateDto(
+                        c.getName(), stored.getOrDefault(c.getId(), CapabilityState.UNKNOWN)))
+                .toList();
+        return new IntegrationMethodObjectCapabilitiesDto(cap.getObjectClass(), states);
+    }
+
+    /** Supported capabilities only: the cards, the list filters and the application detail show nothing else. */
     private List<String> collectCapabilities(IntegrationMethod method) {
         if (method.getCapabilities() == null) return null;
         return method.getCapabilities().stream()
                 .filter(cap -> cap.getItems() != null)
                 .flatMap(cap -> cap.getItems().stream())
+                .filter(item -> item.getState() == CapabilityState.YES)
                 .filter(item -> item.getCapability() != null && item.getCapability().getName() != null)
                 .map(item -> item.getCapability().getName())
                 .distinct()
@@ -282,7 +301,8 @@ public class ApplicationMapper {
                         .filter(occ -> occ.getCapabilities() != null && occ.getCapabilities().length > 0)
                         .map(occ -> new ObjectClassCapabilityDto(
                                 occ.getObjectName(),
-                                Arrays.stream(occ.getCapabilities()).map(Enum::name).toList()
+                                Arrays.stream(occ.getCapabilities()).map(Enum::name).toList(),
+                                occ.isResourceWide()
                         ))
                         .toList();
                 capabilities = objectClassCapabilities.stream()
@@ -652,7 +672,8 @@ public class ApplicationMapper {
                                 .filter(item -> item.getCapability() != null
                                         && item.getCapability().getName() != null)
                                 .map(item -> item.getCapability().getName())
-                                .toList()
+                                .toList(),
+                        cap.isResourceWide()
                 ))
                 .toList();
     }

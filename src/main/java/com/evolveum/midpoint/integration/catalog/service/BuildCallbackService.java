@@ -70,6 +70,12 @@ public class BuildCallbackService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The build reported no connector bundle name; the bundle's identity cannot be set from it.");
         }
+        // A missing artifact URL is what reports a connector as lacking build information, so a success
+        // without one would leave it reported that way.
+        if (continueForm.getDownloadLink() == null || continueForm.getDownloadLink().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "The build reported no download link; the connector cannot be downloaded without it.");
+        }
 
         // The classes this build actually produced, in the order the job listed them.
         List<String> builtClasses = splitClassNames(continueForm.getConnectorClass());
@@ -314,14 +320,19 @@ public class BuildCallbackService {
     private void persistCapabilitiesOnConnectorVersions(ConnectorVersion connectorVersion,
                                                         List<CapabilityType> capabilityTypes) {
 
-        List<ConnVersionCapability> currentCapabilities = connVersionCapabilityRepository.findByObjectClass("Global");
-        ConnVersionCapability currentCapability = currentCapabilities.stream().findFirst().orElseGet(() -> {
-            ConnVersionCapability group = new ConnVersionCapability();
-            group.setObjectClass("Global");
-            group.setConnectorVersion(connectorVersion);
-            connVersionCapabilityRepository.save(group);
-            return group;
-        });
+        // This version's own resource-wide group; every connector version has at most one.
+        ConnVersionCapability currentCapability = connectorVersion.getCapabilities().stream()
+                .filter(ConnVersionCapability::isResourceWide)
+                .findFirst()
+                .orElseGet(() -> {
+                    ConnVersionCapability group = new ConnVersionCapability();
+                    group.setObjectClass(ConnVersionCapability.RESOURCE_WIDE_LABEL);
+                    group.setResourceWide(true);
+                    group.setConnectorVersion(connectorVersion);
+                    connectorVersion.getCapabilities().add(group);
+                    connVersionCapabilityRepository.save(group);
+                    return group;
+                });
 
         for (CapabilityType capType : capabilityTypes) {
             if (!capType.isGlobal()){

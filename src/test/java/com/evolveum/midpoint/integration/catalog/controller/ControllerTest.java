@@ -238,7 +238,7 @@ class ControllerTest {
                 List.of(CapabilityType.SCHEMA,
                         CapabilityType.TEST,
                         CapabilityType.VALIDATE,
-                        CapabilityType.GET,
+                        CapabilityType.READ,
                         CapabilityType.SEARCH
                 ));
 
@@ -352,7 +352,7 @@ class ControllerTest {
                 "test@example.com",
                 false,
                 "Test User",
-                List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("GET", "SEARCH")))
+                List.of(new RequestFormDto.ObjectClassCapabilityEntry("Account", List.of("READ", "SEARCH"), false))
         );
 
         when(applicationService.createRequestFromForm(any(RequestFormDto.class), anyString()))
@@ -592,7 +592,8 @@ class ControllerTest {
                 "https://github.com/Evolveum/connector-ldap/tree/v1.0.0",
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
-                "9f2c1ab",
+                "v1.0.0",
+                null,
                 "com.evolveum.polygon.connector.ldap.LdapConnector",
                 List.of(),
                 List.of(new ConnectorTagDto("obsolete", "Obsolete"))

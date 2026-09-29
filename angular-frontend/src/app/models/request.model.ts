@@ -5,6 +5,7 @@
  */
 
 import { Maintainer } from './maintainer.model';
+import { IntegrationMethodObjectCapabilities } from './application-detail.model';
 
 export interface Request {
   id?: number;               // request.id
@@ -22,6 +23,7 @@ export interface CreateRequest {
 export interface ObjectClassCapabilityEntry {
   objectName: string;
   capabilities: string[];
+  resourceWide: boolean;
 }
 
 /**
@@ -69,6 +71,7 @@ export interface UploadIntegrationMethodData {
   revision: string;               // integration_method.revision
   description: string;            // integration_method.description
   tutorial: string;               // integration_method.tutorial
+  maintainer: Maintainer | null;  // integration_method.maintainer
   typeIds: number[];              // integration_method_type.id
   midpointMinVersion: number | null; // midpoint_version.id (FK for min version)
   midpointMaxVersion: number | null; // midpoint_version.id (FK for max version)
@@ -111,6 +114,7 @@ export interface UploadFileItem {
 export interface IntegrationMethodCapabilityGroup {
   objectClass: string;          // object_class_capabilities.object_name
   capabilityNames: string[];    // capability.name via integration_method_capability_item / conn_version_capability_item
+  resourceWide: boolean;        // conn_version_capability.resource_wide; objectClass is then only a label
 }
 
 /**
@@ -121,7 +125,7 @@ export interface UploadConnectorPayload {
   integrationMethod: UploadIntegrationMethodData;
   connector: UploadConnectorData;
   files: UploadFileItem[];
-  integrationMethodCapabilities: IntegrationMethodCapabilityGroup[];
+  integrationMethodCapabilities: IntegrationMethodObjectCapabilities[];
   connectorCapabilities: IntegrationMethodCapabilityGroup[];
 }
 

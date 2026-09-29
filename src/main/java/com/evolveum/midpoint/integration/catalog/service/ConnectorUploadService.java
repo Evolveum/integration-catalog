@@ -14,6 +14,8 @@ import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityGroupDto;
+import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodObjectCapabilitiesDto;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationMethodDto;
@@ -26,6 +28,7 @@ import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapabilityIte
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +44,7 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -109,7 +113,10 @@ public class ConnectorUploadService {
         ApplicationResolution appRes = resolveApplication(dto);
         UploadResolution uploadRes = resolveUpload(dto, appRes.application(), username);
 
-        ownershipService.stampNew(uploadRes.integrationMethod(), username, dto.connector().maintainer());
+        MaintainerDto methodMaintainer = dto.integrationMethod().maintainer() != null
+                ? dto.integrationMethod().maintainer()
+                : dto.connector().maintainer();
+        ownershipService.stampNew(uploadRes.integrationMethod(), username, methodMaintainer);
 
         applicationTagService.processOrigins(appRes.application(), appRes.originNames(), appRes.isNew());
         applicationTagService.processTags(appRes.application(), appRes.tagDtos(), appRes.isNew());
@@ -134,8 +141,10 @@ public class ConnectorUploadService {
 
         IntegrationMethodConnector imc = new IntegrationMethodConnector();
         imc.setConnector(uploadRes.connector());
-        imc.setConnectorMinVersion(dto.connector().connectorMinVersion());
-        imc.setConnectorMaxVersion(dto.connector().connectorMaxVersion());
+        // connector_minversion is NOT NULL: same fallback as addConnector when the request leaves it blank.
+        imc.setConnectorMinVersion(firstNonBlank(
+                dto.connector().connectorMinVersion(), uploadRes.connector().getRevision(), DEFAULT_REVISION));
+        imc.setConnectorMaxVersion(emptyToNull(dto.connector().connectorMaxVersion()));
         imc.setIntegrationMethod(uploadRes.integrationMethod());
         uploadRes.integrationMethod().getConnectors().add(imc);
 
@@ -198,6 +207,9 @@ public class ConnectorUploadService {
         }
         if (imDto.description() != null) {
             integrationMethod.setDescription(imDto.description());
+        }
+        if (imDto.limitations() != null) {
+            integrationMethod.setLimitations(imDto.limitations());
         }
         if (imDto.tutorial() != null) {
             integrationMethod.setTutorial(imDto.tutorial());
@@ -519,6 +531,9 @@ public class ConnectorUploadService {
         updated.setCreatedAt(existing.getCreatedAt());
         updated.setLifecycleState(LifecycleType.IN_REVIEW);
         ownershipService.copyOwnership(existing, updated);
+        if (dto != null && dto.maintainer() != null) {
+            ownershipService.assignMaintainer(updated, dto.maintainer());
+        }
         if (rewriteExisting) {
             updated.setSupportTicketId(existing.getSupportTicketId());
         }
@@ -535,18 +550,24 @@ public class ConnectorUploadService {
             tutorialFolder = tutorialStorageService.copyTutorialFolder(existing.getId(), existing.getRevision(), newRevision);
         }
         updated.setFilePath(tutorialFolder);
-        updated.setIntegMethodTypes(new ArrayList<>(existing.getIntegMethodTypes()));
+        // The types the edit chose, or the ones the source revision had when it did not say. A list of
+        // the new revision's own either way: two revisions may not share one collection instance.
+        updated.setIntegMethodTypes(dto != null && dto.typeIds() != null
+                ? new ArrayList<>(integrationMethodTypeRepository.findAllById(dto.typeIds()))
+                : new ArrayList<>(existing.getIntegMethodTypes()));
         if (dto != null) {
             updated.setMidpointMinVersionId(dto.midpointMinVersion());
             updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
             updated.setDisplayName(dto.displayName());
             updated.setDescription(dto.description());
+            updated.setLimitations(dto.limitations());
             updated.setTutorial(dto.tutorial());
         } else {
             updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
             updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
             updated.setDisplayName(existing.getDisplayName());
             updated.setDescription(existing.getDescription());
+            updated.setLimitations(existing.getLimitations());
             updated.setTutorial(existing.getTutorial());
         }
 
@@ -577,22 +598,18 @@ public class ConnectorUploadService {
         if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
             throw new IllegalStateException("Only in-review revisions can be put under review: " + methodId + "/" + revision);
         }
-        setConditionallyLifecycleState(draft, LifecycleType.IN_REVIEW, LifecycleType.REVIEWING);
+        setConditionallyLifecycleState(draft, Set.of(LifecycleType.IN_REVIEW), LifecycleType.REVIEWING);
         draft.setReviewedBy(username);
         log.info("Started review of integration method {}/{} by {}", methodId, revision, username);
     }
 
-    private void setConditionallyLifecycleState(IntegrationMethod draft, LifecycleType inState, LifecycleType newState) {
+    private void setConditionallyLifecycleState(IntegrationMethod draft, Set<LifecycleType> inStates, LifecycleType newState) {
         draft.setLifecycleState(newState);
         draft.getConnectors()
                 .forEach(imc -> {
                     Connector connector = imc.getConnector();
-                    setConditionallyLifecycleState(connector, inState, newState);
+                    setConditionallyLifecycleState(connector, inStates, newState);
                 });
-    }
-
-    private void setConditionallyLifecycleState(Connector connector, LifecycleType inState, LifecycleType newState) {
-        setConditionallyLifecycleState(connector, Set.of(inState), newState);
     }
 
     /**
@@ -627,7 +644,7 @@ public class ConnectorUploadService {
         if (draft.getLifecycleState() != LifecycleType.REVIEWING) {
             throw new IllegalStateException("Only revisions under review can have the review stopped: " + methodId + "/" + revision);
         }
-        setConditionallyLifecycleState(draft, LifecycleType.REVIEWING, LifecycleType.IN_REVIEW);
+        setConditionallyLifecycleState(draft, Set.of(LifecycleType.REVIEWING), LifecycleType.IN_REVIEW);
         draft.setReviewedBy(null);
         log.info("Stopped review of integration method {}/{} by {}", methodId, revision, username);
     }
@@ -683,7 +700,8 @@ public class ConnectorUploadService {
 
     /**
      * Activates everything beneath every connector linked to a method revision, so a published
-     * method's connectors become visible. Only IN_REVIEW records are promoted.
+     * method's connectors become visible. Only draft records are promoted: REVIEWING, and IN_REVIEW
+     * for a connector added while the review was already running.
      */
     private void promoteConnectorsToActive(IntegrationMethod method) {
         // A link always has a connector: connector_id is NOT NULL, and deleting a connector cascades
@@ -704,12 +722,17 @@ public class ConnectorUploadService {
 
     /**
      * Mark the connectors introduced with a rejected method revision as REJECTED — the mirror of
-     * promoteConnectorsToActive. Only IN_REVIEW records (newly introduced with this revision) are
+     * promoteConnectorsToActive. Only draft records (newly introduced with this revision) are
      * rejected; existing ACTIVE catalog connectors reused by the method are left untouched.
      */
     private void rejectConnectorsOfMethod(IntegrationMethod method) {
         for (IntegrationMethodConnector link : method.getConnectors()) {
-            setConditionallyLifecycleState(link.getConnector(), LifecycleType.REVIEWING, LifecycleType.REJECTED);
+            Connector connector = link.getConnector();
+            if (connector == null) {
+                continue;
+            }
+
+            setConditionallyLifecycleState(connector, UNDER_REVIEW, LifecycleType.REJECTED);
         }
     }
 
@@ -724,7 +747,7 @@ public class ConnectorUploadService {
                 continue;
             }
 
-            setConditionallyLifecycleState(connector, LifecycleType.REJECTED, LifecycleType.IN_REVIEW);
+            setConditionallyLifecycleState(connector, Set.of(LifecycleType.REJECTED), LifecycleType.IN_REVIEW);
         }
     }
 
@@ -747,27 +770,133 @@ public class ConnectorUploadService {
         log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
     }
 
-    private void saveIntegrationMethodCapabilities(List<IntegrationMethodCapabilityGroupDto> groups,
+    /**
+     * Withdraws an in-review revision: deletes it, the connectors it introduced, and the application
+     * too when that revision was all a never-published application had, so no app is left stuck in
+     * review with nothing to review.
+     *
+     * @return whether the application was deleted too
+     */
+    @Transactional
+    public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
+        IntegrationMethod draft = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException("Integration method not found: " + methodId + "/" + revision));
+        if (draft.getLifecycleState() != LifecycleType.IN_REVIEW) {
+            throw new IllegalStateException("Only in-review revisions can be cancelled: " + methodId + "/" + revision);
+        }
+
+        Application application = draft.getApplication();
+        Integer workPackageId = draft.getSupportTicketId();
+        List<Connector> linkedConnectors = draft.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        application.getIntegrationMethods().remove(draft);
+        tutorialStorageService.deleteTutorialFolder(methodId, revision);
+        integrationMethodRepository.delete(draft);
+        integrationMethodRepository.flush();
+
+        deleteConnectorsIntroducedBy(linkedConnectors);
+
+        // Only an app the publish flow created is removed; a REQUESTED app keeps its request and votes.
+        boolean deleteApplication = application.getLifecycleState() == Application.ApplicationLifecycleType.IN_REVIEW
+                && integrationMethodRepository.findByApplicationId(application.getId()).isEmpty();
+        if (deleteApplication) {
+            applicationRepository.delete(application);
+        }
+
+        if (workPackageId != null) {
+            events.publishEvent(new IntegrationMethodCancelledEvent(methodId, revision, workPackageId, username));
+        }
+        log.info("Cancelled integration method {}/{} by {}{}", methodId, revision, username,
+                deleteApplication ? "; deleted its application " + application.getId() : "");
+        return deleteApplication;
+    }
+
+    /**
+     * Deletes the connectors a cancelled revision brought in - new ones and copy-on-write clones - i.e.
+     * those no other revision links and that never had a version published. A connector reused from
+     * the catalog is left alone.
+     *
+     * <p>Every such connector starts in a bundle of its own, deleted with it. Only a build can have
+     * merged it into a published bundle, which then stays and loses just what the revision brought.
+     */
+    private void deleteConnectorsIntroducedBy(List<Connector> connectors) {
+        List<Connector> introduced = connectors.stream()
+                .filter(c -> integrationMethodConnectorRepository.findByConnector_Id(c.getId()).isEmpty())
+                .filter(c -> c.getConnectorVersions().stream()
+                        .noneMatch(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE))
+                .toList();
+
+        Map<Integer, ConnectorBundle> bundles = new LinkedHashMap<>();
+        for (Connector connector : introduced) {
+            ConnectorBundle bundle = connector.getConnectorBundle();
+            if (bundle == null) {
+                connectorRepository.delete(connector);
+            } else {
+                bundles.putIfAbsent(bundle.getId(), bundle);
+            }
+        }
+
+        for (ConnectorBundle bundle : bundles.values()) {
+            List<Connector> leaving = bundle.getConnectors().stream().filter(introduced::contains).toList();
+            if (bundle.getLifecycleState() != LifecycleType.ACTIVE && leaving.size() == bundle.getConnectors().size()) {
+                connectorBundleRepository.delete(bundle);
+                continue;
+            }
+            // Both parents hold the connector versions with orphanRemoval, so they leave through the
+            // collections; deleting them directly would be undone by the cascade from the bundle.
+            Set<ConnectorBundleVersion> touched = new HashSet<>();
+            for (Connector connector : leaving) {
+                for (ConnectorVersion cv : connector.getConnectorVersions()) {
+                    ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+                    if (cbv != null) {
+                        cbv.getConnectorVersions().remove(cv);
+                        touched.add(cbv);
+                    }
+                }
+                bundle.getConnectors().remove(connector);
+            }
+            bundle.getBundleVersions().removeIf(cbv -> touched.contains(cbv)
+                    && cbv.getLifecycleState() != LifecycleType.ACTIVE
+                    && cbv.getConnectorVersions().isEmpty());
+        }
+        connectorRepository.flush();
+        log.info("Deleted {} connector(s) introduced by the cancelled revision", introduced.size());
+    }
+
+    /**
+     * Stores every capability offered to methods on each object, with the state sent for it; one
+     * the request leaves out is stored as UNKNOWN.
+     */
+    private void saveIntegrationMethodCapabilities(List<IntegrationMethodObjectCapabilitiesDto> groups,
                                                    IntegrationMethod target) {
         if (groups == null) {
             return;
         }
-        for (IntegrationMethodCapabilityGroupDto group : groups) {
-            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) {
+        List<Capability> offered = capabilityRepository.findByOfferedForMethodTrueOrderByDisplayOrderAsc();
+        for (IntegrationMethodObjectCapabilitiesDto group : groups) {
+            if (group.objectClass() == null || group.objectClass().isBlank()) {
                 continue;
             }
             IntegrationMethodCapability cap = new IntegrationMethodCapability();
             cap.setObjectClass(group.objectClass());
             cap.setIntegrationMethod(target);
             cap = integrationMethodCapabilityRepository.save(cap);
-            final Integer capId = cap.getId();
-            for (String capabilityName : group.capabilityNames()) {
-                capabilityRepository.findByName(capabilityName).ifPresent(capability -> {
-                    IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
-                    item.setIntegrationMethodCapabilityId(capId);
-                    item.setCapabilityId(capability.getId());
-                    integrationMethodCapabilityItemRepository.save(item);
-                });
+            Map<String, CapabilityState> sent = new HashMap<>();
+            if (group.capabilities() != null) {
+                group.capabilities().stream()
+                        .filter(c -> c.name() != null && c.state() != null)
+                        .forEach(c -> sent.put(c.name(), c.state()));
+            }
+            for (Capability capability : offered) {
+                IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
+                item.setIntegrationMethodCapabilityId(cap.getId());
+                item.setCapabilityId(capability.getId());
+                item.setState(sent.getOrDefault(capability.getName(), CapabilityState.UNKNOWN));
+                integrationMethodCapabilityItemRepository.save(item);
             }
         }
     }
@@ -866,9 +995,7 @@ public class ConnectorUploadService {
         return target.getRevision();
     }
 
-    /**
-     * Deep-copies a method's object-class capabilities (and their capability items) onto another revision.
-     */
+    /** Deep-copies a method's object-class capabilities (and their capability items) onto another revision. */
     private void copyCapabilities(IntegrationMethod from, IntegrationMethod to) {
         for (IntegrationMethodCapability oldCap : from.getCapabilities()) {
             IntegrationMethodCapability newCap = new IntegrationMethodCapability();
@@ -879,6 +1006,7 @@ public class ConnectorUploadService {
                 IntegrationMethodCapabilityItem item = new IntegrationMethodCapabilityItem();
                 item.setIntegrationMethodCapabilityId(saved.getId());
                 item.setCapabilityId(oldItem.getCapabilityId());
+                item.setState(oldItem.getState());
                 integrationMethodCapabilityItemRepository.save(item);
             }
         }
@@ -950,8 +1078,9 @@ public class ConnectorUploadService {
         Connector connectorClone = Connector.createConnectorDraft(src);
         // The clone belongs to the bundle cloned with it, and points back at what it was cloned from:
         // approval finds the original through cloned_from, and folds a same-version edit back into it.
+        // Always the first original, so a clone of a clone still folds back into it on approve.
         connectorClone.setConnectorBundle(bundle);
-        connectorClone.setClonedFrom(src.getId());
+        connectorClone.setClonedFrom(src.getClonedFrom() != null ? src.getClonedFrom() : src.getId());
         connectorRepository.save(connectorClone);
 
         for (ConnectorVersion srcCv : src.getConnectorVersions()) {
@@ -1055,6 +1184,9 @@ public class ConnectorUploadService {
         boolean classNameChanged = identifierDiffers(dto.className(), currentClassName);
         boolean buildChanged = classNameChanged
                 || identifierDiffers(dto.commitTag(), baseCbv != null ? baseCbv.getCommitTag() : null);
+        // A draft version that was never built only stands for the build to come, so a version change
+        // replaces it rather than standing beside it - and a replacement duplicates nothing.
+        boolean replacesUnbuiltDraft = versionChanged && isUnbuiltDraft(baseCv);
 
         connector.setDisplayName(dto.displayName());
         ownershipService.assignMaintainer(connector, dto.maintainer());
@@ -1103,7 +1235,7 @@ public class ConnectorUploadService {
             applyVersionEdit(target, target.getConnectorBundleVersion(), dto,
                     requestedClassName, requestedCommitTag, errorMessage);
         } else {
-            String errorMessage = !buildChanged
+            String errorMessage = !buildChanged && !replacesUnbuiltDraft
                     ? "Duplicate version with (" + connector.getDisplayName() + " " + currentVersion + ")"
                     : null;
 
@@ -1119,8 +1251,7 @@ public class ConnectorUploadService {
                 ownershipService.stampNew(cbv, username, dto.maintainer());
                 cbv.setLifecycleState(LifecycleType.IN_REVIEW);
                 cbv.setBrowseLink(dto.projectHomepage());  // one link, not two - see createBundleVersion
-                cbv.setPathToProject(firstNonBlank(dto.pathToProject(),
-                        baseCbv != null ? baseCbv.getPathToProject() : null));
+                cbv.setPathToProject(emptyToNull(dto.pathToProject()));
                 cbv.setCommitTag(requestedCommitTag);
                 cbv.setBuildFramework(dto.buildFramework() != null ? dto.buildFramework()
                         : (baseCbv != null ? baseCbv.getBuildFramework() : null));
@@ -1143,7 +1274,37 @@ public class ConnectorUploadService {
             saveConnectorVersionCapabilities(dto.connectorCapabilities(), cv);
         }
 
+        // Kept, the replaced draft would ask for a build of its own beside the new version.
+        if (replacesUnbuiltDraft && baseCv != target) {
+            dropDraftVersion(connector, baseCv);
+        }
+
         connectorRepository.save(connector);
+    }
+
+    private static boolean isUnbuiltDraft(ConnectorVersion cv) {
+        if (cv == null || !UNDER_REVIEW.contains(cv.getLifecycleState())) {
+            return false;
+        }
+        ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+        return cbv == null || cbv.getArtifactUrl() == null || cbv.getArtifactUrl().isBlank();
+    }
+
+    /**
+     * Removes a draft connector version, and its bundle version once no connector version of the
+     * bundle is left on it. Both parents hold it with orphanRemoval, so it leaves through the collections.
+     */
+    private static void dropDraftVersion(Connector connector, ConnectorVersion cv) {
+        ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+        connector.getConnectorVersions().remove(cv);
+        if (cbv == null) {
+            return;
+        }
+        cbv.getConnectorVersions().remove(cv);
+        ConnectorBundle bundle = cbv.getConnectorBundle();
+        if (bundle != null && cbv.getLifecycleState() != LifecycleType.ACTIVE && cbv.getConnectorVersions().isEmpty()) {
+            bundle.getBundleVersions().remove(cbv);
+        }
     }
 
     /** The version a connector is at, falling back to the connector's own revision. */
@@ -1468,7 +1629,8 @@ public class ConnectorUploadService {
         if (cbv != null) {
             ownershipService.assignMaintainer(cbv, dto.maintainer());
             cbv.setBrowseLink(dto.projectHomepage());  // one link, not two - see createBundleVersion
-            cbv.setPathToProject(firstNonBlank(dto.pathToProject(), cbv.getPathToProject()));
+            // Optional (blank = repository root), so unlike the identifiers a blank value clears it.
+            cbv.setPathToProject(emptyToNull(dto.pathToProject()));
             cbv.setCommitTag(commitTag);
             if (dto.buildFramework() != null) {
                 cbv.setBuildFramework(dto.buildFramework());
@@ -1601,12 +1763,14 @@ public class ConnectorUploadService {
         }
 
         for (IntegrationMethodCapabilityGroupDto group : groups) {
-            if (group.objectClass() == null || group.capabilityNames() == null || group.capabilityNames().isEmpty()) {
+            if ((!group.resourceWide() && (group.objectClass() == null || group.objectClass().isBlank()))
+                    || group.capabilityNames() == null || group.capabilityNames().isEmpty()) {
                 continue;
             }
 
             ConnVersionCapability cap = new ConnVersionCapability();
-            cap.setObjectClass(group.objectClass());
+            cap.setObjectClass(group.resourceWide() ? ConnVersionCapability.RESOURCE_WIDE_LABEL : group.objectClass());
+            cap.setResourceWide(group.resourceWide());
             cap.setConnectorVersion(connectorVersion);
             cap = connVersionCapabilityRepository.save(cap);
 

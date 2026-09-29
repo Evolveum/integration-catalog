@@ -50,15 +50,18 @@ public class SecurityConfig {
             "/api/integration-method/*/*/reject"
     };
 
+    /** Withdrawing a revision from review is for whoever may edit it, not only the reviewer. */
+    private static final String CANCEL_REVISION = "/api/integration-method/*/*/cancel";
+
     /** The two wildcards are the method and its revision, both of which the path carries. */
     private static final String UNFINISHED_CONNECTOR = "/api/integration-method/*/*/connectors-without-download";
 
     private static final String INTEGRATION_METHOD = "/api/integration-method/**";
 
-    private static final String[] CONNECTOR_UPLOADS = {
-            "/api/upload/**",
-            "/api/integration-method/*/*/connectors"
-    };
+    private static final String CONNECTOR_UPLOADS = "/api/upload/**";
+
+    /** Adding a connector is for contributors; listing them (GET, same path) is public like the rest of the detail. */
+    private static final String METHOD_CONNECTORS = "/api/integration-method/*/*/connectors";
 
     private static final String APPLICATION_LOGO = "/api/applications/*/logo";
 
@@ -140,6 +143,10 @@ public class SecurityConfig {
                         .requestMatchers(UNFINISHED_CONNECTOR).hasRole(SUPERUSER)
                         .requestMatchers(HttpMethod.POST, REVIEW_DECISIONS).hasRole(SUPERUSER)
                         .requestMatchers(CONNECTOR_UPLOADS)
+                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
+                        .requestMatchers(HttpMethod.POST, METHOD_CONNECTORS)
+                                .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
+                        .requestMatchers(HttpMethod.POST, CANCEL_REVISION)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)
                         .requestMatchers(HttpMethod.PUT, INTEGRATION_METHOD)
                                 .hasAnyRole(INDIVIDUAL_CONTRIBUTOR, ORGANIZATION_CONTRIBUTOR, SUPERUSER)

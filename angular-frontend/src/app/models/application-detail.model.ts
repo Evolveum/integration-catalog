@@ -48,9 +48,10 @@ export interface IntegrationMethod {
   midpointMaxVersionId: number | null;     // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
   connectorDisplayName: string | null;     // connector.display_name
   integMethodTypes: string[] | null;       // integration_method_type.name
-  objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
+  objectClassCapabilities: IntegrationMethodObjectCapabilities[] | null; // every offered capability with its state
   revision: string | null;                // integration_method.revision
   displayName: string | null;             // integration_method.display_name
+  limitations: string | null;            // integration_method.limitations
   tutorial: string | null;               // integration_method.tutorial
   filePath: string | null;               // integration_method.file_path
   reviewedBy: string | null;             // integration_method.reviewed_by (set at start-review, kept on approve/reject)
@@ -64,6 +65,20 @@ export interface IntegrationMethod {
 export interface ObjectClassCapability {
   objectName: string;     // object_class_capabilities.object_name
   capabilities: string[]; // capability.name items
+  resourceWide: boolean;  // resource_wide; objectName is then only a label
+}
+
+/** Whether an integration method supports a capability on an object; UNKNOWN means nobody determined it. */
+export type CapabilityState = 'YES' | 'NO' | 'UNKNOWN';
+
+export interface CapabilityStateEntry {
+  name: string;           // capability.name
+  state: CapabilityState; // integration_method_capability_item.state
+}
+
+export interface IntegrationMethodObjectCapabilities {
+  objectClass: string;                 // integration_method_capability.object_class
+  capabilities: CapabilityStateEntry[]; // integration_method_capability_item
 }
 
 export interface IncludedConnector {

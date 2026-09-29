@@ -38,6 +38,10 @@ public class Application {
         WITH_ERROR
     }
 
+    /** Column sizes: application.display_name varchar(255), application.description varchar(350). */
+    public static final int DISPLAY_NAME_MAX = 255;
+    public static final int DESCRIPTION_MAX = 350;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

@@ -6,6 +6,9 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import com.evolveum.midpoint.integration.catalog.object.Application;
+import jakarta.validation.constraints.Size;
+
 /**
  * DTO representing the mutable metadata of an application that may be changed
  * by a {@code PATCH /api/applications/{id}} request.
@@ -15,6 +18,10 @@ package com.evolveum.midpoint.integration.catalog.dto;
  */
 
 public record UpdateApplicationDto(
+        @Size(max = Application.DISPLAY_NAME_MAX,
+                message = "Display name can be at most " + Application.DISPLAY_NAME_MAX + " characters.")
         String displayName,
+        @Size(max = Application.DESCRIPTION_MAX,
+                message = "Description can be at most " + Application.DESCRIPTION_MAX + " characters.")
         String description
 ) {}

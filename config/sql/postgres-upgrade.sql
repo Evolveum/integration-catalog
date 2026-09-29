@@ -477,18 +477,149 @@ CREATE INDEX api_key_subscription_idx ON api_key (gravitee_subscription_id);
 $aa$);
 -- end of region
 
--- region change 14: the API key's owner is the username
+-- region change 14: which capability options each side offers
+-- An integration method says what it exposes per object class; the connector declares what it can
+-- technically do, so it keeps the wider list (and the resource-wide "Global" class, which methods
+-- no longer use at all). offered_for_method marks the rows a method may choose from - the nine
+-- object-specific ones below. Everything else, the request form included, still sees them all.
+--
+-- GET becomes READ: the capability always meant "read individual objects", and READ is the name
+-- midPoint uses. Both link tables reference capability by id, so every stored pick survives it,
+-- and RENAME VALUE rewrites the label in object_class_capabilities.capabilities in place.
+--
+-- ALTER TYPE ... ADD VALUE runs inside apply_change's transaction, which needs PostgreSQL 12 or
+-- newer and forbids using the new value before it commits. Nothing here does: the three new rows
+-- carry their names as capability.name text, never as "CapabilityType".
+call apply_change(14, $aa$
+ALTER TYPE "CapabilityType" RENAME VALUE 'GET' TO 'READ';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'PASSWORD';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'ACTIVATION';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'ASSOCIATIONS';
+
+ALTER TABLE capability ADD COLUMN offered_for_method boolean DEFAULT true NOT NULL;
+
+UPDATE capability SET name = 'READ' WHERE name = 'GET';
+
+INSERT INTO capability (id, name, description, display_order, globality) VALUES
+    (19, 'PASSWORD',     'Manage the object password',         7, 'SPECIFIC'),
+    (20, 'ACTIVATION',   'Enable and disable the object',      8, 'SPECIFIC'),
+    (21, 'ASSOCIATIONS', 'Manage associations of the object',  9, 'SPECIFIC');
+
+SELECT setval('capability_id_seq', 21);
+
+-- Object-specific options in the order a method offers them, connector-only ones after.
+UPDATE capability SET display_order =  1 WHERE name = 'READ';
+UPDATE capability SET display_order =  2 WHERE name = 'CREATE';
+UPDATE capability SET display_order =  3 WHERE name = 'UPDATE';
+UPDATE capability SET display_order =  4 WHERE name = 'DELETE';
+UPDATE capability SET display_order =  5 WHERE name = 'SEARCH';
+UPDATE capability SET display_order =  6 WHERE name = 'LIVE_SYNC';
+UPDATE capability SET display_order = 10 WHERE name = 'UPDATE_DELTA';
+UPDATE capability SET display_order = 11 WHERE name = 'COMPLEX_UPDATE_DELTA';
+UPDATE capability SET display_order = 12 WHERE name = 'SYNC';
+UPDATE capability SET display_order = 13 WHERE name = 'VALIDATE';
+
+UPDATE capability SET offered_for_method = false
+ WHERE globality = 'GLOBAL'
+    OR name IN ('UPDATE_DELTA', 'COMPLEX_UPDATE_DELTA', 'SYNC', 'VALIDATE');
+$aa$);
+-- end of region
+
+-- region change 15: integration_method.limitations
+-- What the method cannot do, in the author's own words, so a consumer reads the gaps beside the
+-- capabilities rather than discovering them in use. Capabilities say what is supported; this says
+-- what is not, and nothing else in the model can express it.
+--
+-- 1000 characters here against 500 accepted by the API and the form: the room is deliberate, so a
+-- later relaxation of the limit is a change of validation rather than of the schema, and so a value
+-- that predates a tightening is never truncated by the column.
+--
+-- Nullable and not backfilled: a method published before this change states no limitations, which
+-- reads as "none given" and is exactly what was true of it.
+call apply_change(15, $aa$
+ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS limitations character varying(1000);
+$aa$);
+-- end of region
+
+-- region change 16: integration_method_capability_item.state
+-- A method's capability is now YES, NO or UNKNOWN instead of "linked or not", so a consumer can tell
+-- a confirmed gap from one nobody determined. Every object of a method carries a row for every
+-- capability offered to methods; the connector side (conn_version_capability_item) is untouched.
+--
+-- Existing links become YES. The offered capabilities an object was missing become NO, since an
+-- absent link meant "not supported" until now.
+call apply_change(16, $aa$
+CREATE TYPE CapabilityState AS ENUM (
+	'YES',
+	'NO',
+	'UNKNOWN'
+);
+
+ALTER TABLE integration_method_capability_item ADD COLUMN state CapabilityState DEFAULT 'YES' NOT NULL;
+ALTER TABLE integration_method_capability_item ALTER COLUMN state DROP DEFAULT;
+
+INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id, state)
+SELECT imc.id, c.id, 'NO'
+  FROM integration_method_capability imc
+ CROSS JOIN capability c
+ WHERE c.offered_for_method
+   AND NOT EXISTS (SELECT 1 FROM integration_method_capability_item i
+                    WHERE i.integration_method_capability_id = imc.id AND i.capability_id = c.id);
+$aa$);
+
+-- region change 17: integration_method_capability_item.state
+-- A method's capability is now YES, NO or UNKNOWN instead of "linked or not", so a consumer can tell
+-- a confirmed gap from one nobody determined. Every object of a method carries a row for every
+-- capability offered to methods; the connector side (conn_version_capability_item) is untouched.
+--
+-- Existing links become YES. The offered capabilities an object was missing become NO, since an
+-- absent link meant "not supported" until now.
+call apply_change(17, $aa$
+ALTER TYPE LicenseType ADD VALUE IF NOT EXISTS 'CDDL';
+$aa$);
+-- end of region
+
+-- region change 18: connector.description as text
+-- The connector description is now written in the same markdown editor as the integration tutorial,
+-- so it is formatted text of no set length rather than a 350-character blurb. Widening keeps every
+-- existing value as it is.
+call apply_change(18, $aa$
+ALTER TABLE connector ALTER COLUMN description TYPE text;
+$aa$);
+-- end of region
+
+-- region change 19: the API key's owner is the username
 -- The 'sub' claim was dropped from the identity the catalog keeps: a key is owned by a username,
 -- which is what ApiKeyService reads and writes, so owner_sub was never used and is removed here
 -- rather than left as a second, diverging owner. The owner index follows the surviving column.
 --
 -- Both steps are written to be harmless where they have already happened: a database installed from
 -- a baseline newer than change 13 never had owner_sub, and its index already names owner_username.
-call apply_change(14, $aa$
+call apply_change(19, $aa$
 ALTER TABLE api_key DROP COLUMN IF EXISTS owner_sub;
 
 DROP INDEX IF EXISTS api_key_owner_idx;
 CREATE INDEX api_key_owner_idx ON api_key (owner_username);
+$aa$);
+-- end of region
+
+-- region change 20: resource-wide capability groups are flagged, not named
+-- Resource-wide capabilities were a group whose object class was literally "Global", so no object
+-- class could be called that: a method silently dropped it, and a connector mixed it up with the
+-- resource-wide group. A flag now says what the group is, and "Global" is an ordinary name again.
+--
+-- Every existing row named Global, in any case, was a resource-wide group - that is how the name was
+-- read - so those rows are flagged. Methods have no resource-wide capabilities since change 14; their
+-- Global groups are leftovers every read already skipped, and are deleted (items go by cascade) so
+-- they do not surface as an object called "Global".
+call apply_change(20, $aa$
+ALTER TABLE conn_version_capability ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE conn_version_capability SET resource_wide = true WHERE lower(object_class) = 'global';
+
+ALTER TABLE object_class_capabilities ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE object_class_capabilities SET resource_wide = true WHERE lower(object_name) = 'global';
+
+DELETE FROM integration_method_capability WHERE lower(object_class) = 'global';
 $aa$);
 -- end of region
 
