@@ -348,10 +348,10 @@
                     <p class="text-center mt-auto mb-0 link-error">Error details</p>
                   } @else if (app.lifecycleState === 'IN_REVIEW') {
                     <!-- in review -->
-                  } @else if (app.currentMidpointVersion) {
+                  } @else if (availableSince(app); as sinceVersion) {
                     <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
                       <i class="fa-solid fa-circle-info flex-shrink-0"></i>
-                      <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
+                      <span>Available since midPoint version {{ sinceVersion }}</span>
                     </div>
                   }
                 </div>
@@ -459,10 +459,10 @@
                   <p class="text-center mt-auto mb-0 link-error">Error details</p>
                 } @else if (app.lifecycleState === 'IN_REVIEW') {
                   <!-- in review -->
-                } @else if (app.currentMidpointVersion) {
+                } @else if (availableSince(app); as sinceVersion) {
                   <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
                     <i class="fa-solid fa-circle-info flex-shrink-0"></i>
-                    <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
+                    <span>Available since midPoint version {{ sinceVersion }}</span>
                   </div>
                 }
               </div>

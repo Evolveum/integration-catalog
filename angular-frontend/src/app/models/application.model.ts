@@ -32,7 +32,7 @@ export interface Application {
   voteCount?: number;                      // computed: count of vote rows
   frameworks?: string[] | null;            // connector_bundle.framework
   midpointVersions?: string[] | null;      // midpoint_version.version
-  currentMidpointVersion?: string | null;  // midpoint_version.version (where is_current = true)
+  sinceMidpointVersions?: string[] | null; // midpoint_version.id of each active method's min version
   integrationMethodTypes?: string[] | null; // integration_method_type.display_name via integration_method
   maintainers?: string[] | null;           // Evolveum/Partner/Community, derived from catalog_users.role
 }

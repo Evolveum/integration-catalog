@@ -453,15 +453,20 @@ public class ApplicationMapper {
             }
         }
 
-        String currentMidpointVersion = null;
-        Optional<MidpointVersion> currentVersionOpt = midpointVersionRepository.findByIsCurrentTrue();
-        if (currentVersionOpt.isPresent() && app.getIntegrationMethods() != null) {
-            Integer currentVersionId = currentVersionOpt.get().getId();
-            boolean hasCurrentVersion = app.getIntegrationMethods().stream()
-                    .anyMatch(m -> LifecycleType.ACTIVE == m.getLifecycleState()
-                               && currentVersionId.equals(m.getMidpointMinVersionId()));
-            if (hasCurrentVersion) {
-                currentMidpointVersion = currentVersionOpt.get().getVersion();
+        // The versions the app's methods start at; the catalog shows "Available since" for the
+        // one matching the midPoint version the user filters by (the current one when none).
+        List<String> sinceMidpointVersions = null;
+        if (app.getIntegrationMethods() != null) {
+            sinceMidpointVersions = app.getIntegrationMethods().stream()
+                    .filter(m -> LifecycleType.ACTIVE == m.getLifecycleState())
+                    .map(IntegrationMethod::getMidpointMinVersionId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted()
+                    .map(String::valueOf)
+                    .toList();
+            if (sinceMidpointVersions.isEmpty()) {
+                sinceMidpointVersions = null;
             }
         }
 
@@ -512,7 +517,7 @@ public class ApplicationMapper {
                 voteCount,
                 frameworks,
                 midpointVersions.isEmpty() ? null : midpointVersions,
-                currentMidpointVersion,
+                sinceMidpointVersions,
                 integrationMethodTypes,
                 maintainers
         );

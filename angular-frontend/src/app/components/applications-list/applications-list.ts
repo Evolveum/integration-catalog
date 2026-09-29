@@ -12,6 +12,7 @@ import { ApplicationService } from '../../services/application.service';
 import { ApplicationsListStateService } from '../../services/applications-list-state.service';
 import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
+import { MidpointVersion } from '../../models/application-detail.model';
 import { RequestForm } from '../request-form/request-form';
 import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
@@ -725,7 +726,23 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     return this.filterState().maintainers.includes(maintainer);
   }
 
-  protected readonly allMidpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
+  protected readonly allMidpointVersions = signal<MidpointVersion[]>([]);
+
+  /* The versions "Available since" is judged against: the filtered ones, else the current one. */
+  private readonly availableSinceVersions = computed(() => {
+    const selected = this.filterState().midpointVersions;
+    const ids = selected.length > 0
+      ? selected
+      : this.allMidpointVersions().filter(v => v.isCurrent).map(v => v.id);
+    return this.allMidpointVersions().filter(v => ids.includes(v.id));
+  });
+
+  /** The version for the card's "Available since" banner, or null when none of its methods starts at one of those. */
+  protected availableSince(app: Application): string | null {
+    const match = this.availableSinceVersions()
+      .find(v => app.sinceMidpointVersions?.includes(String(v.id)));
+    return match ? match.version : null;
+  }
 
   // Loaded from the backend so the dropdown matches the filter modal's full list.
   protected readonly allIntegrationMethods = signal<string[]>([]);
