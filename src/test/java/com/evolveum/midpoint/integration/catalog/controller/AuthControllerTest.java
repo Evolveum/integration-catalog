@@ -199,7 +199,7 @@ class AuthControllerTest {
 
     @Test
     void reviewWorkflowIsSuperuserOnly() throws Exception {
-        mockMvc.perform(post("/api/applications/1/integration-method/2/3/start-review")
+        mockMvc.perform(post("/api/integration-method/2/3/start-review")
                         .with(contributor()).with(csrf()))
                 .andExpect(status().isForbidden());
     }
@@ -207,23 +207,23 @@ class AuthControllerTest {
     // ---- integration method connectors ----
 
     private static final String METHOD_CONNECTORS =
-            "/api/applications/{appId}/integration-method/{methodId}/{revision}/connectors";
+            "/api/integration-method/{methodId}/{revision}/connectors";
 
     /** The detail page lists a method's connectors to anyone, like the rest of the page. */
     @Test
     void listingConnectorsOfAMethodIsPublic() throws Exception {
         when(applicationService.getConnectorsForIntegrationMethod(any(), eq("1.0"))).thenReturn(List.of());
 
-        mockMvc.perform(get(METHOD_CONNECTORS, UUID.randomUUID(), UUID.randomUUID(), "1.0"))
+        mockMvc.perform(get(METHOD_CONNECTORS, UUID.randomUUID(), "1.0"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void addingAConnectorNeedsAContributor() throws Exception {
-        mockMvc.perform(post(METHOD_CONNECTORS, UUID.randomUUID(), UUID.randomUUID(), "1.0")
+        mockMvc.perform(post(METHOD_CONNECTORS, UUID.randomUUID(), "1.0")
                         .with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(post(METHOD_CONNECTORS, UUID.randomUUID(), UUID.randomUUID(), "1.0")
+        mockMvc.perform(post(METHOD_CONNECTORS, UUID.randomUUID(), "1.0")
                         .with(readOnlyUser()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
     }

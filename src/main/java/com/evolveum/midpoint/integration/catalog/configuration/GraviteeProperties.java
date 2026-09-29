@@ -8,6 +8,9 @@ package com.evolveum.midpoint.integration.catalog.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+import java.util.Objects;
+
 /**
  * Connection to the Gravitee instance that mints API keys, so pointing the catalog at another one
  * is a change of properties only.
@@ -19,13 +22,20 @@ public record GraviteeProperties(
         String environmentId,
         String apiId,
         String planId,
-        String token
+        String token,
+
+        /** How long a management call may take; a key is minted while the user waits. */
+        Duration timeout
 ) {
 
-    /** Defaults, so a deployment names only the URL, the API, the plan and the token. */
+    /**
+     * Defaults for the organization and environment; the timeout has none here - it comes from
+     * gravitee.timeout, and its absence fails startup rather than the first key request.
+     */
     public GraviteeProperties {
         organizationId = blankToDefault(organizationId, "DEFAULT");
         environmentId = blankToDefault(environmentId, "DEFAULT");
+        Objects.requireNonNull(timeout, "gravitee.timeout must be set");
     }
 
     /** Whether keys can be issued at all; the rest of the catalog works either way. */

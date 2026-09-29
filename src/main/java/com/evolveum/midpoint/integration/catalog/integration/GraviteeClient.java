@@ -20,7 +20,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -33,20 +32,17 @@ import java.util.List;
 @Component
 public class GraviteeClient {
 
-    /** A key is minted while the user waits, so a stalled APIM must fail rather than hang. */
-    //TODO move to properties
-    private static final Duration TIMEOUT = Duration.ofSeconds(15);
-
     private static final int HTTP_NOT_FOUND = 404;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraviteeClient.class);
 
     private final GraviteeProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final HttpClient client = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
+    private final HttpClient client;
 
     public GraviteeClient(GraviteeProperties properties) {
         this.properties = properties;
+        this.client = HttpClient.newBuilder().connectTimeout(properties.timeout()).build();
     }
 
     /** The key as Gravitee minted it: its id, the value the user sees once, and its own expiration. */
@@ -227,7 +223,7 @@ public class GraviteeClient {
 
     private HttpRequest.Builder authorized(String url) {
         return HttpRequest.newBuilder(URI.create(url))
-                .timeout(TIMEOUT)
+                .timeout(properties.timeout())
                 .header("Authorization", "Bearer " + properties.token())
                 .header("Accept", "application/json");
     }

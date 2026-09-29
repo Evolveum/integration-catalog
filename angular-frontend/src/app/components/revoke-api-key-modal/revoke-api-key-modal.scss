@@ -4,9 +4,6 @@
 */
 @use 'variables' as *;
 
-//TODO missing colors
-$midpoint-special-color: blue;
-$color-dark-blue: blue;
 
 .revoke-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
@@ -114,16 +111,16 @@ $color-dark-blue: blue;
 /* Non-destructive confirmations (rotation) */
 .revoke-key-dialog-primary {
   .revoke-key-icon {
-    background-color: $midpoint-special-color;
+    background-color: $color-brand-steel;
   }
 
   .revoke-key-confirm {
-    background-color: $midpoint-special-color;
-    border-color: $midpoint-special-color;
+    background-color: $color-brand-steel;
+    border-color: $color-brand-steel;
 
     &:hover:not(:disabled) {
-      background-color: $color-dark-blue;
-      border-color: $color-dark-blue;
+      background-color: $color-brand-navy;
+      border-color: $color-brand-navy;
     }
   }
 }

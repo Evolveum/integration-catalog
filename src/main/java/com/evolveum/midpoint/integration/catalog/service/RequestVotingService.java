@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.CapabilityType;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
+import com.evolveum.midpoint.integration.catalog.object.ConnVersionCapability;
 import com.evolveum.midpoint.integration.catalog.object.ObjectClassCapabilities;
 import com.evolveum.midpoint.integration.catalog.object.Request;
 import com.evolveum.midpoint.integration.catalog.object.Vote;
@@ -107,7 +108,7 @@ public class RequestVotingService {
 
             if (dto.capabilities() != null) {
                 for (RequestFormDto.ObjectClassCapabilityEntry entry : dto.capabilities()) {
-                    if (entry.objectName() == null || entry.objectName().isBlank()) {
+                    if (!entry.resourceWide() && (entry.objectName() == null || entry.objectName().isBlank())) {
                         continue;
                     }
                     List<String> caps = entry.capabilities();
@@ -120,7 +121,8 @@ public class RequestVotingService {
 
                     ObjectClassCapabilities occ = new ObjectClassCapabilities();
                     occ.setRequest(request);
-                    occ.setObjectName(entry.objectName());
+                    occ.setObjectName(entry.resourceWide() ? ConnVersionCapability.RESOURCE_WIDE_LABEL : entry.objectName());
+                    occ.setResourceWide(entry.resourceWide());
                     occ.setCapabilities(capArray);
                     objectClassCapabilitiesRepository.save(occ);
                 }

@@ -14,6 +14,7 @@ import { IntegrationMethodObjectCapabilities, MidpointVersion } from '../../mode
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CatalogConnector } from '../../models/catalog-connector.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
@@ -117,16 +118,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL', 'CDDL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT',
-    'APACHE_2': 'Apache 2.0',
-    'BSD': 'BSD',
-    'EUPL': 'EUPL 1.2',
-    'CDDL': 'CDDL'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   // Connector capabilities (from CapabilityPicker child)
@@ -383,7 +377,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
     const caps: CapabilityGroup[] = (connector.objectClassCapabilities ?? []).map(oc => ({
       objectClass: oc.objectName,
-      capabilityNames: oc.capabilities ?? []
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
     }));
     this.connectorCapabilities.set(caps);
   }

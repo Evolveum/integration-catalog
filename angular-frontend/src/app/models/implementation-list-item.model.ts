@@ -11,6 +11,7 @@ import { Maintainer } from './maintainer.model';
 export interface ObjectClassCapability {
   objectName: string;             // conn_version_capability.object_class
   capabilities: string[];         // capability.name items
+  resourceWide: boolean;          // conn_version_capability.resource_wide; objectName is then only a label
 }
 
 export interface ImplementationListItem {

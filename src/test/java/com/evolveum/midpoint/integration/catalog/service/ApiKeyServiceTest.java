@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -54,6 +55,7 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ApiKeyServiceTest {
 
+    private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
     @Mock
     private ApiKeyRepository repository;
@@ -61,10 +63,12 @@ class ApiKeyServiceTest {
     @Mock
     private GraviteeClient gravitee;
 
+    /** Named by preferred_username, as the OIDC registration's user-name-attribute configures. */
     private static OidcUser user() {
         OidcIdToken idToken = OidcIdToken.withTokenValue("token")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(300))
+                .subject("olivia-subject")
                 .claim("preferred_username", "olivia")
                 .build();
         return new DefaultOidcUser(List.of(), idToken, "preferred_username");
@@ -75,12 +79,12 @@ class ApiKeyServiceTest {
     }
 
     private static GraviteeProperties configured() {
-        return new GraviteeProperties("http://localhost:8083", null, null, "api-1", "plan-1", "token");
+        return new GraviteeProperties("http://localhost:8083", null, null, "api-1", "plan-1", "token", TIMEOUT);
     }
 
     @Test
     void unconfiguredGraviteeIsServiceUnavailableAndNothingIsCalled() {
-        ApiKeyService service = serviceWith(new GraviteeProperties(null, null, null, null, null, null));
+        ApiKeyService service = serviceWith(new GraviteeProperties(null, null, null, null, null, null, TIMEOUT));
 
         ResponseStatusException failure = assertThrows(ResponseStatusException.class,
                 () -> service.create(user(), new CreateApiKeyRequestDto("My key", null)));
@@ -185,11 +189,12 @@ class ApiKeyServiceTest {
 
     // ---- revoke ----
 
+    /** A key of the caller's own: the owner is what tells it from somebody else's. */
     private ApiKey ownedKey(UUID id) {
         ApiKey key = new ApiKey();
         key.setId(id);
-        key.setOwnerUsername("olivia");
         key.setName("qwe");
+        key.setOwnerUsername("olivia");
         key.setGraviteeSubscriptionId("sub-1");
         return key;
     }
@@ -226,7 +231,7 @@ class ApiKeyServiceTest {
     void revokingAKeyOfAnotherUserIsNotFound() {
         UUID id = UUID.randomUUID();
         ApiKey key = ownedKey(id);
-        key.setOwnerUsername("someone-else");
+        key.setOwnerUsername("ben");
         when(repository.findByIdForUpdate(id)).thenReturn(Optional.of(key));
 
         ResponseStatusException failure = assertThrows(ResponseStatusException.class,
@@ -346,7 +351,7 @@ class ApiKeyServiceTest {
         ApiKey key = ownedKey(UUID.randomUUID());
         when(repository.findByOwnerUsernameOrderByCreatedAtDesc(user().getName())).thenReturn(List.of(key));
 
-        serviceWith(new GraviteeProperties(null, null, null, null, null, null)).list(user());
+        serviceWith(new GraviteeProperties(null, null, null, null, null, null, TIMEOUT)).list(user());
 
         verify(gravitee, never()).listApiKeys(anyString());
     }

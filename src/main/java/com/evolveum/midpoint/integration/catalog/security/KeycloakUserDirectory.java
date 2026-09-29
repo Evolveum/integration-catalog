@@ -31,11 +31,14 @@ import java.util.function.LongSupplier;
  * <p>The catalog keeps no user table, so without this a user could not be named maintainer until
  * they had published something themselves. Fail-soft: any Keycloak problem costs the maintainer
  * list its Keycloak half and nothing else.
+ *
+ * <p>The price is one privilege: the client's service account has to hold {@code view-users} of
+ * {@code realm-management}. A deployment unwilling to grant it sets
+ * {@code catalog.keycloak.directory-enabled=false} and keeps the rest of the catalog intact.
  */
 @Slf4j
 @Service
 public class KeycloakUserDirectory {
-    //TODO I think that we don't need it
 
     private static final long CACHE_TTL_MILLIS = 60_000;
 

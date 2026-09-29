@@ -234,7 +234,7 @@
                         @let key = ci + '-' + occ.objectName;
                         <div class="mb-1">
                           <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleCaps(key)" style="cursor:pointer;">
-                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                            <span class="fw-semibold text-sm">{{ occ.resourceWide ? 'All object classes (Global)' : occ.objectName }}</span>
                             <i class="fa-solid icon-sm"
                                [class.fa-chevron-up]="isCapsExpanded(key)"
                                [class.fa-chevron-down]="!isCapsExpanded(key)"></i>
@@ -463,7 +463,6 @@
   @if (confirmMode(); as mode) {
     <app-approval-confirm-modal
       [mode]="mode"
-      [appId]="appId()"
       [methodId]="versionId()"
       [revision]="methodVersion()"
       [connectorName]="confirmConnectorName()"

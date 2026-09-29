@@ -39,9 +39,6 @@ public class SupportTicketDescriptionBuilder {
 
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    /** Object class holding the resource-wide capabilities, as the detail page splits them. */
-    private static final String GLOBAL_OBJECT_CLASS = "Global";
-
     private static final String NOT_PROVIDED = "_not provided_";
 
     private static final String NO_BUILD_ERROR = "_check comments if any_";
@@ -291,7 +288,6 @@ public class SupportTicketDescriptionBuilder {
                 : method.getCapabilities();
 
         List<IntegrationMethodCapability> specific = groups.stream()
-                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
                 .filter(group -> capabilitiesOf(group).findAny().isPresent())
                 .sorted(Comparator.comparing(IntegrationMethodCapability::getObjectClass,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
@@ -354,23 +350,9 @@ public class SupportTicketDescriptionBuilder {
         return value == null ? null : sentenceCase(value.name());
     }
 
-
-    //TODO add display name as string to enum LicenseType, and use this enum in GUI (don't repeat options for every use)
-    /**
-     * Licenses are proper names rather than words, so casing rules do not help: they are spelled out
-     * the way the publish form offers them.
-     */
+    /** Licenses are proper names, so casing rules do not apply: the enum spells them out. */
     private static String licenseLabel(ConnectorBundle.LicenseType license) {
-        if (license == null) {
-            return null;
-        }
-        return switch (license) {
-            case MIT -> "MIT";
-            case APACHE_2 -> "Apache 2.0";
-            case BSD -> "BSD";
-            case EUPL -> "EUPL 1.2";
-            case CDDL -> "CDDL";
-        };
+        return license == null ? null : license.getDisplayName();
     }
 
     /** {@code PARTIAL_SCHEMA} to "Partial schema". */
@@ -395,7 +377,7 @@ public class SupportTicketDescriptionBuilder {
             body.append(NOT_PROVIDED).append('\n');
         } else {
             body.append("Attached to this work package as `")
-                    .append(SupportTicketService.LIMITATIONS_ATTACHMENT)
+                    .append(SupportTicketAttachments.LIMITATIONS_ATTACHMENT)
                     .append("` - see the **Files** tab above.\n");
         }
     }
@@ -411,7 +393,7 @@ public class SupportTicketDescriptionBuilder {
             body.append(NOT_PROVIDED).append('\n');
         } else {
             body.append("Attached to this work package as `")
-                    .append(SupportTicketService.TUTORIAL_ATTACHMENT)
+                    .append(SupportTicketAttachments.TUTORIAL_ATTACHMENT)
                     .append("` - see the **Files** tab above.\n");
         }
 
@@ -515,7 +497,7 @@ public class SupportTicketDescriptionBuilder {
      * of no set length. Null when there is none, which the bullet shows as not provided.
      */
     private static String describedIn(IntegrationMethodConnector link, Connector connector) {
-        String fileName = SupportTicketService.connectorDescriptionAttachment(link.getIntegrationMethod(), connector);
+        String fileName = SupportTicketAttachments.connectorDescriptionAttachment(link.getIntegrationMethod(), connector);
         return fileName == null ? null : "attached as `" + fileName + "` - see the **Files** tab above";
     }
 
@@ -579,10 +561,10 @@ public class SupportTicketDescriptionBuilder {
                 : version.getCapabilities();
 
         String global = capabilityNames(groups.stream()
-                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .filter(ConnVersionCapability::isResourceWide)
                 .flatMap(this::capabilitiesOf));
         List<ConnVersionCapability> specific = groups.stream()
-                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .filter(group -> !group.isResourceWide())
                 .filter(group -> capabilitiesOf(group).findAny().isPresent())
                 .sorted(Comparator.comparing(ConnVersionCapability::getObjectClass,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))

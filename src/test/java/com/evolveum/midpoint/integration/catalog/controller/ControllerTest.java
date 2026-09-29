@@ -352,7 +352,7 @@ class ControllerTest {
                 "test@example.com",
                 false,
                 "Test User",
-                List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("READ", "SEARCH")))
+                List.of(new RequestFormDto.ObjectClassCapabilityEntry("Account", List.of("READ", "SEARCH"), false))
         );
 
         when(applicationService.createRequestFromForm(any(RequestFormDto.class), anyString()))

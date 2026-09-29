@@ -311,10 +311,10 @@ public class ApplicationService {
     }
 
     @Transactional
-    public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+    public String addConnectorToIntegrationMethod(UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
         assertCanEditMethod(username, methodId, revision);
-        return connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+        return connectorUploadService.addConnectorToIntegrationMethod(methodId, revision, dto, username);
     }
 
     @Transactional
@@ -672,11 +672,11 @@ public class ApplicationService {
                             if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
                                 continue;
                             }
-                            // Only draft versions are awaiting a build; the approve dialog asks while the
-                            // revision is under review, which has moved them to REVIEWING.
+                            // Only the versions this review is about: a published one's build is not the
+                            // reviewer's business, and start-review moves a submitted row to REVIEWING,
+                            // so both under-review states have to count.
                             for (ConnectorVersion connectorVersion : connector.getConnectorVersions()) {
-                                if (connectorVersion.getLifecycleState() != LifecycleType.IN_REVIEW
-                                        && connectorVersion.getLifecycleState() != LifecycleType.REVIEWING) {
+                                if (!ConnectorUploadService.UNDER_REVIEW.contains(connectorVersion.getLifecycleState())) {
                                     continue;
                                 }
                                 ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();

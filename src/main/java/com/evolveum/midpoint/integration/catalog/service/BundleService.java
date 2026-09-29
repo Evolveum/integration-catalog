@@ -20,6 +20,7 @@ import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRep
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,28 +53,30 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class BundleService {
 
-    /** The reserved object class holding resource-wide capabilities; a connector's, not a method's. */
-    private static final String GLOBAL_OBJECT_CLASS = "Global";
-
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
     private final OwnershipService ownershipService;
     private final ObjectWriter jsonWriter;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
+    private final HttpClient httpClient;
+    private final Duration readTimeout;
     /** Cache of fetched artifact bytes, keyed by artifact URL — release URLs are immutable. */
     private final Map<String, byte[]> artifactCache = new ConcurrentHashMap<>();
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService,
                          OwnershipService ownershipService,
-                         ObjectMapper objectMapper) {
+                         ObjectMapper objectMapper,
+                         @Value("${catalog.bundle-download.connect-timeout}") Duration connectTimeout,
+                         @Value("${catalog.bundle-download.read-timeout}") Duration readTimeout) {
         this.integrationMethodRepository = integrationMethodRepository;
         this.tutorialStorageService = tutorialStorageService;
         this.ownershipService = ownershipService;
         this.jsonWriter = objectMapper.writerWithDefaultPrettyPrinter();
+        this.readTimeout = readTimeout;
+        this.httpClient = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
+                .connectTimeout(connectTimeout)
+                .build();
     }
 
     /**
@@ -305,7 +308,7 @@ public class BundleService {
 
     private byte[] downloadArtifact(String artifactUrl) throws IOException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(artifactUrl))
-                .timeout(Duration.ofSeconds(60))
+                .timeout(readTimeout)
                 .GET()
                 .build();
         try {
@@ -372,10 +375,6 @@ public class BundleService {
 
         List<Map<String, Object>> capabilities = new ArrayList<>();
         for (IntegrationMethodCapability cap : method.getCapabilities()) {
-            // Resource-wide capabilities are exported with the connector, not with the method.
-            if (GLOBAL_OBJECT_CLASS.equalsIgnoreCase(cap.getObjectClass())) {
-                continue;
-            }
             Map<String, Object> capMeta = new LinkedHashMap<>();
             capMeta.put("objectClass", cap.getObjectClass());
             List<Map<String, Object>> states = new ArrayList<>();

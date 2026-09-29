@@ -86,7 +86,6 @@ export class ImCapabilityPicker implements OnInit, OnChanges {
     // On the first load only the first object starts expanded; afterwards each keeps its own state.
     const firstLoad = !current.some(e => e.objectClass);
     const fromInit: Entry[] = this.initialCapabilities
-      .filter(g => g.objectClass !== 'Global')
       .map((g, idx) => ({
         objectClass: g.objectClass,
         states: Object.fromEntries(g.capabilities.map(c => [c.name, c.state])),
