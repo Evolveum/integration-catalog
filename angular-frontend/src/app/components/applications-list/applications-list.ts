@@ -145,6 +145,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       });
     }
 
+    // Apps that need a midPoint upgrade go after the ones running on the filtered version;
+    // sort is stable, so each group keeps the order chosen above.
+    const needsUpgrade = (app: Application) =>
+      this.laterStartVersionId(app, filters.midpointVersions) !== null ? 1 : 0;
+    apps.sort((a, b) => needsUpgrade(a) - needsUpgrade(b));
+
     const start = this.currentPage() * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return apps.slice(start, end);
@@ -224,11 +230,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     if (filters.midpointVersions.length > 0) {
       // app.midpointVersions holds the version ids covered by its methods' ranges;
-      // match apps supporting ANY of the selected versions.
+      // match apps supporting ANY of the selected versions, plus the ones only available on a
+      // later version (they get the "Available since" banner).
       filtered = filtered.filter(app =>
         filters.midpointVersions.some((versionId: number) =>
           app.midpointVersions?.includes(String(versionId))
-        )
+        ) || this.laterStartVersionId(app, filters.midpointVersions) !== null
       );
     }
 
@@ -733,20 +740,24 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   protected readonly allMidpointVersions = signal<MidpointVersion[]>([]);
 
-  /* The versions "Available since" is judged against: the filtered ones, else the current one. */
-  private readonly availableSinceVersions = computed(() => {
-    const selected = this.filterState().midpointVersions;
-    const ids = selected.length > 0
-      ? selected
-      : this.allMidpointVersions().filter(v => v.isCurrent).map(v => v.id);
-    return this.allMidpointVersions().filter(v => ids.includes(v.id));
-  });
+  /**
+   * The earliest version an app becomes available at, for an app that runs on none of the filtered
+   * versions but has a method starting above the lowest of them; null when it runs on one of them
+   * or no version is filtered. Version ids are in release order.
+   */
+  private laterStartVersionId(app: Application, selected: number[]): number | null {
+    if (selected.length === 0 || selected.some(id => app.midpointVersions?.includes(String(id)))) {
+      return null;
+    }
+    const lowest = Math.min(...selected);
+    const later = (app.sinceMidpointVersions ?? []).map(Number).filter(id => id > lowest);
+    return later.length > 0 ? Math.min(...later) : null;
+  }
 
-  /** The version for the card's "Available since" banner, or null when none of its methods starts at one of those. */
+  /** The version for the card's "Available since" banner, or null when the card needs none. */
   protected availableSince(app: Application): string | null {
-    const match = this.availableSinceVersions()
-      .find(v => app.sinceMidpointVersions?.includes(String(v.id)));
-    return match ? match.version : null;
+    const id = this.laterStartVersionId(app, this.filterState().midpointVersions);
+    return id === null ? null : this.allMidpointVersions().find(v => v.id === id)?.version ?? null;
   }
 
   // Loaded from the backend so the dropdown matches the filter modal's full list.

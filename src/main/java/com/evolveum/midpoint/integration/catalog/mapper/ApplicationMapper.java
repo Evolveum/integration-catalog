@@ -453,8 +453,8 @@ public class ApplicationMapper {
             }
         }
 
-        // The versions the app's methods start at; the catalog shows "Available since" for the
-        // one matching the midPoint version the user filters by (the current one when none).
+        // The versions the app's methods start at; when the user filters by a midPoint version the app
+        // doesn't run on, the catalog shows "Available since" with the earliest of these above it.
         List<String> sinceMidpointVersions = null;
         if (app.getIntegrationMethods() != null) {
             sinceMidpointVersions = app.getIntegrationMethods().stream()
