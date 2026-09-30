@@ -5,7 +5,7 @@
  -->
 
 <div class="container-fluid p-0 position-relative page-bg">
-  <app-page-header [hideBorder]="true"></app-page-header>
+  <app-page-header [hideBorder]="true" [transparentAtTop]="heroUnderHeader()"></app-page-header>
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
     <div class="position-fixed top-0 end-0 p-3 toast-container">
@@ -44,7 +44,7 @@
 
   <div class="container-fluid p-0 page-bg">
     <!-- Hero Banner -->
-    <div class="bg-primary text-white py-5 hero-gradient position-relative">
+    <div class="bg-primary text-white pb-5 hero-gradient position-relative" [class.hero-under-header]="heroUnderHeader()">
 <div class="mx-auto content-width position-relative">
         <!-- title -->
         <div class="row">

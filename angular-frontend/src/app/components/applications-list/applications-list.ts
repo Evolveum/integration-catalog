@@ -19,6 +19,7 @@ import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/download-info-modal';
 import { ToastService } from '../../services/toast.service';
+import { EnvironmentService } from '../../services/environment.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 
 @Component({
@@ -62,6 +63,9 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected showLoginRequiredMessage = signal<boolean>(false);
   protected showPermissionDeniedMessage = signal<boolean>(false);
   protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
+
+  /** The hero runs up behind a transparent header; on staging the banner between them breaks that, so it stays off. */
+  protected readonly heroUnderHeader = computed(() => !this.environmentService.isStaging());
 
   private activeChipElement: HTMLElement | null = null;
   private scrollListener: (() => void) | null = null;
@@ -258,7 +262,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     protected authService: AuthService,
     private listState: ApplicationsListStateService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private environmentService: EnvironmentService
   ) {}
 
   ngOnInit(): void {

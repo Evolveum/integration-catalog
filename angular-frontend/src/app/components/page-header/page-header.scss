@@ -11,10 +11,16 @@
   background-color: $color-brand-navy;
   height: 86px;
   border-bottom: 30px solid rgba(255, 255, 255, 1);
+  transition: background-color 0.2s ease;
 
   &.page-header-no-border {
     border-bottom: none;
     height: 56px;
+  }
+
+  // Scrolled to the top of a page whose hero sits behind the header
+  &.page-header-transparent {
+    background-color: transparent;
   }
 }
 

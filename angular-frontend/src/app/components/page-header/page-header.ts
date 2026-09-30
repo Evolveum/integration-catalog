@@ -19,12 +19,18 @@ import { StagingBanner } from '../staging-banner/staging-banner';
   styleUrls: ['./page-header.scss'],
   host: {
     style: 'display: block; position: sticky; top: 0; z-index: 1000;',
-    '(document:keydown.escape)': 'closeMenu()'
+    '(document:keydown.escape)': 'closeMenu()',
+    '(window:scroll)': 'onWindowScroll()'
   }
 })
 export class PageHeader {
   @Input() breadcrumb: boolean = false;
   @Input() hideBorder: boolean = false;
+  /**
+   * Lets the page's hero gradient show through the header while the page is scrolled to the top,
+   * so the two read as one surface; the header turns solid as soon as the user scrolls.
+   */
+  @Input() transparentAtTop: boolean = false;
   /** Opt-in for the unregistered-organization warning, shown only where the user publishes. */
   @Input() showUnregisteredOrgWarning: boolean = false;
 
@@ -35,7 +41,11 @@ export class PageHeader {
 
   protected readonly menuOpen = signal(false);
 
+  protected readonly scrolledToTop = signal(window.scrollY <= 0);
+
   protected readonly userInitials = this.authService.initials;
+
+  protected onWindowScroll(): void { this.scrolledToTop.set(window.scrollY <= 0); }
 
   protected toggleMenu(): void { this.menuOpen.update(open => !open); }
   protected closeMenu(): void { this.menuOpen.set(false); }

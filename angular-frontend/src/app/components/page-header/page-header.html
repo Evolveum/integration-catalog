@@ -28,7 +28,8 @@
 </div>
 }
 
-<div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder">
+<div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder"
+  [class.page-header-transparent]="transparentAtTop && scrolledToTop()">
   <!-- Left: logo + title (links back to the homepage) -->
   <a class="d-flex align-items-center gap-2 header-brand" routerLink="/applications">
     <img src="assets/277-276-max.png" alt="" class="header-logo">
