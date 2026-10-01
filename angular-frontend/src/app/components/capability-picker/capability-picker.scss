@@ -105,33 +105,13 @@
 
 .cp-placeholder-disabled { color: $color-text-secondary; }
 
-/* Badges */
-.cp-badge {
-  background-color: #ede9f7;
-  color: $color-black;
-  font-size: 13px;
-  font-weight: 400;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.cp-remove-btn {
-  border: none;
-  background: none;
-}
-
 .cp-remove-icon {
   font-size: 12px;
-  color: $color-text-secondary;
 }
 
-/* Dropdown */
+/* Dropdown: long capability lists scroll inside the panel. */
 .cp-dropdown {
-  z-index: 1000;
   max-height: 300px;
-  border: 1px solid $color-border-light;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
 .cp-grid {
@@ -186,16 +166,6 @@
   margin-top: 2px;
 }
 
-.cp-remove-oc-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: $color-text-secondary;
-  &:hover { color: #bb2d3b; }
-}
-
 .cp-oc-field {
   cursor: text;
   position: relative;
@@ -208,14 +178,4 @@
   color: $color-black;
   border: none;
   &::placeholder { color: $color-gray-secondary; }
-}
-
-.cp-add-oc-btn {
-  color: $color-brand-steel;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 500;
-  &:hover { text-decoration: underline; }
 }

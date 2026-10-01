@@ -9,9 +9,7 @@
   <div class="create-key-dialog">
     <div class="create-key-header d-flex align-items-center">
       <h2 class="create-key-title">Create API key</h2>
-      <button type="button" class="create-key-close ms-auto" title="Close" (click)="onClose()">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <button type="button" class="btn-close ms-auto" title="Close" aria-label="Close" (click)="onClose()"></button>
     </div>
 
     <div class="create-key-body">
@@ -23,10 +21,12 @@
       <div class="create-key-label">Expiration</div>
       <div class="create-key-chips d-flex flex-wrap gap-2">
         @for (preset of presets; track preset.days) {
-          <button type="button" class="create-key-chip" [class.create-key-chip-active]="selectedPreset() === preset"
+          <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="selectedPreset() === preset"
+            [attr.aria-pressed]="selectedPreset() === preset"
             (click)="selectPreset(preset)">{{ preset.label }}</button>
         }
-        <button type="button" class="create-key-chip" [class.create-key-chip-active]="customSelected()"
+        <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="customSelected()"
+          [attr.aria-pressed]="customSelected()"
           (click)="selectPreset(null)">Custom</button>
       </div>
 
@@ -37,8 +37,8 @@
     </div>
 
     <div class="create-key-footer d-flex align-items-center">
-      <button type="button" class="create-key-cancel" (click)="onClose()">Cancel</button>
-      <button type="button" class="create-key-submit ms-auto" [disabled]="!canSubmit() || busy"
+      <button type="button" class="btn btn-link link-secondary text-decoration-none px-0" (click)="onClose()">Cancel</button>
+      <button type="button" class="btn btn-primary ms-auto" [disabled]="!canSubmit() || busy"
         (click)="onCreate()">
         {{ busy ? 'Creating...' : 'Create API key' }}
       </button>

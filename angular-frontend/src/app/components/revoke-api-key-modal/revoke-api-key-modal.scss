@@ -6,7 +6,6 @@
 
 //TODO missing colors
 $midpoint-special-color: blue;
-$color-dark-blue: blue;
 
 .revoke-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
@@ -32,17 +31,6 @@ $color-dark-blue: blue;
   position: absolute;
   top: 0.85rem;
   right: 1rem;
-  border: none;
-  background: none;
-  color: $color-gray-secondary;
-  font-size: 1.15rem;
-  line-height: 1;
-  padding: 0.25rem;
-  cursor: pointer;
-
-  &:hover {
-    color: $color-text-dark;
-  }
 }
 
 .revoke-key-body {
@@ -77,53 +65,9 @@ $color-dark-blue: blue;
   border-top: 1px solid $color-separator;
 }
 
-.revoke-key-cancel {
-  background: none;
-  border: none;
-  padding: 0.5rem 0;
-  font-size: 0.9375rem;
-  color: $color-text-secondary;
-  cursor: pointer;
-
-  &:hover {
-    color: $color-text-dark;
-  }
-}
-
-.revoke-key-confirm {
-  background-color: $toast-danger-header;
-  border: 1px solid $toast-danger-header;
-  border-radius: 6px;
-  padding: 0.5rem 1.1rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: $color-white;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background-color: #C42B3A;
-    border-color: #C42B3A;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
 /* Non-destructive confirmations (rotation) */
 .revoke-key-dialog-primary {
   .revoke-key-icon {
     background-color: $midpoint-special-color;
-  }
-
-  .revoke-key-confirm {
-    background-color: $midpoint-special-color;
-    border-color: $midpoint-special-color;
-
-    &:hover:not(:disabled) {
-      background-color: $color-dark-blue;
-      border-color: $color-dark-blue;
-    }
   }
 }

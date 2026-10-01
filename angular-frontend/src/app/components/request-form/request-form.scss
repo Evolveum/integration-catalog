@@ -50,10 +50,9 @@
   display: none;
 }
 
-/* Remove focus shadow on form controls and buttons in modal */
+/* Remove focus shadow on form controls in modal */
 .modal .form-control:focus,
-.modal .form-select:focus,
-.modal .btn:focus {
+.modal .form-select:focus {
   box-shadow: none;
 }
 
@@ -94,32 +93,6 @@
 .form-control:focus, .form-select:focus {
   border-color: $color-primary;
   box-shadow: 0 0 0 0.2rem $shadow-primary;
-}
-
-.btn {
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  border-radius: 4px;
-}
-
-.btn-primary {
-  background-color: $color-primary;
-  border-color: $color-primary;
-}
-
-.btn-primary:hover {
-  background-color: $color-primary-hover;
-  border-color: $color-primary-active;
-}
-
-.btn-secondary {
-  background-color: $color-secondary;
-  border-color: $color-secondary;
-}
-
-.btn-secondary:hover {
-  background-color: $color-secondary-hover;
-  border-color: $color-secondary-active;
 }
 
 /* Toast Notification */
@@ -168,16 +141,6 @@
 
 .modal-title-request {
   color: $color-text-muted;
-}
-
-.btn-close-icon {
-  border: none;
-  background: none;
-}
-
-.close-icon {
-  font-size: 14px;
-  color: $color-gray-secondary;
 }
 
 .modal-body-request {
@@ -241,48 +204,9 @@
   pointer-events: none;
 }
 
-.integration-method-dropdown {
-  z-index: 1000;
-  border: 1px solid $color-border-input;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px $shadow-dropdown;
-  overflow: hidden;
-}
-
+// Option rows are <label>s (they wrap a radio), which .dropdown-item does not give a pointer.
 .integration-method-option {
-  padding: 10px 16px;
   cursor: pointer;
-  margin: 0;
-  gap: 8px;
-  border-bottom: 1px solid $color-border-light;
-  font-size: 14px;
-  color: $color-black;
-
-  &:last-of-type {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background-color: $color-bg-hover;
-  }
-}
-
-.integration-method-option-selected {
-  background-color: rgba($color-brand-sky, 0.08);
-  color: $color-brand-steel-dark;
-}
-
-.integration-method-view-more {
-  padding: 10px 16px;
-  cursor: pointer;
-  color: $color-brand-steel;
-  font-size: 14px;
-  font-weight: 500;
-  border-top: 1px solid $color-border-light;
-
-  &:hover {
-    background-color: $color-bg-hover;
-  }
 }
 
 .view-more-icon {
@@ -299,23 +223,6 @@
 
 .form-footer-padding {
   padding: 1.5rem;
-}
-
-/* Form Buttons */
-.btn-cancel {
-  background-color: $color-white;
-  border: none;
-  padding-left: 0;
-}
-
-.btn-cancel-text {
-  color: $color-brand-steel;
-}
-
-.btn-submit {
-  color: $btn-download-color;
-  background-color: $color-brand-steel;
-  font-weight: 600;
 }
 
 /* Collaborate Checkbox */

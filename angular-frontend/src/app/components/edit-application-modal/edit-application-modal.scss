@@ -32,16 +32,6 @@
     font-size: 1.15rem;
     font-weight: 600;
   }
-
-  .edit-app-close {
-    color: #6c757d;
-    font-size: 1.1rem;
-    padding: 0.25rem;
-
-    &:hover {
-      color: #343a40;
-    }
-  }
 }
 
 .edit-app-body {
@@ -61,18 +51,6 @@
     max-width: 100px;
     max-height: 100px;
     object-fit: contain;
-  }
-}
-
-.edit-app-footer {
-  button.btn-secondary {
-    background: #f0f0f0;
-    border-color: #dee2e6;
-    color: #333;
-
-    &:hover {
-      background: #e2e2e2;
-    }
   }
 }
 

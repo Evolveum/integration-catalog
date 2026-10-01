@@ -124,25 +124,6 @@
 }
 
 /* ========================================
-   FILTER BUTTONS
-   ======================================== */
-.btn-filter-main {
-  background-color: white;
-  border: 1px solid #ced4da;
-  color: #212529;
-  padding: 0.5rem 1.5rem;
-  border-radius: 50px;
-}
-
-.btn-reset-filter {
-  background-color: transparent;
-  border: none;
-  color: #000;
-  padding: 0.5rem 1rem;
-  white-space: nowrap;
-}
-
-/* ========================================
    FILTER CHIPS
    ======================================== */
 .filter-chips-scroll {
@@ -157,40 +138,11 @@
 }
 
 .filter-chip {
-  padding: 0.5rem 0.75rem;
-  background-color: white;
-  border: 2px solid $color-brand-steel;
-  font-size: 0.875rem;
-  font-weight: 600;
   transition: box-shadow 0.2s ease;
 }
 
 .filter-chip:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.filter-chip button:hover {
-  color: #dc3545 !important;
-}
-
-.badge-counter {
-  background-color: $color-brand-steel;
-  color: white;
-  width: 20px;
-  height: 20px;
-  font-size: 0.75rem;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: #6c757d;
-}
-
-.btn-icon .fa-chevron-down {
-  color: #000000;
 }
 
 /* ========================================
@@ -244,9 +196,6 @@
   z-index: 10;
   width: 40px;
   height: 40px;
-  padding: 0;
-  background-color: white;
-  border: 1px solid #dee2e6;
   transition: opacity 0.3s ease;
 }
 
@@ -286,33 +235,6 @@
 .apps-grid .app-card {
   width: 100%;
   min-width: unset;
-}
-
-/* ========================================
-   STATUS BADGES
-   ======================================== */
-.badge-popular-card {
-  font-size: 0.7rem;
-  background-color: #ffdd8c;
-  color: #7A510B;
-}
-
-.badge-requested-card {
-  font-size: 0.7rem;
-  background-color: #e2e3e5;
-  color: #2b2e31;
-}
-
-.badge-error-card {
-  font-size: 0.7rem;
-  background-color: #dc3545;
-  color: #ffffff;
-}
-
-.badge-publishing-card {
-  font-size: 0.7rem;
-  background-color: #1b5e85;
-  color: #ffffff;
 }
 
 /* ========================================
@@ -405,27 +327,6 @@
   font-weight: 600;
 }
 
-.btn-vote {
-  position: relative;
-  z-index: 1;
-  background-color: #FFFFFF;
-  border: 1px solid #ced4da;
-  color: #212529;
-  height: 38px;
-}
-
-.btn-continue {
-  background-color: #e9ecef;
-  border: 1px solid #ced4da;
-  color: #212529;
-  height: 38px;
-}
-
-.btn-continue-text {
-  font-weight: 600;
-  color: #353a41;
-}
-
 /* ========================================
    PUBLISHING STATE
    ======================================== */
@@ -485,28 +386,6 @@
 }
 
 /* ========================================
-   PAGINATION
-   ======================================== */
-.page-link-default {
-  background-color: white;
-  color: black;
-  font-weight: 600;
-}
-
-.page-link-active {
-  background-color: #206F9D;
-  color: white;
-  font-weight: 600;
-}
-
-.pagination .page-link {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ========================================
    DIVIDER
    ======================================== */
 .divider-line {
@@ -547,27 +426,14 @@
 /* The three advanced-option buttons sit in separate rows, so nothing lines them up
    on its own; min-width fits the longest label and keeps all three the same size. */
 .btn-option {
-  background-color: #e9ecef;
-  border: 1px solid #ced4da;
-  color: #212529;
-  font-weight: 600;
-  height: 44px;
   min-width: 232px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
 }
 
 /* ========================================
    DROPDOWNS
    ======================================== */
+/* Placed with fixed coordinates under its chip; z-index lifts it over .click-backdrop. */
 .filter-dropdown {
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 0.75rem;
   min-width: 200px;
   max-width: 300px;
   max-height: 300px;
@@ -591,12 +457,6 @@
 .checkbox-unchecked {
   background-color: transparent;
   border-color: #dee2e6;
-}
-
-.link-clear-filter {
-  color: $color-brand-steel;
-  font-size: 0.875rem;
-  text-decoration: none;
 }
 
 /* ========================================

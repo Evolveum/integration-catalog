@@ -59,33 +59,3 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid #eceef1;
 }
-
-.start-review-cancel {
-  border: none;
-  background: none;
-  color: #1f2733;
-  font-weight: 500;
-  padding: 0;
-
-  &:hover:not(:disabled) { text-decoration: underline; }
-  &:disabled { color: #9aa1ab; cursor: not-allowed; }
-}
-
-.start-review-confirm {
-  background: $color-brand-steel;
-  border: 1px solid $color-brand-steel;
-  color: #fff;
-  font-weight: 600;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
-
-  &:hover:not(:disabled) {
-    background: $color-brand-navy;
-    border-color: $color-brand-navy;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}

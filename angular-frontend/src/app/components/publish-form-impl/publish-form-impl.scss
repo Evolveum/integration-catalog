@@ -135,24 +135,6 @@
   color: $color-gray-secondary;
 }
 
-/* "How to find it →" helper link under Commit hash */
-.commit-help-link {
-  color: $color-brand-steel;
-  text-decoration: none;
-  font-weight: 500;
-  white-space: nowrap;
-  background: none;
-  padding: 0;
-  border: 0;
-  /* Single continuous underline across text + icon at one level (avoids the
-     uneven per-glyph underline that text-decoration produces on the flex link). */
-  border-bottom: 1px solid transparent;
-
-  &:hover { border-bottom-color: currentColor; }
-
-  i { font-size: 0.75rem; }
-}
-
 /* Alert info note */
 .alert-info-note {
   background-color: $color-info-bg;
@@ -194,36 +176,6 @@
 
   .publish-license-text {
     margin: 0 0 0.75rem;
-  }
-
-  .publish-license-toggle {
-    padding: 0;
-    border: none;
-    background: none;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: $color-brand-steel;
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-}
-
-.btn-print-consent {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  border: 1px solid $color-brand-navy;
-  border-radius: 8px;
-  background-color: #ffffff;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: $color-brand-steel;
-
-  &:hover {
-    background-color: #f3f4f6;
   }
 }
 
@@ -315,29 +267,8 @@
 }
 
 .maintainer-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1050;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
   max-height: calc(8 * 2.375rem);
   overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.maintainer-option {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #e9ecef;
-  }
 }
 
 /* License combobox */
@@ -357,35 +288,6 @@
 
 .license-placeholder {
   color: $color-gray-secondary;
-}
-
-.license-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1050;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-  overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.license-option {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #e9ecef;
-  }
-
-  &.license-option-selected {
-    background-color: $color-bg-selected;
-  }
 }
 
 /* Dev & Build section headings */
@@ -437,19 +339,6 @@
   margin-top: 0.25rem;
 }
 
-.method-link-clear {
-  background: none;
-  border: none;
-  border-left: 1px solid $color-border-input;
-  height: 100%;
-  cursor: pointer;
-  opacity: 0.6;
-
-  &:hover {
-    opacity: 1;
-  }
-}
-
 /* Modal body / footer */
 .modal-body-upload {
   padding: 2rem 1.5rem;
@@ -462,28 +351,6 @@
   bottom: 0;
   background: #fff;
   z-index: 10;
-}
-
-/* Footer navigation buttons */
-.btn-back {
-  color: $color-brand-steel;
-  background: none;
-  border: none;
-  padding: 0.375rem 0.75rem;
-  font-weight: 600;
-}
-
-.btn-back-icon {
-  font-size: 12px;
-}
-
-.btn-next {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
-}
-
-.btn-next-icon {
-  font-size: 12px;
 }
 
 /* Toast notifications */
@@ -545,18 +412,6 @@
   top: 50%;
   right: 1rem;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 0.25rem 0.375rem;
-  cursor: pointer;
-  color: $color-brand-steel;
-  font-size: 0.8125rem;
-  line-height: 1;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: rgba($color-brand-steel, 0.08);
-  }
 }
 
 .review-card-body {
@@ -588,17 +443,6 @@
   color: $color-text-dark;
 }
 
-.review-method-badge {
-  display: inline-block;
-  background-color: $color-white;
-  color: $color-text-dark;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid $color-border-input;
-}
-
 .review-method-separator {
   font-size: 0.8125rem;
   font-weight: 500;
@@ -612,17 +456,6 @@
   color: $color-text-dark;
 }
 
-.review-version-badge {
-  display: inline-block;
-  background-color: $color-white;
-  color: $color-text-dark;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid $color-border-input;
-}
-
 .review-description {
   font-size: 0.9375rem;
   color: $color-text-secondary;
@@ -633,12 +466,6 @@
 .review-type-icon {
   font-size: 1rem;
   color: $color-text-secondary;
-}
-
-.review-type-label {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: $color-text-dark;
 }
 
 .review-detail-row {
@@ -663,15 +490,6 @@
 .review-link-icon {
   font-size: 0.75rem;
   color: $color-text-secondary;
-}
-
-/* Publish button */
-.btn-publish {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
-  color: #fff;
-  font-weight: 500;
-  padding: 0.5rem 1.25rem;
 }
 
 /* Compatibility settings step */
@@ -721,18 +539,6 @@
   margin-top: 2px;
 }
 
-.compat-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: $color-text-secondary;
-  background: $color-bg-muted;
-  border: 1px solid $color-border-light;
-  border-radius: 4px;
-  padding: 0.15rem 0.5rem;
-  white-space: nowrap;
-}
-
 .compat-range-label {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -755,19 +561,4 @@
   font-size: 14px;
   color: $text-publishing-blue;
   align-self: center;
-}
-
-.compat-info-close {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  color: $color-info-text;
-  align-self: center;
-
-  &:hover {
-    opacity: 0.7;
-  }
 }

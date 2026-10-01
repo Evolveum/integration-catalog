@@ -32,9 +32,7 @@
         <div class="modal-content">
           <div class="modal-header modal-header-request">
             <h6 class="modal-title mb-0 modal-title-request">Send a request</h6>
-            <button type="button" class="btn p-0 ms-auto btn-close-icon" (click)="closeRequestModal()" aria-label="Close">
-              <i class="fa-solid fa-xmark close-icon"></i>
-            </button>
+            <button type="button" class="btn-close ms-auto" (click)="closeRequestModal()" aria-label="Close"></button>
           </div>
           <div class="modal-body modal-body-request">
             <!-- Row 1 -->
@@ -77,10 +75,10 @@
                 </div>
 
                 @if (isIntegrationMethodDropdownOpen()) {
-                  <div class="position-absolute w-100 bg-white mt-1 integration-method-dropdown">
+                  <div class="dropdown-menu show w-100 top-100 start-0 mt-1 shadow">
                     @for (method of visibleIntegrationMethods; track method.id) {
-                      <label class="d-flex align-items-center integration-method-option"
-                            [class.integration-method-option-selected]="formData.integrationMethod?.id === method.id"
+                      <label class="dropdown-item d-flex align-items-center gap-2 text-wrap integration-method-option"
+                            [class.active]="formData.integrationMethod?.id === method.id"
                             (click)="selectIntegrationMethod(method)">
                         <input type="radio"
                               name="integrationMethod"
@@ -91,7 +89,8 @@
                       </label>
                     }
                     @if (integrationMethods().length > 4) {
-                      <div class="integration-method-view-more" (click)="toggleIntegrationMethodExpanded($event)">
+                      <hr class="dropdown-divider">
+                      <button type="button" class="dropdown-item text-primary fw-medium" (click)="toggleIntegrationMethodExpanded($event)">
                         @if (isIntegrationMethodExpanded()) {
                           <i class="fa-solid fa-chevron-up me-1 view-more-icon"></i>
                           <span>View less</span>
@@ -99,7 +98,7 @@
                           <i class="fa-solid fa-chevron-down me-1 view-more-icon"></i>
                           <span>View more</span>
                         }
-                      </div>
+                      </button>
                     }
                   </div>
                 }
@@ -190,10 +189,10 @@
 
             <!-- Row 13 -->
             <div class="d-flex justify-content-between">
-              <button type="button" class="btn btn-cancel" (click)="closeRequestModal()" [disabled]="isSubmitting()">
-                <span class="btn-cancel-text">Cancel</span>
+              <button type="button" class="btn btn-link text-decoration-none ps-0" (click)="closeRequestModal()" [disabled]="isSubmitting()">
+                Cancel
               </button>
-              <button type="button" class="btn btn-submit" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description || !formData.integrationNeed || !capabilitiesValid()">
+              <button type="button" class="btn btn-primary" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description || !formData.integrationNeed || !capabilitiesValid()">
                 {{ isSubmitting() ? 'Submitting...' : 'Submit request' }}
               </button>
             </div>

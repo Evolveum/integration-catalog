@@ -17,9 +17,7 @@
         <i class="fa-solid fa-pen-to-square edit-app-header-icon"></i>
         <span class="edit-app-title">Edit application</span>
       </div>
-      <button type="button" class="btn p-0 edit-app-close" (click)="onClose()" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <button type="button" class="btn-close" (click)="onClose()" aria-label="Close"></button>
     </div>
 
     <!-- Body -->
@@ -105,7 +103,7 @@
 
     <!-- Footer -->
     <div class="edit-app-footer d-flex justify-content-end align-items-center gap-2 p-4 border-top">
-      <button type="button" class="btn btn-secondary" (click)="onClose()" [disabled]="isSaving()">
+      <button type="button" class="btn btn-light" (click)="onClose()" [disabled]="isSaving()">
         Cancel
       </button>
       <button

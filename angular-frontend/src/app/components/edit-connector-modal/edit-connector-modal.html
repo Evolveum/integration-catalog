@@ -71,9 +71,9 @@
                        (blur)="onMaintainerBlur()"
                        placeholder="Select maintainer...">
                 @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
-                  <div class="maintainer-dropdown">
+                  <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm maintainer-dropdown">
                     @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
-                      <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                      <button type="button" tabindex="-1" class="dropdown-item text-wrap text-break" [class.active]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</button>
                     }
                   </div>
                 }
@@ -100,11 +100,11 @@
                     {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
                   @if (isLicenseDropdownOpen()) {
-                    <div class="license-dropdown">
+                    <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm license-dropdown">
                       @for (opt of licenseOptions; track opt) {
-                        <div class="license-option"
-                             [class.license-option-selected]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                        <button type="button" tabindex="-1" class="dropdown-item"
+                             [class.active]="connectorLicense() === opt"
+                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</button>
                       }
                     </div>
                   }
@@ -308,8 +308,8 @@
 
     <!-- Footer -->
     <div class="ecm-modal-footer d-flex justify-content-between align-items-center">
-      <button type="button" class="btn ecm-cancel-btn" (click)="close.emit()">Cancel</button>
-      <button type="button" class="btn btn-primary ecm-save-btn"
+      <button type="button" class="btn btn-link text-decoration-none" (click)="close.emit()">Cancel</button>
+      <button type="button" class="btn btn-primary"
               [disabled]="!isValid() || isSaving()"
               (click)="save()">
         @if (isSaving()) {

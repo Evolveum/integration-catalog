@@ -22,7 +22,7 @@ import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
-import { SUPPORT_TIERS, SupportTier, supportTierLabel } from '../../core/support-tier';
+import { SUPPORT_TIERS, SupportTier, supportTierClasses, supportTierLabel } from '../../core/support-tier';
 
 interface MethodGroup {
   id: string;
@@ -207,6 +207,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected readonly supportTiers = SUPPORT_TIERS;
   protected readonly supportTierLabel = supportTierLabel;
+  protected readonly supportTierClasses = supportTierClasses;
 
   /** Reviewer's pick in a method card header; '' clears the tier. */
   protected onSupportTierChange(methodId: string, previous: SupportTier | null, event: Event): void {

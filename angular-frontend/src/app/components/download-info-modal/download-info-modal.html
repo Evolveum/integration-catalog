@@ -8,9 +8,7 @@
 <div class="download-info-backdrop position-fixed top-0 start-0 w-100 h-100"></div>
 <div class="download-info-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
   <div class="download-info-dialog">
-    <button type="button" class="download-info-close" title="Close" (click)="onClose()">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
+    <button type="button" class="btn-close download-info-close" title="Close" aria-label="Close" (click)="onClose()"></button>
 
     <div class="download-info-header d-flex flex-column align-items-center text-center">
       <span class="download-info-check d-flex align-items-center justify-content-center">
@@ -55,7 +53,7 @@
     </div>
 
     <div class="download-info-footer">
-      <button type="button" class="btn download-info-understood w-100" (click)="onClose()">Understood</button>
+      <button type="button" class="btn btn-primary w-100" (click)="onClose()">Understood</button>
     </div>
   </div>
 </div>

@@ -16,18 +16,6 @@
   padding: 1.5rem 1.5rem 4rem;
 }
 
-.tiers-back {
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: $color-text-muted;
-  text-decoration: none;
-
-  &:hover {
-    color: $color-brand-navy;
-  }
-}
-
 .tiers-title {
   font-size: 1.75rem;
   font-weight: 700;
@@ -37,29 +25,6 @@
 .tiers-subtitle {
   color: #6c757d;
   margin-bottom: 1.5rem;
-}
-
-.tiers-chip {
-  border: 1px solid $color-border-input;
-  background: $color-white;
-  color: $color-text-secondary;
-  border-radius: 999px;
-  padding: 0.3rem 0.9rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-
-  &:hover {
-    background: $color-bg-hover;
-  }
-}
-
-// Soft brand tint rather than a solid primary fill.
-.tiers-chip-active,
-.tiers-chip-active:hover {
-  background: $color-bg-selected;
-  border-color: $color-brand-steel;
-  color: $color-brand-navy;
-  font-weight: 600;
 }
 
 .tiers-app {
@@ -100,37 +65,4 @@
   }
 }
 
-.tiers-badge {
-  flex-shrink: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0.1rem 0.5rem;
-}
 
-// Same tier colors as the method cards on the application page.
-.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
-.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
-.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
-.tier-none     { background-color: #f8f9fa; color: #6c757d; border-color: #e9ecef; }
-
-// Same pager look as the applications list.
-.page-link-default {
-  background-color: $color-white;
-  color: black;
-  font-weight: 600;
-}
-
-.page-link-active {
-  background-color: $color-primary-500;
-  color: $color-white;
-  font-weight: 600;
-}
-
-.pagination .page-link {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}

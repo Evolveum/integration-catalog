@@ -15,9 +15,7 @@
           <i class="fa-solid fa-paper-plane"></i>Reject this version
         }
       </span>
-      <button type="button" class="btn p-0 approval-modal-close" (click)="onCancel()" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <button type="button" class="btn-close" (click)="onCancel()" aria-label="Close"></button>
     </div>
 
     <div class="approval-modal-body">
@@ -29,7 +27,7 @@
         </div>
         <div class="approval-info-row">
           <span class="approval-info-label">Version</span>
-          <span class="im-version-badge">{{ versionLabel }}</span>
+          <span class="badge border text-body bg-body">{{ versionLabel }}</span>
         </div>
         <div class="approval-info-row">
           <span class="approval-info-label">Submitted by</span>
@@ -65,7 +63,7 @@
                       <div class="connector-info">
                         <span class="connector-name">{{ connector.connectorName }}</span>
                         @if (connector.version) {
-                          <span class="ms-2 im-version-badge connector-version">{{ connector.version }}</span>
+                          <span class="ms-2 badge border text-body bg-body">{{ connector.version }}</span>
                         }
                       </div>
                       <div class="connector-actions d-flex flex-column gap-2">
@@ -101,11 +99,11 @@
               }
             }
         @if (hasConnectorsWithoutDownload()) {
-          <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refreshConnectors()">
+          <button type="button" class="btn btn-outline-secondary w-100 mt-3 d-flex align-items-center justify-content-center gap-2" (click)="refreshConnectors()">
             <i class="fa-solid fa-arrows-rotate"></i>Refresh
           </button>
         } @else {
-          <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refresh()">
+          <button type="button" class="btn btn-outline-secondary w-100 mt-3 d-flex align-items-center justify-content-center gap-2" (click)="refresh()">
             <i class="fa-solid fa-arrow-right"></i>Continue
           </button>
         }
@@ -135,7 +133,7 @@
             }
           </div>
         </div>
-        <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2"
+        <button type="button" class="btn btn-outline-secondary w-100 mt-3 d-flex align-items-center justify-content-center gap-2"
                 [disabled]="loading()" (click)="refresh()">
           <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="loading()"></i>Refresh to check again
         </button>
@@ -157,9 +155,7 @@
               <div>The maintainer will see this in ticket #{{ ticketId() }} and can fix the issues before resubmitting.</div>
             }
           </div>
-          <button type="button" class="btn p-0 approval-notice-close" (click)="dismissSuccess()" aria-label="Dismiss">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button type="button" class="btn-close" (click)="dismissSuccess()" aria-label="Dismiss"></button>
         </div>
       }
 
@@ -169,11 +165,11 @@
     </div>
 
     <div class="approval-modal-footer d-flex align-items-center justify-content-between">
-      <button type="button" class="btn approval-modal-cancel" (click)="onCancel()">Cancel</button>
+      <button type="button" class="btn btn-link p-0 text-decoration-none" (click)="onCancel()">Cancel</button>
       <button type="button"
               class="btn d-flex align-items-center gap-2"
-              [class.approval-confirm-approve]="mode === 'approve'"
-              [class.approval-confirm-reject]="mode === 'reject'"
+              [class.btn-success]="mode === 'approve'"
+              [class.btn-danger]="mode === 'reject'"
               [disabled]="step() < 2 || processing"
               (click)="onConfirm()">
         @if (mode === 'approve') {

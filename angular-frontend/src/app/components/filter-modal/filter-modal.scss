@@ -90,25 +90,3 @@
 .category-item.selected {
   background-color: #dee2e6;
 }
-
-/* Filter Badges (shared styles) */
-.filter-badge {
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-weight: normal;
-  border: 1px solid #ced4da;
-  background-color: white;
-  color: #212529;
-}
-
-.filter-badge.selected {
-  border-color: #206f9d;
-  box-shadow: 0 0 0 1px #206f9d;
-  background-color: #f2f2f2;
-  color: #206f9d;
-}
-
-.filter-badge:hover {
-  opacity: 0.9;
-}

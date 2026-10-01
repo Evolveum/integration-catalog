@@ -26,15 +26,6 @@
   border-radius: 8px;
   background: #f8fafc;
 }
-.search-row button {
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 0;
-  background: #3b82f6;
-  color: white;
-  cursor: pointer;
-}
-.search-row button:hover { filter: brightness(1.05); }
 
 /* Content */
 .content { padding: 16px; }
@@ -96,15 +87,4 @@
 /* Pager */
 .pager {
   margin-top: 16px;
-}
-.pager button {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  cursor: pointer;
-}
-.pager button:disabled {
-  cursor: not-allowed;
-  opacity: .6;
 }

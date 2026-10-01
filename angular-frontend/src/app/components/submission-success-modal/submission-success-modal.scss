@@ -24,11 +24,6 @@
   position: absolute;
   top: 0.75rem;
   right: 1rem;
-  color: $color-gray-secondary;
-  background: none;
-  border: none;
-  font-size: 1rem;
-  line-height: 1;
 }
 
 /* Spans past the dialog's padding, so its rule reaches both edges */
@@ -96,44 +91,10 @@
   overflow-wrap: anywhere;
 }
 
-.submitted-ticket-action {
-  background: none;
-  border: none;
-  padding: 0.25rem 0.25rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: $color-text-dark;
-  white-space: nowrap;
-
-  &:hover {
-    color: $color-brand-steel;
-    text-decoration: underline;
-  }
-}
-
-.submitted-ticket-open {
-  color: $color-brand-steel;
-}
-
 /* Full-width divider above the footer button (spans past the dialog's padding) */
 .submitted-modal-separator {
   margin: 0 -1.25rem 1rem;
   border: 0;
   border-top: 1px solid $color-border-light;
   opacity: 1;
-}
-
-.submitted-modal-done {
-  background-color: $color-brand-navy;
-  border-color: $color-brand-navy;
-  color: $color-white;
-  font-weight: 600;
-  padding: 0.55rem 1rem;
-  border-radius: 6px;
-
-  &:hover {
-    background-color: #1b5e85;
-    border-color: #1b5e85;
-    color: $color-white;
-  }
 }

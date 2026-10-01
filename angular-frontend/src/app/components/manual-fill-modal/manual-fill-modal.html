@@ -12,9 +12,7 @@
       <span class="fw-semibold fs-6 d-flex align-items-center gap-2">
         <i class="fa-solid fa-pen-to-square"></i>Fill build info manually
       </span>
-      <button type="button" class="btn p-0 text-secondary fs-5" (click)="onCancel()" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <button type="button" class="btn-close" (click)="onCancel()" aria-label="Close"></button>
     </div>
 
     <!-- Connector info card -->
@@ -26,7 +24,7 @@
       @if (connector.version) {
         <div class="d-flex justify-content-between align-items-center py-1">
           <span class="text-secondary fw-medium fs-6">Version</span>
-          <span class="im-version-badge">{{ connector.version }}</span>
+          <span class="badge border text-body bg-body">{{ connector.version }}</span>
         </div>
       }
     </div>

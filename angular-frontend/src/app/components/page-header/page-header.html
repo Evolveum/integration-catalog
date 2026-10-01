@@ -18,7 +18,7 @@
       <strong class="me-auto">
         {{ toast.title }}
       </strong>
-      <button type="button" class="btn-close" [class.btn-close-white]="toast.type !== 'warning'" (click)="closeToast()">
+      <button type="button" class="btn-close" [class.btn-close-white]="toast.type !== 'warning'" (click)="closeToast()" aria-label="Close">
       </button>
     </div>
     <div class="toast-body">
@@ -43,11 +43,11 @@
   <div class="ms-auto d-flex align-items-center gap-3">
     <!-- Tasks & Notifications (placeholders, hidden for now - to be enabled later) -->
     <!--
-    <button class="header-icon-btn" type="button" title="Tasks">
+    <button class="btn btn-link link-light position-relative" type="button" title="Tasks">
       <i class="fa-regular fa-clipboard"></i>
-      <span class="header-icon-badge">3</span>
+      <span class="badge rounded-pill text-bg-warning position-absolute top-0 start-100 translate-middle">3</span>
     </button>
-    <button class="header-icon-btn" type="button" title="Notifications">
+    <button class="btn btn-link link-light" type="button" title="Notifications">
       <i class="fa-regular fa-bell"></i>
     </button>
 
@@ -56,8 +56,8 @@
 
 
     @if (currentUser()) {
-      <div class="header-user-menu">
-        <button class="header-user d-flex align-items-center gap-2" type="button" (click)="toggleMenu()"
+      <div class="dropdown">
+        <button class="header-user d-flex align-items-center gap-2 bg-transparent border-0 text-white" type="button" (click)="toggleMenu()"
           [class.header-user-active]="menuOpen()" [attr.aria-expanded]="menuOpen()" aria-haspopup="menu"
           title="Account menu">
           <span class="header-avatar">{{ userInitials() }}</span>
@@ -69,15 +69,15 @@
         </button>
 
         @if (menuOpen()) {
-          <div class="user-menu" role="menu">
-<!--            <button class="user-menu-item" type="button" role="menuitem"-->
+          <div class="dropdown-menu show top-100 end-0 mt-2 user-menu" role="menu">
+<!--            <button class="dropdown-item" type="button" role="menuitem"-->
 <!--              (click)="openComingSoon('My integration methods')">My integration methods</button>-->
-<!--            <button class="user-menu-item" type="button" role="menuitem"-->
+<!--            <button class="dropdown-item" type="button" role="menuitem"-->
 <!--              (click)="openComingSoon('My connectors')">My connectors</button>-->
-<!--            <div class="user-menu-separator"></div>-->
-            <a class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
-            <div class="user-menu-separator"></div>
-            <button class="user-menu-item user-menu-item-danger" type="button" role="menuitem" (click)="logout()">
+<!--            <hr class="dropdown-divider">-->
+            <a class="dropdown-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
+            <hr class="dropdown-divider">
+            <button class="dropdown-item text-danger d-flex align-items-center gap-2" type="button" role="menuitem" (click)="logout()">
               <i class="fa-solid fa-power-off"></i>
               <span>Sign out</span>
             </button>
@@ -87,7 +87,7 @@
         }
       </div>
     } @else {
-      <button class="header-btn-login d-flex align-items-center gap-2" (click)="login()">
+      <button class="btn btn-sm btn-link link-light fw-semibold text-decoration-none d-flex align-items-center gap-2" (click)="login()">
         <i class="fa-solid fa-user header-user-icon"></i>
         <span>Login</span>
       </button>

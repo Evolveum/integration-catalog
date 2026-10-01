@@ -6,7 +6,6 @@
 
 //TODO missing colors
 $color-dark-blue: blue;
-$color-mid-blue: blue;
 
 .create-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
@@ -39,20 +38,6 @@ $color-mid-blue: blue;
   font-weight: 600;
   color: #1a202c;
   margin: 0;
-}
-
-.create-key-close {
-  border: none;
-  background: none;
-  color: $color-gray-secondary;
-  font-size: 1.15rem;
-  line-height: 1;
-  padding: 0.25rem;
-  cursor: pointer;
-
-  &:hover {
-    color: $color-text-dark;
-  }
 }
 
 .create-key-body {
@@ -91,27 +76,6 @@ $color-mid-blue: blue;
   margin: 0.5rem 0 1.35rem;
 }
 
-.create-key-chip {
-  background: $color-white;
-  border: 1px solid $color-border-light;
-  border-radius: 6px;
-  padding: 0.4rem 0.85rem;
-  font-size: 0.8125rem;
-  color: $color-text-secondary;
-  cursor: pointer;
-
-  &:hover {
-    background-color: $color-bg-hover;
-  }
-}
-
-.create-key-chip-active {
-  background-color: $color-bg-selected;
-  border-color: $color-dark-blue;
-  color: $color-dark-blue;
-  font-weight: 600;
-}
-
 .create-key-date {
   margin-top: 0.85rem;
 }
@@ -119,38 +83,4 @@ $color-mid-blue: blue;
 .create-key-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid $color-separator;
-}
-
-.create-key-cancel {
-  background: none;
-  border: none;
-  padding: 0.5rem 0;
-  font-size: 0.875rem;
-  color: $color-text-secondary;
-  cursor: pointer;
-
-  &:hover {
-    color: $color-text-dark;
-  }
-}
-
-.create-key-submit {
-  background-color: $color-dark-blue;
-  border: 1px solid $color-dark-blue;
-  border-radius: 6px;
-  padding: 0.5rem 1.1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: $color-white;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background-color: $color-mid-blue;
-    border-color: $color-mid-blue;
-  }
-
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
 }

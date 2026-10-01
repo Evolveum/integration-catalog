@@ -13,7 +13,7 @@
   </div>
   <!-- The empty state carries its own buttons, so this one appears only next to a list. -->
   @if (activeKeys().length > 0) {
-    <button type="button" class="keys-btn keys-btn-primary ms-auto d-flex align-items-center gap-2"
+    <button type="button" class="btn btn-primary btn-sm mb-2 ms-auto d-flex align-items-center gap-2"
       (click)="openCreate()">
       <i class="fa-solid fa-plus"></i>Create key
     </button>
@@ -29,19 +29,17 @@
       <div class="keys-created-text">{{ createdText() }}</div>
       <div class="keys-created-value d-flex align-items-center gap-2">
         <span class="keys-created-secret">{{ valueVisible() ? value : maskedValue() }}</span>
-        <button type="button" class="keys-created-action ms-auto d-flex align-items-center gap-2"
+        <button type="button" class="btn btn-sm btn-link link-secondary text-decoration-none text-nowrap ms-auto d-flex align-items-center gap-2"
           (click)="toggleValue()">
           <i class="fa-solid" [class.fa-eye]="!valueVisible()" [class.fa-eye-slash]="valueVisible()"></i>
           {{ valueVisible() ? 'Hide' : 'Show' }}
         </button>
-        <button type="button" class="keys-created-action d-flex align-items-center gap-2" (click)="copyValue(value)">
+        <button type="button" class="btn btn-sm btn-link link-secondary text-decoration-none text-nowrap d-flex align-items-center gap-2" (click)="copyValue(value)">
           <i class="fa-solid fa-copy"></i>Copy
         </button>
       </div>
     </div>
-    <button type="button" class="keys-created-close" title="Dismiss" (click)="dismissCreated()">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
+    <button type="button" class="btn-close align-self-start" title="Dismiss" aria-label="Close" (click)="dismissCreated()"></button>
   </div>
 }
 
@@ -64,7 +62,7 @@
     <p class="keys-empty-text">
       Create an API key to authenticate applications or devices that use Evolveum-hosted services.
     </p>
-    <button type="button" class="keys-btn keys-btn-primary d-flex align-items-center gap-2"
+    <button type="button" class="btn btn-primary btn-sm mb-2 d-flex align-items-center gap-2"
       (click)="openCreate()">
       <i class="fa-solid fa-plus"></i>Create key
     </button>
@@ -74,7 +72,7 @@
 }
 
 @if (inactiveKeys().length > 0) {
-  <button type="button" class="keys-inactive-toggle d-flex align-items-center gap-2"
+  <button type="button" class="btn btn-sm btn-link link-secondary text-decoration-none p-0 pt-3 d-flex align-items-center gap-2"
     [attr.aria-expanded]="inactiveOpen()" (click)="toggleInactive()">
     Inactive keys ({{ inactiveKeys().length }})
     <i class="fa-solid fa-caret-down keys-inactive-caret" [class.keys-inactive-caret-open]="inactiveOpen()"></i>
@@ -107,9 +105,13 @@
             <!-- The last characters of the value: the only thing telling a rotated key from its successor. -->
             <td class="keys-table-hint">{{ key.keyHint ? '••••' + key.keyHint : '—' }}</td>
             <td>
-              <span class="keys-status" [class.keys-status-active]="status(key) === 'Active'"
-                [class.keys-status-replaced]="status(key) === 'Replaced'"
-                [class.keys-status-revoked]="status(key) === 'Revoked'">{{ status(key) }}</span>
+              <!-- Replaced = superseded by a rotation: still working through Gravitee's grace period, then expired. -->
+              <span class="badge" [ngClass]="{
+                  'bg-success-subtle text-success-emphasis border border-success-subtle': status(key) === 'Active',
+                  'bg-warning-subtle text-warning-emphasis border border-warning-subtle': status(key) === 'Replaced',
+                  'bg-danger-subtle text-danger-emphasis': status(key) === 'Revoked',
+                  'bg-secondary-subtle text-secondary-emphasis': status(key) === 'Expired'
+                }">{{ status(key) }}</span>
             </td>
             <td>{{ key.lastUsedAt ? (key.lastUsedAt | date:'d/M/yyyy') : 'Never' }}</td>
             <td>{{ key.createdAt | date:'d/M/yyyy' }}</td>
@@ -117,19 +119,20 @@
             <td>{{ key.expiresAt ? (key.expiresAt | date:(key.replacedAt ? 'd/M/yyyy HH:mm' : 'd/M/yyyy')) : 'Never' }}</td>
             <td class="keys-table-actions">
               @if (hasActions(key)) {
-                <div class="keys-menu-anchor">
-                  <button type="button" class="keys-menu-btn" title="Key actions" (click)="toggleMenu(key.id)">
+                <div class="dropdown d-inline-block">
+                  <button type="button" class="btn btn-link btn-sm link-secondary" title="Key actions" aria-haspopup="menu"
+                    [attr.aria-expanded]="openMenuKeyId() === key.id" (click)="toggleMenu(key.id)">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                   </button>
                   @if (openMenuKeyId() === key.id) {
-                    <div class="keys-menu" role="menu">
+                    <div class="dropdown-menu show top-100 end-0 mt-1" role="menu">
                       @if (canRotate(key)) {
-                        <button type="button" class="keys-menu-item" role="menuitem" (click)="rotate(key)">
+                        <button type="button" class="dropdown-item" role="menuitem" (click)="rotate(key)">
                           Rotate
                         </button>
-                        <div class="keys-menu-separator"></div>
+                        <hr class="dropdown-divider">
                       }
-                      <button type="button" class="keys-menu-item keys-menu-item-danger" role="menuitem"
+                      <button type="button" class="dropdown-item text-danger" role="menuitem"
                         (click)="revoke(key)">
                         Revoke
                       </button>

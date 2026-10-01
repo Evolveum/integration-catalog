@@ -145,12 +145,14 @@
                 <h5 class="mb-4">Capabilities</h5>
                 <div class="d-flex flex-wrap gap-2">
                   @for (capability of capabilities(); track capability) {
-                    <span
-                      class="badge filter-badge rounded-pill"
-                      [class.selected]="isCapabilitySelected(capability)"
+                    <button
+                      type="button"
+                      class="btn btn-sm rounded-pill btn-outline-primary"
+                      [class.active]="isCapabilitySelected(capability)"
+                      [attr.aria-pressed]="isCapabilitySelected(capability)"
                       (click)="toggleCapability(capability)">
                       {{ formatCapability(capability) }}
-                    </span>
+                    </button>
                   }
                 </div>
               </div>
@@ -162,12 +164,14 @@
                 <h5 class="mb-4">MidPoint version</h5>
                 <div class="d-flex flex-wrap gap-2">
                   @for (version of midpointVersions(); track version.id) {
-                    <span
-                      class="badge filter-badge rounded-pill"
-                      [class.selected]="isMidpointVersionSelected(version.id)"
+                    <button
+                      type="button"
+                      class="btn btn-sm rounded-pill btn-outline-primary"
+                      [class.active]="isMidpointVersionSelected(version.id)"
+                      [attr.aria-pressed]="isMidpointVersionSelected(version.id)"
                       (click)="toggleMidpointVersion(version.id)">
                       {{ version.version }} — {{ version.versionName }}
-                    </span>
+                    </button>
                   } @empty {
                     <p class="text-muted">No MidPoint versions available</p>
                   }
@@ -181,12 +185,14 @@
                 <h5 class="mb-4">App status</h5>
                 <div class="d-flex flex-wrap gap-2">
                   @for (status of appStatuses; track status.name) {
-                    <span
-                      class="badge filter-badge rounded-pill"
-                      [class.selected]="isAppStatusSelected(status.name)"
+                    <button
+                      type="button"
+                      class="btn btn-sm rounded-pill btn-outline-primary"
+                      [class.active]="isAppStatusSelected(status.name)"
+                      [attr.aria-pressed]="isAppStatusSelected(status.name)"
                       (click)="toggleAppStatus(status.name)">
                       {{ status.displayName }}
-                    </span>
+                    </button>
                   }
                 </div>
               </div>
@@ -198,12 +204,14 @@
                 <h5 class="mb-4">Integration method</h5>
                 <div class="d-flex flex-wrap gap-2">
                   @for (method of integrationMethods(); track method) {
-                    <span
-                      class="badge filter-badge rounded-pill"
-                      [class.selected]="isIntegrationMethodSelected(method)"
+                    <button
+                      type="button"
+                      class="btn btn-sm rounded-pill btn-outline-primary"
+                      [class.active]="isIntegrationMethodSelected(method)"
+                      [attr.aria-pressed]="isIntegrationMethodSelected(method)"
                       (click)="toggleIntegrationMethod(method)">
                       {{ method }}
-                    </span>
+                    </button>
                   }
                 </div>
               </div>
@@ -215,12 +223,14 @@
                 <h5 class="mb-4">Maintainer</h5>
                 <div class="d-flex flex-wrap gap-2">
                   @for (maintainer of maintainers; track maintainer) {
-                    <span
-                      class="badge filter-badge rounded-pill"
-                      [class.selected]="isMaintainerSelected(maintainer)"
+                    <button
+                      type="button"
+                      class="btn btn-sm rounded-pill btn-outline-primary"
+                      [class.active]="isMaintainerSelected(maintainer)"
+                      [attr.aria-pressed]="isMaintainerSelected(maintainer)"
                       (click)="toggleMaintainer(maintainer)">
                       {{ maintainer }}
-                    </span>
+                    </button>
                   }
                 </div>
               </div>

@@ -20,9 +20,9 @@
         <span class="cp-placeholder">Select capabilities</span>
       } @else {
         @for (cap of globalCaps(); track cap) {
-          <span class="badge d-inline-flex align-items-center cp-badge">
+          <span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center">
             {{ fmt(cap) }}
-            <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center cp-remove-btn"
+            <button type="button" class="btn btn-link p-0 ms-2 d-inline-flex align-items-center link-secondary"
                     (click)="removeGlobal(cap, $event)" [disabled]="disabled" aria-label="Remove">
               <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
             </button>
@@ -32,7 +32,7 @@
       <i class="fa-solid fa-caret-down cp-caret" [class.cp-caret-open]="isGlobalOpen()"></i>
     </div>
     @if (isGlobalOpen()) {
-      <div class="position-absolute w-100 bg-white mt-1 cp-dropdown overflow-auto">
+      <div class="dropdown-menu show w-100 mt-1 cp-dropdown overflow-auto">
         @if (isLoading()) {
           <div class="p-4 text-center text-muted">Loading capabilities…</div>
         } @else if (globalAvailable().length === 0) {
@@ -70,7 +70,7 @@
           @if (entry.objectClass) { <div class="cp-oc-card-subtitle">Object class</div> }
         </div>
         @if (i > 0) {
-          <button type="button" class="btn cp-remove-oc-btn" (click)="removeEntry(i)" [disabled]="disabled">
+          <button type="button" class="btn btn-link btn-sm p-0 link-secondary text-decoration-none" (click)="removeEntry(i)" [disabled]="disabled">
             <i class="fa-solid fa-trash-can me-1"></i>Remove
           </button>
         }
@@ -93,9 +93,9 @@
             <span class="cp-placeholder">At least one capability must be selected</span>
           } @else {
             @for (cap of entry.capabilities; track cap) {
-              <span class="badge d-inline-flex align-items-center cp-badge">
+              <span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center">
                 {{ fmt(cap) }}
-                <button type="button" class="btn p-0 ms-2 d-inline-flex align-items-center cp-remove-btn"
+                <button type="button" class="btn btn-link p-0 ms-2 d-inline-flex align-items-center link-secondary"
                         (click)="removeSpecific(i, cap, $event)" [disabled]="disabled" aria-label="Remove">
                   <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
                 </button>
@@ -107,7 +107,7 @@
              [class.cp-caret-disabled]="!entry.objectClass"></i>
         </div>
         @if (entry.isOpen) {
-          <div class="position-absolute w-100 bg-white mt-1 cp-dropdown overflow-auto">
+          <div class="dropdown-menu show w-100 mt-1 cp-dropdown overflow-auto">
             @if (isLoading()) {
               <div class="p-4 text-center text-muted">Loading capabilities…</div>
             } @else if (specificAvailable().length === 0) {
@@ -128,7 +128,7 @@
       </div>
     </div>
   }
-  <button type="button" class="btn cp-add-oc-btn" (click)="addEntry()" [disabled]="disabled">
+  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" (click)="addEntry()" [disabled]="disabled">
     <i class="fa-solid fa-plus me-1"></i>Add another object class
   </button>
 </div>

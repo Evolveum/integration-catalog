@@ -88,9 +88,9 @@
                  (blur)="onMaintainerBlur()"
                  placeholder="Select maintainer...">
           @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
-            <div class="maintainer-dropdown">
+            <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm maintainer-dropdown">
               @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
-                <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                <button type="button" tabindex="-1" class="dropdown-item text-wrap text-break" [class.active]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</button>
               }
             </div>
           }
@@ -169,12 +169,12 @@
           <span class="form-label form-label-upload mb-0">Integration method type:</span>
           @if (methodTypes().length > 0) {
             @for (type of methodTypes(); track type) {
-              <span class="im-method-tag">{{ type }}</span>
+              <span class="badge border text-body bg-body">{{ type }}</span>
             }
           } @else {
             <span class="text-muted" style="font-size:0.875rem;">—</span>
           }
-          <button type="button" class="btn btn-link p-0 ms-1 edit-method-type-btn"
+          <button type="button" class="btn btn-link btn-sm p-0 ms-1 lh-1"
                   (click)="openMethodTypeModal()" aria-label="Edit integration method type">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
@@ -215,12 +215,12 @@
                 <div class="tutorial-file-name-group">
                   @if (entry.isNew) {
                     <span class="tutorial-file-name">{{ entry.name }}</span>
-                    <span class="tutorial-file-new-badge">NEW</span>
+                    <span class="badge text-bg-success flex-shrink-0">NEW</span>
                   } @else {
                     <a class="tutorial-file-name tutorial-file-link" [href]="tutorialFileUrl(entry.name)" target="_blank" rel="noopener">{{ entry.name }}</a>
                   }
                 </div>
-                <button type="button" class="tutorial-file-delete" (click)="removeTutorialFile(i)" aria-label="Remove file">
+                <button type="button" class="btn btn-link btn-sm py-0 px-1 lh-1 link-danger flex-shrink-0" (click)="removeTutorialFile(i)" aria-label="Remove file">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
@@ -233,7 +233,7 @@
       <div class="edit-connectors-section">
         <div class="edit-connectors-header">
           <span class="edit-connectors-title">CONNECTORS</span>
-          <button type="button" class="btn btn-sm edit-add-connector-btn"
+          <button type="button" class="btn btn-outline-primary btn-sm"
                   (click)="openAddConnector()">
             <i class="fa-solid fa-plus me-1"></i>Add new connector
           </button>
@@ -246,26 +246,26 @@
                 <span class="edit-connector-name d-flex align-items-center gap-2">
                   {{ c.connectorDisplayName || c.name }}
                   @if (isObsoleteConnector(c.connectorTags)) {
-                    <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle text-uppercase d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
                   }
                   @if (isConnectorPending(c.connectorId)) {
-                    <span class="edit-connector-pending-badge">Pending</span>
+                    <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis text-uppercase">Pending</span>
                   }
                 </span>
                 <span class="edit-connector-subtitle">v{{ c.version || '—' }} — configured</span>
               </div>
               <div class="d-flex align-items-center gap-3">
-                <button type="button" class="edit-connector-see-compat d-flex align-items-center gap-2"
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center gap-2"
                         (click)="openCompatibility(c)" title="Set up connector compatibility">
                   <i class="fa-solid fa-screwdriver-wrench"></i>Set up compatibility
                 </button>
                 @if (canEditConnector(c)) {
-                  <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center gap-1"
                           (click)="openEditConnector(c)">
                     <i class="fa-solid fa-pencil"></i>Edit
                   </button>
                 }
-                <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
+                <button type="button" class="btn btn-link btn-sm p-0 link-danger text-decoration-none d-flex align-items-center gap-1"
                         (click)="deleteConnector(c)">
                   <i class="fa-solid fa-trash-can"></i>Delete
                 </button>
@@ -279,7 +279,7 @@
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Connector version:</span>
-                <span class="edit-connector-value"><span class="im-version-badge">{{ c.version || '—' }}</span></span>
+                <span class="edit-connector-value"><span class="badge border text-body bg-body">{{ c.version || '—' }}</span></span>
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">License type:</span>
@@ -310,7 +310,7 @@
                         @if (isCapsExpanded(key)) {
                           <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
                             @for (cap of occ.capabilities; track cap) {
-                              <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                              <span class="badge bg-primary-subtle text-primary-emphasis fw-semibold">{{ formatCapabilityText(cap) }}</span>
                             }
                           </div>
                         }
@@ -382,11 +382,11 @@
               <span class="edit-connector-name d-flex align-items-center gap-2">
                 {{ sc.displayName || 'New connector' }}
                 @if (isObsoleteConnector(sc.tags)) {
-                  <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle text-uppercase d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
                 }
-                <span class="edit-connector-pending-badge">Pending</span>
+                <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis text-uppercase">Pending</span>
               </span>
-              <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
+              <button type="button" class="btn btn-link btn-sm p-0 link-danger text-decoration-none d-flex align-items-center gap-1"
                       (click)="removeStagedConnector(si)">
                 <i class="fa-solid fa-trash-can"></i>Remove
               </button>
@@ -394,7 +394,7 @@
             <div class="edit-connector-details">
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Connector version:</span>
-                <span class="edit-connector-value"><span class="im-version-badge">{{ sc.version || '—' }}</span></span>
+                <span class="edit-connector-value"><span class="badge border text-body bg-body">{{ sc.version || '—' }}</span></span>
               </div>
               @if (sc.maintainer) {
                 <div class="edit-connector-row">
@@ -446,18 +446,18 @@
 
       <!-- Footer actions -->
       <div class="edit-footer">
-        <button type="button" class="btn btn-link edit-cancel-btn" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" (click)="cancel()">Cancel</button>
         <div class="d-flex align-items-center gap-2">
           @if (suggestsNewVersionForConnectorChange()) {
             <span class="edit-save-hint text-muted me-1"></span>
           } @else if (hasPendingConnectorChanges()) {
             <span class="edit-save-hint text-muted me-1">You have unsaved connector changes</span>
           }
-          <button type="button" class="btn edit-save-btn"
+          <button type="button" class="btn btn-outline-primary btn-sm"
                   [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()"
                   (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
           @if (!isDraftState()) {
-            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()" (click)="saveAsNewVersion()">
+            <button type="button" class="btn btn-primary btn-sm" [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()" (click)="saveAsNewVersion()">
               <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
             </button>
           }
@@ -498,17 +498,15 @@
             <i class="fa-solid fa-triangle-exclamation cancel-confirm-icon"></i>
             <span class="cancel-confirm-title">Delete connector?</span>
           </div>
-          <button type="button" class="btn p-0 cancel-confirm-close" (click)="cancelDeleteConnector()" aria-label="Close">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button type="button" class="btn-close" (click)="cancelDeleteConnector()" aria-label="Close"></button>
         </div>
         <div class="cancel-confirm-body">
           Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? This action cannot be undone.
         </div>
         <hr class="cancel-confirm-separator">
         <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
-          <button type="button" class="btn cancel-keep-btn" (click)="cancelDeleteConnector()">Cancel</button>
-          <button type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmDeleteConnector()">
+          <button type="button" class="btn btn-link text-decoration-none" (click)="cancelDeleteConnector()">Cancel</button>
+          <button type="button" class="btn btn-danger d-inline-flex align-items-center gap-2" (click)="confirmDeleteConnector()">
             <i class="fa-solid fa-trash-can"></i>Delete
           </button>
         </div>
@@ -549,9 +547,7 @@
       <div class="compat-modal-dialog" (click)="$event.stopPropagation()">
         <div class="compat-modal-header d-flex align-items-center justify-content-between">
           <span class="compat-modal-title">Set up connector compatibility</span>
-          <button type="button" class="btn p-0 compat-modal-close" (click)="closeCompatibility()" aria-label="Close">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button type="button" class="btn-close" (click)="closeCompatibility()" aria-label="Close"></button>
         </div>
 
         <div class="compat-modal-body">
@@ -606,16 +602,14 @@
                 Do not specify a <em>To version</em> if you expect your integration method will be compatible
                 with future releases of the connector.
               </span>
-              <button type="button" class="btn p-0 compat-modal-note-close" (click)="compatInfoDismissed.set(true)" aria-label="Dismiss">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
+              <button type="button" class="btn-close flex-shrink-0" (click)="compatInfoDismissed.set(true)" aria-label="Dismiss"></button>
             </div>
           }
         </div>
 
         <div class="compat-modal-footer d-flex justify-content-between align-items-center">
-          <button type="button" class="btn compat-modal-close-link" (click)="closeCompatibility()">Close</button>
-          <button type="button" class="btn compat-modal-apply-btn"
+          <button type="button" class="btn btn-link text-decoration-none" (click)="closeCompatibility()">Close</button>
+          <button type="button" class="btn btn-primary"
                   [disabled]="!isCompatValid() || compatSaving()"
                   (click)="applyCompatibility()">
             @if (compatSaving()) {

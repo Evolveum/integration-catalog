@@ -12,29 +12,8 @@
 }
 
 .maintainer-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1050;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
   max-height: calc(8 * 2.375rem);
   overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.maintainer-option {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #e9ecef;
-  }
 }
 
 /* Radio button styling for connector options */
@@ -140,19 +119,6 @@
   color: $color-gray-secondary;
 }
 
-.clear-search-btn {
-  background: none;
-  border: none;
-  border-left: 1px solid $color-border-input;
-  padding: 0.375rem 0.75rem;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.clear-search-btn:hover {
-  opacity: 0.7;
-}
-
 /* Page Styles */
 .publish-page {
   display: block;
@@ -185,20 +151,6 @@
   font-size: 0.9375rem;
   font-weight: 600;
   color: $color-text-dark;
-}
-
-.sbs-close-btn {
-  background: none;
-  border: 1px solid $color-border-input;
-  border-radius: 4px;
-  padding: 4px 14px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  color: $color-text-dark;
-
-  &:hover {
-    background: $color-bg-hover;
-  }
 }
 
 .sbs-modal-body {
@@ -332,18 +284,6 @@
   line-height: 1.5;
 }
 
-/* Step 3 – method type badges */
-.method-type-badge {
-  display: inline-block;
-  background-color: $color-bg-light;
-  color: $color-text-dark;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid $color-border-input;
-}
-
 .method-type-separator {
   font-size: 0.8125rem;
   font-weight: 500;
@@ -382,20 +322,6 @@
   opacity: 0.55;
   cursor: not-allowed;
   pointer-events: none;
-}
-
-.connector-coming-soon-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid #d5d7da;
-  background-color: #fafbfc;
-  color: #525151;
-  margin-left: 0.5rem;
-  vertical-align: middle;
 }
 
 .radio-input {
@@ -546,28 +472,6 @@
   margin-top: 0.25rem;
 }
 
-/* Footer Buttons */
-.btn-back {
-  color: $color-brand-steel;
-  background: none;
-  border: none;
-  padding: 0.375rem 0.75rem;
-  font-weight: 600;
-}
-
-.btn-back-icon {
-  font-size: 12px;
-}
-
-.btn-next {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
-}
-
-.btn-next-icon {
-  font-size: 12px;
-}
-
 /* Define New Modal Overlay */
 .define-new-overlay {
   position: fixed;
@@ -617,17 +521,6 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid $color-border-light;
   flex-shrink: 0;
-}
-
-.define-new-cancel-btn {
-  color: $color-brand-steel;
-  font-weight: 600;
-  padding: 0;
-  text-decoration: none;
-
-  &:hover {
-    color: $color-text-dark;
-  }
 }
 
 /* Connector Catalog Modal */
@@ -697,10 +590,6 @@
     font-size: 18px;
     color: $color-text-dark;
   }
-
-  .clear-search-btn {
-    border-left: none;
-  }
 }
 
 .cc-modal-body {
@@ -752,20 +641,6 @@
   overflow-wrap: anywhere;
 }
 
-.cc-obsolete-tag {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  background-color: #fff3cd;
-  color: #7a4f00;
-  border: 1px solid #f5e2b8;
-  font-size: 0.75rem;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
 .cc-connector-desc {
   font-size: 0.8125rem;
   color: $color-text-secondary;
@@ -781,13 +656,6 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid $color-border-light;
   flex-shrink: 0;
-}
-
-.btn-link-inline {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
 }
 
 /* Main layout: step sidebar + content side by side */
@@ -962,12 +830,6 @@
   color: $color-text-dark;
   word-break: break-word;
   line-height: 1.2;
-}
-
-/* Origin Badge */
-.origin-badge-added {
-  background-color: rgba($color-darker-blue, 0.1);
-  color: $color-black;
 }
 
 /* Integration Method Cards (Step 2) */
@@ -1185,47 +1047,12 @@
   color: $color-text-dark;
 }
 
-.tutorial-file-new-badge {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  background-color: $color-success;
-  color: $color-white;
-  border-radius: 4px;
-  padding: 1px 6px;
-  flex-shrink: 0;
-}
-
-.tutorial-file-delete {
-  background: none;
-  border: none;
-  padding: 0 0.25rem;
-  cursor: pointer;
-  color: #dc3545;
-  font-size: 0.875rem;
-  flex-shrink: 0;
-  line-height: 1;
-
-  &:hover {
-    opacity: 0.7;
-  }
-}
-
 /* Step 4 – existing connectors link */
 .connector-existing-link {
   font-size: 0.875rem;
   color: $color-text-secondary;
   text-align: center;
   margin-top: 1.5rem;
-}
-
-.connector-existing-anchor {
-  color: $color-brand-steel;
-  font-weight: 500;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
 .connector-existing-icon {
@@ -1253,40 +1080,8 @@
 }
 
 .category-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1060;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
   max-height: 12rem;
   overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.category-option {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #e9ecef;
-  }
-
-  &.category-option-selected {
-    background-color: $color-bg-selected;
-  }
-}
-
-/* Define New Button */
-.btn-define-new {
-  background-color: $color-bg-muted;
-  border: 1px solid $color-border-input;
-  color: $color-text-dark;
 }
 
 // Shown when a search box holds a single character: prompts for at least 2.

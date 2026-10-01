@@ -54,27 +54,3 @@
   padding: 1rem 1.5rem;
   border-top: 1px solid #eceef1;
 }
-
-.session-expired-cancel {
-  border: none;
-  background: none;
-  color: #1f2733;
-  font-weight: 500;
-  padding: 0;
-
-  &:hover { text-decoration: underline; }
-}
-
-.session-expired-confirm {
-  background: $color-brand-steel;
-  border: 1px solid $color-brand-steel;
-  color: #fff;
-  font-weight: 600;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
-
-  &:hover {
-    background: $color-brand-navy;
-    border-color: $color-brand-navy;
-  }
-}

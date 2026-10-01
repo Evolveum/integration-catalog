@@ -15,7 +15,7 @@
         (input)="onSearchInput($event)"
         placeholder="Search applications…"
         aria-label="Search" />
-      <button (click)="search()">Search</button>
+      <button class="btn btn-primary" (click)="search()">Search</button>
     </div>
   </div>
 </section>
@@ -37,8 +37,8 @@
   </div>
 
   <div class="pager d-flex gap-3 align-items-center justify-content-center" *ngIf="totalPages() > 1">
-    <button (click)="prev()" [disabled]="page() === 0">Prev</button>
+    <button class="btn btn-outline-secondary" (click)="prev()" [disabled]="page() === 0">Prev</button>
     <span>Page {{ page() + 1 }} / {{ totalPages() }}</span>
-    <button (click)="next()" [disabled]="page() + 1 >= totalPages()">Next</button>
+    <button class="btn btn-outline-secondary" (click)="next()" [disabled]="page() + 1 >= totalPages()">Next</button>
   </div>
 </section>

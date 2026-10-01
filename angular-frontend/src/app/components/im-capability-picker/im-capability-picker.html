@@ -30,7 +30,7 @@
             </span>
           }
           @if (entries().length > 1) {
-            <button type="button" class="btn imcp-remove-btn" title="Remove object" aria-label="Remove object"
+            <button type="button" class="btn btn-link p-0 link-secondary" title="Remove object" aria-label="Remove object"
                     (click)="$event.stopPropagation(); removeEntry(i)">
               <i class="fa-solid fa-trash-can"></i>
             </button>
@@ -59,10 +59,11 @@
                   @let state = stateOf(entry, cap);
                   <div class="imcp-cap">
                     <span class="imcp-cap-name">{{ fmt(cap) }}</span>
-                    <div class="imcp-toggle" role="group" [attr.aria-label]="fmt(cap)">
+                    <div class="btn-group btn-group-sm flex-shrink-0" role="group" [attr.aria-label]="fmt(cap)">
                       @for (opt of stateOptions; track opt.value) {
-                        <button type="button" class="imcp-toggle-btn" [ngClass]="'imcp-toggle-' + opt.value.toLowerCase()"
-                                [class.imcp-toggle-active]="state === opt.value"
+                        <button type="button" class="btn"
+                                [ngClass]="opt.value === 'YES' ? 'btn-outline-success' : opt.value === 'NO' ? 'btn-outline-danger' : 'btn-outline-secondary'"
+                                [class.active]="state === opt.value"
                                 [attr.aria-pressed]="state === opt.value"
                                 [title]="opt.label" [attr.aria-label]="opt.label"
                                 [disabled]="!entry.objectClass"
@@ -84,7 +85,7 @@
     }
   </div>
 
-  <button type="button" class="btn imcp-add-btn" (click)="addEntry()">
+  <button type="button" class="btn btn-link btn-sm p-0 mt-3 text-decoration-none" (click)="addEntry()">
     <i class="fa-solid fa-circle-plus me-2"></i>Add object
   </button>
 </div>

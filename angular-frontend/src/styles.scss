@@ -11,39 +11,14 @@
 @import '@fontsource-variable/roboto/index.css';
 @import '@fontsource-variable/roboto/wght-italic.css';
 
-/* Bootstrap derives body, buttons and form controls from this custom property,
-   so overriding it here is enough to move the whole UI onto Roboto. */
-:root {
-  --bs-body-font-family: 'Roboto Variable', Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
-}
-
-body {
-  font-family: var(--bs-body-font-family);
-}
-
 html {
   scrollbar-gutter: stable;
 }
 
 
-/* Global radio button styling */
+/* Native radios outside .form-check-input; Bootstrap's own take $primary. */
 input[type="radio"] {
   accent-color: $color-brand-steel !important;
-}
-
-/* Bootstrap radio button checked state */
-.form-check-input[type="radio"]:checked {
-  background-color: $color-brand-steel !important;
-  border-color: $color-brand-steel !important;
-}
-
-/* Remove Bootstrap blue focus highlight from all form elements */
-.form-control:focus,
-.form-select:focus,
-.form-check-input:focus {
-  border-color: #dee2e6;
-  box-shadow: none;
-  outline: 0;
 }
 
 /* Markdown rendered through the markdown pipe. Global: [innerHTML] content gets no component

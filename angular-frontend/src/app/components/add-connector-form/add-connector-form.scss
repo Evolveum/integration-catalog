@@ -57,24 +57,6 @@
   color: $color-gray-secondary;
 }
 
-/* "How to find it →" helper link under Commit hash */
-.commit-help-link {
-  color: $color-brand-steel;
-  text-decoration: none;
-  font-weight: 500;
-  white-space: nowrap;
-  background: none;
-  padding: 0;
-  border: 0;
-  /* Single continuous underline across text + icon at one level (avoids the
-     uneven per-glyph underline that text-decoration produces on the flex link). */
-  border-bottom: 1px solid transparent;
-
-  &:hover { border-bottom-color: currentColor; }
-
-  i { font-size: 0.75rem; }
-}
-
 /* ── Info icon (native title tooltip) ──────────────────── */
 .btn-info-icon {
   border: none;
@@ -115,16 +97,6 @@
   pointer-events: none;
 }
 
-.connector-coming-soon-badge {
-  display: inline-block;
-  font-size: 0.7rem; font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 2px 8px; border-radius: 4px;
-  border: 1px solid #d5d7da;
-  background-color: #fafbfc; color: #525151;
-  margin-left: 0.5rem; vertical-align: middle;
-}
-
 .radio-input { width: 20px; height: 20px; cursor: pointer; }
 
 .connector-title { font-weight: 600; font-size: 0.9375rem; }
@@ -138,14 +110,7 @@
   margin-top: 1.5rem;
 }
 
-.connector-existing-anchor {
-  color: $color-brand-steel; font-weight: 500; text-decoration: none;
-  &:hover { text-decoration: underline; }
-}
-
 .connector-existing-icon { font-size: 0.75rem; margin-left: 2px; }
-
-.btn-link-inline { background: none; border: none; padding: 0; cursor: pointer; }
 
 /* ── Accordion panels ───────────────────────────────────── */
 .accordion-panel {
@@ -233,20 +198,7 @@
 .license-select-trigger { cursor: pointer; user-select: none; }
 .license-placeholder { color: $color-gray-secondary; }
 
-.license-dropdown {
-  position: absolute; top: 100%; left: 0; right: 0;
-  z-index: 1050; background: #fff;
-  border: 1px solid #dee2e6; border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-  max-height: calc(4 * 2.375rem); overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0,0,0,.1);
-}
-
-.license-option {
-  padding: 0.5rem 0.75rem; cursor: pointer; font-size: 1rem; color: #212529;
-  &:hover { background-color: #e9ecef; }
-  &.license-option-selected { background-color: $color-bg-selected; }
-}
+.license-dropdown { max-height: calc(4 * 2.375rem); overflow-y: auto; }
 
 /* ── Maintainer combobox ────────────────────────────────── */
 .maintainer-combobox {
@@ -256,19 +208,7 @@
   }
 }
 
-.maintainer-dropdown {
-  position: absolute; top: 100%; left: 0; right: 0;
-  z-index: 1050; background: #fff;
-  border: 1px solid #dee2e6; border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-  max-height: calc(8 * 2.375rem); overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0,0,0,.1);
-}
-
-.maintainer-option {
-  padding: 0.5rem 0.75rem; cursor: pointer; font-size: 1rem; color: #212529;
-  &:hover { background-color: #e9ecef; }
-}
+.maintainer-dropdown { max-height: calc(8 * 2.375rem); overflow-y: auto; }
 
 /* ── Alert info note ────────────────────────────────────── */
 .alert-info-note {
@@ -310,16 +250,6 @@
 
 .compat-connector-version {
   font-size: 0.8125rem; color: $color-text-secondary; margin-top: 2px;
-}
-
-.compat-badge {
-  display: inline-block;
-  font-size: 0.75rem; font-weight: 500;
-  color: $color-text-secondary;
-  background: $color-bg-muted;
-  border: 1px solid $color-border-light;
-  border-radius: 4px; padding: 0.15rem 0.5rem;
-  white-space: nowrap;
 }
 
 .compat-range-label {
@@ -364,22 +294,6 @@
   padding: 0 1.5rem;
   text-align: right;
 }
-
-.ac-btn-back {
-  color: $color-brand-steel;
-  background: none; border: none;
-  padding: 0.375rem 0.75rem; font-weight: 600;
-  &:hover { color: $color-brand-steel; }
-}
-
-.ac-btn-next {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
-  &:hover { background-color: $color-brand-navy; border-color: $color-brand-navy; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-
-.ac-btn-icon { font-size: 12px; }
 
 /* ── Catalog connector modal ────────────────────────────── */
 .cc-overlay {
@@ -432,11 +346,6 @@
 
 .cc-connector-info { flex: 1; min-width: 0; }
 .cc-connector-name { font-weight: 600; font-size: 0.9375rem; color: $color-text-dark; overflow-wrap: anywhere; }
-.cc-obsolete-tag {
-  display: inline-flex; align-items: center; margin-left: 0.5rem; padding: 0.1rem 0.5rem;
-  border-radius: 999px; background-color: #fff3cd; color: #7a4f00; border: 1px solid #f5e2b8;
-  font-size: 0.75rem; font-weight: 600; vertical-align: middle;
-}
 .cc-connector-desc {
   font-size: 0.8125rem; color: $color-text-secondary; margin-top: 0.25rem;
   display: -webkit-box; -webkit-line-clamp: 2;
@@ -445,11 +354,6 @@
 
 .cc-modal-footer {
   padding: 1rem 1.5rem; border-top: 1px solid $color-border-light; flex-shrink: 0;
-}
-
-.define-new-cancel-btn {
-  color: $color-brand-steel; font-weight: 600; padding: 0; text-decoration: none;
-  &:hover { color: $color-text-dark; }
 }
 
 /* ── Catalog search input ───────────────────────────────── */
@@ -464,13 +368,6 @@
   border: none; outline: none;
   padding: 0.375rem 0.75rem; font-size: 1rem; background: transparent;
   &::placeholder { color: $color-gray-secondary; }
-}
-
-.clear-search-btn {
-  background: none; border: none;
-  border-left: 1px solid $color-border-input;
-  padding: 0.375rem 0.75rem; cursor: pointer;
-  &:hover { opacity: 0.7; }
 }
 
 .search-icon  { font-size: 14px; color: $color-gray-secondary; }

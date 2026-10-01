@@ -74,7 +74,7 @@
             <div class="flex-grow-1">
               <div class="connector-title mb-1">
                 Low-code connector without repository
-                <span class="connector-coming-soon-badge"><i class="fa-regular fa-clock"></i> Coming soon</span>
+                <span class="badge bg-body-tertiary text-secondary border d-inline-flex align-items-center gap-1 ms-2 align-middle"><i class="fa-regular fa-clock"></i> Coming soon</span>
               </div>
               <div class="connector-description">
                 Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
@@ -86,7 +86,7 @@
         <!-- Existing connector link -->
         <div class="connector-existing-link">
           Do you want to use an existing connector?
-          <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openCatalogModal()">
+          <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none" (click)="openCatalogModal()">
             Select one from the catalog.
           </button>
         </div>
@@ -165,9 +165,9 @@
                          [disabled]="isExistingConnector"
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
-                    <div class="maintainer-dropdown">
+                    <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm maintainer-dropdown">
                       @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
-                        <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                        <button type="button" tabindex="-1" class="dropdown-item text-wrap text-break" [class.active]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</button>
                       }
                     </div>
                   }
@@ -194,11 +194,11 @@
                     {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
                   @if (isLicenseDropdownOpen()) {
-                    <div class="license-dropdown">
+                    <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm license-dropdown">
                       @for (opt of licenseOptions; track opt) {
-                        <div class="license-option"
-                             [class.license-option-selected]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                        <button type="button" tabindex="-1" class="dropdown-item"
+                             [class.active]="connectorLicense() === opt"
+                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</button>
                       }
                     </div>
                   }
@@ -349,7 +349,7 @@
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
-                  <button type="button" class="commit-help-link d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-nowrap d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
                     How to find it <i class="fa-solid fa-arrow-right"></i>
                   </button>
                 </div>
@@ -422,23 +422,23 @@
       </div>
     }
     <div class="ac-footer-inner">
-    <button type="button" class="btn d-flex align-items-center ac-btn-back" (click)="back()">
-      <i class="fa-solid fa-arrow-left me-2 ac-btn-icon"></i>Back
+    <button type="button" class="btn btn-link text-decoration-none d-inline-flex align-items-center gap-2" (click)="back()">
+      <i class="fa-solid fa-arrow-left"></i>Back
     </button>
     <div>
       @if (step() === 1) {
-        <button type="button" class="btn btn-primary ac-btn-next" (click)="step.set(2)">
-          Continue <i class="fa-solid fa-arrow-right ms-2 ac-btn-icon"></i>
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="step.set(2)">
+          Continue <i class="fa-solid fa-arrow-right"></i>
         </button>
       }
       @if (step() === 2) {
-        <button type="button" class="btn btn-primary ac-btn-next"
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
                 [disabled]="!isStep2Valid() || isSaving()"
                 (click)="save()">
           @if (isSaving()) {
-            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Saving...
           } @else {
-            Add connector <i class="fa-solid fa-arrow-right ms-2 ac-btn-icon"></i>
+            Add connector <i class="fa-solid fa-arrow-right"></i>
           }
         </button>
       }
@@ -472,7 +472,7 @@
                    (input)="catalogSearch.set($any($event.target).value)"
                    placeholder="Search connector">
             @if (catalogSearch()) {
-              <button class="clear-search-btn d-flex align-items-center" type="button"
+              <button class="btn btn-link link-secondary d-flex align-items-center" type="button"
                       (click)="catalogSearch.set('')">
                 <i class="fa-solid fa-xmark clear-icon"></i>
               </button>
@@ -504,7 +504,7 @@
                 <div class="cc-connector-name">
                   {{ connector.displayName }}
                   @if (isObsoleteConnector(connector.tags)) {
-                    <span class="cc-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1 ms-2 align-middle"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
                   }
                 </div>
                 @if (connector.description) {
@@ -517,11 +517,11 @@
       </div>
 
       <div class="cc-modal-footer d-flex justify-content-end align-items-center gap-3">
-        <button type="button" class="btn define-new-cancel-btn" (click)="closeCatalogModal()">Cancel</button>
-        <button type="button" class="btn btn-primary ac-btn-next"
+        <button type="button" class="btn btn-link p-0 text-decoration-none" (click)="closeCatalogModal()">Cancel</button>
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
                 [disabled]="!pendingCatalogConnector()"
                 (click)="confirmCatalogSelection()">
-          Continue <i class="fa-solid fa-arrow-right ms-2 ac-btn-icon"></i>
+          Continue <i class="fa-solid fa-arrow-right"></i>
         </button>
       </div>
 

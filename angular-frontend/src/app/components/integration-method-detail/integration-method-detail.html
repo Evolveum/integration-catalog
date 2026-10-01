@@ -42,19 +42,19 @@
       <div class="view-page-title-row d-flex align-items-center flex-wrap gap-3">
         <h2 class="view-page-title">{{ methodName() }}</h2>
         @if (supportTier(); as tier) {
-          <span class="im-tier-badge" [class]="'tier-' + tier.toLowerCase()">{{ supportTierLabel(tier) }}</span>
+          <span class="badge border" [class]="supportTierClasses(tier)">{{ supportTierLabel(tier) }}</span>
         }
       </div>
 
       @if (isInReview() || isReviewing()) {
         <div class="review-meta d-flex align-items-center flex-wrap gap-3 mb-4">
           @if (isInReview()) {
-            <span class="badge review-badge-awaiting d-inline-flex align-items-center">
-              <i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval
+            <span class="badge bg-warning-subtle text-warning-emphasis d-inline-flex align-items-center gap-1">
+              <i class="fa-solid fa-triangle-exclamation"></i>Awaiting approval
             </span>
           } @else {
-            <span class="badge review-badge-reviewing d-inline-flex align-items-center">
-              <i class="fa-solid fa-lock me-1"></i>Under review
+            <span class="badge rounded-pill bg-info-subtle text-info-emphasis d-inline-flex align-items-center gap-1">
+              <i class="fa-solid fa-lock"></i>Under review
             </span>
           }
           <span class="review-meta-item d-inline-flex align-items-center">
@@ -122,10 +122,10 @@
       <div class="mb-4">
         <label class="view-section-label">Capabilities</label>
         @if (specificCapabilities().length > 0) {
-          <div class="caps-tabs d-flex flex-wrap gap-2 mb-2" role="tablist">
+          <div class="nav nav-pills flex-wrap gap-2 mb-2" role="tablist">
             @for (occ of specificCapabilities(); track occ.objectClass) {
-              <button type="button" class="caps-tab" role="tab"
-                      [class.caps-tab-active]="occ.objectClass === selectedCapsObject()"
+              <button type="button" class="nav-link rounded-pill py-1 px-3 small text-break" role="tab"
+                      [class.active]="occ.objectClass === selectedCapsObject()"
                       [attr.aria-selected]="occ.objectClass === selectedCapsObject()"
                       (click)="selectedCapsObject.set(occ.objectClass)">{{ occ.objectClass }}</button>
             }
@@ -135,8 +135,8 @@
               @let st = capabilityStates[cap.state];
               <div class="caps-card">
                 <span class="caps-card-name">{{ formatCapabilityText(cap.name) }}</span>
-                <span class="caps-state" [ngClass]="'caps-state-' + cap.state.toLowerCase()">
-                  <i class="fa-regular me-1" [ngClass]="st.icon"></i>{{ st.label }}
+                <span class="badge rounded-pill flex-shrink-0 d-inline-flex align-items-center gap-1" [ngClass]="st.badgeClasses">
+                  <i class="fa-regular" [ngClass]="st.icon"></i>{{ st.label }}
                 </span>
               </div>
             }
@@ -186,10 +186,10 @@
               <span class="view-connector-name">
                 {{ c.connectorDisplayName || c.name }}
                 @if (isObsoleteConnector(c.connectorTags)) {
-                  <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2 align-middle d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
                 }
               </span>
-              <button type="button" class="view-connector-see-compat d-flex align-items-center gap-2"
+              <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center gap-2"
                       (click)="openCompatibility(c)" title="See connector compatibility">
                 <i class="fa-regular fa-eye"></i>See compatibility
               </button>
@@ -209,7 +209,7 @@
                 </div>
                 <div class="view-connector-row">
                   <span class="view-connector-label">Connector version:</span>
-                  <span class="view-connector-value"><span class="im-version-badge">{{ c.version || '—' }}</span></span>
+                  <span class="view-connector-value"><span class="badge border text-body bg-body">{{ c.version || '—' }}</span></span>
                 </div>
                 @if (hasDuplicateVersion(c)) {
                   <div class="version-exists-warning d-flex align-items-start gap-2">
@@ -248,7 +248,7 @@
                           @if (isCapsExpanded(key)) {
                             <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
                               @for (cap of occ.capabilities; track cap) {
-                                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
+                                <span class="badge bg-primary-subtle text-primary-emphasis fw-semibold">{{ formatCapabilityText(cap) }}</span>
                               }
                             </div>
                           }
@@ -367,24 +367,24 @@
 
       <!-- Footer: Back (left) + method actions (right) -->
       <div class="view-footer d-flex align-items-center justify-content-between">
-        <button type="button" class="btn view-back-btn d-flex align-items-center gap-2" (click)="goBack()">
+        <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" (click)="goBack()">
           <i class="fa-solid fa-arrow-left"></i>Back
         </button>
         @if (isActive()) {
           <div class="d-flex align-items-center gap-2">
             @if (canEdit()) {
-              <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
+              <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" (click)="editAndUpgrade()">
                 <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
               </button>
             }
-            <button type="button" class="btn view-download-btn d-flex align-items-center gap-2" (click)="downloadConnector()">
+            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2" (click)="downloadConnector()">
               <i class="fa-solid fa-download"></i>Download
             </button>
           </div>
         } @else if (isInReview() && isSuperuser()) {
           <!-- Superuser starts the review here; this replaces the immediate approve/reject. -->
           <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn view-start-review-btn d-flex align-items-center gap-2"
+            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2"
                     (click)="openStartReview()">
               <i class="fa-solid fa-play"></i>Start review
             </button>
@@ -393,19 +393,19 @@
           <div class="d-flex align-items-center gap-3">
             <!-- The reviewer may fix findings directly while the revision is under review
                  (the edit lock only applies to non-superusers). -->
-            <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2"
+            <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2"
                     (click)="editAndUpgrade()">
               <i class="fa-solid fa-pen-to-square"></i>Edit
             </button>
-            <button type="button" class="btn btn-outline-danger border-0 d-flex align-items-center gap-2"
+            <button type="button" class="btn btn-outline-danger btn-sm border-0 d-inline-flex align-items-center gap-2"
                     (click)="openRejectConfirm()">
               <i class="fa-solid fa-xmark"></i>Reject
             </button>
-            <button type="button" class="btn view-stop-review-btn d-flex align-items-center gap-2"
+            <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2"
                     [disabled]="isProcessingStopReview()" (click)="stopReview()">
               <i class="fa-solid fa-stop"></i>Stop review
             </button>
-            <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2"
+            <button type="button" class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-2"
                     (click)="openApproveConfirm()">
               <i class="fa-solid fa-check"></i>Approve
             </button>
@@ -423,9 +423,7 @@
       <div class="compat-modal-dialog" (click)="$event.stopPropagation()">
         <div class="compat-modal-header d-flex align-items-center justify-content-between">
           <span class="compat-modal-title">Connector compatibility</span>
-          <button type="button" class="btn p-0 compat-modal-close" (click)="closeCompatibility()" aria-label="Close">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button type="button" class="btn-close" (click)="closeCompatibility()" aria-label="Close"></button>
         </div>
 
         <div class="compat-modal-body">
@@ -458,7 +456,7 @@
         </div>
 
         <div class="compat-modal-footer d-flex justify-content-center align-items-center">
-          <button type="button" class="btn compat-modal-close-link" (click)="closeCompatibility()">Close</button>
+          <button type="button" class="btn btn-link text-decoration-none" (click)="closeCompatibility()">Close</button>
         </div>
       </div>
     </div>

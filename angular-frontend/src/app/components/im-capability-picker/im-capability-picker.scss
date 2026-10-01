@@ -127,15 +127,6 @@ $state-no-bg: #f8d7da;
 .imcp-state-no      { color: $state-no; background: $state-no-bg; }
 .imcp-state-unknown { color: $color-text-secondary; background: $color-bg-muted; }
 
-.imcp-remove-btn {
-  padding: 0.1rem 0.35rem;
-  border: none;
-  background: none;
-  color: $color-text-secondary;
-
-  &:hover { color: $state-no; }
-}
-
 .imcp-object-body {
   padding: 0 1rem 1rem;
 }
@@ -179,54 +170,10 @@ $state-no-bg: #f8d7da;
   overflow-wrap: anywhere;
 }
 
-.imcp-toggle {
-  display: inline-flex;
-  flex-shrink: 0;
-  border: 1px solid $color-border-light;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.imcp-toggle-btn {
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  font-size: 0.8rem;
-  color: $color-text-dark;
-  background: $color-white;
-  border: none;
-  cursor: pointer;
-
-  & + & { border-left: 1px solid $color-border-light; }
-
-  &:hover:not(:disabled):not(.imcp-toggle-active) { background: $color-bg-hover; }
-
-  &:disabled {
-    color: $color-text-light;
-    cursor: not-allowed;
-  }
-}
-
-.imcp-toggle-yes.imcp-toggle-active     { color: $state-yes; background: $state-yes-bg; }
-.imcp-toggle-no.imcp-toggle-active      { color: $state-no; background: $state-no-bg; }
-.imcp-toggle-unknown.imcp-toggle-active { color: $color-text-dark; background: $color-bg-muted; }
-
 .imcp-hint {
   margin-top: 0.4rem;
   font-size: 12px;
   color: #bb2d3b;
-}
-
-.imcp-add-btn {
-  margin-top: 0.75rem;
-  padding: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: $color-brand-steel;
-  background: none;
-  border: none;
-
-  &:hover { text-decoration: underline; }
 }
 
 @media (max-width: 991.98px) {

@@ -75,18 +75,6 @@
   margin-bottom: 0;
 }
 
-/* Support tier chip, same colors as on the application detail. */
-.im-tier-badge {
-  font-size: 0.85rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0.15rem 0.6rem;
-}
-
-.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
-.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
-.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
 
 /* ========================================
    IN-REVIEW CONTEXT (banner + submission meta)
@@ -120,20 +108,6 @@
   margin: 0.25rem 0 0.5rem;
 }
 
-.connector-obsolete-tag {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  background-color: #fff3cd;
-  color: #7a4f00;
-  border: 1px solid #f5e2b8;
-  font-size: 0.75rem;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
 .version-exists-warning-icon {
   color: #d9a300;
   margin-top: 0.15rem;
@@ -161,25 +135,6 @@
 .review-meta {
   margin-top: -0.5rem;
   font-size: 0.875rem;
-}
-
-.review-badge-awaiting {
-  background-color: #fff3cd;
-  color: #7a4f00;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.3rem 0.55rem;
-  border-radius: 4px;
-}
-
-/* Cyan pill for the locked REVIEWING state (see info-reviewing.jpg). */
-.review-badge-reviewing {
-  background-color: #d1f0f5;
-  color: #0c5460;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.3rem 0.55rem;
-  border-radius: 999px;
 }
 
 /* Vertical divider before each meta item (badge | date | submitted-by). */
@@ -248,28 +203,6 @@
 }
 
 /* Capabilities: object-class tabs over a grid of capability cards */
-.caps-tab {
-  padding: 0.2rem 0.85rem;
-  font-size: 0.8rem;
-  color: #495057;
-  background: #ffffff;
-  border: 1px solid #ced4da;
-  border-radius: 999px;
-  cursor: pointer;
-  overflow-wrap: anywhere;
-
-  &:hover {
-    background: #f8f9fa;
-  }
-}
-
-.caps-tab-active,
-.caps-tab-active:hover {
-  color: #0a4b8c;
-  background: #e7f1ff;
-  border-color: #0a4b8c;
-}
-
 .caps-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -292,57 +225,12 @@
   overflow-wrap: anywhere;
 }
 
-.caps-state {
-  flex-shrink: 0;
-  padding: 0.1rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.caps-state-yes     { color: #146c43; background: #d1e7dd; }
-.caps-state-no      { color: #b02a37; background: #f8d7da; }
-.caps-state-unknown { color: #495057; background: #ffffff; border: 1px solid #dee2e6; }
-
 @media (max-width: 991.98px) {
   .caps-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 575.98px) {
   .caps-grid { grid-template-columns: 1fr; }
-}
-
-.im-method-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: #495057;
-  border-radius: 4px;
-  padding: 0.2rem 0.6rem;
-  background: #f1f3f5;
-}
-
-/* Version badge — matches the "v1" badge design used in application-detail */
-.im-version-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: $color-black;
-  border: 1px solid $color-border-input;
-  border-radius: 4px;
-  padding: 0.1rem 0.45rem;
-  background: white;
-}
-
-.im-method-tag-range {
-  min-width: 64px;
-  justify-content: flex-start;
-  color: $color-black;
-  font-weight: 400;
-  border: 1px solid $color-border-input;
 }
 
 .midpoint-range-label {
@@ -352,14 +240,6 @@
 
 .midpoint-range-dash {
   color: #9ca3af;
-}
-
-.badge-capability {
-  background-color: #e8eef5;
-  color: #000000;
-  font-size: 0.8rem;
-  padding: 0.4rem 0.6rem;
-  font-weight: 400;
 }
 
 
@@ -480,20 +360,6 @@
   justify-content: space-between;
 }
 
-/* "See compatibility" link */
-.view-connector-see-compat {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.875rem;
-  color: $color-brand-steel;
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
 /* "Connector compatibility" modal (read-only) */
 .compat-modal-backdrop {
   background-color: rgba(0, 0, 0, 0.5);
@@ -521,14 +387,6 @@
   font-weight: 600;
   font-size: 1.05rem;
   color: $color-text-dark;
-}
-
-.compat-modal-close {
-  color: $color-gray-secondary;
-  background: none;
-  border: none;
-  font-size: 0.95rem;
-  line-height: 1;
 }
 
 .compat-modal-body {
@@ -563,18 +421,6 @@
 .compat-modal-footer {
   padding: 0.75rem 1.25rem 1rem;
   border-top: 1px solid $color-border-light;
-}
-
-.compat-modal-close-link {
-  background: none;
-  border: none;
-  color: $color-brand-steel;
-  font-weight: 500;
-  padding: 0.4rem 0.75rem;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
 /* Collapsible grouped sub-section inside a connector card */
@@ -653,62 +499,6 @@
   border-top: 1px solid #f1f3f5;
 }
 
-.view-edit-upgrade-btn {
-  font-size: 0.875rem;
-  background: #fff;
-  border: 1px solid $color-brand-navy;
-  color: $color-brand-steel;
-  padding: 0.4rem 1rem;
-  border-radius: 4px;
-
-  &:hover {
-    background: #f8f9fa;
-  }
-}
-
-.view-download-btn {
-  font-size: 0.875rem;
-  background-color: $color-brand-steel;
-  border: 1px solid $color-brand-steel;
-  color: #fff;
-  padding: 0.4rem 1rem;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: $color-brand-navy;
-    border-color: $color-brand-navy;
-  }
-}
-
-.view-start-review-btn {
-  font-size: 0.875rem;
-  background-color: $color-brand-steel;
-  border: 1px solid $color-brand-steel;
-  color: #fff;
-  padding: 0.4rem 1rem;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: $color-brand-navy;
-    border-color: $color-brand-navy;
-  }
-}
-
-/* "Stop review" between Reject and Approve: outline style like its siblings, brand dark blue. */
-.view-stop-review-btn {
-  font-size: 0.875rem;
-  background-color: transparent;
-  border: 1px solid $color-brand-navy;
-  color: $color-brand-steel;
-  padding: 0.4rem 1rem;
-  border-radius: 4px;
-
-  &:hover:not(:disabled) {
-    background-color: $color-brand-navy;
-    color: #fff;
-  }
-}
-
 /* ========================================
    FOOTER (Back)
    ======================================== */
@@ -718,19 +508,6 @@
   margin-top: 2.5rem;
   padding-top: 1.25rem;
   border-top: 1px solid #dee2e6;
-}
-
-.view-back-btn {
-  font-size: 0.875rem;
-  background: #fff;
-  border: 1px solid #ced4da;
-  color: #212529;
-  padding: 0.4rem 1.25rem;
-  border-radius: 4px;
-
-  &:hover {
-    background: #f8f9fa;
-  }
 }
 
 /* Bundle download warning toast */
@@ -765,30 +542,5 @@
   font-weight: 700;
   font-size: 18px;
   line-height: 1;
-}
-
-/* Approve / Reject actions for an in-review method (superuser only) */
-.btn-im-reject {
-  background: none;
-  border: none;
-  color: #dc3545;
-
-  &:hover:not(:disabled) {
-    background: none;
-    color: #b02a37;
-  }
-}
-
-.btn-im-approve {
-  background-color: #fff;
-  border: 1px solid #198754;
-  color: #198754;
-  font-size: 0.8rem;
-
-  &:hover:not(:disabled) {
-    background-color: #f0fdf4;
-    border-color: #146c43;
-    color: #146c43;
-  }
 }
 

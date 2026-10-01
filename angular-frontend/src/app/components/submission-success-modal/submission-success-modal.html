@@ -10,9 +10,7 @@
 <div class="submitted-modal-backdrop position-fixed top-0 start-0 w-100 h-100"></div>
 <div class="submitted-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
   <div class="submitted-modal-dialog">
-    <button type="button" class="btn p-0 submitted-modal-close" (click)="dismissed.emit()" aria-label="Close">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
+    <button type="button" class="btn-close submitted-modal-close" (click)="dismissed.emit()" aria-label="Close"></button>
 
     <div class="submitted-modal-head d-flex flex-column align-items-center text-center">
       <div class="submitted-modal-check"><i class="fa-solid fa-check"></i></div>
@@ -30,10 +28,10 @@
         <span class="submitted-ticket-number">#{{ ticketId() }}</span>
         @if (ticketUrl()) {
           <div class="d-flex align-items-center gap-3">
-            <button type="button" class="btn submitted-ticket-action" (click)="copyTicketLink()">
+            <button type="button" class="btn btn-link p-0 link-body-emphasis text-decoration-none text-nowrap" (click)="copyTicketLink()">
               <i class="fa-regular fa-copy me-1"></i>Copy link
             </button>
-            <a class="btn submitted-ticket-action submitted-ticket-open"
+            <a class="btn btn-link p-0 text-decoration-none text-nowrap"
                [href]="ticketUrl()" target="_blank" rel="noopener">
               Open ticket <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i>
             </a>
@@ -50,6 +48,6 @@
     </p>
 
     <hr class="submitted-modal-separator">
-    <button type="button" class="btn submitted-modal-done w-100" (click)="done.emit()">Done</button>
+    <button type="button" class="btn btn-primary w-100" (click)="done.emit()">Done</button>
   </div>
 </div>

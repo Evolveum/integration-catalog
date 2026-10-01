@@ -13,9 +13,7 @@
       <span class="fw-semibold fs-6 d-flex align-items-center gap-2">
         <i class="fa-solid fa-pen-to-square"></i>Edit integration method type
       </span>
-      <button type="button" class="btn p-0 text-secondary fs-5" (click)="onCancel()" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <button type="button" class="btn-close" (click)="onCancel()" aria-label="Close"></button>
     </div>
 
     <p class="step-subtitle">
@@ -48,7 +46,7 @@
 
     <!-- Footer -->
     <div class="pt-3 border-top mt-3 d-flex justify-content-end gap-2">
-      <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">Cancel</button>
       <button type="button" class="btn btn-primary" [disabled]="!canSave || isLoading()" (click)="onSave()">
         Save
       </button>

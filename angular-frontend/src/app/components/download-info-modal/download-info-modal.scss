@@ -52,17 +52,6 @@
   position: absolute;
   top: 1rem;
   right: 1.25rem;
-  border: none;
-  background: none;
-  color: #6b7280;
-  font-size: 1.25rem;
-  cursor: pointer;
-  padding: 0.25rem;
-  line-height: 1;
-
-  &:hover {
-    color: #1f2733;
-  }
 }
 
 .download-info-header {
@@ -149,19 +138,4 @@
 
 .download-info-footer {
   padding: 0 2rem 1.5rem;
-}
-
-.download-info-understood {
-  background: $color-brand-steel;
-  border: 1px solid $color-brand-steel;
-  color: #fff;
-  font-weight: 600;
-  padding: 0.6rem 1.25rem;
-  border-radius: 8px;
-
-  &:hover {
-    background: $color-brand-navy;
-    border-color: $color-brand-navy;
-    color: #fff;
-  }
 }

@@ -20,7 +20,7 @@ import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
-import { SupportTier, supportTierLabel } from '../../core/support-tier';
+import { SupportTier, supportTierClasses, supportTierLabel } from '../../core/support-tier';
 
 @Component({
   selector: 'app-integration-method-detail',
@@ -45,15 +45,16 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly supportTier = signal<SupportTier | null>(null);
   protected readonly supportTierLabel = supportTierLabel;
+  protected readonly supportTierClasses = supportTierClasses;
   protected readonly specificCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
   protected readonly selectedCapsObject = signal<string>('');
   protected readonly selectedObjectCapabilities = computed(() =>
     this.specificCapabilities().find(o => o.objectClass === this.selectedCapsObject())?.capabilities ?? []
   );
-  protected readonly capabilityStates: Record<CapabilityState, { label: string; icon: string }> = {
-    YES: { label: 'Supported', icon: 'fa-circle-check' },
-    NO: { label: 'Not supported', icon: 'fa-circle-xmark' },
-    UNKNOWN: { label: 'Unknown', icon: 'fa-circle-question' }
+  protected readonly capabilityStates: Record<CapabilityState, { label: string; icon: string; badgeClasses: string }> = {
+    YES: { label: 'Supported', icon: 'fa-circle-check', badgeClasses: 'bg-success-subtle text-success-emphasis' },
+    NO: { label: 'Not supported', icon: 'fa-circle-xmark', badgeClasses: 'bg-danger-subtle text-danger-emphasis' },
+    UNKNOWN: { label: 'Unknown', icon: 'fa-circle-question', badgeClasses: 'border text-secondary bg-body' }
   };
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);

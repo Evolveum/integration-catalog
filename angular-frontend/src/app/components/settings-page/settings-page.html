@@ -8,21 +8,27 @@
 
 <div class="settings-page">
   <div class="settings-content">
-    <button type="button" class="settings-back d-flex align-items-center gap-2" (click)="goBack()">
+    <button type="button" class="btn btn-sm btn-link p-0 mb-4 text-decoration-none d-flex align-items-center gap-2" (click)="goBack()">
       <i class="fa-solid fa-arrow-left"></i>Back
     </button>
 
     <h1 class="settings-title">Settings</h1>
     <p class="settings-subtitle">Customize your experience and manage various aspects of your account.</p>
 
-    <div class="settings-tabs d-flex">
-      <button type="button" class="settings-tab" [class.settings-tab-active]="activeTab() === 'profile'"
-              (click)="activeTab.set('profile')">Profile
-      </button>
-      <button type="button" class="settings-tab" [class.settings-tab-active]="activeTab() === 'api-keys'"
-              (click)="activeTab.set('api-keys')">API keys
-      </button>
-    </div>
+    <ul class="nav nav-underline small border-bottom mb-4" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button type="button" class="nav-link" role="tab" [class.active]="activeTab() === 'profile'"
+                [attr.aria-selected]="activeTab() === 'profile'"
+                (click)="activeTab.set('profile')">Profile
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button type="button" class="nav-link" role="tab" [class.active]="activeTab() === 'api-keys'"
+                [attr.aria-selected]="activeTab() === 'api-keys'"
+                (click)="activeTab.set('api-keys')">API keys
+        </button>
+      </li>
+    </ul>
 
     @if (!profile()) {
     <div class="settings-card settings-empty">
@@ -43,7 +49,7 @@
         <span>This information is read-only in Integration Catalog. To update your profile, make the change in midPoint IAM.</span>
       </div>
       @if (links()!.iamProfileUrl) {
-      <a class="iam-banner-btn d-flex align-items-center gap-2 ms-auto"
+      <a class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0 d-flex align-items-center gap-2 ms-auto"
          [href]="links()!.iamProfileUrl" target="_blank" rel="noopener noreferrer">
         Open midPoint IAM<i class="fa-solid fa-arrow-up-right-from-square"></i>
       </a>
@@ -57,17 +63,23 @@
           <div class="profile-name">{{ displayName() }}</div>
           <div class="profile-email">{{ profile()!.email || 'No e-mail address' }}</div>
         </div>
-        <span class="profile-role-badge ms-auto">{{ authService.currentRole() }}</span>
+        <span class="badge bg-primary-subtle text-primary-emphasis ms-auto flex-shrink-0">{{ authService.currentRole() }}</span>
       </div>
 
-<!--      <div class="profile-tabs d-flex">-->
-<!--        <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'general'"-->
-<!--                (click)="activeProfileTab.set('general')">General-->
-<!--        </button>-->
-<!--        <button type="button" class="profile-tab" [class.profile-tab-active]="activeProfileTab() === 'contact'"-->
-<!--                (click)="activeProfileTab.set('contact')">Contact information-->
-<!--        </button>-->
-<!--      </div>-->
+<!--      <ul class="nav nav-underline small border-bottom mb-4" role="tablist">-->
+<!--        <li class="nav-item" role="presentation">-->
+<!--          <button type="button" class="nav-link" role="tab" [class.active]="activeProfileTab() === 'general'"-->
+<!--                  [attr.aria-selected]="activeProfileTab() === 'general'"-->
+<!--                  (click)="activeProfileTab.set('general')">General-->
+<!--          </button>-->
+<!--        </li>-->
+<!--        <li class="nav-item" role="presentation">-->
+<!--          <button type="button" class="nav-link" role="tab" [class.active]="activeProfileTab() === 'contact'"-->
+<!--                  [attr.aria-selected]="activeProfileTab() === 'contact'"-->
+<!--                  (click)="activeProfileTab.set('contact')">Contact information-->
+<!--          </button>-->
+<!--        </li>-->
+<!--      </ul>-->
 
       <!-- Every field is read-only: the value is whatever the token carried. -->
       <div class="profile-grid">
