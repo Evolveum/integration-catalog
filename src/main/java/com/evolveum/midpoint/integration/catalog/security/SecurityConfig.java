@@ -39,6 +39,8 @@ public class SecurityConfig {
 
     private static final String CURRENT_USER = "/api/auth/me";
 
+    private static final String CURRENT_USER_ITEMS = "/api/auth/me/items";
+
     private static final String MAINTAINER_DIRECTORY = "/api/auth/all-maintainers";
 
     private static final String APPLICATION = "/api/applications/*";
@@ -164,6 +166,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, REQUEST_VOTE).authenticated()
                         .requestMatchers(REQUEST_CHECK_VOTE).authenticated()
                         .requestMatchers(CURRENT_USER).authenticated()
+                        .requestMatchers(CURRENT_USER_ITEMS).authenticated()
                         .requestMatchers(API_KEYS).authenticated()
                         .requestMatchers(HttpMethod.POST, RECENTLY_USED_ITEM).authenticated()
                         .requestMatchers(HttpMethod.GET, ALL_API).permitAll()

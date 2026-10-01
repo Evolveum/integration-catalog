@@ -75,7 +75,14 @@
 <!--            <button class="user-menu-item" type="button" role="menuitem"-->
 <!--              (click)="openComingSoon('My connectors')">My connectors</button>-->
 <!--            <div class="user-menu-separator"></div>-->
-            <a class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
+            <a class="user-menu-item" role="menuitem" routerLink="/my-profile" (click)="closeMenu()">
+              <i class="fa-solid fa-user"></i>
+              <span>My profile</span>
+            </a>
+            <a class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">
+              <i class="fa-solid fa-gear"></i>
+              <span>Settings</span>
+            </a>
             <div class="user-menu-separator"></div>
             <button class="user-menu-item user-menu-item-danger" type="button" role="menuitem" (click)="logout()">
               <i class="fa-solid fa-power-off"></i>

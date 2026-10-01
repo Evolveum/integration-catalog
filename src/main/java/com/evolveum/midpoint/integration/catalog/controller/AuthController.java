@@ -8,7 +8,9 @@ package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.dto.MyItemsDto;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
+import com.evolveum.midpoint.integration.catalog.service.MyItemsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -32,9 +34,11 @@ import java.util.List;
 public class AuthController {
 
     private final AuthService authService;
+    private final MyItemsService myItemsService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, MyItemsService myItemsService) {
         this.authService = authService;
+        this.myItemsService = myItemsService;
     }
 
     @Operation(summary = "Current user", description = "Returns the profile of the authenticated user")
@@ -46,6 +50,19 @@ public class AuthController {
     public ResponseEntity<CurrentUserDto> me(@AuthenticationPrincipal OidcUser oidcUser,
                                              Authentication authentication) {
         return ResponseEntity.ok(authService.getCurrentUser(authentication.getName(), oidcUser));
+    }
+
+    @Operation(summary = "Current user's items",
+            description = "Integration methods and connectors the authenticated user maintains, "
+                    + "personally or through their organization")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The user's integration methods and connectors"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    @GetMapping("/me/items")
+    public ResponseEntity<MyItemsDto> myItems(@AuthenticationPrincipal OidcUser oidcUser,
+                                              Authentication authentication) {
+        return ResponseEntity.ok(myItemsService.myItems(authentication.getName(), oidcUser));
     }
 
     @Operation(summary = "Get all maintainers",

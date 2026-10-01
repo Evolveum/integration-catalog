@@ -20,6 +20,7 @@ import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
+import { MyItems } from '../models/my-items.model';
 
 /** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
 export interface BundleDownloadResult {
@@ -396,6 +397,11 @@ export class ApplicationService {
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/compatibility`,
       payload
     );
+  }
+
+  /** The integration methods and connectors the current user maintains, for the My profile page. */
+  getMyItems(): Observable<MyItems> {
+    return this.http.get<MyItems>(`${environment.apiUrl}/auth/me/items`);
   }
 
   // ==================== Logo Methods ====================
