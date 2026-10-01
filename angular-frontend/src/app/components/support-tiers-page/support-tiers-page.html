@@ -20,10 +20,10 @@
 
     <div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Support tier filter">
       <button type="button" class="tiers-chip" [class.tiers-chip-active]="subscription() === null"
-              (click)="subscription.set(null)">All</button>
+              (click)="selectSubscription(null)">All</button>
       @for (t of supportTiers; track t.value) {
         <button type="button" class="tiers-chip" [class.tiers-chip-active]="subscription() === t.value"
-                (click)="subscription.set(t.value)">{{ t.label }}</button>
+                (click)="selectSubscription(t.value)">{{ t.label }}</button>
       }
     </div>
 
@@ -51,6 +51,34 @@
             }
           </ul>
         </section>
+      }
+
+      @if (totalPages() > 1) {
+        <nav aria-label="Page navigation" class="mt-4">
+          <ul class="pagination justify-content-end flex-wrap">
+            <li class="page-item" [class.disabled]="currentPage() === 0">
+              <button class="page-link page-link-default" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 0">
+                <i class="fa-solid fa-arrow-left me-1"></i>
+                Previous
+              </button>
+            </li>
+
+            @for (page of [].constructor(totalPages()); track $index) {
+              <li class="page-item" [class.active]="currentPage() === $index">
+                <button class="page-link" [class.page-link-active]="currentPage() === $index" [class.page-link-default]="currentPage() !== $index" (click)="goToPage($index)">
+                  {{ $index + 1 }}
+                </button>
+              </li>
+            }
+
+            <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+              <button class="page-link page-link-default" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages() - 1">
+                Next
+                <i class="fa-solid fa-arrow-right ms-1"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
       }
     }
   </div>

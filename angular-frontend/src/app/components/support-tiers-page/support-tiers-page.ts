@@ -40,23 +40,47 @@ export class SupportTiersPage implements OnInit {
   /** null = all methods, tiered or not. */
   protected readonly subscription = signal<SupportTier | null>(null);
 
-  protected readonly groups = computed<ApplicationGroup[]>(() => {
+  protected readonly pageSize = 20;
+  protected readonly currentPage = signal<number>(0);
+
+  /** The methods the subscription covers, in display order: by application, then by method. */
+  private readonly filteredMethods = computed<IntegrationMethodTier[]>(() => {
     const subscription = this.subscription();
-    const byApp = new Map<string, ApplicationGroup>();
-    for (const m of this.methods()) {
-      if (subscription && !isCoveredBy(m.supportTier, subscription)) continue;
-      let group = byApp.get(m.applicationId);
-      if (!group) {
+    return this.methods()
+      .filter(m => !subscription || isCoveredBy(m.supportTier, subscription))
+      .sort((a, b) => (a.applicationName ?? '').localeCompare(b.applicationName ?? '')
+        // Keeps two same-named applications from interleaving.
+        || a.applicationId.localeCompare(b.applicationId)
+        || (a.methodName ?? '').localeCompare(b.methodName ?? ''));
+  });
+
+  protected readonly totalPages = computed(() => Math.ceil(this.filteredMethods().length / this.pageSize));
+
+  /** The current page's methods grouped by application; an application split across pages heads both. */
+  protected readonly groups = computed<ApplicationGroup[]>(() => {
+    const start = this.currentPage() * this.pageSize;
+    const groups: ApplicationGroup[] = [];
+    for (const m of this.filteredMethods().slice(start, start + this.pageSize)) {
+      let group = groups[groups.length - 1];
+      if (group?.applicationId !== m.applicationId) {
         group = { applicationId: m.applicationId, applicationName: m.applicationName, methods: [] };
-        byApp.set(m.applicationId, group);
+        groups.push(group);
       }
       group.methods.push(m);
     }
-    const groups = Array.from(byApp.values());
-    groups.sort((a, b) => (a.applicationName ?? '').localeCompare(b.applicationName ?? ''));
-    groups.forEach(g => g.methods.sort((a, b) => (a.methodName ?? '').localeCompare(b.methodName ?? '')));
     return groups;
   });
+
+  protected selectSubscription(tier: SupportTier | null): void {
+    this.subscription.set(tier);
+    this.currentPage.set(0);
+  }
+
+  protected goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages()) return;
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0 });
+  }
 
   ngOnInit(): void {
     this.applicationService.getSupportTiers().subscribe({

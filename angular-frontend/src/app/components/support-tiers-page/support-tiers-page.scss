@@ -114,3 +114,23 @@
 .tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
 .tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
 .tier-none     { background-color: #f8f9fa; color: #6c757d; border-color: #e9ecef; }
+
+// Same pager look as the applications list.
+.page-link-default {
+  background-color: $color-white;
+  color: black;
+  font-weight: 600;
+}
+
+.page-link-active {
+  background-color: $color-primary-500;
+  color: $color-white;
+  font-weight: 600;
+}
+
+.pagination .page-link {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
