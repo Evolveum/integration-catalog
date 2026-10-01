@@ -602,9 +602,17 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     if (!appId) return;
     // This tab may still show a session that ended elsewhere; a lost one gets the app-wide dialog.
     this.authService.verifySession().subscribe(() => {
-      if (!this.authService.sessionLost()) {
-        this.router.navigate(['/approve'], { queryParams: { appId } });
+      if (this.authService.sessionLost()) return;
+      // The publish form bounces anyone who can't upload to the homepage without a word, so say why here.
+      if (!this.authService.canUpload()) {
+        if (this.authService.isLoggedIn()) {
+          this.toastService.show('Permission Denied', "You don't have permission for this action.", 'warning');
+        } else {
+          this.toastService.show('Login Required', 'You need to log in to perform this action. Please log in and try again.', 'warning');
+        }
+        return;
       }
+      this.router.navigate(['/approve'], { queryParams: { appId } });
     });
   }
 
