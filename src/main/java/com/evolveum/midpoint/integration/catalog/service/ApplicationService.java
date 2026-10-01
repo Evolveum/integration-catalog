@@ -207,7 +207,7 @@ public class ApplicationService {
     }
 
     public List<IntegrationMethodType> getIntegrationMethodTypes() {
-        return integrationMethodTypeRepository.findAll();
+        return integrationMethodTypeRepository.findAll(Sort.by("id"));
     }
 
     public List<MidpointVersionDto> getMidpointVersions() {
