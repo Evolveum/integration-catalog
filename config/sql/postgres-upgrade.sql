@@ -608,11 +608,12 @@ $aa$);
 
 -- region change 20: integration method support tier
 -- A reviewer assigns each integration method a support tier by hand (Standard / Advanced / Premium,
--- where a subscription to a tier covers the ones below it). The tier belongs to the method, so it
--- is kept equal on all its revisions. NULL = not tiered, which every existing method starts as.
+-- where a subscription to a tier covers the ones below it). It is stored on connector bundle
+-- versions: setting it on a method sets it on every bundle version of every connector the method
+-- links to. NULL = not tiered, which every existing bundle version starts as.
 call apply_change(20, $aa$
 CREATE TYPE SupportTier AS ENUM ('STANDARD', 'ADVANCED', 'PREMIUM');
-ALTER TABLE integration_method ADD COLUMN support_tier SupportTier;
+ALTER TABLE connector_bundle_version ADD COLUMN support_tier SupportTier;
 $aa$);
 -- end of region
 

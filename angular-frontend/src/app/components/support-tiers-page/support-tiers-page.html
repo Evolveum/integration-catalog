@@ -45,7 +45,12 @@
                 @if (m.supportTier) {
                   <span class="tiers-badge" [class]="'tier-' + m.supportTier.toLowerCase()">{{ supportTierLabel(m.supportTier) }}</span>
                 } @else {
-                  <span class="tiers-badge tier-none">No tier</span>
+                  <span class="d-flex gap-2">
+                    @if (!m.hasConnectorBundle) {
+                      <span class="tiers-badge tier-no-bundle">No connector bundle</span>
+                    }
+                    <span class="tiers-badge tier-none">No tier</span>
+                  </span>
                 }
               </li>
             }

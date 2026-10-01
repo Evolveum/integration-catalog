@@ -719,10 +719,14 @@ public class ApplicationService {
         return applicationRepository.save(application);
     }
 
+    /** Sets the tier on all bundle versions of the method's connectors; a method without any has nowhere to keep it. */
     @Transactional
     public void setSupportTier(UUID methodId, SupportTier tier) {
-        if (integrationMethodRepository.updateSupportTier(methodId, tier) == 0) {
+        if (integrationMethodRepository.findFirstByIdOrderByCreatedAtDesc(methodId).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Integration method not found: " + methodId);
+        }
+        if (connectorBundleVersionRepository.updateSupportTierOfMethod(methodId, tier != null ? tier.name() : null) == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Integration method has no connector bundle: " + methodId);
         }
     }
 
@@ -737,7 +741,8 @@ public class ApplicationService {
                         m.getId(),
                         m.getRevision(),
                         m.getDisplayName(),
-                        m.getSupportTier()))
+                        m.supportTier(),
+                        !m.connectorBundleVersions().isEmpty()))
                 .toList();
     }
 

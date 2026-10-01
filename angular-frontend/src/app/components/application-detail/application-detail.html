@@ -431,17 +431,19 @@
                                 @for (type of method.types; track type) {
                                   <span class="im-method-tag">{{ type }}</span>
                                 }
-                                @if (isSuperuser()) {
+                                @if (isSuperuser() && !method.hasConnectorBundle) {
+                                  <span class="im-tier-badge tier-no-bundle" title="The support tier is stored on connector bundle versions">No connector bundle</span>
+                                } @else if (isSuperuser()) {
                                   <!-- Reviewer sets the tier by hand; the click must not collapse the card. -->
                                   <select class="form-select form-select-sm im-tier-select"
                                           [class]="'tier-' + (method.supportTier ?? 'none').toLowerCase()"
-                                          [value]="method.supportTier ?? ''"
                                           title="Support tier"
                                           (click)="$event.stopPropagation()"
                                           (change)="onSupportTierChange(method.id, method.supportTier, $event)">
-                                    <option value="">No tier</option>
+                                    <!-- [selected] per option: a [value] on the select lands before the @for options exist. -->
+                                    <option value="" [selected]="!method.supportTier">No tier</option>
                                     @for (t of supportTiers; track t.value) {
-                                      <option [value]="t.value">{{ t.label }}</option>
+                                      <option [value]="t.value" [selected]="t.value === method.supportTier">{{ t.label }}</option>
                                     }
                                   </select>
                                 } @else if (method.supportTier) {

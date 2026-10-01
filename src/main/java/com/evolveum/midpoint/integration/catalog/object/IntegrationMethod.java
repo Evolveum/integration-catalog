@@ -18,7 +18,9 @@ import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -126,12 +128,6 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
     @Column(name = "app_version")
     private String appVersion;
 
-    /** Set by a reviewer on every revision of the method at once; null = not tiered. */
-    @Enumerated(EnumType.STRING)
-    @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    @Column(name = "support_tier", columnDefinition = "SupportTier")
-    private SupportTier supportTier;
-
     /**
      * Username of the reviewer: set when a review is started (REVIEWING) and kept when the
      * revision is approved or rejected. Requires the reviewed_by column
@@ -149,4 +145,25 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
 
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodConnector> connectors = new ArrayList<>();
+
+    /** Every bundle version of the connectors this revision links to; they hold its support tier. */
+    public List<ConnectorBundleVersion> connectorBundleVersions() {
+        return connectors.stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .flatMap(c -> c.getConnectorVersions().stream())
+                .map(ConnectorVersion::getConnectorBundleVersion)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    /** The tier of the most recently updated bundle version; null = not tiered or no connector bundle. */
+    public SupportTier supportTier() {
+        return connectorBundleVersions().stream()
+                .max(Comparator.comparing(ConnectorBundleVersion::getUpdated,
+                        Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(ConnectorBundleVersion::getSupportTier)
+                .orElse(null);
+    }
 }

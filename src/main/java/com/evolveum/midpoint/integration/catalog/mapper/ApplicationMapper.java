@@ -219,7 +219,8 @@ public class ApplicationMapper {
                             includedConnectors,
                             supportTicketId,
                             supportTicketUrl,
-                            method.getSupportTier()
+                            method.supportTier(),
+                            !method.connectorBundleVersions().isEmpty()
                     );
                 })
                 .toList();
