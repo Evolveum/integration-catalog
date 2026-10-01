@@ -25,5 +25,7 @@ public record EditIntegrationMethodDto(
         boolean minorBump,                                           // true → increment minor (x.Y.z → x.Y+1.1), false → patch (x.y.Z → x.y.Z+1)
         Integer midpointMinVersion,                                  // integration_method.midpoint_minversion (FK → midpoint_version.id)
         Integer midpointMaxVersion,                                  // integration_method.midpoint_maxversion (FK → midpoint_version.id)
+        Integer appMinVersion,                                       // integration_method.app_minversion (FK → application_version.id)
+        Integer appMaxVersion,                                       // integration_method.app_maxversion (FK → application_version.id)
         MaintainerDto maintainer                                     // integration_method.maintainer; null keeps the source revision's
 ) {}

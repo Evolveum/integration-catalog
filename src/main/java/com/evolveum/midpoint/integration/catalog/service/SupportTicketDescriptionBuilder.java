@@ -209,6 +209,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", singleLine(method.getDescription()));
         bullet(body, "Integration method type", integrationMethodTypes(method));
         bullet(body, "Supported midPoint version", midpointVersionRange(method));
+        bullet(body, "Supported application version", applicationVersionRange(method));
         bullet(body, "Author", method.getAuthor() != null ? authorWithEmail(method.getAuthor()) : "unknown");
         bullet(body, "Maintainer", maintainer(method));
         bullet(body, "Submitted", timestamp(method.getCreatedAt()));
@@ -254,8 +255,18 @@ public class SupportTicketDescriptionBuilder {
      * open-ended range is the normal case for a method that simply has not been capped yet.
      */
     private String midpointVersionRange(IntegrationMethod method) {
-        String min = midpointVersion(method.getMidpointMinVersionId());
-        String max = midpointVersion(method.getMidpointMaxVersionId());
+        return versionRange(midpointVersion(method.getMidpointMinVersionId()),
+                midpointVersion(method.getMidpointMaxVersionId()));
+    }
+
+    /** The supported application range, worded like {@link #midpointVersionRange}. */
+    private static String applicationVersionRange(IntegrationMethod method) {
+        return versionRange(
+                method.getAppMinVersion() != null ? method.getAppMinVersion().getVersion() : null,
+                method.getAppMaxVersion() != null ? method.getAppMaxVersion().getVersion() : null);
+    }
+
+    private static String versionRange(String min, String max) {
         if (min == null && max == null) {
             return null;
         }

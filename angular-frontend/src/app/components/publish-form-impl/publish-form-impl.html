@@ -453,7 +453,7 @@
       <div class="step-content">
         <h5 class="step-title">Compatibility settings</h5>
         <p class="compat-step-desc">
-          Specify which versions of midPoint and connectors this integration method supports. <br />
+          Specify which versions of midPoint, the application and connectors this integration method supports. <br />
           This helps users find Integration methods compatible with their environments.
         </p>
 
@@ -501,6 +501,45 @@
             <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
           } @else {
             <div class="form-text">Only include versions you have actively tested. Untested versions can be added later.</div>
+          }
+        </div>
+
+        <!-- Supported application version -->
+        <div class="compat-section mb-4">
+          <h6 class="compat-section-title">Supported application version</h6>
+          <p class="compat-section-desc">
+            Define the range of {{ reviewSummary?.applicationName || 'application' }} versions that have been tested with this integration method.
+          </p>
+          @if (appVersions().length === 0) {
+            <div class="form-text">No versions are listed for this application yet, so there is nothing to choose. The range can be set later.</div>
+          } @else {
+            <div class="d-flex align-items-end gap-3 mb-2">
+              <div>
+                <label class="form-label form-label-upload">From version</label>
+                <select class="form-select compat-version-select"
+                        [ngModel]="appMinVersionId()"
+                        (ngModelChange)="appMinVersionId.set($event)">
+                  <option [ngValue]="null">Select version</option>
+                  @for (v of appVersionsDesc(); track v.id) {
+                    <option [ngValue]="v.id">{{ v.version }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="form-label form-label-upload">To version</label>
+                <select class="form-select compat-version-select"
+                        [ngModel]="appMaxVersionId()"
+                        (ngModelChange)="appMaxVersionId.set($event)">
+                  <option [ngValue]="null">Select version</option>
+                  @for (v of appVersionsDesc(); track v.id) {
+                    <option [ngValue]="v.id">{{ v.version }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+            @if (isAppVersionRangeInvalid()) {
+              <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
+            }
           }
         </div>
 
@@ -711,6 +750,15 @@
                 <span class="review-detail-value">
                   {{ getMidpointVersionLabel(midpointMinVersionId()) }}
                   @if (midpointMaxVersionId()) { &nbsp;-&nbsp;{{ getMidpointVersionLabel(midpointMaxVersionId()) }} }
+                </span>
+              </div>
+            }
+            @if (appMinVersionId() || appMaxVersionId()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Supported application version:</span>
+                <span class="review-detail-value">
+                  {{ getAppVersionLabel(appMinVersionId()) || '—' }}
+                  @if (appMaxVersionId()) { &nbsp;-&nbsp;{{ getAppVersionLabel(appMaxVersionId()) }} }
                 </span>
               </div>
             }

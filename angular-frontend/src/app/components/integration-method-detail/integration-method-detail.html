@@ -98,6 +98,18 @@
           <span class="view-value">From {{ midpointMinVersion() || '—' }}@if (midpointMaxVersion()) { to {{ midpointMaxVersion() }}}</span>
         </div>
         <div class="view-row">
+          <span class="view-label">Supported application version:</span>
+          <span class="view-value">
+            @if (appMinVersion()) {
+              From {{ appMinVersion() }}@if (appMaxVersion()) { to {{ appMaxVersion() }}}
+            } @else if (appMaxVersion()) {
+              Up to {{ appMaxVersion() }}
+            } @else {
+              —
+            }
+          </span>
+        </div>
+        <div class="view-row">
           <span class="view-label">Integration method type:</span>
           <span class="view-value">{{ methodTypes().length > 0 ? methodTypes().join(', ') : '—' }}</span>
         </div>

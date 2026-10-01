@@ -205,6 +205,8 @@ public class ApplicationMapper {
                             downloadCount,
                             method.getMidpointMinVersionId(),
                             method.getMidpointMaxVersionId(),
+                            method.getAppMinVersion() != null ? method.getAppMinVersion().getId() : null,
+                            method.getAppMaxVersion() != null ? method.getAppMaxVersion().getId() : null,
                             connectorDisplayName,
                             integMethodTypes,
                             method.getRevision(),
@@ -367,6 +369,10 @@ public class ApplicationMapper {
                 .requestedIntegrationMethodType(requestedIntegrationMethodType)
                 .frameworks(frameworks)
                 .objectClassCapabilities(objectClassCapabilities)
+                .versions(app.getVersions().stream()
+                        .sorted(ApplicationVersion.ORDER)
+                        .map(ApplicationVersionDto::of)
+                        .toList())
                 .build();
     }
 

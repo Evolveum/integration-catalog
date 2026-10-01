@@ -58,6 +58,54 @@
         <div class="text-end text-muted char-counter">{{ description().length }}/{{ descriptionMax }} characters</div>
       </div>
 
+      <!-- Versions -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Versions</label>
+        <div class="form-text mt-0 mb-2">
+          Integration methods of this application state which of these versions they support.
+          A version still used by a method cannot be removed.
+        </div>
+        @for (v of versions(); track $index) {
+          <div class="input-group input-group-sm mb-2">
+            <input
+              type="text"
+              class="form-control"
+              [class.is-invalid]="invalidVersionIndexes().has($index)"
+              [value]="v.version"
+              (input)="onVersionInput($index, $event)"
+              [attr.maxlength]="versionMax"
+              aria-label="Version"
+            />
+            <button type="button" class="btn btn-outline-secondary" (click)="removeVersion($index)" title="Remove version">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        }
+        @if (invalidVersionIndexes().size > 0) {
+          <div class="invalid-feedback d-block mb-2">Versions must not be empty or repeated.</div>
+        }
+        <div class="input-group input-group-sm">
+          <input
+            type="text"
+            class="form-control"
+            [class.is-invalid]="newVersionDuplicate()"
+            [value]="newVersion()"
+            (input)="newVersion.set($any($event.target).value ?? '')"
+            (keydown.enter)="addVersion(); $event.preventDefault()"
+            [attr.maxlength]="versionMax"
+            placeholder="e.g. 2025.1"
+            aria-label="New version"
+          />
+          <button type="button" class="btn btn-outline-primary" (click)="addVersion()"
+                  [disabled]="!newVersion().trim() || newVersionDuplicate()">
+            <i class="fa-solid fa-plus me-1"></i>Add version
+          </button>
+        </div>
+        @if (newVersionDuplicate()) {
+          <div class="invalid-feedback d-block">This version is already in the list.</div>
+        }
+      </div>
+
       <!-- Logo -->
       <div class="mb-3">
         <label class="form-label fw-semibold">Logo</label>

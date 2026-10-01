@@ -20,6 +20,12 @@ export interface IntegrationMethodTier {
   hasConnectorBundle: boolean;     // false = no bundle version to hold a tier, so it cannot be set
 }
 
+/** One version of an application, kept by a superuser. */
+export interface ApplicationVersion {
+  id: number | null;    // application_version.id, null for one being added
+  version: string;      // application_version.version
+}
+
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
   version: string;      // midpoint_version.version
@@ -58,6 +64,8 @@ export interface IntegrationMethod {
   downloadCount: number | null;            // computed: count of download rows
   midpointMinVersionId: number | null;     // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
   midpointMaxVersionId: number | null;     // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+  appMinVersionId: number | null;          // integration_method.app_minversion (FK → application_version.id)
+  appMaxVersionId: number | null;          // integration_method.app_maxversion (FK → application_version.id)
   connectorDisplayName: string | null;     // connector.display_name
   integMethodTypes: string[] | null;       // integration_method_type.name
   objectClassCapabilities: IntegrationMethodObjectCapabilities[] | null; // every offered capability with its state
@@ -122,6 +130,7 @@ export interface ApplicationDetail {
   requestedIntegrationMethodType: string | null; // integration_method_type.display_name via request
   frameworks: string[] | null;              // connector_bundle.framework
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
+  versions: ApplicationVersion[];           // application_version, oldest first
 }
 
 export function hasLogoDetail(app: ApplicationDetail): boolean {

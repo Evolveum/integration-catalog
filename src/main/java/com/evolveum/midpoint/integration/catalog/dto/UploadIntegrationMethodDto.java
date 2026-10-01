@@ -24,6 +24,8 @@ public record UploadIntegrationMethodDto(
         MaintainerDto maintainer,   // integration_method.maintainer; null falls back to the connector's
         List<Integer> typeIds,      // integration_method_type.id
         Integer midpointMinVersion, // midpoint_version.id (FK for min version)
-        Integer midpointMaxVersion  // midpoint_version.id (FK for max version)
+        Integer midpointMaxVersion, // midpoint_version.id (FK for max version)
+        Integer appMinVersion,      // application_version.id (FK for min version), of this application
+        Integer appMaxVersion       // application_version.id (FK for max version), of this application
 ) {
 }

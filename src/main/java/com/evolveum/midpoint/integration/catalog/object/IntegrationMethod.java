@@ -125,8 +125,15 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
     @Column(nullable = false)
     private LocalDateTime updated;
 
-    @Column(name = "app_version")
-    private String appVersion;
+    /** Lowest application version of the supported range; null = not stated. */
+    @ManyToOne
+    @JoinColumn(name = "app_minversion")
+    private ApplicationVersion appMinVersion;
+
+    /** Highest application version of the supported range; null = no upper bound. */
+    @ManyToOne
+    @JoinColumn(name = "app_maxversion")
+    private ApplicationVersion appMaxVersion;
 
     /**
      * Username of the reviewer: set when a review is started (REVIEWING) and kept when the

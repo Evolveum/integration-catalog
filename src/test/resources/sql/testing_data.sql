@@ -147,25 +147,33 @@ OVERRIDING SYSTEM VALUE VALUES
     (3, '1.0', 2, 2, NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL);
 
 -- ============================================================
--- INTEGRATION METHODS  (composite PK uuid + revision; midpoint versions are midpoint_version ids)
+-- INTEGRATION METHODS  (composite PK uuid + revision; midpoint versions are midpoint_version ids,
+-- application versions are application_version ids)
 -- ============================================================
+
+INSERT INTO application_version (id, application_id, version)
+VALUES
+    (1, '11111111-1111-1111-1111-111111111111', '2024.1'),
+    (2, '11111111-1111-1111-1111-111111111111', '2024.2'),
+    (3, '11111111-1111-1111-1111-111111111111', '2025.1'),
+    (4, '11111111-1111-1111-1111-111111111111', '2025.2');
 
 INSERT INTO integration_method (id, application_id, display_name, description, limitations,
      tutorial, file_path, midpoint_minversion, midpoint_maxversion, lifecycle_state, revision,
-     author, maintainer, created_at, updated, app_version, reviewed_by)
+     author, maintainer, created_at, updated, app_minversion, app_maxversion, reviewed_by)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111',
      'Test 1 - Evolveum maintained', 'LDAP-based method maintained by Evolveum',
-     'Nested groups are not resolved.', 'Tutorial 1', NULL, 5, 9, 'ACTIVE', '1.0', 2, 2, NOW(), NOW(), '2025.1', 'u5'),
+     'Nested groups are not resolved.', 'Tutorial 1', NULL, 5, 9, 'ACTIVE', '1.0', 2, 2, NOW(), NOW(), 3, NULL, 'u5'),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111',
      'Test 2 - Acme maintained', 'ServiceNow method maintained by the Acme organization',
-     NULL, 'Tutorial 2', NULL, 4, 8, 'ACTIVE', '1.0', 3, 3, NOW(), NOW(), '2024.2', 'u5'),
+     NULL, 'Tutorial 2', NULL, 4, 8, 'ACTIVE', '1.0', 3, 3, NOW(), NOW(), 1, 2, 'u5'),
     ('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111',
      'Test 3 - u3 maintained', 'CSV export method maintained by the individual contributor u3',
-     'Deletes are not propagated; rows must be removed by hand.', 'Tutorial 3', NULL, 6, 10, 'ACTIVE', '1.0', 4, 4, NOW(), NOW(), '3.2', 'u5'),
+     'Deletes are not propagated; rows must be removed by hand.', 'Tutorial 3', NULL, 6, 10, 'ACTIVE', '1.0', 4, 4, NOW(), NOW(), NULL, NULL, 'u5'),
     ('dddddddd-dddd-dddd-dddd-dddddddddddd', '11111111-1111-1111-1111-111111111111',
      'Test 4 - Community maintained', 'LDAP method open to every contributor',
-     NULL, 'Tutorial 4', NULL, 7, NULL, 'ACTIVE', '2.0', 5, 1, NOW(), NOW(), '2025.2', 'u5');
+     NULL, 'Tutorial 4', NULL, 7, NULL, 'ACTIVE', '2.0', 5, 1, NOW(), NOW(), 2, 4, 'u5');
 
 INSERT INTO integration_method_connector (integ_method_id, integ_method_revision,
     connector_id, connector_minversion, connector_maxversion)

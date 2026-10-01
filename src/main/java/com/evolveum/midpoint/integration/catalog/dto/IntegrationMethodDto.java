@@ -30,6 +30,8 @@ public record IntegrationMethodDto(
         Long downloadCount,                                         // computed: count of download rows
         Integer midpointMinVersionId,                               // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
         Integer midpointMaxVersionId,                               // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+        Integer appMinVersionId,                                    // integration_method.app_minversion (FK → application_version.id)
+        Integer appMaxVersionId,                                    // integration_method.app_maxversion (FK → application_version.id)
         String connectorDisplayName,                                // connector.display_name
         List<String> integMethodTypes,                              // integration_method_type.name
         String revision,                                            // integration_method.revision

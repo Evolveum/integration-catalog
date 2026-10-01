@@ -11,7 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail } from '../../models/application-detail.model';
+import { ApplicationDetail, ApplicationVersion } from '../../models/application-detail.model';
 
 @Component({
   selector: 'app-edit-application-modal',
@@ -33,11 +33,16 @@ export class EditApplicationModal implements OnInit {
   // Mirror Application.DISPLAY_NAME_MAX / DESCRIPTION_MAX (the column sizes) on the backend.
   protected readonly displayNameMax = 255;
   protected readonly descriptionMax = 350;
+  // Mirrors ApplicationVersion.VERSION_MAX.
+  protected readonly versionMax = 64;
 
   // Form fields
   protected readonly displayName = signal<string>('');
   protected readonly description = signal<string>('');
   protected readonly logoFile = signal<File | null>(null);
+  /** Kept ids are renamed in place; versions without an id are added; dropped ones are removed on save. */
+  protected readonly versions = signal<ApplicationVersion[]>([]);
+  protected readonly newVersion = signal<string>('');
 
   // Validation
   protected readonly displayNameInvalid = computed(() => {
@@ -45,8 +50,19 @@ export class EditApplicationModal implements OnInit {
     return name.length > 0 && name.length < 3;
   });
 
+  /** Indexes of blank or repeated versions. */
+  protected readonly invalidVersionIndexes = computed(() => {
+    const names = this.versions().map(v => v.version.trim());
+    return new Set(names.flatMap((n, i) => !n || names.indexOf(n) !== i ? [i] : []));
+  });
+
+  protected readonly newVersionDuplicate = computed(() => {
+    const name = this.newVersion().trim();
+    return !!name && this.versions().some(v => v.version.trim() === name);
+  });
+
   protected readonly isValid = computed(() => {
-    return this.displayName().trim().length >= 3;
+    return this.displayName().trim().length >= 3 && this.invalidVersionIndexes().size === 0;
   });
 
   constructor(
@@ -57,6 +73,7 @@ export class EditApplicationModal implements OnInit {
     if (this.application) {
       this.displayName.set(this.application.displayName || '');
       this.description.set(this.application.description || '');
+      this.versions.set((this.application.versions ?? []).map(v => ({ ...v })));
     }
   }
 
@@ -68,6 +85,22 @@ export class EditApplicationModal implements OnInit {
   protected onDescriptionInput(event: Event): void {
     const target = event.target as HTMLTextAreaElement;
     this.description.set(target.value ?? '');
+  }
+
+  protected onVersionInput(index: number, event: Event): void {
+    const version = (event.target as HTMLInputElement).value ?? '';
+    this.versions.update(vs => vs.map((v, i) => i === index ? { ...v, version } : v));
+  }
+
+  protected removeVersion(index: number): void {
+    this.versions.update(vs => vs.filter((_, i) => i !== index));
+  }
+
+  protected addVersion(): void {
+    const version = this.newVersion().trim();
+    if (!version || this.newVersionDuplicate()) return;
+    this.versions.update(vs => [...vs, { id: null, version }]);
+    this.newVersion.set('');
   }
 
   protected onLogoSelect(event: Event): void {
@@ -102,7 +135,8 @@ export class EditApplicationModal implements OnInit {
     // Update application details
     this.appService.updateApplication(this.appId, {
       displayName: this.displayName().trim(),
-      description: this.description().trim() || null
+      description: this.description().trim() || null,
+      versions: this.versions().map(v => ({ id: v.id, version: v.version.trim() }))
     }).subscribe({
       next: () => {
         // Upload logo if selected

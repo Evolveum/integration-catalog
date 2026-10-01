@@ -76,6 +76,7 @@ public class ApplicationService {
     private final AuthService authService;
     private final OrganizationService organizationService;
     private final OwnershipService ownershipService;
+    private final ApplicationVersionRepository applicationVersionRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -104,8 +105,10 @@ public class ApplicationService {
                               ConnectorRepository connectorRepository,
                               AuthService authService,
                               OrganizationService organizationService,
-                              OwnershipService ownershipService) {
+                              OwnershipService ownershipService,
+                              ApplicationVersionRepository applicationVersionRepository) {
         this.organizationService = organizationService;
+        this.applicationVersionRepository = applicationVersionRepository;
         this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -716,7 +719,71 @@ public class ApplicationService {
         if (dto.description() != null) {
             application.setDescription(dto.description());
         }
+        if (dto.versions() != null) {
+            syncVersions(application, dto.versions());
+        }
         return applicationRepository.save(application);
+    }
+
+    /**
+     * Makes the application's versions match {@code wanted}: a version with an id is kept (and renamed
+     * if its text changed), one without is added, and any other is removed - unless a revision of a
+     * method still states it, which is a 409 naming those methods.
+     */
+    private void syncVersions(Application application, List<ApplicationVersionDto> wanted) {
+        List<String> names = wanted.stream().map(v -> v.version().trim()).toList();
+        if (new HashSet<>(names).size() != names.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Application versions must be unique.");
+        }
+        Map<Integer, ApplicationVersion> existing = new HashMap<>();
+        application.getVersions().forEach(v -> existing.put(v.getId(), v));
+        Set<Integer> keptIds = new HashSet<>();
+        for (ApplicationVersionDto v : wanted) {
+            if (v.id() == null) {
+                continue;
+            }
+            if (!existing.containsKey(v.id())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Application version " + v.id() + " is not a version of this application.");
+            }
+            keptIds.add(v.id());
+        }
+
+        List<ApplicationVersion> removed = existing.values().stream()
+                .filter(v -> !keptIds.contains(v.getId()))
+                .toList();
+        for (ApplicationVersion version : removed) {
+            List<String> users = application.getIntegrationMethods().stream()
+                    .filter(m -> isVersion(m.getAppMinVersion(), version) || isVersion(m.getAppMaxVersion(), version))
+                    .map(m -> m.getDisplayName() + " " + m.getRevision())
+                    .distinct()
+                    .toList();
+            if (!users.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Version " + version.getVersion()
+                        + " cannot be removed, it is used by: " + String.join(", ", users) + ".");
+            }
+        }
+        // Removals and renames reach the database before additions, so a removed or renamed
+        // version's text can be reused in the same save without tripping the unique constraint.
+        application.getVersions().removeAll(removed);
+        applicationVersionRepository.deleteAll(removed);
+        applicationVersionRepository.flush();
+        for (ApplicationVersionDto v : wanted) {
+            if (v.id() != null) {
+                existing.get(v.id()).setVersion(v.version().trim());
+            }
+        }
+        applicationVersionRepository.flush();
+        for (ApplicationVersionDto v : wanted) {
+            if (v.id() == null) {
+                application.getVersions().add(applicationVersionRepository.save(
+                        new ApplicationVersion().setApplication(application).setVersion(v.version().trim())));
+            }
+        }
+    }
+
+    private static boolean isVersion(ApplicationVersion candidate, ApplicationVersion version) {
+        return candidate != null && candidate.getId().equals(version.getId());
     }
 
     /** Sets the tier on all bundle versions of the method's connectors; a method without any has nowhere to keep it. */

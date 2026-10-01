@@ -109,6 +109,10 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly midpointMinVersion = computed(() => this.resolveMidpointVersion(this.methodMinVersionId()));
   protected readonly midpointMaxVersion = computed(() => this.resolveMidpointVersion(this.methodMaxVersionId()));
 
+  // Supported application version range, as version text
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
+
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
   /** Each connector's compatibility range; the connector name only matters once there is more than one. */
@@ -170,6 +174,9 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodTutorial.set(ver.tutorial ?? '');
           this.methodMinVersionId.set(ver.midpointMinVersionId);
           this.methodMaxVersionId.set(ver.midpointMaxVersionId);
+          const appVersion = (id: number | null) => (app.versions ?? []).find(v => v.id === id)?.version ?? '';
+          this.appMinVersion.set(appVersion(ver.appMinVersionId));
+          this.appMaxVersion.set(appVersion(ver.appMaxVersionId));
           this.setCapabilities(ver.objectClassCapabilities);
           this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.loadConnectors(aId, vId, ver.revision ?? '');
