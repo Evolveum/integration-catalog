@@ -151,6 +151,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       this.laterStartVersionId(app, filters.midpointVersions) !== null ? 1 : 0;
     apps.sort((a, b) => needsUpgrade(a) - needsUpgrade(b));
 
+    // Name hits before description-only hits, each group keeping the order above.
+    if (query) {
+      const rank = new Map(apps.map(app => [app, this.searchRank(app, query)]));
+      apps.sort((a, b) => rank.get(a)! - rank.get(b)!);
+    }
+
     const start = this.currentPage() * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return apps.slice(start, end);
@@ -169,6 +175,20 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   });
 
   /**
+   * 0 = the name matches, also by its initials so "aws" finds "Amazon Web Services";
+   * 1 = only the description matches; -1 = no match.
+   * Null-guarded: name and description are nullable in the database, and one null would throw
+   * and empty the whole list rather than skipping that single application.
+   */
+  private searchRank(app: Application, query: string): number {
+    const name = (app.displayName ?? '').toLowerCase();
+    if (name.includes(query)) return 0;
+    const initials = name.split(/[\s\-_./()]+/).filter(word => word).map(word => word[0]).join('');
+    if (query.length > 1 && initials.startsWith(query)) return 0;
+    return (app.description ?? '').toLowerCase().includes(query) ? 1 : -1;
+  }
+
+  /**
    * Applies all filters to the applications list.
    * Shared by moreApplications and filteredCount computed signals.
    */
@@ -184,11 +204,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     // Filter by search query
     if (query) {
-      // Null-guarded: display name is nullable in the database, and one null would throw here and
-      // empty the whole list rather than skipping that single application.
-      filtered = filtered.filter(app =>
-        (app.displayName ?? '').toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(app => this.searchRank(app, query) >= 0);
     }
 
     // Apply advanced filters
