@@ -41,6 +41,8 @@ public class SecurityConfig {
 
     private static final String CURRENT_USER_ITEMS = "/api/auth/me/*";
 
+    private static final String REVIEW_QUEUE = "/api/review-queue";
+
     private static final String MAINTAINER_DIRECTORY = "/api/auth/all-maintainers";
 
     private static final String APPLICATION = "/api/applications/*";
@@ -143,6 +145,7 @@ public class SecurityConfig {
                                 .hasAnyRole(SUPERUSER, JenkinsCallbackFilter.CALLBACK_ROLE)
 
                         .requestMatchers(MAINTAINER_DIRECTORY).hasRole(SUPERUSER)
+                        .requestMatchers(REVIEW_QUEUE).hasRole(SUPERUSER)
                         .requestMatchers(UNFINISHED_CONNECTOR).hasRole(SUPERUSER)
                         .requestMatchers(HttpMethod.POST, REVIEW_DECISIONS).hasRole(SUPERUSER)
                         .requestMatchers(CONNECTOR_UPLOADS)

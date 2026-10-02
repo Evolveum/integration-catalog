@@ -14,6 +14,7 @@ import { SettingsPage } from './components/settings-page/settings-page';
 import { SupportTiersPage } from './components/support-tiers-page/support-tiers-page';
 import { MyIntegrationMethodsPage } from './components/my-integration-methods-page/my-integration-methods-page';
 import { MyConnectorsPage } from './components/my-connectors-page/my-connectors-page';
+import { ApprovalQueuePage } from './components/approval-queue-page/approval-queue-page';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
@@ -25,5 +26,6 @@ export const routes: Routes = [
   { path: 'settings', component: SettingsPage },
   { path: 'my-integration-methods', component: MyIntegrationMethodsPage },
   { path: 'my-connectors', component: MyConnectorsPage },
+  { path: 'approval-queue', component: ApprovalQueuePage },
   { path: 'support-tiers', component: SupportTiersPage }
 ];

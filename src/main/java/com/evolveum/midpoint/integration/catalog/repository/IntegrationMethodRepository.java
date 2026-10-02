@@ -31,6 +31,8 @@ public interface IntegrationMethodRepository extends JpaRepository<IntegrationMe
     Optional<IntegrationMethod> findFirstByIdOrderByCreatedAtDesc(UUID id);
     List<IntegrationMethod> findByLifecycleState(LifecycleType lifecycleState);
 
+    List<IntegrationMethod> findByLifecycleStateIn(Collection<LifecycleType> lifecycleStates);
+
     List<IntegrationMethod> findByMaintainerIn(Collection<Maintainer> maintainers);
 
     /** The tier belongs to the method, not to one revision, so every revision gets it. */

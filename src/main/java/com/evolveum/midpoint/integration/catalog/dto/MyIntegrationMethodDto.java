@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -15,6 +16,7 @@ import java.util.UUID;
  *
  * @param createdAt the original submission date, shared by all revisions
  * @param updated last change; the review start date while REVIEWING
+ * @param updatedAt the same moment with its time, for how long a revision has waited
  * @param supportTicketUrl null when the support portal is not configured
  */
 public record MyIntegrationMethodDto(
@@ -28,6 +30,7 @@ public record MyIntegrationMethodDto(
         String lifecycleState,
         LocalDate createdAt,
         LocalDate updated,
+        LocalDateTime updatedAt,
         String author,
         Integer supportTicketId,
         String supportTicketUrl,

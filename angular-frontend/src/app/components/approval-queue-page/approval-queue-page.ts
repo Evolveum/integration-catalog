@@ -14,38 +14,25 @@ import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
-import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { MyIntegrationMethod } from '../../models/my-items.model';
 import { maintainerLabel } from '../../models/maintainer.model';
 
-/** All revisions of one method, newest first; `revisions` holds only those the filters let through. */
-interface MethodGroup {
-  id: string;
-  applicationId: string;
-  applicationDisplayName: string | null;
-  applicationHasLogo: boolean;
-  displayName: string | null;
-  maintainerLabel: string;
-  isOrganization: boolean;
-  latest: MyIntegrationMethod;
-  versionCount: number;
-  revisions: MyIntegrationMethod[];
-}
+/** From this many days in the queue the waiting time turns red. */
+const OVERDUE_DAYS = 3;
 
 /**
- * Self-service list of the integration methods the user maintains, personally or through their
- * organization, with the same per-revision actions the application detail page offers.
+ * The superuser's approval queue: every revision awaiting approval or under review across the
+ * catalog, with the review actions of the application detail page.
  */
 @Component({
-  selector: 'app-my-integration-methods-page',
+  selector: 'app-approval-queue-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal,
-    DownloadInfoModal],
-  templateUrl: './my-integration-methods-page.html',
-  styleUrls: ['./my-integration-methods-page.scss'],
+  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal],
+  templateUrl: './approval-queue-page.html',
+  styleUrls: ['./approval-queue-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
 })
-export class MyIntegrationMethodsPage {
+export class ApprovalQueuePage {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly applicationService = inject(ApplicationService);
@@ -63,97 +50,60 @@ export class MyIntegrationMethodsPage {
   protected readonly states = signal<ReadonlySet<string>>(new Set());
   protected readonly applications = signal<ReadonlySet<string>>(new Set());
   protected readonly authors = signal<ReadonlySet<string>>(new Set());
-  protected readonly organizationOnly = signal(false);
+  protected readonly organizations = signal<ReadonlySet<string>>(new Set());
   protected readonly search = signal('');
 
-  protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
-  /** `filter:<name>`, `group:<id>` or `row:<id>:<revision>` of the open dropdown. */
   protected readonly openMenuKey = signal<string | null>(null);
 
-  protected readonly stateOptions: { value: string; label: string }[] = [
+  protected readonly stateOptions = [
     { value: 'IN_REVIEW', label: 'Awaiting approval' },
-    { value: 'REVIEWING', label: 'Under review' },
-    { value: 'ACTIVE', label: 'Published' },
-    { value: 'REJECTED', label: 'Rejected' }
+    { value: 'REVIEWING', label: 'Under review' }
   ];
 
   protected readonly isSuperuser = computed(() => this.authService.currentRole() === UserRole.Superuser);
 
-  /** Start/stop review and approve/reject are hidden here for now; flip to show them again. */
-  protected readonly showReviewActions = false;
-
-  /** Every method with all its revisions, before any filter. */
-  private readonly allGroups = computed<MethodGroup[]>(() => {
-    const groups = new Map<string, MethodGroup>();
-    for (const revision of this.revisions() ?? []) {
-      const group = groups.get(revision.id);
-      if (group) {
-        group.revisions.push(revision);
-        group.versionCount++;
-      } else {
-        groups.set(revision.id, {
-          id: revision.id,
-          applicationId: revision.applicationId,
-          applicationDisplayName: revision.applicationDisplayName,
-          applicationHasLogo: revision.applicationHasLogo,
-          displayName: revision.displayName,
-          maintainerLabel: maintainerLabel(revision.maintainer),
-          isOrganization: revision.maintainer?.category === 'ORG',
-          latest: revision,
-          versionCount: 1,
-          revisions: [revision]
-        });
-      }
-    }
-    return [...groups.values()];
-  });
-
-  protected readonly groups = computed<MethodGroup[]>(() => {
+  protected readonly rows = computed(() => {
     const states = this.states();
-    const authors = this.authors();
     const applications = this.applications();
-    const organizationOnly = this.organizationOnly();
+    const authors = this.authors();
+    const organizations = this.organizations();
     const query = this.search().trim().toLowerCase();
-    return this.allGroups()
-      .filter(g => !applications.size || applications.has(g.applicationId))
-      .filter(g => !organizationOnly || g.isOrganization)
-      .filter(g => !query
-        || (g.displayName ?? '').toLowerCase().includes(query)
-        || (g.applicationDisplayName ?? '').toLowerCase().includes(query))
-      .map(g => ({
-        ...g,
-        revisions: g.revisions.filter(r =>
-          (!states.size || states.has(r.lifecycleState ?? '')) && (!authors.size || authors.has(r.author ?? '')))
-      }))
-      .filter(g => g.revisions.length > 0);
+    return (this.revisions() ?? [])
+      .filter(r => !states.size || states.has(r.lifecycleState ?? ''))
+      .filter(r => !applications.size || applications.has(r.applicationId))
+      .filter(r => !authors.size || authors.has(r.author ?? ''))
+      .filter(r => !organizations.size || organizations.has(this.organizationOf(r) ?? ''))
+      .filter(r => !query
+        || (r.displayName ?? '').toLowerCase().includes(query)
+        || (r.applicationDisplayName ?? '').toLowerCase().includes(query));
   });
 
   protected readonly applicationOptions = computed(() => {
     const seen = new Map<string, string>();
-    for (const g of this.allGroups()) seen.set(g.applicationId, g.applicationDisplayName ?? '');
+    for (const r of this.revisions() ?? []) seen.set(r.applicationId, r.applicationDisplayName ?? '');
     return [...seen.entries()]
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
   protected readonly authorOptions = computed(() =>
-    [...new Set((this.revisions() ?? []).map(r => r.author).filter((a): a is string => !!a))]
-      .sort((a, b) => a.localeCompare(b)));
+    distinctSorted((this.revisions() ?? []).map(r => r.author)));
 
-  protected readonly totalCount = computed(() => this.allGroups().length);
-  protected readonly organizationCount = computed(() => this.allGroups().filter(g => g.isOrganization).length);
+  protected readonly organizationOptions = computed(() =>
+    distinctSorted((this.revisions() ?? []).map(r => this.organizationOf(r))));
+
+  protected readonly totalCount = computed(() => (this.revisions() ?? []).length);
   protected readonly awaitingCount = computed(() => this.countState('IN_REVIEW'));
   protected readonly reviewingCount = computed(() => this.countState('REVIEWING'));
-  protected readonly publishedCount = computed(() => this.countState('ACTIVE'));
 
   protected readonly hasFilters = computed(() =>
-    this.states().size > 0 || this.organizationOnly() || this.applications().size > 0
-    || this.authors().size > 0 || !!this.search().trim());
+    this.states().size > 0 || this.applications().size > 0 || this.authors().size > 0
+    || this.organizations().size > 0 || !!this.search().trim());
 
   constructor() {
     // The profile loads asynchronously at startup, so a page opened directly waits for it.
     effect(() => {
-      if (this.authService.profile() && !this.revisions() && !this.loading() && !this.loadFailed()) {
+      if (this.isSuperuser() && !this.revisions() && !this.loading() && !this.loadFailed()) {
         this.load();
       }
     });
@@ -162,7 +112,7 @@ export class MyIntegrationMethodsPage {
   protected load(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
-    this.applicationService.getMyIntegrationMethods().subscribe({
+    this.applicationService.getReviewQueue().subscribe({
       next: revisions => {
         this.revisions.set(revisions);
         this.loading.set(false);
@@ -178,16 +128,19 @@ export class MyIntegrationMethodsPage {
     return (this.revisions() ?? []).filter(r => r.lifecycleState === state).length;
   }
 
+  /** The maintaining organization's name; null for anything not maintained by an organization. */
+  protected organizationOf(revision: MyIntegrationMethod): string | null {
+    return revision.maintainer?.category === 'ORG' ? maintainerLabel(revision.maintainer) : null;
+  }
+
   // ==================== Filters ====================
 
   /** Behind the stat cards' "View items": shows just that slice, every other filter cleared. */
-  protected viewItems(state: string | null, organizationOnly = false): void {
+  protected viewItems(state: string | null): void {
     this.resetFilters();
     if (state) this.states.set(new Set([state]));
-    this.organizationOnly.set(organizationOnly);
   }
 
-  /** Whether the state filter is exactly this one state, as its stat card sets it. */
   protected isOnlyState(state: string): boolean {
     return this.states().size === 1 && this.states().has(state);
   }
@@ -196,7 +149,7 @@ export class MyIntegrationMethodsPage {
     this.states.set(new Set());
     this.applications.set(new Set());
     this.authors.set(new Set());
-    this.organizationOnly.set(false);
+    this.organizations.set(new Set());
     this.search.set('');
   }
 
@@ -212,15 +165,15 @@ export class MyIntegrationMethodsPage {
     this.authors.update(set => toggled(set, author));
   }
 
-  protected clearFilter(filter: 'states' | 'applications' | 'authors'): void {
+  protected toggleOrganization(organization: string): void {
+    this.organizations.update(set => toggled(set, organization));
+  }
+
+  protected clearFilter(filter: 'states' | 'applications' | 'authors' | 'organizations'): void {
     this[filter].set(new Set());
   }
 
   // ==================== Rows ====================
-
-  protected logoUrl(applicationId: string): string {
-    return this.applicationService.getLogoUrl(applicationId);
-  }
 
   protected initials(name: string | null): string {
     const parts = (name ?? '').split('@')[0].split(/[\s._-]+/).filter(Boolean);
@@ -229,21 +182,27 @@ export class MyIntegrationMethodsPage {
     return (parts[0].charAt(0) + tail).toUpperCase();
   }
 
-  /** The review lock: once a superuser starts reviewing, only a superuser may edit the revision. */
-  protected canEdit(revision: MyIntegrationMethod): boolean {
-    return revision.lifecycleState !== 'REVIEWING' || this.isSuperuser();
+  /**
+   * How long the revision has waited, counted from its last change: the submission while it
+   * awaits approval, the review start once it is under review.
+   */
+  protected inQueue(revision: MyIntegrationMethod): string {
+    const hours = this.hoursWaiting(revision);
+    if (hours === null) return '—';
+    if (hours < 1) return '< 1 h';
+    if (hours < 24) return `${Math.floor(hours)} h`;
+    const days = Math.floor(hours / 24);
+    return `${days} ${days === 1 ? 'day' : 'days'}`;
   }
 
-  protected isCollapsed(id: string): boolean {
-    return this.collapsedGroups().has(id);
+  protected isOverdue(revision: MyIntegrationMethod): boolean {
+    const hours = this.hoursWaiting(revision);
+    return hours !== null && hours >= OVERDUE_DAYS * 24;
   }
 
-  protected toggleGroup(id: string): void {
-    this.collapsedGroups.update(collapsed => {
-      const next = new Set(collapsed);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
+  private hoursWaiting(revision: MyIntegrationMethod): number | null {
+    if (!revision.updatedAt) return null;
+    return Math.max(0, (Date.now() - new Date(revision.updatedAt).getTime()) / 3_600_000);
   }
 
   protected rowKey(revision: MyIntegrationMethod): string {
@@ -263,21 +222,6 @@ export class MyIntegrationMethodsPage {
     this.router.navigate(['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'details']);
   }
 
-  protected openEdit(revision: MyIntegrationMethod): void {
-    this.closeMenu();
-    this.router.navigate(['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'edit']);
-  }
-
-  protected openApplication(applicationId: string): void {
-    this.closeMenu();
-    this.router.navigate(['/applications', applicationId]);
-  }
-
-  /** Starts the publish flow, which itself asks for the application. */
-  protected createMethod(): void {
-    this.router.navigate(['/approve']);
-  }
-
   /** Returns where the user came from, or to the catalog when opened directly. */
   protected goBack(): void {
     if (window.history.length > 1) {
@@ -287,10 +231,9 @@ export class MyIntegrationMethodsPage {
     }
   }
 
-  // ==================== Approve / reject ====================
+  // ==================== Approve ====================
 
   protected readonly confirmRevision = signal<MyIntegrationMethod | null>(null);
-  protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
   protected readonly isProcessingApproval = signal(false);
   protected readonly approvalError = signal('');
 
@@ -305,32 +248,26 @@ export class MyIntegrationMethodsPage {
     return `${r.author || '—'} · ${this.datePipe.transform(r.createdAt, 'MMMM d, yyyy') || '—'}`;
   });
 
-  protected openConfirm(revision: MyIntegrationMethod, mode: 'approve' | 'reject'): void {
+  /** Opens the panel that checks the build data and the support ticket before approving. */
+  protected openApprove(revision: MyIntegrationMethod): void {
     this.closeMenu();
     this.approvalError.set('');
     this.confirmRevision.set(revision);
-    this.confirmMode.set(mode);
   }
 
-  protected closeConfirm(): void {
+  protected closeApprove(): void {
     if (this.isProcessingApproval()) return;
-    this.confirmMode.set(null);
     this.confirmRevision.set(null);
   }
 
-  protected submitConfirm(): void {
+  protected submitApprove(): void {
     const revision = this.confirmRevision();
-    const mode = this.confirmMode();
-    if (!revision || !mode || this.isProcessingApproval()) return;
+    if (!revision || this.isProcessingApproval()) return;
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
-    const action$ = mode === 'approve'
-      ? this.applicationService.publishIntegrationMethod(revision.applicationId, revision.id, revision.revision)
-      : this.applicationService.rejectIntegrationMethod(revision.applicationId, revision.id, revision.revision);
-    action$.subscribe({
+    this.applicationService.publishIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
       next: () => {
         this.isProcessingApproval.set(false);
-        this.confirmMode.set(null);
         this.confirmRevision.set(null);
         this.load();
       },
@@ -341,7 +278,13 @@ export class MyIntegrationMethodsPage {
     });
   }
 
-  // ==================== Manual fill (from the approve modal) ====================
+  /** How rejecting from the queue works is still to be defined. */
+  protected reject(): void {
+    this.closeMenu();
+    this.toastService.show('Reject', 'Rejecting from the approval queue is not available yet.', 'info');
+  }
+
+  // ==================== Manual fill (from the approve panel) ====================
 
   protected readonly manualFillConnector = signal<ConnectorWithoutDownload | null>(null);
 
@@ -411,71 +354,10 @@ export class MyIntegrationMethodsPage {
       }
     });
   }
+}
 
-  // ==================== Cancel request ====================
-
-  protected readonly cancelRevision = signal<MyIntegrationMethod | null>(null);
-
-  protected openCancel(revision: MyIntegrationMethod): void {
-    this.closeMenu();
-    this.cancelRevision.set(revision);
-  }
-
-  protected closeCancel(): void {
-    this.cancelRevision.set(null);
-  }
-
-  protected confirmCancel(): void {
-    const revision = this.cancelRevision();
-    if (!revision) return;
-    this.applicationService.cancelIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
-      next: () => {
-        this.closeCancel();
-        this.load();
-      },
-      error: err => {
-        this.closeCancel();
-        this.toastService.show('Cancel request failed', errorMessage(err), 'danger');
-      }
-    });
-  }
-
-  /** Deleting a published revision has no backend yet. */
-  protected deletePublished(): void {
-    this.closeMenu();
-    this.toastService.show('Delete', 'Deleting a published integration method is not available yet.', 'info');
-  }
-
-  // ==================== Download ====================
-
-  protected readonly isDownloadInfoOpen = signal(false);
-  protected readonly isDownloadPreparing = signal(false);
-  protected readonly downloadInfoFileName = signal('');
-  protected readonly downloadInfoFileSize = signal<number | null>(null);
-
-  protected download(revision: MyIntegrationMethod): void {
-    this.closeMenu();
-    // Open right away: building the bundle can take a while and the click must show a reaction.
-    this.downloadInfoFileName.set('');
-    this.downloadInfoFileSize.set(null);
-    this.isDownloadPreparing.set(true);
-    this.isDownloadInfoOpen.set(true);
-    this.applicationService.downloadBundle(revision.applicationId, revision.id, revision.revision).subscribe({
-      next: result => {
-        if (result.warning) {
-          this.toastService.show('Download warning', result.warning, 'warning');
-        }
-        this.downloadInfoFileName.set(result.fileName);
-        this.downloadInfoFileSize.set(result.size);
-        this.isDownloadPreparing.set(false);
-      },
-      error: () => {
-        this.isDownloadPreparing.set(false);
-        this.isDownloadInfoOpen.set(false);
-        this.toastService.show('Download error', 'Failed to download the bundle. Please try again.', 'danger');
-      }
-    });
-  }
+function distinctSorted(values: (string | null)[]): string[] {
+  return [...new Set(values.filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
 }
 
 /** A copy of the set with the value added, or removed when it was there. */

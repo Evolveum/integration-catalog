@@ -82,6 +82,19 @@ public class MyItemsService {
                 .toList();
     }
 
+    /**
+     * Every revision waiting for a superuser across the catalog, longest waiting first. The
+     * caller is a superuser, which is what lets them see every ticket.
+     */
+    @Transactional(readOnly = true)
+    public List<MyIntegrationMethodDto> reviewQueue() {
+        return integrationMethodRepository
+                .findByLifecycleStateIn(List.of(LifecycleType.IN_REVIEW, LifecycleType.REVIEWING)).stream()
+                .sorted(Comparator.comparing(IntegrationMethod::getUpdated, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(this::toDto)
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<MyConnectorDto> myConnectors(String username, OidcUser oidcUser) {
         List<Maintainer> maintainers = ownMaintainers(username, oidcUser);
@@ -143,6 +156,7 @@ public class MyItemsService {
                 method.getLifecycleState() != null ? method.getLifecycleState().name() : null,
                 toDate(method.getCreatedAt()),
                 toDate(method.getUpdated()),
+                method.getUpdated(),
                 method.getAuthor() != null ? method.getAuthor().getUsername() : null,
                 ticketId,
                 ticketId != null ? openProjectProperties.workPackageUrl(ticketId) : null,

@@ -20,6 +20,8 @@ export interface MyIntegrationMethod {
   createdAt: string | null;
   /** Last change; the review start date while REVIEWING. */
   updated: string | null;
+  /** The same moment with its time, for how long a revision has waited. */
+  updatedAt: string | null;
   author: string | null;
   supportTicketId: number | null;
   /** Null when the support portal is not configured. */

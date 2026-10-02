@@ -404,6 +404,11 @@ export class ApplicationService {
     return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/auth/me/integration-methods`);
   }
 
+  /** Every revision awaiting approval or under review across the catalog, longest waiting first (superuser). */
+  getReviewQueue(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/review-queue`);
+  }
+
   /** The connectors the current user maintains, with their versions and usage. */
   getMyConnectors(): Observable<MyConnector[]> {
     return this.http.get<MyConnector[]>(`${environment.apiUrl}/auth/me/connectors`);

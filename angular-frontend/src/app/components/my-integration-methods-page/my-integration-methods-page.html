@@ -323,11 +323,12 @@
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                           </button>
                           @if (openMenuKey() === rowKey(rev)) {
-                            <!-- The same actions per state and role as the application detail page. -->
+                            <!-- The same actions per state and role as the application detail page; the review ones
+                                 (start/stop, approve/reject) are hidden for now, the approval queue owns them. -->
                             <div class="ss-menu ss-menu-right" role="menu">
                               @switch (rev.lifecycleState) {
                                 @case ('IN_REVIEW') {
-                                  @if (isSuperuser()) {
+                                  @if (showReviewActions && isSuperuser()) {
                                     <button type="button" class="ss-menu-item" role="menuitem" (click)="openStartReview(rev)">Start review</button>
                                     <div class="ss-menu-separator"></div>
                                   }
@@ -338,7 +339,7 @@
                                   </button>
                                 }
                                 @case ('REVIEWING') {
-                                  @if (isSuperuser()) {
+                                  @if (showReviewActions && isSuperuser()) {
                                     <button type="button" class="ss-menu-item" role="menuitem" (click)="openConfirm(rev, 'approve')">Approve request</button>
                                     <button type="button" class="ss-menu-item" role="menuitem" [disabled]="isProcessingStopReview()"
                                             (click)="stopReview(rev)">Stop review</button>
@@ -347,7 +348,7 @@
                                   <!-- Locked for the author while a review runs; disabled so they see why. -->
                                   <button type="button" class="ss-menu-item" role="menuitem" [disabled]="!canEdit(rev)"
                                           (click)="openEdit(rev)">Edit and upgrade</button>
-                                  @if (isSuperuser()) {
+                                  @if (showReviewActions && isSuperuser()) {
                                     <div class="ss-menu-separator"></div>
                                     <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="openConfirm(rev, 'reject')">
                                       <i class="fa-solid fa-xmark"></i>Reject request

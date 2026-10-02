@@ -4,10 +4,10 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import {Component, inject, Input, signal} from '@angular/core';
+import {Component, computed, inject, Input, signal} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { StagingBanner } from '../staging-banner/staging-banner';
 
@@ -44,6 +44,8 @@ export class PageHeader {
   protected readonly scrolledToTop = signal(window.scrollY <= 0);
 
   protected readonly userInitials = this.authService.initials;
+
+  protected readonly isSuperuser = computed(() => this.authService.currentRole() === UserRole.Superuser);
 
   protected onWindowScroll(): void { this.scrolledToTop.set(window.scrollY <= 0); }
 
