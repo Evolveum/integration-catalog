@@ -6,7 +6,9 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
-import com.evolveum.midpoint.integration.catalog.dto.MyItemsDto;
+import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
+import com.evolveum.midpoint.integration.catalog.dto.MyConnectorDto;
+import com.evolveum.midpoint.integration.catalog.dto.MyIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.ConnectorRepository;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodConnectorRepository;
@@ -25,9 +27,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * The items a user maintains, for the My profile page. Mirrors the maintainer half of
- * {@link AuthService#canEdit}: the user's own rows plus, for an organization contributor, the
- * organization's. Community items are left out, as they would match everyone.
+ * The items a user maintains, for the My integration methods and My connectors pages. Mirrors the
+ * maintainer half of {@link AuthService#canEdit}: the user's own rows plus, for an organization
+ * contributor, the organization's. Community items are left out, as they would match everyone.
  */
 @Service
 public class MyItemsService {
@@ -40,6 +42,8 @@ public class MyItemsService {
     private final IntegrationMethodRepository integrationMethodRepository;
     private final ConnectorRepository connectorRepository;
     private final IntegrationMethodConnectorRepository integrationMethodConnectorRepository;
+    private final OwnershipService ownershipService;
+    private final OpenProjectProperties openProjectProperties;
     private final CatalogClaims claims;
 
     public MyItemsService(MaintainerRepository maintainerRepository,
@@ -47,31 +51,46 @@ public class MyItemsService {
                           IntegrationMethodRepository integrationMethodRepository,
                           ConnectorRepository connectorRepository,
                           IntegrationMethodConnectorRepository integrationMethodConnectorRepository,
+                          OwnershipService ownershipService,
+                          OpenProjectProperties openProjectProperties,
                           CatalogClaims claims) {
         this.maintainerRepository = maintainerRepository;
         this.organizationRepository = organizationRepository;
         this.integrationMethodRepository = integrationMethodRepository;
         this.connectorRepository = connectorRepository;
         this.integrationMethodConnectorRepository = integrationMethodConnectorRepository;
+        this.ownershipService = ownershipService;
+        this.openProjectProperties = openProjectProperties;
         this.claims = claims;
     }
 
+    /** Every revision, grouped by method and newest first within one. */
     @Transactional(readOnly = true)
-    public MyItemsDto myItems(String username, OidcUser oidcUser) {
+    public List<MyIntegrationMethodDto> myIntegrationMethods(String username, OidcUser oidcUser) {
         List<Maintainer> maintainers = ownMaintainers(username, oidcUser);
         if (maintainers.isEmpty()) {
-            return new MyItemsDto(List.of(), List.of());
+            return List.of();
         }
-
-        List<IntegrationMethod> methods = integrationMethodRepository.findByMaintainerIn(maintainers).stream()
+        return integrationMethodRepository.findByMaintainerIn(maintainers).stream()
                 .sorted(Comparator
                         .comparing((IntegrationMethod m) -> nullToEmpty(m.getApplication().getDisplayName()),
                                 String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(m -> nullToEmpty(m.getDisplayName()), String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(IntegrationMethod::getId)
                         .thenComparing(IntegrationMethod::getRevision, NEWEST_REVISION_FIRST))
+                .map(this::toDto)
                 .toList();
-        Set<UUID> ownMethodIds = methods.stream().map(IntegrationMethod::getId).collect(Collectors.toSet());
+    }
+
+    @Transactional(readOnly = true)
+    public List<MyConnectorDto> myConnectors(String username, OidcUser oidcUser) {
+        List<Maintainer> maintainers = ownMaintainers(username, oidcUser);
+        if (maintainers.isEmpty()) {
+            return List.of();
+        }
+        Set<UUID> ownMethodIds = integrationMethodRepository.findByMaintainerIn(maintainers).stream()
+                .map(IntegrationMethod::getId)
+                .collect(Collectors.toSet());
 
         List<Connector> connectors = connectorRepository.findByMaintainerInAndClonedFromIsNull(maintainers).stream()
                 .sorted(Comparator.comparing((Connector c) -> nullToEmpty(displayName(c)), String.CASE_INSENSITIVE_ORDER))
@@ -81,11 +100,9 @@ public class MyItemsService {
                 : integrationMethodConnectorRepository.findByConnectorIn(connectors).stream()
                         .collect(Collectors.groupingBy(link -> link.getConnector().getId()));
 
-        return new MyItemsDto(
-                methods.stream().map(MyItemsService::toItem).toList(),
-                connectors.stream()
-                        .map(c -> toItem(c, linksByConnector.getOrDefault(c.getId(), List.of()), ownMethodIds))
-                        .toList());
+        return connectors.stream()
+                .map(c -> toDto(c, linksByConnector.getOrDefault(c.getId(), List.of()), ownMethodIds))
+                .toList();
     }
 
     /** The maintainer rows standing for the caller; none when the caller has never been made one. */
@@ -104,73 +121,90 @@ public class MyItemsService {
         return maintainers;
     }
 
-    private static MyItemsDto.IntegrationMethodItem toItem(IntegrationMethod method) {
+    private MyIntegrationMethodDto toDto(IntegrationMethod method) {
         Application application = method.getApplication();
-        return new MyItemsDto.IntegrationMethodItem(
+        // The caller maintains every listed method, which is what lets them see its ticket.
+        Integer ticketId = openProjectProperties.isEnabled() ? method.getSupportTicketId() : null;
+        String connectorDisplayName = method.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .map(MyItemsService::displayName)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+        return new MyIntegrationMethodDto(
                 application.getId(),
                 application.getDisplayName(),
                 application.getLogoPath() != null,
                 method.getId(),
                 method.getRevision(),
                 method.getDisplayName(),
+                connectorDisplayName,
                 method.getLifecycleState() != null ? method.getLifecycleState().name() : null,
                 toDate(method.getCreatedAt()),
-                toDate(method.getUpdated()));
+                toDate(method.getUpdated()),
+                method.getAuthor() != null ? method.getAuthor().getUsername() : null,
+                ticketId,
+                ticketId != null ? openProjectProperties.workPackageUrl(ticketId) : null,
+                ownershipService.toDto(method.getMaintainer()));
     }
 
     /**
      * @param links every method revision linking the connector
      * @param ownMethodIds the caller's methods; drafts of anyone else's are not theirs to see
      */
-    private static MyItemsDto.ConnectorItem toItem(Connector connector, List<IntegrationMethodConnector> links,
-                                                   Set<UUID> ownMethodIds) {
-        // One entry per method: its published revision when it has one, else its newest.
-        Map<UUID, IntegrationMethod> byMethod = new LinkedHashMap<>();
-        for (IntegrationMethodConnector link : links) {
-            IntegrationMethod method = link.getIntegrationMethod();
-            if (method.getLifecycleState() != LifecycleType.ACTIVE && !ownMethodIds.contains(method.getId())) {
-                continue;
-            }
-            byMethod.merge(method.getId(), method, MyItemsService::preferredRevision);
-        }
-        List<MyItemsDto.ConnectorUsage> usedBy = byMethod.values().stream()
-                .map(m -> new MyItemsDto.ConnectorUsage(
-                        m.getApplication().getId(), m.getId(), m.getRevision(), m.getDisplayName()))
-                .sorted(Comparator.comparing(u -> nullToEmpty(u.displayName()), String.CASE_INSENSITIVE_ORDER))
+    private MyConnectorDto toDto(Connector connector, List<IntegrationMethodConnector> links, Set<UUID> ownMethodIds) {
+        List<ConnectorVersion> versions = connector.getConnectorVersions().stream()
+                .sorted(Comparator.comparing(ConnectorVersion::getId).reversed())
                 .toList();
 
-        return new MyItemsDto.ConnectorItem(
+        // A link names no version row, only the connector: the version it was added with is its
+        // min version, and one matching none of the rows is taken to use the newest.
+        Map<ConnectorVersion, List<MyConnectorDto.Usage>> usages = new IdentityHashMap<>();
+        for (IntegrationMethodConnector link : links) {
+            IntegrationMethod method = link.getIntegrationMethod();
+            if (versions.isEmpty()
+                    || (method.getLifecycleState() != LifecycleType.ACTIVE && !ownMethodIds.contains(method.getId()))) {
+                continue;
+            }
+            ConnectorVersion used = versions.stream()
+                    .filter(v -> Objects.equals(versionOf(v), link.getConnectorMinVersion()))
+                    .findFirst()
+                    .orElse(versions.get(0));
+            usages.computeIfAbsent(used, v -> new ArrayList<>()).add(new MyConnectorDto.Usage(
+                    method.getApplication().getId(),
+                    method.getApplication().getDisplayName(),
+                    method.getId(),
+                    method.getRevision(),
+                    method.getDisplayName()));
+        }
+
+        return new MyConnectorDto(
                 connector.getId(),
                 displayName(connector),
-                connector.getRevision(),
-                lifecycleState(connector),
-                usedBy);
+                ownershipService.toDto(connector.getMaintainer()),
+                versions.stream()
+                        .map(v -> new MyConnectorDto.Version(
+                                versionOf(v),
+                                v.getAuthor() != null ? v.getAuthor().getUsername() : null,
+                                toDate(v.getCreatedAt()),
+                                v.getLifecycleState() != null ? v.getLifecycleState().name() : null,
+                                usages.getOrDefault(v, List.of()).stream()
+                                        .sorted(Comparator
+                                                .comparing((MyConnectorDto.Usage u) -> nullToEmpty(u.displayName()),
+                                                        String.CASE_INSENSITIVE_ORDER)
+                                                .thenComparing(MyConnectorDto.Usage::revision, NEWEST_REVISION_FIRST))
+                                        .toList()))
+                        .toList());
     }
 
-    private static IntegrationMethod preferredRevision(IntegrationMethod a, IntegrationMethod b) {
-        boolean aActive = a.getLifecycleState() == LifecycleType.ACTIVE;
-        boolean bActive = b.getLifecycleState() == LifecycleType.ACTIVE;
-        if (aActive != bActive) {
-            return aActive ? a : b;
+    /** The "Connector version" given when it was added, which lands on the bundle version. */
+    private static String versionOf(ConnectorVersion version) {
+        ConnectorBundleVersion bundleVersion = version.getConnectorBundleVersion();
+        if (bundleVersion != null && bundleVersion.getBundleVersion() != null) {
+            return bundleVersion.getBundleVersion();
         }
-        return compareRevisions(a.getRevision(), b.getRevision()) >= 0 ? a : b;
-    }
-
-    /** ACTIVE once any version is published, otherwise the state of the newest version. */
-    private static String lifecycleState(Connector connector) {
-        List<ConnectorVersion> versions = connector.getConnectorVersions();
-        if (versions == null || versions.isEmpty()) {
-            return null;
-        }
-        if (versions.stream().anyMatch(v -> v.getLifecycleState() == LifecycleType.ACTIVE)) {
-            return LifecycleType.ACTIVE.name();
-        }
-        return versions.stream()
-                .max(Comparator.comparing(ConnectorVersion::getCreatedAt,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
-                .map(ConnectorVersion::getLifecycleState)
-                .map(Enum::name)
-                .orElse(null);
+        return version.getRevision();
     }
 
     private static String displayName(Connector connector) {

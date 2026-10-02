@@ -12,7 +12,8 @@ import { EditUpgradeForm } from './components/edit-upgrade-form/edit-upgrade-for
 import { IntegrationMethodDetail } from './components/integration-method-detail/integration-method-detail';
 import { SettingsPage } from './components/settings-page/settings-page';
 import { SupportTiersPage } from './components/support-tiers-page/support-tiers-page';
-import { MyProfilePage } from './components/my-profile-page/my-profile-page';
+import { MyIntegrationMethodsPage } from './components/my-integration-methods-page/my-integration-methods-page';
+import { MyConnectorsPage } from './components/my-connectors-page/my-connectors-page';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm },
   { path: 'approve', component: PublishFormMain },
   { path: 'settings', component: SettingsPage },
-  { path: 'my-profile', component: MyProfilePage },
+  { path: 'my-integration-methods', component: MyIntegrationMethodsPage },
+  { path: 'my-connectors', component: MyConnectorsPage },
   { path: 'support-tiers', component: SupportTiersPage }
 ];

@@ -4,13 +4,9 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-/** GET /api/auth/me/items: what the current user maintains, personally or through their organization. */
-export interface MyItems {
-  /** Every revision, newest first within one method. */
-  integrationMethods: MyIntegrationMethod[];
-  connectors: MyConnector[];
-}
+import { Maintainer } from './maintainer.model';
 
+/** GET /api/auth/me/integration-methods: one revision of a method the current user maintains. */
 export interface MyIntegrationMethod {
   applicationId: string;
   applicationDisplayName: string | null;
@@ -18,25 +14,40 @@ export interface MyIntegrationMethod {
   id: string;
   revision: string;
   displayName: string | null;
+  connectorDisplayName: string | null;
   lifecycleState: string | null;
   /** The original submission date, shared by all revisions. */
   createdAt: string | null;
   /** Last change; the review start date while REVIEWING. */
   updated: string | null;
+  author: string | null;
+  supportTicketId: number | null;
+  /** Null when the support portal is not configured. */
+  supportTicketUrl: string | null;
+  maintainer: Maintainer;
 }
 
+/** GET /api/auth/me/connectors: a connector the current user maintains. */
 export interface MyConnector {
   id: number;
   displayName: string | null;
+  maintainer: Maintainer;
+  /** Newest first. */
+  versions: MyConnectorVersion[];
+}
+
+export interface MyConnectorVersion {
+  /** The "Connector version" given when the connector was added. */
   version: string | null;
-  /** ACTIVE once any of its versions is published, else the newest version's state. */
+  author: string | null;
+  uploaded: string | null;
   lifecycleState: string | null;
   usedBy: MyConnectorUsage[];
 }
 
-/** A method linking a connector; the revision is its published one when it has one. */
 export interface MyConnectorUsage {
   applicationId: string;
+  applicationDisplayName: string | null;
   integrationMethodId: string;
   revision: string;
   displayName: string | null;

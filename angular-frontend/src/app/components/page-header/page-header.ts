@@ -57,17 +57,6 @@ export class PageHeader {
     this.authService.logout();
   }
 
-  /**
-   * Placeholder for menu entries whose pages do not exist yet, so they give feedback instead of
-   * doing nothing. Replace with routing once the pages land.
-   *
-   * @param label the menu entry the user picked
-   */
-  protected openComingSoon(label: string): void {
-    this.closeMenu();
-    this.toastService.show(label, 'This page is not available yet.', 'info');
-  }
-
   protected closeToast(): void {
     this.toastService.close();
   }

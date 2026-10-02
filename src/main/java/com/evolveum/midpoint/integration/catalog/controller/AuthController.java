@@ -8,7 +8,8 @@ package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
-import com.evolveum.midpoint.integration.catalog.dto.MyItemsDto;
+import com.evolveum.midpoint.integration.catalog.dto.MyConnectorDto;
+import com.evolveum.midpoint.integration.catalog.dto.MyIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
 import com.evolveum.midpoint.integration.catalog.service.MyItemsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -52,17 +53,30 @@ public class AuthController {
         return ResponseEntity.ok(authService.getCurrentUser(authentication.getName(), oidcUser));
     }
 
-    @Operation(summary = "Current user's items",
-            description = "Integration methods and connectors the authenticated user maintains, "
+    @Operation(summary = "Current user's integration methods",
+            description = "Every revision of the integration methods the authenticated user maintains, "
                     + "personally or through their organization")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "The user's integration methods and connectors"),
+            @ApiResponse(responseCode = "200", description = "The user's integration method revisions"),
             @ApiResponse(responseCode = "401", description = "Not authenticated")
     })
-    @GetMapping("/me/items")
-    public ResponseEntity<MyItemsDto> myItems(@AuthenticationPrincipal OidcUser oidcUser,
-                                              Authentication authentication) {
-        return ResponseEntity.ok(myItemsService.myItems(authentication.getName(), oidcUser));
+    @GetMapping("/me/integration-methods")
+    public ResponseEntity<List<MyIntegrationMethodDto>> myIntegrationMethods(@AuthenticationPrincipal OidcUser oidcUser,
+                                                                             Authentication authentication) {
+        return ResponseEntity.ok(myItemsService.myIntegrationMethods(authentication.getName(), oidcUser));
+    }
+
+    @Operation(summary = "Current user's connectors",
+            description = "The connectors the authenticated user maintains, personally or through their "
+                    + "organization, with their versions and the integration methods using each")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The user's connectors"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    @GetMapping("/me/connectors")
+    public ResponseEntity<List<MyConnectorDto>> myConnectors(@AuthenticationPrincipal OidcUser oidcUser,
+                                                             Authentication authentication) {
+        return ResponseEntity.ok(myItemsService.myConnectors(authentication.getName(), oidcUser));
     }
 
     @Operation(summary = "Get all maintainers",

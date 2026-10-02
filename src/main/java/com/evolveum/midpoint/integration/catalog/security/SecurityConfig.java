@@ -39,7 +39,7 @@ public class SecurityConfig {
 
     private static final String CURRENT_USER = "/api/auth/me";
 
-    private static final String CURRENT_USER_ITEMS = "/api/auth/me/items";
+    private static final String CURRENT_USER_ITEMS = "/api/auth/me/*";
 
     private static final String MAINTAINER_DIRECTORY = "/api/auth/all-maintainers";
 

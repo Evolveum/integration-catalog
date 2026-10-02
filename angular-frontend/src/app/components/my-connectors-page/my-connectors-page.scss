@@ -1,0 +1,33 @@
+/*!
+  Copyright (c) 2010-2026 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'self-service';
+
+.conn-col-version {
+  width: 26%;
+}
+
+.conn-col-uploaded {
+  width: 16%;
+}
+
+.conn-col-usage {
+  width: 34%;
+}
+
+// Keeps the version chips aligned whether or not a row has a usage toggle.
+.conn-chevron-space {
+  display: inline-block;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.conn-usage-row td {
+  padding-left: 3.25rem;
+}
+
+.conn-usage-link {
+  padding: 0.2rem 0;
+  font-size: 0.75rem;
+}

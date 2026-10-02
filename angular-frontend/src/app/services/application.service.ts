@@ -20,7 +20,7 @@ import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
-import { MyItems } from '../models/my-items.model';
+import { MyConnector, MyIntegrationMethod } from '../models/my-items.model';
 
 /** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
 export interface BundleDownloadResult {
@@ -399,9 +399,14 @@ export class ApplicationService {
     );
   }
 
-  /** The integration methods and connectors the current user maintains, for the My profile page. */
-  getMyItems(): Observable<MyItems> {
-    return this.http.get<MyItems>(`${environment.apiUrl}/auth/me/items`);
+  /** Every revision of the integration methods the current user maintains, newest first per method. */
+  getMyIntegrationMethods(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/auth/me/integration-methods`);
+  }
+
+  /** The connectors the current user maintains, with their versions and usage. */
+  getMyConnectors(): Observable<MyConnector[]> {
+    return this.http.get<MyConnector[]>(`${environment.apiUrl}/auth/me/connectors`);
   }
 
   // ==================== Logo Methods ====================
