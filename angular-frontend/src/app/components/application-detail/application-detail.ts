@@ -208,6 +208,10 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
+  protected isReadOnly(): boolean {
+    return this.authService.isReadOnly();
+  }
+
   protected readonly supportTiers = SUPPORT_TIERS;
   protected readonly supportTierLabel = supportTierLabel;
 

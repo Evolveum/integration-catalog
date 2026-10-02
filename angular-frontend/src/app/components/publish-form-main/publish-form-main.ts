@@ -17,6 +17,7 @@ import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker
 import { IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
 import { LinksService } from '../../services/links.service';
+import { ToastService } from '../../services/toast.service';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
@@ -70,6 +71,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   // Step 3 – method-specific form fields
   protected readonly links = inject(LinksService).links;
+  private readonly toastService = inject(ToastService);
   protected readonly methodFormDisplayName = signal<string>('');
   protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
@@ -435,6 +437,12 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (!this.authService.canUpload()) {
+      // Reached by a typed or bookmarked /approve URL; the UI buttons check before navigating here.
+      if (this.authService.isLoggedIn()) {
+        this.toastService.show('Permission Denied', "You don't have permission for this action.", 'warning');
+      } else {
+        this.toastService.show('Login Required', 'You need to log in to perform this action. Please log in and try again.', 'warning');
+      }
       this.router.navigate(['/applications']);
       return;
     }

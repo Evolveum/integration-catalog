@@ -228,6 +228,11 @@ export class AuthService {
     return this._currentRole();
   }
 
+  /** ReadOnly users don't get contributor buttons at all; anonymous visitors still see them and get a login prompt. */
+  isReadOnly(): boolean {
+    return this._currentRole() === UserRole.ReadOnly;
+  }
+
   /** Any logged-in user may vote, including ReadOnly; anonymous visitors may not. */
   canVote(): boolean {
     return this.isLoggedIn();
