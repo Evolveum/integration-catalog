@@ -16,6 +16,7 @@ import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { MyIntegrationMethod } from '../../models/my-items.model';
 import { maintainerLabel } from '../../models/maintainer.model';
+import { versionBadge } from '../../core/version-badge';
 
 /** From this many days in the queue the waiting time turns red. */
 const OVERDUE_DAYS = 3;
@@ -38,6 +39,7 @@ export class ApprovalQueuePage {
   private readonly applicationService = inject(ApplicationService);
   private readonly toastService = inject(ToastService);
   protected readonly authService = inject(AuthService);
+  protected readonly versionBadge = versionBadge;
   private readonly datePipe = new DatePipe('en-US');
 
   @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;

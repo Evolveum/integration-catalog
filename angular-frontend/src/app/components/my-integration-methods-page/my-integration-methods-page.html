@@ -277,7 +277,7 @@
                     <tr class="ss-row-clickable" (click)="openDetails(rev)">
                       <td>
                         <div class="d-flex align-items-center gap-3">
-                          <span class="ss-version-chip">v{{ rev.revision }}</span>
+                          <span class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
                           <div class="im-version-text">
                             <div>{{ rev.displayName }}</div>
                             <div class="ss-cell-sub">

@@ -17,6 +17,7 @@ import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { MyIntegrationMethod } from '../../models/my-items.model';
 import { maintainerLabel } from '../../models/maintainer.model';
+import { versionBadge } from '../../core/version-badge';
 
 /** All revisions of one method, newest first; `revisions` holds only those the filters let through. */
 interface MethodGroup {
@@ -51,6 +52,7 @@ export class MyIntegrationMethodsPage {
   private readonly applicationService = inject(ApplicationService);
   private readonly toastService = inject(ToastService);
   protected readonly authService = inject(AuthService);
+  protected readonly versionBadge = versionBadge;
   private readonly datePipe = new DatePipe('en-US');
 
   @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;
