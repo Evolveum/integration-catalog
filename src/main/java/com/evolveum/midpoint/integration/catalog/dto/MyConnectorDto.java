@@ -6,6 +6,8 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import com.evolveum.midpoint.integration.catalog.object.SupportTier;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +21,7 @@ public record MyConnectorDto(
         Integer id,
         String displayName,
         MaintainerDto maintainer,
+        List<String> tags,          // display names, sorted
         List<Version> versions
 ) {
 
@@ -31,6 +34,8 @@ public record MyConnectorDto(
             String author,
             LocalDate uploaded,
             String lifecycleState,
+            Integer bundleVersionId,    // null when the version has no bundle version
+            SupportTier supportTier,
             List<Usage> usedBy
     ) {}
 

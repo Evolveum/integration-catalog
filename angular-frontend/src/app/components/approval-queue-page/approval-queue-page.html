@@ -117,72 +117,37 @@
             </div>
           }
         </div>
-        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:author'">
-          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="authors().size > 0">
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:maintainer'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="maintainers().size > 0">
             <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
-                    [attr.aria-expanded]="openMenuKey() === 'filter:author'" (click)="toggleMenu('filter:author')">
-              <span>Author</span>
-              @if (authors().size) {
-                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ authors().size }}</span>
+                    [attr.aria-expanded]="openMenuKey() === 'filter:maintainer'" (click)="toggleMenu('filter:maintainer')">
+              <span>Maintainer</span>
+              @if (maintainers().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ maintainers().size }}</span>
               }
               <i class="fa-solid fa-chevron-down"></i>
             </button>
-            @if (authors().size) {
-              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear author filter"
-                      (click)="clearFilter('authors')">
+            @if (maintainers().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear maintainer filter"
+                      (click)="clearFilter('maintainers')">
                 <i class="fa-solid fa-xmark"></i>
               </button>
             }
           </div>
-          @if (openMenuKey() === 'filter:author') {
+          @if (openMenuKey() === 'filter:maintainer') {
             <div class="ss-chip-dropdown">
-              @for (option of authorOptions(); track option) {
-                <button type="button" class="ss-chip-option" (click)="toggleAuthor(option)">
-                  <span class="ss-checkbox" [class.ss-checkbox-checked]="authors().has(option)">
-                    @if (authors().has(option)) { <i class="fa-solid fa-check"></i> }
+              @for (option of maintainerOptions(); track option.key) {
+                <button type="button" class="ss-chip-option" (click)="toggleMaintainer(option.key)">
+                  <span class="ss-checkbox" [class.ss-checkbox-checked]="maintainers().has(option.key)">
+                    @if (maintainers().has(option.key)) { <i class="fa-solid fa-check"></i> }
                   </span>
-                  <span>{{ option }}</span>
+                  <span>{{ option.label }}</span>
                 </button>
               } @empty {
                 <div class="ss-chip-empty mb-2">Nothing to choose from</div>
               }
               <div class="ss-chip-dropdown-footer">
-                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('authors')">Clear filter</button>
-              </div>
-            </div>
-          }
-        </div>
-        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:organization'">
-          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="organizations().size > 0">
-            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
-                    [attr.aria-expanded]="openMenuKey() === 'filter:organization'" (click)="toggleMenu('filter:organization')">
-              <span>Organization</span>
-              @if (organizations().size) {
-                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ organizations().size }}</span>
-              }
-              <i class="fa-solid fa-chevron-down"></i>
-            </button>
-            @if (organizations().size) {
-              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear organization filter"
-                      (click)="clearFilter('organizations')">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            }
-          </div>
-          @if (openMenuKey() === 'filter:organization') {
-            <div class="ss-chip-dropdown">
-              @for (option of organizationOptions(); track option) {
-                <button type="button" class="ss-chip-option" (click)="toggleOrganization(option)">
-                  <span class="ss-checkbox" [class.ss-checkbox-checked]="organizations().has(option)">
-                    @if (organizations().has(option)) { <i class="fa-solid fa-check"></i> }
-                  </span>
-                  <span>{{ option }}</span>
-                </button>
-              } @empty {
-                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
-              }
-              <div class="ss-chip-dropdown-footer">
-                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('organizations')">Clear filter</button>
+                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('maintainers')">Clear filter</button>
               </div>
             </div>
           }
@@ -229,7 +194,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (rev of rows(); track rev.id + ':' + rev.revision) {
+              @for (rev of pagedRows(); track rev.id + ':' + rev.revision) {
                 <tr class="ss-row-clickable" (click)="openDetails(rev)">
                   <td>
                     <span class="d-flex align-items-center gap-2">
@@ -299,6 +264,7 @@
             </tbody>
           </table>
         </div>
+        <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)"/>
       }
     }
   </div>

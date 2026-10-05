@@ -2,6 +2,7 @@
   Copyright (c) 2010-2026 Evolveum and contributors
   Licensed under the EUPL-1.2 or later.
 */
+@use 'variables' as *;
 @use 'self-service';
 
 .conn-col-version {
@@ -16,6 +17,44 @@
   width: 34%;
 }
 
+.conn-col-tier {
+  width: 16%;
+}
+
+.conn-tier-select {
+  width: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+}
+
+// Same tier colors as the badges on the application page.
+.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
+.tier-none     { color: #6c757d; }
+
+.conn-tag {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid $color-border-light;
+  border-radius: 4px;
+  background-color: $color-bg-light;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
+.conn-maintainer {
+  overflow-wrap: anywhere;
+
+  i {
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+}
+
 // Keeps the version chips aligned whether or not a row has a usage toggle.
 .conn-chevron-space {
   display: inline-block;
@@ -23,8 +62,13 @@
   flex-shrink: 0;
 }
 
+// An expanded row and its usage list read as one row.
+.conn-row-expanded td {
+  border-bottom: none;
+}
+
 .conn-usage-row td {
-  padding-left: 3.25rem;
+  padding-top: 0;
 }
 
 .conn-usage-link {

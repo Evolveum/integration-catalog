@@ -32,25 +32,21 @@
     } @else if (error()) {
       <p class="text-danger">The integration methods could not be loaded. Please try again later.</p>
     } @else if (groups().length === 0) {
-      <p class="text-muted">No published integration method matches this support tier.</p>
+      <p class="text-muted">No published integration method has this support tier.</p>
     } @else {
       @for (group of groups(); track group.applicationId) {
         <section class="tiers-app mb-3">
           <a class="tiers-app-name" [routerLink]="['/applications', group.applicationId]">{{ group.applicationName }}</a>
           <ul class="tiers-methods list-unstyled mb-0">
-            @for (m of group.methods; track m.methodId) {
+            @for (m of group.methods; track m.methodId + ':' + m.revision) {
               <li class="tiers-method d-flex align-items-center justify-content-between gap-3">
-                <a class="tiers-method-name"
-                   [routerLink]="['/applications', m.applicationId, 'integration-method', m.methodId, m.revision, 'details']">{{ m.methodName }}</a>
+                <span class="d-flex align-items-center gap-2 tiers-method-title">
+                  <a class="tiers-method-name"
+                     [routerLink]="['/applications', m.applicationId, 'integration-method', m.methodId, m.revision, 'details']">{{ m.methodName }}</a>
+                  <span class="tiers-version">{{ versionBadge(m.revision) }}</span>
+                </span>
                 @if (m.supportTier) {
                   <span class="tiers-badge" [class]="'tier-' + m.supportTier.toLowerCase()">{{ supportTierLabel(m.supportTier) }}</span>
-                } @else {
-                  <span class="d-flex gap-2">
-                    @if (!m.hasConnectorBundle) {
-                      <span class="tiers-badge tier-no-bundle">No connector bundle</span>
-                    }
-                    <span class="tiers-badge tier-none">No tier</span>
-                  </span>
                 }
               </li>
             }
@@ -58,33 +54,7 @@
         </section>
       }
 
-      @if (totalPages() > 1) {
-        <nav aria-label="Page navigation" class="mt-4">
-          <ul class="pagination justify-content-end flex-wrap">
-            <li class="page-item" [class.disabled]="currentPage() === 0">
-              <button class="page-link page-link-default" (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 0">
-                <i class="fa-solid fa-arrow-left me-1"></i>
-                Previous
-              </button>
-            </li>
-
-            @for (page of [].constructor(totalPages()); track $index) {
-              <li class="page-item" [class.active]="currentPage() === $index">
-                <button class="page-link" [class.page-link-active]="currentPage() === $index" [class.page-link-default]="currentPage() !== $index" (click)="goToPage($index)">
-                  {{ $index + 1 }}
-                </button>
-              </li>
-            }
-
-            <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
-              <button class="page-link page-link-default" (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages() - 1">
-                Next
-                <i class="fa-solid fa-arrow-right ms-1"></i>
-              </button>
-            </li>
-          </ul>
-        </nav>
-      }
+      <app-pager [page]="currentPage()" [totalPages]="totalPages()" (pageChange)="goToPage($event)"/>
     }
   </div>
 </div>

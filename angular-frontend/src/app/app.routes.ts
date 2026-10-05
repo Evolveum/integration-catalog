@@ -25,7 +25,9 @@ export const routes: Routes = [
   { path: 'approve', component: PublishFormMain },
   { path: 'settings', component: SettingsPage },
   { path: 'my-integration-methods', component: MyIntegrationMethodsPage },
+  { path: 'all-integration-methods', component: MyIntegrationMethodsPage, data: { scope: 'all' } },
   { path: 'my-connectors', component: MyConnectorsPage },
+  { path: 'all-connectors', component: MyConnectorsPage, data: { scope: 'all' } },
   { path: 'approval-queue', component: ApprovalQueuePage },
   { path: 'support-tiers', component: SupportTiersPage }
 ];

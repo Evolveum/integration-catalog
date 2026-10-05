@@ -4,19 +4,22 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, signal, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe, Location } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ApplicationService, ConnectorWithoutDownload } from '../../services/application.service';
 import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
+import { Pager } from '../pager/pager';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { MyIntegrationMethod } from '../../models/my-items.model';
-import { maintainerLabel } from '../../models/maintainer.model';
+import {
+  MAINTAINER_CATEGORY_LABELS, MaintainerCategory, maintainerFilterOptions, maintainerKey, maintainerLabel
+} from '../../models/maintainer.model';
 import { versionBadge } from '../../core/version-badge';
 
 /** All revisions of one method, newest first; `revisions` holds only those the filters let through. */
@@ -26,8 +29,9 @@ interface MethodGroup {
   applicationDisplayName: string | null;
   applicationHasLogo: boolean;
   displayName: string | null;
+  maintainerKey: string;
   maintainerLabel: string;
-  isOrganization: boolean;
+  maintainerCategory: MaintainerCategory | null;
   latest: MyIntegrationMethod;
   versionCount: number;
   revisions: MyIntegrationMethod[];
@@ -35,19 +39,21 @@ interface MethodGroup {
 
 /**
  * Self-service list of the integration methods the user maintains, personally or through their
- * organization, with the same per-revision actions the application detail page offers.
+ * organization, with the same per-revision actions the application detail page offers. With the
+ * route's `scope: 'all'` it lists every method in the catalog instead, for a superuser.
  */
 @Component({
   selector: 'app-my-integration-methods-page',
   standalone: true,
   imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal,
-    DownloadInfoModal],
+    DownloadInfoModal, Pager],
   templateUrl: './my-integration-methods-page.html',
   styleUrls: ['./my-integration-methods-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
 })
 export class MyIntegrationMethodsPage {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly applicationService = inject(ApplicationService);
   private readonly toastService = inject(ToastService);
@@ -57,6 +63,9 @@ export class MyIntegrationMethodsPage {
 
   @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;
 
+  /** Every method in the catalog (superuser) instead of the user's own. */
+  protected readonly allMethods = this.route.snapshot.data['scope'] === 'all';
+
   protected readonly revisions = signal<MyIntegrationMethod[] | null>(null);
   protected readonly loading = signal(false);
   protected readonly loadFailed = signal(false);
@@ -65,7 +74,10 @@ export class MyIntegrationMethodsPage {
   protected readonly states = signal<ReadonlySet<string>>(new Set());
   protected readonly applications = signal<ReadonlySet<string>>(new Set());
   protected readonly authors = signal<ReadonlySet<string>>(new Set());
-  protected readonly organizationOnly = signal(false);
+  /** Keys of the maintainers to show (all-methods page only). */
+  protected readonly maintainers = signal<ReadonlySet<string>>(new Set());
+  /** Set by the Organization / Evolveum / Community stat cards. */
+  protected readonly maintainerCategory = signal<MaintainerCategory | null>(null);
   protected readonly search = signal('');
 
   protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
@@ -81,8 +93,8 @@ export class MyIntegrationMethodsPage {
 
   protected readonly isSuperuser = computed(() => this.authService.currentRole() === UserRole.Superuser);
 
-  /** Start/stop review and approve/reject are hidden here for now; flip to show them again. */
-  protected readonly showReviewActions = false;
+  /** Start/stop review and approve/reject: on the all-methods page only, the approval queue owns them otherwise. */
+  protected readonly showReviewActions = this.allMethods;
 
   /** Every method with all its revisions, before any filter. */
   private readonly allGroups = computed<MethodGroup[]>(() => {
@@ -99,8 +111,9 @@ export class MyIntegrationMethodsPage {
           applicationDisplayName: revision.applicationDisplayName,
           applicationHasLogo: revision.applicationHasLogo,
           displayName: revision.displayName,
+          maintainerKey: maintainerKey(revision.maintainer),
           maintainerLabel: maintainerLabel(revision.maintainer),
-          isOrganization: revision.maintainer?.category === 'ORG',
+          maintainerCategory: revision.maintainer?.category ?? null,
           latest: revision,
           versionCount: 1,
           revisions: [revision]
@@ -114,11 +127,13 @@ export class MyIntegrationMethodsPage {
     const states = this.states();
     const authors = this.authors();
     const applications = this.applications();
-    const organizationOnly = this.organizationOnly();
+    const maintainers = this.maintainers();
+    const category = this.maintainerCategory();
     const query = this.search().trim().toLowerCase();
     return this.allGroups()
       .filter(g => !applications.size || applications.has(g.applicationId))
-      .filter(g => !organizationOnly || g.isOrganization)
+      .filter(g => !maintainers.size || maintainers.has(g.maintainerKey))
+      .filter(g => !category || g.maintainerCategory === category)
       .filter(g => !query
         || (g.displayName ?? '').toLowerCase().includes(query)
         || (g.applicationDisplayName ?? '').toLowerCase().includes(query))
@@ -129,6 +144,23 @@ export class MyIntegrationMethodsPage {
       }))
       .filter(g => g.revisions.length > 0);
   });
+
+  protected readonly pageSize = 10;
+  /** Back to the first page whenever a filter changes; a reload after an action keeps the page. */
+  private readonly currentPage = linkedSignal({
+    source: computed(() => [this.states(), this.applications(), this.authors(), this.maintainers(), this.maintainerCategory(), this.search()]),
+    computation: () => 0
+  });
+  protected readonly totalPages = computed(() => Math.ceil(this.groups().length / this.pageSize));
+  /** The current page, kept in range when a reload leaves fewer pages. */
+  protected readonly page = computed(() => Math.min(this.currentPage(), Math.max(this.totalPages() - 1, 0)));
+  protected readonly pagedGroups = computed(() =>
+    this.groups().slice(this.page() * this.pageSize, (this.page() + 1) * this.pageSize));
+
+  protected goToPage(page: number): void {
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0 });
+  }
 
   protected readonly applicationOptions = computed(() => {
     const seen = new Map<string, string>();
@@ -142,20 +174,27 @@ export class MyIntegrationMethodsPage {
     [...new Set((this.revisions() ?? []).map(r => r.author).filter((a): a is string => !!a))]
       .sort((a, b) => a.localeCompare(b)));
 
+  protected readonly maintainerOptions = computed(() =>
+    maintainerFilterOptions((this.revisions() ?? []).map(r => r.maintainer)));
+
   protected readonly totalCount = computed(() => this.allGroups().length);
-  protected readonly organizationCount = computed(() => this.allGroups().filter(g => g.isOrganization).length);
+  protected readonly organizationCount = computed(() => this.countCategory('ORG'));
+  protected readonly evolveumCount = computed(() => this.countCategory('EVOLVEUM'));
+  protected readonly communityCount = computed(() => this.countCategory('COMMUNITY'));
   protected readonly awaitingCount = computed(() => this.countState('IN_REVIEW'));
   protected readonly reviewingCount = computed(() => this.countState('REVIEWING'));
   protected readonly publishedCount = computed(() => this.countState('ACTIVE'));
+  protected readonly rejectedCount = computed(() => this.countState('REJECTED'));
 
   protected readonly hasFilters = computed(() =>
-    this.states().size > 0 || this.organizationOnly() || this.applications().size > 0
-    || this.authors().size > 0 || !!this.search().trim());
+    this.states().size > 0 || !!this.maintainerCategory() || this.maintainers().size > 0
+    || this.applications().size > 0 || this.authors().size > 0 || !!this.search().trim());
 
   constructor() {
     // The profile loads asynchronously at startup, so a page opened directly waits for it.
     effect(() => {
-      if (this.authService.profile() && !this.revisions() && !this.loading() && !this.loadFailed()) {
+      if (this.authService.profile() && (!this.allMethods || this.isSuperuser())
+          && !this.revisions() && !this.loading() && !this.loadFailed()) {
         this.load();
       }
     });
@@ -164,7 +203,10 @@ export class MyIntegrationMethodsPage {
   protected load(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
-    this.applicationService.getMyIntegrationMethods().subscribe({
+    const revisions$ = this.allMethods
+        ? this.applicationService.getAllIntegrationMethods()
+        : this.applicationService.getMyIntegrationMethods();
+    revisions$.subscribe({
       next: revisions => {
         this.revisions.set(revisions);
         this.loading.set(false);
@@ -180,25 +222,34 @@ export class MyIntegrationMethodsPage {
     return (this.revisions() ?? []).filter(r => r.lifecycleState === state).length;
   }
 
+  private countCategory(category: MaintainerCategory): number {
+    return this.allGroups().filter(g => g.maintainerCategory === category).length;
+  }
+
+  protected categoryLabel(category: MaintainerCategory): string {
+    return MAINTAINER_CATEGORY_LABELS[category];
+  }
+
   // ==================== Filters ====================
 
   /** Behind the stat cards' "View items": shows just that slice, every other filter cleared. */
-  protected viewItems(state: string | null, organizationOnly = false): void {
+  protected viewItems(states: string[], category: MaintainerCategory | null = null): void {
     this.resetFilters();
-    if (state) this.states.set(new Set([state]));
-    this.organizationOnly.set(organizationOnly);
+    this.states.set(new Set(states));
+    this.maintainerCategory.set(category);
   }
 
-  /** Whether the state filter is exactly this one state, as its stat card sets it. */
-  protected isOnlyState(state: string): boolean {
-    return this.states().size === 1 && this.states().has(state);
+  /** Whether the state filter is exactly these states, as their stat card sets it. */
+  protected isOnlyStates(...states: string[]): boolean {
+    return this.states().size === states.length && states.every(state => this.states().has(state));
   }
 
   protected resetFilters(): void {
     this.states.set(new Set());
     this.applications.set(new Set());
     this.authors.set(new Set());
-    this.organizationOnly.set(false);
+    this.maintainers.set(new Set());
+    this.maintainerCategory.set(null);
     this.search.set('');
   }
 
@@ -214,7 +265,11 @@ export class MyIntegrationMethodsPage {
     this.authors.update(set => toggled(set, author));
   }
 
-  protected clearFilter(filter: 'states' | 'applications' | 'authors'): void {
+  protected toggleMaintainer(key: string): void {
+    this.maintainers.update(set => toggled(set, key));
+  }
+
+  protected clearFilter(filter: 'states' | 'applications' | 'authors' | 'maintainers'): void {
     this[filter].set(new Set());
   }
 

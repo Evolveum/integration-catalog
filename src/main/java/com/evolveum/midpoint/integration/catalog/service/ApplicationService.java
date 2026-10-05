@@ -786,14 +786,11 @@ public class ApplicationService {
         return candidate != null && candidate.getId().equals(version.getId());
     }
 
-    /** Sets the tier on all bundle versions of the method's connectors; a method without any has nowhere to keep it. */
+    /** Sets the tier of a connector bundle version; the methods using it show the tier of their newest one. */
     @Transactional
-    public void setSupportTier(UUID methodId, SupportTier tier) {
-        if (integrationMethodRepository.findFirstByIdOrderByCreatedAtDesc(methodId).isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Integration method not found: " + methodId);
-        }
-        if (connectorBundleVersionRepository.updateSupportTierOfMethod(methodId, tier != null ? tier.name() : null) == 0) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Integration method has no connector bundle: " + methodId);
+    public void setSupportTier(Integer bundleVersionId, SupportTier tier) {
+        if (connectorBundleVersionRepository.updateSupportTier(bundleVersionId, tier != null ? tier.name() : null) == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Connector bundle version not found: " + bundleVersionId);
         }
     }
 

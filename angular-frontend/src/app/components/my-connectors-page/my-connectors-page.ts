@@ -4,20 +4,28 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { ApplicationService } from '../../services/application.service';
 import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
+import { SUPPORT_TIERS, SupportTier } from '../../core/support-tier';
+import { Pager } from '../pager/pager';
 import { MyConnector, MyConnectorVersion } from '../../models/my-items.model';
+import {
+  MAINTAINER_CATEGORY_LABELS, MaintainerCategory, maintainerFilterOptions, maintainerKey, maintainerLabel
+} from '../../models/maintainer.model';
 
 /** One connector; `versions` holds only those the filters let through. */
 interface ConnectorGroup {
   id: number;
   displayName: string | null;
-  isOrganization: boolean;
+  maintainerKey: string;
+  maintainerLabel: string;
+  maintainerCategory: MaintainerCategory | null;
+  tags: string[];
   latestVersion: string | null;
   versionCount: number;
   usedByCount: number;
@@ -27,22 +35,28 @@ interface ConnectorGroup {
 
 /**
  * Self-service list of the connectors the user maintains, personally or through their
- * organization, with each version and the integration methods using it.
+ * organization, with each version and the integration methods using it. With the route's
+ * `scope: 'all'` it lists every connector in the catalog instead, for a superuser.
  */
 @Component({
   selector: 'app-my-connectors-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeader],
+  imports: [CommonModule, RouterLink, PageHeader, Pager],
   templateUrl: './my-connectors-page.html',
   styleUrls: ['./my-connectors-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
 })
 export class MyConnectorsPage {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly applicationService = inject(ApplicationService);
   private readonly toastService = inject(ToastService);
   protected readonly authService = inject(AuthService);
+
+  /** Every connector in the catalog (superuser) instead of the user's own. */
+  protected readonly allConnectors = this.route.snapshot.data['scope'] === 'all';
+  protected readonly isSuperuser = computed(() => this.authService.currentRole() === UserRole.Superuser);
 
   protected readonly connectors = signal<MyConnector[] | null>(null);
   protected readonly loading = signal(false);
@@ -50,10 +64,23 @@ export class MyConnectorsPage {
 
   // Multi-select like the homepage chips: an empty set lets everything through.
   protected readonly usages = signal<ReadonlySet<string>>(new Set());
+  /** Version states and connector tags to show (all-connectors page only). */
+  protected readonly states = signal<ReadonlySet<string>>(new Set());
+  protected readonly tags = signal<ReadonlySet<string>>(new Set());
   protected readonly applications = signal<ReadonlySet<string>>(new Set());
   protected readonly authors = signal<ReadonlySet<string>>(new Set());
-  protected readonly organizationOnly = signal(false);
+  /** Keys of the maintainers to show (all-connectors page only). */
+  protected readonly maintainers = signal<ReadonlySet<string>>(new Set());
+  /** Set by the Organization / Evolveum / Community stat cards. */
+  protected readonly maintainerCategory = signal<MaintainerCategory | null>(null);
   protected readonly search = signal('');
+
+  protected readonly stateOptions: { value: string; label: string }[] = [
+    { value: 'ACTIVE', label: 'Published' },
+    { value: 'IN_REVIEW', label: 'Awaiting approval' },
+    { value: 'REVIEWING', label: 'Under review' },
+    { value: 'REJECTED', label: 'Rejected' }
+  ];
 
   protected readonly usageOptions = [
     { value: 'used', label: 'In use' },
@@ -74,7 +101,10 @@ export class MyConnectorsPage {
       return {
         id: c.id,
         displayName: c.displayName,
-        isOrganization: c.maintainer?.category === 'ORG',
+        maintainerKey: maintainerKey(c.maintainer),
+        maintainerLabel: maintainerLabel(c.maintainer),
+        maintainerCategory: c.maintainer?.category ?? null,
+        tags: c.tags ?? [],
         latestVersion: c.versions[0]?.version ?? null,
         versionCount: c.versions.length,
         usedByCount: new Set(usages.map(u => u.integrationMethodId)).size,
@@ -85,18 +115,44 @@ export class MyConnectorsPage {
 
   protected readonly groups = computed<ConnectorGroup[]>(() => {
     const usages = this.usages();
-    const organizationOnly = this.organizationOnly();
+    const maintainers = this.maintainers();
+    const category = this.maintainerCategory();
     const applications = this.applications();
     const authors = this.authors();
+    const states = this.states();
+    const tags = this.tags();
     const query = this.search().trim().toLowerCase();
     return this.allGroups()
       .filter(g => !usages.size || usages.has(g.usedByCount > 0 ? 'used' : 'unused'))
-      .filter(g => !organizationOnly || g.isOrganization)
+      .filter(g => !maintainers.size || maintainers.has(g.maintainerKey))
+      .filter(g => !category || g.maintainerCategory === category)
       .filter(g => !applications.size || [...applications].some(id => g.applicationIds.has(id)))
+      .filter(g => !tags.size || g.tags.some(tag => tags.has(tag)))
       .filter(g => !query || (g.displayName ?? '').toLowerCase().includes(query))
-      .map(g => ({ ...g, versions: g.versions.filter(v => !authors.size || authors.has(v.author ?? '')) }))
+      .map(g => ({
+        ...g,
+        versions: g.versions.filter(v =>
+          (!authors.size || authors.has(v.author ?? '')) && (!states.size || states.has(v.lifecycleState ?? '')))
+      }))
       .filter(g => g.versions.length > 0);
   });
+
+  protected readonly pageSize = 10;
+  /** Back to the first page whenever a filter changes; a reload after an action keeps the page. */
+  private readonly currentPage = linkedSignal({
+    source: computed(() => [this.usages(), this.states(), this.tags(), this.applications(), this.authors(), this.maintainers(), this.maintainerCategory(), this.search()]),
+    computation: () => 0
+  });
+  protected readonly totalPages = computed(() => Math.ceil(this.groups().length / this.pageSize));
+  /** The current page, kept in range when a reload leaves fewer pages. */
+  protected readonly page = computed(() => Math.min(this.currentPage(), Math.max(this.totalPages() - 1, 0)));
+  protected readonly pagedGroups = computed(() =>
+    this.groups().slice(this.page() * this.pageSize, (this.page() + 1) * this.pageSize));
+
+  protected goToPage(page: number): void {
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0 });
+  }
 
   protected readonly applicationOptions = computed(() => {
     const seen = new Map<string, string>();
@@ -113,19 +169,29 @@ export class MyConnectorsPage {
       .filter((a): a is string => !!a))]
       .sort((a, b) => a.localeCompare(b)));
 
+  protected readonly tagOptions = computed(() =>
+    [...new Set((this.connectors() ?? []).flatMap(c => c.tags ?? []))].sort((a, b) => a.localeCompare(b)));
+
+  protected readonly maintainerOptions = computed(() =>
+    maintainerFilterOptions((this.connectors() ?? []).map(c => c.maintainer)));
+
   protected readonly totalCount = computed(() => this.allGroups().length);
-  protected readonly organizationCount = computed(() => this.allGroups().filter(g => g.isOrganization).length);
+  protected readonly organizationCount = computed(() => this.countCategory('ORG'));
+  protected readonly evolveumCount = computed(() => this.countCategory('EVOLVEUM'));
+  protected readonly communityCount = computed(() => this.countCategory('COMMUNITY'));
   protected readonly inUseCount = computed(() => this.allGroups().filter(g => g.usedByCount > 0).length);
   protected readonly notUsedCount = computed(() => this.allGroups().filter(g => g.usedByCount === 0).length);
 
   protected readonly hasFilters = computed(() =>
-    this.usages().size > 0 || this.organizationOnly() || this.applications().size > 0
+    this.usages().size > 0 || this.states().size > 0 || this.tags().size > 0
+    || !!this.maintainerCategory() || this.maintainers().size > 0 || this.applications().size > 0
     || this.authors().size > 0 || !!this.search().trim());
 
   constructor() {
     // The profile loads asynchronously at startup, so a page opened directly waits for it.
     effect(() => {
-      if (this.authService.profile() && !this.connectors() && !this.loading() && !this.loadFailed()) {
+      if (this.authService.profile() && (!this.allConnectors || this.isSuperuser())
+          && !this.connectors() && !this.loading() && !this.loadFailed()) {
         this.load();
       }
     });
@@ -134,7 +200,10 @@ export class MyConnectorsPage {
   protected load(): void {
     this.loading.set(true);
     this.loadFailed.set(false);
-    this.applicationService.getMyConnectors().subscribe({
+    const connectors$ = this.allConnectors
+        ? this.applicationService.getAllConnectors()
+        : this.applicationService.getMyConnectors();
+    connectors$.subscribe({
       next: connectors => {
         this.connectors.set(connectors);
         this.loading.set(false);
@@ -146,13 +215,21 @@ export class MyConnectorsPage {
     });
   }
 
+  private countCategory(category: MaintainerCategory): number {
+    return this.allGroups().filter(g => g.maintainerCategory === category).length;
+  }
+
+  protected categoryLabel(category: MaintainerCategory): string {
+    return MAINTAINER_CATEGORY_LABELS[category];
+  }
+
   // ==================== Filters ====================
 
   /** Behind the stat cards' "View items": shows just that slice, every other filter cleared. */
-  protected viewItems(usage: string | null, organizationOnly = false): void {
+  protected viewItems(usage: string | null, category: MaintainerCategory | null = null): void {
     this.resetFilters();
     if (usage) this.usages.set(new Set([usage]));
-    this.organizationOnly.set(organizationOnly);
+    this.maintainerCategory.set(category);
   }
 
   /** Whether the usage filter is exactly this one value, as its stat card sets it. */
@@ -162,14 +239,17 @@ export class MyConnectorsPage {
 
   protected resetFilters(): void {
     this.usages.set(new Set());
+    this.states.set(new Set());
+    this.tags.set(new Set());
     this.applications.set(new Set());
     this.authors.set(new Set());
-    this.organizationOnly.set(false);
+    this.maintainers.set(new Set());
+    this.maintainerCategory.set(null);
     this.search.set('');
   }
 
-  protected toggleUsageFilter(value: string): void {
-    this.usages.update(set => toggled(set, value));
+  protected usageLabel(value: string): string {
+    return this.usageOptions.find(o => o.value === value)?.label ?? value;
   }
 
   protected toggleApplication(id: string): void {
@@ -180,7 +260,19 @@ export class MyConnectorsPage {
     this.authors.update(set => toggled(set, author));
   }
 
-  protected clearFilter(filter: 'usages' | 'applications' | 'authors'): void {
+  protected toggleState(value: string): void {
+    this.states.update(set => toggled(set, value));
+  }
+
+  protected toggleTag(tag: string): void {
+    this.tags.update(set => toggled(set, tag));
+  }
+
+  protected toggleMaintainer(key: string): void {
+    this.maintainers.update(set => toggled(set, key));
+  }
+
+  protected clearFilter(filter: 'usages' | 'states' | 'tags' | 'applications' | 'authors' | 'maintainers'): void {
     this[filter].set(new Set());
   }
 
@@ -226,6 +318,26 @@ export class MyConnectorsPage {
   }
 
   /** A new connector version has no flow outside an integration method yet. */
+  protected readonly supportTiers = SUPPORT_TIERS;
+
+  /** Superuser's pick in a version row; '' clears the tier. Every version sharing the bundle version follows. */
+  protected onSupportTierChange(version: MyConnectorVersion, event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const bundleVersionId = version.bundleVersionId;
+    if (bundleVersionId === null) return;
+    const tier = (select.value || null) as SupportTier | null;
+    this.applicationService.setSupportTier(bundleVersionId, tier).subscribe({
+      next: () => this.connectors.update(connectors => (connectors ?? []).map(c => ({
+        ...c,
+        versions: c.versions.map(v => v.bundleVersionId === bundleVersionId ? { ...v, supportTier: tier } : v)
+      }))),
+      error: () => {
+        select.value = version.supportTier ?? '';
+        this.toastService.show('Support tier not saved', 'Setting the support tier failed. Please try again.', 'danger');
+      }
+    });
+  }
+
   protected comingSoon(label: string): void {
     this.toastService.show(label, 'This is not available yet. Connectors are added through an integration method.', 'info');
   }

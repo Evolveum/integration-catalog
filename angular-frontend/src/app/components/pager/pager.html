@@ -1,0 +1,35 @@
+<!--
+ * Copyright (c) 2010-2026 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+@if (totalPages() > 1) {
+  <nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-end flex-wrap">
+      <li class="page-item" [class.disabled]="page() === 0">
+        <button type="button" class="page-link page-link-default" (click)="goTo(page() - 1)" [disabled]="page() === 0">
+          <i class="fa-solid fa-arrow-left me-1"></i>
+          Previous
+        </button>
+      </li>
+
+      @for (p of [].constructor(totalPages()); track $index) {
+        <li class="page-item" [class.active]="page() === $index">
+          <button type="button" class="page-link" [class.page-link-active]="page() === $index"
+                  [class.page-link-default]="page() !== $index" (click)="goTo($index)">
+            {{ $index + 1 }}
+          </button>
+        </li>
+      }
+
+      <li class="page-item" [class.disabled]="page() === totalPages() - 1">
+        <button type="button" class="page-link page-link-default" (click)="goTo(page() + 1)"
+                [disabled]="page() === totalPages() - 1">
+          Next
+          <i class="fa-solid fa-arrow-right ms-1"></i>
+        </button>
+      </li>
+    </ul>
+  </nav>
+}

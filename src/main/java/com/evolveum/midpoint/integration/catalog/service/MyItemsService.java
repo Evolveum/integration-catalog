@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +37,13 @@ public class MyItemsService {
 
     private static final Comparator<String> NEWEST_REVISION_FIRST =
             ((Comparator<String>) MyItemsService::compareRevisions).reversed();
+    /** By application, then method, newest revision first, so a method's revisions stay together. */
+    private static final Comparator<IntegrationMethod> BY_METHOD = Comparator
+            .comparing((IntegrationMethod m) -> nullToEmpty(m.getApplication().getDisplayName()),
+                    String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(m -> nullToEmpty(m.getDisplayName()), String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(IntegrationMethod::getId)
+            .thenComparing(IntegrationMethod::getRevision, NEWEST_REVISION_FIRST);
 
     private final MaintainerRepository maintainerRepository;
     private final OrganizationRepository organizationRepository;
@@ -72,12 +80,16 @@ public class MyItemsService {
             return List.of();
         }
         return integrationMethodRepository.findByMaintainerIn(maintainers).stream()
-                .sorted(Comparator
-                        .comparing((IntegrationMethod m) -> nullToEmpty(m.getApplication().getDisplayName()),
-                                String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(m -> nullToEmpty(m.getDisplayName()), String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(IntegrationMethod::getId)
-                        .thenComparing(IntegrationMethod::getRevision, NEWEST_REVISION_FIRST))
+                .sorted(BY_METHOD)
+                .map(this::toDto)
+                .toList();
+    }
+
+    /** Every revision of every method in the catalog, for a superuser, who may see every ticket. */
+    @Transactional(readOnly = true)
+    public List<MyIntegrationMethodDto> allIntegrationMethods() {
+        return integrationMethodRepository.findAll().stream()
+                .sorted(BY_METHOD)
                 .map(this::toDto)
                 .toList();
     }
@@ -105,7 +117,17 @@ public class MyItemsService {
                 .map(IntegrationMethod::getId)
                 .collect(Collectors.toSet());
 
-        List<Connector> connectors = connectorRepository.findByMaintainerInAndClonedFromIsNull(maintainers).stream()
+        return connectorDtos(connectorRepository.findByMaintainerInAndClonedFromIsNull(maintainers), ownMethodIds::contains);
+    }
+
+    /** Every connector in the catalog, for a superuser, who may see every method using it, drafts included. */
+    @Transactional(readOnly = true)
+    public List<MyConnectorDto> allConnectors() {
+        return connectorDtos(connectorRepository.findByClonedFromIsNull(), methodId -> true);
+    }
+
+    private List<MyConnectorDto> connectorDtos(List<Connector> found, Predicate<UUID> seesDrafts) {
+        List<Connector> connectors = found.stream()
                 .sorted(Comparator.comparing((Connector c) -> nullToEmpty(displayName(c)), String.CASE_INSENSITIVE_ORDER))
                 .toList();
         Map<Integer, List<IntegrationMethodConnector>> linksByConnector = connectors.isEmpty()
@@ -114,7 +136,7 @@ public class MyItemsService {
                         .collect(Collectors.groupingBy(link -> link.getConnector().getId()));
 
         return connectors.stream()
-                .map(c -> toDto(c, linksByConnector.getOrDefault(c.getId(), List.of()), ownMethodIds))
+                .map(c -> toDto(c, linksByConnector.getOrDefault(c.getId(), List.of()), seesDrafts))
                 .toList();
     }
 
@@ -163,11 +185,25 @@ public class MyItemsService {
                 ownershipService.toDto(method.getMaintainer()));
     }
 
+    private static List<String> tagNames(Connector connector) {
+        if (connector.getConnectorConnectorTags() == null) {
+            return List.of();
+        }
+        return connector.getConnectorConnectorTags().stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .filter(Objects::nonNull)
+                .map(ConnectorTag::getDisplayName)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
     /**
      * @param links every method revision linking the connector
-     * @param ownMethodIds the caller's methods; drafts of anyone else's are not theirs to see
+     * @param seesDrafts whether the caller may see the not yet published revisions of a method
      */
-    private MyConnectorDto toDto(Connector connector, List<IntegrationMethodConnector> links, Set<UUID> ownMethodIds) {
+    private MyConnectorDto toDto(Connector connector, List<IntegrationMethodConnector> links, Predicate<UUID> seesDrafts) {
         List<ConnectorVersion> versions = connector.getConnectorVersions().stream()
                 .sorted(Comparator.comparing(ConnectorVersion::getId).reversed())
                 .toList();
@@ -178,7 +214,7 @@ public class MyItemsService {
         for (IntegrationMethodConnector link : links) {
             IntegrationMethod method = link.getIntegrationMethod();
             if (versions.isEmpty()
-                    || (method.getLifecycleState() != LifecycleType.ACTIVE && !ownMethodIds.contains(method.getId()))) {
+                    || (method.getLifecycleState() != LifecycleType.ACTIVE && !seesDrafts.test(method.getId()))) {
                 continue;
             }
             ConnectorVersion used = versions.stream()
@@ -197,12 +233,15 @@ public class MyItemsService {
                 connector.getId(),
                 displayName(connector),
                 ownershipService.toDto(connector.getMaintainer()),
+                tagNames(connector),
                 versions.stream()
                         .map(v -> new MyConnectorDto.Version(
                                 versionOf(v),
                                 v.getAuthor() != null ? v.getAuthor().getUsername() : null,
                                 toDate(v.getCreatedAt()),
                                 v.getLifecycleState() != null ? v.getLifecycleState().name() : null,
+                                v.getConnectorBundleVersion() != null ? v.getConnectorBundleVersion().getId() : null,
+                                v.getConnectorBundleVersion() != null ? v.getConnectorBundleVersion().getSupportTier() : null,
                                 usages.getOrDefault(v, List.of()).stream()
                                         .sorted(Comparator
                                                 .comparing((MyConnectorDto.Usage u) -> nullToEmpty(u.displayName()),

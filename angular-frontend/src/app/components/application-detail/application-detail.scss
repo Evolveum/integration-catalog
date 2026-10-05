@@ -1029,19 +1029,9 @@
   padding: 0.1rem 0.5rem;
 }
 
-.im-tier-select {
-  width: auto;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding-top: 0.1rem;
-  padding-bottom: 0.1rem;
-}
-
 .tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
 .tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
 .tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
-.tier-none     { color: #6c757d; }
-.tier-no-bundle { background-color: #fff8e1; color: #8a6d00; border-color: #ffe08a; }
 
 /* ========================================
    COLLAPSIBLE METHOD CARD

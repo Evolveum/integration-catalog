@@ -43,6 +43,9 @@ public interface ConnectorRepository extends JpaRepository<Connector, Integer>,
     /** Connectors with one of the given maintainers, leaving out the copy-on-write clones of pending edits. */
     List<Connector> findByMaintainerInAndClonedFromIsNull(Collection<Maintainer> maintainers);
 
+    /** Every connector, leaving out the copy-on-write clones of pending edits. */
+    List<Connector> findByClonedFromIsNull();
+
     /**
      * Re-parents every connector of {@code source} onto {@code target}. A bulk update, because the
      * bundle's {@code connectors} collection uses orphanRemoval and cascades REMOVE: moving the

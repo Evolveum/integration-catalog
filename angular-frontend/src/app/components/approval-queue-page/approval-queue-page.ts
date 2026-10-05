@@ -4,18 +4,19 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, computed, effect, inject, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, signal, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe, Location } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { ApplicationService, ConnectorWithoutDownload } from '../../services/application.service';
 import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
+import { Pager } from '../pager/pager';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { MyIntegrationMethod } from '../../models/my-items.model';
-import { maintainerLabel } from '../../models/maintainer.model';
+import { maintainerFilterOptions, maintainerKey } from '../../models/maintainer.model';
 import { versionBadge } from '../../core/version-badge';
 
 /** From this many days in the queue the waiting time turns red. */
@@ -28,7 +29,7 @@ const OVERDUE_DAYS = 3;
 @Component({
   selector: 'app-approval-queue-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal],
+  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal, Pager],
   templateUrl: './approval-queue-page.html',
   styleUrls: ['./approval-queue-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
@@ -51,8 +52,8 @@ export class ApprovalQueuePage {
   // Multi-select like the homepage chips: an empty set lets everything through.
   protected readonly states = signal<ReadonlySet<string>>(new Set());
   protected readonly applications = signal<ReadonlySet<string>>(new Set());
-  protected readonly authors = signal<ReadonlySet<string>>(new Set());
-  protected readonly organizations = signal<ReadonlySet<string>>(new Set());
+  /** Keys of the maintainers to show. */
+  protected readonly maintainers = signal<ReadonlySet<string>>(new Set());
   protected readonly search = signal('');
 
   protected readonly openMenuKey = signal<string | null>(null);
@@ -67,18 +68,33 @@ export class ApprovalQueuePage {
   protected readonly rows = computed(() => {
     const states = this.states();
     const applications = this.applications();
-    const authors = this.authors();
-    const organizations = this.organizations();
+    const maintainers = this.maintainers();
     const query = this.search().trim().toLowerCase();
     return (this.revisions() ?? [])
       .filter(r => !states.size || states.has(r.lifecycleState ?? ''))
       .filter(r => !applications.size || applications.has(r.applicationId))
-      .filter(r => !authors.size || authors.has(r.author ?? ''))
-      .filter(r => !organizations.size || organizations.has(this.organizationOf(r) ?? ''))
+      .filter(r => !maintainers.size || maintainers.has(maintainerKey(r.maintainer)))
       .filter(r => !query
         || (r.displayName ?? '').toLowerCase().includes(query)
         || (r.applicationDisplayName ?? '').toLowerCase().includes(query));
   });
+
+  protected readonly pageSize = 15;
+  /** Back to the first page whenever a filter changes; a reload after an action keeps the page. */
+  private readonly currentPage = linkedSignal({
+    source: computed(() => [this.states(), this.applications(), this.maintainers(), this.search()]),
+    computation: () => 0
+  });
+  protected readonly totalPages = computed(() => Math.ceil(this.rows().length / this.pageSize));
+  /** The current page, kept in range when a reload leaves fewer pages. */
+  protected readonly page = computed(() => Math.min(this.currentPage(), Math.max(this.totalPages() - 1, 0)));
+  protected readonly pagedRows = computed(() =>
+    this.rows().slice(this.page() * this.pageSize, (this.page() + 1) * this.pageSize));
+
+  protected goToPage(page: number): void {
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0 });
+  }
 
   protected readonly applicationOptions = computed(() => {
     const seen = new Map<string, string>();
@@ -88,19 +104,16 @@ export class ApprovalQueuePage {
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  protected readonly authorOptions = computed(() =>
-    distinctSorted((this.revisions() ?? []).map(r => r.author)));
-
-  protected readonly organizationOptions = computed(() =>
-    distinctSorted((this.revisions() ?? []).map(r => this.organizationOf(r))));
+  protected readonly maintainerOptions = computed(() =>
+    maintainerFilterOptions((this.revisions() ?? []).map(r => r.maintainer)));
 
   protected readonly totalCount = computed(() => (this.revisions() ?? []).length);
   protected readonly awaitingCount = computed(() => this.countState('IN_REVIEW'));
   protected readonly reviewingCount = computed(() => this.countState('REVIEWING'));
 
   protected readonly hasFilters = computed(() =>
-    this.states().size > 0 || this.applications().size > 0 || this.authors().size > 0
-    || this.organizations().size > 0 || !!this.search().trim());
+    this.states().size > 0 || this.applications().size > 0
+    || this.maintainers().size > 0 || !!this.search().trim());
 
   constructor() {
     // The profile loads asynchronously at startup, so a page opened directly waits for it.
@@ -130,11 +143,6 @@ export class ApprovalQueuePage {
     return (this.revisions() ?? []).filter(r => r.lifecycleState === state).length;
   }
 
-  /** The maintaining organization's name; null for anything not maintained by an organization. */
-  protected organizationOf(revision: MyIntegrationMethod): string | null {
-    return revision.maintainer?.category === 'ORG' ? maintainerLabel(revision.maintainer) : null;
-  }
-
   // ==================== Filters ====================
 
   /** Behind the stat cards' "View items": shows just that slice, every other filter cleared. */
@@ -150,8 +158,7 @@ export class ApprovalQueuePage {
   protected resetFilters(): void {
     this.states.set(new Set());
     this.applications.set(new Set());
-    this.authors.set(new Set());
-    this.organizations.set(new Set());
+    this.maintainers.set(new Set());
     this.search.set('');
   }
 
@@ -163,15 +170,11 @@ export class ApprovalQueuePage {
     this.applications.update(set => toggled(set, id));
   }
 
-  protected toggleAuthor(author: string): void {
-    this.authors.update(set => toggled(set, author));
+  protected toggleMaintainer(key: string): void {
+    this.maintainers.update(set => toggled(set, key));
   }
 
-  protected toggleOrganization(organization: string): void {
-    this.organizations.update(set => toggled(set, organization));
-  }
-
-  protected clearFilter(filter: 'states' | 'applications' | 'authors' | 'organizations'): void {
+  protected clearFilter(filter: 'states' | 'applications' | 'maintainers'): void {
     this[filter].set(new Set());
   }
 
@@ -356,10 +359,6 @@ export class ApprovalQueuePage {
       }
     });
   }
-}
-
-function distinctSorted(values: (string | null)[]): string[] {
-  return [...new Set(values.filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
 }
 
 /** A copy of the set with the value added, or removed when it was there. */
