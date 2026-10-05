@@ -120,6 +120,15 @@ public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMai
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
+    /**
+     * Set by a reviewer through an integration method, on every bundle version of its connectors at
+     * once; null = not tiered. Copied to clones and to the next version of the bundle.
+     */
+    @Enumerated(EnumType.STRING)
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    @Column(name = "support_tier", columnDefinition = "SupportTier")
+    private SupportTier supportTier;
+
     @OneToMany(mappedBy = "connectorBundleVersion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnectorVersion> connectorVersions = new ArrayList<>();
 
@@ -170,6 +179,7 @@ public class ConnectorBundleVersion implements SetOwnership, GetOwnershipListMai
         clone.setCommitTag(source.getCommitTag());
         clone.setArtifactUrl(source.getArtifactUrl());
         clone.setErrorMessage(source.getErrorMessage());
+        clone.setSupportTier(source.getSupportTier());
         return clone;
     }
 }

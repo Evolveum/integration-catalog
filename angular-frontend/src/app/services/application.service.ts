@@ -12,7 +12,7 @@ import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
-import { ApplicationDetail, ApplicationTag, IntegrationMethodObjectCapabilities, IntegrationMethodTier } from '../models/application-detail.model';
+import { ApplicationDetail, ApplicationTag, ApplicationVersion, IntegrationMethodObjectCapabilities, IntegrationMethodTier } from '../models/application-detail.model';
 import { SupportTier } from '../core/support-tier';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
@@ -260,7 +260,7 @@ export class ApplicationService {
     appId: string,
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null; maintainer: Maintainer | null }
+    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null; appMinVersion: number | null; appMaxVersion: number | null; maintainer: Maintainer | null }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
@@ -485,7 +485,7 @@ export class ApplicationService {
     return this.http.put<void>(`${environment.apiUrl}/applications/${applicationId}/featured`, { featured });
   }
 
-  updateApplication(applicationId: string, payload: { displayName: string; description: string | null }): Observable<void> {
+  updateApplication(applicationId: string, payload: { displayName: string; description: string | null; versions?: ApplicationVersion[] }): Observable<void> {
     return this.http.put<void>(
       `${environment.apiUrl}/applications/${applicationId}`,
       payload

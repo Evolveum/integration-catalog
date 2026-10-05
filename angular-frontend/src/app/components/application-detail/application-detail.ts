@@ -29,6 +29,7 @@ interface MethodGroup {
   name: string;
   types: string[];
   supportTier: SupportTier | null; // the same on every revision
+  hasConnectorBundle: boolean;     // false = the tier has nowhere to be stored
   versions: IntegrationMethod[];
   publishedCount: number;
   pendingCount: number;
@@ -91,6 +92,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           name: v.displayName || v.connectorDisplayName || 'Integration method',
           types: v.integMethodTypes ?? [],
           supportTier: v.supportTier ?? null,
+          hasConnectorBundle: false,
           versions: [],
           publishedCount: 0,
           pendingCount: 0,
@@ -99,6 +101,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         groups.set(v.id, group);
       }
       group.versions.push(v);
+      if (v.hasConnectorBundle) group.hasConnectorBundle = true;
       if (v.connectors?.some((c: IncludedConnector) => isObsoleteConnector(c.tags))) group.usesObsoleteConnector = true;
       if (v.lifecycleState === 'ACTIVE') group.publishedCount++;
       // A revision under active review (REVIEWING) is still pending, not yet published.
@@ -203,6 +206,10 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   /** Only superusers may approve (publish) an in-review revision. */
   protected isSuperuser(): boolean {
     return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  protected isReadOnly(): boolean {
+    return this.authService.isReadOnly();
   }
 
   protected readonly supportTiers = SUPPORT_TIERS;

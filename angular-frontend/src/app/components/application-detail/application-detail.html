@@ -288,7 +288,7 @@
                   <!-- Search Integration Methods Section -->
                   <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0">Search integration methods</h5>
-                    @if (hasIntegrationMethods()) {
+                    @if (hasIntegrationMethods() && !isReadOnly()) {
                       <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToApprove()">
                         <i class="fa-solid fa-plus"></i>Add new method
                       </button>
@@ -412,10 +412,14 @@
                         <button type="button" class="btn btn-create-method" (click)="resetFilters()">Reset filters</button>
                       } @else {
                         <p class="fw-semibold mb-2">No integration methods defined yet.</p>
-                        <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
-                        <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToApprove()">
-                          <i class="fa-solid fa-plus me-1"></i>Add integration method
-                        </button>
+                        @if (isReadOnly()) {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}.</p>
+                        } @else {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
+                          <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToApprove()">
+                            <i class="fa-solid fa-plus me-1"></i>Add integration method
+                          </button>
+                        }
                       }
                     </div>
                   } @else {
@@ -431,17 +435,19 @@
                                 @for (type of method.types; track type) {
                                   <span class="im-method-tag">{{ type }}</span>
                                 }
-                                @if (isSuperuser()) {
+                                @if (isSuperuser() && !method.hasConnectorBundle) {
+                                  <span class="im-tier-badge tier-no-bundle" title="The support tier is stored on connector bundle versions">No connector bundle</span>
+                                } @else if (isSuperuser()) {
                                   <!-- Reviewer sets the tier by hand; the click must not collapse the card. -->
                                   <select class="form-select form-select-sm im-tier-select"
                                           [class]="'tier-' + (method.supportTier ?? 'none').toLowerCase()"
-                                          [value]="method.supportTier ?? ''"
                                           title="Support tier"
                                           (click)="$event.stopPropagation()"
                                           (change)="onSupportTierChange(method.id, method.supportTier, $event)">
-                                    <option value="">No tier</option>
+                                    <!-- [selected] per option: a [value] on the select lands before the @for options exist. -->
+                                    <option value="" [selected]="!method.supportTier">No tier</option>
                                     @for (t of supportTiers; track t.value) {
-                                      <option [value]="t.value">{{ t.label }}</option>
+                                      <option [value]="t.value" [selected]="t.value === method.supportTier">{{ t.label }}</option>
                                     }
                                   </select>
                                 } @else if (method.supportTier) {

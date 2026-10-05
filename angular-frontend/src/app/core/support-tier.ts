@@ -4,7 +4,7 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-/** integration_method.support_tier; null means the method has no tier yet. */
+/** connector_bundle_version.support_tier of a method's latest bundle version; null means no tier yet. */
 export type SupportTier = 'STANDARD' | 'ADVANCED' | 'PREMIUM';
 
 /** Lowest first: a subscription to a tier covers that tier and every one before it. */

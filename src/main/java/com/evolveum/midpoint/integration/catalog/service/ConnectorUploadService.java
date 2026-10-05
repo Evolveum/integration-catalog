@@ -42,6 +42,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -195,6 +196,7 @@ public class ConnectorUploadService {
         integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
         integrationMethod.setMidpointMinVersionId(imDto.midpointMinVersion());
         integrationMethod.setMidpointMaxVersionId(imDto.midpointMaxVersion());
+        setApplicationVersionRange(integrationMethod, application, imDto.appMinVersion(), imDto.appMaxVersion());
 
         if (imDto.displayName() != null) {
             integrationMethod.setDisplayName(imDto.displayName());
@@ -279,6 +281,30 @@ public class ConnectorUploadService {
         return bundle;
     }
 
+    /** Rejects ids that are not versions of {@code application} and a range whose end precedes its start. */
+    private static void setApplicationVersionRange(IntegrationMethod method, Application application,
+                                                    Integer minId, Integer maxId) {
+        ApplicationVersion min = applicationVersion(application, minId);
+        ApplicationVersion max = applicationVersion(application, maxId);
+        if (min != null && max != null && ApplicationVersion.ORDER.compare(max, min) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Application version range " + min.getVersion() + " - " + max.getVersion() + " ends before it starts.");
+        }
+        method.setAppMinVersion(min);
+        method.setAppMaxVersion(max);
+    }
+
+    private static ApplicationVersion applicationVersion(Application application, Integer versionId) {
+        if (versionId == null) {
+            return null;
+        }
+        return (application != null ? application.getVersions() : List.<ApplicationVersion>of()).stream()
+                .filter(v -> versionId.equals(v.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Application version " + versionId + " is not a version of this application."));
+    }
+
     private ConnectorBundleVersion createBundleVersion(UploadConnectorDto dto, ConnectorBundle bundle, String username) {
         String version = dto.version() != null ? dto.version() : DEFAULT_REVISION;
 
@@ -301,7 +327,20 @@ public class ConnectorUploadService {
         cbv.setGitCloneUrl(dto.gitCloneUrl());
         cbv.setCommitTag(dto.commitTag());
         cbv.setLifecycleState(LifecycleType.IN_REVIEW);
+        cbv.setSupportTier(previousSupportTier(bundle));
         return cbv;
+    }
+
+    /** Tier of the bundle's most recently updated version, which a new version of it starts with. */
+    private static SupportTier previousSupportTier(ConnectorBundle bundle) {
+        if (bundle == null || bundle.getId() == null) {
+            return null;
+        }
+        return bundle.getBundleVersions().stream()
+                .max(Comparator.comparing(ConnectorBundleVersion::getUpdated,
+                        Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(ConnectorBundleVersion::getSupportTier)
+                .orElse(null);
     }
 
     private ConnectorVersion createConnectorVersion(UploadConnectorDto dto, Connector connector,
@@ -543,8 +582,6 @@ public class ConnectorUploadService {
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
         updated.setMidpointMinVersionId(dto.midpointMinVersion());
         updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
-        updated.setAppVersion(existing.getAppVersion());
-        updated.setSupportTier(existing.getSupportTier());
         String tutorialFolder;
         if (rewriteExisting) {
             // Move the single tutorial folder over to the bumped revision and point file_path at it.
@@ -562,6 +599,7 @@ public class ConnectorUploadService {
         if (dto != null) {
             updated.setMidpointMinVersionId(dto.midpointMinVersion());
             updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
+            setApplicationVersionRange(updated, existing.getApplication(), dto.appMinVersion(), dto.appMaxVersion());
             updated.setDisplayName(dto.displayName());
             updated.setDescription(dto.description());
             updated.setLimitations(dto.limitations());
@@ -569,6 +607,8 @@ public class ConnectorUploadService {
         } else {
             updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
             updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+            updated.setAppMinVersion(existing.getAppMinVersion());
+            updated.setAppMaxVersion(existing.getAppMaxVersion());
             updated.setDisplayName(existing.getDisplayName());
             updated.setDescription(existing.getDescription());
             updated.setLimitations(existing.getLimitations());
@@ -1251,6 +1291,7 @@ public class ConnectorUploadService {
                         : (baseCbv != null ? baseCbv.getBuildFramework() : null));
                 cbv.setGitCloneUrl(bundle != null ? bundle.getGitCloneUrl()
                         : (baseCbv != null ? baseCbv.getGitCloneUrl() : null));
+                cbv.setSupportTier(baseCbv != null ? baseCbv.getSupportTier() : previousSupportTier(bundle));
                 connectorBundleVersionRepository.save(cbv);
             }
 

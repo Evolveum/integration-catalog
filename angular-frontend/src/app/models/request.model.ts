@@ -69,6 +69,8 @@ export interface UploadIntegrationMethodData {
   typeIds: number[];              // integration_method_type.id
   midpointMinVersion: number | null; // midpoint_version.id (FK for min version)
   midpointMaxVersion: number | null; // midpoint_version.id (FK for max version)
+  appMinVersion: number | null;      // application_version.id (FK for min version)
+  appMaxVersion: number | null;      // application_version.id (FK for max version)
 }
 
 /**
