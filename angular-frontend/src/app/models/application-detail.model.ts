@@ -64,8 +64,8 @@ export interface IntegrationMethod {
   downloadCount: number | null;            // computed: count of download rows
   midpointMinVersionId: number | null;     // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
   midpointMaxVersionId: number | null;     // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
-  appMinVersionId: number | null;          // integration_method.app_minversion (FK → application_version.id)
-  appMaxVersionId: number | null;          // integration_method.app_maxversion (FK → application_version.id)
+  appMinVersion: string | null;            // integration_method.app_minversion (free text)
+  appMaxVersion: string | null;            // integration_method.app_maxversion (free text)
   connectorDisplayName: string | null;     // connector.display_name
   integMethodTypes: string[] | null;       // integration_method_type.name
   objectClassCapabilities: IntegrationMethodObjectCapabilities[] | null; // every offered capability with its state

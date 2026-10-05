@@ -261,9 +261,7 @@ public class SupportTicketDescriptionBuilder {
 
     /** The supported application range, worded like {@link #midpointVersionRange}. */
     private static String applicationVersionRange(IntegrationMethod method) {
-        return versionRange(
-                method.getAppMinVersion() != null ? method.getAppMinVersion().getVersion() : null,
-                method.getAppMaxVersion() != null ? method.getAppMaxVersion().getVersion() : null);
+        return versionRange(method.getAppMinVersion(), method.getAppMaxVersion());
     }
 
     private static String versionRange(String min, String max) {

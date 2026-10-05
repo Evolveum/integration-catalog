@@ -87,6 +87,9 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
      */
     public static final int LIMITATIONS_MAX = 500;
 
+    /** Longest application version text, the length of the app_minversion / app_maxversion columns. */
+    public static final int APP_VERSION_MAX = 64;
+
     /** What the method cannot do, stated by its author; the column takes more than the API accepts. */
     @Column(length = 1000)
     private String limitations;
@@ -125,15 +128,13 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
     @Column(nullable = false)
     private LocalDateTime updated;
 
-    /** Lowest application version of the supported range; null = not stated. */
-    @ManyToOne
-    @JoinColumn(name = "app_minversion")
-    private ApplicationVersion appMinVersion;
+    /** Lowest application version of the supported range, free text; null = not stated. */
+    @Column(name = "app_minversion", length = APP_VERSION_MAX)
+    private String appMinVersion;
 
-    /** Highest application version of the supported range; null = no upper bound. */
-    @ManyToOne
-    @JoinColumn(name = "app_maxversion")
-    private ApplicationVersion appMaxVersion;
+    /** Highest application version of the supported range, free text; null = no upper bound. */
+    @Column(name = "app_maxversion", length = APP_VERSION_MAX)
+    private String appMaxVersion;
 
     /**
      * Username of the reviewer: set when a review is started (REVIEWING) and kept when the

@@ -196,7 +196,7 @@ public class ConnectorUploadService {
         integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
         integrationMethod.setMidpointMinVersionId(imDto.midpointMinVersion());
         integrationMethod.setMidpointMaxVersionId(imDto.midpointMaxVersion());
-        setApplicationVersionRange(integrationMethod, application, imDto.appMinVersion(), imDto.appMaxVersion());
+        setApplicationVersionRange(integrationMethod, imDto.appMinVersion(), imDto.appMaxVersion());
 
         if (imDto.displayName() != null) {
             integrationMethod.setDisplayName(imDto.displayName());
@@ -281,28 +281,10 @@ public class ConnectorUploadService {
         return bundle;
     }
 
-    /** Rejects ids that are not versions of {@code application} and a range whose end precedes its start. */
-    private static void setApplicationVersionRange(IntegrationMethod method, Application application,
-                                                    Integer minId, Integer maxId) {
-        ApplicationVersion min = applicationVersion(application, minId);
-        ApplicationVersion max = applicationVersion(application, maxId);
-        if (min != null && max != null && ApplicationVersion.ORDER.compare(max, min) < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Application version range " + min.getVersion() + " - " + max.getVersion() + " ends before it starts.");
-        }
-        method.setAppMinVersion(min);
-        method.setAppMaxVersion(max);
-    }
-
-    private static ApplicationVersion applicationVersion(Application application, Integer versionId) {
-        if (versionId == null) {
-            return null;
-        }
-        return (application != null ? application.getVersions() : List.<ApplicationVersion>of()).stream()
-                .filter(v -> versionId.equals(v.getId()))
-                .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Application version " + versionId + " is not a version of this application."));
+    /** Saves the range as given; it is free text, checked neither against the application's versions nor for order. */
+    private static void setApplicationVersionRange(IntegrationMethod method, String min, String max) {
+        method.setAppMinVersion(min == null || min.isBlank() ? null : min.trim());
+        method.setAppMaxVersion(max == null || max.isBlank() ? null : max.trim());
     }
 
     private ConnectorBundleVersion createBundleVersion(UploadConnectorDto dto, ConnectorBundle bundle, String username) {
@@ -599,7 +581,7 @@ public class ConnectorUploadService {
         if (dto != null) {
             updated.setMidpointMinVersionId(dto.midpointMinVersion());
             updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
-            setApplicationVersionRange(updated, existing.getApplication(), dto.appMinVersion(), dto.appMaxVersion());
+            setApplicationVersionRange(updated, dto.appMinVersion(), dto.appMaxVersion());
             updated.setDisplayName(dto.displayName());
             updated.setDescription(dto.description());
             updated.setLimitations(dto.limitations());
