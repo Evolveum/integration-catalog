@@ -47,6 +47,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<!-- /actuator/health/{liveness,readiness} for the Kubernetes probes -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 		<!-- Spring Boot 4 auto-configures Jackson 3, whose ObjectMapper lives in
 		     tools.jackson.databind. This module restores the auto-configured
 		     com.fasterxml.jackson.databind.ObjectMapper bean that BundleService
