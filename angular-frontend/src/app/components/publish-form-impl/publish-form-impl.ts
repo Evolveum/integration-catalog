@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
-import { ApplicationVersion, IntegrationMethodObjectCapabilities, MidpointVersion } from '../../models/application-detail.model';
+import { IntegrationMethodObjectCapabilities, MidpointVersion } from '../../models/application-detail.model';
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
@@ -155,12 +155,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly midpointVersionsDesc = computed(() => [...this.midpointVersions()].reverse());
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
-  /** The chosen application's versions, oldest first; none for an application being created. */
-  protected readonly appVersions = signal<ApplicationVersion[]>([]);
-  protected readonly appVersionsDesc = computed(() => [...this.appVersions()].reverse());
-  protected readonly appMinVersionId = signal<number | null>(null);
-  protected readonly appMaxVersionId = signal<number | null>(null);
-  private appVersionsFor: string | null = null;
+  /** Supported application range, free text: only saved, not checked or used for filtering. */
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
   protected readonly compatInfoDismissed = signal<boolean>(false);
   protected readonly connectorVersionFrom = signal<string>('');
   protected readonly connectorVersionTo = signal<string>('');
@@ -190,7 +187,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
   /** Both "from" versions are the ones the method is stated to have been tested with, so both are required. */
   protected get isCompatibilityStepValid(): boolean {
     return this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid()
-            && !this.isAppVersionRangeInvalid()
             && this.connectorVersionFrom().trim() !== '';
   }
 
@@ -207,19 +203,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     const minIndex = versions.findIndex(v => v.id === minId);
     const maxIndex = versions.findIndex(v => v.id === maxId);
     return maxIndex < minIndex;
-  });
-
-  protected getAppVersionLabel(id: number | null): string {
-    if (id === null) return '';
-    return this.appVersions().find(v => v.id === id)?.version ?? '';
-  }
-
-  protected readonly isAppVersionRangeInvalid = computed(() => {
-    const minId = this.appMinVersionId();
-    const maxId = this.appMaxVersionId();
-    if (!minId || !maxId) return false;
-    const versions = this.appVersions();
-    return versions.findIndex(v => v.id === maxId) < versions.findIndex(v => v.id === minId);
   });
 
   protected readonly midpointCompatLabel = computed(() => {
@@ -302,9 +285,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['reviewSummary']) {
-      this.loadAppVersions(this.reviewSummary?.applicationId ?? null);
-    }
     if (changes['currentParentStep']) {
       const prev = changes['currentParentStep'].previousValue as number;
       const curr = changes['currentParentStep'].currentValue as number;
@@ -326,21 +306,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
       }
     }
     this.emitChange();
-  }
-
-  /** A different application has other versions, so the picked range is dropped with the old list. */
-  private loadAppVersions(applicationId: string | null): void {
-    if (applicationId === this.appVersionsFor) return;
-    this.appVersionsFor = applicationId;
-    this.appVersions.set([]);
-    this.appMinVersionId.set(null);
-    this.appMaxVersionId.set(null);
-    if (!applicationId) return;
-    this.applicationService.getById(applicationId).subscribe({
-      next: (app) => {
-        if (this.appVersionsFor === applicationId) this.appVersions.set(app.versions ?? []);
-      }
-    });
   }
 
   protected onConnectorCapabilitiesChange(groups: CapabilityGroup[]): void {
@@ -455,8 +420,8 @@ export class PublishFormImpl implements OnInit, OnChanges {
         typeIds: summary?.methodTypeIds ?? [],
         midpointMinVersion: this.midpointMinVersionId(),
         midpointMaxVersion: this.midpointMaxVersionId(),
-        appMinVersion: this.appMinVersionId(),
-        appMaxVersion: this.appMaxVersionId()
+        appMinVersion: this.appMinVersion().trim() || null,
+        appMaxVersion: this.appMaxVersion().trim() || null
       },
       connector: {
         displayName: this.connectorName(),

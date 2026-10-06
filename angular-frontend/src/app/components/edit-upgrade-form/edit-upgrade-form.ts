@@ -22,7 +22,7 @@ import { SubmissionSuccessModal } from '../submission-success-modal/submission-s
 import { MethodTypeModal } from '../method-type-modal/method-type-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isObsoleteConnector } from '../../models/connector-tag.model';
-import { ApplicationVersion, hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
@@ -104,21 +104,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const maxIndex = versions.findIndex(v => v.id === maxId);
     return maxIndex < minIndex;
   });
-  // Supported application version range; the list is the application's own, oldest first.
-  protected readonly appVersions = signal<ApplicationVersion[]>([]);
-  protected readonly appVersionsDesc = computed(() => [...this.appVersions()].reverse());
-  protected readonly appMinVersionId = signal<number | null>(null);
-  protected readonly appMaxVersionId = signal<number | null>(null);
-  protected readonly isAppVersionRangeInvalid = computed(() => {
-    const minId = this.appMinVersionId();
-    const maxId = this.appMaxVersionId();
-    if (!minId || !maxId) return false;
-    const versions = this.appVersions();
-    return versions.findIndex(v => v.id === maxId) < versions.findIndex(v => v.id === minId);
-  });
-  // Mirrors the publish form's compatibility gate: midPoint "From" is required and both ranges must be valid.
+  // Supported application version range, free text: only saved, not checked or used for filtering.
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
+  // Mirrors the publish form's compatibility gate: midPoint "From" is required and its range must be valid.
   protected readonly isMidpointRangeValid = computed(() =>
-    this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid() && !this.isAppVersionRangeInvalid()
+    this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid()
   );
 
   // Tutorial content
@@ -305,7 +296,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
       next: (app) => {
         this.appName.set(app.displayName);
         this.appHasLogo.set(hasLogoDetail(app));
-        this.appVersions.set(app.versions ?? []);
         // A method can have several revisions sharing one id; open the one named in the route,
         // falling back to the latest if the revision is missing (e.g. an old link).
         const methods = (app.integrationMethods ?? []).filter(m => m.id === vId);
@@ -323,8 +313,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.midpointMinVersionId.set(ver.midpointMinVersionId);
           this.midpointMaxVersionId.set(ver.midpointMaxVersionId);
-          this.appMinVersionId.set(ver.appMinVersionId);
-          this.appMaxVersionId.set(ver.appMaxVersionId);
+          this.appMinVersion.set(ver.appMinVersion ?? '');
+          this.appMaxVersion.set(ver.appMaxVersion ?? '');
           this.methodTutorial.set(ver.tutorial ?? '');
           if (this.easyMde && ver.tutorial) {
             this.easyMde.value(ver.tutorial);
@@ -785,8 +775,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         minorBump: !major,
         midpointMinVersion: this.midpointMinVersionId(),
         midpointMaxVersion: this.midpointMaxVersionId(),
-        appMinVersion: this.appMinVersionId(),
-        appMaxVersion: this.appMaxVersionId(),
+        appMinVersion: this.appMinVersion().trim() || null,
+        appMaxVersion: this.appMaxVersion().trim() || null,
         maintainer: this.methodMaintainer()
       }
     ).subscribe({

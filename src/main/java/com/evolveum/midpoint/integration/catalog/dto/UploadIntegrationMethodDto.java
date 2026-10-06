@@ -25,7 +25,9 @@ public record UploadIntegrationMethodDto(
         List<Integer> typeIds,      // integration_method_type.id
         Integer midpointMinVersion, // midpoint_version.id (FK for min version)
         Integer midpointMaxVersion, // midpoint_version.id (FK for max version)
-        Integer appMinVersion,      // application_version.id (FK for min version), of this application
-        Integer appMaxVersion       // application_version.id (FK for max version), of this application
+        @Size(max = IntegrationMethod.APP_VERSION_MAX)
+        String appMinVersion,       // integration_method.app_minversion (free text)
+        @Size(max = IntegrationMethod.APP_VERSION_MAX)
+        String appMaxVersion        // integration_method.app_maxversion (free text)
 ) {
 }

@@ -727,8 +727,7 @@ public class ApplicationService {
 
     /**
      * Makes the application's versions match {@code wanted}: a version with an id is kept (and renamed
-     * if its text changed), one without is added, and any other is removed - unless a revision of a
-     * method still states it, which is a 409 naming those methods.
+     * if its text changed), one without is added, and any other is removed.
      */
     private void syncVersions(Application application, List<ApplicationVersionDto> wanted) {
         List<String> names = wanted.stream().map(v -> v.version().trim()).toList();
@@ -752,17 +751,6 @@ public class ApplicationService {
         List<ApplicationVersion> removed = existing.values().stream()
                 .filter(v -> !keptIds.contains(v.getId()))
                 .toList();
-        for (ApplicationVersion version : removed) {
-            List<String> users = application.getIntegrationMethods().stream()
-                    .filter(m -> isVersion(m.getAppMinVersion(), version) || isVersion(m.getAppMaxVersion(), version))
-                    .map(m -> m.getDisplayName() + " " + m.getRevision())
-                    .distinct()
-                    .toList();
-            if (!users.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Version " + version.getVersion()
-                        + " cannot be removed, it is used by: " + String.join(", ", users) + ".");
-            }
-        }
         // Removals and renames reach the database before additions, so a removed or renamed
         // version's text can be reused in the same save without tripping the unique constraint.
         application.getVersions().removeAll(removed);
@@ -780,10 +768,6 @@ public class ApplicationService {
                         new ApplicationVersion().setApplication(application).setVersion(v.version().trim())));
             }
         }
-    }
-
-    private static boolean isVersion(ApplicationVersion candidate, ApplicationVersion version) {
-        return candidate != null && candidate.getId().equals(version.getId());
     }
 
     /** Sets the tier of a connector bundle version; the methods using it show the tier of their newest one. */

@@ -100,6 +100,9 @@ public class SecurityConfig {
 
     private static final String CSRF_HEADER = "X-IC-XSRF-TOKEN";
 
+    /** Kubernetes liveness/readiness probes call these unauthenticated. */
+    private static final String HEALTH_CHECKS = "/actuator/health/**";
+
     private static final String LOGOUT = "/logout";
 
     private static final String POST_LOGOUT_REDIRECT = "{baseUrl}";
@@ -138,6 +141,8 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(jenkinsCallbackFilter.authenticatedCallbackMatcher()))
                 .addFilterBefore(jenkinsCallbackFilter, AuthorizationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, HEALTH_CHECKS).permitAll()
+
                         // Build callbacks (verify + continue/fail), reachable two ways: the
                         // Jenkins pipeline authenticates with the shared secret handled by the
                         // filter above, a contributor completing a build by hand through the

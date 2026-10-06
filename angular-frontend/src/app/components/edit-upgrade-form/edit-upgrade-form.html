@@ -131,34 +131,19 @@
       <!-- Supported application version -->
       <div class="mb-4">
         <label class="form-label form-label-upload d-block">Supported application version</label>
-        @if (appVersions().length === 0) {
-          <div class="form-text mt-0">No versions are listed for {{ appName() || 'this application' }} yet.</div>
-        } @else {
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="midpoint-range-label">From</span>
-            <select class="form-select app-version-select"
-                    [ngModel]="appMinVersionId()"
-                    (ngModelChange)="appMinVersionId.set($event)">
-              <option [ngValue]="null">Select version</option>
-              @for (v of appVersionsDesc(); track v.id) {
-                <option [ngValue]="v.id">{{ v.version }}</option>
-              }
-            </select>
-            <span class="midpoint-range-dash">—</span>
-            <span class="midpoint-range-label">To</span>
-            <select class="form-select app-version-select"
-                    [ngModel]="appMaxVersionId()"
-                    (ngModelChange)="appMaxVersionId.set($event)">
-              <option [ngValue]="null">Select version</option>
-              @for (v of appVersionsDesc(); track v.id) {
-                <option [ngValue]="v.id">{{ v.version }}</option>
-              }
-            </select>
-          </div>
-          @if (isAppVersionRangeInvalid()) {
-            <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
-          }
-        }
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="midpoint-range-label">From</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMinVersion()"
+                 (input)="appMinVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2024.1">
+          <span class="midpoint-range-dash">—</span>
+          <span class="midpoint-range-label">To</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMaxVersion()"
+                 (input)="appMaxVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2025.2">
+        </div>
       </div>
 
       <!-- Description -->

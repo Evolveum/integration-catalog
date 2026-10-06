@@ -174,9 +174,8 @@ export class IntegrationMethodDetail implements OnInit {
           this.methodTutorial.set(ver.tutorial ?? '');
           this.methodMinVersionId.set(ver.midpointMinVersionId);
           this.methodMaxVersionId.set(ver.midpointMaxVersionId);
-          const appVersion = (id: number | null) => (app.versions ?? []).find(v => v.id === id)?.version ?? '';
-          this.appMinVersion.set(appVersion(ver.appMinVersionId));
-          this.appMaxVersion.set(appVersion(ver.appMaxVersionId));
+          this.appMinVersion.set(ver.appMinVersion ?? '');
+          this.appMaxVersion.set(ver.appMaxVersion ?? '');
           this.setCapabilities(ver.objectClassCapabilities);
           this.loadTutorialFiles(aId, vId, ver.revision ?? '');
           this.loadConnectors(aId, vId, ver.revision ?? '');

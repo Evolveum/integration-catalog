@@ -510,37 +510,22 @@
           <p class="compat-section-desc">
             Define the range of {{ reviewSummary?.applicationName || 'application' }} versions that have been tested with this integration method.
           </p>
-          @if (appVersions().length === 0) {
-            <div class="form-text">No versions are listed for this application yet, so there is nothing to choose. The range can be set later.</div>
-          } @else {
-            <div class="d-flex align-items-end gap-3 mb-2">
-              <div>
-                <label class="form-label form-label-upload">From version</label>
-                <select class="form-select compat-version-select"
-                        [ngModel]="appMinVersionId()"
-                        (ngModelChange)="appMinVersionId.set($event)">
-                  <option [ngValue]="null">Select version</option>
-                  @for (v of appVersionsDesc(); track v.id) {
-                    <option [ngValue]="v.id">{{ v.version }}</option>
-                  }
-                </select>
-              </div>
-              <div>
-                <label class="form-label form-label-upload">To version</label>
-                <select class="form-select compat-version-select"
-                        [ngModel]="appMaxVersionId()"
-                        (ngModelChange)="appMaxVersionId.set($event)">
-                  <option [ngValue]="null">Select version</option>
-                  @for (v of appVersionsDesc(); track v.id) {
-                    <option [ngValue]="v.id">{{ v.version }}</option>
-                  }
-                </select>
-              </div>
+          <div class="d-flex align-items-end gap-3 mb-2">
+            <div>
+              <label class="form-label form-label-upload">From version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMinVersion()"
+                     (input)="appMinVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2024.1">
             </div>
-            @if (isAppVersionRangeInvalid()) {
-              <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
-            }
-          }
+            <div>
+              <label class="form-label form-label-upload">To version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMaxVersion()"
+                     (input)="appMaxVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2025.2">
+            </div>
+          </div>
         </div>
 
         <!-- Connector version ranges -->
@@ -753,12 +738,12 @@
                 </span>
               </div>
             }
-            @if (appMinVersionId() || appMaxVersionId()) {
+            @if (appMinVersion().trim() || appMaxVersion().trim()) {
               <div class="review-detail-row">
                 <span class="review-detail-label">Supported application version:</span>
                 <span class="review-detail-value">
-                  {{ getAppVersionLabel(appMinVersionId()) || '—' }}
-                  @if (appMaxVersionId()) { &nbsp;-&nbsp;{{ getAppVersionLabel(appMaxVersionId()) }} }
+                  {{ appMinVersion().trim() || '—' }}
+                  @if (appMaxVersion().trim()) { &nbsp;-&nbsp;{{ appMaxVersion().trim() }} }
                 </span>
               </div>
             }

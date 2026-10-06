@@ -373,8 +373,8 @@ public class BundleService {
         meta.put("lifecycleState", method.getLifecycleState());
         meta.put("author", method.getAuthor());
         meta.put("maintainer", ownershipService.maintainerLabel(method));
-        meta.put("appMinVersion", method.getAppMinVersion() != null ? method.getAppMinVersion().getVersion() : null);
-        meta.put("appMaxVersion", method.getAppMaxVersion() != null ? method.getAppMaxVersion().getVersion() : null);
+        meta.put("appMinVersion", method.getAppMinVersion());
+        meta.put("appMaxVersion", method.getAppMaxVersion());
         meta.put("midpointMinVersionId", method.getMidpointMinVersionId());
         meta.put("midpointMaxVersionId", method.getMidpointMaxVersionId());
         meta.put("createdAt", method.getCreatedAt());
