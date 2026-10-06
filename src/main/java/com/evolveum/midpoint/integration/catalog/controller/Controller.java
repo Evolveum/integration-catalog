@@ -459,13 +459,6 @@ public class Controller {
         return ResponseEntity.ok(applicationService.listSupportTiers());
     }
 
-    @Operation(summary = "Set or clear the support tier of an integration method, all revisions (superuser only)")
-    @PutMapping("/integration-methods/{methodId}/tier")
-    public ResponseEntity<Void> setSupportTier(@PathVariable UUID methodId, @RequestBody SupportTierDto dto) {
-        applicationService.setSupportTier(methodId, dto.tier());
-        return ResponseEntity.ok().build();
-    }
-
     @Operation(summary = "Mark an application as featured on the homepage, or not (superuser only)")
     @PutMapping("/applications/{appId}/featured")
     public ResponseEntity<Void> setApplicationFeatured(@PathVariable UUID appId, @RequestBody FeaturedDto dto) {

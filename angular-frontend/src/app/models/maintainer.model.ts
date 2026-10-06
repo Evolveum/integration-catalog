@@ -46,3 +46,44 @@ export function sameMaintainer(a: Maintainer | null, b: Maintainer | null): bool
   const key = (m: Maintainer) => (m.username ?? m.organizationName ?? '').toLowerCase();
   return key(a) === key(b);
 }
+
+/** What a maintainer-category filter chip and stat card call the category. */
+export const MAINTAINER_CATEGORY_LABELS: Record<MaintainerCategory, string> = {
+  USER: 'Individual',
+  ORG: 'Organization',
+  EVOLVEUM: 'Evolveum',
+  COMMUNITY: 'Community'
+};
+
+/** One maintainer, the same row or not: its id, else what names it within its category. */
+export function maintainerKey(maintainer: Maintainer | null | undefined): string {
+  if (!maintainer) return '';
+  return maintainer.id !== null
+      ? `id:${maintainer.id}`
+      : `${maintainer.category}:${maintainer.username ?? maintainer.organizationName ?? ''}`;
+}
+
+/**
+ * The options of a maintainer filter, one per maintainer and sorted by label; an organization
+ * sharing its name with a catalog-wide category (an "Evolveum" organization next to Evolveum)
+ * is told apart by the category.
+ */
+export function maintainerFilterOptions(maintainers: (Maintainer | null | undefined)[]): { key: string; label: string }[] {
+  const seen = new Map<string, Maintainer>();
+  for (const m of maintainers) {
+    if (m) seen.set(maintainerKey(m), m);
+  }
+  const labelCounts = new Map<string, number>();
+  seen.forEach(m => labelCounts.set(maintainerLabel(m), (labelCounts.get(maintainerLabel(m)) ?? 0) + 1));
+  return [...seen.entries()]
+    .map(([key, m]) => {
+      const label = maintainerLabel(m);
+      return {
+        key,
+        label: (labelCounts.get(label) ?? 0) > 1
+            ? `${label} (${MAINTAINER_CATEGORY_LABELS[m.category].toLowerCase()})`
+            : label
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+}

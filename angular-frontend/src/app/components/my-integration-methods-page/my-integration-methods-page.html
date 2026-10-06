@@ -1,0 +1,545 @@
+<!--
+ * Copyright (c) 2010-2026 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<app-page-header [hideBorder]="true"/>
+
+<div class="ss-page">
+  <div class="ss-content">
+    <button type="button" class="ss-back d-flex align-items-center gap-2" (click)="goBack()">
+      <i class="fa-solid fa-arrow-left"></i>Back
+    </button>
+
+    <div class="ss-title-row d-flex align-items-start gap-3">
+      <div>
+        @if (allMethods) {
+          <h1 class="ss-title">All integration methods</h1>
+          <p class="ss-subtitle">Manage integration methods across the catalog.</p>
+        } @else {
+          <h1 class="ss-title">My integration methods</h1>
+          <p class="ss-subtitle">Manage integration methods you and your organization created or submitted to the catalog.</p>
+        }
+      </div>
+      @if (authService.canUpload()) {
+        <button type="button" class="btn btn-primary ss-primary-btn ms-auto d-flex align-items-center gap-2"
+                (click)="createMethod()">
+          <i class="fa-solid fa-plus"></i>Create new method
+        </button>
+      }
+    </div>
+
+    @if (!authService.profile()) {
+      <div class="ss-empty"><p class="mb-0">You are not signed in, so there are no integration methods to show.</p></div>
+    } @else if (allMethods && !isSuperuser()) {
+      <div class="ss-empty"><p class="mb-0">Only a superuser can see all integration methods.</p></div>
+    } @else {
+
+      <div class="ss-stats" style="--ss-stat-count: 5">
+        <div class="ss-stat" [class.ss-stat-active]="!hasFilters() && !!revisions()">
+          <div class="ss-stat-body">
+            <div class="ss-stat-label">Total methods</div>
+            <div class="ss-stat-value">{{ totalCount() }}</div>
+          </div>
+          <button type="button" class="ss-stat-link" (click)="resetFilters()">View items</button>
+        </div>
+        @if (allMethods) {
+          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'EVOLVEUM'">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Evolveum methods</div>
+              <div class="ss-stat-value">{{ evolveumCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems([], 'EVOLVEUM')">View items</button>
+          </div>
+          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'COMMUNITY'">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Community methods</div>
+              <div class="ss-stat-value">{{ communityCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems([], 'COMMUNITY')">View items</button>
+          </div>
+          <!-- Both review states: waiting for a reviewer and being reviewed. -->
+          <div class="ss-stat" [class.ss-stat-active]="isOnlyStates('IN_REVIEW', 'REVIEWING')">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">In review</div>
+              <div class="ss-stat-value">{{ awaitingCount() + reviewingCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(['IN_REVIEW', 'REVIEWING'])">View items</button>
+          </div>
+          <div class="ss-stat" [class.ss-stat-active]="isOnlyStates('REJECTED')">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Rejected</div>
+              <div class="ss-stat-value">{{ rejectedCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(['REJECTED'])">View items</button>
+          </div>
+        } @else {
+          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'ORG'">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Organization methods</div>
+              <div class="ss-stat-value">{{ organizationCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems([], 'ORG')">View items</button>
+          </div>
+          <div class="ss-stat" [class.ss-stat-active]="isOnlyStates('IN_REVIEW')">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Awaiting approval</div>
+              <div class="ss-stat-value">{{ awaitingCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(['IN_REVIEW'])">View items</button>
+          </div>
+          <div class="ss-stat" [class.ss-stat-active]="isOnlyStates('REVIEWING')">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">In review</div>
+              <div class="ss-stat-value">{{ reviewingCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(['REVIEWING'])">View items</button>
+          </div>
+          <div class="ss-stat" [class.ss-stat-active]="isOnlyStates('ACTIVE')">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Published</div>
+              <div class="ss-stat-value">{{ publishedCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(['ACTIVE'])">View items</button>
+          </div>
+        }
+      </div>
+
+      <!-- ==================== FILTERS ==================== -->
+      <div class="ss-filters d-flex flex-wrap align-items-center">
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:state'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="states().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:state'" (click)="toggleMenu('filter:state')">
+              <span>State</span>
+              @if (states().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ states().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (states().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear state filter"
+                      (click)="clearFilter('states')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:state') {
+            <div class="ss-chip-dropdown">
+              @for (option of stateOptions; track option.value) {
+                <button type="button" class="ss-chip-option" (click)="toggleState(option.value)">
+                  <span class="ss-checkbox" [class.ss-checkbox-checked]="states().has(option.value)">
+                    @if (states().has(option.value)) { <i class="fa-solid fa-check"></i> }
+                  </span>
+                  <span>{{ option.label }}</span>
+                </button>
+              } @empty {
+                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+              }
+              <div class="ss-chip-dropdown-footer">
+                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('states')">Clear filter</button>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:application'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="applications().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:application'" (click)="toggleMenu('filter:application')">
+              <span>Application</span>
+              @if (applications().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ applications().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (applications().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear application filter"
+                      (click)="clearFilter('applications')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:application') {
+            <div class="ss-chip-dropdown">
+              @for (option of applicationOptions(); track option.id) {
+                <button type="button" class="ss-chip-option" (click)="toggleApplication(option.id)">
+                  <span class="ss-checkbox" [class.ss-checkbox-checked]="applications().has(option.id)">
+                    @if (applications().has(option.id)) { <i class="fa-solid fa-check"></i> }
+                  </span>
+                  <span>{{ option.name }}</span>
+                </button>
+              } @empty {
+                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+              }
+              <div class="ss-chip-dropdown-footer">
+                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('applications')">Clear filter</button>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:author'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="authors().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:author'" (click)="toggleMenu('filter:author')">
+              <span>Author</span>
+              @if (authors().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ authors().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (authors().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear author filter"
+                      (click)="clearFilter('authors')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:author') {
+            <div class="ss-chip-dropdown">
+              @for (option of authorOptions(); track option) {
+                <button type="button" class="ss-chip-option" (click)="toggleAuthor(option)">
+                  <span class="ss-checkbox" [class.ss-checkbox-checked]="authors().has(option)">
+                    @if (authors().has(option)) { <i class="fa-solid fa-check"></i> }
+                  </span>
+                  <span>{{ option }}</span>
+                </button>
+              } @empty {
+                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+              }
+              <div class="ss-chip-dropdown-footer">
+                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('authors')">Clear filter</button>
+              </div>
+            </div>
+          }
+        </div>
+        @if (allMethods) {
+          <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:maintainer'">
+            <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="maintainers().size > 0">
+              <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                      [attr.aria-expanded]="openMenuKey() === 'filter:maintainer'" (click)="toggleMenu('filter:maintainer')">
+                <span>Maintainer</span>
+                @if (maintainers().size) {
+                  <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ maintainers().size }}</span>
+                }
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+              @if (maintainers().size) {
+                <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear maintainer filter"
+                        (click)="clearFilter('maintainers')">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              }
+            </div>
+            @if (openMenuKey() === 'filter:maintainer') {
+              <div class="ss-chip-dropdown">
+                @for (option of maintainerOptions(); track option.key) {
+                  <button type="button" class="ss-chip-option" (click)="toggleMaintainer(option.key)">
+                    <span class="ss-checkbox" [class.ss-checkbox-checked]="maintainers().has(option.key)">
+                      @if (maintainers().has(option.key)) { <i class="fa-solid fa-check"></i> }
+                    </span>
+                    <span>{{ option.label }}</span>
+                  </button>
+                } @empty {
+                  <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+                }
+                <div class="ss-chip-dropdown-footer">
+                  <button type="button" class="ss-chip-clear-link" (click)="clearFilter('maintainers')">Clear filter</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+        @if (maintainerCategory(); as category) {
+          <div class="ss-chip ss-chip-set d-inline-flex align-items-center gap-2 rounded-pill">
+            <span>{{ categoryLabel(category) }}</span>
+            <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear maintainer category filter"
+                    (click)="maintainerCategory.set(null)">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        }
+
+        <label class="ss-search d-flex align-items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
+        </label>
+      </div>
+
+      <!-- ==================== LIST ==================== -->
+      @if (loadFailed()) {
+        <div class="ss-empty">
+          <p class="mb-0">{{ allMethods ? 'The integration methods' : 'Your integration methods' }} could not be loaded.</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()">Try again</button>
+        </div>
+      } @else if (!revisions()) {
+        <div class="ss-empty">
+          <div class="spinner-border spinner-border-sm" role="status"></div>
+          <p class="mb-0">Loading…</p>
+        </div>
+      } @else if (!totalCount() && allMethods) {
+        <div class="ss-empty">
+          <div class="ss-empty-title">The catalog has no integration methods yet</div>
+        </div>
+      } @else if (!totalCount()) {
+        <div class="ss-empty">
+          <div class="ss-empty-title">You haven't created any integration methods yet</div>
+          <p class="mb-0">Integration methods you upload will appear here, along with their review status.</p>
+        </div>
+      } @else if (!groups().length) {
+        <div class="ss-empty">
+          <p class="mb-0">No integration method matches the filters.</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="resetFilters()">Clear filters</button>
+        </div>
+      } @else {
+        @for (group of pagedGroups(); track group.id) {
+          <section class="ss-group">
+            <div class="ss-group-head d-flex align-items-center">
+              <button type="button" class="ss-collapse" (click)="toggleGroup(group.id)"
+                      [attr.aria-expanded]="!isCollapsed(group.id)" aria-label="Toggle versions">
+                <i class="fa-solid fa-chevron-down" [class.ss-chevron-closed]="isCollapsed(group.id)"></i>
+              </button>
+              @if (group.applicationHasLogo) {
+                <img class="im-app-logo" [src]="logoUrl(group.applicationId)" alt="">
+              } @else {
+                <span class="im-app-logo im-app-logo-placeholder"><i class="fa-solid fa-cube"></i></span>
+              }
+              <div class="ss-group-text">
+                <div class="ss-group-name">{{ group.displayName }}</div>
+                <div class="ss-group-sub">
+                  <a class="ss-link" [routerLink]="['/applications', group.applicationId]">{{ group.applicationDisplayName }}</a>
+                  · {{ group.versionCount }} {{ group.versionCount === 1 ? 'version' : 'versions' }}
+                </div>
+              </div>
+
+              <div class="ss-group-side ms-auto">
+                <span class="ss-side-label">Maintainer</span>
+                <span class="d-flex align-items-center gap-1 im-maintainer">
+                  <i class="fa-solid" [class.fa-building]="group.maintainerCategory === 'ORG' || group.maintainerCategory === 'EVOLVEUM'"
+                     [class.fa-users]="group.maintainerCategory === 'COMMUNITY'"
+                     [class.fa-user]="group.maintainerCategory === 'USER' || !group.maintainerCategory"></i>
+                  {{ group.maintainerLabel }}
+                </span>
+              </div>
+
+              <!-- A new version starts from the newest revision, as Edit and upgrade does on the detail page. -->
+              <button type="button" class="btn btn-outline-secondary btn-sm ss-outline-btn d-flex align-items-center gap-1"
+                      [disabled]="!canEdit(group.latest)" (click)="openEdit(group.latest)">
+                <i class="fa-solid fa-plus"></i>New version
+              </button>
+
+              <div class="ss-menu-wrap" [class.ss-menu-open]="openMenuKey() === 'group:' + group.id">
+                <button type="button" class="ss-kebab" aria-haspopup="menu" aria-label="Method actions"
+                        [attr.aria-expanded]="openMenuKey() === 'group:' + group.id"
+                        (click)="toggleMenu('group:' + group.id)">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                @if (openMenuKey() === 'group:' + group.id) {
+                  <div class="ss-menu ss-menu-right" role="menu">
+                    <button type="button" class="ss-menu-item" role="menuitem" (click)="openDetails(group.latest)">View latest version</button>
+                    <button type="button" class="ss-menu-item" role="menuitem" (click)="openApplication(group.applicationId)">Open application</button>
+                  </div>
+                }
+              </div>
+            </div>
+
+            @if (!isCollapsed(group.id)) {
+              <table class="ss-table">
+                <thead>
+                  <tr>
+                    <th>Version</th>
+                    <th class="im-col-author">Author</th>
+                    <th class="im-col-ticket">Ticket no.</th>
+                    <th class="im-col-state">State</th>
+                    <th class="ss-col-actions"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (rev of group.revisions; track rev.revision) {
+                    <tr class="ss-row-clickable" (click)="openDetails(rev)">
+                      <td>
+                        <div class="d-flex align-items-center gap-3">
+                          <span class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
+                          <div class="im-version-text">
+                            <div>{{ rev.displayName }}</div>
+                            <div class="ss-cell-sub">
+                              @switch (rev.lifecycleState) {
+                                @case ('ACTIVE') { Published on {{ rev.updated | date:'MMM d, y' }} }
+                                @case ('IN_REVIEW') { Submitted for approval on {{ rev.updated | date:'MMM d, y' }} }
+                                @case ('REVIEWING') { Under review from {{ rev.updated | date:'MMM d, y' }} }
+                                @case ('REJECTED') { Rejected on {{ rev.updated | date:'MMM d, y' }} }
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        @if (rev.author) {
+                          <span class="d-flex align-items-center gap-2">
+                            <span class="ss-avatar">{{ initials(rev.author) }}</span>{{ rev.author }}
+                          </span>
+                        } @else {
+                          <span class="ss-muted">—</span>
+                        }
+                      </td>
+                      <td>
+                        @if (rev.supportTicketUrl) {
+                          <a class="ss-link" [href]="rev.supportTicketUrl" target="_blank" rel="noopener"
+                             (click)="$event.stopPropagation()">#{{ rev.supportTicketId }}</a>
+                        } @else {
+                          <span class="ss-muted">—</span>
+                        }
+                      </td>
+                      <td>
+                        @switch (rev.lifecycleState) {
+                          @case ('ACTIVE') { <span class="ss-badge ss-badge-published"><i class="fa-regular fa-circle-check"></i>Published</span> }
+                          @case ('IN_REVIEW') { <span class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span> }
+                          @case ('REVIEWING') { <span class="ss-badge ss-badge-reviewing"><i class="fa-solid fa-lock"></i>Under review</span> }
+                          @case ('REJECTED') { <span class="ss-badge ss-badge-rejected"><i class="fa-solid fa-xmark"></i>Rejected</span> }
+                        }
+                      </td>
+                      <td class="ss-col-actions" (click)="$event.stopPropagation()">
+                        <div class="ss-menu-wrap d-inline-block" [class.ss-menu-open]="openMenuKey() === rowKey(rev)">
+                          <button type="button" class="ss-kebab" aria-haspopup="menu" aria-label="Version actions"
+                                  [attr.aria-expanded]="openMenuKey() === rowKey(rev)" (click)="toggleMenu(rowKey(rev))">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                          </button>
+                          @if (openMenuKey() === rowKey(rev)) {
+                            <!-- The same actions per state and role as the application detail page; the review ones
+                                 (start/stop, approve/reject) only on the all-methods page. -->
+                            <div class="ss-menu ss-menu-right" role="menu">
+                              @switch (rev.lifecycleState) {
+                                @case ('IN_REVIEW') {
+                                  @if (showReviewActions && isSuperuser()) {
+                                    <button type="button" class="ss-menu-item" role="menuitem" (click)="openStartReview(rev)">Start review</button>
+                                    <div class="ss-menu-separator"></div>
+                                  }
+                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <div class="ss-menu-separator"></div>
+                                  <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="openCancel(rev)">
+                                    <i class="fa-solid fa-trash-can"></i>Cancel request
+                                  </button>
+                                }
+                                @case ('REVIEWING') {
+                                  @if (showReviewActions && isSuperuser()) {
+                                    <button type="button" class="ss-menu-item ss-menu-item-success" role="menuitem" (click)="openConfirm(rev, 'approve')">Approve request</button>
+                                    <button type="button" class="ss-menu-item" role="menuitem" [disabled]="isProcessingStopReview()"
+                                            (click)="stopReview(rev)">Stop review</button>
+                                    <div class="ss-menu-separator"></div>
+                                  }
+                                  <!-- Locked for the author while a review runs; disabled so they see why. -->
+                                  <button type="button" class="ss-menu-item" role="menuitem" [disabled]="!canEdit(rev)"
+                                          (click)="openEdit(rev)">Edit and upgrade</button>
+                                  @if (showReviewActions && isSuperuser()) {
+                                    <div class="ss-menu-separator"></div>
+                                    <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="openConfirm(rev, 'reject')">
+                                      <i class="fa-solid fa-xmark"></i>Reject request
+                                    </button>
+                                  }
+                                }
+                                @case ('ACTIVE') {
+                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="download(rev)">Download</button>
+                                  <div class="ss-menu-separator"></div>
+                                  <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="deletePublished()">
+                                    <i class="fa-solid fa-trash-can"></i>Delete
+                                  </button>
+                                }
+                                @default {
+                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
+                                }
+                              }
+                            </div>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </section>
+        }
+        <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)"/>
+      }
+    }
+  </div>
+</div>
+
+@if (openMenuKey()) {
+  <div class="ss-click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+}
+
+<!-- ==================== MODALS ==================== -->
+@if (cancelRevision()) {
+  <div class="cancel-confirm-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeCancel()"></div>
+  <div class="cancel-confirm-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+    <div class="cancel-confirm-dialog" (click)="$event.stopPropagation()">
+      <div class="cancel-confirm-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation cancel-confirm-icon"></i>
+          <span class="cancel-confirm-title">Cancel review request?</span>
+        </div>
+        <button type="button" class="btn p-0 cancel-confirm-close" (click)="closeCancel()" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="cancel-confirm-body">
+        Are you sure you want to cancel this request? <strong>All progress and data</strong>
+        entered during the upload or edit will be <strong>permanently lost.</strong> This action cannot be undone.
+      </div>
+      <hr class="cancel-confirm-separator">
+      <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
+        <button type="button" class="btn cancel-keep-btn" (click)="closeCancel()">Keep request</button>
+        <button type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmCancel()">
+          <i class="fa-solid fa-trash-can"></i>Cancel request
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmMode(); as mode) {
+  <app-approval-confirm-modal
+    [mode]="mode"
+    [appId]="confirmRevision()?.applicationId || ''"
+    [methodId]="confirmRevision()?.id || ''"
+    [revision]="confirmRevision()?.revision || ''"
+    [connectorName]="confirmConnectorName()"
+    [versionLabel]="'v' + (confirmRevision()?.revision || '')"
+    [submittedBy]="confirmSubmittedBy()"
+    [processing]="isProcessingApproval()"
+    [error]="approvalError()"
+    (confirm)="submitConfirm()"
+    (cancel)="closeConfirm()"
+    (manualFill)="openManualFill($event)">
+  </app-approval-confirm-modal>
+}
+
+@if (manualFillConnector(); as connector) {
+  <app-manual-fill-modal
+    [connector]="connector"
+    [methodId]="confirmRevision()?.id || ''"
+    (submit)="onManualFillSuccess()"
+    (cancel)="closeManualFill()">
+  </app-manual-fill-modal>
+}
+
+@if (startReviewRevision(); as revision) {
+  <app-start-review-modal
+    [versionLabel]="'v' + revision.revision"
+    [processing]="isProcessingStartReview()"
+    [error]="startReviewError()"
+    (confirm)="submitStartReview()"
+    (cancel)="closeStartReview()">
+  </app-start-review-modal>
+}
+
+@if (isDownloadInfoOpen()) {
+  <app-download-info-modal
+    [fileName]="downloadInfoFileName()"
+    [fileSize]="downloadInfoFileSize()"
+    [preparing]="isDownloadPreparing()"
+    (closed)="isDownloadInfoOpen.set(false)">
+  </app-download-info-modal>
+}

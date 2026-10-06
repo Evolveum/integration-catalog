@@ -20,6 +20,7 @@ import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
+import { MyConnector, MyIntegrationMethod } from '../models/my-items.model';
 
 /** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
 export interface BundleDownloadResult {
@@ -398,6 +399,31 @@ export class ApplicationService {
     );
   }
 
+  /** Every revision of the integration methods the current user maintains, newest first per method. */
+  getMyIntegrationMethods(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/auth/me/integration-methods`);
+  }
+
+  /** Every revision of every method in the catalog, grouped by method (superuser). */
+  getAllIntegrationMethods(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/all-integration-methods`);
+  }
+
+  /** Every revision awaiting approval or under review across the catalog, longest waiting first (superuser). */
+  getReviewQueue(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/review-queue`);
+  }
+
+  /** Every connector in the catalog, with its versions and usage (superuser). */
+  getAllConnectors(): Observable<MyConnector[]> {
+    return this.http.get<MyConnector[]>(`${environment.apiUrl}/all-connectors`);
+  }
+
+  /** The connectors the current user maintains, with their versions and usage. */
+  getMyConnectors(): Observable<MyConnector[]> {
+    return this.http.get<MyConnector[]>(`${environment.apiUrl}/auth/me/connectors`);
+  }
+
   // ==================== Logo Methods ====================
 
   /**
@@ -460,9 +486,9 @@ export class ApplicationService {
     return this.http.get<IntegrationMethodTier[]>(`${environment.apiUrl}/integration-methods/tiers`);
   }
 
-  /** Sets the tier on every revision of the method; null removes it. */
-  setSupportTier(methodId: string, tier: SupportTier | null): Observable<void> {
-    return this.http.put<void>(`${environment.apiUrl}/integration-methods/${methodId}/tier`, { tier });
+  /** Sets the tier of a connector bundle version, all its revisions; null removes it (superuser). */
+  setSupportTier(bundleVersionId: number, tier: SupportTier | null): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/all-connectors/bundle-versions/${bundleVersionId}/tier`, { tier });
   }
 
   setApplicationFeatured(applicationId: string, featured: boolean): Observable<void> {

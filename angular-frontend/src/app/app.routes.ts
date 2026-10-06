@@ -12,14 +12,23 @@ import { EditUpgradeForm } from './components/edit-upgrade-form/edit-upgrade-for
 import { IntegrationMethodDetail } from './components/integration-method-detail/integration-method-detail';
 import { SettingsPage } from './components/settings-page/settings-page';
 import { SupportTiersPage } from './components/support-tiers-page/support-tiers-page';
+import { MyIntegrationMethodsPage } from './components/my-integration-methods-page/my-integration-methods-page';
+import { MyConnectorsPage } from './components/my-connectors-page/my-connectors-page';
+import { ApprovalQueuePage } from './components/approval-queue-page/approval-queue-page';
 
+// data.hideFooter: forms with their own fixed/scrolling layout (publish, edit incl. add connector) have no page footer.
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
   { path: 'applications', component: ApplicationsList },
   { path: 'applications/:id', component: ApplicationDetail },
   { path: 'applications/:appId/integration-method/:versionId/:revision/details', component: IntegrationMethodDetail },
-  { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm },
-  { path: 'approve', component: PublishFormMain },
+  { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm, data: { hideFooter: true } },
+  { path: 'approve', component: PublishFormMain, data: { hideFooter: true } },
   { path: 'settings', component: SettingsPage },
+  { path: 'my-integration-methods', component: MyIntegrationMethodsPage },
+  { path: 'all-integration-methods', component: MyIntegrationMethodsPage, data: { scope: 'all' } },
+  { path: 'my-connectors', component: MyConnectorsPage },
+  { path: 'all-connectors', component: MyConnectorsPage, data: { scope: 'all' } },
+  { path: 'approval-queue', component: ApprovalQueuePage },
   { path: 'support-tiers', component: SupportTiersPage }
 ];
