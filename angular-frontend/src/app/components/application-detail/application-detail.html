@@ -435,10 +435,12 @@
                                 @for (type of method.types; track type) {
                                   <span class="im-method-tag">{{ type }}</span>
                                 }
-                                <!-- Set by a superuser per connector bundle version, on the All connectors page. -->
+                                <!-- Support tier badge hidden for now; restore by uncommenting.
+                                     Set by a superuser per connector bundle version, on the All connectors page.
                                 @if (method.supportTier) {
                                   <span class="im-tier-badge" [class]="'tier-' + method.supportTier.toLowerCase()">{{ supportTierLabel(method.supportTier) }}</span>
                                 }
+                                -->
                               </div>
                               <div class="d-flex align-items-center gap-3">
                                 @if (method.publishedCount > 0) {
