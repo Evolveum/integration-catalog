@@ -14,6 +14,7 @@ import com.evolveum.midpoint.integration.catalog.security.CatalogOidcUserService
 import com.evolveum.midpoint.integration.catalog.security.SecurityConfig;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
+import com.evolveum.midpoint.integration.catalog.service.MyItemsService;
 import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private MyItemsService myItemsService;
 
     @MockitoBean
     private CatalogOidcUserService catalogOidcUserService;

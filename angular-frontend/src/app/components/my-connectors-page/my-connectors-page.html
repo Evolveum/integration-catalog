@@ -1,0 +1,472 @@
+<!--
+ * Copyright (c) 2010-2026 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<app-page-header [hideBorder]="true"/>
+
+<div class="ss-page">
+  <div class="ss-content">
+    <button type="button" class="ss-back d-flex align-items-center gap-2" (click)="goBack()">
+      <i class="fa-solid fa-arrow-left"></i>Back
+    </button>
+
+    <div class="ss-title-row d-flex align-items-start gap-3">
+      <div>
+        @if (allConnectors) {
+          <h1 class="ss-title">All connectors</h1>
+          <p class="ss-subtitle">Manage connector packages across the catalog.</p>
+        } @else {
+          <h1 class="ss-title">My connectors</h1>
+          <p class="ss-subtitle">Manage connector packages you and your organization created or uploaded to the catalog.</p>
+        }
+      </div>
+    </div>
+
+    @if (!authService.profile()) {
+      <div class="ss-empty"><p class="mb-0">You are not signed in, so there are no connectors to show.</p></div>
+    } @else if (allConnectors && !isSuperuser()) {
+      <div class="ss-empty"><p class="mb-0">Only a superuser can see all connectors.</p></div>
+    } @else {
+
+      <div class="ss-stats" [style.--ss-stat-count]="allConnectors ? 5 : 4">
+        <div class="ss-stat" [class.ss-stat-active]="!hasFilters() && !!connectors()">
+          <div class="ss-stat-body">
+            <div class="ss-stat-label">Total connectors</div>
+            <div class="ss-stat-value">{{ totalCount() }}</div>
+          </div>
+          <button type="button" class="ss-stat-link" (click)="resetFilters()">View items</button>
+        </div>
+        @if (allConnectors) {
+          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'EVOLVEUM'">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Evolveum connectors</div>
+              <div class="ss-stat-value">{{ evolveumCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(null, 'EVOLVEUM')">View items</button>
+          </div>
+          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'COMMUNITY'">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Community connectors</div>
+              <div class="ss-stat-value">{{ communityCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(null, 'COMMUNITY')">View items</button>
+          </div>
+        } @else {
+          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'ORG'">
+            <div class="ss-stat-body">
+              <div class="ss-stat-label">Organization connectors</div>
+              <div class="ss-stat-value">{{ organizationCount() }}</div>
+            </div>
+            <button type="button" class="ss-stat-link" (click)="viewItems(null, 'ORG')">View items</button>
+          </div>
+        }
+        <div class="ss-stat" [class.ss-stat-active]="isOnlyUsage('used')">
+          <div class="ss-stat-body">
+            <div class="ss-stat-label">In use</div>
+            <div class="ss-stat-value">{{ inUseCount() }}</div>
+          </div>
+          <button type="button" class="ss-stat-link" (click)="viewItems('used')">View items</button>
+        </div>
+        <div class="ss-stat" [class.ss-stat-active]="isOnlyUsage('unused')">
+          <div class="ss-stat-body">
+            <div class="ss-stat-label">Not used</div>
+            <div class="ss-stat-value">{{ notUsedCount() }}</div>
+          </div>
+          <button type="button" class="ss-stat-link" (click)="viewItems('unused')">View items</button>
+        </div>
+      </div>
+
+      <!-- ==================== FILTERS ==================== -->
+      <div class="ss-filters d-flex flex-wrap align-items-center">
+        @if (allConnectors) {
+          <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:state'">
+            <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="states().size > 0">
+              <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                      [attr.aria-expanded]="openMenuKey() === 'filter:state'" (click)="toggleMenu('filter:state')">
+                <span>State</span>
+                @if (states().size) {
+                  <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ states().size }}</span>
+                }
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+              @if (states().size) {
+                <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear state filter"
+                        (click)="clearFilter('states')">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              }
+            </div>
+            @if (openMenuKey() === 'filter:state') {
+              <div class="ss-chip-dropdown">
+                @for (option of stateOptions; track option.value) {
+                  <button type="button" class="ss-chip-option" (click)="toggleState(option.value)">
+                    <span class="ss-checkbox" [class.ss-checkbox-checked]="states().has(option.value)">
+                      @if (states().has(option.value)) { <i class="fa-solid fa-check"></i> }
+                    </span>
+                    <span>{{ option.label }}</span>
+                  </button>
+                } @empty {
+                  <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+                }
+                <div class="ss-chip-dropdown-footer">
+                  <button type="button" class="ss-chip-clear-link" (click)="clearFilter('states')">Clear filter</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:application'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="applications().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:application'" (click)="toggleMenu('filter:application')">
+              <span>Application</span>
+              @if (applications().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ applications().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (applications().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear application filter"
+                      (click)="clearFilter('applications')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:application') {
+            <div class="ss-chip-dropdown">
+              @for (option of applicationOptions(); track option.id) {
+                <button type="button" class="ss-chip-option" (click)="toggleApplication(option.id)">
+                  <span class="ss-checkbox" [class.ss-checkbox-checked]="applications().has(option.id)">
+                    @if (applications().has(option.id)) { <i class="fa-solid fa-check"></i> }
+                  </span>
+                  <span>{{ option.name }}</span>
+                </button>
+              } @empty {
+                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+              }
+              <div class="ss-chip-dropdown-footer">
+                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('applications')">Clear filter</button>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:author'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="authors().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:author'" (click)="toggleMenu('filter:author')">
+              <span>Author</span>
+              @if (authors().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ authors().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (authors().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear author filter"
+                      (click)="clearFilter('authors')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:author') {
+            <div class="ss-chip-dropdown">
+              @for (option of authorOptions(); track option) {
+                <button type="button" class="ss-chip-option" (click)="toggleAuthor(option)">
+                  <span class="ss-checkbox" [class.ss-checkbox-checked]="authors().has(option)">
+                    @if (authors().has(option)) { <i class="fa-solid fa-check"></i> }
+                  </span>
+                  <span>{{ option }}</span>
+                </button>
+              } @empty {
+                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+              }
+              <div class="ss-chip-dropdown-footer">
+                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('authors')">Clear filter</button>
+              </div>
+            </div>
+          }
+        </div>
+        @if (allConnectors) {
+          <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:maintainer'">
+            <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="maintainers().size > 0">
+              <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                      [attr.aria-expanded]="openMenuKey() === 'filter:maintainer'" (click)="toggleMenu('filter:maintainer')">
+                <span>Maintainer</span>
+                @if (maintainers().size) {
+                  <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ maintainers().size }}</span>
+                }
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+              @if (maintainers().size) {
+                <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear maintainer filter"
+                        (click)="clearFilter('maintainers')">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              }
+            </div>
+            @if (openMenuKey() === 'filter:maintainer') {
+              <div class="ss-chip-dropdown">
+                @for (option of maintainerOptions(); track option.key) {
+                  <button type="button" class="ss-chip-option" (click)="toggleMaintainer(option.key)">
+                    <span class="ss-checkbox" [class.ss-checkbox-checked]="maintainers().has(option.key)">
+                      @if (maintainers().has(option.key)) { <i class="fa-solid fa-check"></i> }
+                    </span>
+                    <span>{{ option.label }}</span>
+                  </button>
+                } @empty {
+                  <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+                }
+                <div class="ss-chip-dropdown-footer">
+                  <button type="button" class="ss-chip-clear-link" (click)="clearFilter('maintainers')">Clear filter</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+        @if (allConnectors) {
+          <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:tag'">
+            <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="tags().size > 0">
+              <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                      [attr.aria-expanded]="openMenuKey() === 'filter:tag'" (click)="toggleMenu('filter:tag')">
+                <span>Tag</span>
+                @if (tags().size) {
+                  <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ tags().size }}</span>
+                }
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+              @if (tags().size) {
+                <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear tag filter"
+                        (click)="clearFilter('tags')">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              }
+            </div>
+            @if (openMenuKey() === 'filter:tag') {
+              <div class="ss-chip-dropdown">
+                @for (option of tagOptions(); track option) {
+                  <button type="button" class="ss-chip-option" (click)="toggleTag(option)">
+                    <span class="ss-checkbox" [class.ss-checkbox-checked]="tags().has(option)">
+                      @if (tags().has(option)) { <i class="fa-solid fa-check"></i> }
+                    </span>
+                    <span>{{ option }}</span>
+                  </button>
+                } @empty {
+                  <div class="ss-chip-empty mb-2">Nothing to choose from</div>
+                }
+                <div class="ss-chip-dropdown-footer">
+                  <button type="button" class="ss-chip-clear-link" (click)="clearFilter('tags')">Clear filter</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+        <!-- Set by the In use / Not used stat cards. -->
+        @for (usage of usages(); track usage) {
+          <div class="ss-chip ss-chip-set d-inline-flex align-items-center gap-2 rounded-pill">
+            <span>{{ usageLabel(usage) }}</span>
+            <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear usage filter"
+                    (click)="clearFilter('usages')">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        }
+        @if (maintainerCategory(); as category) {
+          <div class="ss-chip ss-chip-set d-inline-flex align-items-center gap-2 rounded-pill">
+            <span>{{ categoryLabel(category) }}</span>
+            <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear maintainer category filter"
+                    (click)="maintainerCategory.set(null)">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        }
+
+        <label class="ss-search d-flex align-items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
+        </label>
+      </div>
+
+      <!-- ==================== LIST ==================== -->
+      @if (loadFailed()) {
+        <div class="ss-empty">
+          <p class="mb-0">{{ allConnectors ? 'The connectors' : 'Your connectors' }} could not be loaded.</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()">Try again</button>
+        </div>
+      } @else if (!connectors()) {
+        <div class="ss-empty">
+          <div class="spinner-border spinner-border-sm" role="status"></div>
+          <p class="mb-0">Loading…</p>
+        </div>
+      } @else if (!totalCount() && allConnectors) {
+        <div class="ss-empty">
+          <div class="ss-empty-title">The catalog has no connectors yet</div>
+        </div>
+      } @else if (!totalCount()) {
+        <div class="ss-empty">
+          <div class="ss-empty-title">You haven't created any connectors yet</div>
+          <p class="mb-0">Connectors you upload will appear here, including those used across multiple integration methods.</p>
+        </div>
+      } @else if (!groups().length) {
+        <div class="ss-empty">
+          <p class="mb-0">No connector matches the filters.</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="resetFilters()">Clear filters</button>
+        </div>
+      } @else {
+        @for (group of pagedGroups(); track group.id) {
+          <section class="ss-group">
+            <div class="ss-group-head d-flex align-items-center">
+              <button type="button" class="ss-collapse" (click)="toggleGroup(group.id)"
+                      [attr.aria-expanded]="!isCollapsed(group.id)" aria-label="Toggle versions">
+                <i class="fa-solid fa-chevron-down" [class.ss-chevron-closed]="isCollapsed(group.id)"></i>
+              </button>
+              <div class="ss-group-text">
+                <div class="ss-group-name d-flex flex-wrap align-items-center gap-2">
+                  {{ group.displayName }}
+                  @for (tag of group.tags; track tag) {
+                    <span class="conn-tag">{{ tag }}</span>
+                  }
+                </div>
+                <div class="ss-group-sub">
+                  {{ group.versionCount }} {{ group.versionCount === 1 ? 'version' : 'versions' }} ·
+                  @switch (group.usedByCount) {
+                    @case (0) { Not used }
+                    @case (1) { Used by 1 integration method }
+                    @default { Used by {{ group.usedByCount }} integration methods }
+                  }
+                </div>
+              </div>
+
+              @if (allConnectors) {
+                <div class="ss-group-side ms-auto">
+                  <span class="ss-side-label">Maintainer</span>
+                  <span class="d-flex align-items-center gap-1 conn-maintainer">
+                    <i class="fa-solid" [class.fa-building]="group.maintainerCategory === 'ORG' || group.maintainerCategory === 'EVOLVEUM'"
+                       [class.fa-users]="group.maintainerCategory === 'COMMUNITY'"
+                       [class.fa-user]="group.maintainerCategory === 'USER' || !group.maintainerCategory"></i>
+                    {{ group.maintainerLabel }}
+                  </span>
+                </div>
+              }
+              @if (group.latestVersion) {
+                <div class="ss-group-side" [class.ms-auto]="!allConnectors">
+                  <span class="ss-side-label">Latest</span>
+                  <span>{{ group.latestVersion }}</span>
+                </div>
+              }
+              @if (showNewVersion) {
+                <button type="button" class="btn btn-outline-secondary btn-sm ss-outline-btn d-flex align-items-center gap-1"
+                        [class.ms-auto]="!group.latestVersion" (click)="comingSoon('New connector version')">
+                  <i class="fa-solid fa-plus"></i>New version
+                </button>
+              }
+            </div>
+
+            @if (!isCollapsed(group.id)) {
+              <table class="ss-table">
+                <thead>
+                  <tr>
+                    <th class="conn-col-version">Version</th>
+                    <th>Author</th>
+                    <th class="conn-col-uploaded">Uploaded</th>
+                    <th class="conn-col-usage">Usage</th>
+                    @if (allConnectors) {
+                      <th class="conn-col-tier">Support tier</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (version of group.versions; track version.version) {
+                    @let key = usageKey(group.id, version);
+                    <tr [class.conn-row-expanded]="version.usedBy.length > 1 && expandedUsages().has(key)">
+                      <td>
+                        <span class="d-flex align-items-center gap-2">
+                          @if (version.usedBy.length > 1) {
+                            <button type="button" class="ss-collapse" (click)="toggleUsage(key)"
+                                    [attr.aria-expanded]="expandedUsages().has(key)" aria-label="Toggle usage">
+                              <i class="fa-solid fa-chevron-down" [class.ss-chevron-closed]="!expandedUsages().has(key)"></i>
+                            </button>
+                          } @else {
+                            <span class="conn-chevron-space"></span>
+                          }
+                          <span class="ss-version-chip">{{ version.version }}</span>
+                          @if (version.lifecycleState && version.lifecycleState !== 'ACTIVE') {
+                            @switch (version.lifecycleState) {
+                              @case ('IN_REVIEW') { <span class="ss-badge ss-badge-awaiting">Awaiting approval</span> }
+                              @case ('REVIEWING') { <span class="ss-badge ss-badge-reviewing">Under review</span> }
+                              @case ('REJECTED') { <span class="ss-badge ss-badge-rejected">Rejected</span> }
+                            }
+                          }
+                        </span>
+                      </td>
+                      <td>
+                        @if (version.author) {
+                          <span class="d-flex align-items-center gap-2">
+                            <span class="ss-avatar">{{ initials(version.author) }}</span>{{ version.author }}
+                          </span>
+                        } @else {
+                          <span class="ss-muted">—</span>
+                        }
+                      </td>
+                      <td>{{ version.uploaded | date:'MMM d, y' }}</td>
+                      <td>
+                        @switch (version.usedBy.length) {
+                          @case (0) { <span class="ss-muted">Not used</span> }
+                          @case (1) {
+                            Used in
+                            <a class="ss-link"
+                               [routerLink]="['/applications', version.usedBy[0].applicationId, 'integration-method', version.usedBy[0].integrationMethodId, version.usedBy[0].revision, 'details']">
+                              {{ version.usedBy[0].displayName }} (v{{ version.usedBy[0].revision }})</a>
+                          }
+                          @default { Used in {{ version.usedBy.length }} integration methods }
+                        }
+                      </td>
+                      @if (allConnectors) {
+                        <td>
+                          @if (version.bundleVersionId !== null) {
+                            <select class="form-select form-select-sm conn-tier-select"
+                                    [class]="'tier-' + (version.supportTier ?? 'none').toLowerCase()"
+                                    aria-label="Support tier" (change)="onSupportTierChange(version, $event)">
+                              <!-- [selected] per option: a [value] on the select lands before the @for options exist. -->
+                              <option value="" [selected]="!version.supportTier">No tier</option>
+                              @for (t of supportTiers; track t.value) {
+                                <option [value]="t.value" [selected]="t.value === version.supportTier">{{ t.label }}</option>
+                              }
+                            </select>
+                          } @else {
+                            <span class="ss-muted">—</span>
+                          }
+                        </td>
+                      }
+                    </tr>
+                    @if (version.usedBy.length > 1 && expandedUsages().has(key)) {
+                      <!-- The list sits under the Usage cell it expands. -->
+                      <tr class="conn-usage-row">
+                        <td colspan="3"></td>
+                        <td>
+                          @for (usage of version.usedBy; track usage.integrationMethodId + usage.revision) {
+                            <a class="ss-link d-block conn-usage-link"
+                               [routerLink]="['/applications', usage.applicationId, 'integration-method', usage.integrationMethodId, usage.revision, 'details']">
+                              {{ usage.displayName }} (v{{ usage.revision }})</a>
+                          }
+                        </td>
+                        @if (allConnectors) {
+                          <td></td>
+                        }
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            }
+          </section>
+        }
+        <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)"/>
+      }
+    }
+  </div>
+</div>
+
+@if (openMenuKey()) {
+  <div class="ss-click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+}

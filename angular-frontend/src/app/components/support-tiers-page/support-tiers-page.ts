@@ -8,6 +8,8 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PageHeader } from '../page-header/page-header';
+import { Pager } from '../pager/pager';
+import { versionBadge } from '../../core/version-badge';
 import { ApplicationService } from '../../services/application.service';
 import { IntegrationMethodTier } from '../../models/application-detail.model';
 import { SUPPORT_TIERS, SupportTier, isCoveredBy, supportTierLabel } from '../../core/support-tier';
@@ -19,13 +21,13 @@ interface ApplicationGroup {
 }
 
 /**
- * Every published integration method grouped by application, filtered by support tier. A tier
- * filter shows what a subscription to that tier covers, i.e. that tier and the ones below it.
+ * Every published integration method with a support tier, grouped by application. A tier filter
+ * shows what a subscription to that tier covers, i.e. that tier and the ones below it.
  */
 @Component({
   selector: 'app-support-tiers-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeader],
+  imports: [CommonModule, RouterLink, PageHeader, Pager],
   templateUrl: './support-tiers-page.html',
   styleUrls: ['./support-tiers-page.scss']
 })
@@ -34,33 +36,32 @@ export class SupportTiersPage implements OnInit {
 
   protected readonly supportTiers = SUPPORT_TIERS;
   protected readonly supportTierLabel = supportTierLabel;
+  protected readonly versionBadge = versionBadge;
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<boolean>(false);
   protected readonly methods = signal<IntegrationMethodTier[]>([]);
-  /** null = all methods, tiered or not. */
+  /** null = every tiered method. */
   protected readonly subscription = signal<SupportTier | null>(null);
 
-  protected readonly pageSize = 20;
+  /** Applications per page. */
+  protected readonly pageSize = 10;
   protected readonly currentPage = signal<number>(0);
 
   /** The methods the subscription covers, in display order: by application, then by method. */
   private readonly filteredMethods = computed<IntegrationMethodTier[]>(() => {
     const subscription = this.subscription();
     return this.methods()
-      .filter(m => !subscription || isCoveredBy(m.supportTier, subscription))
+      .filter(m => !!m.supportTier && (!subscription || isCoveredBy(m.supportTier, subscription)))
       .sort((a, b) => (a.applicationName ?? '').localeCompare(b.applicationName ?? '')
         // Keeps two same-named applications from interleaving.
         || a.applicationId.localeCompare(b.applicationId)
         || (a.methodName ?? '').localeCompare(b.methodName ?? ''));
   });
 
-  protected readonly totalPages = computed(() => Math.ceil(this.filteredMethods().length / this.pageSize));
-
-  /** The current page's methods grouped by application; an application split across pages heads both. */
-  protected readonly groups = computed<ApplicationGroup[]>(() => {
-    const start = this.currentPage() * this.pageSize;
+  /** The methods grouped by application, in display order. */
+  private readonly allGroups = computed<ApplicationGroup[]>(() => {
     const groups: ApplicationGroup[] = [];
-    for (const m of this.filteredMethods().slice(start, start + this.pageSize)) {
+    for (const m of this.filteredMethods()) {
       let group = groups[groups.length - 1];
       if (group?.applicationId !== m.applicationId) {
         group = { applicationId: m.applicationId, applicationName: m.applicationName, methods: [] };
@@ -70,6 +71,12 @@ export class SupportTiersPage implements OnInit {
     }
     return groups;
   });
+
+  protected readonly totalPages = computed(() => Math.ceil(this.allGroups().length / this.pageSize));
+
+  /** The current page's applications, each with all its methods. */
+  protected readonly groups = computed<ApplicationGroup[]>(() =>
+    this.allGroups().slice(this.currentPage() * this.pageSize, (this.currentPage() + 1) * this.pageSize));
 
   protected selectSubscription(tier: SupportTier | null): void {
     this.subscription.set(tier);
