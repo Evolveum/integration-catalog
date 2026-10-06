@@ -36,7 +36,11 @@ public record GraviteeProperties(
 
     /** Whether keys can be issued at all; the rest of the catalog works either way. */
     public boolean enabled() {
-        return notBlank(managementUrl) && !api.isEmpty() && notBlank(api.getFirst().id) && notBlank(api.getFirst().planId) && notBlank(token);
+        return notBlank(managementUrl)
+                && !api.isEmpty()
+                && notBlank(api.getFirst().id)
+                && notBlank(api.getFirst().planId)
+                && notBlank(token);
     }
 
     /** Applications live on v1, subscriptions on v2. */

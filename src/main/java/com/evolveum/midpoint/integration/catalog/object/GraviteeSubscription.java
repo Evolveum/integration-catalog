@@ -22,19 +22,19 @@ import java.util.UUID;
  * Gravitee API it opens. Gravitee still owns the subscription; this only links the ids.
  */
 @Entity
-@Table(name = "api_key_subscription")
+@Table(name = "gravitee_subscription")
 @Getter @Setter
-public class ApiKeySubscription {
+public class GraviteeSubscription {
 
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    /** Unique here and in Gravitee: a subscription belongs to one key. */
-    @Column(name = "subscription_id", nullable = false, unique = true)
-    private String subscriptionId;
+    @ManyToOne
+    @JoinColumn(name = "application_id", nullable = false)
+    private GraviteeApplication application;
 
     /** The Gravitee API the subscription was made for. */
     @Column(name = "api_id", nullable = false)
-    private String apiId;
+    private UUID apiId;
 }

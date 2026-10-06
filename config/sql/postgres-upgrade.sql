@@ -640,23 +640,53 @@ $aa$);
 -- end of region
 
 call apply_change(22, $aa$
-DROP INDEX api_key_subscription_idx;
+CREATE TABLE gravitee_application (
+    id                      uuid                     NOT NULL,
+    name                    character varying(255)   NOT NULL,
+    owner_username          character varying(255)   NOT NULL
+);
+ALTER TABLE ONLY gravitee_application ADD CONSTRAINT gravitee_application_pkey PRIMARY KEY (id);
+CREATE INDEX gravitee_application_owner_idx ON gravitee_application (owner_username);
 
+CREATE TABLE gravitee_subscription (
+    id                  uuid NOT NULL,
+    application_id      uuid NOT NULL,
+    api_id              uuid NOT NULL
+);
+
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT fk_gravitee_subscription_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT gravitee_subscription_pkey PRIMARY KEY (id);
+
+DROP INDEX IF EXISTS api_key_subscription_idx;
+DROP INDEX IF EXISTS api_key_owner_idx;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_pkey;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_gravitee_key_uk;
+
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS name;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS id;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS owner_username;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_application_id;
 ALTER TABLE api_key
     DROP COLUMN IF EXISTS gravitee_subscription_id;
 
-CREATE TABLE api_key_subscription (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    api_key_id uuid NOT NULL,
-    subscription_id VARCHAR(64) NOT NULL,
-    api_id VARCHAR(64) NOT NULL);
+ALTER TABLE api_key RENAME TO gravitee_api_key;
+ALTER TABLE gravitee_api_key RENAME COLUMN gravitee_api_key_id TO id;
+ALTER TABLE gravitee_api_key
+    ALTER COLUMN id TYPE uuid USING id::uuid;
 
-ALTER TABLE ONLY api_key_subscription
-    ADD CONSTRAINT fk_api_key_subscription_api_key FOREIGN KEY (api_key_id) REFERENCES api_key(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
-ALTER TABLE ONLY api_key_subscription
-    ADD CONSTRAINT api_key_subscription_pkey PRIMARY KEY (id);
-ALTER TABLE ONLY api_key_subscription
-    ADD CONSTRAINT api_key_subscription_gravitee_sub_id UNIQUE (subscription_id);
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT gravitee_api_key_pkey PRIMARY KEY (id);
+ALTER TABLE gravitee_api_key
+    ADD COLUMN application_id UUID;
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT fk_gravitee_api_key_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
 $aa$);
 
 -- Append new apply_change sections above this line. For every new change N (3 and higher):

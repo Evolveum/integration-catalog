@@ -6,12 +6,12 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
-import com.evolveum.midpoint.integration.catalog.object.ApiKeySubscription;
+import com.evolveum.midpoint.integration.catalog.object.GraviteeSubscription;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.UUID;
 
-public interface ApiKeySubscriptionRepository extends JpaRepository<ApiKeySubscription, UUID>,
-        JpaSpecificationExecutor<ApiKeySubscription> {
+public interface GraviteeSubscriptionRepository extends JpaRepository<GraviteeSubscription, UUID>,
+        JpaSpecificationExecutor<GraviteeSubscription> {
 }
