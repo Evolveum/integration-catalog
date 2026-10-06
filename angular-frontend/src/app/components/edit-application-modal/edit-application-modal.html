@@ -61,10 +61,6 @@
       <!-- Versions -->
       <div class="mb-3">
         <label class="form-label fw-semibold">Versions</label>
-        <div class="form-text mt-0 mb-2">
-          Integration methods of this application state which of these versions they support.
-          A version still used by a method cannot be removed.
-        </div>
         @for (v of versions(); track $index) {
           <div class="input-group input-group-sm mb-2">
             <input
