@@ -16,13 +16,14 @@ import { MyIntegrationMethodsPage } from './components/my-integration-methods-pa
 import { MyConnectorsPage } from './components/my-connectors-page/my-connectors-page';
 import { ApprovalQueuePage } from './components/approval-queue-page/approval-queue-page';
 
+// data.hideFooter: forms with their own fixed/scrolling layout (publish, edit incl. add connector) have no page footer.
 export const routes: Routes = [
   { path: '', redirectTo: '/applications', pathMatch: 'full' },
   { path: 'applications', component: ApplicationsList },
   { path: 'applications/:id', component: ApplicationDetail },
   { path: 'applications/:appId/integration-method/:versionId/:revision/details', component: IntegrationMethodDetail },
-  { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm },
-  { path: 'approve', component: PublishFormMain },
+  { path: 'applications/:appId/integration-method/:versionId/:revision/edit', component: EditUpgradeForm, data: { hideFooter: true } },
+  { path: 'approve', component: PublishFormMain, data: { hideFooter: true } },
   { path: 'settings', component: SettingsPage },
   { path: 'my-integration-methods', component: MyIntegrationMethodsPage },
   { path: 'all-integration-methods', component: MyIntegrationMethodsPage, data: { scope: 'all' } },

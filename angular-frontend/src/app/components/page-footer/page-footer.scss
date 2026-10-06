@@ -1,0 +1,151 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+
+@use '../../../styles/variables' as *;
+
+.page-footer {
+  background-color: $color-brand-navy;
+  color: rgba($color-white, 0.85);
+  font-size: 0.8125rem;
+}
+
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3.5rem 1.5rem 2.5rem;
+}
+
+.footer-top {
+  display: flex;
+  gap: 3rem;
+  padding-bottom: 2.5rem;
+}
+
+.footer-brand {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.footer-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.footer-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+
+.footer-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: $color-white;
+  line-height: 1.2;
+}
+
+.footer-social {
+  display: flex;
+  gap: 0.875rem;
+  margin-top: 1.25rem;
+  font-size: 1rem;
+}
+
+.footer-social-icon {
+  color: rgba($color-white, 0.85);
+  text-decoration: none;
+
+  &:is(a):hover {
+    color: $color-white;
+  }
+}
+
+// space-between pushes the last column flush with the right edge of the bottom bar.
+.footer-columns {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.footer-column {
+  min-width: 0;
+}
+
+.footer-column-label {
+  color: $color-brand-sky;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.footer-list,
+.footer-bottom-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.footer-list li + li {
+  margin-top: 0.5rem;
+}
+
+.footer-link {
+  color: rgba($color-white, 0.85);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:is(a):hover {
+    color: $color-white;
+    text-decoration: underline;
+  }
+}
+
+.footer-external-icon {
+  font-size: 0.625rem;
+  margin-left: 0.35rem;
+  opacity: 0.7;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba($color-white, 0.15);
+  font-size: 0.75rem;
+}
+
+.footer-copyright {
+  color: rgba($color-white, 0.7);
+}
+
+.footer-bottom-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+@media (max-width: 991.98px) {
+  .footer-top {
+    flex-direction: column;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .footer-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

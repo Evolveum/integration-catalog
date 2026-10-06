@@ -30,6 +30,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		PendingOperationProperties.class,
 		CatalogProperties.class,
 		LinksProperties.class,
+		FooterProperties.class,
 		GraviteeProperties.class
 })
 public class IntegrationCatalogApplication {
