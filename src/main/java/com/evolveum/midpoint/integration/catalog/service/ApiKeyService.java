@@ -12,6 +12,7 @@ import com.evolveum.midpoint.integration.catalog.dto.CreateApiKeyRequestDto;
 import com.evolveum.midpoint.integration.catalog.dto.CreatedApiKeyDto;
 import com.evolveum.midpoint.integration.catalog.integration.GraviteeClient;
 import com.evolveum.midpoint.integration.catalog.object.ApiKey;
+import com.evolveum.midpoint.integration.catalog.object.ApiKeySubscription;
 import com.evolveum.midpoint.integration.catalog.repository.ApiKeyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -76,15 +73,15 @@ public class ApiKeyService {
      * Folds what Gravitee knows into the working keys: a revocation, or an expiration earlier than the
      * recorded one. Catches what the catalog never saw - changes made in the Gravitee console, or a
      * write here that failed after Gravitee had already acted. Only ever shortens a key's life; a
-     * subscription Gravitee cannot answer for keeps its recorded state.
+     * application Gravitee cannot answer for keeps its recorded state.
      */
     private void reconcile(List<ApiKey> keys) {
         Instant now = Instant.now();
-        Map<String, List<ApiKey>> workingBySubscription = keys.stream()
+        Map<String, List<ApiKey>> workingByApplication = keys.stream()
                 .filter(key -> isActive(key, now))
-                .collect(Collectors.groupingBy(ApiKey::getGraviteeSubscriptionId));
+                .collect(Collectors.groupingBy(ApiKey::getGraviteeApplicationId));
 
-        for (Map.Entry<String, List<ApiKey>> entry : workingBySubscription.entrySet()) {
+        for (Map.Entry<String, List<ApiKey>> entry : workingByApplication.entrySet()) {
             Map<String, GraviteeClient.GraviteeApiKey> states = new HashMap<>();
             try {
                 for (GraviteeClient.GraviteeApiKey state : gravitee.listApiKeys(entry.getKey())) {
@@ -93,7 +90,7 @@ public class ApiKeyService {
                     }
                 }
             } catch (IOException e) {
-                LOGGER.warn("Could not read the keys of subscription {}; listing them as recorded.", entry.getKey(), e);
+                LOGGER.warn("Could not read the keys of application {}; listing them as recorded.", entry.getKey(), e);
                 continue;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -142,17 +139,28 @@ public class ApiKeyService {
             // application to the same plan, so a shared per-user application would allow one key.
             String applicationId = gravitee.createApplication(username, name);
 
-            String subscriptionId = gravitee.createSubscription(applicationId);
-            GraviteeClient.ApiKeyMaterial material = gravitee.fetchApiKey(subscriptionId);
-            boolean expirationAccepted = expiresAt == null
-                    || gravitee.expireSubscription(subscriptionId, expiresAt);
+            boolean expirationAccepted = expiresAt == null;
+            List<ApiKeySubscription> subscriptionIds = new ArrayList<>();
+            for (GraviteeProperties.Api api : properties.api()) {
+                String subscriptionId = gravitee.createSubscription(applicationId, api.id(), api.planId());
+                if (expiresAt != null) {
+                    expirationAccepted = gravitee.expireSubscription(subscriptionId, api.id(), expiresAt);
+                }
+
+                ApiKeySubscription subscription = new ApiKeySubscription();
+                subscription.setSubscriptionId(subscriptionId);
+                subscription.setApiId(api.id());
+                subscriptionIds.add(subscription);
+            }
+            GraviteeClient.ApiKeyMaterial material = gravitee.fetchApiKey(applicationId);
+
 
             ApiKey key = new ApiKey();
             key.setId(UUID.randomUUID());
             key.setName(name);
             key.setOwnerUsername(username);
             key.setGraviteeApplicationId(applicationId);
-            key.setGraviteeSubscriptionId(subscriptionId);
+            key.setSubscriptions(subscriptionIds);
             key.setGraviteeApiKeyId(material.id());
             key.setKeyHint(hintOf(material.value()));
             key.setCreatedAt(Instant.now());
@@ -185,13 +193,13 @@ public class ApiKeyService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Only an active key that has not been replaced yet can be rotated.");
         }
-        String subscriptionId = old.getGraviteeSubscriptionId();
+        String applicationId = old.getGraviteeApplicationId();
         // The newest key carries the subscription's end: a renewal does not extend how long access lasts.
         Instant subscriptionEnd = old.getExpiresAt();
 
         GraviteeClient.ApiKeyMaterial material;
         try {
-            material = gravitee.renewApiKey(subscriptionId);
+            material = gravitee.renewApiKey(applicationId);
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "The API key could not be rotated: " + e.getMessage(), e);
@@ -201,8 +209,8 @@ public class ApiKeyService {
         }
 
         // Gravitee has just given every working key of the subscription an end; record it.
-        Map<String, Instant> keysWithExpireAt = keysWithExpireAt(subscriptionId);
-        for (ApiKey sibling : repository.findByGraviteeSubscriptionId(subscriptionId)) {
+        Map<String, Instant> keysWithExpireAt = keysWithExpireAt(applicationId);
+        for (ApiKey sibling : repository.findByGraviteeApplicationId(applicationId)) {
             if (!isActive(sibling, now)) {
                 continue;
             }
@@ -218,8 +226,8 @@ public class ApiKeyService {
         renewed.setId(UUID.randomUUID());
         renewed.setName(old.getName());
         renewed.setOwnerUsername(old.getOwnerUsername());
-        renewed.setGraviteeApplicationId(old.getGraviteeApplicationId());
-        renewed.setGraviteeSubscriptionId(subscriptionId);
+        renewed.setGraviteeApplicationId(applicationId);
+        renewed.setSubscriptions(old.getSubscriptions());
         renewed.setGraviteeApiKeyId(material.id());
         renewed.setKeyHint(hintOf(material.value()));
         renewed.setCreatedAt(now);
@@ -245,16 +253,18 @@ public class ApiKeyService {
             return;
         }
         Instant now = Instant.now();
-        String subscriptionId = key.getGraviteeSubscriptionId();
-        List<ApiKey> otherWorking = repository.findByGraviteeSubscriptionId(subscriptionId).stream()
+        String applicationId = key.getGraviteeApplicationId();
+        List<ApiKey> otherWorking = repository.findByGraviteeApplicationId(applicationId).stream()
                 .filter(other -> !other.getId().equals(key.getId()) && isActive(other, now))
                 .toList();
-        boolean closeSubscription = otherWorking.isEmpty() || key.getGraviteeApiKeyId() == null;
+        boolean closeSubscriptions = otherWorking.isEmpty() || key.getGraviteeApiKeyId() == null;
         try {
-            if (closeSubscription) {
-                gravitee.closeSubscription(subscriptionId);
+            if (closeSubscriptions) {
+                for (ApiKeySubscription subscription : key.getSubscriptions()) {
+                    gravitee.closeSubscription(subscription.getSubscriptionId(), subscription.getApiId());
+                }
             } else {
-                gravitee.revokeApiKey(subscriptionId, key.getGraviteeApiKeyId());
+                gravitee.revokeApiKey(applicationId, key.getGraviteeApiKeyId());
             }
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
@@ -265,7 +275,7 @@ public class ApiKeyService {
         }
         key.setRevokedAt(now);
         repository.save(key);
-        if (closeSubscription) {
+        if (closeSubscriptions) {
             // A closed subscription takes every key of it along.
             for (ApiKey other : otherWorking) {
                 other.setRevokedAt(now);
@@ -279,10 +289,10 @@ public class ApiKeyService {
      * happened, so an unreadable answer falls back to the documented grace period rather than
      * losing the new key.
      */
-    private Map<String, Instant> keysWithExpireAt(String subscriptionId) {
+    private Map<String, Instant> keysWithExpireAt(String applicationId) {
         Map<String, Instant> ends = new HashMap<>();
         try {
-            for (GraviteeClient.GraviteeApiKey apiKey : gravitee.listApiKeys(subscriptionId)) {
+            for (GraviteeClient.GraviteeApiKey apiKey : gravitee.listApiKeys(applicationId)) {
                 if (apiKey.id() != null && apiKey.expireAt() != null) {
                     ends.put(apiKey.id(), apiKey.expireAt());
                 }
@@ -291,8 +301,8 @@ public class ApiKeyService {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            LOGGER.warn("Could not read the keys of subscription {} after renewing it; assuming the {} grace period.",
-                    subscriptionId, RENEWAL_GRACE, e);
+            LOGGER.warn("Could not read the keys of application {} after renewing it; assuming the {} grace period.",
+                    applicationId, RENEWAL_GRACE, e);
         }
         return ends;
     }

@@ -640,6 +640,26 @@ ALTER TABLE integration_method
 $aa$);
 -- end of region
 
+call apply_change(22, $aa$
+DROP INDEX api_key_subscription_idx;
+
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_subscription_id;
+
+CREATE TABLE api_key_subscription (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    api_key_id uuid NOT NULL,
+    subscription_id VARCHAR(64) NOT NULL,
+    api_id VARCHAR(64) NOT NULL);
+
+ALTER TABLE ONLY api_key_subscription
+    ADD CONSTRAINT fk_api_key_subscription_api_key FOREIGN KEY (api_key_id) REFERENCES api_key(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY api_key_subscription
+    ADD CONSTRAINT api_key_subscription_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY api_key_subscription
+    ADD CONSTRAINT api_key_subscription_gravitee_sub_id UNIQUE (subscription_id);
+$aa$);
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

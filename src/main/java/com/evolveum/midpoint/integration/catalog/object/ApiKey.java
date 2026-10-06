@@ -6,12 +6,16 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -37,8 +41,8 @@ public class ApiKey {
     @Column(name = "gravitee_application_id", nullable = false)
     private String graviteeApplicationId;
 
-    @Column(name = "gravitee_subscription_id", nullable = false)
-    private String graviteeSubscriptionId;
+    @OneToMany(mappedBy = "apiKey", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ApiKeySubscription> subscriptions = new ArrayList<>();
 
     @Column(name = "gravitee_api_key_id")
     private String graviteeApiKeyId;
@@ -93,12 +97,12 @@ public class ApiKey {
         this.graviteeApplicationId = graviteeApplicationId;
     }
 
-    public String getGraviteeSubscriptionId() {
-        return graviteeSubscriptionId;
+    public List<ApiKeySubscription> getSubscriptions() {
+        return subscriptions;
     }
 
-    public void setGraviteeSubscriptionId(String graviteeSubscriptionId) {
-        this.graviteeSubscriptionId = graviteeSubscriptionId;
+    public void setSubscriptions(List<ApiKeySubscription> subscriptions) {
+        this.subscriptions = subscriptions;
     }
 
     public String getGraviteeApiKeyId() {

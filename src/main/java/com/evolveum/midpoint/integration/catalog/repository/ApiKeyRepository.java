@@ -22,7 +22,7 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
     List<ApiKey> findByOwnerUsernameOrderByCreatedAtDesc(String username);
 
     /** A key and the keys that renewed or were renewed by it: they share one subscription. */
-    List<ApiKey> findByGraviteeSubscriptionId(String graviteeSubscriptionId);
+    List<ApiKey> findByGraviteeApplicationId(String graviteeApplicationId);
 
     /**
      * The key with its row locked until the transaction ends, so a concurrent caller waits and then
