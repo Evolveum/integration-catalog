@@ -68,7 +68,7 @@ export function maintainerKey(maintainer: Maintainer | null | undefined): string
  * sharing its name with a catalog-wide category (an "Evolveum" organization next to Evolveum)
  * is told apart by the category.
  */
-export function maintainerFilterOptions(maintainers: (Maintainer | null | undefined)[]): { key: string; label: string }[] {
+export function maintainerFilterOptions(maintainers: (Maintainer | null | undefined)[]): { value: string; label: string }[] {
   const seen = new Map<string, Maintainer>();
   for (const m of maintainers) {
     if (m) seen.set(maintainerKey(m), m);
@@ -76,10 +76,10 @@ export function maintainerFilterOptions(maintainers: (Maintainer | null | undefi
   const labelCounts = new Map<string, number>();
   seen.forEach(m => labelCounts.set(maintainerLabel(m), (labelCounts.get(maintainerLabel(m)) ?? 0) + 1));
   return [...seen.entries()]
-    .map(([key, m]) => {
+    .map(([value, m]) => {
       const label = maintainerLabel(m);
       return {
-        key,
+        value,
         label: (labelCounts.get(label) ?? 0) > 1
             ? `${label} (${MAINTAINER_CATEGORY_LABELS[m.category].toLowerCase()})`
             : label

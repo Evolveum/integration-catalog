@@ -12,6 +12,7 @@ import { ApplicationService, ConnectorWithoutDownload } from '../../services/app
 import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
 import { Pager } from '../pager/pager';
+import { FilterMenu } from '../filter-menu/filter-menu';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
@@ -46,7 +47,7 @@ interface MethodGroup {
   selector: 'app-my-integration-methods-page',
   standalone: true,
   imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal,
-    DownloadInfoModal, Pager],
+    DownloadInfoModal, Pager, FilterMenu],
   templateUrl: './my-integration-methods-page.html',
   styleUrls: ['./my-integration-methods-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
@@ -166,13 +167,14 @@ export class MyIntegrationMethodsPage {
     const seen = new Map<string, string>();
     for (const g of this.allGroups()) seen.set(g.applicationId, g.applicationDisplayName ?? '');
     return [...seen.entries()]
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   });
 
   protected readonly authorOptions = computed(() =>
     [...new Set((this.revisions() ?? []).map(r => r.author).filter((a): a is string => !!a))]
-      .sort((a, b) => a.localeCompare(b)));
+      .sort((a, b) => a.localeCompare(b))
+      .map(a => ({ value: a, label: a })));
 
   protected readonly maintainerOptions = computed(() =>
     maintainerFilterOptions((this.revisions() ?? []).map(r => r.maintainer)));
@@ -236,7 +238,21 @@ export class MyIntegrationMethodsPage {
   protected viewItems(states: string[], category: MaintainerCategory | null = null): void {
     this.resetFilters();
     this.states.set(new Set(states));
-    this.maintainerCategory.set(category);
+    // Where the Maintainer dropdown exists the card selects its maintainers there; the own-items
+    // page has no such dropdown, so the Organization card keeps the category chip.
+    if (category && this.allMethods) this.maintainers.set(this.categoryMaintainerKeys(category));
+    else this.maintainerCategory.set(category);
+  }
+
+  /** Keys of the maintainers of this category among the loaded items. */
+  private categoryMaintainerKeys(category: MaintainerCategory): Set<string> {
+    return new Set(this.allGroups().filter(g => g.maintainerCategory === category).map(g => g.maintainerKey));
+  }
+
+  /** Whether the maintainer filter is exactly this category's maintainers, as its stat card sets it. */
+  protected isOnlyCategory(category: MaintainerCategory): boolean {
+    const keys = this.categoryMaintainerKeys(category);
+    return keys.size > 0 && this.maintainers().size === keys.size && [...keys].every(key => this.maintainers().has(key));
   }
 
   /** Whether the state filter is exactly these states, as their stat card sets it. */

@@ -12,6 +12,7 @@ import { ApplicationService, ConnectorWithoutDownload } from '../../services/app
 import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
 import { Pager } from '../pager/pager';
+import { FilterMenu } from '../filter-menu/filter-menu';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
@@ -29,7 +30,7 @@ const OVERDUE_DAYS = 3;
 @Component({
   selector: 'app-approval-queue-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal, Pager],
+  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal, Pager, FilterMenu],
   templateUrl: './approval-queue-page.html',
   styleUrls: ['./approval-queue-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
@@ -100,8 +101,8 @@ export class ApprovalQueuePage {
     const seen = new Map<string, string>();
     for (const r of this.revisions() ?? []) seen.set(r.applicationId, r.applicationDisplayName ?? '');
     return [...seen.entries()]
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   });
 
   protected readonly maintainerOptions = computed(() =>

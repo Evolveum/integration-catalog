@@ -45,14 +45,14 @@
           <button type="button" class="ss-stat-link" (click)="resetFilters()">View items</button>
         </div>
         @if (allMethods) {
-          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'EVOLVEUM'">
+          <div class="ss-stat" [class.ss-stat-active]="isOnlyCategory('EVOLVEUM')">
             <div class="ss-stat-body">
               <div class="ss-stat-label">Evolveum methods</div>
               <div class="ss-stat-value">{{ evolveumCount() }}</div>
             </div>
             <button type="button" class="ss-stat-link" (click)="viewItems([], 'EVOLVEUM')">View items</button>
           </div>
-          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'COMMUNITY'">
+          <div class="ss-stat" [class.ss-stat-active]="isOnlyCategory('COMMUNITY')">
             <div class="ss-stat-body">
               <div class="ss-stat-label">Community methods</div>
               <div class="ss-stat-value">{{ communityCount() }}</div>
@@ -126,21 +126,8 @@
             }
           </div>
           @if (openMenuKey() === 'filter:state') {
-            <div class="ss-chip-dropdown">
-              @for (option of stateOptions; track option.value) {
-                <button type="button" class="ss-chip-option" (click)="toggleState(option.value)">
-                  <span class="ss-checkbox" [class.ss-checkbox-checked]="states().has(option.value)">
-                    @if (states().has(option.value)) { <i class="fa-solid fa-check"></i> }
-                  </span>
-                  <span>{{ option.label }}</span>
-                </button>
-              } @empty {
-                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
-              }
-              <div class="ss-chip-dropdown-footer">
-                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('states')">Clear filter</button>
-              </div>
-            </div>
+            <app-filter-menu [options]="stateOptions" [selected]="states()"
+                             (toggle)="toggleState($event)" (clear)="clearFilter('states')"/>
           }
         </div>
         <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:application'">
@@ -161,21 +148,8 @@
             }
           </div>
           @if (openMenuKey() === 'filter:application') {
-            <div class="ss-chip-dropdown">
-              @for (option of applicationOptions(); track option.id) {
-                <button type="button" class="ss-chip-option" (click)="toggleApplication(option.id)">
-                  <span class="ss-checkbox" [class.ss-checkbox-checked]="applications().has(option.id)">
-                    @if (applications().has(option.id)) { <i class="fa-solid fa-check"></i> }
-                  </span>
-                  <span>{{ option.name }}</span>
-                </button>
-              } @empty {
-                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
-              }
-              <div class="ss-chip-dropdown-footer">
-                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('applications')">Clear filter</button>
-              </div>
-            </div>
+            <app-filter-menu [options]="applicationOptions()" [selected]="applications()"
+                             (toggle)="toggleApplication($event)" (clear)="clearFilter('applications')"/>
           }
         </div>
         <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:author'">
@@ -196,21 +170,8 @@
             }
           </div>
           @if (openMenuKey() === 'filter:author') {
-            <div class="ss-chip-dropdown">
-              @for (option of authorOptions(); track option) {
-                <button type="button" class="ss-chip-option" (click)="toggleAuthor(option)">
-                  <span class="ss-checkbox" [class.ss-checkbox-checked]="authors().has(option)">
-                    @if (authors().has(option)) { <i class="fa-solid fa-check"></i> }
-                  </span>
-                  <span>{{ option }}</span>
-                </button>
-              } @empty {
-                <div class="ss-chip-empty mb-2">Nothing to choose from</div>
-              }
-              <div class="ss-chip-dropdown-footer">
-                <button type="button" class="ss-chip-clear-link" (click)="clearFilter('authors')">Clear filter</button>
-              </div>
-            </div>
+            <app-filter-menu [options]="authorOptions()" [selected]="authors()"
+                             (toggle)="toggleAuthor($event)" (clear)="clearFilter('authors')"/>
           }
         </div>
         @if (allMethods) {
@@ -232,21 +193,8 @@
               }
             </div>
             @if (openMenuKey() === 'filter:maintainer') {
-              <div class="ss-chip-dropdown">
-                @for (option of maintainerOptions(); track option.key) {
-                  <button type="button" class="ss-chip-option" (click)="toggleMaintainer(option.key)">
-                    <span class="ss-checkbox" [class.ss-checkbox-checked]="maintainers().has(option.key)">
-                      @if (maintainers().has(option.key)) { <i class="fa-solid fa-check"></i> }
-                    </span>
-                    <span>{{ option.label }}</span>
-                  </button>
-                } @empty {
-                  <div class="ss-chip-empty mb-2">Nothing to choose from</div>
-                }
-                <div class="ss-chip-dropdown-footer">
-                  <button type="button" class="ss-chip-clear-link" (click)="clearFilter('maintainers')">Clear filter</button>
-                </div>
-              </div>
+              <app-filter-menu [options]="maintainerOptions()" [selected]="maintainers()"
+                               (toggle)="toggleMaintainer($event)" (clear)="clearFilter('maintainers')"/>
             }
           </div>
         }
