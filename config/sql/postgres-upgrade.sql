@@ -639,6 +639,56 @@ ALTER TABLE integration_method
 $aa$);
 -- end of region
 
+call apply_change(22, $aa$
+CREATE TABLE gravitee_application (
+    id                      uuid                     NOT NULL,
+    name                    character varying(255)   NOT NULL,
+    owner_username          character varying(255)   NOT NULL
+);
+ALTER TABLE ONLY gravitee_application ADD CONSTRAINT gravitee_application_pkey PRIMARY KEY (id);
+CREATE INDEX gravitee_application_owner_idx ON gravitee_application (owner_username);
+
+CREATE TABLE gravitee_subscription (
+    id                  uuid NOT NULL,
+    application_id      uuid NOT NULL,
+    api_id              uuid NOT NULL
+);
+
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT fk_gravitee_subscription_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT gravitee_subscription_pkey PRIMARY KEY (id);
+
+DROP INDEX IF EXISTS api_key_subscription_idx;
+DROP INDEX IF EXISTS api_key_owner_idx;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_pkey;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_gravitee_key_uk;
+
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS name;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS id;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS owner_username;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_application_id;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_subscription_id;
+
+ALTER TABLE api_key RENAME TO gravitee_api_key;
+ALTER TABLE gravitee_api_key RENAME COLUMN gravitee_api_key_id TO id;
+ALTER TABLE gravitee_api_key
+    ALTER COLUMN id TYPE uuid USING id::uuid;
+
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT gravitee_api_key_pkey PRIMARY KEY (id);
+ALTER TABLE gravitee_api_key
+    ADD COLUMN application_id UUID;
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT fk_gravitee_api_key_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+$aa$);
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Talks to the Gravitee management API, which owns the API keys: the catalog has it mint one and
@@ -69,7 +70,9 @@ public class GraviteeClient {
             throws IOException, InterruptedException {
         ObjectNode body = objectMapper.createObjectNode()
                 .put("name", "ic-" + username + "-" + keyName)
-                .put("description", "Key created by Midpoint Integration Catalog \"" + keyName + "\" of " + username);
+                .put("description", "Key created by Midpoint Integration Catalog \"" + keyName + "\" of " + username)
+                .put("type", "SIMPLE")
+                .put("api_key_mode", "SHARED");
 
         JsonNode created = send(post(properties.managementV1Base() + "/applications", body), "create the application");
         return requireText(created, "id", "application");
@@ -80,34 +83,34 @@ public class GraviteeClient {
      *
      * @return the subscription id
      */
-    public String createSubscription(String applicationId) throws IOException, InterruptedException {
+    public String createSubscription(String applicationId, String apiId, String planId) throws IOException, InterruptedException {
         ObjectNode body = objectMapper.createObjectNode()
                 .put("applicationId", applicationId)
-                .put("planId", properties.planId());
+                .put("planId", planId);
 
         JsonNode created = send(
-                post(properties.managementV2Base() + "/apis/" + properties.apiId() + "/subscriptions", body),
+                post(properties.managementV2Base() + "/apis/" + apiId + "/subscriptions", body),
                 "create the subscription");
         return requireText(created, "id", "subscription");
     }
 
     /** Reads the key a subscription produced - the one moment the catalog may hold the value. */
-    public ApiKeyMaterial fetchApiKey(String subscriptionId) throws IOException, InterruptedException {
-        JsonNode response = send(
-                get(properties.managementV2Base() + "/apis/" + properties.apiId()
-                        + "/subscriptions/" + subscriptionId + "/api-keys"),
-                "read the API key");
+    public ApiKeyMaterial fetchApiKey(UUID applicationId) throws IOException, InterruptedException {
+        JsonNode keys = send(get(applicationApiKeysUrl(applicationId)), "read the API key");
 
-        JsonNode keys = response.path("data");
         if (!keys.isArray() || keys.isEmpty()) {
-            throw new IOException("Gravitee created the subscription but returned no API key for it.");
+            throw new IOException("Gravitee created the application but returned no API key for it.");
         }
         JsonNode key = keys.get(0);
         String value = key.path("key").asText(null);
         if (value == null || value.isBlank()) {
             throw new IOException("Gravitee returned an API key without a value.");
         }
-        return new ApiKeyMaterial(key.path("id").asText(null), value);
+        String id = key.path("id").asText(null);
+        if (id == null || id.isBlank()) {
+            throw new IOException("Gravitee returned an API key without a id.");
+        }
+        return new ApiKeyMaterial(key.path("id").asText(), value);
     }
 
     /**
@@ -115,10 +118,10 @@ public class GraviteeClient {
      * exists, so a refusal is logged rather than losing the whole creation.
      */
     // The v1 endpoint taking epoch millis: v2 has no PUT here (405) and takes no ISO endingAt.
-    public boolean expireSubscription(String subscriptionId, Instant expiresAt) {
+    public boolean expireSubscription(String subscriptionId, String apiId,  Instant expiresAt) {
         ObjectNode body = objectMapper.createObjectNode().put("ending_at", expiresAt.toEpochMilli());
         try {
-            send(put(properties.managementV1Base() + "/apis/" + properties.apiId()
+            send(put(properties.managementV1Base() + "/apis/" + apiId
                     + "/subscriptions/" + subscriptionId, body), "set the expiration");
             return true;
         } catch (IOException | InterruptedException e) {
@@ -138,8 +141,8 @@ public class GraviteeClient {
      *
      * @param subscriptionId the subscription behind the key
      */
-    public void closeSubscription(String subscriptionId) throws IOException, InterruptedException {
-        HttpRequest request = post(properties.managementV2Base() + "/apis/" + properties.apiId()
+    public void closeSubscription(UUID subscriptionId, UUID apiId) throws IOException, InterruptedException {
+        HttpRequest request = post(properties.managementV2Base() + "/apis/" + apiId
                 + "/subscriptions/" + subscriptionId + "/_close", objectMapper.createObjectNode());
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -157,19 +160,24 @@ public class GraviteeClient {
      * Mints a new key on the subscription. Gravitee gives every key the subscription already had an
      * expiration two hours out, so callers can switch over without an outage.
      */
-    public ApiKeyMaterial renewApiKey(String subscriptionId) throws IOException, InterruptedException {
-        JsonNode key = send(post(subscriptionUrl(subscriptionId) + "/api-keys/_renew", objectMapper.createObjectNode()),
+    public ApiKeyMaterial renewApiKey(UUID applicationId) throws IOException, InterruptedException {
+        JsonNode key = send(post(applicationApiKeysUrl(applicationId) + "/_renew", objectMapper.createObjectNode()),
                 "renew the API key");
         String value = key.path("key").asText(null);
         if (value == null || value.isBlank()) {
             throw new IOException("Gravitee renewed the API key but returned no value for it.");
         }
-        return new ApiKeyMaterial(key.path("id").asText(null), value, instantOf(key, "expireAt"));
+
+        String id = key.path("id").asText(null);
+        if (id == null || id.isBlank()) {
+            throw new IOException("Gravitee renewed the API key but returned no id for it.");
+        }
+        return new ApiKeyMaterial(key.path("id").asText(), value, instantOf(key, "expireAt"));
     }
 
     /** The keys of a subscription as Gravitee sees them now; their values are left out. */
-    public List<GraviteeApiKey> listApiKeys(String subscriptionId) throws IOException, InterruptedException {
-        JsonNode keys = send(get(subscriptionUrl(subscriptionId) + "/api-keys"), "read the API keys").path("data");
+    public List<GraviteeApiKey> listApiKeys(UUID applicationId) throws IOException, InterruptedException {
+        JsonNode keys = send(get(applicationApiKeysUrl(applicationId)), "read the API keys");
         List<GraviteeApiKey> states = new ArrayList<>();
         for (JsonNode key : keys) {
             states.add(new GraviteeApiKey(key.path("id").asText(null), instantOf(key, "expireAt"),
@@ -180,11 +188,10 @@ public class GraviteeClient {
 
     /**
      * Revokes one key of a subscription and leaves its other keys working. A key Gravitee no longer
-     * knows counts as revoked, for the same reason as in {@link #closeSubscription(String)}.
+     * knows counts as revoked, for the same reason as in {@link #closeSubscription(UUID, UUID)}.
      */
-    public void revokeApiKey(String subscriptionId, String apiKeyId) throws IOException, InterruptedException {
-        HttpRequest request = post(subscriptionUrl(subscriptionId) + "/api-keys/" + apiKeyId + "/_revoke",
-                objectMapper.createObjectNode());
+    public void revokeApiKey(UUID applicationId, UUID apiKeyId) throws IOException, InterruptedException {
+        HttpRequest request = delete(applicationApiKeysUrl(applicationId) + "/" + apiKeyId);
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() == HTTP_NOT_FOUND) {
@@ -197,8 +204,12 @@ public class GraviteeClient {
         }
     }
 
-    private String subscriptionUrl(String subscriptionId) {
-        return properties.managementV2Base() + "/apis/" + properties.apiId() + "/subscriptions/" + subscriptionId;
+    private String subscriptionUrl(UUID subscriptionId, UUID apiId) {
+        return properties.managementV2Base() + "/apis/" + apiId + "/subscriptions/" + subscriptionId;
+    }
+
+    private String applicationApiKeysUrl(UUID applicationId) {
+        return properties.managementV1Base() + "/applications/" + applicationId + "/apikeys";
     }
 
     /** An ISO date-time field, or null when Gravitee left it out. */
@@ -211,6 +222,13 @@ public class GraviteeClient {
         return authorized(url)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body), StandardCharsets.UTF_8))
+                .build();
+    }
+
+    private HttpRequest delete(String url) {
+        return authorized(url)
+                .header("Content-Type", "application/json")
+                .DELETE()
                 .build();
     }
 

@@ -6,23 +6,17 @@
 
 package com.evolveum.midpoint.integration.catalog.repository;
 
-import com.evolveum.midpoint.integration.catalog.object.ApiKey;
+import com.evolveum.midpoint.integration.catalog.object.GraviteeApiKey;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
-
-    List<ApiKey> findByOwnerUsernameOrderByCreatedAtDesc(String username);
-
-    /** A key and the keys that renewed or were renewed by it: they share one subscription. */
-    List<ApiKey> findByGraviteeSubscriptionId(String graviteeSubscriptionId);
+public interface GraviteeApiKeyRepository extends JpaRepository<GraviteeApiKey, UUID> {
 
     /**
      * The key with its row locked until the transaction ends, so a concurrent caller waits and then
@@ -30,6 +24,6 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
      * already loaded is not refreshed by the lock.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select k from ApiKey k where k.id = :id")
-    Optional<ApiKey> findByIdForUpdate(@Param("id") UUID id);
+    @Query("select k from GraviteeApiKey k where k.id = :id")
+    Optional<GraviteeApiKey> findByIdForUpdate(@Param("id") UUID id);
 }

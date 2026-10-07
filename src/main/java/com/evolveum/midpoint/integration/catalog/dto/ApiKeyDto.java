@@ -6,7 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
-import com.evolveum.midpoint.integration.catalog.object.ApiKey;
+import com.evolveum.midpoint.integration.catalog.object.GraviteeApiKey;
 
 import java.time.Instant;
 
@@ -24,10 +24,10 @@ public record ApiKeyDto(
         Instant replacedAt
 ) {
 
-    public static ApiKeyDto of(ApiKey key) {
+    public static ApiKeyDto of(GraviteeApiKey key) {
         return new ApiKeyDto(
                 key.getId().toString(),
-                key.getName(),
+                key.getApplication().getName(),
                 key.getCreatedAt(),
                 null,
                 key.getExpiresAt(),
