@@ -26,14 +26,14 @@
     <div class="footer-top">
       <div class="footer-brand">
         <a class="footer-brand-link" routerLink="/applications">
-          <img src="assets/277-276-max.png" alt="" class="footer-logo">
+          <img src="assets/evolveum.svg" alt="Evolveum" class="footer-logo">
           <span class="footer-title">MidPoint Integration Catalog</span>
         </a>
         @if (socialLinks().length) {
           <div class="footer-social">
             @for (s of socialLinks(); track s.key) {
               @if (s.target.kind === 'external') {
-                <a class="footer-social-icon" [href]="s.target.href" target="_blank" rel="noopener noreferrer"
+                <a class="footer-social-icon footer-social-icon--{{ s.key }}" [href]="s.target.href" target="_blank" rel="noopener noreferrer"
                    [attr.aria-label]="s.label" [title]="s.label">
                   <i class="fa-brands {{ s.icon }}" aria-hidden="true"></i>
                 </a>
