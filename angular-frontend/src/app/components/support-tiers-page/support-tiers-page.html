@@ -1,0 +1,60 @@
+<!--
+ * Copyright (c) 2010-2026 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<app-page-header [hideBorder]="true"/>
+
+<div class="tiers-page">
+  <div class="tiers-content">
+    <a routerLink="/applications" class="tiers-back d-inline-flex align-items-center gap-2">
+      <i class="fa-solid fa-arrow-left"></i>Back to catalog
+    </a>
+
+    <h1 class="tiers-title">Integration methods by support tier</h1>
+    <p class="tiers-subtitle">
+      Pick your support subscription to see the integration methods it covers. A subscription covers its own tier
+      and every tier below it: Standard covers Standard, Advanced covers Standard and Advanced, Premium covers all three.
+    </p>
+
+    <div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Support tier filter">
+      <button type="button" class="tiers-chip" [class.tiers-chip-active]="subscription() === null"
+              (click)="selectSubscription(null)">All</button>
+      @for (t of supportTiers; track t.value) {
+        <button type="button" class="tiers-chip" [class.tiers-chip-active]="subscription() === t.value"
+                (click)="selectSubscription(t.value)">{{ t.label }}</button>
+      }
+    </div>
+
+    @if (loading()) {
+      <div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+    } @else if (error()) {
+      <p class="text-danger">The integration methods could not be loaded. Please try again later.</p>
+    } @else if (groups().length === 0) {
+      <p class="text-muted">No published integration method has this support tier.</p>
+    } @else {
+      @for (group of groups(); track group.applicationId) {
+        <section class="tiers-app mb-3">
+          <a class="tiers-app-name" [routerLink]="['/applications', group.applicationId]">{{ group.applicationName }}</a>
+          <ul class="tiers-methods list-unstyled mb-0">
+            @for (m of group.methods; track m.methodId + ':' + m.revision) {
+              <li class="tiers-method d-flex align-items-center justify-content-between gap-3">
+                <span class="d-flex align-items-center gap-2 tiers-method-title">
+                  <a class="tiers-method-name"
+                     [routerLink]="['/applications', m.applicationId, 'integration-method', m.methodId, m.revision, 'details']">{{ m.methodName }}</a>
+                  <span class="tiers-version">{{ versionBadge(m.revision) }}</span>
+                </span>
+                @if (m.supportTier) {
+                  <span class="tiers-badge" [class]="'tier-' + m.supportTier.toLowerCase()">{{ supportTierLabel(m.supportTier) }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <app-pager [page]="currentPage()" [totalPages]="totalPages()" (pageChange)="goToPage($event)"/>
+    }
+  </div>
+</div>

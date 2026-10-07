@@ -20,12 +20,6 @@ export interface CreateRequest {
   requester: string;
 }
 
-export interface ObjectClassCapabilityEntry {
-  objectName: string;
-  capabilities: string[];
-  resourceWide: boolean;
-}
-
 /**
  * Request payload for submitting an integration request
  */
@@ -33,7 +27,7 @@ export interface IntegrationRequest {
   integrationApplicationName: string;
   integrationMethodTypeId: number | null;
   deploymentType: string;
-  capabilities: ObjectClassCapabilityEntry[];
+  capabilities: IntegrationMethodObjectCapabilities[]; // → object_class_capabilities, one array per state
   description: string;
   integrationNeed: string;
   systemVersion: string;
@@ -75,6 +69,8 @@ export interface UploadIntegrationMethodData {
   typeIds: number[];              // integration_method_type.id
   midpointMinVersion: number | null; // midpoint_version.id (FK for min version)
   midpointMaxVersion: number | null; // midpoint_version.id (FK for max version)
+  appMinVersion: string | null;      // integration_method.app_minversion (free text)
+  appMaxVersion: string | null;      // integration_method.app_maxversion (free text)
 }
 
 /**

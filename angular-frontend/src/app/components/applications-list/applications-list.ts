@@ -12,12 +12,14 @@ import { ApplicationService } from '../../services/application.service';
 import { ApplicationsListStateService } from '../../services/applications-list-state.service';
 import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
+import { MidpointVersion } from '../../models/application-detail.model';
 import { RequestForm } from '../request-form/request-form';
 import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/download-info-modal';
 import { ToastService } from '../../services/toast.service';
+import { EnvironmentService } from '../../services/environment.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 
 @Component({
@@ -62,8 +64,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected showPermissionDeniedMessage = signal<boolean>(false);
   protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
 
+  /** The hero runs up behind a transparent header; on staging the banner between them breaks that, so it stays off. */
+  protected readonly heroUnderHeader = computed(() => !this.environmentService.isStaging());
+
   private activeChipElement: HTMLElement | null = null;
   private scrollListener: (() => void) | null = null;
+  private featuredScrollTarget: number | null = null;
 
   protected filterState = signal<FilterState>({
     trending: false,
@@ -109,7 +115,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
     }
-    return apps;
+    // Only what a superuser marked with "Toggle Featured" on the application detail.
+    return apps.filter(app => app.tags?.some(tag => tag.name === 'featured' && tag.tagType === 'COMMON'));
   });
 
   protected readonly moreApplications = computed(() => {
@@ -138,6 +145,18 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       });
     }
 
+    // Apps that need a midPoint upgrade go after the ones running on the filtered version;
+    // sort is stable, so each group keeps the order chosen above.
+    const needsUpgrade = (app: Application) =>
+      this.laterStartVersionId(app, filters.midpointVersions) !== null ? 1 : 0;
+    apps.sort((a, b) => needsUpgrade(a) - needsUpgrade(b));
+
+    // Name hits before description-only hits, each group keeping the order above.
+    if (query) {
+      const rank = new Map(apps.map(app => [app, this.searchRank(app, query)]));
+      apps.sort((a, b) => rank.get(a)! - rank.get(b)!);
+    }
+
     const start = this.currentPage() * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return apps.slice(start, end);
@@ -156,6 +175,20 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   });
 
   /**
+   * 0 = the name matches, also by its initials so "aws" finds "Amazon Web Services";
+   * 1 = only the description matches; -1 = no match.
+   * Null-guarded: name and description are nullable in the database, and one null would throw
+   * and empty the whole list rather than skipping that single application.
+   */
+  private searchRank(app: Application, query: string): number {
+    const name = (app.displayName ?? '').toLowerCase();
+    if (name.includes(query)) return 0;
+    const initials = name.split(/[\s\-_./()]+/).filter(word => word).map(word => word[0]).join('');
+    if (query.length > 1 && initials.startsWith(query)) return 0;
+    return (app.description ?? '').toLowerCase().includes(query) ? 1 : -1;
+  }
+
+  /**
    * Applies all filters to the applications list.
    * Shared by moreApplications and filteredCount computed signals.
    */
@@ -171,11 +204,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     // Filter by search query
     if (query) {
-      // Null-guarded: display name is nullable in the database, and one null would throw here and
-      // empty the whole list rather than skipping that single application.
-      filtered = filtered.filter(app =>
-        (app.displayName ?? '').toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(app => this.searchRank(app, query) >= 0);
     }
 
     // Apply advanced filters
@@ -217,11 +246,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     if (filters.midpointVersions.length > 0) {
       // app.midpointVersions holds the version ids covered by its methods' ranges;
-      // match apps supporting ANY of the selected versions.
+      // match apps supporting ANY of the selected versions, plus the ones only available on a
+      // later version (they get the "Available since" banner).
       filtered = filtered.filter(app =>
         filters.midpointVersions.some((versionId: number) =>
           app.midpointVersions?.includes(String(versionId))
-        )
+        ) || this.laterStartVersionId(app, filters.midpointVersions) !== null
       );
     }
 
@@ -255,7 +285,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     protected authService: AuthService,
     private listState: ApplicationsListStateService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private environmentService: EnvironmentService
   ) {}
 
   ngOnInit(): void {
@@ -723,7 +754,27 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     return this.filterState().maintainers.includes(maintainer);
   }
 
-  protected readonly allMidpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
+  protected readonly allMidpointVersions = signal<MidpointVersion[]>([]);
+
+  /**
+   * The earliest version an app becomes available at, for an app that runs on none of the filtered
+   * versions but has a method starting above the lowest of them; null when it runs on one of them
+   * or no version is filtered. Version ids are in release order.
+   */
+  private laterStartVersionId(app: Application, selected: number[]): number | null {
+    if (selected.length === 0 || selected.some(id => app.midpointVersions?.includes(String(id)))) {
+      return null;
+    }
+    const lowest = Math.min(...selected);
+    const later = (app.sinceMidpointVersions ?? []).map(Number).filter(id => id > lowest);
+    return later.length > 0 ? Math.min(...later) : null;
+  }
+
+  /** The version for the card's "Available since" banner, or null when the card needs none. */
+  protected availableSince(app: Application): string | null {
+    const id = this.laterStartVersionId(app, this.filterState().midpointVersions);
+    return id === null ? null : this.allMidpointVersions().find(v => v.id === id)?.version ?? null;
+  }
 
   // Loaded from the backend so the dropdown matches the filter modal's full list.
   protected readonly allIntegrationMethods = signal<string[]>([]);
@@ -746,13 +797,27 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected scrollLeft(): void {
-    const container = this.scrollContainer.nativeElement;
-    container.scrollBy({ left: -300, behavior: 'smooth' });
+    this.scrollFeaturedBy(-1);
   }
 
   protected scrollRight(): void {
+    this.scrollFeaturedBy(1);
+  }
+
+  /** Moves the featured row exactly one card, measuring the step from the rendered cards so it tracks the More apps grid geometry. */
+  private scrollFeaturedBy(direction: 1 | -1): void {
     const container = this.scrollContainer.nativeElement;
-    container.scrollBy({ left: 300, behavior: 'smooth' });
+    const cards = this.featuredCards.map(ref => ref.nativeElement);
+    if (cards.length < 2) return;
+
+    const step = cards[1].offsetLeft - cards[0].offsetLeft;
+    // Rapid clicks start from the pending target, not the mid-animation position, so none is lost.
+    const from = this.featuredScrollTarget ?? container.scrollLeft;
+    const maxLeft = container.scrollWidth - container.clientWidth;
+    const target = Math.min(maxLeft, Math.max(0, (Math.round(from / step) + direction) * step));
+
+    this.featuredScrollTarget = target;
+    container.scrollTo({ left: target, behavior: 'smooth' });
   }
 
   protected nextPage(): void {
@@ -772,6 +837,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected onScroll(): void {
+    const left = this.scrollContainer.nativeElement.scrollLeft;
+    if (this.featuredScrollTarget !== null && Math.abs(left - this.featuredScrollTarget) < 1) {
+      this.featuredScrollTarget = null;
+    }
     this.updateScrollButtons();
     this.updateCardOpacities();
   }
@@ -1038,6 +1107,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isSheetInfoOpen = signal<boolean>(false);
   protected readonly sheetInfoFileName = signal<string>('');
   protected readonly sheetInfoFileSize = signal<number | null>(null);
+  protected readonly isSheetPreparing = signal<boolean>(false);
   protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
     {
       title: 'Import the downloaded JSON file into midPoint',
@@ -1051,17 +1121,27 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
    * with the error message if the download failed.
    */
   protected downloadActiveConnectors(): void {
+    // Open right away so the click shows a reaction while the sheet is being prepared.
+    this.sheetInfoFileName.set('');
+    this.sheetInfoFileSize.set(null);
+    this.isSheetPreparing.set(true);
+    this.isSheetInfoOpen.set(true);
     this.applicationService.downloadActiveConnectors().subscribe({
       next: (result) => {
+        this.isSheetPreparing.set(false);
         if (result.error) {
+          this.isSheetInfoOpen.set(false);
           this.showDownloadToast(result.error);
         } else {
           this.sheetInfoFileName.set(result.fileName ?? '');
           this.sheetInfoFileSize.set(result.size);
-          this.isSheetInfoOpen.set(true);
         }
       },
-      error: () => this.showDownloadToast('Download of active connectors failed.')
+      error: () => {
+        this.isSheetPreparing.set(false);
+        this.isSheetInfoOpen.set(false);
+        this.showDownloadToast('Download of active connectors failed.');
+      }
     });
   }
 

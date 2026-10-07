@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -74,6 +75,20 @@ public class Connector implements SetOwnership, GetOwnershipOneMaintainer {
 
     @OneToMany(mappedBy = "connector", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ConnectorConnectorTag> connectorConnectorTags;
+
+    /** The tier held by one of its tags; null = not tiered. */
+    public SupportTier supportTier() {
+        if (connectorConnectorTags == null) {
+            return null;
+        }
+        return connectorConnectorTags.stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .filter(Objects::nonNull)
+                .map(tag -> SupportTier.fromTagName(tag.getName()))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
 
     /**
      * A copy of what describes this connector. The bundle it belongs to and the connector it is

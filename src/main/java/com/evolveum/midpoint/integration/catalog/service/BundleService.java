@@ -26,13 +26,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -99,8 +99,8 @@ public class BundleService {
                         "Integration method not found: " + methodId + "/" + revision));
 
         // Problems found while assembling the bundle are split by severity: ERROR.txt collects important
-        // gaps (a missing connector build JAR), WARNING.txt collects minor ones (no tutorial text or no
-        // sample files). Both are advisory — the ZIP is still produced.
+        // gaps (a missing connector build JAR), WARNING.txt collects minor ones (no tutorial text, or a
+        // tutorial/sample file that could not be included). Both are advisory — the ZIP is still produced.
         List<String> errors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -160,16 +160,31 @@ public class BundleService {
         zip.closeEntry();
     }
 
+    /**
+     * Adds the method's additional tutorial/sample files. Having none is normal and not reported; only a
+     * file that exists but cannot be included is a warning, and the rest of the bundle is built anyway.
+     */
     private void addTutorialFiles(ZipOutputStream zip, UUID methodId, String revision, List<String> warnings) throws IOException {
-        List<String> files = tutorialStorageService.listTutorialFiles(methodId, revision);
-        if (files.isEmpty()) {
-            warnings.add("No additional tutorial/sample files were included (the files/ folder is empty).");
+        List<String> files;
+        try {
+            files = tutorialStorageService.listTutorialFiles(methodId, revision);
+        } catch (UncheckedIOException e) {
+            log.warn("Failed to list tutorial files for {}/{}: {}", methodId, revision, e.getMessage());
+            warnings.add("The additional tutorial/sample files could not be read, so none were included.");
             return;
         }
         for (String name : files) {
-            Path file = tutorialStorageService.resolveTutorialFile(methodId, revision, name);
+            byte[] content;
+            try {
+                // Read before opening the entry, so a failure never leaves a half-written file in the ZIP.
+                content = Files.readAllBytes(tutorialStorageService.resolveTutorialFile(methodId, revision, name));
+            } catch (IOException | RuntimeException e) {
+                log.warn("Failed to include tutorial file {} for {}/{}: {}", name, methodId, revision, e.getMessage());
+                warnings.add("Additional tutorial/sample file " + name + " could not be included.");
+                continue;
+            }
             zip.putNextEntry(new ZipEntry("files/" + name));
-            Files.copy(file, zip);
+            zip.write(content);
             zip.closeEntry();
         }
     }
@@ -361,7 +376,8 @@ public class BundleService {
         meta.put("lifecycleState", method.getLifecycleState());
         meta.put("author", method.getAuthor());
         meta.put("maintainer", ownershipService.maintainerLabel(method));
-        meta.put("appVersion", method.getAppVersion());
+        meta.put("appMinVersion", method.getAppMinVersion());
+        meta.put("appMaxVersion", method.getAppMaxVersion());
         meta.put("midpointMinVersionId", method.getMidpointMinVersionId());
         meta.put("midpointMaxVersionId", method.getMidpointMaxVersionId());
         meta.put("createdAt", method.getCreatedAt());

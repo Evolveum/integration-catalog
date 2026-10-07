@@ -39,6 +39,12 @@ public class SecurityConfig {
 
     private static final String CURRENT_USER = "/api/auth/me";
 
+    private static final String CURRENT_USER_ITEMS = "/api/auth/me/*";
+
+    private static final String REVIEW_QUEUE = "/api/review-queue";
+    private static final String ALL_INTEGRATION_METHODS = "/api/all-integration-methods";
+    private static final String ALL_CONNECTORS = "/api/all-connectors";
+
     private static final String MAINTAINER_DIRECTORY = "/api/auth/all-maintainers";
 
     private static final String APPLICATION = "/api/applications/*";
@@ -64,6 +70,7 @@ public class SecurityConfig {
     private static final String METHOD_CONNECTORS = "/api/integration-method/*/*/connectors";
 
     private static final String APPLICATION_LOGO = "/api/applications/*/logo";
+    private static final String APPLICATION_FEATURED = "/api/applications/*/featured";
 
     private static final String[] ITEM_ATTACHMENTS = {
             "/api/integration-method/*/*/tutorial",
@@ -93,6 +100,9 @@ public class SecurityConfig {
     private static final String CSRF_COOKIE = "IC-XSRF-TOKEN";
 
     private static final String CSRF_HEADER = "X-IC-XSRF-TOKEN";
+
+    /** Kubernetes liveness/readiness probes call these unauthenticated. */
+    private static final String HEALTH_CHECKS = "/actuator/health/**";
 
     private static final String LOGOUT = "/logout";
 
@@ -132,6 +142,8 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(jenkinsCallbackFilter.authenticatedCallbackMatcher()))
                 .addFilterBefore(jenkinsCallbackFilter, AuthorizationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, HEALTH_CHECKS).permitAll()
+
                         // Build callbacks (verify + continue/fail), reachable two ways: the
                         // Jenkins pipeline authenticates with the shared secret handled by the
                         // filter above, a contributor completing a build by hand through the
@@ -140,6 +152,9 @@ public class SecurityConfig {
                                 .hasAnyRole(SUPERUSER, JenkinsCallbackFilter.CALLBACK_ROLE)
 
                         .requestMatchers(MAINTAINER_DIRECTORY).hasRole(SUPERUSER)
+                        .requestMatchers(REVIEW_QUEUE).hasRole(SUPERUSER)
+                        .requestMatchers(ALL_INTEGRATION_METHODS).hasRole(SUPERUSER)
+                        .requestMatchers(ALL_CONNECTORS, ALL_CONNECTORS + "/**").hasRole(SUPERUSER)
                         .requestMatchers(UNFINISHED_CONNECTOR).hasRole(SUPERUSER)
                         .requestMatchers(HttpMethod.POST, REVIEW_DECISIONS).hasRole(SUPERUSER)
                         .requestMatchers(CONNECTOR_UPLOADS)
@@ -163,11 +178,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, REQUEST_VOTE).authenticated()
                         .requestMatchers(REQUEST_CHECK_VOTE).authenticated()
                         .requestMatchers(CURRENT_USER).authenticated()
+                        .requestMatchers(CURRENT_USER_ITEMS).authenticated()
                         .requestMatchers(API_KEYS).authenticated()
                         .requestMatchers(HttpMethod.POST, RECENTLY_USED_ITEM).authenticated()
                         .requestMatchers(HttpMethod.GET, ALL_API).permitAll()
                         .requestMatchers(HttpMethod.POST, CATALOG_SEARCHES).permitAll()
                         .requestMatchers(HttpMethod.PUT, APPLICATION).hasRole(SUPERUSER) //edit application
+                        .requestMatchers(HttpMethod.PUT, APPLICATION_FEATURED).hasRole(SUPERUSER)
                         .requestMatchers(ALL_API).authenticated()
                         .anyRequest().permitAll())
                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(

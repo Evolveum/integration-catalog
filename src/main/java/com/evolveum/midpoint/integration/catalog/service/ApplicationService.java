@@ -53,7 +53,6 @@ public class ApplicationService {
     private final IntegrationMethodRepository integrationMethodRepository;
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
     private final MidpointVersionRepository midpointVersionRepository;
-    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final GithubProperties githubProperties;
     private final JenkinsProperties jenkinsProperties;
     private final DownloadRepository downloadRepository;
@@ -76,6 +75,8 @@ public class ApplicationService {
     private final AuthService authService;
     private final OrganizationService organizationService;
     private final OwnershipService ownershipService;
+    private final ApplicationVersionRepository applicationVersionRepository;
+    private final ConnectorTagRepository connectorTagRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -84,7 +85,6 @@ public class ApplicationService {
                               IntegrationMethodTypeRepository integrationMethodTypeRepository,
                               MidpointVersionRepository midpointVersionRepository,
                               ConnectorBundleRepository connectorBundleRepository,
-                              ConnectorBundleVersionRepository connectorBundleVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
                               DownloadRepository downloadRepository,
@@ -104,8 +104,12 @@ public class ApplicationService {
                               ConnectorRepository connectorRepository,
                               AuthService authService,
                               OrganizationService organizationService,
-                              OwnershipService ownershipService) {
+                              OwnershipService ownershipService,
+                              ApplicationVersionRepository applicationVersionRepository,
+                              ConnectorTagRepository connectorTagRepository) {
         this.organizationService = organizationService;
+        this.applicationVersionRepository = applicationVersionRepository;
+        this.connectorTagRepository = connectorTagRepository;
         this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -113,7 +117,6 @@ public class ApplicationService {
         this.integrationMethodRepository = integrationMethodRepository;
         this.integrationMethodTypeRepository = integrationMethodTypeRepository;
         this.midpointVersionRepository = midpointVersionRepository;
-        this.connectorBundleVersionRepository = connectorBundleVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
         this.downloadRepository = downloadRepository;
@@ -207,7 +210,7 @@ public class ApplicationService {
     }
 
     public List<IntegrationMethodType> getIntegrationMethodTypes() {
-        return integrationMethodTypeRepository.findAll();
+        return integrationMethodTypeRepository.findAll(Sort.by("id"));
     }
 
     public List<MidpointVersionDto> getMidpointVersions() {
@@ -716,6 +719,125 @@ public class ApplicationService {
         if (dto.description() != null) {
             application.setDescription(dto.description());
         }
+        if (dto.versions() != null) {
+            syncVersions(application, dto.versions());
+        }
         return applicationRepository.save(application);
+    }
+
+    /**
+     * Makes the application's versions match {@code wanted}: a version with an id is kept (and renamed
+     * if its text changed), one without is added, and any other is removed.
+     */
+    private void syncVersions(Application application, List<ApplicationVersionDto> wanted) {
+        List<String> names = wanted.stream().map(v -> v.version().trim()).toList();
+        if (new HashSet<>(names).size() != names.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Application versions must be unique.");
+        }
+        Map<Integer, ApplicationVersion> existing = new HashMap<>();
+        application.getVersions().forEach(v -> existing.put(v.getId(), v));
+        Set<Integer> keptIds = new HashSet<>();
+        for (ApplicationVersionDto v : wanted) {
+            if (v.id() == null) {
+                continue;
+            }
+            if (!existing.containsKey(v.id())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Application version " + v.id() + " is not a version of this application.");
+            }
+            keptIds.add(v.id());
+        }
+
+        List<ApplicationVersion> removed = existing.values().stream()
+                .filter(v -> !keptIds.contains(v.getId()))
+                .toList();
+        // Removals and renames reach the database before additions, so a removed or renamed
+        // version's text can be reused in the same save without tripping the unique constraint.
+        application.getVersions().removeAll(removed);
+        applicationVersionRepository.deleteAll(removed);
+        applicationVersionRepository.flush();
+        for (ApplicationVersionDto v : wanted) {
+            if (v.id() != null) {
+                existing.get(v.id()).setVersion(v.version().trim());
+            }
+        }
+        applicationVersionRepository.flush();
+        for (ApplicationVersionDto v : wanted) {
+            if (v.id() == null) {
+                application.getVersions().add(applicationVersionRepository.save(
+                        new ApplicationVersion().setApplication(application).setVersion(v.version().trim())));
+            }
+        }
+    }
+
+    /**
+     * Sets the superuser-set tags of a connector: swaps its tier tag (null clears it) and adds or
+     * removes the obsolete tag. Its pending edit clones follow, since a version-bump approval replaces
+     * the connector with one of them. An obsolete connector cannot have a tier.
+     */
+    @Transactional
+    public void setConnectorTags(Integer connectorId, SupportTier tier, boolean obsolete) {
+        if (obsolete && tier != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An obsolete connector cannot have a support tier");
+        }
+        Connector connector = connectorRepository.findById(connectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connector not found: " + connectorId));
+        List<ConnectorTag> wanted = new ArrayList<>();
+        if (tier != null) {
+            wanted.add(tagByName(tier.tagName()));
+        }
+        if (obsolete) {
+            wanted.add(tagByName(ConnectorTag.OBSOLETE));
+        }
+        replaceManagedTags(connector, wanted);
+        connectorRepository.findByClonedFrom(connectorId).forEach(clone -> replaceManagedTags(clone, wanted));
+    }
+
+    private ConnectorTag tagByName(String name) {
+        return connectorTagRepository.findByName(name)
+                .orElseThrow(() -> new IllegalStateException("No connector_tag row for " + name));
+    }
+
+    /** Replaces the tier and obsolete tags of the connector with {@code wanted}; its other tags stay. */
+    private void replaceManagedTags(Connector connector, List<ConnectorTag> wanted) {
+        if (connector.getConnectorConnectorTags() == null) {
+            connector.setConnectorConnectorTags(new HashSet<>());
+        }
+        Set<ConnectorConnectorTag> links = connector.getConnectorConnectorTags();
+        links.removeIf(link -> link.getConnectorTag() != null
+                && (SupportTier.fromTagName(link.getConnectorTag().getName()) != null
+                    || ConnectorTag.OBSOLETE.equals(link.getConnectorTag().getName())));
+        for (ConnectorTag tag : wanted) {
+            ConnectorConnectorTag link = new ConnectorConnectorTag();
+            link.setConnector(connector);
+            link.setConnectorTag(tag);
+            links.add(link);
+        }
+        connectorRepository.save(connector);
+    }
+
+    /** Every published method with its tier, for the support-tier overview; the grouping is the page's. */
+    @Transactional(readOnly = true)
+    public List<IntegrationMethodTierDto> listSupportTiers() {
+        return integrationMethodRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .filter(m -> m.getApplication() != null)
+                .map(m -> new IntegrationMethodTierDto(
+                        m.getApplication().getId(),
+                        m.getApplication().getDisplayName(),
+                        m.getId(),
+                        m.getRevision(),
+                        m.getDisplayName(),
+                        m.supportTier(),
+                        !m.linkedConnectors().isEmpty()))
+                .toList();
+    }
+
+    @Transactional
+    public void setFeatured(UUID applicationId, boolean featured) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Application not found with id: " + applicationId));
+        applicationTagService.setFeatured(application, featured);
+        applicationRepository.save(application);
     }
 }

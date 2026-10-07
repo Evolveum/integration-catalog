@@ -22,11 +22,13 @@ import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { SupportTier, supportTierLabel } from '../../core/support-tier';
 
 interface MethodGroup {
   id: string;
   name: string;
   types: string[];
+  supportTier: SupportTier | null; // the same on every revision
   versions: IntegrationMethod[];
   publishedCount: number;
   pendingCount: number;
@@ -88,6 +90,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           id: v.id,
           name: v.displayName || v.connectorDisplayName || 'Integration method',
           types: v.integMethodTypes ?? [],
+          supportTier: v.supportTier ?? null,
           versions: [],
           publishedCount: 0,
           pendingCount: 0,
@@ -200,6 +203,40 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   /** Only superusers may approve (publish) an in-review revision. */
   protected isSuperuser(): boolean {
     return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  protected isReadOnly(): boolean {
+    return this.authService.isReadOnly();
+  }
+
+  protected readonly supportTierLabel = supportTierLabel;
+
+  // Featured = carries the COMMON "featured" tag; such applications fill the homepage's first row.
+  protected readonly isFeatured = computed(() =>
+    (this.application()?.tags ?? []).some(t => t.name === 'featured' && t.tagType === 'COMMON'));
+  protected readonly isTogglingFeatured = signal<boolean>(false);
+
+  protected toggleFeatured(): void {
+    const app = this.application();
+    if (!app || this.isTogglingFeatured()) return;
+    const featured = !this.isFeatured();
+    this.isTogglingFeatured.set(true);
+    this.applicationService.setApplicationFeatured(app.id, featured).subscribe({
+      next: () => {
+        this.isTogglingFeatured.set(false);
+        const others = (app.tags ?? []).filter(t => !(t.name === 'featured' && t.tagType === 'COMMON'));
+        this.application.set({
+          ...app,
+          tags: featured
+            ? [...others, { id: 0, name: 'featured', displayName: 'Featured', tagType: 'COMMON' }]
+            : others
+        });
+      },
+      error: (err) => {
+        this.isTogglingFeatured.set(false);
+        console.error('Toggling featured failed', err);
+      }
+    });
   }
 
   /** The requester may cancel their own request; a superuser may cancel any (server-enforced). */
@@ -554,9 +591,17 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     if (!appId) return;
     // This tab may still show a session that ended elsewhere; a lost one gets the app-wide dialog.
     this.authService.verifySession().subscribe(() => {
-      if (!this.authService.sessionLost()) {
-        this.router.navigate(['/approve'], { queryParams: { appId } });
+      if (this.authService.sessionLost()) return;
+      // The publish form bounces anyone who can't upload to the homepage without a word, so say why here.
+      if (!this.authService.canUpload()) {
+        if (this.authService.isLoggedIn()) {
+          this.toastService.show('Permission Denied', "You don't have permission for this action.", 'warning');
+        } else {
+          this.toastService.show('Login Required', 'You need to log in to perform this action. Please log in and try again.', 'warning');
+        }
+        return;
       }
+      this.router.navigate(['/approve'], { queryParams: { appId } });
     });
   }
 
@@ -878,6 +923,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   // Post-download help modal (where to copy the connectors in midPoint home)
   protected readonly isDownloadInfoOpen = signal<boolean>(false);
+  protected readonly isDownloadPreparing = signal<boolean>(false);
   protected readonly downloadInfoFileName = signal<string>('');
   protected readonly downloadInfoFileSize = signal<number | null>(null);
 
@@ -941,6 +987,11 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected downloadBundle(methodId: string, revision: string | null): void {
     const appId = this.application()?.id;
     if (appId) {
+      // Open right away: building the bundle can take a while and the click must show a reaction.
+      this.downloadInfoFileName.set('');
+      this.downloadInfoFileSize.set(null);
+      this.isDownloadPreparing.set(true);
+      this.isDownloadInfoOpen.set(true);
       this.applicationService.downloadBundle(methodId, revision ?? '').subscribe({
         next: (result) => {
           if (result.warning) {
@@ -952,12 +1003,16 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           }
           this.downloadInfoFileName.set(result.fileName);
           this.downloadInfoFileSize.set(result.size);
-          this.isDownloadInfoOpen.set(true);
+          this.isDownloadPreparing.set(false);
         },
-        error: () => this.toastService.show(
-          'Download error',
-          'Failed to download the bundle. Please try again.',
-          'danger')
+        error: () => {
+          this.isDownloadPreparing.set(false);
+          this.isDownloadInfoOpen.set(false);
+          this.toastService.show(
+            'Download error',
+            'Failed to download the bundle. Please try again.',
+            'danger');
+        }
       }
       );
     }

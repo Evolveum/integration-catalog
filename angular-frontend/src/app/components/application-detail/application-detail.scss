@@ -184,6 +184,28 @@
 /* ========================================
    BADGES
    ======================================== */
+// "Toggle Featured": grey = not featured, green = featured on the homepage.
+.btn-featured {
+  background-color: #e9ecef;
+  color: #6c757d;
+
+  &:hover:not(:disabled) {
+    background-color: #dee2e6;
+    color: #495057;
+  }
+}
+
+.btn-featured-on {
+  background-color: #198754;
+  border-color: #198754 !important;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background-color: #157347;
+    color: #fff;
+  }
+}
+
 .badge-popular {
   background-color: #ffdd8c;
   color: #7A510B;
@@ -997,6 +1019,19 @@
   padding: 0.1rem 0.5rem;
   background: white;
 }
+
+/* Support tier: a chip for visitors, the same colors on the reviewer's select. */
+.im-tier-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+}
+
+.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
 
 /* ========================================
    COLLAPSIBLE METHOD CARD

@@ -21,7 +21,14 @@
    HERO BANNER
    ======================================== */
 .hero-gradient {
-  background: linear-gradient(270deg, #223558 0%, #36538B 52.88%, #2C4471 85.58%);
+  background: linear-gradient(90deg, #14205f 0%, #265DA6 50%, #14205f 100%);
+  padding-top: 3rem;
+
+  // Pulled up behind the 56px header so one gradient covers both; the padding keeps the content in place
+  &.hero-under-header {
+    margin-top: -56px;
+    padding-top: calc(3rem + 56px);
+  }
 }
 
 .hero-title {
@@ -214,8 +221,14 @@
 /* ========================================
    SCROLL CONTAINER
    ======================================== */
+/* Snap on card starts so trackpad / shift+wheel scrolling also lands one whole card at a time. */
 .scroll-container {
   scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+
+  .app-card {
+    scroll-snap-align: start;
+  }
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

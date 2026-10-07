@@ -7,6 +7,24 @@
 import { Maintainer } from './maintainer.model';
 
 import { ConnectorTag } from './connector-tag.model';
+import { SupportTier } from '../core/support-tier';
+
+/** One published integration method in the support-tier overview. */
+export interface IntegrationMethodTier {
+  applicationId: string;          // application.id
+  applicationName: string;        // application.display_name
+  methodId: string;               // integration_method.id
+  revision: string;               // integration_method.revision
+  methodName: string;             // integration_method.display_name
+  supportTier: SupportTier | null; // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+  hasConnectorBundle: boolean;     // false = no connector to hold a tier, so it cannot be set
+}
+
+/** One version of an application, kept by a superuser. */
+export interface ApplicationVersion {
+  id: number | null;    // application_version.id, null for one being added
+  version: string;      // application_version.version
+}
 
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
@@ -46,6 +64,8 @@ export interface IntegrationMethod {
   downloadCount: number | null;            // computed: count of download rows
   midpointMinVersionId: number | null;     // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
   midpointMaxVersionId: number | null;     // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+  appMinVersion: string | null;            // integration_method.app_minversion (free text)
+  appMaxVersion: string | null;            // integration_method.app_maxversion (free text)
   connectorDisplayName: string | null;     // connector.display_name
   integMethodTypes: string[] | null;       // integration_method_type.name
   objectClassCapabilities: IntegrationMethodObjectCapabilities[] | null; // every offered capability with its state
@@ -60,6 +80,8 @@ export interface IntegrationMethod {
   connectors: IncludedConnector[] | null; // connectors linked via integration_method_connector
   supportTicketId: number | null;        // integration_method.support_ticket_id, only sent to those allowed to see it
   supportTicketUrl: string | null;       // built from supportTicketId by the backend
+  supportTier: SupportTier | null;       // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+  hasConnectorBundle: boolean;           // false = no connector to hold a tier, so it cannot be set
 }
 
 export interface ObjectClassCapability {
@@ -109,6 +131,7 @@ export interface ApplicationDetail {
   requestedIntegrationMethodType: string | null; // integration_method_type.display_name via request
   frameworks: string[] | null;              // connector_bundle.framework
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
+  versions: ApplicationVersion[];           // application_version, oldest first
 }
 
 export function hasLogoDetail(app: ApplicationDetail): boolean {

@@ -118,9 +118,17 @@
 
           <!-- Management buttons (superuser only) -->
           @if (isSuperuser()) {
-          <div class="mt-2">
+          <div class="mt-2 d-flex flex-wrap gap-2">
             <button type="button" class="btn btn-light border d-inline-flex align-items-center gap-2" (click)="openEditModal()">
               <i class="fa-solid fa-pen-to-square"></i>Edit application
+            </button>
+            <button type="button" class="btn border d-inline-flex align-items-center gap-2 btn-featured"
+                    [class.btn-featured-on]="isFeatured()"
+                    [attr.aria-pressed]="isFeatured()"
+                    [title]="isFeatured() ? 'Featured on the homepage - click to remove' : 'Not featured - click to feature on the homepage'"
+                    [disabled]="isTogglingFeatured()"
+                    (click)="toggleFeatured()">
+              Toggle Featured
             </button>
           </div>
           }
@@ -280,7 +288,7 @@
                   <!-- Search Integration Methods Section -->
                   <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0">Search integration methods</h5>
-                    @if (hasIntegrationMethods()) {
+                    @if (hasIntegrationMethods() && !isReadOnly()) {
                       <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToApprove()">
                         <i class="fa-solid fa-plus"></i>Add new method
                       </button>
@@ -404,10 +412,14 @@
                         <button type="button" class="btn btn-create-method" (click)="resetFilters()">Reset filters</button>
                       } @else {
                         <p class="fw-semibold mb-2">No integration methods defined yet.</p>
-                        <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
-                        <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToApprove()">
-                          <i class="fa-solid fa-plus me-1"></i>Add integration method
-                        </button>
+                        @if (isReadOnly()) {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}.</p>
+                        } @else {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
+                          <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToApprove()">
+                            <i class="fa-solid fa-plus me-1"></i>Add integration method
+                          </button>
+                        }
                       }
                     </div>
                   } @else {
@@ -423,6 +435,12 @@
                                 @for (type of method.types; track type) {
                                   <span class="im-method-tag">{{ type }}</span>
                                 }
+                                <!-- Support tier badge hidden for now; restore by uncommenting.
+                                     Set by a superuser per connector bundle version, on the All connectors page.
+                                @if (method.supportTier) {
+                                  <span class="im-tier-badge" [class]="'tier-' + method.supportTier.toLowerCase()">{{ supportTierLabel(method.supportTier) }}</span>
+                                }
+                                -->
                               </div>
                               <div class="d-flex align-items-center gap-3">
                                 @if (method.publishedCount > 0) {
@@ -868,6 +886,7 @@
     <app-download-info-modal
       [fileName]="downloadInfoFileName()"
       [fileSize]="downloadInfoFileSize()"
+      [preparing]="isDownloadPreparing()"
       (closed)="isDownloadInfoOpen.set(false)">
     </app-download-info-modal>
   }

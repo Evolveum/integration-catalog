@@ -12,13 +12,15 @@ import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
-import { ApplicationDetail, ApplicationTag, IntegrationMethodObjectCapabilities } from '../models/application-detail.model';
+import { ApplicationDetail, ApplicationTag, ApplicationVersion, IntegrationMethodObjectCapabilities, IntegrationMethodTier } from '../models/application-detail.model';
+import { SupportTier } from '../core/support-tier';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
 import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
 import { ProblemDetail } from '../models/problem-detail';
+import { MyConnector, MyIntegrationMethod } from '../models/my-items.model';
 
 /** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
 export interface BundleDownloadResult {
@@ -257,7 +259,7 @@ export class ApplicationService {
   editIntegrationMethod(
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null; maintainer: Maintainer | null }
+    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null; appMinVersion: string | null; appMaxVersion: string | null; maintainer: Maintainer | null }
   ): Observable<string> {
     return this.http.put<string>(
       `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
@@ -393,6 +395,31 @@ export class ApplicationService {
     );
   }
 
+  /** Every revision of the integration methods the current user maintains, newest first per method. */
+  getMyIntegrationMethods(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/auth/me/integration-methods`);
+  }
+
+  /** Every revision of every method in the catalog, grouped by method (superuser). */
+  getAllIntegrationMethods(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/all-integration-methods`);
+  }
+
+  /** Every revision awaiting approval or under review across the catalog, longest waiting first (superuser). */
+  getReviewQueue(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/review-queue`);
+  }
+
+  /** Every connector in the catalog, with its versions and usage (superuser). */
+  getAllConnectors(): Observable<MyConnector[]> {
+    return this.http.get<MyConnector[]>(`${environment.apiUrl}/all-connectors`);
+  }
+
+  /** The connectors the current user maintains, with their versions and usage. */
+  getMyConnectors(): Observable<MyConnector[]> {
+    return this.http.get<MyConnector[]>(`${environment.apiUrl}/auth/me/connectors`);
+  }
+
   // ==================== Logo Methods ====================
 
   /**
@@ -450,7 +477,21 @@ export class ApplicationService {
   /**
    * Update application details (displayName, description) - superuser only
    */
-  updateApplication(applicationId: string, payload: { displayName: string; description: string | null }): Observable<void> {
+  /** Published integration methods with their support tier, for the tier overview. */
+  getSupportTiers(): Observable<IntegrationMethodTier[]> {
+    return this.http.get<IntegrationMethodTier[]>(`${environment.apiUrl}/integration-methods/tiers`);
+  }
+
+  /** Sets the support tier (null removes it) and the obsolete tag of a connector (superuser). */
+  setConnectorTags(connectorId: number, tier: SupportTier | null, obsolete: boolean): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/all-connectors/${connectorId}/tags`, { tier, obsolete });
+  }
+
+  setApplicationFeatured(applicationId: string, featured: boolean): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/applications/${applicationId}/featured`, { featured });
+  }
+
+  updateApplication(applicationId: string, payload: { displayName: string; description: string | null; versions?: ApplicationVersion[] }): Observable<void> {
     return this.http.put<void>(
       `${environment.apiUrl}/applications/${applicationId}`,
       payload

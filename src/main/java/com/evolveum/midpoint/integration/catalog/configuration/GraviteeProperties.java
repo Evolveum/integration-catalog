@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.configuration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -20,13 +21,17 @@ public record GraviteeProperties(
         String managementUrl,
         String organizationId,
         String environmentId,
-        String apiId,
-        String planId,
+        List<Api> api,
         String token,
 
         /** How long a management call may take; a key is minted while the user waits. */
         Duration timeout
 ) {
+
+    public record Api(
+            String id,
+            String planId
+    ) {}
 
     /**
      * Defaults for the organization and environment; the timeout has none here - it comes from
@@ -40,7 +45,11 @@ public record GraviteeProperties(
 
     /** Whether keys can be issued at all; the rest of the catalog works either way. */
     public boolean enabled() {
-        return notBlank(managementUrl) && notBlank(apiId) && notBlank(planId) && notBlank(token);
+        return notBlank(managementUrl)
+                && !api.isEmpty()
+                && notBlank(api.getFirst().id)
+                && notBlank(api.getFirst().planId)
+                && notBlank(token);
     }
 
     /** Applications live on v1, subscriptions on v2. */

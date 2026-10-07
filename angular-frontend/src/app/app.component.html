@@ -5,6 +5,9 @@
  -->
 
 <router-outlet />
+@if (showFooter()) {
+  <app-page-footer />
+}
 @if (authService.sessionLost()) {
   <app-session-expired-modal />
 }

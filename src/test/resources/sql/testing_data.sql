@@ -68,17 +68,24 @@ INSERT INTO application (id, name, display_name, description, lifecycle_state, c
      'SAP Human SAP Human SAP Human SAP Human SAP Human SAP Human SAP Human SAP .'
      'Do not know what else to write, so please e long enought. I am out of idea what to write more, just hit that 255 break mark. Here it is.', 'REQUESTED', NOW(), NOW(), NULL),
     ('33333333-3333-3333-3333-333333333333', 'empty_app', 'Empty App',
-     'Existing published application that currently has no integration methods or connectors', 'ACTIVE', NOW(), NOW(), NULL);
+     'Existing published application that currently has no integration methods or connectors', 'ACTIVE', NOW(), NOW(), NULL),
+    -- The description leaves out "AWS" on purpose: searching "aws" must find it by the name's initials.
+    ('44444444-4444-4444-4444-444444444444', 'amazon_web_services', 'Amazon Web Services',
+     'Cloud platform by Amazon; users and groups are managed through IAM Identity Center', 'ACTIVE', NOW(), NOW(), NULL);
 
 INSERT INTO application_application_tag (application_id, tag_id) VALUES
     ('11111111-1111-1111-1111-111111111111', 1),
     ('11111111-1111-1111-1111-111111111111', 6),
     ('33333333-3333-3333-3333-333333333333', 2),
-    ('33333333-3333-3333-3333-333333333333', 5);
+    ('33333333-3333-3333-3333-333333333333', 5),
+    ('44444444-4444-4444-4444-444444444444', 4),
+    ('44444444-4444-4444-4444-444444444444', 7),
+    ('44444444-4444-4444-4444-444444444444', 9);
 
 INSERT INTO application_origin (application_id, country_id) VALUES
     ('11111111-1111-1111-1111-111111111111', 1),
-    ('33333333-3333-3333-3333-333333333333', 3);
+    ('33333333-3333-3333-3333-333333333333', 3),
+    ('44444444-4444-4444-4444-444444444444', 2);
 
 -- ============================================================
 -- CONNECTOR BUNDLES, BUNDLE VERSIONS, CONNECTORS, CONNECTOR VERSIONS
@@ -147,25 +154,33 @@ OVERRIDING SYSTEM VALUE VALUES
     (3, '1.0', 2, 2, NOW(), NOW(), 'ACTIVE', 3, '1.0', 3, 'com.evolveum.polygon.connector.csv.CsvConnector', NULL);
 
 -- ============================================================
--- INTEGRATION METHODS  (composite PK uuid + revision; midpoint versions are midpoint_version ids)
+-- INTEGRATION METHODS  (composite PK uuid + revision; midpoint versions are midpoint_version ids,
+-- application versions are free text)
 -- ============================================================
+
+INSERT INTO application_version (id, application_id, version)
+VALUES
+    (1, '11111111-1111-1111-1111-111111111111', '2024.1'),
+    (2, '11111111-1111-1111-1111-111111111111', '2024.2'),
+    (3, '11111111-1111-1111-1111-111111111111', '2025.1'),
+    (4, '11111111-1111-1111-1111-111111111111', '2025.2');
 
 INSERT INTO integration_method (id, application_id, display_name, description, limitations,
      tutorial, file_path, midpoint_minversion, midpoint_maxversion, lifecycle_state, revision,
-     author, maintainer, created_at, updated, app_version, reviewed_by)
+     author, maintainer, created_at, updated, app_minversion, app_maxversion, reviewed_by)
 VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '11111111-1111-1111-1111-111111111111',
      'Test 1 - Evolveum maintained', 'LDAP-based method maintained by Evolveum',
-     'Nested groups are not resolved.', 'Tutorial 1', NULL, 5, 9, 'ACTIVE', '1.0', 2, 2, NOW(), NOW(), '2025.1', 'u5'),
+     'Nested groups are not resolved.', 'Tutorial 1', NULL, 5, 9, 'ACTIVE', '1.0', 2, 2, NOW(), NOW(), '2025.1', NULL, 'u5'),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '11111111-1111-1111-1111-111111111111',
      'Test 2 - Acme maintained', 'ServiceNow method maintained by the Acme organization',
-     NULL, 'Tutorial 2', NULL, 4, 8, 'ACTIVE', '1.0', 3, 3, NOW(), NOW(), '2024.2', 'u5'),
+     NULL, 'Tutorial 2', NULL, 4, 8, 'ACTIVE', '1.0', 3, 3, NOW(), NOW(), '2024.1', '2024.2', 'u5'),
     ('cccccccc-cccc-cccc-cccc-cccccccccccc', '11111111-1111-1111-1111-111111111111',
      'Test 3 - u3 maintained', 'CSV export method maintained by the individual contributor u3',
-     'Deletes are not propagated; rows must be removed by hand.', 'Tutorial 3', NULL, 6, 10, 'ACTIVE', '1.0', 4, 4, NOW(), NOW(), '3.2', 'u5'),
+     'Deletes are not propagated; rows must be removed by hand.', 'Tutorial 3', NULL, 6, 10, 'ACTIVE', '1.0', 4, 4, NOW(), NOW(), NULL, NULL, 'u5'),
     ('dddddddd-dddd-dddd-dddd-dddddddddddd', '11111111-1111-1111-1111-111111111111',
      'Test 4 - Community maintained', 'LDAP method open to every contributor',
-     NULL, 'Tutorial 4', NULL, 7, NULL, 'ACTIVE', '2.0', 5, 1, NOW(), NOW(), '2025.2', 'u5');
+     NULL, 'Tutorial 4', NULL, 7, NULL, 'ACTIVE', '2.0', 5, 1, NOW(), NOW(), '2024.2', '2025.2', 'u5');
 
 INSERT INTO integration_method_connector (integ_method_id, integ_method_revision,
     connector_id, connector_minversion, connector_maxversion)
@@ -236,9 +251,16 @@ INSERT INTO conn_version_capability_item (conn_version_capability_id, capability
 INSERT INTO request (id, application_id, requester, mail, collab, base_url, system_version) OVERRIDING SYSTEM VALUE VALUES
     (1, '22222222-2222-2222-2222-222222222222', 'jane', 'jane@example.com', true, 'https://sap-hr.example.com', '2024');
 
-INSERT INTO object_class_capabilities (request_id, object_name, capabilities) VALUES
-    (1, 'Account', ARRAY['CREATE','READ','UPDATE','DELETE','SEARCH']::"CapabilityType"[]),
-    (1, 'Group',   ARRAY['READ','SEARCH']::"CapabilityType"[]);
+-- capabilities = YES, unsupported_capabilities = NO, unknown_capabilities = UNKNOWN (change 19).
+INSERT INTO object_class_capabilities (request_id, object_name, capabilities, unsupported_capabilities, unknown_capabilities) VALUES
+    (1, 'Account',
+        ARRAY['CREATE','READ','UPDATE','DELETE','SEARCH']::"CapabilityType"[],
+        ARRAY['LIVE_SYNC','PASSWORD']::"CapabilityType"[],
+        ARRAY['ACTIVATION','ASSOCIATIONS']::"CapabilityType"[]),
+    (1, 'Group',
+        ARRAY['READ','SEARCH']::"CapabilityType"[],
+        ARRAY['CREATE','UPDATE','DELETE','LIVE_SYNC','PASSWORD','ACTIVATION']::"CapabilityType"[],
+        ARRAY['ASSOCIATIONS']::"CapabilityType"[]);
 
 INSERT INTO vote (request_id, voter) VALUES
     (1, 'u1'),

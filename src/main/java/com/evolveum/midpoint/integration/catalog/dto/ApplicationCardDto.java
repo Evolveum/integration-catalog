@@ -26,7 +26,7 @@ public record ApplicationCardDto(
         Long voteCount,                      // computed: count of vote rows
         List<String> frameworks,             // connector_bundle.framework
         List<String> midpointVersions,       // midpoint_version.version
-        String currentMidpointVersion,       // midpoint_version.version (where is_current = true)
+        List<String> sinceMidpointVersions,  // midpoint_version.id of each active method's min version
         List<String> integrationMethodTypes, // integration_method_type.display_name via integration_method
         List<String> maintainers             // Evolveum/Partner/Community, derived from catalog_users.role
 ) {}

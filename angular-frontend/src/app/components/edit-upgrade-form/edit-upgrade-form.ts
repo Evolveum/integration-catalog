@@ -105,7 +105,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const maxIndex = versions.findIndex(v => v.id === maxId);
     return maxIndex < minIndex;
   });
-  // Mirrors the publish form's compatibility gate: "From" is required and the range must be valid.
+  // Supported application version range, free text: only saved, not checked or used for filtering.
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
+  // Mirrors the publish form's compatibility gate: midPoint "From" is required and its range must be valid.
   protected readonly isMidpointRangeValid = computed(() =>
     this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid()
   );
@@ -309,6 +312,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.midpointMinVersionId.set(ver.midpointMinVersionId);
           this.midpointMaxVersionId.set(ver.midpointMaxVersionId);
+          this.appMinVersion.set(ver.appMinVersion ?? '');
+          this.appMaxVersion.set(ver.appMaxVersion ?? '');
           this.methodTutorial.set(ver.tutorial ?? '');
           if (this.easyMde && ver.tutorial) {
             this.easyMde.value(ver.tutorial);
@@ -723,20 +728,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.doSave(false);
   }
 
-  protected isSuperuser(): boolean {
-    return this.authService.currentRole() === UserRole.Superuser;
-  }
-
   /**
    * The picker's list once it has changed, the loaded one before that. Keyed on a change rather than
-   * on an empty list, so a superuser who removes every object sends none instead of the loaded ones.
+   * on an empty list, so removing every object sends none instead of the loaded ones.
    */
   private capabilitiesToSend(): IntegrationMethodObjectCapabilities[] {
     return this.capabilitiesTouched() ? this.imCapabilities() : this.initialCapabilities();
   }
 
   protected capabilitiesValid(): boolean {
-    return imCapabilitiesValid(this.capabilitiesToSend(), this.isSuperuser());
+    return imCapabilitiesValid(this.capabilitiesToSend());
   }
 
   protected saveAsNewVersion(): void {
@@ -769,6 +770,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
         minorBump: !major,
         midpointMinVersion: this.midpointMinVersionId(),
         midpointMaxVersion: this.midpointMaxVersionId(),
+        appMinVersion: this.appMinVersion().trim() || null,
+        appMaxVersion: this.appMaxVersion().trim() || null,
         maintainer: this.methodMaintainer()
       }
     ).subscribe({

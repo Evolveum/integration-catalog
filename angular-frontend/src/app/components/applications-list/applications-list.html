@@ -5,7 +5,7 @@
  -->
 
 <div class="container-fluid p-0 position-relative page-bg">
-  <app-page-header [hideBorder]="true"></app-page-header>
+  <app-page-header [hideBorder]="true" [transparentAtTop]="heroUnderHeader()"></app-page-header>
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
     <div class="position-fixed top-0 end-0 p-3 toast-container">
@@ -44,7 +44,7 @@
 
   <div class="container-fluid p-0 page-bg">
     <!-- Hero Banner -->
-    <div class="bg-primary text-white py-5 hero-gradient position-relative">
+    <div class="bg-primary text-white pb-5 hero-gradient position-relative" [class.hero-under-header]="heroUnderHeader()">
 <div class="mx-auto content-width position-relative">
         <!-- title -->
         <div class="row">
@@ -114,7 +114,7 @@
             <input
               type="text"
               class="form-control border-start-0 search-input"
-              placeholder="Filter by name or version..."
+              placeholder="Search by name or description..."
               [value]="searchQuery()"
               (input)="onSearchChange($event)"
             />
@@ -284,7 +284,7 @@
         </button>
 
         <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
-          <div class="d-flex gap-4 pe-5">
+          <div class="d-flex gap-4">
             @for (app of featuredApplications(); track app.id) {
               <div #featuredCard class="card position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
                 <!-- Status indicators at top right -->
@@ -345,10 +345,10 @@
                     <p class="text-center mt-auto mb-0 link-error">Error details</p>
                   } @else if (app.lifecycleState === 'IN_REVIEW') {
                     <!-- in review -->
-                  } @else if (app.currentMidpointVersion) {
+                  } @else if (availableSince(app); as sinceVersion) {
                     <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
                       <i class="fa-solid fa-circle-info flex-shrink-0"></i>
-                      <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
+                      <span>Available since midPoint version {{ sinceVersion }}</span>
                     </div>
                   }
                 </div>
@@ -456,10 +456,10 @@
                   <p class="text-center mt-auto mb-0 link-error">Error details</p>
                 } @else if (app.lifecycleState === 'IN_REVIEW') {
                   <!-- in review -->
-                } @else if (app.currentMidpointVersion) {
+                } @else if (availableSince(app); as sinceVersion) {
                   <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
                     <i class="fa-solid fa-circle-info flex-shrink-0"></i>
-                    <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
+                    <span>Available since midPoint version {{ sinceVersion }}</span>
                   </div>
                 }
               </div>
@@ -707,6 +707,7 @@
       <app-download-info-modal
         [fileName]="sheetInfoFileName()"
         [fileSize]="sheetInfoFileSize()"
+        [preparing]="isSheetPreparing()"
         [steps]="sheetDownloadSteps"
         [note]="''"
         (closed)="isSheetInfoOpen.set(false)">

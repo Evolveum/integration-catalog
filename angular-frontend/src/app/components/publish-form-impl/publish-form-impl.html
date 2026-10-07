@@ -452,7 +452,7 @@
       <div class="step-content">
         <h5 class="step-title">Compatibility settings</h5>
         <p class="compat-step-desc">
-          Specify which versions of midPoint and connectors this integration method supports. <br />
+          Specify which versions of midPoint, the application and connectors this integration method supports. <br />
           This helps users find Integration methods compatible with their environments.
         </p>
 
@@ -501,6 +501,30 @@
           } @else {
             <div class="form-text">Only include versions you have actively tested. Untested versions can be added later.</div>
           }
+        </div>
+
+        <!-- Supported application version -->
+        <div class="compat-section mb-4">
+          <h6 class="compat-section-title">Supported application version</h6>
+          <p class="compat-section-desc">
+            Define the range of {{ reviewSummary?.applicationName || 'application' }} versions that have been tested with this integration method.
+          </p>
+          <div class="d-flex align-items-end gap-3 mb-2">
+            <div>
+              <label class="form-label form-label-upload">From version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMinVersion()"
+                     (input)="appMinVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2024.1">
+            </div>
+            <div>
+              <label class="form-label form-label-upload">To version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMaxVersion()"
+                     (input)="appMaxVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2025.2">
+            </div>
+          </div>
         </div>
 
         <!-- Connector version ranges -->
@@ -710,6 +734,15 @@
                 <span class="review-detail-value">
                   {{ getMidpointVersionLabel(midpointMinVersionId()) }}
                   @if (midpointMaxVersionId()) { &nbsp;-&nbsp;{{ getMidpointVersionLabel(midpointMaxVersionId()) }} }
+                </span>
+              </div>
+            }
+            @if (appMinVersion().trim() || appMaxVersion().trim()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Supported application version:</span>
+                <span class="review-detail-value">
+                  {{ appMinVersion().trim() || '—' }}
+                  @if (appMaxVersion().trim()) { &nbsp;-&nbsp;{{ appMaxVersion().trim() }} }
                 </span>
               </div>
             }

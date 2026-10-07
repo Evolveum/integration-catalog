@@ -4,13 +4,14 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, Input, Output, EventEmitter, ViewChild, OnInit } from '@angular/core';
+import { Component, signal, computed, Input, Output, EventEmitter, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
-import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
+import { IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
 
 interface IntegrationMethodOption {
   id: number;
@@ -20,7 +21,7 @@ interface IntegrationMethodOption {
 @Component({
   selector: 'app-request-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker],
+  imports: [CommonModule, FormsModule, ImCapabilityPicker],
   templateUrl: './request-form.html',
   styleUrls: ['./request-form.scss']
 })
@@ -29,7 +30,7 @@ export class RequestForm implements OnInit {
   @Output() modalClosed = new EventEmitter<void>();
   @Output() requestSubmitted = new EventEmitter<void>();
 
-  @ViewChild(CapabilityPicker) private capabilityPicker?: CapabilityPicker;
+  @ViewChild(ImCapabilityPicker) private capabilityPicker?: ImCapabilityPicker;
 
   protected formData = {
     integrationApplicationName: '',
@@ -44,7 +45,9 @@ export class RequestForm implements OnInit {
   protected readonly integrationMethods = signal<IntegrationMethodOption[]>([]);
   protected readonly isIntegrationMethodDropdownOpen = signal<boolean>(false);
   protected readonly isIntegrationMethodExpanded = signal<boolean>(false);
-  protected readonly capabilityGroups = signal<CapabilityGroup[]>([]);
+  protected readonly capabilityGroups = signal<IntegrationMethodObjectCapabilities[]>([]);
+  // Capabilities stay optional on a request, but every object given needs at least one Supported.
+  protected readonly capabilitiesValid = computed(() => imCapabilitiesValid(this.capabilityGroups()));
   protected readonly isSubmitting = signal<boolean>(false);
   protected readonly submitSuccess = signal<boolean>(false);
   protected readonly submitError = signal<string | null>(null);
@@ -84,7 +87,7 @@ export class RequestForm implements OnInit {
     this.submitError.set(null);
   }
 
-  protected onCapabilitiesChange(groups: CapabilityGroup[]): void {
+  protected onCapabilitiesChange(groups: IntegrationMethodObjectCapabilities[]): void {
     this.capabilityGroups.set(groups);
   }
 
@@ -92,17 +95,11 @@ export class RequestForm implements OnInit {
     this.isSubmitting.set(true);
     this.submitError.set(null);
 
-    const capabilities = this.capabilityGroups().map(g => ({
-      objectName: g.objectClass,
-      capabilities: g.capabilityNames,
-      resourceWide: g.resourceWide
-    }));
-
     const request = {
       integrationApplicationName: this.formData.integrationApplicationName,
       integrationMethodTypeId: this.formData.integrationMethod?.id ?? null,
       deploymentType: this.formData.deploymentType,
-      capabilities,
+      capabilities: this.capabilityGroups(),
       description: this.formData.description,
       integrationNeed: this.formData.integrationNeed,
       systemVersion: this.formData.systemVersion,

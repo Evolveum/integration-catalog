@@ -128,6 +128,24 @@
         }
       </div>
 
+      <!-- Supported application version -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload d-block">Supported application version</label>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="midpoint-range-label">From</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMinVersion()"
+                 (input)="appMinVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2024.1">
+          <span class="midpoint-range-dash">—</span>
+          <span class="midpoint-range-label">To</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMaxVersion()"
+                 (input)="appMaxVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2025.2">
+        </div>
+      </div>
+
       <!-- Description -->
       <div class="mb-4">
         <label class="form-label form-label-upload">Description</label>
@@ -160,7 +178,7 @@
 
       <!-- Capabilities -->
       <div class="mb-4">
-        <app-im-capability-picker [initialCapabilities]="initialCapabilities()" [required]="!isSuperuser()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
+        <app-im-capability-picker [initialCapabilities]="initialCapabilities()"(capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
       </div>
 
       <!-- Integration method type -->

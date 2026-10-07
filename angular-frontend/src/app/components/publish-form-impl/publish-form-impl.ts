@@ -149,6 +149,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly midpointVersionsDesc = computed(() => [...this.midpointVersions()].reverse());
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
+  /** Supported application range, free text: only saved, not checked or used for filtering. */
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
   protected readonly compatInfoDismissed = signal<boolean>(false);
   protected readonly connectorVersionFrom = signal<string>('');
   protected readonly connectorVersionTo = signal<string>('');
@@ -411,7 +414,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
         maintainer: summary?.methodMaintainer ?? null,
         typeIds: summary?.methodTypeIds ?? [],
         midpointMinVersion: this.midpointMinVersionId(),
-        midpointMaxVersion: this.midpointMaxVersionId()
+        midpointMaxVersion: this.midpointMaxVersionId(),
+        appMinVersion: this.appMinVersion().trim() || null,
+        appMaxVersion: this.appMaxVersion().trim() || null
       },
       connector: {
         displayName: this.connectorName(),

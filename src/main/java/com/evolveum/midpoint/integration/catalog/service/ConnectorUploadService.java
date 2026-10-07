@@ -42,6 +42,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -198,6 +199,7 @@ public class ConnectorUploadService {
         integrationMethod.setLifecycleState(LifecycleType.IN_REVIEW);
         integrationMethod.setMidpointMinVersionId(imDto.midpointMinVersion());
         integrationMethod.setMidpointMaxVersionId(imDto.midpointMaxVersion());
+        setApplicationVersionRange(integrationMethod, imDto.appMinVersion(), imDto.appMaxVersion());
 
         if (imDto.displayName() != null) {
             integrationMethod.setDisplayName(imDto.displayName());
@@ -280,6 +282,12 @@ public class ConnectorUploadService {
         // to the connector, the other two to the bundle version that is built from them.
         bundle.setLifecycleState(LifecycleType.IN_REVIEW);
         return bundle;
+    }
+
+    /** Saves the range as given; it is free text, checked neither against the application's versions nor for order. */
+    private static void setApplicationVersionRange(IntegrationMethod method, String min, String max) {
+        method.setAppMinVersion(min == null || min.isBlank() ? null : min.trim());
+        method.setAppMaxVersion(max == null || max.isBlank() ? null : max.trim());
     }
 
     private ConnectorBundleVersion createBundleVersion(UploadConnectorDto dto, ConnectorBundle bundle, String username) {
@@ -540,7 +548,6 @@ public class ConnectorUploadService {
         // Supported midPoint version range comes from the edit form (prefilled from the source revision).
         updated.setMidpointMinVersionId(dto.midpointMinVersion());
         updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
-        updated.setAppVersion(existing.getAppVersion());
         String tutorialFolder;
         if (rewriteExisting) {
             // Move the single tutorial folder over to the bumped revision and point file_path at it.
@@ -558,6 +565,7 @@ public class ConnectorUploadService {
         if (dto != null) {
             updated.setMidpointMinVersionId(dto.midpointMinVersion());
             updated.setMidpointMaxVersionId(dto.midpointMaxVersion());
+            setApplicationVersionRange(updated, dto.appMinVersion(), dto.appMaxVersion());
             updated.setDisplayName(dto.displayName());
             updated.setDescription(dto.description());
             updated.setLimitations(dto.limitations());
@@ -565,6 +573,8 @@ public class ConnectorUploadService {
         } else {
             updated.setMidpointMinVersionId(existing.getMidpointMinVersionId());
             updated.setMidpointMaxVersionId(existing.getMidpointMaxVersionId());
+            updated.setAppMinVersion(existing.getAppMinVersion());
+            updated.setAppMaxVersion(existing.getAppMaxVersion());
             updated.setDisplayName(existing.getDisplayName());
             updated.setDescription(existing.getDescription());
             updated.setLimitations(existing.getLimitations());

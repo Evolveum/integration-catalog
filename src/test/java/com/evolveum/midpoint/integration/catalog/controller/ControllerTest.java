@@ -352,7 +352,10 @@ class ControllerTest {
                 "test@example.com",
                 false,
                 "Test User",
-                List.of(new RequestFormDto.ObjectClassCapabilityEntry("Account", List.of("READ", "SEARCH"), false))
+                List.of(new IntegrationMethodObjectCapabilitiesDto("Account", List.of(
+                        new IntegrationMethodCapabilityStateDto("READ", CapabilityState.YES),
+                        new IntegrationMethodCapabilityStateDto("SEARCH", CapabilityState.YES),
+                        new IntegrationMethodCapabilityStateDto("DELETE", CapabilityState.NO))))
         );
 
         when(applicationService.createRequestFromForm(any(RequestFormDto.class), anyString()))

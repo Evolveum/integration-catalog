@@ -28,7 +28,8 @@
 </div>
 }
 
-<div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder">
+<div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder"
+  [class.page-header-transparent]="transparentAtTop && scrolledToTop()">
   <!-- Left: logo + title (links back to the homepage) -->
   <a class="d-flex align-items-center gap-2 header-brand" routerLink="/applications">
     <img src="assets/277-276-max.png" alt="" class="header-logo">
@@ -69,11 +70,16 @@
 
         @if (menuOpen()) {
           <div class="user-menu" role="menu">
-<!--            <button class="user-menu-item" type="button" role="menuitem"-->
-<!--              (click)="openComingSoon('My integration methods')">My integration methods</button>-->
-<!--            <button class="user-menu-item" type="button" role="menuitem"-->
-<!--              (click)="openComingSoon('My connectors')">My connectors</button>-->
-<!--            <div class="user-menu-separator"></div>-->
+            <!-- A superuser sees every method and connector in the catalog instead of their own, plus the approval queue. -->
+            @if (isSuperuser()) {
+              <a class="user-menu-item" role="menuitem" routerLink="/all-integration-methods" (click)="closeMenu()">All integration methods</a>
+              <a class="user-menu-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
+              <a class="user-menu-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
+            } @else {
+              <a class="user-menu-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
+              <a class="user-menu-item" role="menuitem" routerLink="/my-connectors" (click)="closeMenu()">My connectors</a>
+            }
+            <div class="user-menu-separator"></div>
             <a class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
             <div class="user-menu-separator"></div>
             <button class="user-menu-item user-menu-item-danger" type="button" role="menuitem" (click)="logout()">

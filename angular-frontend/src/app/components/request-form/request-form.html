@@ -174,7 +174,7 @@
             <!-- Configure capabilities -->
             <div class="mb-3">
               <label class="form-label form-label-bold">Configure requested capabilities for:</label>
-              <app-capability-picker (capabilitiesChange)="onCapabilitiesChange($event)"></app-capability-picker>
+              <app-im-capability-picker (capabilitiesChange)="onCapabilitiesChange($event)"></app-im-capability-picker>
             </div>
 
             </div>
@@ -193,7 +193,7 @@
               <button type="button" class="btn btn-cancel" (click)="closeRequestModal()" [disabled]="isSubmitting()">
                 <span class="btn-cancel-text">Cancel</span>
               </button>
-              <button type="button" class="btn btn-submit" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description || !formData.integrationNeed">
+              <button type="button" class="btn btn-submit" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description || !formData.integrationNeed || !capabilitiesValid()">
                 {{ isSubmitting() ? 'Submitting...' : 'Submit request' }}
               </button>
             </div>

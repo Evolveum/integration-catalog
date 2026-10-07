@@ -10,13 +10,9 @@ import { ApplicationService } from '../../services/application.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { CapabilityState, IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
 
-/**
- * Every object sent supports something (the backend rule), and there is at least one object unless
- * {@code allowNone}: a superuser may publish a method without capabilities. The backend never
- * required an object, so that exception lives here only.
- */
-export function imCapabilitiesValid(groups: IntegrationMethodObjectCapabilities[], allowNone = false): boolean {
-  return (allowNone || groups.length > 0) && groups.every(g => g.capabilities.some(c => c.state === 'YES'));
+/** Every object sent supports something (the backend rule); a method may have no objects at all. */
+export function imCapabilitiesValid(groups: IntegrationMethodObjectCapabilities[]): boolean {
+  return groups.every(g => g.capabilities.some(c => c.state === 'YES'));
 }
 
 interface Entry {
@@ -42,8 +38,6 @@ function newEntry(): Entry {
 })
 export class ImCapabilityPicker implements OnInit, OnChanges {
   @Input() initialCapabilities: IntegrationMethodObjectCapabilities[] = [];
-  /** Only marks the heading; validity is checked by the parent via {@link imCapabilitiesValid}. */
-  @Input() required = false;
   @Output() capabilitiesChange = new EventEmitter<IntegrationMethodObjectCapabilities[]>();
 
   protected readonly stateOptions: { value: CapabilityState; label: string; icon: string }[] = [
@@ -99,9 +93,15 @@ export class ImCapabilityPicker implements OnInit, OnChanges {
     this.entries.set(merged.length > 0 ? merged : [newEntry()]);
   }
 
+  public reset(): void {
+    this.entries.set([newEntry()]);
+    this.capabilitiesChange.emit([]);
+  }
+
   private emit(): void {
     this.capabilitiesChange.emit(this.entries()
-      .filter(e => e.objectClass)
+      // A row without a name is not an object yet (the backend skips a blank one too).
+      .filter(e => e.objectClass.trim())
       .map(e => ({
         objectClass: e.objectClass,
         capabilities: this.available().map(name => ({ name, state: this.stateOf(e, name) }))

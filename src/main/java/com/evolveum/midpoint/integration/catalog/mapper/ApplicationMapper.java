@@ -198,6 +198,8 @@ public class ApplicationMapper {
                             downloadCount,
                             method.getMidpointMinVersionId(),
                             method.getMidpointMaxVersionId(),
+                            method.getAppMinVersion(),
+                            method.getAppMaxVersion(),
                             connectorDisplayName,
                             integMethodTypes,
                             method.getRevision(),
@@ -211,7 +213,9 @@ public class ApplicationMapper {
                             method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
                             includedConnectors,
                             supportTicketId,
-                            supportTicketUrl
+                            supportTicketUrl,
+                            method.supportTier(),
+                            !method.linkedConnectors().isEmpty()
                     );
                 })
                 .toList();
@@ -358,6 +362,10 @@ public class ApplicationMapper {
                 .requestedIntegrationMethodType(requestedIntegrationMethodType)
                 .frameworks(frameworks)
                 .objectClassCapabilities(objectClassCapabilities)
+                .versions(app.getVersions().stream()
+                        .sorted(ApplicationVersion.ORDER)
+                        .map(ApplicationVersionDto::of)
+                        .toList())
                 .build();
     }
 
@@ -445,15 +453,20 @@ public class ApplicationMapper {
             }
         }
 
-        String currentMidpointVersion = null;
-        Optional<MidpointVersion> currentVersionOpt = midpointVersionRepository.findByIsCurrentTrue();
-        if (currentVersionOpt.isPresent() && app.getIntegrationMethods() != null) {
-            Integer currentVersionId = currentVersionOpt.get().getId();
-            boolean hasCurrentVersion = app.getIntegrationMethods().stream()
-                    .anyMatch(m -> LifecycleType.ACTIVE == m.getLifecycleState()
-                               && currentVersionId.equals(m.getMidpointMinVersionId()));
-            if (hasCurrentVersion) {
-                currentMidpointVersion = currentVersionOpt.get().getVersion();
+        // The versions the app's methods start at; when the user filters by a midPoint version the app
+        // doesn't run on, the catalog shows "Available since" with the earliest of these above it.
+        List<String> sinceMidpointVersions = null;
+        if (app.getIntegrationMethods() != null) {
+            sinceMidpointVersions = app.getIntegrationMethods().stream()
+                    .filter(m -> LifecycleType.ACTIVE == m.getLifecycleState())
+                    .map(IntegrationMethod::getMidpointMinVersionId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted()
+                    .map(String::valueOf)
+                    .toList();
+            if (sinceMidpointVersions.isEmpty()) {
+                sinceMidpointVersions = null;
             }
         }
 
@@ -504,7 +517,7 @@ public class ApplicationMapper {
                 voteCount,
                 frameworks,
                 midpointVersions.isEmpty() ? null : midpointVersions,
-                currentMidpointVersion,
+                sinceMidpointVersions,
                 integrationMethodTypes,
                 maintainers
         );
