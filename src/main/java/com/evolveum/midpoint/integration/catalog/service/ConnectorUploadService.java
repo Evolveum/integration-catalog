@@ -309,20 +309,7 @@ public class ConnectorUploadService {
         cbv.setGitCloneUrl(dto.gitCloneUrl());
         cbv.setCommitTag(dto.commitTag());
         cbv.setLifecycleState(LifecycleType.IN_REVIEW);
-        cbv.setSupportTier(previousSupportTier(bundle));
         return cbv;
-    }
-
-    /** Tier of the bundle's most recently updated version, which a new version of it starts with. */
-    private static SupportTier previousSupportTier(ConnectorBundle bundle) {
-        if (bundle == null || bundle.getId() == null) {
-            return null;
-        }
-        return bundle.getBundleVersions().stream()
-                .max(Comparator.comparing(ConnectorBundleVersion::getUpdated,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
-                .map(ConnectorBundleVersion::getSupportTier)
-                .orElse(null);
     }
 
     private ConnectorVersion createConnectorVersion(UploadConnectorDto dto, Connector connector,
@@ -1273,7 +1260,6 @@ public class ConnectorUploadService {
                         : (baseCbv != null ? baseCbv.getBuildFramework() : null));
                 cbv.setGitCloneUrl(bundle != null ? bundle.getGitCloneUrl()
                         : (baseCbv != null ? baseCbv.getGitCloneUrl() : null));
-                cbv.setSupportTier(baseCbv != null ? baseCbv.getSupportTier() : previousSupportTier(bundle));
                 connectorBundleVersionRepository.save(cbv);
             }
 

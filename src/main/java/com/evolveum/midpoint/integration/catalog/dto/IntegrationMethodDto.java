@@ -46,6 +46,6 @@ public record IntegrationMethodDto(
         List<IncludedConnectorDto> connectors,                      // connectors linked via integration_method_connector
         Integer supportTicketId,                                    // integration_method.support_ticket_id, only for those allowed to see it
         String supportTicketUrl,                                    // generated from supportTicketId
-        SupportTier supportTier,                                    // connector_bundle_version.support_tier of the latest one, null = not tiered
-        boolean hasConnectorBundle                                  // false = no bundle version to hold a tier, so it cannot be set
+        SupportTier supportTier,                                    // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+        boolean hasConnectorBundle                                  // false = no connector to hold a tier, so it cannot be set
 ) {}

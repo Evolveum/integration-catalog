@@ -323,8 +323,8 @@
               <div class="ss-group-text">
                 <div class="ss-group-name d-flex flex-wrap align-items-center gap-2">
                   {{ group.displayName }}
-                  @for (tag of group.tags; track tag) {
-                    <span class="conn-tag">{{ tag }}</span>
+                  @for (tag of group.tags; track tag.name) {
+                    <span class="conn-tag" [class]="tierClass(tag)">{{ tag.displayName }}</span>
                   }
                 </div>
                 <div class="ss-group-sub">
@@ -360,6 +360,20 @@
                   <i class="fa-solid fa-plus"></i>New version
                 </button>
               }
+              @if (allConnectors) {
+                <div class="ss-menu-wrap" [class.ss-menu-open]="openMenuKey() === 'group:' + group.id">
+                  <button type="button" class="ss-kebab" aria-haspopup="menu" aria-label="Connector actions"
+                          [attr.aria-expanded]="openMenuKey() === 'group:' + group.id"
+                          (click)="toggleMenu('group:' + group.id)">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
+                  @if (openMenuKey() === 'group:' + group.id) {
+                    <div class="ss-menu ss-menu-right" role="menu">
+                      <button type="button" class="ss-menu-item" role="menuitem" (click)="openTags(group)">Tags</button>
+                    </div>
+                  }
+                </div>
+              }
             </div>
 
             @if (!isCollapsed(group.id)) {
@@ -370,9 +384,6 @@
                     <th>Author</th>
                     <th class="conn-col-uploaded">Uploaded</th>
                     <th class="conn-col-usage">Usage</th>
-                    @if (allConnectors) {
-                      <th class="conn-col-tier">Support tier</th>
-                    }
                   </tr>
                 </thead>
                 <tbody>
@@ -421,23 +432,6 @@
                           @default { Used in {{ version.usedBy.length }} integration methods }
                         }
                       </td>
-                      @if (allConnectors) {
-                        <td>
-                          @if (version.bundleVersionId !== null) {
-                            <select class="form-select form-select-sm conn-tier-select"
-                                    [class]="'tier-' + (version.supportTier ?? 'none').toLowerCase()"
-                                    aria-label="Support tier" (change)="onSupportTierChange(version, $event)">
-                              <!-- [selected] per option: a [value] on the select lands before the @for options exist. -->
-                              <option value="" [selected]="!version.supportTier">No tier</option>
-                              @for (t of supportTiers; track t.value) {
-                                <option [value]="t.value" [selected]="t.value === version.supportTier">{{ t.label }}</option>
-                              }
-                            </select>
-                          } @else {
-                            <span class="ss-muted">—</span>
-                          }
-                        </td>
-                      }
                     </tr>
                     @if (version.usedBy.length > 1 && expandedUsages().has(key)) {
                       <!-- The list sits under the Usage cell it expands. -->
@@ -450,9 +444,6 @@
                               {{ usage.displayName }} (v{{ usage.revision }})</a>
                           }
                         </td>
-                        @if (allConnectors) {
-                          <td></td>
-                        }
                       </tr>
                     }
                   }
@@ -469,4 +460,10 @@
 
 @if (openMenuKey()) {
   <div class="ss-click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+}
+
+@if (tagsGroup(); as group) {
+  <app-connector-tags-modal [connectorName]="group.displayName" [tier]="group.supportTier" [obsolete]="group.obsolete"
+                            [processing]="tagsSaving()" [error]="tagsError()"
+                            (save)="saveTags($event)" (close)="closeTags()"/>
 }

@@ -486,9 +486,9 @@ export class ApplicationService {
     return this.http.get<IntegrationMethodTier[]>(`${environment.apiUrl}/integration-methods/tiers`);
   }
 
-  /** Sets the tier of a connector bundle version, all its revisions; null removes it (superuser). */
-  setSupportTier(bundleVersionId: number, tier: SupportTier | null): Observable<void> {
-    return this.http.put<void>(`${environment.apiUrl}/all-connectors/bundle-versions/${bundleVersionId}/tier`, { tier });
+  /** Sets the support tier (null removes it) and the obsolete tag of a connector (superuser). */
+  setConnectorTags(connectorId: number, tier: SupportTier | null, obsolete: boolean): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/all-connectors/${connectorId}/tags`, { tier, obsolete });
   }
 
   setApplicationFeatured(applicationId: string, featured: boolean): Observable<void> {

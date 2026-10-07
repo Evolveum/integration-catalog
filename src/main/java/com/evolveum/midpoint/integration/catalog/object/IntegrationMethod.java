@@ -154,24 +154,21 @@ public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintaine
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodConnector> connectors = new ArrayList<>();
 
-    /** Every bundle version of the connectors this revision links to; they hold its support tier. */
-    public List<ConnectorBundleVersion> connectorBundleVersions() {
+    /** The connectors this revision links to; they hold its support tier. */
+    public List<Connector> linkedConnectors() {
         return connectors.stream()
                 .map(IntegrationMethodConnector::getConnector)
-                .filter(Objects::nonNull)
-                .flatMap(c -> c.getConnectorVersions().stream())
-                .map(ConnectorVersion::getConnectorBundleVersion)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
     }
 
-    /** The tier of the most recently updated bundle version; null = not tiered or no connector bundle. */
+    /** The tier of the most recently updated tiered connector; null = not tiered or no connector. */
     public SupportTier supportTier() {
-        return connectorBundleVersions().stream()
-                .max(Comparator.comparing(ConnectorBundleVersion::getUpdated,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
-                .map(ConnectorBundleVersion::getSupportTier)
+        return linkedConnectors().stream()
+                .filter(c -> c.supportTier() != null)
+                .max(Comparator.comparing(Connector::getUpdated, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(Connector::supportTier)
                 .orElse(null);
     }
 }

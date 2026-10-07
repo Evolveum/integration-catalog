@@ -17,6 +17,9 @@ import java.util.Set;
 @Getter @Setter
 public class ConnectorTag {
 
+    /** Legacy connector: still allowed and counted, but the catalog warns about it. */
+    public static final String OBSOLETE = "obsolete";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

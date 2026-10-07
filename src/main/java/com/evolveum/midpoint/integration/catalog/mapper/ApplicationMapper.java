@@ -222,7 +222,7 @@ public class ApplicationMapper {
                             supportTicketId,
                             supportTicketUrl,
                             method.supportTier(),
-                            !method.connectorBundleVersions().isEmpty()
+                            !method.linkedConnectors().isEmpty()
                     );
                 })
                 .toList();

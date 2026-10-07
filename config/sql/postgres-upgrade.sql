@@ -689,6 +689,35 @@ ALTER TABLE ONLY gravitee_api_key
 
 $aa$);
 
+-- region change 23: support tier as a connector tag
+-- The support tier moves from connector_bundle_version to the connector, held as a connector tag:
+-- one tag per tier under a fixed name the code knows (SupportTier), display_name being the tier's
+-- label. Each connector takes the tier of its most recently updated bundle version, the rule the
+-- catalog already used to show a method's tier, so nothing visible changes.
+call apply_change(23, $aa$
+INSERT INTO connector_tag (name, display_name) VALUES
+    ('supp_tier_standard', 'Standard'),
+    ('supp_tier_advanced', 'Advanced'),
+    ('supp_tier_premium', 'Premium');
+
+INSERT INTO connector_connector_tag (connector_id, tag_id)
+SELECT newest.connector_id, t.id
+  FROM (SELECT DISTINCT ON (cv.connector_id) cv.connector_id, cbv.support_tier
+          FROM connector_version cv
+          JOIN connector_bundle_version cbv ON cbv.id = cv.connector_bundle_version_id
+         WHERE cv.connector_id IS NOT NULL
+         ORDER BY cv.connector_id, cbv.updated DESC) newest
+  JOIN connector_tag t ON t.name = CASE newest.support_tier::text
+                                     WHEN 'STANDARD' THEN 'supp_tier_standard'
+                                     WHEN 'ADVANCED' THEN 'supp_tier_advanced'
+                                     WHEN 'PREMIUM' THEN 'supp_tier_premium'
+                                   END;
+
+ALTER TABLE connector_bundle_version DROP COLUMN support_tier;
+DROP TYPE SupportTier;
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

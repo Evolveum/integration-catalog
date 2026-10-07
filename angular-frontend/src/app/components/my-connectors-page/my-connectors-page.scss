@@ -17,24 +17,6 @@
   width: 34%;
 }
 
-.conn-col-tier {
-  width: 16%;
-}
-
-.conn-tier-select {
-  width: auto;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding-top: 0.1rem;
-  padding-bottom: 0.1rem;
-}
-
-// Same tier colors as the badges on the application page.
-.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
-.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
-.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
-.tier-none     { color: #6c757d; }
-
 .conn-tag {
   padding: 0.05rem 0.4rem;
   border: 1px solid $color-border-light;
@@ -45,6 +27,11 @@
   color: $color-text-secondary;
   white-space: nowrap;
 }
+
+// A tier tag keeps the chip shape in the tier's colors, the same as the badges on the application page.
+.conn-tag.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.conn-tag.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.conn-tag.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
 
 .conn-maintainer {
   overflow-wrap: anywhere;

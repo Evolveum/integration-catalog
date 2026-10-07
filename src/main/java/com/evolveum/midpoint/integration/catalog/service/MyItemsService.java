@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
+import com.evolveum.midpoint.integration.catalog.dto.ConnectorTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.MyConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.MyIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.object.*;
@@ -185,17 +186,16 @@ public class MyItemsService {
                 ownershipService.toDto(method.getMaintainer()));
     }
 
-    private static List<String> tagNames(Connector connector) {
+    private static List<ConnectorTagDto> tags(Connector connector) {
         if (connector.getConnectorConnectorTags() == null) {
             return List.of();
         }
         return connector.getConnectorConnectorTags().stream()
                 .map(ConnectorConnectorTag::getConnectorTag)
-                .filter(Objects::nonNull)
-                .map(ConnectorTag::getDisplayName)
-                .filter(Objects::nonNull)
+                .filter(tag -> tag != null && tag.getDisplayName() != null)
                 .distinct()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .sorted(Comparator.comparing(ConnectorTag::getDisplayName, String.CASE_INSENSITIVE_ORDER))
+                .map(tag -> new ConnectorTagDto(tag.getName(), tag.getDisplayName()))
                 .toList();
     }
 
@@ -233,15 +233,13 @@ public class MyItemsService {
                 connector.getId(),
                 displayName(connector),
                 ownershipService.toDto(connector.getMaintainer()),
-                tagNames(connector),
+                tags(connector),
                 versions.stream()
                         .map(v -> new MyConnectorDto.Version(
                                 versionOf(v),
                                 v.getAuthor() != null ? v.getAuthor().getUsername() : null,
                                 toDate(v.getCreatedAt()),
                                 v.getLifecycleState() != null ? v.getLifecycleState().name() : null,
-                                v.getConnectorBundleVersion() != null ? v.getConnectorBundleVersion().getId() : null,
-                                v.getConnectorBundleVersion() != null ? v.getConnectorBundleVersion().getSupportTier() : null,
                                 usages.getOrDefault(v, List.of()).stream()
                                         .sorted(Comparator
                                                 .comparing((MyConnectorDto.Usage u) -> nullToEmpty(u.displayName()),

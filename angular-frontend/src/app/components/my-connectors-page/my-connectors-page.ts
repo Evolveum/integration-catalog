@@ -11,9 +11,11 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { ApplicationService } from '../../services/application.service';
 import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
-import { SUPPORT_TIERS, SupportTier } from '../../core/support-tier';
+import { SUPPORT_TIERS, SupportTier, supportTierOfTag } from '../../core/support-tier';
 import { Pager } from '../pager/pager';
+import { ConnectorTagsChange, ConnectorTagsModal } from '../connector-tags-modal/connector-tags-modal';
 import { MyConnector, MyConnectorVersion } from '../../models/my-items.model';
+import { ConnectorTag, OBSOLETE_CONNECTOR_TAG, isObsoleteConnector } from '../../models/connector-tag.model';
 import {
   MAINTAINER_CATEGORY_LABELS, MaintainerCategory, maintainerFilterOptions, maintainerKey, maintainerLabel
 } from '../../models/maintainer.model';
@@ -25,7 +27,9 @@ interface ConnectorGroup {
   maintainerKey: string;
   maintainerLabel: string;
   maintainerCategory: MaintainerCategory | null;
-  tags: string[];
+  tags: ConnectorTag[];
+  supportTier: SupportTier | null;
+  obsolete: boolean;
   latestVersion: string | null;
   versionCount: number;
   usedByCount: number;
@@ -41,10 +45,10 @@ interface ConnectorGroup {
 @Component({
   selector: 'app-my-connectors-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeader, Pager],
+  imports: [CommonModule, RouterLink, PageHeader, Pager, ConnectorTagsModal],
   templateUrl: './my-connectors-page.html',
   styleUrls: ['./my-connectors-page.scss'],
-  host: { '(document:keydown.escape)': 'closeMenu()' }
+  host: { '(document:keydown.escape)': 'closeMenu(); closeTags()' }
 })
 export class MyConnectorsPage {
   private readonly router = inject(Router);
@@ -91,6 +95,10 @@ export class MyConnectorsPage {
   /** `<connectorId>:<version>` of the version rows whose usage list is open. */
   protected readonly expandedUsages = signal<ReadonlySet<string>>(new Set());
   protected readonly openMenuKey = signal<string | null>(null);
+  /** The connector whose Tags modal is open. */
+  protected readonly tagsGroup = signal<ConnectorGroup | null>(null);
+  protected readonly tagsSaving = signal(false);
+  protected readonly tagsError = signal('');
 
   /** Hidden until it is decided how a new connector version is added; flip to show it again. */
   protected readonly showNewVersion = false;
@@ -105,6 +113,8 @@ export class MyConnectorsPage {
         maintainerLabel: maintainerLabel(c.maintainer),
         maintainerCategory: c.maintainer?.category ?? null,
         tags: c.tags ?? [],
+        supportTier: (c.tags ?? []).map(t => supportTierOfTag(t.name)).find(t => !!t) ?? null,
+        obsolete: isObsoleteConnector(c.tags),
         latestVersion: c.versions[0]?.version ?? null,
         versionCount: c.versions.length,
         usedByCount: new Set(usages.map(u => u.integrationMethodId)).size,
@@ -127,7 +137,7 @@ export class MyConnectorsPage {
       .filter(g => !maintainers.size || maintainers.has(g.maintainerKey))
       .filter(g => !category || g.maintainerCategory === category)
       .filter(g => !applications.size || [...applications].some(id => g.applicationIds.has(id)))
-      .filter(g => !tags.size || g.tags.some(tag => tags.has(tag)))
+      .filter(g => !tags.size || g.tags.some(tag => tags.has(tag.displayName)))
       .filter(g => !query || (g.displayName ?? '').toLowerCase().includes(query))
       .map(g => ({
         ...g,
@@ -170,7 +180,7 @@ export class MyConnectorsPage {
       .sort((a, b) => a.localeCompare(b)));
 
   protected readonly tagOptions = computed(() =>
-    [...new Set((this.connectors() ?? []).flatMap(c => c.tags ?? []))].sort((a, b) => a.localeCompare(b)));
+    [...new Set((this.connectors() ?? []).flatMap(c => (c.tags ?? []).map(t => t.displayName)))].sort((a, b) => a.localeCompare(b)));
 
   protected readonly maintainerOptions = computed(() =>
     maintainerFilterOptions((this.connectors() ?? []).map(c => c.maintainer)));
@@ -317,27 +327,43 @@ export class MyConnectorsPage {
     this.openMenuKey.set(null);
   }
 
-  /** A new connector version has no flow outside an integration method yet. */
-  protected readonly supportTiers = SUPPORT_TIERS;
+  protected openTags(group: ConnectorGroup): void {
+    this.closeMenu();
+    this.tagsError.set('');
+    this.tagsGroup.set(group);
+  }
 
-  /** Superuser's pick in a version row; '' clears the tier. Every version sharing the bundle version follows. */
-  protected onSupportTierChange(version: MyConnectorVersion, event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const bundleVersionId = version.bundleVersionId;
-    if (bundleVersionId === null) return;
-    const tier = (select.value || null) as SupportTier | null;
-    this.applicationService.setSupportTier(bundleVersionId, tier).subscribe({
-      next: () => this.connectors.update(connectors => (connectors ?? []).map(c => ({
-        ...c,
-        versions: c.versions.map(v => v.bundleVersionId === bundleVersionId ? { ...v, supportTier: tier } : v)
-      }))),
+  protected closeTags(): void {
+    if (!this.tagsSaving()) this.tagsGroup.set(null);
+  }
+
+  /** Colors a tier tag like the tier badges; '' for an ordinary tag. */
+  protected tierClass(tag: ConnectorTag): string {
+    const tier = supportTierOfTag(tag.name);
+    return tier ? 'tier-' + tier.toLowerCase() : '';
+  }
+
+  /** The modal's Save: swaps the connector's tier and obsolete tags, here as on the server. */
+  protected saveTags(change: ConnectorTagsChange): void {
+    const group = this.tagsGroup();
+    if (!group) return;
+    this.tagsSaving.set(true);
+    this.tagsError.set('');
+    this.applicationService.setConnectorTags(group.id, change.tier, change.obsolete).subscribe({
+      next: () => {
+        this.connectors.update(connectors => (connectors ?? []).map(c =>
+          c.id === group.id ? { ...c, tags: withManagedTags(c.tags ?? [], change) } : c));
+        this.tagsSaving.set(false);
+        this.tagsGroup.set(null);
+      },
       error: () => {
-        select.value = version.supportTier ?? '';
-        this.toastService.show('Support tier not saved', 'Setting the support tier failed. Please try again.', 'danger');
+        this.tagsSaving.set(false);
+        this.tagsError.set('Saving the tags failed. Please try again.');
       }
     });
   }
 
+  /** A new connector version has no flow outside an integration method yet. */
   protected comingSoon(label: string): void {
     this.toastService.show(label, 'This is not available yet. Connectors are added through an integration method.', 'info');
   }
@@ -350,6 +376,15 @@ export class MyConnectorsPage {
       this.router.navigate(['/applications']);
     }
   }
+}
+
+/** The tags with the tier and obsolete tags set as in {@code change}; sorted as the server sends them. */
+function withManagedTags(tags: ConnectorTag[], change: ConnectorTagsChange): ConnectorTag[] {
+  const others = tags.filter(t => !supportTierOfTag(t.name) && t.name !== OBSOLETE_CONNECTOR_TAG);
+  const tierTag = SUPPORT_TIERS.filter(t => t.value === change.tier).map(t => ({ name: t.tagName, displayName: t.label }));
+  const obsoleteTag = change.obsolete ? [{ name: OBSOLETE_CONNECTOR_TAG, displayName: 'Obsolete' }] : [];
+  return [...others, ...tierTag, ...obsoleteTag]
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
 }
 
 /** A copy of the set with the value added, or removed when it was there. */

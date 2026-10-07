@@ -5,7 +5,7 @@
  */
 
 import { Maintainer } from './maintainer.model';
-import { SupportTier } from '../core/support-tier';
+import { ConnectorTag } from './connector-tag.model';
 
 /** GET /api/auth/me/integration-methods: one revision of a method the current user maintains. */
 export interface MyIntegrationMethod {
@@ -35,8 +35,8 @@ export interface MyConnector {
   id: number;
   displayName: string | null;
   maintainer: Maintainer;
-  /** Tag display names, sorted. */
-  tags: string[];
+  /** Sorted by display name; supp_tier_* ones hold the support tier. */
+  tags: ConnectorTag[];
   /** Newest first. */
   versions: MyConnectorVersion[];
 }
@@ -47,9 +47,6 @@ export interface MyConnectorVersion {
   author: string | null;
   uploaded: string | null;
   lifecycleState: string | null;
-  /** Where the support tier is stored; null when the version has no bundle version. */
-  bundleVersionId: number | null;
-  supportTier: SupportTier | null;
   usedBy: MyConnectorUsage[];
 }
 

@@ -7,7 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.MyConnectorDto;
-import com.evolveum.midpoint.integration.catalog.dto.SupportTierDto;
+import com.evolveum.midpoint.integration.catalog.dto.ConnectorTagsDto;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.MyItemsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,15 +50,16 @@ public class AllConnectorsController {
         return ResponseEntity.ok(myItemsService.allConnectors());
     }
 
-    @Operation(summary = "Set or clear the support tier of a connector bundle version, all revisions — superuser only")
+    @Operation(summary = "Set the support tier and obsolete tag of a connector — superuser only")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Tier set"),
+            @ApiResponse(responseCode = "200", description = "Tags set"),
+            @ApiResponse(responseCode = "400", description = "Obsolete together with a support tier"),
             @ApiResponse(responseCode = "403", description = "Not a superuser"),
-            @ApiResponse(responseCode = "404", description = "No such bundle version")
+            @ApiResponse(responseCode = "404", description = "No such connector")
     })
-    @PutMapping("/bundle-versions/{bundleVersionId}/tier")
-    public ResponseEntity<Void> setSupportTier(@PathVariable Integer bundleVersionId, @RequestBody SupportTierDto dto) {
-        applicationService.setSupportTier(bundleVersionId, dto.tier());
+    @PutMapping("/{connectorId}/tags")
+    public ResponseEntity<Void> setConnectorTags(@PathVariable Integer connectorId, @RequestBody ConnectorTagsDto dto) {
+        applicationService.setConnectorTags(connectorId, dto.tier(), dto.obsolete());
         return ResponseEntity.ok().build();
     }
 }

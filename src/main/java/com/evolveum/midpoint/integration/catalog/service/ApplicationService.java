@@ -53,7 +53,6 @@ public class ApplicationService {
     private final IntegrationMethodRepository integrationMethodRepository;
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
     private final MidpointVersionRepository midpointVersionRepository;
-    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final GithubProperties githubProperties;
     private final JenkinsProperties jenkinsProperties;
     private final DownloadRepository downloadRepository;
@@ -77,6 +76,7 @@ public class ApplicationService {
     private final OrganizationService organizationService;
     private final OwnershipService ownershipService;
     private final ApplicationVersionRepository applicationVersionRepository;
+    private final ConnectorTagRepository connectorTagRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -85,7 +85,6 @@ public class ApplicationService {
                               IntegrationMethodTypeRepository integrationMethodTypeRepository,
                               MidpointVersionRepository midpointVersionRepository,
                               ConnectorBundleRepository connectorBundleRepository,
-                              ConnectorBundleVersionRepository connectorBundleVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
                               DownloadRepository downloadRepository,
@@ -106,9 +105,11 @@ public class ApplicationService {
                               AuthService authService,
                               OrganizationService organizationService,
                               OwnershipService ownershipService,
-                              ApplicationVersionRepository applicationVersionRepository) {
+                              ApplicationVersionRepository applicationVersionRepository,
+                              ConnectorTagRepository connectorTagRepository) {
         this.organizationService = organizationService;
         this.applicationVersionRepository = applicationVersionRepository;
+        this.connectorTagRepository = connectorTagRepository;
         this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
@@ -116,7 +117,6 @@ public class ApplicationService {
         this.integrationMethodRepository = integrationMethodRepository;
         this.integrationMethodTypeRepository = integrationMethodTypeRepository;
         this.midpointVersionRepository = midpointVersionRepository;
-        this.connectorBundleVersionRepository = connectorBundleVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
         this.downloadRepository = downloadRepository;
@@ -770,12 +770,50 @@ public class ApplicationService {
         }
     }
 
-    /** Sets the tier of a connector bundle version; the methods using it show the tier of their newest one. */
+    /**
+     * Sets the superuser-set tags of a connector: swaps its tier tag (null clears it) and adds or
+     * removes the obsolete tag. Its pending edit clones follow, since a version-bump approval replaces
+     * the connector with one of them. An obsolete connector cannot have a tier.
+     */
     @Transactional
-    public void setSupportTier(Integer bundleVersionId, SupportTier tier) {
-        if (connectorBundleVersionRepository.updateSupportTier(bundleVersionId, tier != null ? tier.name() : null) == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Connector bundle version not found: " + bundleVersionId);
+    public void setConnectorTags(Integer connectorId, SupportTier tier, boolean obsolete) {
+        if (obsolete && tier != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An obsolete connector cannot have a support tier");
         }
+        Connector connector = connectorRepository.findById(connectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connector not found: " + connectorId));
+        List<ConnectorTag> wanted = new ArrayList<>();
+        if (tier != null) {
+            wanted.add(tagByName(tier.tagName()));
+        }
+        if (obsolete) {
+            wanted.add(tagByName(ConnectorTag.OBSOLETE));
+        }
+        replaceManagedTags(connector, wanted);
+        connectorRepository.findByClonedFrom(connectorId).forEach(clone -> replaceManagedTags(clone, wanted));
+    }
+
+    private ConnectorTag tagByName(String name) {
+        return connectorTagRepository.findByName(name)
+                .orElseThrow(() -> new IllegalStateException("No connector_tag row for " + name));
+    }
+
+    /** Replaces the tier and obsolete tags of the connector with {@code wanted}; its other tags stay. */
+    private void replaceManagedTags(Connector connector, List<ConnectorTag> wanted) {
+        if (connector.getConnectorConnectorTags() == null) {
+            connector.setConnectorConnectorTags(new HashSet<>());
+        }
+        Set<ConnectorConnectorTag> links = connector.getConnectorConnectorTags();
+        links.removeIf(link -> link.getConnectorTag() != null
+                && (SupportTier.fromTagName(link.getConnectorTag().getName()) != null
+                    || ConnectorTag.OBSOLETE.equals(link.getConnectorTag().getName())));
+        for (ConnectorTag tag : wanted) {
+            ConnectorConnectorTag link = new ConnectorConnectorTag();
+            link.setConnector(connector);
+            link.setConnectorTag(tag);
+            links.add(link);
+        }
+        connectorRepository.save(connector);
     }
 
     /** Every published method with its tier, for the support-tier overview; the grouping is the page's. */
@@ -790,7 +828,7 @@ public class ApplicationService {
                         m.getRevision(),
                         m.getDisplayName(),
                         m.supportTier(),
-                        !m.connectorBundleVersions().isEmpty()))
+                        !m.linkedConnectors().isEmpty()))
                 .toList();
     }
 

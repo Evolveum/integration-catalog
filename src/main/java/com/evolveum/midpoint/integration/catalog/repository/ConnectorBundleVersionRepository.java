@@ -41,16 +41,4 @@ public interface ConnectorBundleVersionRepository extends JpaRepository<Connecto
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from ConnectorBundleVersion v where v.id = :id and v.revision = :revision")
     int deleteRow(@Param("id") Integer id, @Param("revision") String revision);
-
-    /**
-     * Sets the tier on every revision of the bundle version, so a pending edit cannot fold an old
-     * tier back in on approve. Native, so {@code updated} is left alone: connector download picks
-     * the latest bundle version by it.
-     *
-     * @param tier a {@code SupportTier} name, null to clear
-     */
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query(value = "UPDATE connector_bundle_version SET support_tier = CAST(:tier AS SupportTier) WHERE id = :id",
-            nativeQuery = true)
-    int updateSupportTier(@Param("id") Integer id, @Param("tier") String tier);
 }
