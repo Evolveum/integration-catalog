@@ -29,8 +29,7 @@ public record ApplicationDto(
         String integrationNeed,                                            // request.integration_need
         String requestedIntegrationMethodType,                             // integration_method_type.display_name via request
         List<String> frameworks,                                           // connector_bundle.framework
-        List<ObjectClassCapabilityDto> objectClassCapabilities,            // object_class_capabilities
-        List<ApplicationVersionDto> versions                               // application_version, oldest first
+        List<ObjectClassCapabilityDto> objectClassCapabilities             // object_class_capabilities
 ) {
     public static Builder builder() {
         return new Builder();
@@ -56,7 +55,6 @@ public record ApplicationDto(
         private String requestedIntegrationMethodType;
         private List<String> frameworks;
         private List<ObjectClassCapabilityDto> objectClassCapabilities;
-        private List<ApplicationVersionDto> versions;
 
         public Builder id(UUID id) {
             this.id = id;
@@ -153,11 +151,6 @@ public record ApplicationDto(
             return this;
         }
 
-        public Builder versions(List<ApplicationVersionDto> versions) {
-            this.versions = versions;
-            return this;
-        }
-
         public ApplicationDto build() {
             return new ApplicationDto(
                     id,
@@ -178,8 +171,7 @@ public record ApplicationDto(
                     integrationNeed,
                     requestedIntegrationMethodType,
                     frameworks,
-                    objectClassCapabilities,
-                    versions
+                    objectClassCapabilities
             );
         }
     }

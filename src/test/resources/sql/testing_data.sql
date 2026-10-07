@@ -158,13 +158,6 @@ OVERRIDING SYSTEM VALUE VALUES
 -- application versions are free text)
 -- ============================================================
 
-INSERT INTO application_version (id, application_id, version)
-VALUES
-    (1, '11111111-1111-1111-1111-111111111111', '2024.1'),
-    (2, '11111111-1111-1111-1111-111111111111', '2024.2'),
-    (3, '11111111-1111-1111-1111-111111111111', '2025.1'),
-    (4, '11111111-1111-1111-1111-111111111111', '2025.2');
-
 INSERT INTO integration_method (id, application_id, display_name, description, limitations,
      tutorial, file_path, midpoint_minversion, midpoint_maxversion, lifecycle_state, revision,
      author, maintainer, created_at, updated, app_minversion, app_maxversion, reviewed_by)

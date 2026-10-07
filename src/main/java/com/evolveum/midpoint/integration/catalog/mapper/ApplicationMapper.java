@@ -369,10 +369,6 @@ public class ApplicationMapper {
                 .requestedIntegrationMethodType(requestedIntegrationMethodType)
                 .frameworks(frameworks)
                 .objectClassCapabilities(objectClassCapabilities)
-                .versions(app.getVersions().stream()
-                        .sorted(ApplicationVersion.ORDER)
-                        .map(ApplicationVersionDto::of)
-                        .toList())
                 .build();
     }
 

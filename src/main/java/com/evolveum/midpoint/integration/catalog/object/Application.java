@@ -81,10 +81,6 @@ public class Application {
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ApplicationOrigin> applicationOrigins;
 
-    /** Unordered; sort with {@link ApplicationVersion#ORDER}. */
-    @OneToMany(mappedBy = "application")
-    private List<ApplicationVersion> versions = new ArrayList<>();
-
     @Transient
     private List<String> origins;
 

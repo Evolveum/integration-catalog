@@ -75,7 +75,6 @@ public class ApplicationService {
     private final AuthService authService;
     private final OrganizationService organizationService;
     private final OwnershipService ownershipService;
-    private final ApplicationVersionRepository applicationVersionRepository;
     private final ConnectorTagRepository connectorTagRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
@@ -105,10 +104,8 @@ public class ApplicationService {
                               AuthService authService,
                               OrganizationService organizationService,
                               OwnershipService ownershipService,
-                              ApplicationVersionRepository applicationVersionRepository,
                               ConnectorTagRepository connectorTagRepository) {
         this.organizationService = organizationService;
-        this.applicationVersionRepository = applicationVersionRepository;
         this.connectorTagRepository = connectorTagRepository;
         this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
@@ -719,55 +716,7 @@ public class ApplicationService {
         if (dto.description() != null) {
             application.setDescription(dto.description());
         }
-        if (dto.versions() != null) {
-            syncVersions(application, dto.versions());
-        }
         return applicationRepository.save(application);
-    }
-
-    /**
-     * Makes the application's versions match {@code wanted}: a version with an id is kept (and renamed
-     * if its text changed), one without is added, and any other is removed.
-     */
-    private void syncVersions(Application application, List<ApplicationVersionDto> wanted) {
-        List<String> names = wanted.stream().map(v -> v.version().trim()).toList();
-        if (new HashSet<>(names).size() != names.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Application versions must be unique.");
-        }
-        Map<Integer, ApplicationVersion> existing = new HashMap<>();
-        application.getVersions().forEach(v -> existing.put(v.getId(), v));
-        Set<Integer> keptIds = new HashSet<>();
-        for (ApplicationVersionDto v : wanted) {
-            if (v.id() == null) {
-                continue;
-            }
-            if (!existing.containsKey(v.id())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Application version " + v.id() + " is not a version of this application.");
-            }
-            keptIds.add(v.id());
-        }
-
-        List<ApplicationVersion> removed = existing.values().stream()
-                .filter(v -> !keptIds.contains(v.getId()))
-                .toList();
-        // Removals and renames reach the database before additions, so a removed or renamed
-        // version's text can be reused in the same save without tripping the unique constraint.
-        application.getVersions().removeAll(removed);
-        applicationVersionRepository.deleteAll(removed);
-        applicationVersionRepository.flush();
-        for (ApplicationVersionDto v : wanted) {
-            if (v.id() != null) {
-                existing.get(v.id()).setVersion(v.version().trim());
-            }
-        }
-        applicationVersionRepository.flush();
-        for (ApplicationVersionDto v : wanted) {
-            if (v.id() == null) {
-                application.getVersions().add(applicationVersionRepository.save(
-                        new ApplicationVersion().setApplication(application).setVersion(v.version().trim())));
-            }
-        }
     }
 
     /**
