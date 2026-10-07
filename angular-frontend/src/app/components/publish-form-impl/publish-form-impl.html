@@ -434,7 +434,7 @@
                            [value]="devClassName()"
                            (input)="devClassName.set($any($event.target).value); onFieldChange()"
                            [disabled]="isExistingConnector"
-                           placeholder="e.g. org.identityconnectors.ldap.LdapConnector">
+                           placeholder="e.g., com.evolveum.polygon.connector.ldap.LdapConnector">
                   </div>
                   @if (isClassNameInvalid() && !isExistingConnector) {
                     <div class="field-error">Invalid format. Use a full Java class name with dots (e.g., com.project.ConnectorClass) and no spaces.</div>
