@@ -1152,5 +1152,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(21, $$ SELECT 1 $$, true);
+call apply_change(22, $$ SELECT 1 $$, true);
 -- end of region

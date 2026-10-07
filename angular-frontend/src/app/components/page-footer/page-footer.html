@@ -4,12 +4,12 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<ng-template #linkTpl let-item let-externalIcon="externalIcon">
+<ng-template #linkTpl let-item>
   @let t = target(item.link);
   @switch (t.kind) {
     @case ('external') {
       <a class="footer-link" [href]="t.href" target="_blank" rel="noopener noreferrer">
-        {{ item.label }}@if (externalIcon) {<i class="fa-solid fa-arrow-up-right-from-square footer-external-icon" aria-hidden="true"></i>}
+        {{ item.label }}
       </a>
     }
     @case ('internal') {
@@ -54,7 +54,7 @@
               <div class="footer-column-label">{{ column.label }}</div>
               <ul class="footer-list">
                 @for (item of column.items; track $index) {
-                  <li><ng-container *ngTemplateOutlet="linkTpl; context: { $implicit: item, externalIcon: true }" /></li>
+                  <li><ng-container *ngTemplateOutlet="linkTpl; context: { $implicit: item }" /></li>
                 }
               </ul>
             </div>
