@@ -57,6 +57,13 @@
 
 .tags-modal-select {
   font-weight: 600;
+
+  // Only the closed field takes the tier color; the open list stays plain white.
+  option {
+    background-color: $color-white;
+    color: $color-text-dark;
+    font-weight: normal;
+  }
 }
 
 .tags-modal-check {

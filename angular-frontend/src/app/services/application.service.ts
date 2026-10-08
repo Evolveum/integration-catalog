@@ -12,7 +12,7 @@ import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
-import { ApplicationDetail, ApplicationTag, ApplicationVersion, IntegrationMethodObjectCapabilities, IntegrationMethodTier } from '../models/application-detail.model';
+import { ApplicationDetail, ApplicationTag, IntegrationMethodObjectCapabilities, IntegrationMethodTier } from '../models/application-detail.model';
 import { SupportTier } from '../core/support-tier';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
@@ -491,7 +491,7 @@ export class ApplicationService {
     return this.http.put<void>(`${environment.apiUrl}/applications/${applicationId}/featured`, { featured });
   }
 
-  updateApplication(applicationId: string, payload: { displayName: string; description: string | null; versions?: ApplicationVersion[] }): Observable<void> {
+  updateApplication(applicationId: string, payload: { displayName: string; description: string | null }): Observable<void> {
     return this.http.put<void>(
       `${environment.apiUrl}/applications/${applicationId}`,
       payload
