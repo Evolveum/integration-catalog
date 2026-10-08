@@ -129,6 +129,7 @@ public class ApiKeyService {
      */
     @Transactional
     public CreatedApiKeyDto create(OidcUser user, CreateApiKeyRequestDto request) {
+        LOGGER.info("createApiKey user={}", user.getName());
         checkRequiredConfiguration();
         String name = request.name() == null ? "" : request.name().trim();
         if (name.isEmpty()) {
@@ -194,6 +195,7 @@ public class ApiKeyService {
      */
     @Transactional
     public CreatedApiKeyDto renew(OidcUser user, String id) {
+        LOGGER.info("renewApiKey id={} user={}", id, user.getName());
         checkRequiredConfiguration();
         // Locked: a second rotation of the same key (double click, second tab) waits here and is then
         // refused, instead of renewing again and recording the first new key without its grace end.
@@ -251,6 +253,7 @@ public class ApiKeyService {
      */
     @Transactional
     public void revoke(OidcUser user, String id) {
+        LOGGER.info("revokeApiKey id={} user={}", id, user.getName());
         checkRequiredConfiguration();
         // Locked like renew: a revoke racing a rotation could close the subscription without
         // seeing the new key, leaving it listed as working.

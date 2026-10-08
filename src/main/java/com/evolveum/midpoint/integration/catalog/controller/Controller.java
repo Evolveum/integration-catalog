@@ -82,6 +82,7 @@ public class Controller {
             ApplicationDto dto = applicationMapper.mapToApplicationDto(app, viewer);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
+            log.error("getApplication failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Failed to load application: " + ex.getMessage(), ex);
         }
@@ -98,6 +99,7 @@ public class Controller {
         try {
             return ResponseEntity.ok(applicationService.getApplicationTags());
         } catch (RuntimeException ex) {
+            log.error("getApplicationTags failed: {}", ex.getMessage(), ex);
             return ResponseEntity.notFound().build();
         }
     }
@@ -129,6 +131,7 @@ public class Controller {
         try {
             return ResponseEntity.ok(applicationService.getCountriesOfOrigin());
         } catch (RuntimeException ex) {
+            log.error("getCountriesOfOrigin failed: {}", ex.getMessage(), ex);
             return ResponseEntity.notFound().build();
         }
     }
@@ -155,8 +158,10 @@ public class Controller {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadIntegration(dto, authentication.getName()));
         } catch (IllegalArgumentException e) {
+            log.warn("uploadConnector rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("uploadConnector rejected: {}", e.getMostSpecificCause().getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Publish failed due to a data conflict (e.g. duplicate bundle version). " +
                 "Please ensure the database migration 03_fix_bundle_version_unique_constraint.sql has been applied. " +
@@ -200,6 +205,7 @@ public class Controller {
         try {
             return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
         } catch (RuntimeException ex) {
+            log.error("searchApplication failed: {}", ex.getMessage(), ex);
             return ResponseEntity.notFound().build();
         }
     }
@@ -217,6 +223,7 @@ public class Controller {
         try {
             return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size));
         } catch (RuntimeException ex) {
+            log.error("searchIntegrationMethods failed: {}", ex.getMessage(), ex);
             return ResponseEntity.notFound().build();
         }
     }
@@ -258,8 +265,10 @@ public class Controller {
             Request created = applicationService.createRequestFromForm(dto, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException ex) {
+            log.warn("createRequest rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (Exception ex) {
+            log.error("createRequest failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create request: " + ex.getMessage());
         }
     }
@@ -278,8 +287,10 @@ public class Controller {
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (IllegalArgumentException ex) {
+            log.warn("cancelRequest rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (Exception ex) {
+            log.error("cancelRequest failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to cancel request: " + ex.getMessage());
         }
@@ -297,6 +308,7 @@ public class Controller {
             Vote vote = applicationService.submitVote(requestId, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(vote);
         } catch (IllegalArgumentException ex) {
+            log.warn("submitVote rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
     }
@@ -431,10 +443,13 @@ public class Controller {
             applicationService.verify(oid, verifyPayload);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
+            log.warn("verify rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (ObjectAlreadyExist e) {
+            log.warn("verify rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (Exception e) {
+            log.error("verify failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
@@ -448,6 +463,7 @@ public class Controller {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.triggerBuild(oid, triggerBuildForm));
         } catch (IllegalArgumentException e) {
+            log.warn("triggerBuild rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
@@ -493,8 +509,10 @@ public class Controller {
             throw e;
         } catch (RuntimeException e) {
             if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                log.warn("updateApplication rejected: {}", e.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
             }
+            log.error("updateApplication failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to update application: " + e.getMessage(), e);
         }
@@ -519,14 +537,18 @@ public class Controller {
             logoStorageService.saveLogo(application, file);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadLogo rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadLogo rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload logo: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save logo file: " + ex.getMessage(), ex);
         }
@@ -548,14 +570,18 @@ public class Controller {
             tutorialStorageService.saveTutorial(id, file);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadTutorial rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadTutorial rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadTutorial failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload tutorial: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadTutorial failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save tutorial file: " + ex.getMessage(), ex);
         }
@@ -576,6 +602,7 @@ public class Controller {
         try {
             application = applicationService.getApplication(id);
         } catch (RuntimeException ex) {
+            log.warn("getLogo rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
         }
 
@@ -627,8 +654,10 @@ public class Controller {
             return ResponseEntity.noContent().build();
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("deleteLogo rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("deleteLogo failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to delete logo: " + ex.getMessage(), ex);
         }

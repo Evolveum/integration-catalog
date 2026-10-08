@@ -89,8 +89,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("editIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("editIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -114,8 +116,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("startReviewIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("startReviewIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -139,8 +143,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("stopReviewIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("stopReviewIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -164,8 +170,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("approveIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("approveIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -189,8 +197,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("rejectIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("rejectIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -215,8 +225,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("cancelIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("cancelIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -241,6 +253,7 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            log.error("addConnectorToIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -301,6 +314,7 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            log.error("updateConnectorCompatibility failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -323,6 +337,7 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            log.error("deleteConnectorFromIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -337,14 +352,18 @@ public class IntegrationMethodController {
             tutorialStorageService.saveTutorialForRevision(methodId, revision, file);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadTutorialForRevision rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadTutorialForRevision rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadTutorialForRevision failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload tutorial: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadTutorialForRevision failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save tutorial file: " + ex.getMessage(), ex);
         }
@@ -373,10 +392,13 @@ public class IntegrationMethodController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + "\"")
                     .body(bytes);
         } catch (IllegalArgumentException ex) {
+            log.warn("downloadTutorialFile rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
+            log.error("downloadTutorialFile failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (IOException ex) {
+            log.error("downloadTutorialFile failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to read tutorial file: " + ex.getMessage(), ex);
         }
@@ -410,8 +432,10 @@ public class IntegrationMethodController {
             }
             return responseBuilder.body(bundle.data());
         } catch (IllegalArgumentException ex) {
+            log.warn("downloadBundle rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (IOException ex) {
+            log.error("downloadBundle failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to build bundle: " + ex.getMessage(), ex);
         }
@@ -427,8 +451,10 @@ public class IntegrationMethodController {
             tutorialStorageService.deleteTutorialFile(methodId, revision, name);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("deleteTutorialFile rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (IOException ex) {
+            log.error("deleteTutorialFile failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to delete tutorial file: " + ex.getMessage(), ex);
         }
@@ -451,6 +477,7 @@ public class IntegrationMethodController {
         try {
             return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, authentication.getName()));
         } catch (IllegalArgumentException e) {
+            log.warn("getSupportTicket rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
