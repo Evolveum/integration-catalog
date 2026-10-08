@@ -34,6 +34,7 @@ import java.util.UUID;
 public class GraviteeClient {
 
     private static final int HTTP_NOT_FOUND = 404;
+    private static final int HTTP_BAD_REQUEST = 400;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraviteeClient.class);
 
@@ -194,10 +195,22 @@ public class GraviteeClient {
             LOGGER.warn("Gravitee does not know API key {}; it counts as revoked.", apiKeyId);
             return;
         }
+        // Closing the last subscription of a shared key revokes the key with it, and a second revoke
+        // is then refused with 400. Only Gravitee's own word that the key is revoked turns that into
+        // success; any other 400 is a real refusal.
+        if (response.statusCode() == HTTP_BAD_REQUEST && isRevoked(applicationId, apiKeyId)) {
+            LOGGER.info("Gravitee had already revoked API key {}.", apiKeyId);
+            return;
+        }
         if (response.statusCode() / 100 != 2) {
             throw new IOException("Gravitee refused to revoke the API key (HTTP "
                     + response.statusCode() + "): " + response.body());
         }
+    }
+
+    private boolean isRevoked(UUID applicationId, UUID apiKeyId) throws IOException, InterruptedException {
+        return listApiKeys(applicationId).stream()
+                .anyMatch(key -> apiKeyId.toString().equals(key.id()) && key.revoked());
     }
 
     private String subscriptionUrl(UUID subscriptionId, UUID apiId) {

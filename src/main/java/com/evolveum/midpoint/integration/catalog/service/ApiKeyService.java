@@ -67,14 +67,12 @@ public class ApiKeyService {
         if (properties.enabled()) {
             reconcile(applications);
         }
-        List<ApiKeyDto> keys = new ArrayList<>();
-        applications.stream()
-                .forEach(application ->
-                        keys.addAll(
-                                application.getApiKeys().stream()
-                                        .map(ApiKeyDto::of)
-                                        .toList()));
-        return keys;
+        return applications.stream()
+                .flatMap(application -> application.getApiKeys().stream())
+                .sorted(Comparator.comparing(GraviteeApiKey::getCreatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(ApiKeyDto::of)
+                .toList();
     }
 
     /**
@@ -86,6 +84,14 @@ public class ApiKeyService {
     private void reconcile(List<GraviteeApplication> applications) {
         Instant now = Instant.now();
         for (GraviteeApplication application : applications) {
+            // Only working keys are worth asking about: an ended one stays as recorded, so an
+            // application without any is not called for, and a revoked key is not re-stamped.
+            List<GraviteeApiKey> working = application.getApiKeys().stream()
+                    .filter(key -> isActive(key, now))
+                    .toList();
+            if (working.isEmpty()) {
+                continue;
+            }
             Map<String, GraviteeClient.GraviteeApiKey> states = new HashMap<>();
             try {
                 for (GraviteeClient.GraviteeApiKey state : gravitee.listApiKeys(application.getId())) {
@@ -101,7 +107,7 @@ public class ApiKeyService {
                 return;
             }
 
-            for (GraviteeApiKey key : application.getApiKeys()) {
+            for (GraviteeApiKey key : working) {
                 GraviteeClient.GraviteeApiKey state = states.get(key.getId().toString());
                 if (state == null) {
                     continue;
@@ -149,12 +155,13 @@ public class ApiKeyService {
             application.setName(name);
             application.setOwnerUsername(username);
 
-            boolean expirationAccepted = expiresAt == null;
+            // The key expires only if every subscription does: one refusal leaves it working on that API.
+            boolean expirationAccepted = true;
             List<GraviteeSubscription> subscriptionIds = new ArrayList<>();
             for (GraviteeProperties.Api api : properties.api()) {
                 String subscriptionId = gravitee.createSubscription(applicationId, api.id(), api.planId());
                 if (expiresAt != null) {
-                    expirationAccepted = gravitee.expireSubscription(subscriptionId, api.id(), expiresAt);
+                    expirationAccepted &= gravitee.expireSubscription(subscriptionId, api.id(), expiresAt);
                 }
 
                 GraviteeSubscription subscription = new GraviteeSubscription();
