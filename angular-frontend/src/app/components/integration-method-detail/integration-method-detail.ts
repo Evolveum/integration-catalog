@@ -4,11 +4,12 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService, SupportTicket } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
@@ -89,10 +90,7 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly reviewStartDate = computed(() =>
     this.datePipe.transform(this.methodUpdated(), 'MMMM d, yyyy') || '—');
 
-  protected readonly confirmConnectorName = computed(() => {
-    const c = this.connectors()[0];
-    return c?.connectorDisplayName || c?.name || this.methodName() || '—';
-  });
+  protected readonly confirmMethodName = computed(() => this.methodName() || '—');
   protected readonly submittedByLabel = computed(() =>
     `${this.methodAuthor() || '—'} · ${this.submittedDate()}`
   );
@@ -115,15 +113,6 @@ export class IntegrationMethodDetail implements OnInit {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
-  /** Each connector's compatibility range; the connector name only matters once there is more than one. */
-  protected readonly applicationVersionRanges = computed(() => {
-    const connectors = this.connectors();
-    return connectors.map(c => ({
-      name: connectors.length > 1 ? (c.connectorDisplayName || c.name || '') : '',
-      from: c.connectorMinVersion,
-      to: c.connectorMaxVersion
-    }));
-  });
   protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
@@ -177,9 +166,9 @@ export class IntegrationMethodDetail implements OnInit {
           this.appMinVersion.set(ver.appMinVersion ?? '');
           this.appMaxVersion.set(ver.appMaxVersion ?? '');
           this.setCapabilities(ver.objectClassCapabilities);
-          this.loadTutorialFiles(aId, vId, ver.revision ?? '');
-          this.loadConnectors(aId, vId, ver.revision ?? '');
-          this.loadSupportTicket(aId, vId, ver.revision ?? '');
+          this.loadTutorialFiles(vId, ver.revision ?? '');
+          this.loadConnectors(vId, ver.revision ?? '');
+          this.loadSupportTicket(vId, ver.revision ?? '');
         } else {
           this.finishLoading();
         }
@@ -188,11 +177,9 @@ export class IntegrationMethodDetail implements OnInit {
     });
   }
 
-  // A method's capabilities are always declared for a specific object class - the resource-wide
-  // ones belong to the connector - so the reserved 'Global' class is ignored here.
   private setCapabilities(occs: IntegrationMethodObjectCapabilities[] | null): void {
     const specifics = (occs ?? [])
-      .filter(o => o.objectClass !== 'Global' && (o.capabilities?.length ?? 0) > 0);
+      .filter(o => (o.capabilities?.length ?? 0) > 0);
     this.specificCapabilities.set(specifics);
     this.selectedCapsObject.set(specifics[0]?.objectClass ?? '');
   }
@@ -207,28 +194,28 @@ export class IntegrationMethodDetail implements OnInit {
    * entitled to it — the endpoint answers 403 to anyone else, and asking would just log noise.
    * Any failure leaves the ticket null, which simply hides the link.
    */
-  private loadSupportTicket(appId: string, methodId: string, revision: string): void {
+  private loadSupportTicket(methodId: string, revision: string): void {
     if (!this.isInReview() && !this.isReviewing()) return;
     if (!this.canEdit()) return;
-    this.applicationService.getSupportTicket(appId, methodId, revision).subscribe({
+    this.applicationService.getSupportTicket(methodId, revision).subscribe({
       next: (ticket) => this.supportTicket.set(ticket),
       error: () => this.supportTicket.set(null)
     });
   }
 
-  private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
-    this.applicationService.listTutorialFiles(appId, methodId, revision).subscribe({
+  private loadTutorialFiles(methodId: string, revision: string): void {
+    this.applicationService.listTutorialFiles(methodId, revision).subscribe({
       next: (names) => this.tutorialFiles.set(names),
       error: () => this.tutorialFiles.set([])
     });
   }
 
   protected tutorialFileUrl(name: string): string {
-    return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
+    return this.applicationService.getTutorialFileUrl(this.versionId(), this.methodVersion(), name);
   }
 
-  private loadConnectors(appId: string, methodId: string, revision: string): void {
-    this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
+  private loadConnectors(methodId: string, revision: string): void {
+    this.applicationService.getConnectorsForIntegrationMethod(methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
         this.checkDuplicateVersions(connectors);
@@ -307,11 +294,9 @@ export class IntegrationMethodDetail implements OnInit {
     this.compatConnector.set(null);
   }
 
-  /** A connector's object-class capabilities, with the Global class first when present. */
+  /** A connector's object-class capabilities, with the resource-wide group first when present. */
   protected orderedConnectorCaps(caps: ObjectClassCapability[] | null | undefined): ObjectClassCapability[] {
-    return [...(caps ?? [])].sort((a, b) =>
-      (a.objectName === 'Global' ? 0 : 1) - (b.objectName === 'Global' ? 0 : 1)
-    );
+    return [...(caps ?? [])].sort((a, b) => (a.resourceWide ? 0 : 1) - (b.resourceWide ? 0 : 1));
   }
 
   /** Derive the version badge ("v1", "v2", …) from the major part of the revision. */
@@ -326,18 +311,10 @@ export class IntegrationMethodDetail implements OnInit {
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 
-  /** Friendly labels for the LicenseType enum (mirrors the publish form). */
-  private readonly licenseLabels: Record<string, string> = {
-    MIT: 'MIT',
-    APACHE_2: 'Apache 2.0',
-    BSD: 'BSD',
-    EUPL: 'EUPL 1.2',
-    CDDL: 'CDDL'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   protected formatLicense(value: string): string {
-    if (!value) return '—';
-    return this.licenseLabels[value] ?? value;
+    return this.licenseTypes.label(value);
   }
 
   protected formatCapabilityText(text: string): string {
@@ -404,7 +381,7 @@ export class IntegrationMethodDetail implements OnInit {
     if (this.isProcessingApproval()) return;
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
-    this.applicationService.publishIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.publishIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => this.goBack(),
       error: (err) => this.handleApprovalError(err)
     });
@@ -414,7 +391,7 @@ export class IntegrationMethodDetail implements OnInit {
     if (this.isProcessingApproval()) return;
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
-    this.applicationService.rejectIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.rejectIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => this.goBack(),
       error: (err) => this.handleApprovalError(err)
     });
@@ -426,7 +403,7 @@ export class IntegrationMethodDetail implements OnInit {
   protected stopReview(): void {
     if (this.isProcessingStopReview()) return;
     this.isProcessingStopReview.set(true);
-    this.applicationService.stopReviewIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.stopReviewIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => {
         this.isProcessingStopReview.set(false);
         // Mirror the backend: back to IN_REVIEW with no reviewer, so the footer swaps to Start review.
@@ -471,7 +448,7 @@ export class IntegrationMethodDetail implements OnInit {
     if (this.isProcessingStartReview()) return;
     this.startReviewError.set('');
     this.isProcessingStartReview.set(true);
-    this.applicationService.startReviewIntegrationMethod(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.startReviewIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
       next: () => {
         this.isProcessingStartReview.set(false);
         this.isStartReviewOpen.set(false);
@@ -500,7 +477,7 @@ export class IntegrationMethodDetail implements OnInit {
     this.downloadInfoFileSize.set(null);
     this.isDownloadPreparing.set(true);
     this.isDownloadInfoOpen.set(true);
-    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion()).subscribe({
+    this.applicationService.downloadBundle(this.versionId(), this.methodVersion()).subscribe({
       next: (result) => {
         if (result.warning) {
           this.toastService.show(

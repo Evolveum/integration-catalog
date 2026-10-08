@@ -195,10 +195,10 @@
                   </div>
                   @if (isLicenseDropdownOpen()) {
                     <div class="license-dropdown">
-                      @for (opt of licenseOptions; track opt) {
+                      @for (opt of licenseTypes.options(); track opt.name) {
                         <div class="license-option"
-                             [class.license-option-selected]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                             [class.license-option-selected]="connectorLicense() === opt.name"
+                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</div>
                       }
                     </div>
                   }

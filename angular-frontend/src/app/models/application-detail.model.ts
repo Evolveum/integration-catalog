@@ -81,6 +81,7 @@ export interface IntegrationMethod {
 export interface ObjectClassCapability {
   objectName: string;     // object_class_capabilities.object_name
   capabilities: string[]; // capability.name items
+  resourceWide: boolean;  // resource_wide; objectName is then only a label
 }
 
 /** Whether an integration method supports a capability on an object; UNKNOWN means nobody determined it. */

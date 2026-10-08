@@ -240,10 +240,9 @@
 @if (confirmRevision(); as revision) {
   <app-approval-confirm-modal
     mode="approve"
-    [appId]="revision.applicationId"
     [methodId]="revision.id"
     [revision]="revision.revision"
-    [connectorName]="confirmConnectorName()"
+    [methodName]="confirmMethodName()"
     [versionLabel]="'v' + revision.revision"
     [submittedBy]="confirmSubmittedBy()"
     [processing]="isProcessingApproval()"

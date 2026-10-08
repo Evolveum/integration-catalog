@@ -110,6 +110,7 @@ export interface UploadFileItem {
 export interface IntegrationMethodCapabilityGroup {
   objectClass: string;          // object_class_capabilities.object_name
   capabilityNames: string[];    // capability.name via integration_method_capability_item / conn_version_capability_item
+  resourceWide: boolean;        // conn_version_capability.resource_wide; objectClass is then only a label
 }
 
 /**

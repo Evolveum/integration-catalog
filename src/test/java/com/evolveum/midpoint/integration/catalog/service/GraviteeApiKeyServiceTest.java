@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -58,6 +59,7 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class GraviteeApiKeyServiceTest {
 
+    private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
     private static final List<GraviteeProperties.Api> APIS = List.of(new GraviteeProperties.Api("api-1", "plan-1"));
     @Mock
@@ -69,10 +71,12 @@ class GraviteeApiKeyServiceTest {
     @Mock
     private GraviteeClient gravitee;
 
+    /** Named by preferred_username, as the OIDC registration's user-name-attribute configures. */
     private static OidcUser user() {
         OidcIdToken idToken = OidcIdToken.withTokenValue("token")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(300))
+                .subject("olivia-subject")
                 .claim("preferred_username", "olivia")
                 .build();
         return new DefaultOidcUser(List.of(), idToken, "preferred_username");
@@ -83,12 +87,12 @@ class GraviteeApiKeyServiceTest {
     }
 
     private static GraviteeProperties configured() {
-        return new GraviteeProperties("http://localhost:8083", null, null, APIS, "token");
+        return new GraviteeProperties("http://localhost:8083", null, null, APIS, "token", TIMEOUT);
     }
 
     @Test
     void unconfiguredGraviteeIsServiceUnavailableAndNothingIsCalled() {
-        ApiKeyService service = serviceWith(new GraviteeProperties(null, null, null, null, null));
+        ApiKeyService service = serviceWith(new GraviteeProperties(null, null, null, null, null, TIMEOUT));
 
         ResponseStatusException failure = assertThrows(ResponseStatusException.class,
                 () -> service.create(user(), new CreateApiKeyRequestDto("My key", null)));
@@ -380,7 +384,7 @@ class GraviteeApiKeyServiceTest {
         application.getApiKeys().add(key);
         when(applicationRepository.findByOwnerUsername(user().getName())).thenReturn(List.of(application));
 
-        serviceWith(new GraviteeProperties(null, null, null, null, null)).list(user());
+        serviceWith(new GraviteeProperties(null, null, null, null, null, TIMEOUT)).list(user());
 
         verify(gravitee, never()).listApiKeys(fromString(anyString()));
     }

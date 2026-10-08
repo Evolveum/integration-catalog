@@ -367,9 +367,9 @@ export class MyIntegrationMethodsPage {
   protected readonly isProcessingApproval = signal(false);
   protected readonly approvalError = signal('');
 
-  protected readonly confirmConnectorName = computed(() => {
+  protected readonly confirmMethodName = computed(() => {
     const r = this.confirmRevision();
-    return r ? (r.connectorDisplayName || r.displayName || 'Integration method') : '';
+    return r ? (r.displayName || 'Integration method') : '';
   });
 
   protected readonly confirmSubmittedBy = computed(() => {
@@ -398,8 +398,8 @@ export class MyIntegrationMethodsPage {
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
     const action$ = mode === 'approve'
-      ? this.applicationService.publishIntegrationMethod(revision.applicationId, revision.id, revision.revision)
-      : this.applicationService.rejectIntegrationMethod(revision.applicationId, revision.id, revision.revision);
+      ? this.applicationService.publishIntegrationMethod(revision.id, revision.revision)
+      : this.applicationService.rejectIntegrationMethod(revision.id, revision.revision);
     action$.subscribe({
       next: () => {
         this.isProcessingApproval.set(false);
@@ -455,7 +455,7 @@ export class MyIntegrationMethodsPage {
     if (!revision || this.isProcessingStartReview()) return;
     this.startReviewError.set('');
     this.isProcessingStartReview.set(true);
-    this.applicationService.startReviewIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
+    this.applicationService.startReviewIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.isProcessingStartReview.set(false);
         this.startReviewRevision.set(null);
@@ -473,7 +473,7 @@ export class MyIntegrationMethodsPage {
     this.closeMenu();
     if (this.isProcessingStopReview()) return;
     this.isProcessingStopReview.set(true);
-    this.applicationService.stopReviewIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
+    this.applicationService.stopReviewIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.isProcessingStopReview.set(false);
         this.load();
@@ -501,7 +501,7 @@ export class MyIntegrationMethodsPage {
   protected confirmCancel(): void {
     const revision = this.cancelRevision();
     if (!revision) return;
-    this.applicationService.cancelIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
+    this.applicationService.cancelIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.closeCancel();
         this.load();
@@ -533,7 +533,7 @@ export class MyIntegrationMethodsPage {
     this.downloadInfoFileSize.set(null);
     this.isDownloadPreparing.set(true);
     this.isDownloadInfoOpen.set(true);
-    this.applicationService.downloadBundle(revision.applicationId, revision.id, revision.revision).subscribe({
+    this.applicationService.downloadBundle(revision.id, revision.revision).subscribe({
       next: result => {
         if (result.warning) {
           this.toastService.show('Download warning', result.warning, 'warning');

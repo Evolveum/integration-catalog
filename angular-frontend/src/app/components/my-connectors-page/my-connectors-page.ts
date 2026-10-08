@@ -15,7 +15,7 @@ import { SUPPORT_TIERS, SupportTier, supportTierOfTag } from '../../core/support
 import { Pager } from '../pager/pager';
 import { FilterMenu } from '../filter-menu/filter-menu';
 import { ConnectorTagsChange, ConnectorTagsModal } from '../connector-tags-modal/connector-tags-modal';
-import { MyConnector, MyConnectorVersion } from '../../models/my-items.model';
+import { MyConnector, MyConnectorUsage, MyConnectorVersion } from '../../models/my-items.model';
 import { ConnectorTag, OBSOLETE_CONNECTOR_TAG, isObsoleteConnector } from '../../models/connector-tag.model';
 import {
   MAINTAINER_CATEGORY_LABELS, MaintainerCategory, maintainerFilterOptions, maintainerKey, maintainerLabel
@@ -120,7 +120,7 @@ export class MyConnectorsPage {
         versionCount: c.versions.length,
         usedByCount: new Set(usages.map(u => u.integrationMethodId)).size,
         applicationIds: new Set(usages.map(u => u.applicationId)),
-        versions: c.versions
+        versions: c.versions.map(v => ({ ...v, usedBy: oneUsagePerMethod(v.usedBy) }))
       };
     }));
 
@@ -409,4 +409,19 @@ function toggled(set: ReadonlySet<string>, value: string): ReadonlySet<string> {
   const next = new Set(set);
   if (!next.delete(value)) next.add(value);
   return next;
+}
+
+/**
+ * A method counts once however many of its revisions use the version, as on the connector's card;
+ * its newest revision stands for it.
+ */
+function oneUsagePerMethod(usages: MyConnectorUsage[]): MyConnectorUsage[] {
+  const newest = new Map<string, MyConnectorUsage>();
+  for (const u of usages) {
+    const kept = newest.get(u.integrationMethodId);
+    if (!kept || u.revision.localeCompare(kept.revision, undefined, { numeric: true }) > 0) {
+      newest.set(u.integrationMethodId, u);
+    }
+  }
+  return [...newest.values()];
 }

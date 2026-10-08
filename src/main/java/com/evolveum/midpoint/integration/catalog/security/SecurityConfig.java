@@ -50,29 +50,30 @@ public class SecurityConfig {
     private static final String APPLICATION = "/api/applications/*";
 
     private static final String[] REVIEW_DECISIONS = {
-            "/api/applications/*/integration-method/*/*/start-review",
-            "/api/applications/*/integration-method/*/*/stop-review",
-            "/api/applications/*/integration-method/*/*/approve",
-            "/api/applications/*/integration-method/*/*/reject"
+            "/api/integration-method/*/*/start-review",
+            "/api/integration-method/*/*/stop-review",
+            "/api/integration-method/*/*/approve",
+            "/api/integration-method/*/*/reject"
     };
 
     /** Withdrawing a revision from review is for whoever may edit it, not only the reviewer. */
-    private static final String CANCEL_REVISION = "/api/applications/*/integration-method/*/*/cancel";
+    private static final String CANCEL_REVISION = "/api/integration-method/*/*/cancel";
 
-    private static final String UNFINISHED_CONNECTOR = "/api/applications/*/integration-method/*/connectors-without-download";
+    /** The two wildcards are the method and its revision, both of which the path carries. */
+    private static final String UNFINISHED_CONNECTOR = "/api/integration-method/*/*/connectors-without-download";
 
-    private static final String INTEGRATION_METHOD = "/api/applications/*/integration-method/**";
+    private static final String INTEGRATION_METHOD = "/api/integration-method/**";
 
     private static final String CONNECTOR_UPLOADS = "/api/upload/**";
 
     /** Adding a connector is for contributors; listing them (GET, same path) is public like the rest of the detail. */
-    private static final String METHOD_CONNECTORS = "/api/applications/*/integration-method/*/*/connectors";
+    private static final String METHOD_CONNECTORS = "/api/integration-method/*/*/connectors";
 
     private static final String APPLICATION_LOGO = "/api/applications/*/logo";
     private static final String APPLICATION_FEATURED = "/api/applications/*/featured";
 
     private static final String[] ITEM_ATTACHMENTS = {
-            "/api/applications/*/integration-method/*/*/tutorial",
+            "/api/integration-method/*/*/tutorial",
             APPLICATION_LOGO,
             "/api/integration-methods/*/tutorial"
     };

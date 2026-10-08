@@ -225,11 +225,11 @@ SELECT imc.id, c.id, (CASE WHEN imc.id IN (3, 6) THEN 'UNKNOWN' ELSE 'NO' END)::
                     WHERE i.integration_method_capability_id = imc.id AND i.capability_id = c.id);
 
 -- Connector versions may carry any capability, including the connector-only ones.
-INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class) OVERRIDING SYSTEM VALUE VALUES
-    (1, 1, '1.0', 'Account'),
-    (2, 1, '1.0', 'Group'),
-    (3, 1, '1.0', 'Global'),
-    (4, 3, '1.0', 'Account');
+INSERT INTO conn_version_capability (id, conn_version_id, conn_version_revision, object_class, resource_wide) OVERRIDING SYSTEM VALUE VALUES
+    (1, 1, '1.0', 'Account', false),
+    (2, 1, '1.0', 'Group', false),
+    (3, 1, '1.0', 'Global', true),
+    (4, 3, '1.0', 'Account', false);
 
 INSERT INTO conn_version_capability_item (conn_version_capability_id, capability_id) VALUES
     (1,9),(1,10),(1,11),(1,12),(1,15),(1,19),(1,20),

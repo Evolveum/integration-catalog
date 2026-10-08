@@ -121,7 +121,9 @@ $aa$);
 call apply_change(5, $aa$
 CREATE TABLE IF NOT EXISTS pending_operation (
     id              bigserial PRIMARY KEY,
-    target_system   varchar(50)  NOT NULL, --TODO change to enum
+    -- Text rather than an enum type on purpose: a system joins the retry mechanism by being handled,
+    -- not by being declared, so adding one must not need a migration. Same for operation below.
+    target_system   varchar(50)  NOT NULL,
     operation       varchar(100) NOT NULL,
     payload         text         NOT NULL,
     status          varchar(20)  NOT NULL,
@@ -457,6 +459,7 @@ call apply_change(13, $aa$
 CREATE TABLE api_key (
     id                       uuid                     NOT NULL,
     name                     character varying(255)   NOT NULL,
+    owner_sub                character varying(255)   NOT NULL,
     owner_username           character varying(255)   NOT NULL,
     gravitee_application_id  character varying(64)    NOT NULL,
     gravitee_subscription_id character varying(64)    NOT NULL,
@@ -709,6 +712,37 @@ SELECT newest.connector_id, t.id
 
 ALTER TABLE connector_bundle_version DROP COLUMN support_tier;
 DROP TYPE SupportTier;
+$aa$);
+-- end of region
+
+-- region change 24: the API key's owner is the username
+-- The 'sub' claim was dropped from the identity the catalog keeps: a key is owned by a username, so
+-- owner_sub, which an older form of change 13 created on some databases, was never used and goes.
+-- Written as this branch's change 19 and renumbered when main's 19-23 came first; by now change 22
+-- has renamed api_key to gravitee_api_key and moved the owner index to gravitee_application, so only
+-- the column drop is left. Harmless where the column never existed.
+call apply_change(24, $aa$
+ALTER TABLE gravitee_api_key DROP COLUMN IF EXISTS owner_sub;
+$aa$);
+-- end of region
+
+-- region change 25: resource-wide capability groups are flagged, not named
+-- Resource-wide capabilities were a group whose object class was literally "Global", so no object
+-- class could be called that: a method silently dropped it, and a connector mixed it up with the
+-- resource-wide group. A flag now says what the group is, and "Global" is an ordinary name again.
+--
+-- Every existing row named Global, in any case, was a resource-wide group - that is how the name was
+-- read - so those rows are flagged. Methods have no resource-wide capabilities since change 14; their
+-- Global groups are leftovers every read already skipped, and are deleted (items go by cascade) so
+-- they do not surface as an object called "Global".
+call apply_change(25, $aa$
+ALTER TABLE conn_version_capability ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE conn_version_capability SET resource_wide = true WHERE lower(object_class) = 'global';
+
+ALTER TABLE object_class_capabilities ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE object_class_capabilities SET resource_wide = true WHERE lower(object_name) = 'global';
+
+DELETE FROM integration_method_capability WHERE lower(object_class) = 'global';
 $aa$);
 -- end of region
 

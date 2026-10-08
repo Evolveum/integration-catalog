@@ -31,12 +31,23 @@ public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer
         LOW_CODE
     }
 
+    /** Stored by constant name; the display name is how the catalog and its UI spell the license. */
     public enum LicenseType {
-        MIT,
-        APACHE_2,
-        BSD,
-        EUPL,
-        CDDL
+        MIT("MIT"),
+        APACHE_2("Apache 2.0"),
+        BSD("BSD"),
+        EUPL("EUPL 1.2"),
+        CDDL("CDDL");
+
+        private final String displayName;
+
+        LicenseType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 
     @Id
@@ -137,7 +148,8 @@ public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer
         ConnectorBundle clone = new ConnectorBundle();
         clone.setRevision(source.getRevision());
         clone.setAuthor(source.getAuthor());
-        // has to have own list: Hibernate rejects two entities sharing one collection instance.
+        // The same maintainers, in a list of the clone's own: two entities sharing one collection
+        // instance is what Hibernate refuses as a "shared reference to a collection".
         clone.setMaintainer(new ArrayList<>(source.getMaintainer()));
         clone.setLifecycleState(LifecycleType.IN_REVIEW);
         clone.setBundleName(source.getBundleName());

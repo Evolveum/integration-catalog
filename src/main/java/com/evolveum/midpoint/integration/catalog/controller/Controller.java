@@ -36,6 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -385,6 +386,16 @@ public class Controller {
     @GetMapping("/capabilities")
     public ResponseEntity<List<CapabilityDto>> getCapabilities() {
         return ResponseEntity.ok(applicationService.getCapabilities());
+    }
+
+    @Operation(summary = "Get license types",
+            description = "Returns every license a connector may be published under, with its display name")
+    @ApiResponse(responseCode = "200", description = "License types retrieved successfully")
+    @GetMapping("/license-types")
+    public ResponseEntity<List<LicenseTypeDto>> getLicenseTypes() {
+        return ResponseEntity.ok(Arrays.stream(ConnectorBundle.LicenseType.values())
+                .map(license -> new LicenseTypeDto(license.name(), license.getDisplayName()))
+                .toList());
     }
 
     @Operation(summary = "Get total downloads count",

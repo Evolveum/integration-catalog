@@ -26,12 +26,6 @@ import java.util.stream.Stream;
 @Component
 public class ApplicationMapper {
 
-    /**
-     * The reserved object class holding resource-wide capabilities. It is a connector's to declare;
-     * integration methods never report it, not even from revisions saved before that split.
-     */
-    private static final String GLOBAL_OBJECT_CLASS = "Global";
-
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
@@ -169,7 +163,6 @@ public class ApplicationMapper {
                             .toList();
 
                     List<IntegrationMethodObjectCapabilitiesDto> objectClassCapabilities = method.getCapabilities().stream()
-                            .filter(cap -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(cap.getObjectClass()))
                             .map(cap -> mapObjectCapabilities(cap, offered))
                             .toList();
 
@@ -267,7 +260,6 @@ public class ApplicationMapper {
     private List<String> collectCapabilities(IntegrationMethod method) {
         if (method.getCapabilities() == null) return null;
         return method.getCapabilities().stream()
-                .filter(cap -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(cap.getObjectClass()))
                 .filter(cap -> cap.getItems() != null)
                 .flatMap(cap -> cap.getItems().stream())
                 .filter(item -> item.getState() == CapabilityState.YES)
@@ -313,7 +305,8 @@ public class ApplicationMapper {
                         .filter(occ -> occ.getCapabilities() != null && occ.getCapabilities().length > 0)
                         .map(occ -> new ObjectClassCapabilityDto(
                                 occ.getObjectName(),
-                                Arrays.stream(occ.getCapabilities()).map(Enum::name).toList()
+                                Arrays.stream(occ.getCapabilities()).map(Enum::name).toList(),
+                                occ.isResourceWide()
                         ))
                         .toList();
                 capabilities = objectClassCapabilities.stream()
@@ -679,6 +672,21 @@ public class ApplicationMapper {
                 .orElseGet(List::of);
     }
 
+    /**
+     * The version a user knows the connector by, read off the same row as the capabilities above:
+     * the bundle version, as the revision is only a record counter.
+     */
+    public String latestPublishedConnectorVersion(Connector connector) {
+        return connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE)
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
+                .map(cv -> {
+                    ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+                    return cbv != null && cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cv.getRevision();
+                })
+                .orElse(connector.getRevision());
+    }
+
     private List<ObjectClassCapabilityDto> mapCapabilitiesOf(ConnectorVersion cv) {
         return cv.getCapabilities().stream()
                 .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
@@ -688,7 +696,8 @@ public class ApplicationMapper {
                                 .filter(item -> item.getCapability() != null
                                         && item.getCapability().getName() != null)
                                 .map(item -> item.getCapability().getName())
-                                .toList()
+                                .toList(),
+                        cap.isResourceWide()
                 ))
                 .toList();
     }

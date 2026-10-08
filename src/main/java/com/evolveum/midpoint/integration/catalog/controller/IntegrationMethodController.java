@@ -40,7 +40,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/applications/{appId}/integration-method/{methodId}/{revision}") //TODO check if we need appId when we know methodId (all endpoints/all methods)
+@RequestMapping("/api/integration-method/{methodId}/{revision}")
 @Tag(name = "Integration method revision",
         description = "API for a single revision of an integration method")
 public class IntegrationMethodController {
@@ -70,7 +70,6 @@ public class IntegrationMethodController {
     })
     @GetMapping("/connectors-without-download")
     public ResponseEntity<List<ConnectorWithoutDownloadDto>> getConnectorsWithoutDownload(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision) {
         List<ConnectorWithoutDownloadDto> connectors = applicationService.getConnectorsWithoutDownloadInfo(methodId, revision);
@@ -80,7 +79,6 @@ public class IntegrationMethodController {
     @Operation(summary = "Save integration method as new version")
     @PutMapping
     public ResponseEntity<String> editIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @Valid @RequestBody EditIntegrationMethodDto dto,
@@ -107,7 +105,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/start-review")
     public ResponseEntity<Void> startReviewIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -133,7 +130,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/stop-review")
     public ResponseEntity<Void> stopReviewIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -159,7 +155,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/approve")
     public ResponseEntity<Void> approveIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -185,7 +180,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/reject")
     public ResponseEntity<Void> rejectIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -212,7 +206,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/cancel")
     public ResponseEntity<CancelIntegrationMethodResultDto> cancelIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -236,7 +229,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/connectors")
     public ResponseEntity<String> addConnectorToIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestBody AddConnectorDto dto,
@@ -244,7 +236,7 @@ public class IntegrationMethodController {
         try {
             // Returns the revision the connector landed on: the same revision for a mutable draft, or a
             // freshly forked draft revision when the source was a published (immutable) version.
-            String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, authentication.getName());
+            String savedRevision = applicationService.addConnectorToIntegrationMethod(methodId, revision, dto, authentication.getName());
             return ResponseEntity.ok(savedRevision);
         } catch (ResponseStatusException e) {
             throw e;
@@ -256,7 +248,6 @@ public class IntegrationMethodController {
     @Operation(summary = "List connectors of an integration method revision")
     @GetMapping("/connectors")
     public ResponseEntity<List<ImplementationListItemDto>> getConnectorsForIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision) {
         return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision));
@@ -270,7 +261,6 @@ public class IntegrationMethodController {
     })
     @PutMapping("/connectors/{connectorId}")
     public ResponseEntity<Void> updateConnector(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
@@ -282,6 +272,11 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            // Logged before it is turned into a status: everything that reaches here becomes a 404
+            // carrying only the exception's own message, so an unexpected failure would otherwise
+            // leave no trace at all - and read to the user as "not found".
+            log.error("Failed to update connector {} of integration method {}/{}",
+                    connectorId, methodId, revision, e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -294,7 +289,6 @@ public class IntegrationMethodController {
     })
     @PutMapping("/connectors/{connectorId}/compatibility")
     public ResponseEntity<Void> updateConnectorCompatibility(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
@@ -319,7 +313,6 @@ public class IntegrationMethodController {
     })
     @DeleteMapping("/connectors/{connectorId}")
     public ResponseEntity<Void> deleteConnectorFromIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
@@ -337,7 +330,6 @@ public class IntegrationMethodController {
     @Operation(summary = "Upload tutorial file for a specific integration method revision")
     @PostMapping(value = "/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadTutorialForRevision(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestParam("file") MultipartFile file) {
@@ -361,7 +353,6 @@ public class IntegrationMethodController {
     @Operation(summary = "List tutorial files for a specific integration method revision")
     @GetMapping("/tutorial")
     public ResponseEntity<List<String>> listTutorialFiles(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision) {
         return ResponseEntity.ok(tutorialStorageService.listTutorialFiles(methodId, revision));
@@ -370,7 +361,6 @@ public class IntegrationMethodController {
     @Operation(summary = "Download a single tutorial file for a specific integration method revision")
     @GetMapping("/tutorial/file")
     public ResponseEntity<byte[]> downloadTutorialFile(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestParam("name") String name) {
@@ -401,7 +391,6 @@ public class IntegrationMethodController {
     })
     @GetMapping("/bundle")
     public ResponseEntity<byte[]> downloadBundle(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             HttpServletRequest request) {
@@ -431,7 +420,6 @@ public class IntegrationMethodController {
     @Operation(summary = "Delete a single tutorial file for a specific integration method revision")
     @DeleteMapping("/tutorial/file")
     public ResponseEntity<Void> deleteTutorialFile(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestParam("name") String name) {
@@ -457,7 +445,6 @@ public class IntegrationMethodController {
     })
     @GetMapping("/support-ticket")
     public ResponseEntity<SupportTicketDto> getSupportTicket(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
