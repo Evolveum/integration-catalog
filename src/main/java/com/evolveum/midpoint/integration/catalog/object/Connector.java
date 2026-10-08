@@ -91,6 +91,21 @@ public class Connector implements SetOwnership, GetOwnershipOneMaintainer {
     }
 
     /**
+     * No version of it has been approved yet. A copy-on-write clone stands for a connector that is
+     * already published, so it never counts as new, whatever its own versions say.
+     */
+    public boolean isNeverPublished() {
+        return clonedFrom == null && connectorVersions.stream()
+                .noneMatch(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE);
+    }
+
+    public boolean hasTag(String tagName) {
+        return connectorConnectorTags != null && connectorConnectorTags.stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .anyMatch(tag -> tag != null && tagName.equals(tag.getName()));
+    }
+
+    /**
      * A copy of what describes this connector. The bundle it belongs to and the connector it is
      * cloned from are the caller's to set: both are relationships only the caller knows, and the
      * bundle is NOT NULL, so a caller that forgets is refused by the database.

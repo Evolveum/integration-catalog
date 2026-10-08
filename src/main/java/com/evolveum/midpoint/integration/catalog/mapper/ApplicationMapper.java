@@ -562,6 +562,7 @@ public class ApplicationMapper {
         String bundleName = null;
         String bundleFramework = null;
         String commitTag = null;
+        String artifactUrl = null;
         boolean initialVersion = true;
         List<ObjectClassCapabilityDto> objectClassCapabilities = List.of();
         List<ConnectorTagDto> connectorTags = List.of();
@@ -596,6 +597,7 @@ public class ApplicationMapper {
                 buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;
                 pathToProject = cbv.getPathToProject();
                 commitTag = cbv.getCommitTag();
+                artifactUrl = cbv.getArtifactUrl();
                 className = latestCv.get().getFullyQualifiedClassName() != null
                         ? latestCv.get().getFullyQualifiedClassName() : className;
             }
@@ -632,7 +634,8 @@ public class ApplicationMapper {
                 connectorMinVersion,
                 connectorMaxVersion,
                 initialVersion,
-                connectorTags
+                connectorTags,
+                artifactUrl
         );
     }
 

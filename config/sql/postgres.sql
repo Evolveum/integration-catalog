@@ -1064,9 +1064,11 @@ INSERT INTO connector_tag (id, name, display_name) OVERRIDING SYSTEM VALUE VALUE
     -- Support tiers: the code knows these exact names (SupportTier), display_name is the tier's label.
     (3,'supp_tier_standard','Standard'),
     (4,'supp_tier_advanced','Advanced'),
-    (5,'supp_tier_premium','Premium');
+    (5,'supp_tier_premium','Premium'),
+    -- Connector published with no artifact to download; the code knows this exact name.
+    (6,'arti_URLless','Without artifact');
 
-SELECT setval('connector_tag_id_seq', 5);
+SELECT setval('connector_tag_id_seq', 6);
 
 -- display_order runs across the object-specific rows as a method offers them (1-9), with the
 -- connector-only ones after (10-13); offered_for_method is what tells the two lists apart.
@@ -1128,5 +1130,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(25, $$ SELECT 1 $$, true);
+call apply_change(26, $$ SELECT 1 $$, true);
 -- end of region

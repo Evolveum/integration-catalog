@@ -43,5 +43,6 @@ public record ImplementationListItemDto(
         // Whether the bundle is still on its first version, i.e. whether the edit form may still offer
         // the fields that are fixed once a version has been published (license, git clone URL).
         boolean initialVersion,
-        List<ConnectorTagDto> connectorTags // connector_connector_tag + connector_tag
+        List<ConnectorTagDto> connectorTags, // connector_connector_tag + connector_tag
+        String artifactUrl                   // connector_bundle_version.artifact_url
 ) {}

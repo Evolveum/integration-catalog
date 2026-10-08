@@ -746,6 +746,15 @@ DELETE FROM integration_method_capability WHERE lower(object_class) = 'global';
 $aa$);
 -- end of region
 
+-- region change 26: connector without artifact URL
+-- Some connectors are published with no artifact to download. The reviewer marks such a connector in
+-- the manual fill dialog, which links this tag; a tagged connector is not reported as lacking its build
+-- information and does not block approval.
+call apply_change(26, $aa$
+INSERT INTO connector_tag (name, display_name) VALUES ('arti_URLless', 'Without artifact');
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

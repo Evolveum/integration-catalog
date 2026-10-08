@@ -296,6 +296,15 @@ public class ApplicationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Only a superuser may publish an integration method.");
         }
+        // The same list the approval dialog blocks on, so the server enforces what the dialog shows.
+        List<ConnectorWithoutDownloadDto> unbuilt = getConnectorsWithoutDownloadInfo(methodId, revision);
+        if (!unbuilt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Connectors without build information (no artifact URL): " + unbuilt.stream()
+                            .map(ConnectorWithoutDownloadDto::connectorName)
+                            .distinct()
+                            .collect(Collectors.joining(", ")));
+        }
         connectorUploadService.approveIntegrationMethod(methodId, revision, username);
     }
 
@@ -615,6 +624,12 @@ public class ApplicationService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Connector version " + connectorVersion.getId() + " has no bundle version to build.");
         }
+        // Its build could never report back: such a connector's versions refuse a download link.
+        if (connectorVersion.getConnector() != null
+                && connectorVersion.getConnector().hasTag(ConnectorTag.ARTIFACT_URLLESS)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The connector is published without an artifact URL; it is not built.");
+        }
         return connectorUploadService.triggerJenkinsPipeline(bundleVersion, integrationMethod);
     }
 
@@ -691,6 +706,10 @@ public class ApplicationService {
                             if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
                                 continue;
                             }
+                            // Marked as published without an artifact: there is no download link to wait for.
+                            if (connector.hasTag(ConnectorTag.ARTIFACT_URLLESS)) {
+                                continue;
+                            }
                             // Only the versions this review is about: a published one's build is not the
                             // reviewer's business, and start-review moves a submitted row to REVIEWING,
                             // so both under-review states have to count.
@@ -710,7 +729,8 @@ public class ApplicationService {
                                             String.valueOf(connectorVersion.getId()),
                                             connectorVersion.getRevision(),
                                             methodId,
-                                            revision
+                                            revision,
+                                            connector.isNeverPublished()
                                     ));
                                 }
                             }

@@ -50,10 +50,19 @@
                  [(ngModel)]="className" placeholder="e.g. com.evolveum.connector.csv.CsvFileConnector" required />
         </div>
         <div class="mb-3">
-          <label class="form-label small mb-1">Download link <span class="text-danger">*</span></label>
+          <label class="form-label small mb-1">Download link @if (!artifactUrlless) {<span class="text-danger">*</span>}</label>
           <input type="text" class="form-control" name="downloadLink"
-                 [(ngModel)]="downloadLink" placeholder="https://..." required />
+                 [(ngModel)]="downloadLink" placeholder="https://..." [required]="!artifactUrlless"
+                 [disabled]="artifactUrlless" />
         </div>
+        <!-- Chosen once, when the connector is first published; its later versions inherit it. -->
+        @if (connector.newConnector) {
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="mf-artifact-urlless"
+                   name="artifactUrlless" [(ngModel)]="artifactUrlless" />
+            <label class="form-check-label small" for="mf-artifact-urlless">Connector without Artifact URL</label>
+          </div>
+        }
       </div>
 
       <!-- Error message -->

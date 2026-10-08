@@ -122,6 +122,8 @@ public class ConnectorUploadService {
         applicationTagService.processOrigins(appRes.application(), appRes.originNames(), appRes.isNew());
         applicationTagService.processTags(appRes.application(), appRes.tagDtos(), appRes.isNew());
 
+        // The version a link's range starts at when the form leaves it blank: what the connector is at.
+        String connectorVersionKey;
         if (uploadRes.isNewConnector()) {
             ConnectorBundleVersion bundleVersion = createBundleVersion(
                     dto.connector(), uploadRes.bundle(), username);
@@ -130,6 +132,7 @@ public class ConnectorUploadService {
             ConnectorVersion connectorVersion = createConnectorVersion(
                     dto.connector(), uploadRes.connector(), bundleVersion, username);
             connectorVersion.setConnector(uploadRes.connector());
+            connectorVersionKey = versionKeyOf(connectorVersion);
 
             uploadRes.bundle().getConnectors().add(uploadRes.connector());
 
@@ -138,13 +141,15 @@ public class ConnectorUploadService {
 
             persistEntities(uploadRes, bundleVersion, connectorVersion);
             saveConnectorVersionCapabilities(dto, connectorVersion);
+        } else {
+            connectorVersionKey = currentVersionOf(uploadRes.connector());
         }
 
         IntegrationMethodConnector imc = new IntegrationMethodConnector();
         imc.setConnector(uploadRes.connector());
         // connector_minversion is NOT NULL: same fallback as addConnector when the request leaves it blank.
         imc.setConnectorMinVersion(firstNonBlank(
-                dto.connector().connectorMinVersion(), uploadRes.connector().getRevision(), DEFAULT_REVISION));
+                dto.connector().connectorMinVersion(), connectorVersionKey, DEFAULT_REVISION));
         imc.setConnectorMaxVersion(emptyToNull(dto.connector().connectorMaxVersion()));
         imc.setIntegrationMethod(uploadRes.integrationMethod());
         uploadRes.integrationMethod().getConnectors().add(imc);
@@ -979,7 +984,7 @@ public class ConnectorUploadService {
             ConnectorVersion connectorVersion = createConnectorVersion(connDto, connector, bundleVersion, username);
             connectorVersionRepository.save(connectorVersion);
 
-            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), connectorVersion.getRevision(), DEFAULT_REVISION);
+            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), versionKeyOf(connectorVersion), DEFAULT_REVISION);
             saveConnectorVersionCapabilities(dto.connectorCapabilities(), connectorVersion);
         }
 

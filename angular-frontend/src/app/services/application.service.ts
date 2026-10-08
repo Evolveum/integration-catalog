@@ -61,6 +61,8 @@ export interface ConnectorWithoutDownload {
   connectorVersionRevision: string;
   integrationMethodId: string;
   integrationMethodRevision: string;
+  /** Never published: only such a connector may be marked as without an artifact URL. */
+  newConnector: boolean;
 }
 
 @Injectable({
@@ -553,6 +555,7 @@ export class ApplicationService {
       capability: string[] | null;
       connectorVersionId: string;
       connectorVersionRevision: string;
+      artifactUrlless?: boolean;
     }
   ): Observable<void> {
     return this.http.post<void>(

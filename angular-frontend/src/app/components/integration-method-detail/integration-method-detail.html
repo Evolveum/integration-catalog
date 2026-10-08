@@ -260,6 +260,19 @@
                   </div>
                 }
 
+                <div class="view-connector-row">
+                  <span class="view-connector-label">Artifact URL:</span>
+                  <span class="view-connector-value">
+                    @if (c.artifactUrl) {
+                      <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.artifactUrl }}
+                    } @else if (isArtifactUrllessConnector(c.connectorTags)) {
+                      <span class="text-muted">Connector without Artifact URL</span>
+                    } @else {
+                      —
+                    }
+                  </span>
+                </div>
+
                 <!-- Repository & documentation -->
                 @if (c.projectHomepage || c.ticketingLink) {
                   <div class="view-subsection">

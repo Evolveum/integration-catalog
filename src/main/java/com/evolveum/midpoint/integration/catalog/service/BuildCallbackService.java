@@ -26,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,6 +48,7 @@ public class BuildCallbackService {
     private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
     private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final ConnectorRepository connectorRepository;
+    private final ConnectorTagRepository connectorTagRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     /**
@@ -70,16 +72,37 @@ public class BuildCallbackService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The build reported no connector bundle name; the bundle's identity cannot be set from it.");
         }
+        List<ConnectorVersion> builtVersions = List.copyOf(bundleVersion.getConnectorVersions());
+        List<Connector> builtConnectors = builtVersions.stream()
+                .map(ConnectorVersion::getConnector)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        boolean hasDownloadLink = continueForm.getDownloadLink() != null && !continueForm.getDownloadLink().isBlank();
+
+        // A connector marked as without an artifact URL stays so for good: none of its versions gets one.
+        boolean alreadyUrlless = builtConnectors.stream().anyMatch(c -> c.hasTag(ConnectorTag.ARTIFACT_URLLESS));
+        if (alreadyUrlless && hasDownloadLink) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The connector is published without an artifact URL; its versions cannot get a download link.");
+        }
+        // The mark is chosen once, when the connector is first published, never added to a published one.
+        if (continueForm.isArtifactUrlless() && !alreadyUrlless
+                && !builtConnectors.stream().allMatch(Connector::isNeverPublished)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Only a connector that has not been published yet can be marked as without an artifact URL.");
+        }
+        boolean artifactUrlless = continueForm.isArtifactUrlless() || alreadyUrlless;
+
         // A missing artifact URL is what reports a connector as lacking build information, so a success
-        // without one would leave it reported that way.
-        if (continueForm.getDownloadLink() == null || continueForm.getDownloadLink().isBlank()) {
+        // without one would leave it reported that way - unless the connector is marked as having none.
+        if (!artifactUrlless && !hasDownloadLink) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The build reported no download link; the connector cannot be downloaded without it.");
         }
 
         // The classes this build actually produced, in the order the job listed them.
         List<String> builtClasses = splitClassNames(continueForm.getConnectorClass());
-        List<ConnectorVersion> builtVersions = List.copyOf(bundleVersion.getConnectorVersions());
 
         assignClassNames(builtVersions, builtClasses);
 
@@ -89,7 +112,10 @@ public class BuildCallbackService {
             }
         }
 
-        bundleVersion.setArtifactUrl(continueForm.getDownloadLink());
+        bundleVersion.setArtifactUrl(artifactUrlless ? null : continueForm.getDownloadLink());
+        if (artifactUrlless) {
+            markArtifactUrlless(builtConnectors);
+        }
         if (continueForm.getConnectorVersion() != null && !continueForm.getConnectorVersion().isBlank()) {
             bundleVersion.setBundleVersion(continueForm.getConnectorVersion());
         }
@@ -241,6 +267,33 @@ public class BuildCallbackService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Tags the connectors of this build as without an artifact URL, together with their pending edit
+     * clones: every later version starts from one of those, so the mark is inherited from here on.
+     */
+    private void markArtifactUrlless(List<Connector> connectors) {
+        ConnectorTag tag = connectorTagRepository.findByName(ConnectorTag.ARTIFACT_URLLESS)
+                .orElseThrow(() -> new IllegalStateException("No connector_tag row for " + ConnectorTag.ARTIFACT_URLLESS));
+        for (Connector connector : connectors) {
+            addTag(connector, tag);
+            connectorRepository.findByClonedFrom(connector.getId()).forEach(clone -> addTag(clone, tag));
+        }
+    }
+
+    private void addTag(Connector connector, ConnectorTag tag) {
+        if (connector.hasTag(tag.getName())) {
+            return;
+        }
+        if (connector.getConnectorConnectorTags() == null) {
+            connector.setConnectorConnectorTags(new HashSet<>());
+        }
+        ConnectorConnectorTag link = new ConnectorConnectorTag();
+        link.setConnector(connector);
+        link.setConnectorTag(tag);
+        connector.getConnectorConnectorTags().add(link);
+        connectorRepository.save(connector);
+    }
 
     /**
      * The bundle version a callback is about. Jenkins names it directly; a job that still reports only

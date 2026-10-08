@@ -45,6 +45,10 @@ public class SupportTicketDescriptionBuilder {
 
     private static final String NESTED = "    ";
 
+    /** Shown in place of the artifact of a connector marked as having none, so its absence reads as intended. */
+    private static final String NO_ARTIFACT_URL =
+            "none, correctly - the connector is published without an artifact URL (see its description)";
+
     private static final String INTRO_NOTE =
             "An integration method has been submitted for review in the Integration Catalog.";
     private static final String CLOSING_NOTE =
@@ -106,7 +110,8 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Connector classes", event.connectorClasses() == null || event.connectorClasses().isEmpty()
                 ? null
                 : String.join(", ", event.connectorClasses()));
-        bullet(body, "Artifact", event.artifactUrl());
+        // A success carries a download link unless the connector was marked as having no artifact URL.
+        bullet(body, "Artifact", StringUtils.isBlank(event.artifactUrl()) ? NO_ARTIFACT_URL : event.artifactUrl());
         return body.toString();
     }
 
@@ -482,6 +487,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
+        appendArtifactUrlless(body, connector);
         bullet(body, "Maintainer", maintainer(connector));
         body.append('\n').append(CONNECTOR_PUBLISHED_NOTE).append('\n');
     }
@@ -491,6 +497,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
+        appendArtifactUrlless(body, connector);
         bullet(body, "Author", authorWithEmail(connector.getAuthor()));
         bullet(body, "Maintainer", maintainer(connector));
         bullet(body, "Fully qualified class name", connector.getFullyQualifiedClassName());
@@ -501,6 +508,12 @@ public class SupportTicketDescriptionBuilder {
 
         appendBundle(body, connector.getConnectorBundle());
         appendConnectorVersions(body, connector);
+    }
+
+    private static void appendArtifactUrlless(StringBuilder body, Connector connector) {
+        if (connector.hasTag(ConnectorTag.ARTIFACT_URLLESS)) {
+            bullet(body, "Artifact URL", NO_ARTIFACT_URL);
+        }
     }
 
     /**

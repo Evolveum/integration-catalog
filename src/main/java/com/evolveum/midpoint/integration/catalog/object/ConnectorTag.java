@@ -20,6 +20,9 @@ public class ConnectorTag {
     /** Legacy connector: still allowed and counted, but the catalog warns about it. */
     public static final String OBSOLETE = "obsolete";
 
+    /** Connector published with no artifact to download: a missing artifact URL does not block approval. */
+    public static final String ARTIFACT_URLLESS = "arti_URLless";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

@@ -37,6 +37,8 @@ export class ManualFillModal implements OnChanges {
   version = '';
   downloadLink = '';
   className = '';
+  /** The connector has no artifact to download: the download link is neither needed nor sent. */
+  artifactUrlless = false;
 
   // UI state
   submitting = false;
@@ -66,8 +68,12 @@ export class ManualFillModal implements OnChanges {
   onSubmit(): void {
     // The download link is what this dialog exists to supply: it becomes the artifact URL whose
     // absence is what reported the connector as missing its build information.
-    if (!this.bundleName || !this.version || !this.className || !this.downloadLink.trim()) {
-      this.errorMessage = 'Bundle name, version, class name, and download link are required.';
+    if (!this.bundleName || !this.version || !this.className) {
+      this.errorMessage = 'Bundle name, version, and class name are required.';
+      return;
+    }
+    if (!this.artifactUrlless && !this.downloadLink.trim()) {
+      this.errorMessage = 'Download link is required unless the connector is without an artifact URL.';
       return;
     }
 
@@ -93,11 +99,12 @@ export class ManualFillModal implements OnChanges {
           connectorVersion: this.version,
           integrationMethodRevision: this.connector.integrationMethodRevision,
           publishTime: null,
-          downloadLink: this.downloadLink || null,
+          downloadLink: this.artifactUrlless ? null : this.downloadLink || null,
           connectorClass: this.className,
           capability: null,
           connectorVersionId: this.connector.connectorVersionId,
-          connectorVersionRevision: this.connector.connectorVersionRevision
+          connectorVersionRevision: this.connector.connectorVersionRevision,
+          artifactUrlless: this.artifactUrlless
         }).subscribe({
           next: () => {
             // Only emit submit if no error occurred

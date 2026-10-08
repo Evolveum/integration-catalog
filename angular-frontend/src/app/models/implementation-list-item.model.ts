@@ -45,4 +45,5 @@ export interface ImplementationListItem {
   // fields that are fixed from that point on (license, git clone URL).
   initialVersion: boolean;
   connectorTags: ConnectorTag[];  // connector_connector_tag + connector_tag
+  artifactUrl: string | null;     // connector_bundle_version.artifact_url
 }
