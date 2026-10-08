@@ -12,6 +12,7 @@ import { formatCapabilityLabel } from '../../core/capability-label';
 export interface CapabilityGroup {
   objectClass: string;
   capabilityNames: string[];
+  resourceWide: boolean;   // the whole resource's capabilities; objectClass is then only a label
 }
 
 @Component({
@@ -77,10 +78,10 @@ export class CapabilityPicker implements OnInit, OnChanges {
   }
 
   private applyInitialCapabilities(): void {
-    const global = this.initialCapabilities.find(g => g.objectClass === 'Global');
+    const global = this.initialCapabilities.find(g => g.resourceWide);
     this.globalCaps.set(global ? global.capabilityNames : []);
 
-    const specific = this.initialCapabilities.filter(g => g.objectClass !== 'Global');
+    const specific = this.initialCapabilities.filter(g => !g.resourceWide);
     const current = this.entries();
 
     const fromInit = specific.map(g => {
@@ -106,11 +107,11 @@ export class CapabilityPicker implements OnInit, OnChanges {
     const groups: CapabilityGroup[] = [];
     const global = this.globalCaps();
     if (global.length > 0) {
-      groups.push({ objectClass: 'Global', capabilityNames: global });
+      groups.push({ objectClass: 'Global', capabilityNames: global, resourceWide: true });
     }
     this.entries()
       .filter(e => e.objectClass && e.capabilities.length > 0)
-      .forEach(e => groups.push({ objectClass: e.objectClass, capabilityNames: e.capabilities }));
+      .forEach(e => groups.push({ objectClass: e.objectClass, capabilityNames: e.capabilities, resourceWide: false }));
     this.capabilitiesChange.emit(groups);
   }
 

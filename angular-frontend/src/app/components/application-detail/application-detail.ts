@@ -262,9 +262,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   // Submitted-for-review date = integration_method.created_at, matching the method detail page.
   private readonly datePipe = new DatePipe('en-US');
 
-  protected readonly confirmConnectorName = computed(() => {
+  protected readonly confirmMethodName = computed(() => {
     const v = this.confirmVersion();
-    return v ? (v.connectorDisplayName || v.displayName || 'Integration method') : '';
+    return v ? (v.displayName || 'Integration method') : '';
   });
   protected readonly confirmVersionLabel = computed(() => this.versionBadge(this.confirmVersion()?.revision ?? ''));
   protected readonly confirmSubmittedBy = computed(() => {
@@ -302,8 +302,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
     const action$ = mode === 'approve'
-      ? this.applicationService.publishIntegrationMethod(appId, version.id, version.revision ?? '')
-      : this.applicationService.rejectIntegrationMethod(appId, version.id, version.revision ?? '');
+      ? this.applicationService.publishIntegrationMethod(version.id, version.revision ?? '')
+      : this.applicationService.rejectIntegrationMethod(version.id, version.revision ?? '');
     action$.subscribe({
       next: () => {
         this.isProcessingApproval.set(false);
@@ -346,7 +346,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     if (!appId || !version || this.isProcessingStartReview()) return;
     this.startReviewError.set('');
     this.isProcessingStartReview.set(true);
-    this.applicationService.startReviewIntegrationMethod(appId, version.id, version.revision ?? '').subscribe({
+    this.applicationService.startReviewIntegrationMethod(version.id, version.revision ?? '').subscribe({
       next: () => {
         this.isProcessingStartReview.set(false);
         this.startReviewVersion.set(null);
@@ -369,7 +369,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     const appId = this.application()?.id;
     if (!appId || this.isProcessingStopReview()) return;
     this.isProcessingStopReview.set(true);
-    this.applicationService.stopReviewIntegrationMethod(appId, version.id, version.revision ?? '').subscribe({
+    this.applicationService.stopReviewIntegrationMethod(version.id, version.revision ?? '').subscribe({
       next: () => {
         this.isProcessingStopReview.set(false);
         this.loadApplication(appId);
@@ -415,7 +415,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       const appId = this.application()?.id;
       const { id, revision } = this.pendingCancelVersion;
       if (!appId) { this.closeCancelConfirm(); return; }
-      this.applicationService.cancelIntegrationMethod(appId, id, revision ?? '').subscribe({
+      this.applicationService.cancelIntegrationMethod(id, revision ?? '').subscribe({
         next: ({ applicationDeleted }) => {
           this.closeCancelConfirm();
           // The app goes with its only never-published revision, so there is no detail page to return to.
@@ -445,14 +445,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected isGlobalRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
-    return !!caps && caps.length > 0 && caps.every(c => c.objectName.toLowerCase() === 'global');
+    return !!caps && caps.length > 0 && caps.every(c => c.resourceWide);
   }
 
   protected isCombinedRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
     if (!caps || caps.length === 0) return false;
-    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
-           caps.some(c => c.objectName.toLowerCase() !== 'global');
+    return caps.some(c => c.resourceWide) && caps.some(c => !c.resourceWide);
   }
 
   protected toggleComboSection(key: string): void {
@@ -493,11 +492,11 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   }
 
   protected getRequestGlobalCaps(): string[] {
-    return this.application()?.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
+    return this.application()?.objectClassCapabilities?.find(c => c.resourceWide)?.capabilities ?? [];
   }
 
   protected getRequestSpecificOccs(): ObjectClassCapability[] {
-    return this.application()?.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
+    return this.application()?.objectClassCapabilities?.filter(c => !c.resourceWide) ?? [];
   }
 
   protected toggleObjectClass(name: string): void {
@@ -900,7 +899,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return (version.objectClassCapabilities ?? [])
       .map(o => ({
         objectName: o.objectClass,
-        capabilities: o.capabilities.filter(c => c.state === 'YES').map(c => c.name)
+        capabilities: o.capabilities.filter(c => c.state === 'YES').map(c => c.name),
+        resourceWide: false
       }))
       .filter(o => o.capabilities.length > 0);
   }
@@ -992,7 +992,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       this.downloadInfoFileSize.set(null);
       this.isDownloadPreparing.set(true);
       this.isDownloadInfoOpen.set(true);
-      this.applicationService.downloadBundle(appId, methodId, revision ?? '').subscribe({
+      this.applicationService.downloadBundle(methodId, revision ?? '').subscribe({
         next: (result) => {
           if (result.warning) {
             this.toastService.show(

@@ -75,7 +75,6 @@ public class ApplicationService {
     private final AuthService authService;
     private final OrganizationService organizationService;
     private final OwnershipService ownershipService;
-    private final ApplicationVersionRepository applicationVersionRepository;
     private final ConnectorTagRepository connectorTagRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
@@ -105,10 +104,8 @@ public class ApplicationService {
                               AuthService authService,
                               OrganizationService organizationService,
                               OwnershipService ownershipService,
-                              ApplicationVersionRepository applicationVersionRepository,
                               ConnectorTagRepository connectorTagRepository) {
         this.organizationService = organizationService;
-        this.applicationVersionRepository = applicationVersionRepository;
         this.connectorTagRepository = connectorTagRepository;
         this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
@@ -255,18 +252,21 @@ public class ApplicationService {
 
     @Transactional
     public String uploadIntegration(UploadIntegrationDto dto, String username) {
+        log.info("uploadIntegration user={}", username);
         return connectorUploadService.uploadIntegration(dto, username);
     }
 
     @Transactional
     public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto,
                                         String username) {
+        log.info("editIntegrationMethod methodId={} revision={} user={}", methodId, currentRevision, username);
         assertCanEditMethod(username, methodId, currentRevision);
         return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
     }
 
     @Transactional
     public void startReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("startReviewIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         // Starting a review is a superuser-only action, mirroring approve/reject (the client already
         // restricts it to superusers; this is the server-side enforcement).
         if (!authService.isSuperuser(username)) {
@@ -278,6 +278,7 @@ public class ApplicationService {
 
     @Transactional
     public void stopReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("stopReviewIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         // Stopping a review is a superuser-only action, mirroring start-review.
         if (!authService.isSuperuser(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -288,6 +289,7 @@ public class ApplicationService {
 
     @Transactional
     public void approveIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("approveIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         // Approving a revision is a superuser-only action (the client already restricts it to
         // superusers; this is the server-side enforcement).
         if (!authService.isSuperuser(username)) {
@@ -299,6 +301,7 @@ public class ApplicationService {
 
     @Transactional
     public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("rejectIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         if (!authService.isSuperuser(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Only a superuser may reject an integration method.");
@@ -309,20 +312,23 @@ public class ApplicationService {
     /** Whoever may edit the revision may withdraw it; returns whether its application went too. */
     @Transactional
     public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("cancelIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         assertCanEditMethod(username, methodId, revision);
         return connectorUploadService.cancelIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
-    public String addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
+    public String addConnectorToIntegrationMethod(UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
+        log.info("addConnectorToIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         assertCanEditMethod(username, methodId, revision);
-        return connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+        return connectorUploadService.addConnectorToIntegrationMethod(methodId, revision, dto, username);
     }
 
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
                                 String username) {
+        log.info("updateConnector methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
         // A connector is gated on its own maintainer, not the IM's: the IM maintainer must not
         // be able to edit a connector maintained by someone else (a superuser still can).
         assertCanEditConnector(username, methodId, revision, connectorId);
@@ -332,6 +338,7 @@ public class ApplicationService {
     @Transactional
     public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId,
                                                      String username) {
+        log.info("deleteConnectorFromIntegrationMethod methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
         assertCanEditMethod(username, methodId, revision);
         connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
     }
@@ -340,6 +347,8 @@ public class ApplicationService {
     public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
                                              String connectorVersionFrom, String connectorVersionTo,
                                              String username) {
+        log.info("updateConnectorCompatibility methodId={} revision={} connectorId={} from={} to={} user={}",
+                methodId, revision, connectorId, connectorVersionFrom, connectorVersionTo, username);
         assertCanEditMethod(username, methodId, revision);
         connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
                 connectorVersionFrom, connectorVersionTo);
@@ -354,11 +363,13 @@ public class ApplicationService {
 
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
+        log.info("successBuild oid={}", oid);
         buildCallbackService.successBuild(oid, continueForm);
     }
 
     @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
+        log.info("failBuild oid={}", oid);
         buildCallbackService.failBuild(oid, failForm);
     }
 
@@ -431,6 +442,7 @@ public class ApplicationService {
 
     @Transactional
     public Request createRequestFromForm(RequestFormDto dto, String requester) {
+        log.info("createRequestFromForm requester={}", requester);
         return requestVotingService.createRequestFromForm(dto, requester);
     }
 
@@ -443,6 +455,7 @@ public class ApplicationService {
     }
 
     public Vote submitVote(Long requestId, String voter) {
+        log.info("submitVote requestId={} voter={}", requestId, voter);
         return requestVotingService.submitVote(requestId, voter);
     }
 
@@ -456,6 +469,7 @@ public class ApplicationService {
 
     /** The requester may cancel their own request; a superuser may cancel any. */
     public void cancelRequest(Long requestId, String username) {
+        log.info("cancelRequest requestId={} user={}", requestId, username);
         Request request = requestVotingService.getRequest(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
         boolean isRequester = request.getRequester() != null
@@ -552,7 +566,7 @@ public class ApplicationService {
                                     connector.getId(),
                                     connector.getDisplayName(),
                                     connector.getDescription(),
-                                    connector.getRevision(),
+                                    applicationMapper.latestPublishedConnectorVersion(connector),
                                     bundle.getDisplayName(),
                                     ownershipService.toDto(connector.getMaintainer()),
                                     ownershipService.maintainerLabel(connector),
@@ -576,6 +590,7 @@ public class ApplicationService {
 
     @Transactional
     public void verify(UUID uuid, VerifyBundleInformationForm verifyPayload) {
+        log.info("verify oid={}", uuid);
         buildCallbackService.verify(uuid, verifyPayload);
     }
 
@@ -585,6 +600,7 @@ public class ApplicationService {
      */
     @Transactional
     public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
+        log.info("triggerBuild oid={}", oid);
         ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
                 triggerBuildForm.getConnectorVersionId(),
                 triggerBuildForm.getConnectorVersionRevision(),
@@ -675,11 +691,11 @@ public class ApplicationService {
                             if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
                                 continue;
                             }
-                            // Only draft versions are awaiting a build; the approve dialog asks while the
-                            // revision is under review, which has moved them to REVIEWING.
+                            // Only the versions this review is about: a published one's build is not the
+                            // reviewer's business, and start-review moves a submitted row to REVIEWING,
+                            // so both under-review states have to count.
                             for (ConnectorVersion connectorVersion : connector.getConnectorVersions()) {
-                                if (connectorVersion.getLifecycleState() != LifecycleType.IN_REVIEW
-                                        && connectorVersion.getLifecycleState() != LifecycleType.REVIEWING) {
+                                if (!ConnectorUploadService.UNDER_REVIEW.contains(connectorVersion.getLifecycleState())) {
                                     continue;
                                 }
                                 ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
@@ -711,6 +727,7 @@ public class ApplicationService {
      */
     @Transactional
     public Application updateApplication(UUID applicationId, UpdateApplicationDto dto) {
+        log.info("updateApplication applicationId={}", applicationId);
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
         if (dto.displayName() != null && !dto.displayName().isBlank()) {
@@ -719,55 +736,7 @@ public class ApplicationService {
         if (dto.description() != null) {
             application.setDescription(dto.description());
         }
-        if (dto.versions() != null) {
-            syncVersions(application, dto.versions());
-        }
         return applicationRepository.save(application);
-    }
-
-    /**
-     * Makes the application's versions match {@code wanted}: a version with an id is kept (and renamed
-     * if its text changed), one without is added, and any other is removed.
-     */
-    private void syncVersions(Application application, List<ApplicationVersionDto> wanted) {
-        List<String> names = wanted.stream().map(v -> v.version().trim()).toList();
-        if (new HashSet<>(names).size() != names.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Application versions must be unique.");
-        }
-        Map<Integer, ApplicationVersion> existing = new HashMap<>();
-        application.getVersions().forEach(v -> existing.put(v.getId(), v));
-        Set<Integer> keptIds = new HashSet<>();
-        for (ApplicationVersionDto v : wanted) {
-            if (v.id() == null) {
-                continue;
-            }
-            if (!existing.containsKey(v.id())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Application version " + v.id() + " is not a version of this application.");
-            }
-            keptIds.add(v.id());
-        }
-
-        List<ApplicationVersion> removed = existing.values().stream()
-                .filter(v -> !keptIds.contains(v.getId()))
-                .toList();
-        // Removals and renames reach the database before additions, so a removed or renamed
-        // version's text can be reused in the same save without tripping the unique constraint.
-        application.getVersions().removeAll(removed);
-        applicationVersionRepository.deleteAll(removed);
-        applicationVersionRepository.flush();
-        for (ApplicationVersionDto v : wanted) {
-            if (v.id() != null) {
-                existing.get(v.id()).setVersion(v.version().trim());
-            }
-        }
-        applicationVersionRepository.flush();
-        for (ApplicationVersionDto v : wanted) {
-            if (v.id() == null) {
-                application.getVersions().add(applicationVersionRepository.save(
-                        new ApplicationVersion().setApplication(application).setVersion(v.version().trim())));
-            }
-        }
     }
 
     /**
@@ -777,6 +746,7 @@ public class ApplicationService {
      */
     @Transactional
     public void setConnectorTags(Integer connectorId, SupportTier tier, boolean obsolete) {
+        log.info("setConnectorTags connectorId={} tier={} obsolete={}", connectorId, tier, obsolete);
         if (obsolete && tier != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An obsolete connector cannot have a support tier");
         }

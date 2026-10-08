@@ -320,14 +320,19 @@ public class BuildCallbackService {
     private void persistCapabilitiesOnConnectorVersions(ConnectorVersion connectorVersion,
                                                         List<CapabilityType> capabilityTypes) {
 
-        List<ConnVersionCapability> currentCapabilities = connVersionCapabilityRepository.findByObjectClass("Global");
-        ConnVersionCapability currentCapability = currentCapabilities.stream().findFirst().orElseGet(() -> {
-            ConnVersionCapability group = new ConnVersionCapability();
-            group.setObjectClass("Global");
-            group.setConnectorVersion(connectorVersion);
-            connVersionCapabilityRepository.save(group);
-            return group;
-        });
+        // This version's own resource-wide group; every connector version has at most one.
+        ConnVersionCapability currentCapability = connectorVersion.getCapabilities().stream()
+                .filter(ConnVersionCapability::isResourceWide)
+                .findFirst()
+                .orElseGet(() -> {
+                    ConnVersionCapability group = new ConnVersionCapability();
+                    group.setObjectClass(ConnVersionCapability.RESOURCE_WIDE_LABEL);
+                    group.setResourceWide(true);
+                    group.setConnectorVersion(connectorVersion);
+                    connectorVersion.getCapabilities().add(group);
+                    connVersionCapabilityRepository.save(group);
+                    return group;
+                });
 
         for (CapabilityType capType : capabilityTypes) {
             if (!capType.isGlobal()){

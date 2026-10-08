@@ -6,13 +6,13 @@
 
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, computed, input
-} from '@angular/core';
+  signal, computed, input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { PageHeader } from '../page-header/page-header';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
@@ -46,7 +46,7 @@ export interface AddConnectorPayload {
   midpointMaxVersion: number | null;
   connectorVersionFrom: string | null;
   connectorVersionTo: string | null;
-  connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+  connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
 }
 
 /** A connector held in the parent form (not yet persisted) until the user saves a new version. */
@@ -154,10 +154,7 @@ export class AddConnectorForm implements OnInit {
   protected readonly commitHelpTitle = COMMIT_HELP_TITLE;
   protected readonly commitHelpSteps = COMMIT_HELP_STEPS;
 
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL', 'CDDL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2', 'CDDL': 'CDDL'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   // ── Computed helpers ──────────────────────────────────────
   protected get isExistingConnector(): boolean {
@@ -250,7 +247,7 @@ export class AddConnectorForm implements OnInit {
   }
 
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   protected showLogo(): boolean {
@@ -330,7 +327,8 @@ export class AddConnectorForm implements OnInit {
     this.connectorDescription.set(c.description ?? '');
     const caps: CapabilityGroup[] = (c.objectClassCapabilities ?? []).map(oc => ({
       objectClass: oc.objectName,
-      capabilityNames: oc.capabilities ?? []
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
     }));
     this.connectorCapabilities.set(caps);
     this.initialCapabilities.set(caps);
@@ -339,6 +337,7 @@ export class AddConnectorForm implements OnInit {
     this.devCommitTag.set(c.commitTag ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(c.pathToProject ?? '');
+    this.devCommitTag.set(c.commitTag ?? '');
     this.devClassName.set(c.className ?? '');
     const bf = (c.buildFramework ?? '').toLowerCase();
     this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
@@ -403,7 +402,8 @@ export class AddConnectorForm implements OnInit {
       connectorVersionTo: null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
-        capabilityNames: g.capabilityNames
+        capabilityNames: g.capabilityNames,
+        resourceWide: g.resourceWide
       }))
     };
 
@@ -423,7 +423,7 @@ export class AddConnectorForm implements OnInit {
       return;
     }
 
-    this.appService.addConnectorToIntegrationMethod(this.appId, this.versionId, this.revision, payload).subscribe({
+    this.appService.addConnectorToIntegrationMethod(this.versionId, this.revision, payload).subscribe({
       next: (savedRevision) => { this.isSaving.set(false); this.saved.emit(savedRevision); },
       error: err => {
         this.isSaving.set(false);

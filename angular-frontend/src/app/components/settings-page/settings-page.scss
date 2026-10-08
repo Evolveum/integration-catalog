@@ -4,8 +4,6 @@
 */
 @use 'variables' as *;
 
-//TODO missing colors
-$color-dark-blue: blue;
 
 .settings-page {
   background-color: $color-white;
@@ -24,7 +22,7 @@ $color-dark-blue: blue;
   border: none;
   padding: 0;
   margin-bottom: 1.5rem;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -67,15 +65,15 @@ $color-dark-blue: blue;
   cursor: pointer;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
 .settings-tab-active,
 .profile-tab-active {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 600;
-  border-bottom-color: $color-dark-blue;
+  border-bottom-color: $color-brand-steel;
 }
 
 .settings-section-title {
@@ -103,7 +101,7 @@ $color-dark-blue: blue;
 }
 
 .iam-banner-icon {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 15px;
   flex-shrink: 0;
   align-self: flex-start;

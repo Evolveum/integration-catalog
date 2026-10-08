@@ -243,9 +243,9 @@ export class ApprovalQueuePage {
   protected readonly isProcessingApproval = signal(false);
   protected readonly approvalError = signal('');
 
-  protected readonly confirmConnectorName = computed(() => {
+  protected readonly confirmMethodName = computed(() => {
     const r = this.confirmRevision();
-    return r ? (r.connectorDisplayName || r.displayName || 'Integration method') : '';
+    return r ? (r.displayName || 'Integration method') : '';
   });
 
   protected readonly confirmSubmittedBy = computed(() => {
@@ -271,7 +271,7 @@ export class ApprovalQueuePage {
     if (!revision || this.isProcessingApproval()) return;
     this.approvalError.set('');
     this.isProcessingApproval.set(true);
-    this.applicationService.publishIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
+    this.applicationService.publishIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.isProcessingApproval.set(false);
         this.confirmRevision.set(null);
@@ -331,7 +331,7 @@ export class ApprovalQueuePage {
     if (!revision || this.isProcessingStartReview()) return;
     this.startReviewError.set('');
     this.isProcessingStartReview.set(true);
-    this.applicationService.startReviewIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
+    this.applicationService.startReviewIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.isProcessingStartReview.set(false);
         this.startReviewRevision.set(null);
@@ -349,7 +349,7 @@ export class ApprovalQueuePage {
     this.closeMenu();
     if (this.isProcessingStopReview()) return;
     this.isProcessingStopReview.set(true);
-    this.applicationService.stopReviewIntegrationMethod(revision.applicationId, revision.id, revision.revision).subscribe({
+    this.applicationService.stopReviewIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.isProcessingStopReview.set(false);
         this.load();

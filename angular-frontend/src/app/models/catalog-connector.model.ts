@@ -5,6 +5,7 @@ import { ConnectorTag } from './connector-tag.model';
 export interface CatalogConnectorObjectClassCapability {
   objectName: string;          // conn_version_capability.object_class
   capabilities: string[];      // capability.name items
+  resourceWide: boolean;       // conn_version_capability.resource_wide; objectName is then only a label
 }
 
 export interface CatalogConnector {

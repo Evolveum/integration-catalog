@@ -7,10 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.dto;
 
 import com.evolveum.midpoint.integration.catalog.object.Application;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
-
-import java.util.List;
 
 /**
  * DTO representing the mutable metadata of an application that may be changed
@@ -26,6 +23,5 @@ public record UpdateApplicationDto(
         String displayName,
         @Size(max = Application.DESCRIPTION_MAX,
                 message = "Description can be at most " + Application.DESCRIPTION_MAX + " characters.")
-        String description,
-        List<@Valid ApplicationVersionDto> versions   // the whole new list: ids kept, null ids added, the rest removed; null leaves it as is
+        String description
 ) {}

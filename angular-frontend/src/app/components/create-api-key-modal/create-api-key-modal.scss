@@ -4,9 +4,6 @@
 */
 @use 'variables' as *;
 
-//TODO missing colors
-$color-dark-blue: blue;
-$color-mid-blue: blue;
 
 .create-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
@@ -77,7 +74,7 @@ $color-mid-blue: blue;
 
   &:focus {
     outline: none;
-    border-color: $color-dark-blue;
+    border-color: $color-brand-steel;
   }
 
   &::placeholder {
@@ -107,8 +104,8 @@ $color-mid-blue: blue;
 
 .create-key-chip-active {
   background-color: $color-bg-selected;
-  border-color: $color-dark-blue;
-  color: $color-dark-blue;
+  border-color: $color-brand-steel;
+  color: $color-brand-steel;
   font-weight: 600;
 }
 
@@ -135,8 +132,8 @@ $color-mid-blue: blue;
 }
 
 .create-key-submit {
-  background-color: $color-dark-blue;
-  border: 1px solid $color-dark-blue;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   border-radius: 6px;
   padding: 0.5rem 1.1rem;
   font-size: 0.875rem;
@@ -145,8 +142,8 @@ $color-mid-blue: blue;
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background-color: $color-mid-blue;
-    border-color: $color-mid-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
   }
 
   &:disabled {

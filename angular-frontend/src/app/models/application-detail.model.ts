@@ -20,12 +20,6 @@ export interface IntegrationMethodTier {
   hasConnectorBundle: boolean;     // false = no connector to hold a tier, so it cannot be set
 }
 
-/** One version of an application, kept by a superuser. */
-export interface ApplicationVersion {
-  id: number | null;    // application_version.id, null for one being added
-  version: string;      // application_version.version
-}
-
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
   version: string;      // midpoint_version.version
@@ -87,6 +81,7 @@ export interface IntegrationMethod {
 export interface ObjectClassCapability {
   objectName: string;     // object_class_capabilities.object_name
   capabilities: string[]; // capability.name items
+  resourceWide: boolean;  // resource_wide; objectName is then only a label
 }
 
 /** Whether an integration method supports a capability on an object; UNKNOWN means nobody determined it. */
@@ -130,7 +125,6 @@ export interface ApplicationDetail {
   requestedIntegrationMethodType: string | null; // integration_method_type.display_name via request
   frameworks: string[] | null;              // connector_bundle.framework
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
-  versions: ApplicationVersion[];           // application_version, oldest first
 }
 
 export function hasLogoDetail(app: ApplicationDetail): boolean {

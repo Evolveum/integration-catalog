@@ -450,10 +450,9 @@
 @if (confirmMode(); as mode) {
   <app-approval-confirm-modal
     [mode]="mode"
-    [appId]="confirmRevision()?.applicationId || ''"
     [methodId]="confirmRevision()?.id || ''"
     [revision]="confirmRevision()?.revision || ''"
-    [connectorName]="confirmConnectorName()"
+    [methodName]="confirmMethodName()"
     [versionLabel]="'v' + (confirmRevision()?.revision || '')"
     [submittedBy]="confirmSubmittedBy()"
     [processing]="isProcessingApproval()"
