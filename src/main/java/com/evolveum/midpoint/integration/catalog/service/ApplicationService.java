@@ -746,6 +746,7 @@ public class ApplicationService {
      */
     @Transactional
     public void setConnectorTags(Integer connectorId, SupportTier tier, boolean obsolete) {
+        log.info("setConnectorTags connectorId={} tier={} obsolete={}", connectorId, tier, obsolete);
         if (obsolete && tier != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An obsolete connector cannot have a support tier");
         }
