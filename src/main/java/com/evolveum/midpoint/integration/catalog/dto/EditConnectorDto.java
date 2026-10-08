@@ -12,22 +12,26 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 import java.util.List;
 
 /**
- * Payload for editing an existing connector linked to an integration method revision.
- * The connector is identified by its id in the request path; these values replace the
- * current connector / bundle / bundle-version / version fields in place.
+ * Payload for editing an existing connector linked to an integration method revision. The connector is
+ * identified by its id in the request path.
  */
 public record EditConnectorDto(
-        String displayName,                                          // connector.display_name + connector_bundle.display_name
+        // -- metadata ------------------------------------------------------------------------------
+        String displayName,                                          // connector.display_name
         String description,                                          // connector.description
-        String maintainer,                                           // connector.maintainer
-        ConnectorBundle.LicenseType license,                         // connector_bundle.license
-        String browseLink,                                           // connector_bundle_version.browse_link
+        MaintainerDto maintainer,                                    // connector.maintainer
+        String projectHomepage,                                      // connector_bundle.project_homepage
         String supportPortal,                                        // connector_bundle.ticketing_link
-        String gitCloneUrl,                                          // connector_bundle_version.git_clone_url
-        BuildFrameworkType buildFramework,                           // connector_bundle.build_framework
-        String pathToProject,                                        // connector_bundle_version.path_to_project
-        String className,                                            // connector.fully_qualified_class_name
-        String bundleName,                                           // connector_bundle.bundle_name
+        String bundleDisplayName,                                    // connector_bundle.display_name (the form's "connector bundle name")
+        // -- build data ----------------------------------------------------------------------------
+        String version,                                              // connector_bundle_version.bundle_version + connector.revision
+        String baseVersion,                                          // the version the editor was shown, so the row it edits is named rather than guessed
         String commitTag,                                            // connector_bundle_version.commit_tag
-        List<IntegrationMethodCapabilityGroupDto> connectorCapabilities // conn_version_capability + items (replaced)
+        String pathToProject,                                        // connector_bundle_version.path_to_project
+        BuildFrameworkType buildFramework,                           // connector_bundle_version.build_framework
+        String className,                                            // connector_version.fully_qualified_class_name
+        List<IntegrationMethodCapabilityGroupDto> connectorCapabilities, // conn_version_capability + items (replaced)
+        // -- fixed after the first version ---------------------------------------------------------
+        ConnectorBundle.LicenseType license,                         // connector_bundle.license
+        String gitCloneUrl                                           // connector_bundle.git_clone_ulr
 ) {}

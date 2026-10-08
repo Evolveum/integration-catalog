@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, computed, effect, inject, OnInit, OnDestroy } from '@angular/core';
 import EasyMDE from 'easymde';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,18 +7,26 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { Application } from '../../models/application.model';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CatalogConnector } from '../../models/catalog-connector.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { CountryService, Country } from '../../services/country.service';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
 import { PublishFormImpl, ReviewSummary, Step5FormData } from '../publish-form-impl/publish-form-impl';
-import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
+import { IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
+import { LinksService } from '../../services/links.service';
+import { ToastService } from '../../services/toast.service';
+import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, CapabilityPicker, OverflowTitleDirective],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe, BackdropCloseDirective],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
 })
@@ -33,9 +41,17 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');
   protected readonly searchQuery = signal<string>('');
+  // True when the application list could not be loaded, so an empty search result is explained as a
+  // failure rather than read as "this application does not exist".
+  protected readonly applicationsFailed = signal<boolean>(false);
+  // True when the application search box holds a single character: prompt for at least 2.
+  protected readonly applicationSearchTooShort = computed(() => this.searchQuery().trim().length === 1);
   protected readonly selectedApplication = signal<Application | null>(null);
   protected readonly isDefineNewMode = signal<boolean>(false);
   protected readonly showDetailsForm = signal<boolean>(false);
+  // True while the define-new modal is reopened to EDIT an already-defined app
+  // (vs. creating a fresh one). Controls whether Cancel clears the fields.
+  protected readonly isEditingDefinedApp = signal<boolean>(false);
 
   // Step 2 - Application Details
   protected readonly displayName = signal<string>('');
@@ -54,10 +70,30 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly isLoadingCountries = signal<boolean>(true);
 
   // Step 3 – method-specific form fields
+  protected readonly links = inject(LinksService).links;
+  private readonly toastService = inject(ToastService);
   protected readonly methodFormDisplayName = signal<string>('');
   protected readonly methodFormVersion     = signal<string>('1.0');
   protected readonly methodFormDescription = signal<string>('');
+  protected readonly methodFormLimitations = signal<string>('');
+  /** Kept in the template too, so the counter and the cap cannot drift apart. */
+  protected readonly limitationsMax = LIMITATIONS_MAX;
   protected readonly methodFormTutorial    = signal<string>('');
+  protected readonly methodFormMaintainer  = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
+  protected readonly maintainerSearch = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
+  });
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.methodFormMaintainer()));
   protected readonly tutorialFiles         = signal<{ name: string; file: File; isNew: boolean }[]>([]);
   protected readonly tutorialDragOver      = signal<boolean>(false);
   protected readonly tutorialWordCount     = computed(() =>
@@ -65,7 +101,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   );
 
   // Step 3 – integration method capabilities
-  protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
 
   protected readonly selectedMethodTitles = computed(() =>
     this.integrationMethodTypes()
@@ -98,15 +134,22 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly catalogConnectors = signal<CatalogConnector[]>([]);
   protected readonly isCatalogLoading = signal<boolean>(false);
   protected readonly connectorCatalogSearch = signal<string>('');
+  // True when the connector search box holds a single character: prompt for at least 2.
+  protected readonly connectorCatalogSearchTooShort = computed(() => this.connectorCatalogSearch().trim().length === 1);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   protected readonly filteredCatalogConnectors = computed<CatalogConnector[]>(() => {
     const query = this.connectorCatalogSearch().toLowerCase().trim();
-    if (!query) return this.catalogConnectors();
-    return this.catalogConnectors().filter(c =>
-      c.displayName?.toLowerCase().includes(query) ||
-      c.description?.toLowerCase().includes(query)
-    );
+    const all = this.catalogConnectors();
+    // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
+    const matched = query.length < 2
+      ? all
+      : all.filter(c =>
+          c.displayName?.toLowerCase().includes(query) ||
+          c.description?.toLowerCase().includes(query)
+        );
+    return matched.slice(0, 10);
   });
   protected readonly selectedIntegrationMethod = signal<string[]>([]);
   protected readonly childInternalStep = signal<number>(5);
@@ -144,24 +187,35 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   protected recentApps = computed(() => this.recentlyUsedApps());
 
+  /**
+   * Whether an application matches the search box, by name or description.
+   *
+   * Both are nullable in the database, and an application published without a description arrives
+   * here as null however the model types it. Reading `.toLowerCase()` off that throws inside the
+   * computed, which takes the whole result list down with it - the search then finds nothing at all,
+   * including applications that do match.
+   */
+  private matchesApplication(app: Application, query: string): boolean {
+    return (app.displayName ?? '').toLowerCase().includes(query)
+      || (app.description ?? '').toLowerCase().includes(query);
+  }
+
   protected filteredApplications = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
-    if (!query) return [];
+    // Search needs at least 2 characters; a single character shows a hint instead (see
+    // applicationSearchTooShort) and yields no results.
+    if (query.length < 2) return [];
 
     if (this.currentStep() === 1) {
-      return this.applications().filter(app =>
-        app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query)
-      );
+      // Cap the list at 5 entries.
+      return this.applications().filter(app => this.matchesApplication(app, query)).slice(0, 5);
     }
 
     const connectorType = this.selectedConnectorType();
     const targetFramework = connectorType === 'java-based' ? 'JAVA_BASED' : 'LOW_CODE';
 
     return this.applications().filter(app => {
-      const matchesQuery = app.displayName.toLowerCase().includes(query) ||
-        app.description.toLowerCase().includes(query);
-      if (!matchesQuery) return false;
+      if (!this.matchesApplication(app, query)) return false;
       if (app.lifecycleState === 'REQUESTED') return true;
       if (!app.frameworks || app.frameworks.length === 0) return false;
       return app.frameworks.includes(targetFramework);
@@ -226,13 +280,15 @@ export class PublishFormMain implements OnInit, OnDestroy {
     methodName: this.methodFormDisplayName(),
     methodVersion: this.methodFormVersion(),
     methodDescription: this.methodFormDescription(),
+    methodLimitations: this.methodFormLimitations(),
     methodTutorial: this.methodFormTutorial(),
+    methodMaintainer: this.methodFormMaintainer(),
     applicationDescription: this.description(),
     origins: this.origins(),
     category: this.category(),
     deploymentType: this.deploymentType(),
     logoFile: this.logoFile(),
-    tutorialFile: this.tutorialFiles()[0]?.file ?? null,
+    tutorialFiles: this.tutorialFiles().map(f => f.file),
     imCapabilities: this.imCapabilities()
   }));
 
@@ -381,14 +437,37 @@ export class PublishFormMain implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (!this.authService.canUpload()) {
+      // Reached by a typed or bookmarked /approve URL; the UI buttons check before navigating here.
+      if (this.authService.isLoggedIn()) {
+        this.toastService.show('Permission Denied', "You don't have permission for this action.", 'warning');
+      } else {
+        this.toastService.show('Login Required', 'You need to log in to perform this action. Please log in and try again.', 'warning');
+      }
       this.router.navigate(['/applications']);
       return;
     }
 
     this.preselectAppId = this.route.snapshot.queryParamMap.get('appId');
 
+    this.methodFormMaintainer.set(this.authService.defaultMaintainer());
+    if (this.authService.currentRole() === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
+      });
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
+    }
+
     this.applicationService.getAll().subscribe({
-      next: (data) => { this.applications.set(data); this.appsLoaded = true; this.tryPreselectApp(); }
+      next: (data) => { this.applications.set(data); this.appsLoaded = true; this.tryPreselectApp(); },
+      // Without this the list stays empty and the search silently finds nothing - including
+      // applications that are certainly there - with no way for anyone to tell why.
+      error: (error) => {
+        this.applicationsFailed.set(true);
+        console.error('Could not load the application list:', error);
+      }
     });
 
     this.applicationService.getRecentlyUsed().subscribe({ next: (data) => this.recentlyUsedApps.set(data) });
@@ -442,6 +521,11 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.currentStep.set(step);
     this.childInternalStep.set(5);
     this.childConnectorName.set('');
+    // If the app was defined new (not picked from the catalog), reopen the
+    // define-new modal on step 1 so the user can edit the data they entered.
+    if (step === 1 && this.isDefineNewMode()) {
+      this.editDefineNewApp();
+    }
   }
 
   protected handleChildInternalStepChange(step: number): void {
@@ -456,25 +540,46 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.childMidpointLabel.set(label);
   }
 
-  protected onMethodVersionInput(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const filtered = el.value.replace(/[^0-9.]/g, '');
-    el.value = filtered;
-    this.methodFormVersion.set(filtered);
-  }
-
-  protected onMethodVersionBlur(event: Event): void {
-    const el = event.target as HTMLInputElement;
-    const trimmed = el.value.replace(/\.+$/, '');
-    el.value = trimmed;
-    this.methodFormVersion.set(trimmed);
-  }
-
   protected onMethodFormDescriptionChange(event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
     if (value.length <= 350) {
       this.methodFormDescription.set(value);
     }
+  }
+
+  protected onMethodFormLimitationsChange(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    if (value.length <= LIMITATIONS_MAX) {
+      this.methodFormLimitations.set(value);
+    }
+  }
+
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: Maintainer): void {
+    this.methodFormMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
+  }
+
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.methodFormMaintainer());
   }
 
   protected onTutorialChange(event: Event): void {
@@ -486,26 +591,36 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.tutorialDragOver.set(false);
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
-      this.addTutorialFile(files[0]);
+      this.addTutorialFiles(files);
     }
   }
 
   protected onTutorialFileSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.addTutorialFile(input.files[0]);
+      this.addTutorialFiles(input.files);
     }
     input.value = '';
+  }
+
+  private addTutorialFiles(files: FileList): void {
+    for (const file of Array.from(files)) {
+      this.addTutorialFile(file);
+    }
   }
 
   private addTutorialFile(file: File): void {
     const allowed = ['.pdf', '.xml', '.json', '.yaml', '.yml', '.txt'];
     const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!allowed.includes(ext)) {
-      alert('Invalid file type. Allowed formats: PDF, XML, JSON, YAML, TXT.');
+      alert(`Invalid file type: ${file.name}. Allowed formats: PDF, XML, JSON, YAML, TXT.`);
       return;
     }
-    this.tutorialFiles.set([{ name: file.name, file, isNew: true }]);
+    // Append, skipping any file already staged under the same name.
+    if (this.tutorialFiles().some(f => f.name === file.name)) {
+      return;
+    }
+    this.tutorialFiles.update(files => [...files, { name: file.name, file, isNew: true }]);
   }
 
   protected removeTutorialFile(index: number): void {
@@ -513,13 +628,28 @@ export class PublishFormMain implements OnInit, OnDestroy {
   }
 
   protected enterDefineNewMode(): void {
+    this.isEditingDefinedApp.set(false);
     this.clearApplicationDetailsFields();
+    this.showDefineNewModal.set(true);
+  }
+
+  /**
+   * Reopens the define-new modal to edit an already-defined app WITHOUT clearing
+   * the fields, so the previously entered data is preserved for editing.
+   */
+  protected editDefineNewApp(): void {
+    this.isEditingDefinedApp.set(true);
     this.showDefineNewModal.set(true);
   }
 
   protected cancelDefineNewModal(): void {
     this.showDefineNewModal.set(false);
-    this.clearApplicationDetailsFields();
+    // When editing an existing defined app, keep the data — only a fresh
+    // "Define new" that is cancelled should discard the (empty) fields.
+    if (!this.isEditingDefinedApp()) {
+      this.clearApplicationDetailsFields();
+    }
+    this.isEditingDefinedApp.set(false);
   }
 
   protected confirmDefineNew(): void {
@@ -527,7 +657,12 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.isDefineNewMode.set(true);
     this.selectedApplication.set(null);
     this.showDetailsForm.set(true);
-    this.nextStep();
+    // Editing keeps the user on the current step; a fresh definition advances.
+    if (this.isEditingDefinedApp()) {
+      this.isEditingDefinedApp.set(false);
+    } else {
+      this.nextStep();
+    }
   }
 
   private populateApplicationDetails(): void {
@@ -626,8 +761,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
     this.isDefineNewMode.set(false);
     this.showDetailsForm.set(false);
     this.populateApplicationDetails();
-    const username = this.authService.currentUser() ?? 'anonymous';
-    this.applicationService.recordRecentlyUsed(app.id, username).subscribe({
+    this.applicationService.recordRecentlyUsed(app.id).subscribe({
       next: () => this.applicationService.getRecentlyUsed().subscribe({
         next: (data) => this.recentlyUsedApps.set(data)
       })
@@ -673,8 +807,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   }
 
   protected canSubmitForm(): boolean {
-    return this.displayName().trim() !== '' &&
-           this.logoFile() !== null;
+    return this.displayName().trim() !== '';
   }
 
   protected onLogoUpload(event: Event): void {
@@ -777,7 +910,11 @@ export class PublishFormMain implements OnInit, OnDestroy {
     }
   }
 
-  protected onImCapabilitiesChange(groups: CapabilityGroup[]): void {
+  protected capabilitiesValid(): boolean {
+    return imCapabilitiesValid(this.imCapabilities());
+  }
+
+  protected onImCapabilitiesChange(groups: IntegrationMethodObjectCapabilities[]): void {
     this.imCapabilities.set(groups);
   }
 

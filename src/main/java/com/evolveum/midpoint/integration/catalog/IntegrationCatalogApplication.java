@@ -7,10 +7,7 @@
 package com.evolveum.midpoint.integration.catalog;
 
 import ch.qos.logback.classic.Logger;
-import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
-import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
-import com.evolveum.midpoint.integration.catalog.configuration.LogoStorageProperties;
-import com.evolveum.midpoint.integration.catalog.configuration.TutorialStorageProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.*;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -18,9 +15,24 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
+// Scheduling is on for PendingOperationRetryJob only
+@EnableScheduling
 @SpringBootApplication
-@EnableConfigurationProperties({GithubProperties.class, JenkinsProperties.class, LogoStorageProperties.class, TutorialStorageProperties.class})
+@EnableConfigurationProperties({
+		GithubProperties.class,
+		JenkinsProperties.class,
+		LogoStorageProperties.class,
+		TutorialStorageProperties.class,
+		ConnectorSigningProperties.class,
+		OpenProjectProperties.class,
+		PendingOperationProperties.class,
+		CatalogProperties.class,
+		LinksProperties.class,
+		FooterProperties.class,
+		GraviteeProperties.class
+})
 public class IntegrationCatalogApplication {
 
 	private static final Logger LOG

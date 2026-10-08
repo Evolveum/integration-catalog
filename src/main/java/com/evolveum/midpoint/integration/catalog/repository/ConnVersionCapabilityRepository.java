@@ -15,5 +15,4 @@ import java.util.List;
 public interface ConnVersionCapabilityRepository extends JpaRepository<ConnVersionCapability, Integer>,
         JpaSpecificationExecutor<ConnVersionCapability> {
 
-    List<ConnVersionCapability> findByConnectorVersionId(Integer connectorVersionId);
-}
+    List<ConnVersionCapability> findByConnectorVersionId(Integer connectorVersionId);}

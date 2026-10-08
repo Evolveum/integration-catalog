@@ -4,9 +4,14 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { ConnectorTag } from './connector-tag.model';
+
+import { Maintainer } from './maintainer.model';
+
 export interface ObjectClassCapability {
   objectName: string;             // conn_version_capability.object_class
   capabilities: string[];         // capability.name items
+  resourceWide: boolean;          // conn_version_capability.resource_wide; objectName is then only a label
 }
 
 export interface ImplementationListItem {
@@ -17,20 +22,27 @@ export interface ImplementationListItem {
   publishedDate: string;          // connector_bundle_version.released_date (null — no direct field yet)
   version: string;                // connector_bundle_version.revision
   displayName: string;            // integration_method.display_name
-  maintainer: string;             // connector.maintainer
+  maintainer: Maintainer | null;  // connector.maintainer
+  maintainerLabel: string | null; // connector.maintainer as label
   licenseType: string;            // connector_bundle.license
   implementationDescription: string; // connector.description
-  browseLink: string;             // connector_bundle_version.browse_link
+  projectHomepage: string;        // connector_bundle.project_homepage
+  branchUrl: string;              // connector_bundle_version.browse_link
   ticketingLink: string;          // connector_bundle.ticketing_link
   buildFramework: string;         // connector_bundle_version.build_framework
-  gitCloneUrl: string;            // connector_bundle_version.git_clone_url
+  gitCloneUrl: string;            // connector_bundle.git_clone_ulr
   pathToProjectDirectory: string; // connector_bundle_version.path_to_project
   className: string;              // connector.fully_qualified_class_name
-  bundleDisplayName: string;      // connector.display_name
-  bundleName: string;             // connector_bundle.bundle_name
+  connectorDisplayName: string;   // connector.display_name
+  bundleDisplayName: string;      // connector_bundle.display_name (shown as "connector bundle name")
+  bundleName: string;             // connector_bundle.bundle_name (technical identity, not shown)
   bundleFramework: string;        // connector_bundle.framework
   commitTag: string;              // connector_bundle_version.commit_tag
   objectClassCapabilities: ObjectClassCapability[]; // conn_version_capability + items
   connectorMinVersion: string | null; // integration_method_connector.connector_minversion
   connectorMaxVersion: string | null; // integration_method_connector.connector_maxversion
+  // False once a version has been published from this bundle: the edit form then stops offering the
+  // fields that are fixed from that point on (license, git clone URL).
+  initialVersion: boolean;
+  connectorTags: ConnectorTag[];  // connector_connector_tag + connector_tag
 }

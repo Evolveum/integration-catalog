@@ -4,8 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<div class="ecm-overlay" (click)="close.emit()">
-  <div class="ecm-modal" (click)="$event.stopPropagation()">
+<div class="ecm-overlay" [appBackdropClose]="ecmDialog" (backdropClose)="close.emit()">
+  <div #ecmDialog class="ecm-modal" (click)="$event.stopPropagation()">
 
     <!-- Header -->
     <div class="ecm-modal-header d-flex justify-content-between align-items-center">
@@ -44,12 +44,14 @@
               <div class="col-4">
                 <label class="form-label form-label-upload">
                   Connector version
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector. To publish a new version, use “Save as new version” on the integration method.">
+                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector (e.g. 1.0.0). When you save the integration method as a new version,&#013;this becomes the version of the new connector. Take note that value is still just informative,&#013;real value will be assigned during build phase from .pom file.">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
                 </label>
-                <input type="text" class="form-control input-disabled"
-                       [value]="connectorVersion()" disabled>
+                <input type="text" class="form-control"
+                       [value]="connectorVersion()"
+                       (input)="connectorVersion.set($any($event.target).value)"
+                       placeholder="e.g. 1.0.0">
               </div>
             </div>
 
@@ -63,15 +65,15 @@
               </label>
               <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                 <input type="text" class="form-select"
-                       [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                       [value]="maintainerText()"
                        (input)="onMaintainerInput($event)"
                        (focus)="onMaintainerFocus()"
                        (blur)="onMaintainerBlur()"
                        placeholder="Select maintainer...">
                 @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                   <div class="maintainer-dropdown">
-                    @for (option of filteredMaintainerOptions(); track option) {
-                      <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ option }}</div>
+                    @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                      <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                     }
                   </div>
                 }
@@ -86,52 +88,42 @@
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
               </label>
-              <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
-                <div class="form-select license-select-trigger"
-                     [class.license-placeholder]="!connectorLicense()"
-                     tabindex="0"
-                     (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
-                     (blur)="onLicenseBlur()"
-                     (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
-                     (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
-                  {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
-                </div>
-                @if (isLicenseDropdownOpen()) {
-                  <div class="license-dropdown">
-                    @for (opt of licenseOptions; track opt) {
-                      <div class="license-option"
-                           [class.license-option-selected]="connectorLicense() === opt"
-                           (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
-                    }
+              @if (isInitialVersion) {
+                <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
+                  <div class="form-select license-select-trigger"
+                       [class.license-placeholder]="!connectorLicense()"
+                       tabindex="0"
+                       (click)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (blur)="onLicenseBlur()"
+                       (keydown.enter)="isLicenseDropdownOpen.set(!isLicenseDropdownOpen())"
+                       (keydown.space)="$event.preventDefault(); isLicenseDropdownOpen.set(!isLicenseDropdownOpen())">
+                    {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
-                }
-              </div>
+                  @if (isLicenseDropdownOpen()) {
+                    <div class="license-dropdown">
+                      @for (opt of licenseTypes.options(); track opt.name) {
+                        <div class="license-option"
+                             [class.license-option-selected]="connectorLicense() === opt.name"
+                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="form-select license-select-trigger license-select-trigger--fixed">
+                  {{ connectorLicense() ? fmtLicense(connectorLicense()) : '—' }}
+                </div>
+                <div class="form-text">Set with the first version of this connector bundle and fixed from then on.</div>
+              }
             </div>
 
             <!-- Description -->
             <div class="mb-3">
               <label class="form-label form-label-upload">Connector description</label>
-              <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
-                        [value]="connectorDescription()"
-                        (input)="connectorDescription.set($any($event.target).value)"></textarea>
-              <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+              <app-markdown-editor [value]="connectorDescription()"
+                                   (valueChange)="connectorDescription.set($event)"
+                                   placeholder="Type description..."></app-markdown-editor>
             </div>
-
-            <!-- Bundle name (java-based only) -->
-            @if (isJavaBased) {
-              <div class="mb-4">
-                <label class="form-label form-label-upload">
-                  Connector bundle name
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Display name for the connector bundle grouping related connector versions.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
-                </label>
-                <input type="text" class="form-control"
-                       [value]="connectorBundleName()"
-                       (input)="connectorBundleName.set($any($event.target).value)"
-                       placeholder="Enter connector bundle name">
-              </div>
-            }
 
             <!-- Capabilities -->
             <div class="mb-3">
@@ -175,6 +167,7 @@
                        placeholder="e.g. https://github.com/Evolveum/connector-ldap">
               </div>
             </div>
+
 
             <!-- Support portal -->
             <div class="mb-3">
@@ -229,14 +222,18 @@
                 </button>
               </label>
               <div class="method-link-wrapper d-flex align-items-center"
-                   [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid()">
+                   [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid()"
+                   [class.method-link-wrapper--fixed]="!isInitialVersion">
                 <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
                 <input type="url" class="method-link-input flex-grow-1"
                        [value]="devGitCloneUrl()"
+                       [disabled]="!isInitialVersion"
                        (input)="devGitCloneUrl.set($any($event.target).value)"
                        placeholder="e.g. https://github.com/Evolveum/connector-ldap.git">
               </div>
-              @if (isGitCloneUrlInvalid()) {
+              @if (!isInitialVersion) {
+                <div class="form-text">Set with the first version of this connector bundle and fixed from then on.</div>
+              } @else if (isGitCloneUrlInvalid()) {
                 <div class="field-error">Invalid format. Please use a Git clone URL (e.g., ending in .git).</div>
               } @else {
                 <div class="form-text">Ensure the link is accessible to the intended audience.</div>
@@ -256,7 +253,7 @@
                 <input type="text" class="method-link-input flex-grow-1"
                        [value]="devCommitTag()"
                        (input)="devCommitTag.set($any($event.target).value)"
-                       placeholder="e.g. a3F8c31">
+                       placeholder="e.g. 35e32b6a00dec02ae7d7c45c6b7106779a1246aa">
               </div>
                 <div class="form-text">Paste the full or short (7-character) commit  hash from your Git repository.</div>
             </div>
@@ -264,7 +261,7 @@
             <!-- Project folder path -->
             <div class="mb-3">
               <label class="form-label form-label-upload">
-                Project folder path <span class="text-danger">*</span>
+                Project folder path
                 <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Relative path from the repository root to the connector module.">
                   <i class="fa-solid fa-circle-info info-icon-sm"></i>
                 </button>
@@ -279,7 +276,7 @@
             @if (isJavaBased) {
               <div class="mb-3">
                 <label class="form-label form-label-upload">
-                  Class name <span class="text-danger">*</span>
+                  Connector class name
                   <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Fully qualified Java class name of the connector (e.g. com.example.MyConnector).">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
@@ -318,7 +315,7 @@
         @if (isSaving()) {
           <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...
         } @else {
-          <i class="fa-solid fa-floppy-disk me-1"></i>Save changes
+          <i class="fa-solid fa-check me-1"></i>Confirm changes
         }
       </button>
     </div>

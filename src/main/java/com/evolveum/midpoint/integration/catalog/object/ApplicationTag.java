@@ -10,7 +10,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 
 import java.util.Set;
 
@@ -21,6 +21,9 @@ import java.util.Set;
 @Table(name = "application_tag")
 @Getter @Setter
 public class ApplicationTag {
+
+    /** Name of the COMMON tag that puts an application into the homepage's featured row. */
+    public static final String FEATURED = "featured";
 
     public enum ApplicationTagType {
         DEPLOYMENT,

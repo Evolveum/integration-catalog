@@ -1,7 +1,7 @@
 <!-- Define New Application Modal -->
 @if (showDefineNewModal()) {
-  <div class="define-new-overlay" (click)="cancelDefineNewModal()">
-    <div class="define-new-modal" (click)="$event.stopPropagation()">
+  <div class="define-new-overlay" [appBackdropClose]="defineNewDialog" (backdropClose)="cancelDefineNewModal()">
+    <div #defineNewDialog class="define-new-modal" (click)="$event.stopPropagation()">
       <div class="define-new-modal-header d-flex justify-content-between align-items-center">
         <div>
           <h5 class="define-new-modal-title mb-1">Define new target application</h5>
@@ -26,7 +26,7 @@
         <!-- Upload Logo -->
         <div class="mb-4">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Upload a logo <span class="text-danger">&nbsp;*</span>
+            Upload a logo
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Supported formats: PNG, JPEG, GIF, SVG, WebP. Max size: 5MB.</span>
@@ -149,7 +149,7 @@
         <!-- Deployment Type -->
         <div class="mb-2">
           <label class="form-label d-flex align-items-center form-label-upload">
-            Deployment Type
+            Deployment type
             <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
               <i class="fa-solid fa-circle-info info-icon"></i>
               <span class="info-tooltip">Choose how this application is deployed.</span>
@@ -184,9 +184,9 @@
 }
 
 <div class="publish-page">
-  <app-page-header [breadcrumb]="true">
+  <app-page-header [breadcrumb]="true" [showUnregisteredOrgWarning]="true">
     <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-      <a class="breadcrumb-link" (click)="closeModal()" style="cursor:pointer;">Integration catalog</a>
+      <a class="breadcrumb-link" (click)="closeModal()" style="cursor:pointer;">MidPoint Integration Catalog</a>
       @if (currentStep() > 1 && selectedApplication()) {
         <span class="breadcrumb-sep">›</span>
         <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goToStep(1)" style="cursor:pointer;">
@@ -314,13 +314,39 @@
                     </div>
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
-                        Integration method version <span class="text-danger">&nbsp;*</span>
+                        Integration method version
                         <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                           <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Version of this integration method (e.g. 1.0.0). Only numbers and dots allowed.</span>
+                          <span class="info-tooltip">Version of this integration method. It is assigned automatically; new integration methods start at 1.0.</span>
                         </span>
                       </label>
-                      <input type="text" class="form-control input-disabled" [value]="methodFormVersion()" disabled placeholder="e.g. 1.0.0">
+                      <div class="form-control-plaintext">{{ methodFormVersion() }}</div>
+                    </div>
+                  </div>
+
+                  <!-- Maintainer -->
+                  <div class="mb-4">
+                    <label class="form-label d-flex align-items-center form-label-upload">
+                      Maintainer <span class="text-danger">&nbsp;*</span>
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
+                        <span class="info-tooltip">Select the person or team responsible for maintaining this integration method.</span>
+                      </span>
+                    </label>
+                    <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
+                      <input type="text" class="form-select"
+                             [value]="maintainerText()"
+                             (input)="onMaintainerInput($event)"
+                             (focus)="onMaintainerFocus()"
+                             (blur)="onMaintainerBlur()"
+                             placeholder="Select maintainer...">
+                      @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
+                        <div class="maintainer-dropdown">
+                          @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                            <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                          }
+                        </div>
+                      }
                     </div>
                   </div>
 
@@ -329,15 +355,31 @@
                     <label class="form-label form-label-upload">Description</label>
                     <div class="position-relative">
                       <textarea class="form-control" [value]="methodFormDescription()" (input)="onMethodFormDescriptionChange($event)"
-                                placeholder="Type description of application..." rows="4" maxlength="350"></textarea>
+                                placeholder="Type the description of the integration method..." rows="4" maxlength="350"></textarea>
                       <div class="text-end text-muted char-counter">{{ methodFormDescription().length }}/350 characters</div>
+                    </div>
+                  </div>
+
+                  <!-- Limitations -->
+                  <div class="mb-4">
+                    <label class="form-label form-label-upload">
+                      Limitations
+                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+                        <i class="fa-solid fa-circle-info info-icon"></i>
+                        <span class="info-tooltip">What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</span>
+                      </span>
+                    </label>
+                    <div class="position-relative">
+                      <textarea class="form-control" [value]="methodFormLimitations()" (input)="onMethodFormLimitationsChange($event)"
+                                placeholder="Describe what this integration method does not support..." rows="4"
+                                [attr.maxlength]="limitationsMax"></textarea>
+                      <div class="text-end text-muted char-counter">{{ methodFormLimitations().length }}/{{ limitationsMax }} characters</div>
                     </div>
                   </div>
 
                   <!-- Integration method capabilities -->
                   <div class="mb-4">
-                    <label class="form-label form-label-upload">Define capabilities for:<span class="text-danger">&nbsp;*</span></label>
-                    <app-capability-picker [initialCapabilities]="imCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+                    <app-im-capability-picker [initialCapabilities]="imCapabilities()"(capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
                   </div>
 
                   <!-- Integration Tutorial -->
@@ -358,7 +400,7 @@
                          (dragleave)="tutorialDragOver.set(false)"
                          (drop)="onTutorialFileDrop($event)"
                          (click)="tutorialFileInput.click()">
-                      <input #tutorialFileInput type="file" class="d-none"
+                      <input #tutorialFileInput type="file" class="d-none" multiple
                              accept=".pdf,.xml,.json,.yaml,.yml,.txt" (change)="onTutorialFileSelect($event)">
                       <i class="fa-solid fa-upload tutorial-dropzone-icon"></i>
                       <div class="tutorial-dropzone-text">
@@ -392,7 +434,7 @@
                       The documentation you provide in this section will be distributed by Evolveum under the terms of the
                       Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0) license.
                       Details are available in Evolveum's
-                      <a href="https://docs.evolveum.com/copyright/" target="_blank" rel="noopener">General Copyright and Licensing Guidelines.</a>
+                      <a [attr.href]="links()?.copyrightGuidelines" target="_blank" rel="noopener">General Copyright and Licensing Guidelines.</a>
                     </p>
                   </div>
 
@@ -459,9 +501,9 @@
 
                   <!-- Choose from existing connectors -->
                   <div class="connector-existing-link">
-                    Do you want already existing connector?
+                    Do you want to use an existing connector?
                     <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openConnectorCatalogModal()">
-                      Select one from the catalog. <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
+                      Select one from the catalog.
                     </button>
                   </div>
                 </div>
@@ -493,6 +535,12 @@
                         }
                       </div>
                     </div>
+                    @if (applicationSearchTooShort()) {
+                      <div class="search-hint">Please enter at least 2 characters to search.</div>
+                    }
+                    @if (applicationsFailed()) {
+                      <div class="search-hint">The application list could not be loaded, so search finds nothing. Reload the page and try again.</div>
+                    }
                   </div>
 
                   <!-- Selected Application Card -->
@@ -529,7 +577,10 @@
                         <h6 class="mb-1 app-title">{{ displayName() || 'New application' }}</h6>
                         <p class="mb-0 text-muted app-description selected-app-description">{{ description() }}</p>
                       </div>
-                      <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="removeSelectedApplication()">
+                      <button type="button" class="btn btn-link p-0 ms-3 text-muted flex-shrink-0" (click)="editDefineNewApp()" aria-label="Edit application">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button type="button" class="btn btn-link p-0 ms-2 text-muted flex-shrink-0" (click)="removeSelectedApplication()" aria-label="Remove application">
                         <i class="fa-regular fa-trash-can"></i>
                       </button>
                     </div>
@@ -596,7 +647,7 @@
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || imCapabilities().length === 0">
+                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !methodFormMaintainer() || !capabilitiesValid()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
@@ -660,8 +711,8 @@
 
 <!-- Connector Catalog Modal -->
 @if (showConnectorCatalogModal()) {
-  <div class="cc-overlay" (click)="closeConnectorCatalogModal()">
-    <div class="cc-modal" (click)="$event.stopPropagation()">
+  <div class="cc-overlay" [appBackdropClose]="catalogDialog" (backdropClose)="closeConnectorCatalogModal()">
+    <div #catalogDialog class="cc-modal" (click)="$event.stopPropagation()">
 
       <!-- Header -->
       <div class="cc-modal-header d-flex justify-content-between align-items-start">
@@ -691,6 +742,9 @@
               </button>
             }
           </div>
+          @if (connectorCatalogSearchTooShort()) {
+            <div class="search-hint">Please enter at least 2 characters to search.</div>
+          }
         </div>
       </div>
 
@@ -715,9 +769,14 @@
                      class="form-check-input flex-shrink-0 radio-input"
                      style="pointer-events: none;">
               <div class="cc-connector-info">
-                <div class="cc-connector-name">{{ connector.displayName }}</div>
+                <div class="cc-connector-name">
+                  {{ connector.displayName }}
+                  @if (isObsoleteConnector(connector.tags)) {
+                    <span class="cc-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
+                </div>
                 @if (connector.description) {
-                  <div class="cc-connector-desc">{{ connector.description }}</div>
+                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                 }
               </div>
             </div>

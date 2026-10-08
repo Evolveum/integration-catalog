@@ -4,28 +4,10 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<!-- Bundle download warning toast (stays until dismissed) -->
-@if (bundleWarning()) {
-  <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 100000;">
-    <div class="toast-box rounded-2 overflow-hidden">
-      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
-        <div class="d-flex align-items-center gap-2">
-          <span class="toast-icon" aria-hidden="true">!</span>
-          <strong>Download warning</strong>
-        </div>
-        <button type="button" class="btn-close" (click)="closeBundleWarning()" aria-label="Close"></button>
-      </div>
-      <div class="px-3 py-2 toast-body-warning">
-        {{ bundleWarning() }}
-      </div>
-    </div>
-  </div>
-}
-
 <div class="container-fluid p-0 page-container">
   <app-page-header [breadcrumb]="true">
     <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-      <a class="breadcrumb-link" (click)="goBack()" style="cursor:pointer;">Integration catalog</a>
+      <a class="breadcrumb-link" (click)="goBack()" style="cursor:pointer;">MidPoint Integration Catalog</a>
       @if (application()) {
         <span class="breadcrumb-sep">›</span>
         <span class="breadcrumb-current d-flex align-items-center gap-1">
@@ -54,7 +36,7 @@
         <p>{{ error() }}</p>
         <hr>
         <button class="btn btn-primary" (click)="goBack()">
-          <i class="fa-solid fa-arrow-left me-1"></i> Back to Integration Catalog
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to MidPoint Integration Catalog
         </button>
       </div>
     </div>
@@ -103,21 +85,29 @@
               }
             }
           }
-          <p class="mb-4 text-body">{{ application()!.description }}</p>
+          <p class="mb-4 text-body app-description-text">{{ application()!.description }}</p>
 
           <!-- Stats Row -->
           <div class="d-flex align-items-center gap-4 text-body text-sm">
-            <!-- Star Rating (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
+            <!-- Star Rating (Placeholder) - hidden for now, will be used later -->
+            <div class="d-flex align-items-center gap-1" style="display: none !important;">
               <i class="fa-solid fa-star star-icon"></i>
               <span class="font-weight-medium"><b>"4.4</b> (404 reviews)"</span>
             </div>
 
-            <!-- Installations (Placeholder) -->
-            <div class="d-flex align-items-center gap-1">
-              <i class="fa-solid fa-download icon-md"></i>
-              <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
-            </div>
+            @if (application()!.lifecycleState === 'REQUESTED') {
+              <!-- Votes (Requested apps) -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-thumbs-up icon-md"></i>
+                <span class="font-weight-medium">{{ application()!.voteCount ?? 0 }} vote(s)</span>
+              </div>
+            } @else {
+              <!-- Installations -->
+              <div class="d-flex align-items-center gap-1">
+                <i class="fa-solid fa-download icon-md"></i>
+                <span class="font-weight-medium">{{ applicationDownloadsCount() }} download(s)</span>
+              </div>
+            }
 
             <!-- Updated Date -->
             <div class="d-flex align-items-center gap-1">
@@ -125,6 +115,24 @@
               <span class="font-weight-medium">{{ getTimeSinceLastUpdate(application()!.updated) }}</span>
             </div>
           </div>
+
+          <!-- Management buttons (superuser only) -->
+          @if (isSuperuser()) {
+          <div class="mt-2 d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-light border d-inline-flex align-items-center gap-2" (click)="openEditModal()">
+              <i class="fa-solid fa-pen-to-square"></i>Edit application
+            </button>
+            <button type="button" class="btn border d-inline-flex align-items-center gap-2 btn-featured"
+                    [class.btn-featured-on]="isFeatured()"
+                    [attr.aria-pressed]="isFeatured()"
+                    [title]="isFeatured() ? 'Featured on the homepage - click to remove' : 'Not featured - click to feature on the homepage'"
+                    [disabled]="isTogglingFeatured()"
+                    (click)="toggleFeatured()">
+              Toggle Featured
+            </button>
+          </div>
+          }
+
         </div>
       </div>
     </div>
@@ -136,11 +144,19 @@
       <div class="col-lg-8 im-main-col">
 
         <div class="bg-white p-4 rounded mb-4">
-          <!-- Description Section -->
-          <div class="mb-4">
-            <h2 class="h5 mb-3">Description</h2>
-            <p>{{ application()!.description }}</p>
-          </div>
+          <!-- Requested integration (REQUESTED apps) -->
+          @if (application()!.lifecycleState === 'REQUESTED'
+               && (application()!.requestedIntegrationMethodType || application()!.integrationNeed)) {
+            <div class="mb-4">
+              <h2 class="h5 mb-3">Requested integration</h2>
+              @if (application()!.requestedIntegrationMethodType) {
+                <p class="fw-semibold mb-2">{{ application()!.requestedIntegrationMethodType }}</p>
+              }
+              @if (application()!.integrationNeed) {
+                <p class="app-description-text">{{ application()!.integrationNeed }}</p>
+              }
+            </div>
+          }
 
             <!-- REQUESTED Application Info -->
             @if (application()!.lifecycleState === 'REQUESTED') {
@@ -236,12 +252,14 @@
 
                   }
 
-                  <!-- Cancel request -->
-                  <div class="mt-3">
-                    <button type="button" class="btn-cancel-request d-inline-flex align-items-center gap-2" (click)="cancelRequest()">
-                      <i class="fa-solid fa-trash-can"></i>Cancel request
-                    </button>
-                  </div>
+                  <!-- Cancel request (server allows this for the requester and superusers) -->
+                  @if (canCancelRequest()) {
+                    <div class="mt-3">
+                      <button type="button" class="btn-cancel-request d-inline-flex align-items-center gap-2" (click)="cancelRequest()">
+                        <i class="fa-solid fa-trash-can"></i>Cancel request
+                      </button>
+                    </div>
+                  }
                 </div>
               </div>
             }
@@ -270,8 +288,8 @@
                   <!-- Search Integration Methods Section -->
                   <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0">Search integration methods</h5>
-                    @if (hasIntegrationMethods()) {
-                      <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToPublish()">
+                    @if (hasIntegrationMethods() && !isReadOnly()) {
+                      <button type="button" class="btn btn-add-method d-inline-flex align-items-center gap-2" (click)="navigateToApprove()">
                         <i class="fa-solid fa-plus"></i>Add new method
                       </button>
                     }
@@ -343,8 +361,8 @@
 
                   <!-- Filter Modal -->
                   @if (isFilterModalOpen()) {
-                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" (click)="toggleFilterModal()">
-                      <div class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
+                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" [appBackdropClose]="filterDialog" (backdropClose)="toggleFilterModal()">
+                      <div #filterDialog class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
                         <div class="d-flex flex-column h-100">
                           <div class="d-flex flex-grow-1 overflow-hidden">
                             <div class="border-end modal-sidebar overflow-auto">
@@ -394,10 +412,14 @@
                         <button type="button" class="btn btn-create-method" (click)="resetFilters()">Reset filters</button>
                       } @else {
                         <p class="fw-semibold mb-2">No integration methods defined yet.</p>
-                        <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
-                        <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToPublish()">
-                          <i class="fa-solid fa-plus me-1"></i>Add integration method
-                        </button>
+                        @if (isReadOnly()) {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}.</p>
+                        } @else {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
+                          <button type="button" class="btn btn-create-method btn-create-method-primary" (click)="navigateToApprove()">
+                            <i class="fa-solid fa-plus me-1"></i>Add integration method
+                          </button>
+                        }
                       }
                     </div>
                   } @else {
@@ -413,6 +435,12 @@
                                 @for (type of method.types; track type) {
                                   <span class="im-method-tag">{{ type }}</span>
                                 }
+                                <!-- Support tier badge hidden for now; restore by uncommenting.
+                                     Set by a superuser per connector bundle version, on the All connectors page.
+                                @if (method.supportTier) {
+                                  <span class="im-tier-badge" [class]="'tier-' + method.supportTier.toLowerCase()">{{ supportTierLabel(method.supportTier) }}</span>
+                                }
+                                -->
                               </div>
                               <div class="d-flex align-items-center gap-3">
                                 @if (method.publishedCount > 0) {
@@ -427,6 +455,14 @@
                           <span class="im-version-count">{{ method.versions.length }} version{{ method.versions.length === 1 ? '' : 's' }}</span>
                         </div>
 
+                        <!-- Shown even when collapsed: legacy connectors stay usable, but users must notice. -->
+                        @if (method.usesObsoleteConnector) {
+                          <div class="im-obsolete-warning d-flex align-items-start gap-2">
+                            <i class="fa-solid fa-triangle-exclamation im-obsolete-warning-icon"></i>
+                            <span><strong>This integration method uses an obsolete connector.</strong> The connector is still allowed, but it has been superseded and should not be used for new deployments.</span>
+                          </div>
+                        }
+
                         @if (isMethodExpanded(method.id)) {
                           <!-- Column headers -->
                           <div class="im-table-header d-flex">
@@ -436,7 +472,7 @@
                           </div>
 
                           @for (version of method.versions; track version.revision) {
-                            <div class="im-version-row d-flex" role="button" (click)="navigateToDetails(version.id, version.revision)">
+                            <div class="im-version-row d-flex" [class.im-version-row-review]="(version.lifecycleState === 'IN_REVIEW' || version.lifecycleState === 'REVIEWING') && isSuperuser()">
                               <!-- VERSION -->
                               <div class="im-col-version">
                                 <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
@@ -452,88 +488,56 @@
                                   @if (version.description) { {{ version.description }} } @else { <em class="text-muted">No description available</em> }
                                 </p>
 
-                                @if (version.objectClassCapabilities && version.objectClassCapabilities.length > 0) {
+                                @let supportedCaps = supportedObjectCapabilities(version);
+                                @if (supportedCaps.length > 0) {
                                   <hr class="im-divider">
                                   <div>
-                                    @if (isGlobalMethod(version)) {
-                                      @let allCaps = version.objectClassCapabilities[0].capabilities;
-                                      @let remaining = allCaps.length - 10;
-                                      @let visibleCaps = isMethodGlobalCapabilitiesExpanded(version.id) ? allCaps : allCaps.slice(0, 10);
-                                      <p class="text-sm mb-2 im-capabilities-header">
-                                        Global capabilities: <span class="text-muted fw-normal">(All object classes)</span>
-                                      </p>
-                                      <div class="d-flex flex-wrap gap-2">
-                                        @for (cap of visibleCaps; track cap) {
-                                          <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                        }
-                                        @if (remaining > 0) {
-                                          <span class="badge badge-show-more d-inline-flex align-items-center gap-1" (click)="toggleMethodGlobalCapabilities(version.id); $event.stopPropagation()">
-                                            @if (isMethodGlobalCapabilitiesExpanded(version.id)) {
-                                              <i class="fa-solid fa-eye-slash icon-sm"></i> Show less
-                                            } @else {
-                                              <i class="fa-solid fa-eye icon-sm"></i> + {{ remaining }} more
-                                            }
-                                          </span>
-                                        }
-                                      </div>
-                                    } @else if (isCombinedMethod(version)) {
-                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-global'); $event.stopPropagation()" style="cursor:pointer;">
-                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-global')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-global')"></i>
-                                        <p class="text-sm mb-0 im-capabilities-header">Global capabilities: <span class="text-muted fw-normal">(All object classes)</span></p>
-                                      </div>
-                                      @if (isComboSectionExpanded(version.id + '-combo-global')) {
-                                        <div class="d-flex flex-wrap gap-2 ms-3 mb-2">
-                                          @for (cap of getGlobalCaps(version); track cap) {
-                                            <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                          }
+                                    <p class="text-sm mb-2 im-capabilities-header">
+                                      Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
+                                    </p>
+                                    @for (occ of supportedCaps; track occ.objectName) {
+                                      @let expandKey = rowKey(version) + '-' + occ.objectName;
+                                      <div class="mb-2">
+                                        <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
+                                          <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                                          <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
+                                          <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
                                         </div>
-                                      }
-                                      <div class="d-flex align-items-center gap-2 object-class-row mb-2" (click)="toggleComboSection(version.id + '-combo-specific'); $event.stopPropagation()" style="cursor:pointer;">
-                                        <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isComboSectionExpanded(version.id + '-combo-specific')" [class.fa-chevron-down]="isComboSectionExpanded(version.id + '-combo-specific')"></i>
-                                        <p class="text-sm mb-0 im-capabilities-header">Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span></p>
-                                      </div>
-                                      @if (isComboSectionExpanded(version.id + '-combo-specific')) {
-                                        @for (occ of getSpecificOccs(version); track occ.objectName) {
-                                          @let expandKey = version.id + '-' + occ.objectName;
-                                          <div class="mb-2 ms-3">
-                                            <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
-                                              <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
-                                              <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
-                                              <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
-                                            </div>
-                                            @if (isObjectClassExpanded(expandKey)) {
-                                              <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
-                                                @for (cap of occ.capabilities; track cap) {
-                                                  <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                                }
-                                              </div>
+                                        @if (isObjectClassExpanded(expandKey)) {
+                                          <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
+                                            @for (cap of occ.capabilities; track cap) {
+                                              <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
                                             }
                                           </div>
                                         }
-                                      }
-                                    } @else {
-                                      <p class="text-sm mb-2 im-capabilities-header">
-                                        Capabilities: <span class="text-muted fw-normal">(Per specific object classes)</span>
-                                      </p>
-                                      @for (occ of version.objectClassCapabilities; track occ.objectName) {
-                                        @let expandKey = version.id + '-' + occ.objectName;
-                                        <div class="mb-2">
-                                          <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleObjectClass(expandKey); $event.stopPropagation()" style="cursor:pointer;">
-                                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
-                                            <i class="fa-solid icon-sm" [class.fa-chevron-down]="!isObjectClassExpanded(expandKey)" [class.fa-chevron-up]="isObjectClassExpanded(expandKey)"></i>
-                                            <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
-                                          </div>
-                                          @if (isObjectClassExpanded(expandKey)) {
-                                            <div class="d-flex flex-wrap gap-2 mt-2 ms-3">
-                                              @for (cap of occ.capabilities; track cap) {
-                                                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                                              }
-                                            </div>
-                                          }
-                                        </div>
-                                      }
+                                      </div>
                                     }
                                   </div>
+                                }
+
+                                @if (version.connectors && version.connectors.length > 0) {
+                                  @if (supportedCaps.length === 0) {
+                                    <hr class="im-divider">
+                                  }
+                                  <div class="d-flex align-items-center gap-2 object-class-row mt-2 mb-2" (click)="toggleConnectorsSection(rowKey(version)); $event.stopPropagation()" style="cursor:pointer;">
+                                    <i class="fa-solid icon-sm" [class.fa-chevron-right]="!isConnectorsSectionExpanded(rowKey(version))" [class.fa-chevron-down]="isConnectorsSectionExpanded(rowKey(version))"></i>
+                                    <p class="text-sm mb-0 im-capabilities-header">Connectors <span class="text-muted fw-normal">({{ version.connectors.length }})</span></p>
+                                  </div>
+                                  @if (isConnectorsSectionExpanded(rowKey(version))) {
+                                    <div class="d-flex flex-wrap gap-2">
+                                      @for (connector of version.connectors; track connector.className) {
+                                        <span class="badge badge-capability badge-connector" (click)="$event.stopPropagation()">
+                                          {{ connectorChipLabel(connector) }}
+                                          @if (isObsoleteConnector(connector.tags)) {
+                                            <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                                          }
+                                          @if (connector.description) {
+                                            <span class="connector-tooltip markdown-rendered" [innerHTML]="connector.description | markdown"></span>
+                                          }
+                                        </span>
+                                      }
+                                    </div>
+                                  }
                                 }
                               </div>
 
@@ -541,6 +545,20 @@
                               <div class="im-col-status">
                                 @if (version.lifecycleState === 'IN_REVIEW') {
                                   <span class="badge im-badge-awaiting"><i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval</span>
+                                  <!-- Sent only to the submitting side and the reviewer; everyone else sees no link. -->
+                                  @if (version.supportTicketUrl; as ticketUrl) {
+                                    <a class="im-ticket-link d-inline-flex align-items-center gap-2" [href]="ticketUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">
+                                      <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket #{{ version.supportTicketId }}
+                                    </a>
+                                  }
+                                } @else if (version.lifecycleState === 'REVIEWING') {
+                                  <span class="badge im-badge-reviewing"><i class="fa-solid fa-lock me-1"></i>Under review</span>
+                                  <!-- Sent only to the submitting side and the reviewer; everyone else sees no link. -->
+                                  @if (version.supportTicketUrl; as ticketUrl) {
+                                    <a class="im-ticket-link d-inline-flex align-items-center gap-2" [href]="ticketUrl" target="_blank" rel="noopener" (click)="$event.stopPropagation()">
+                                      <i class="fa-solid fa-arrow-up-right-from-square"></i>View ticket #{{ version.supportTicketId }}
+                                    </a>
+                                  }
                                 } @else if (version.lifecycleState === 'ACTIVE') {
                                   <span class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
                                 } @else if (version.lifecycleState === 'REJECTED') {
@@ -548,44 +566,88 @@
                                 }
 
                                 <!-- Hover-revealed actions (set depends on lifecycle state) -->
-                                <div class="im-row-actions" [class.im-row-actions-reserved]="version.lifecycleState === 'IN_REVIEW' && isSuperuser()">
+                                <div class="im-row-actions" [class.im-row-actions-reserved]="version.lifecycleState === 'REVIEWING' && isSuperuser()">
                                   @if (version.lifecycleState === 'IN_REVIEW') {
-                                    <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-trash-can"></i>Cancel request
-                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-cancel" (click)="cancelVersion(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-trash-can"></i>Cancel request
+                                      </button>
+                                    }
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
-                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
+                                    <!-- Superuser starts the review here; this replaces the immediate approve/reject.
+                                         Once started (REVIEWING) the approve/reject pair appears at the row bottom. -->
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-start-review" (click)="openStartReview(version); $event.stopPropagation()">
+                                        <i class="fa-solid fa-play"></i>Start review
+                                      </button>
+                                    }
+                                  } @else if (version.lifecycleState === 'REVIEWING') {
+                                    <!-- Locked while under review for the author: their editing actions stay
+                                         visible but disabled; View details remains active. The reviewing
+                                         superuser may still edit — the reviewer can fix findings directly. -->
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-cancel" disabled>
+                                        <i class="fa-solid fa-trash-can"></i>Cancel request
+                                      </button>
+                                    }
+                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                      <i class="fa-solid fa-eye"></i>View details
                                     </button>
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    } @else if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" disabled>
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
+                                    <!-- Superuser can hand the review back: REVIEWING -> IN_REVIEW
+                                         (replaces Start review, which only shows for IN_REVIEW). -->
+                                    @if (isSuperuser()) {
+                                      <button type="button" class="btn btn-im-stop-review" [disabled]="isProcessingStopReview()"
+                                              (click)="stopReview(version); $event.stopPropagation()">
+                                        <i class="fa-solid fa-stop"></i>Stop review
+                                      </button>
+                                    }
                                   } @else if (version.lifecycleState === 'REJECTED') {
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
-                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
                                   } @else {
                                     <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
-                                    <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
-                                      <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-                                    </button>
+                                    @if (canEdit(version)) {
+                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                        <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+                                      </button>
+                                    }
                                     <button type="button" class="btn btn-im-download" (click)="downloadBundle(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-download"></i>Download
                                     </button>
                                   }
                                 </div>
 
-                                <!-- Always-visible approve/reject (IN_REVIEW, superuser) -->
-                                @if (version.lifecycleState === 'IN_REVIEW' && isSuperuser()) {
+                                <!-- Always-visible approve/reject (REVIEWING, superuser) -->
+                                @if (version.lifecycleState === 'REVIEWING' && isSuperuser()) {
                                   <div class="im-row-actions-always d-flex align-items-center justify-content-end gap-2">
-                                    <button type="button" class="btn btn-im-reject" (click)="rejectVersion(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-reject" (click)="openRejectConfirm(version); $event.stopPropagation()">
                                       <i class="fa-solid fa-xmark"></i>Reject
                                     </button>
-                                    <button type="button" class="btn btn-im-approve" (click)="approveVersion(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-approve" (click)="openApproveConfirm(version); $event.stopPropagation()">
                                       <i class="fa-solid fa-check"></i>Approve
                                     </button>
                                   </div>
@@ -602,7 +664,7 @@
 
                   <div class="im-list-footer d-flex align-items-center justify-content-between mt-3">
                     <button type="button" class="btn btn-go-to-catalog" (click)="goBack()">
-                      <i class="fa-solid fa-arrow-left me-2 icon-md"></i>Go to Integration catalog
+                      <i class="fa-solid fa-arrow-left me-2 icon-md"></i>Go to MidPoint Integration Catalog
                     </button>
 
                     @if (totalPages() > 1) {
@@ -667,7 +729,7 @@
 
           <!-- App Category -->
           <div class="mb-5">
-            <h6 class="text-muted small mb-1">App Category</h6>
+            <h6 class="text-muted small mb-1">App category</h6>
             @if (application()!.categories && application()!.categories!.length > 0) {
               <div>
                 @for (category of application()!.categories!; track category.id) {
@@ -681,7 +743,7 @@
 
           <!-- Last Update -->
           <div class="mb-5">
-            <h6 class="text-muted small mb-1">Last Update</h6>
+            <h6 class="text-muted small mb-1">Last update</h6>
             @if (application()!.updated) {
               <p class="mb-0 fw-semibold">{{ application()!.updated | date: 'MMM d, yyyy' }}</p>
             } @else {
@@ -689,23 +751,19 @@
             }
           </div>
 
-          <!-- Maintainer Location -->
-          <div class="mb-5">
-            <h6 class="text-muted small mb-1">Maintainer Location</h6>
-            @if (application()!.origins && application()!.origins!.length > 0) {
-              @for (origin of application()!.origins!; track origin.id) {
-                <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>
+          <!-- Maintainer Location (hidden for requested apps) -->
+          @if (application()!.lifecycleState !== 'REQUESTED') {
+            <div class="mb-0">
+              <h6 class="text-muted small mb-1">Maintainer location</h6>
+              @if (application()!.origins && application()!.origins!.length > 0) {
+                @for (origin of application()!.origins!; track origin.id) {
+                  <p class="mb-0 fw-semibold text-body">{{ origin.displayName }}</p>
+                }
+              } @else {
+                <p class="mb-0 text-muted text-sm">Not available</p>
               }
-            } @else {
-              <p class="mb-0 text-muted text-sm">Not available</p>
-            }
-          </div>
-
-          <!-- Installations -->
-          <div class="mb-0">
-            <h6 class="text-muted small mb-1">Installations</h6>
-            <p class="mb-0 fw-semibold text-body stat-value">0</p>
-          </div>
+            </div>
+          }
 
         </div>
       </div>
@@ -781,6 +839,66 @@
         </div>
       </div>
     </div>
+  }
+
+
+  <!-- Approve / Reject confirmation modal (shared component) -->
+  @if (confirmMode(); as mode) {
+    <app-approval-confirm-modal
+      [mode]="mode"
+      [methodId]="confirmVersion()?.id || ''"
+      [revision]="confirmVersion()?.revision || ''"
+      [methodName]="confirmMethodName()"
+      [versionLabel]="confirmVersionLabel()"
+      [submittedBy]="confirmSubmittedBy()"
+      [processing]="isProcessingApproval()"
+      [error]="approvalError()"
+      (confirm)="submitConfirm()"
+      (cancel)="closeConfirm()"
+      (manualFill)="openManualFill($event)">
+    </app-approval-confirm-modal>
+  }
+
+  <!-- Manual fill popup modal -->
+  @if (manualFillOpen() && manualFillConnector()) {
+    <app-manual-fill-modal
+      [connector]="manualFillConnector()!"
+      [methodId]="manualFillMethodId()"
+      (submit)="onManualFillSuccess()"
+      (cancel)="onManualFillCancel()"
+      (error)="onManualFillError($event)">
+    </app-manual-fill-modal>
+  }
+
+  <!-- Start review confirmation modal (shared component) -->
+  @if (startReviewVersion()) {
+    <app-start-review-modal
+      [versionLabel]="startReviewVersionLabel()"
+      [processing]="isProcessingStartReview()"
+      [error]="startReviewError()"
+      (confirm)="submitStartReview()"
+      (cancel)="closeStartReview()">
+    </app-start-review-modal>
+  }
+
+  <!-- Post-download help modal (where to copy the connectors in midPoint home) -->
+  @if (isDownloadInfoOpen()) {
+    <app-download-info-modal
+      [fileName]="downloadInfoFileName()"
+      [fileSize]="downloadInfoFileSize()"
+      [preparing]="isDownloadPreparing()"
+      (closed)="isDownloadInfoOpen.set(false)">
+    </app-download-info-modal>
+  }
+
+  <!-- Edit application modal (superuser only) -->
+  @if (isEditModalOpen() && application()) {
+    <app-edit-application-modal
+      [appId]="application()!.id"
+      [application]="application()!"
+      (close)="closeEditModal()"
+      (saved)="onEditSaved()">
+    </app-edit-application-modal>
   }
   }
 </div>

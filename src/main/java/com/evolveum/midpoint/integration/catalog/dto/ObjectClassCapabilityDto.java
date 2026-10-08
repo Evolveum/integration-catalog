@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.dto;
 import java.util.List;
 
 public record ObjectClassCapabilityDto(
-        String objectName,        // object_class_capabilities.object_name
-        List<String> capabilities // capability.name items
+        String objectName,         // object_class_capabilities.object_name
+        List<String> capabilities, // capability.name items
+        boolean resourceWide       // resource_wide; objectName is then only a label
 ) {}

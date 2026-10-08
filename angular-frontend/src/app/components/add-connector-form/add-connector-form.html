@@ -7,7 +7,7 @@
 <!-- Breadcrumb -->
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" style="cursor:pointer;" (click)="goToCatalog()">Integration catalog</a>
+    <a class="breadcrumb-link" style="cursor:pointer;" (click)="goToCatalog()">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" style="cursor:pointer;" (click)="goToApp()">
       @if (showLogo()) {
@@ -87,7 +87,7 @@
         <div class="connector-existing-link">
           Do you want to use an existing connector?
           <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openCatalogModal()">
-            Select one from the catalog. <i class="fa-solid fa-arrow-up-right-from-square connector-existing-icon"></i>
+            Select one from the catalog.
           </button>
         </div>
       </div>
@@ -138,13 +138,12 @@
                       <i class="fa-solid fa-circle-info info-icon-sm"></i>
                     </button>
                   </label>
-                  <input type="text" class="form-control input-disabled"
+                  <input type="text" class="form-control"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="connectorVersion()"
-                         disabled
+                         (input)="connectorVersion.set($any($event.target).value)"
+                         [disabled]="isExistingConnector"
                          placeholder="e.g. 1.0.0">
-                  @if (isConnectorVersionInvalid() && !isExistingConnector) {
-                    <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
-                  }
                 </div>
               </div>
 
@@ -159,7 +158,7 @@
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
                          [class.input-disabled]="isExistingConnector"
-                         [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                         [value]="maintainerText()"
                          (input)="onMaintainerInput($event)"
                          (focus)="onMaintainerFocus()"
                          (blur)="onMaintainerBlur()"
@@ -167,8 +166,8 @@
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
-                      @for (option of filteredMaintainerOptions(); track option) {
-                        <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ option }}</div>
+                      @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                        <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                       }
                     </div>
                   }
@@ -196,10 +195,10 @@
                   </div>
                   @if (isLicenseDropdownOpen()) {
                     <div class="license-dropdown">
-                      @for (opt of licenseOptions; track opt) {
+                      @for (opt of licenseTypes.options(); track opt.name) {
                         <div class="license-option"
-                             [class.license-option-selected]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                             [class.license-option-selected]="connectorLicense() === opt.name"
+                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</div>
                       }
                     </div>
                   }
@@ -209,35 +208,11 @@
               <!-- Description -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
-                <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
-                          [class.input-disabled]="isExistingConnector"
-                          [value]="connectorDescription()"
-                          (input)="connectorDescription.set($any($event.target).value)"
-                          [disabled]="isExistingConnector"></textarea>
-                <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+                <app-markdown-editor [value]="connectorDescription()"
+                                     (valueChange)="connectorDescription.set($event)"
+                                     [disabled]="isExistingConnector"
+                                     placeholder="Type description..."></app-markdown-editor>
               </div>
-
-              <!-- Bundle name (java-based only) -->
-              @if (isJavaBasedConnector) {
-                <div class="mb-4">
-                  <label class="form-label form-label-upload">
-                    Connector bundle name
-                    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Display name for the connector bundle grouping related connector versions.">
-                      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                    </button>
-                  </label>
-                  <input type="text" class="form-control"
-                         [class.input-disabled]="isExistingConnector"
-                         [value]="connectorBundleName()"
-                         (input)="connectorBundleName.set($any($event.target).value); bundleNameTaken.set(false)"
-                         (blur)="onBundleNameBlur()"
-                         [disabled]="isExistingConnector"
-                         placeholder="Enter connector bundle name">
-                  @if (bundleNameTaken()) {
-                    <div class="field-error">This bundle name is already taken. Please choose a different one.</div>
-                  }
-                </div>
-              }
 
               <!-- Capabilities -->
               <div class="mb-3">
@@ -283,6 +258,7 @@
                          placeholder="e.g. https://github.com/Evolveum/connector-ldap">
                 </div>
               </div>
+
 
               <!-- Support portal -->
               <div class="mb-3">
@@ -369,20 +345,30 @@
                          [value]="devCommitTag()"
                          (input)="devCommitTag.set($any($event.target).value)"
                          [disabled]="isExistingConnector"
-                         placeholder="e.g. a3F8c31">
+                         placeholder="e.g. 35e32b6a00dec02ae7d7c45c6b7106779a1246aa">
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
-                  <a href="https://google.com" target="_blank" rel="noopener" class="commit-help-link d-inline-flex align-items-center gap-1">
+                  <button type="button" class="commit-help-link d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
                     How to find it <i class="fa-solid fa-arrow-right"></i>
-                  </a>
+                  </button>
                 </div>
+                @if (isCommitHelpOpen()) {
+                  <app-download-info-modal
+                    [title]="commitHelpTitle"
+                    lead=""
+                    icon="fa-code-commit"
+                    [steps]="commitHelpSteps"
+                    note=""
+                    (closed)="isCommitHelpOpen.set(false)">
+                  </app-download-info-modal>
+                }
               </div>
 
               <!-- Project folder path -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">
-                  Project folder path@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  Project folder path
                   <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Relative path from the repository root to the connector module.">
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
@@ -399,7 +385,7 @@
               @if (isJavaBasedConnector) {
                 <div class="mb-3">
                   <label class="form-label form-label-upload">
-                    Class name@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    Connector class name
                     <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Fully qualified Java class name of the connector (e.g. com.example.MyConnector).">
                       <i class="fa-solid fa-circle-info info-icon-sm"></i>
                     </button>
@@ -464,8 +450,8 @@
 
 <!-- ═══════ Catalog connector modal ═══════ -->
 @if (showCatalogModal()) {
-  <div class="cc-overlay" (click)="closeCatalogModal()">
-    <div class="cc-modal" (click)="$event.stopPropagation()">
+  <div class="cc-overlay" [appBackdropClose]="catalogDialog" (backdropClose)="closeCatalogModal()">
+    <div #catalogDialog class="cc-modal" (click)="$event.stopPropagation()">
 
       <div class="cc-modal-header d-flex justify-content-between align-items-start">
         <div>
@@ -492,6 +478,9 @@
               </button>
             }
           </div>
+          @if (catalogSearchTooShort()) {
+            <div class="search-hint">Please enter at least 2 characters to search.</div>
+          }
         </div>
       </div>
 
@@ -512,9 +501,14 @@
                      class="form-check-input flex-shrink-0 radio-input"
                      style="pointer-events: none;">
               <div class="cc-connector-info">
-                <div class="cc-connector-name">{{ connector.displayName }}</div>
+                <div class="cc-connector-name">
+                  {{ connector.displayName }}
+                  @if (isObsoleteConnector(connector.tags)) {
+                    <span class="cc-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
+                </div>
                 @if (connector.description) {
-                  <div class="cc-connector-desc">{{ connector.description }}</div>
+                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                 }
               </div>
             </div>

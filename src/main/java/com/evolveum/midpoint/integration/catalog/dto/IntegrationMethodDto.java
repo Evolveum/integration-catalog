@@ -6,6 +6,8 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import com.evolveum.midpoint.integration.catalog.object.SupportTier;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -13,14 +15,14 @@ import java.util.UUID;
 public record IntegrationMethodDto(
         UUID id,                                                    // integration_method.id
         String description,                                         // integration_method.description
+        String limitations,                                         // integration_method.limitations
         List<String> implementationTags,                            // integration_method_type.name
-        List<String> capabilities,                                  // capability.name via integration_method_capability
-        List<ObjectClassCapabilityDto> objectClassCapabilities,     // object_class_capabilities
+        List<String> capabilities,                                  // capability.name via integration_method_capability, YES only
+        List<IntegrationMethodObjectCapabilitiesDto> objectClassCapabilities, // integration_method_capability + items, every state
         String connectorVersion,                                    // connector_bundle_version.bundle_version
         String systemVersion,                                       // integration_method.system_version
         LocalDate releasedDate,                                     // connector_bundle_version.created_at
         String author,                                              // connector.author
-        Integer organizationId,                                     // connector.organization_id
         String lifecycleState,                                      // integration_method.lifecycle_state
         String downloadLink,                                        // generated download URL
         String framework,                                           // connector_bundle.framework
@@ -28,11 +30,22 @@ public record IntegrationMethodDto(
         Long downloadCount,                                         // computed: count of download rows
         Integer midpointMinVersionId,                               // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
         Integer midpointMaxVersionId,                               // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+        String appMinVersion,                                       // integration_method.app_minversion (free text)
+        String appMaxVersion,                                       // integration_method.app_maxversion (free text)
         String connectorDisplayName,                                // connector.display_name
         List<String> integMethodTypes,                              // integration_method_type.name
         String revision,                                            // integration_method.revision
         String displayName,                                         // integration_method.display_name
         String tutorial,                                            // integration_method.tutorial
         String filePath,                                            // integration_method.file_path
-        String reviewedBy                                           // integration_method.reviewed_by
+        String reviewedBy,                                          // integration_method.reviewed_by
+        MaintainerDto maintainer,                                   // integration_method.maintainer
+        String maintainerLabel,                                     // integration_method.maintainer as label
+        LocalDate createdAt,                                        // integration_method.created_at
+        LocalDate updated,                                          // integration_method.updated (= review start date while REVIEWING)
+        List<IncludedConnectorDto> connectors,                      // connectors linked via integration_method_connector
+        Integer supportTicketId,                                    // integration_method.support_ticket_id, only for those allowed to see it
+        String supportTicketUrl,                                    // generated from supportTicketId
+        SupportTier supportTier,                                    // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+        boolean hasConnectorBundle                                  // false = no connector to hold a tier, so it cannot be set
 ) {}

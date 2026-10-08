@@ -1,0 +1,85 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
+package com.evolveum.midpoint.integration.catalog.security;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Reads the catalog's notion of role and organization out of OIDC token claims.
+ */
+@Component
+public class CatalogClaims {
+
+    private final String rolesClaim;
+    private final String organizationClaim;
+
+    public CatalogClaims(
+            @Value("${catalog.oidc.claims.roles:roles}") String rolesClaim,
+            @Value("${catalog.oidc.claims.organization:organization}") String organizationClaim) {
+        this.rolesClaim = rolesClaim;
+        this.organizationClaim = organizationClaim;
+    }
+
+    /** The catalog roles carried by the token, in the order the provider listed them. */
+    public List<CatalogRole> roles(OidcUser oidcUser) {
+        List<String> claimRoles = stringList(claim(oidcUser, rolesClaim));
+        return Arrays.stream(CatalogRole.values())
+                .filter(catalogRole -> claimRoles.contains(catalogRole.getIdentifier()))
+                .toList();
+    }
+
+    public CatalogRole effectiveRole(OidcUser oidcUser) {
+        List<CatalogRole> roles = roles(oidcUser);
+        return roles.stream().findFirst().orElse(CatalogRole.READ_ONLY);
+    }
+
+    /**
+     * The alias of the user's organization, or {@code null} when they belong to none. An alias
+     * rather than a display name because a token carries only what the provider knows;
+     * {@link com.evolveum.midpoint.integration.catalog.service.OrganizationService} turns it into
+     * the name shown in the catalog.
+     *
+     * <p>Only the first one is used: the catalog models a user as publishing on behalf of at
+     * most one organization.
+     */
+    public String organizationName(OidcUser oidcUser) {
+        return organizationNames(oidcUser).stream().findFirst().orElse(null);
+    }
+
+    /**
+     * All organization aliases in the claim. The claim is an array of aliases when the provider
+     * emits strings, and an object keyed by alias when it emits JSON; both shapes are accepted.
+     */
+    private List<String> organizationNames(OidcUser oidcUser) {
+        Object claim = claim(oidcUser, organizationClaim);
+        List<String> raw = claim instanceof Map<?, ?> byName
+                ? byName.keySet().stream().map(String::valueOf).toList()
+                : stringList(claim);
+        return raw.stream()
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .toList();
+    }
+
+    private static Object claim(OidcUser oidcUser, String name) {
+        return oidcUser != null ? oidcUser.getClaim(name) : null;
+    }
+
+    private static List<String> stringList(Object claim) {
+        if (claim instanceof Collection<?> values) {
+            return values.stream().map(String::valueOf).toList();
+        }
+        return claim != null ? List.of(String.valueOf(claim)) : List.of();
+    }
+}

@@ -4,18 +4,64 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { Maintainer } from '../models/maintainer.model';
+
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import {HttpClient, HttpErrorResponse, HttpParams, HttpResponse} from '@angular/common/http';
+import {catchError, from, mergeMap, Observable, of} from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Application } from '../models/application.model';
 import { MidpointVersion } from '../models/application-detail.model';
-import { ApplicationDetail, ApplicationTag } from '../models/application-detail.model';
+import { ApplicationDetail, ApplicationTag, IntegrationMethodObjectCapabilities, IntegrationMethodTier } from '../models/application-detail.model';
+import { SupportTier } from '../core/support-tier';
 import { CategoryCount } from '../models/category-count.model';
 import { ImplementationListItem } from '../models/implementation-list-item.model';
 import { CatalogConnector } from '../models/catalog-connector.model';
 import { IntegrationRequest, UploadConnectorPayload } from '../models/request.model';
 import { environment } from '../../environments/environment';
+import { ProblemDetail } from '../models/problem-detail';
+import { MyConnector, MyIntegrationMethod } from '../models/my-items.model';
+
+/** Outcome of a bundle download: data for the post-download help modal + optional server warning. */
+export interface BundleDownloadResult {
+  warning: string | null;
+  fileName: string;
+  size: number | null;
+}
+
+/** Outcome of an active-connectors sheet download: help-modal data, or an error message. */
+export interface SheetDownloadResult {
+  error: string | null;
+  fileName: string | null;
+  size: number | null;
+}
+
+/**
+ * The support-portal work package behind a revision's review (GET .../support-ticket).
+ * `approvalReady` is the backend's verdict — it compares the status against the one configured
+ * as the go-ahead, so the status name never has to be known here.
+ */
+export interface SupportTicket {
+  configured: boolean;
+  ticketId: number | null;
+  url: string | null;
+  status: string | null;
+  approvalReady: boolean;
+  error: string | null;
+}
+
+/** Connector linked to an integration method that lacks download info (no artifactUrl set). */
+export interface ConnectorWithoutDownload {
+  connectorId: number;
+  connectorName: string;
+  className: string;
+  bundleName: string | null;
+  version: string | null;
+  connectorVersionId: string;
+  connectorVersionRevision: string;
+  integrationMethodId: string;
+  integrationMethodRevision: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +75,11 @@ export class ApplicationService {
     return this.http.get<Application[]>(this.apiUrl);
   }
 
+  /**
+   * The application with everything its detail page shows, including the support ticket of each
+   * revision the caller may see one for — the backend takes the caller from the session. Anyone
+   * else gets the same payload with the ticket fields empty.
+   */
   getById(id: string): Observable<ApplicationDetail> {
     return this.http.get<ApplicationDetail>(`${environment.apiUrl}/applications/${id}`);
   }
@@ -37,24 +88,26 @@ export class ApplicationService {
     return this.http.get<CategoryCount[]>(`${environment.apiUrl}/categories/counts`);
   }
 
-  submitVote(requestId: number, voter: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/requests/${requestId}/vote?voter=${voter}`, {});
+  /** Votes as the authenticated user (the backend takes the identity from the session). */
+  submitVote(requestId: number): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/requests/${requestId}/vote`, {});
   }
 
   getVoteCount(requestId: number): Observable<number> {
     return this.http.get<number>(`${environment.apiUrl}/requests/${requestId}/votes/count`);
   }
 
-  hasUserVoted(requestId: number, voter: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check?voter=${voter}`);
+  /** Whether the authenticated user has voted; false for anonymous callers. */
+  hasUserVoted(requestId: number): Observable<boolean> {
+    return this.http.get<boolean>(`${environment.apiUrl}/requests/${requestId}/votes/check`);
   }
 
   submitRequest(request: IntegrationRequest): Observable<void> {
     return this.http.post<void>(`${environment.apiUrl}/requests`, request);
   }
 
-  getCapabilities(): Observable<{ name: string; globality: string; displayOrder: number | null }[]> {
-    return this.http.get<{ name: string; globality: string; displayOrder: number | null }[]>(`${environment.apiUrl}/capabilities`);
+  getCapabilities(): Observable<{ name: string; globality: string; displayOrder: number | null; offeredForMethod: boolean }[]> {
+    return this.http.get<{ name: string; globality: string; displayOrder: number | null; offeredForMethod: boolean }[]>(`${environment.apiUrl}/capabilities`);
   }
 
   getImplementationsByApplicationId(applicationId: string): Observable<ImplementationListItem[]> {
@@ -66,15 +119,20 @@ export class ApplicationService {
   }
 
   uploadConnector(payload: UploadConnectorPayload): Observable<string> {
-    return this.http.post<string>(`${environment.apiUrl}/upload/connector`, payload, { responseType: 'text' as 'json' });
+    return this.http.post<string>(`${environment.apiUrl}/upload/integration`, payload, { responseType: 'text' as 'json' });
   }
 
-  checkVersionExists(version: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version?version=${encodeURIComponent(version)}`);
-  }
-
-  checkBundleNameExists(bundleName: string): Observable<boolean> {
-    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-bundle-name?bundleName=${encodeURIComponent(bundleName)}`);
+  /**
+   * Whether another connector with the same identity (bundle name + class name) already carries
+   * this version. Informational only — duplicates are never blocked; the reviewer decides whether
+   * the existing version should be reused.
+   */
+  checkVersionExists(bundleName: string, className: string | null, version: string,
+                     excludeConnectorId?: number | null): Observable<boolean> {
+    let params = new HttpParams().set('bundleName', bundleName).set('version', version);
+    if (className) params = params.set('className', className);
+    if (excludeConnectorId != null) params = params.set('excludeConnectorId', excludeConnectorId);
+    return this.http.get<boolean>(`${environment.apiUrl}/upload/check-version`, { params });
   }
 
   getAllTags(): Observable<ApplicationTag[]> {
@@ -97,44 +155,84 @@ export class ApplicationService {
     return this.http.get<number>(`${environment.apiUrl}/applications/${applicationId}/downloads-count`);
   }
 
-  uploadTutorialFile(appId: string, methodId: string, revision: string, file: File): Observable<void> {
+  uploadTutorialFile(methodId: string, revision: string, file: File): Observable<void> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`,
       formData
     );
   }
 
-  listTutorialFiles(appId: string, methodId: string, revision: string): Observable<string[]> {
+  listTutorialFiles(methodId: string, revision: string): Observable<string[]> {
     return this.http.get<string[]>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial`
     );
   }
 
-  deleteTutorialFile(appId: string, methodId: string, revision: string, name: string): Observable<void> {
+  deleteTutorialFile(methodId: string, revision: string, name: string): Observable<void> {
     return this.http.delete<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`
     );
   }
 
-  getTutorialFileUrl(appId: string, methodId: string, revision: string, name: string): string {
-    return `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`;
+  getTutorialFileUrl(methodId: string, revision: string, name: string): string {
+    return `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/tutorial/file?name=${encodeURIComponent(name)}`;
   }
 
   /**
    * Downloads the integration-method bundle ZIP and triggers a browser save.
-   * Emits the value of the `X-Bundle-Warning` response header (or `null`) so callers can notify
-   * the user when the connector build file could not be included.
+   * Emits the saved file name and size (for the post-download help modal) plus the value of the
+   * `X-Bundle-Warning` response header (or `null`) so callers can notify the user when the
+   * connector build file could not be included.
    */
-  downloadBundle(appId: string, methodId: string, revision: string): Observable<string | null> {
-    const url = `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
+  downloadBundle(methodId: string, revision: string): Observable<BundleDownloadResult> {
+    const url = `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/bundle`;
     return this.http.get(url, { observe: 'response', responseType: 'blob' }).pipe(
       map((response: HttpResponse<Blob>) => {
+        const fileName = this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'bundle.zip';
         if (response.body) {
-          this.saveBlob(response.body, this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'bundle.zip');
+          this.saveBlob(response.body, fileName);
         }
-        return response.headers.get('X-Bundle-Warning');
+        return {
+          warning: response.headers.get('X-Bundle-Warning'),
+          fileName,
+          size: response.body?.size ?? null
+        };
+      })
+    );
+  }
+
+  /**
+   * Downloads the active-connectors sheet (JSON) and triggers a browser save.
+   * Emits the saved file name and size (for the post-download help modal), or an error
+   * message when the download failed.
+   */
+  downloadActiveConnectors(): Observable<SheetDownloadResult> {
+    const url = `${environment.apiUrl}/connectors/active`;
+    return this.http.get(url, { observe: 'response', responseType: 'blob' }).pipe(
+      map((response: HttpResponse<Blob>) => {
+        const fileName = this.parseContentDispositionFileName(response.headers.get('Content-Disposition')) ?? 'active-connectors.json';
+        if (response.body) {
+          this.saveBlob(response.body, fileName);
+        }
+        return {
+          error: null,
+          fileName,
+          size: response.body?.size ?? null
+        };
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.error instanceof Blob) {
+          return from(error.error.text()).pipe(
+            map(text => {
+              const problem = JSON.parse(text) as ProblemDetail;
+              return { error: problem.detail ?? 'Download of active connectors failed.', fileName: null, size: null };
+            })
+          );
+        }
+
+        return of({ error: 'Download of active connectors failed.', fileName: null, size: null });
       })
     );
   }
@@ -159,98 +257,167 @@ export class ApplicationService {
   }
 
   editIntegrationMethod(
-    appId: string,
     methodId: string,
     currentRevision: string,
-    payload: { displayName: string; description: string; tutorial: string; capabilities: { objectClass: string; capabilityNames: string[] }[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null }
+    payload: { displayName: string; description: string; limitations: string; typeIds: number[] | null; tutorial: string; capabilities: IntegrationMethodObjectCapabilities[]; removeFile: boolean; minorBump: boolean; midpointMinVersion: number | null; midpointMaxVersion: number | null; appMinVersion: string | null; appMaxVersion: string | null; maintainer: Maintainer | null }
   ): Observable<string> {
     return this.http.put<string>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(currentRevision)}`,
       payload,
       { responseType: 'text' as 'json' }
     );
   }
 
-  publishIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+  /**
+   * State of the support-portal work package opened when this revision was submitted.
+   * The backend restricts this to the submitting side and the reviewer, taking the caller
+   * from the session.
+   */
+  getSupportTicket(methodId: string, revision: string): Observable<SupportTicket> {
+    return this.http.get<SupportTicket>(
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/support-ticket`
+    );
+  }
+
+  startReviewIntegrationMethod(methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/publish`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/start-review`,
       {}
     );
   }
 
-  rejectIntegrationMethod(appId: string, methodId: string, revision: string): Observable<void> {
+  stopReviewIntegrationMethod(methodId: string, revision: string): Observable<void> {
     return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/stop-review`,
       {}
     );
   }
 
-  getConnectorsForIntegrationMethod(appId: string, methodId: string, revision: string): Observable<ImplementationListItem[]> {
+  /** Approves a reviewed revision, which is what publishes it. */
+  publishIntegrationMethod(methodId: string, revision: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/approve`,
+      {}
+    );
+  }
+
+  /** Withdraws an in-review revision; the app is deleted too when that revision was all it had. */
+  cancelIntegrationMethod(methodId: string, revision: string): Observable<{ applicationDeleted: boolean }> {
+    return this.http.post<{ applicationDeleted: boolean }>(
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/cancel`,
+      {}
+    );
+  }
+
+  rejectIntegrationMethod(methodId: string, revision: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/reject`,
+      {}
+    );
+  }
+
+  getConnectorsForIntegrationMethod(methodId: string, revision: string): Observable<ImplementationListItem[]> {
     return this.http.get<ImplementationListItem[]>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors`
+    );
+  }
+
+  /**
+   * Returns connectors linked to an integration method revision that do NOT have
+   * download information (no artifactUrl set on the ConnectorBundleVersion).
+   */
+  getConnectorsWithoutDownload(methodId: string, revision: string): Observable<ConnectorWithoutDownload[]> {
+    return this.http.get<ConnectorWithoutDownload[]>(
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors-without-download`
     );
   }
 
   addConnectorToIntegrationMethod(
-    appId: string,
     versionId: string,
     revision: string,
     payload: {
       existingConnectorId: number | null;
-      displayName: string; description: string; maintainer: string;
+      displayName: string; description: string; maintainer: Maintainer;
       framework: string; license: string | null;
-      browseLink: string | null; gitCloneUrl: string | null;
+      projectHomepage: string | null; gitCloneUrl: string | null;
       buildFramework: string | null; pathToProject: string | null;
-      className: string | null; bundleName: string | null;
+      className: string | null; bundleDisplayName: string | null;
       version: string | null; commitTag: string | null;
       midpointMinVersion: number | null; midpointMaxVersion: number | null;
       connectorVersionFrom: string | null; connectorVersionTo: string | null;
-      connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+      connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
     }
-  ): Observable<void> {
-    return this.http.post<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${versionId}/${encodeURIComponent(revision)}/connectors`,
-      payload
+  ): Observable<string> {
+    // Returns the revision the connector was added to: the current revision, or a newly forked draft
+    // revision when the source was a published version.
+    return this.http.post(
+      `${environment.apiUrl}/integration-method/${versionId}/${encodeURIComponent(revision)}/connectors`,
+      payload,
+      { responseType: 'text' }
     );
   }
 
   updateConnector(
-    appId: string,
     methodId: string,
     revision: string,
     connectorId: number,
     payload: {
-      displayName: string; description: string; maintainer: string;
-      license: string | null; browseLink: string | null; supportPortal: string | null;
+      displayName: string; description: string; maintainer: Maintainer;
+      license: string | null; projectHomepage: string | null;
+      supportPortal: string | null;
       gitCloneUrl: string | null; buildFramework: string | null;
-      pathToProject: string | null; className: string | null; bundleName: string | null;
-      commitTag: string | null;
-      connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+      pathToProject: string | null; className: string | null; bundleDisplayName: string | null;
+      commitTag: string | null; version: string | null; baseVersion: string | null;
+      connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
     }
   ): Observable<void> {
     return this.http.put<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`,
       payload
     );
   }
 
-  deleteConnector(appId: string, methodId: string, revision: string, connectorId: number): Observable<void> {
+  deleteConnector(methodId: string, revision: string, connectorId: number): Observable<void> {
     return this.http.delete<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}`
     );
   }
 
   updateConnectorCompatibility(
-    appId: string,
     methodId: string,
     revision: string,
     connectorId: number,
     payload: { connectorVersionFrom: string | null; connectorVersionTo: string | null }
   ): Observable<void> {
     return this.http.put<void>(
-      `${environment.apiUrl}/applications/${appId}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/compatibility`,
+      `${environment.apiUrl}/integration-method/${methodId}/${encodeURIComponent(revision)}/connectors/${connectorId}/compatibility`,
       payload
     );
+  }
+
+  /** Every revision of the integration methods the current user maintains, newest first per method. */
+  getMyIntegrationMethods(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/auth/me/integration-methods`);
+  }
+
+  /** Every revision of every method in the catalog, grouped by method (superuser). */
+  getAllIntegrationMethods(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/all-integration-methods`);
+  }
+
+  /** Every revision awaiting approval or under review across the catalog, longest waiting first (superuser). */
+  getReviewQueue(): Observable<MyIntegrationMethod[]> {
+    return this.http.get<MyIntegrationMethod[]>(`${environment.apiUrl}/review-queue`);
+  }
+
+  /** Every connector in the catalog, with its versions and usage (superuser). */
+  getAllConnectors(): Observable<MyConnector[]> {
+    return this.http.get<MyConnector[]>(`${environment.apiUrl}/all-connectors`);
+  }
+
+  /** The connectors the current user maintains, with their versions and usage. */
+  getMyConnectors(): Observable<MyConnector[]> {
+    return this.http.get<MyConnector[]>(`${environment.apiUrl}/auth/me/connectors`);
   }
 
   // ==================== Logo Methods ====================
@@ -302,11 +469,96 @@ export class ApplicationService {
     return this.http.get<Application[]>(`${environment.apiUrl}/recently-used`);
   }
 
-  recordRecentlyUsed(applicationId: string, username: string): Observable<void> {
-    return this.http.post<void>(
-      `${environment.apiUrl}/recently-used/${applicationId}`,
-      {},
-      { headers: { 'X-User-Name': username } }
+  /** Records usage for the authenticated user (identity comes from the session). */
+  recordRecentlyUsed(applicationId: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/recently-used/${applicationId}`, {});
+  }
+
+  /**
+   * Update application details (displayName, description) - superuser only
+   */
+  /** Published integration methods with their support tier, for the tier overview. */
+  getSupportTiers(): Observable<IntegrationMethodTier[]> {
+    return this.http.get<IntegrationMethodTier[]>(`${environment.apiUrl}/integration-methods/tiers`);
+  }
+
+  /** Sets the support tier (null removes it) and the obsolete tag of a connector (superuser). */
+  setConnectorTags(connectorId: number, tier: SupportTier | null, obsolete: boolean): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/all-connectors/${connectorId}/tags`, { tier, obsolete });
+  }
+
+  setApplicationFeatured(applicationId: string, featured: boolean): Observable<void> {
+    return this.http.put<void>(`${environment.apiUrl}/applications/${applicationId}/featured`, { featured });
+  }
+
+  updateApplication(applicationId: string, payload: { displayName: string; description: string | null }): Observable<void> {
+    return this.http.put<void>(
+      `${environment.apiUrl}/applications/${applicationId}`,
+      payload
     );
   }
+
+  /**
+   * Triggers a Jenkins build for a connector within an integration method.
+   */
+  triggerBuildForConnector(
+    methodId: string,
+    payload: {
+      className: string | null;
+      version: string | null;
+      integrationMethodRevision: string;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<string> {
+    return this.http.post<string>(
+      `${environment.apiUrl}/upload/trigger-build/${methodId}`,
+      payload,
+      { responseType: 'text' as 'json' }
+    );
+  }
+
+  /**
+   * Verifies bundle information (calls /upload/verify/{oid}).
+   */
+  verifyBundle(
+    methodId: string,
+    payload: {
+      bundleName: string;
+      version: string;
+      className: string;
+      integrationMethodRevision: string;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/upload/verify/${methodId}`,
+      payload
+    );
+  }
+
+  /**
+   * Completes build successfully (calls /upload/continue/{oid}).
+   */
+  continueBuild(
+    methodId: string,
+    payload: {
+      connectorBundle: string;
+      connectorVersion: string;
+      integrationMethodRevision: string;
+      publishTime: number | null;
+      downloadLink: string | null;
+      connectorClass: string | null;
+      capability: string[] | null;
+      connectorVersionId: string;
+      connectorVersionRevision: string;
+    }
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/upload/continue/${methodId}`,
+      payload
+    );
+  }
+
 }

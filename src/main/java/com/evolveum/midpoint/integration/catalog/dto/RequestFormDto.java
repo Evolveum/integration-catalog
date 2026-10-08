@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
@@ -18,14 +19,12 @@ public record RequestFormDto(
         @NotBlank String integrationApplicationName, // → application.display_name
         String deploymentType,                        // → application_tag (DEPLOYMENT type)
         @NotBlank String description,                 // → application.description
+        @NotBlank String integrationNeed,             // → request.integration_need
+        Integer integrationMethodTypeId,              // → request.integration_method_type_id
         String systemVersion,                         // request context field
         String contactEmail,                          // request context field
         Boolean openToCollaborate,                    // request context field
         String requester,                             // → request.requester / catalog_users.username
-        List<ObjectClassCapabilityEntry> capabilities // → object_class_capabilities
+        @Valid List<IntegrationMethodObjectCapabilitiesDto> capabilities // → object_class_capabilities
 ) {
-    public record ObjectClassCapabilityEntry(
-            String objectName,        // object_class_capabilities.object_name
-            List<String> capabilities // capability.name items
-    ) {}
 }

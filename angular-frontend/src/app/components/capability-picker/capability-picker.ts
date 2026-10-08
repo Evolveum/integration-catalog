@@ -7,10 +7,12 @@
 import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signal, OnInit, HostListener, HostBinding, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 export interface CapabilityGroup {
   objectClass: string;
   capabilityNames: string[];
+  resourceWide: boolean;   // the whole resource's capabilities; objectClass is then only a label
 }
 
 @Component({
@@ -59,7 +61,10 @@ export class CapabilityPicker implements OnInit, OnChanges {
         const byOrder = (a: { displayOrder: number | null }, b: { displayOrder: number | null }) =>
           (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
         this.globalAvailable.set(caps.filter(c => c.globality === 'GLOBAL').sort(byOrder).map(c => c.name));
-        this.specificAvailable.set(caps.filter(c => c.globality === 'SPECIFIC').sort(byOrder).map(c => c.name));
+        this.specificAvailable.set(
+          caps.filter(c => c.globality === 'SPECIFIC')
+            .sort(byOrder).map(c => c.name)
+        );
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
@@ -73,10 +78,10 @@ export class CapabilityPicker implements OnInit, OnChanges {
   }
 
   private applyInitialCapabilities(): void {
-    const global = this.initialCapabilities.find(g => g.objectClass === 'Global');
+    const global = this.initialCapabilities.find(g => g.resourceWide);
     this.globalCaps.set(global ? global.capabilityNames : []);
 
-    const specific = this.initialCapabilities.filter(g => g.objectClass !== 'Global');
+    const specific = this.initialCapabilities.filter(g => !g.resourceWide);
     const current = this.entries();
 
     const fromInit = specific.map(g => {
@@ -102,16 +107,16 @@ export class CapabilityPicker implements OnInit, OnChanges {
     const groups: CapabilityGroup[] = [];
     const global = this.globalCaps();
     if (global.length > 0) {
-      groups.push({ objectClass: 'Global', capabilityNames: global });
+      groups.push({ objectClass: 'Global', capabilityNames: global, resourceWide: true });
     }
     this.entries()
       .filter(e => e.objectClass && e.capabilities.length > 0)
-      .forEach(e => groups.push({ objectClass: e.objectClass, capabilityNames: e.capabilities }));
+      .forEach(e => groups.push({ objectClass: e.objectClass, capabilityNames: e.capabilities, resourceWide: false }));
     this.capabilitiesChange.emit(groups);
   }
 
   protected fmt(cap: string): string {
-    return cap.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    return formatCapabilityLabel(cap);
   }
 
   protected onGlobalChange(event: Event, cap: string): void {

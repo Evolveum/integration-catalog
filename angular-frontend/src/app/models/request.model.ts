@@ -4,6 +4,9 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { Maintainer } from './maintainer.model';
+import { IntegrationMethodObjectCapabilities } from './application-detail.model';
+
 export interface Request {
   id?: number;               // request.id
   applicationId: string;     // request.application_id (FK → application.id)
@@ -17,20 +20,16 @@ export interface CreateRequest {
   requester: string;
 }
 
-export interface ObjectClassCapabilityEntry {
-  objectName: string;
-  capabilities: string[];
-}
-
 /**
  * Request payload for submitting an integration request
  */
 export interface IntegrationRequest {
   integrationApplicationName: string;
-  integrationMethod: string;
+  integrationMethodTypeId: number | null;
   deploymentType: string;
-  capabilities: ObjectClassCapabilityEntry[];
+  capabilities: IntegrationMethodObjectCapabilities[]; // → object_class_capabilities, one array per state
   description: string;
+  integrationNeed: string;
   systemVersion: string;
   contactEmail: string;
   openToCollaborate: boolean;
@@ -66,9 +65,12 @@ export interface UploadIntegrationMethodData {
   revision: string;               // integration_method.revision
   description: string;            // integration_method.description
   tutorial: string;               // integration_method.tutorial
+  maintainer: Maintainer | null;  // integration_method.maintainer
   typeIds: number[];              // integration_method_type.id
   midpointMinVersion: number | null; // midpoint_version.id (FK for min version)
   midpointMaxVersion: number | null; // midpoint_version.id (FK for max version)
+  appMinVersion: string | null;      // integration_method.app_minversion (free text)
+  appMaxVersion: string | null;      // integration_method.app_maxversion (free text)
 }
 
 /**
@@ -77,19 +79,21 @@ export interface UploadIntegrationMethodData {
 export interface UploadConnectorData {
   displayName: string;               // connector.display_name
   description: string;               // connector.description
-  maintainer: string;                // connector.maintainer
+  maintainer: Maintainer;            // connector.maintainer
   framework: string;                 // connector_bundle.framework
   license: string | null;            // connector_bundle.license
   ticketingSystemLink: string | null; // connector_bundle.ticketing_link
-  browseLink: string | null;         // connector_bundle_version.browse_link
-  gitCloneUrl: string | null;        // connector_bundle_version.git_clone_url
-  buildFramework: string | null;     // connector_bundle.build_framework
+  projectHomepage: string | null;    // connector_bundle.project_homepage
+  gitCloneUrl: string | null;        // connector_bundle.git_clone_ulr
+  buildFramework: string | null;     // connector_bundle_version.build_framework
   pathToProject: string | null;      // connector_bundle_version.path_to_project
   className: string | null;          // connector.fully_qualified_class_name
-  bundleName: string | null;         // connector_bundle.bundle_name
   version: string | null;            // connector_bundle_version.bundle_version
   commitTag: string | null;          // connector_bundle_version.commit_tag
-  bundleDisplayName: string | null;  // connector_bundle.display_name
+  bundleDisplayName: string | null;  // connector_bundle.display_name (the form's "connector bundle name")
+  // connector.id — link a connector already published in the catalog instead of creating one. Every
+  // field above is ignored then, which matches the form disabling them all for an existing connector.
+  existingConnectorId: number | null;
 }
 
 /**
@@ -106,6 +110,7 @@ export interface UploadFileItem {
 export interface IntegrationMethodCapabilityGroup {
   objectClass: string;          // object_class_capabilities.object_name
   capabilityNames: string[];    // capability.name via integration_method_capability_item / conn_version_capability_item
+  resourceWide: boolean;        // conn_version_capability.resource_wide; objectClass is then only a label
 }
 
 /**
@@ -116,7 +121,7 @@ export interface UploadConnectorPayload {
   integrationMethod: UploadIntegrationMethodData;
   connector: UploadConnectorData;
   files: UploadFileItem[];
-  integrationMethodCapabilities: IntegrationMethodCapabilityGroup[];
+  integrationMethodCapabilities: IntegrationMethodObjectCapabilities[];
   connectorCapabilities: IntegrationMethodCapabilityGroup[];
 }
 
@@ -128,10 +133,10 @@ export interface ImplementationFormData {
   isEditingVersion: boolean;
   selectedImplementation: import('./implementation-list-item.model').ImplementationListItem | null;
   displayName: string;
-  maintainer: string;
+  maintainer: Maintainer | null;
   licenseType: string;
   implementationDescription: string;
-  browseLink: string;
+  projectHomepage: string;
   ticketingLink: string;
   buildFramework: string;
   gitCloneUrl: string;

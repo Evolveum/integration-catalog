@@ -4,26 +4,40 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
-import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { ApplicationDetail as ApplicationDetailModel, hasLogoDetail, IncludedConnector, IntegrationMethod, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
+import { StartReviewModal } from '../start-review-modal/start-review-modal';
+import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
+import { ConnectorWithoutDownload } from '../../services/application.service';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
+import { ToastService } from '../../services/toast.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
+import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { SupportTier, supportTierLabel } from '../../core/support-tier';
 
 interface MethodGroup {
   id: string;
   name: string;
   types: string[];
+  supportTier: SupportTier | null; // the same on every revision
   versions: IntegrationMethod[];
   publishedCount: number;
   pendingCount: number;
+  usesObsoleteConnector: boolean;
 }
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe, BackdropCloseDirective],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -33,10 +47,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<string | null>(null);
   // Bundle download warning toast (stays until dismissed)
-  protected readonly bundleWarning = signal<string | null>(null);
   protected readonly expandedVersions = new Set<number>();
   protected readonly expandedObjectClasses = signal<Set<string>>(new Set());
-  protected readonly expandedGlobalCapabilities = signal<Set<string>>(new Set());
   protected readonly expandedComboSections = signal<Set<string>>(new Set());
   protected readonly globalCapabilitiesExpanded = signal<boolean>(false);
   protected readonly activeEvolvumVersions = signal<any[]>([]);
@@ -60,44 +72,48 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly versionSearchQuery = signal<string>('');
   protected readonly isContinuePressed = signal<boolean>(true);
   protected readonly allVersions = signal<any[]>([]);
-  protected readonly cancelledVersionIds = signal<string[]>([]);
   protected readonly isCancelConfirmOpen = signal<boolean>(false);
   private pendingCancelType: 'request' | 'version' | null = null;
-  private pendingCancelVersionId: string | null = null;
+  private pendingCancelVersion: { id: string; revision: string | null } | null = null;
   protected readonly currentPage = signal<number>(0);
-  protected readonly itemsPerPage = 5;
+  protected readonly itemsPerPage = 3;
   protected readonly expandedMethods = signal<Set<string>>(new Set());
 
   // Group the flat version list into method cards, keyed by the shared method UUID
   // (integration_method.id is stable across revisions; revision distinguishes versions).
   protected readonly groupedMethods = computed<MethodGroup[]>(() => {
     const groups = new Map<string, MethodGroup>();
-    const cancelled = this.cancelledVersionIds();
     for (const v of this.allVersions()) {
-      if (cancelled.includes(this.versionKey(v.id, v.revision))) continue;
       let group = groups.get(v.id);
       if (!group) {
         group = {
           id: v.id,
           name: v.displayName || v.connectorDisplayName || 'Integration method',
           types: v.integMethodTypes ?? [],
+          supportTier: v.supportTier ?? null,
           versions: [],
           publishedCount: 0,
-          pendingCount: 0
+          pendingCount: 0,
+          usesObsoleteConnector: false
         };
         groups.set(v.id, group);
       }
       group.versions.push(v);
+      if (v.connectors?.some((c: IncludedConnector) => isObsoleteConnector(c.tags))) group.usesObsoleteConnector = true;
       if (v.lifecycleState === 'ACTIVE') group.publishedCount++;
-      else if (v.lifecycleState === 'IN_REVIEW') group.pendingCount++;
+      // A revision under active review (REVIEWING) is still pending, not yet published.
+      else if (v.lifecycleState === 'IN_REVIEW' || v.lifecycleState === 'REVIEWING') group.pendingCount++;
     }
     const result = Array.from(groups.values());
     result.forEach(g => {
       g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision));
-      // The card header reflects the most recent revision's name, so a rename in a new version shows.
-      const latest = g.versions[g.versions.length - 1];
-      g.name = latest.displayName || latest.connectorDisplayName || 'Integration method';
+      // For a method with multiple versions, represent it by its OLDEST version so its
+      // name/identity stays stable (matching its fixed, creation-order position).
+      const oldest = g.versions[0];
+      g.name = oldest.displayName || oldest.connectorDisplayName || 'Integration method';
     });
+    // Unified list in creation order (map insertion order = backend created_at ASC), independent of
+    // lifecycle state — so a method keeps its position even when its state changes (e.g. on approval).
     return result;
   });
 
@@ -141,11 +157,14 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected readonly availableMethodTypes = signal<{ id: number; displayName: string }[]>([]);
 
+  @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private applicationService: ApplicationService,
-    private authService: AuthService
+    private authService: AuthService,
+    protected toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -154,6 +173,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
+      this.restoreFilters(id);
       this.loadApplication(id);
       this.loadApplicationDownloadsCount(id);
     } else {
@@ -176,7 +196,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected cancelVersion(id: string, revision: string | null): void {
     this.pendingCancelType = 'version';
-    this.pendingCancelVersionId = this.versionKey(id, revision);
+    this.pendingCancelVersion = { id, revision };
     this.isCancelConfirmOpen.set(true);
   }
 
@@ -185,22 +205,182 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.authService.currentRole() === UserRole.Superuser;
   }
 
-  /** Reject an in-review revision (superuser only): marks it REJECTED and records the reviewer. */
-  protected rejectVersion(id: string, revision: string | null): void {
-    const appId = this.application()?.id;
-    if (!appId) return;
-    this.applicationService.rejectIntegrationMethod(appId, id, revision ?? '').subscribe({
-      next: () => this.loadApplication(appId),
-      error: (err) => console.error('Failed to reject version', err)
+  protected isReadOnly(): boolean {
+    return this.authService.isReadOnly();
+  }
+
+  protected readonly supportTierLabel = supportTierLabel;
+
+  // Featured = carries the COMMON "featured" tag; such applications fill the homepage's first row.
+  protected readonly isFeatured = computed(() =>
+    (this.application()?.tags ?? []).some(t => t.name === 'featured' && t.tagType === 'COMMON'));
+  protected readonly isTogglingFeatured = signal<boolean>(false);
+
+  protected toggleFeatured(): void {
+    const app = this.application();
+    if (!app || this.isTogglingFeatured()) return;
+    const featured = !this.isFeatured();
+    this.isTogglingFeatured.set(true);
+    this.applicationService.setApplicationFeatured(app.id, featured).subscribe({
+      next: () => {
+        this.isTogglingFeatured.set(false);
+        const others = (app.tags ?? []).filter(t => !(t.name === 'featured' && t.tagType === 'COMMON'));
+        this.application.set({
+          ...app,
+          tags: featured
+            ? [...others, { id: 0, name: 'featured', displayName: 'Featured', tagType: 'COMMON' }]
+            : others
+        });
+      },
+      error: (err) => {
+        this.isTogglingFeatured.set(false);
+        console.error('Toggling featured failed', err);
+      }
     });
   }
 
-  protected approveVersion(id: string, revision: string | null): void {
+  /** The requester may cancel their own request; a superuser may cancel any (server-enforced). */
+  protected canCancelRequest(): boolean {
+    if (this.isSuperuser()) return true;
+    const requester = this.application()?.requester;
+    const user = this.authService.currentUser();
+    return !!user && !!requester && requester.trim().toLowerCase() === user.trim().toLowerCase();
+  }
+
+  /** Whether the current user may edit this method revision; see AuthService.canEdit. */
+  protected canEdit(version: Pick<IntegrationMethod, 'maintainer'>): boolean {
+    return this.authService.canEdit(version.maintainer);
+  }
+
+  // ── Approve/Reject confirmation modal ─────────────────────────────────────
+  // The version pending confirmation, and which action; the shared modal component
+  // owns the two-step flow, and the actual publish/reject happens on its confirm.
+  protected readonly confirmVersion = signal<IntegrationMethod | null>(null);
+  protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
+  protected readonly isProcessingApproval = signal<boolean>(false);
+  protected readonly approvalError = signal<string>('');
+  // Submitted-for-review date = integration_method.created_at, matching the method detail page.
+  private readonly datePipe = new DatePipe('en-US');
+
+  protected readonly confirmMethodName = computed(() => {
+    const v = this.confirmVersion();
+    return v ? (v.displayName || 'Integration method') : '';
+  });
+  protected readonly confirmVersionLabel = computed(() => this.versionBadge(this.confirmVersion()?.revision ?? ''));
+  protected readonly confirmSubmittedBy = computed(() => {
+    const v = this.confirmVersion();
+    if (!v) return '';
+    const submitted = this.datePipe.transform(v.createdAt, 'MMMM d, yyyy') || '—';
+    return `${v.author || '—'} · ${submitted}`;
+  });
+
+  protected openApproveConfirm(version: IntegrationMethod): void {
+    this.openConfirm(version, 'approve');
+  }
+
+  protected openRejectConfirm(version: IntegrationMethod): void {
+    this.openConfirm(version, 'reject');
+  }
+
+  private openConfirm(version: IntegrationMethod, mode: 'approve' | 'reject'): void {
+    this.approvalError.set('');
+    this.confirmVersion.set(version);
+    this.confirmMode.set(mode);
+  }
+
+  protected closeConfirm(): void {
+    if (this.isProcessingApproval()) return;
+    this.confirmMode.set(null);
+    this.confirmVersion.set(null);
+  }
+
+  protected submitConfirm(): void {
     const appId = this.application()?.id;
-    if (!appId) return;
-    this.applicationService.publishIntegrationMethod(appId, id, revision ?? '').subscribe({
-      next: () => this.loadApplication(appId),
-      error: (err) => console.error('Failed to approve version', err)
+    const version = this.confirmVersion();
+    const mode = this.confirmMode();
+    if (!appId || !version || !mode || this.isProcessingApproval()) return;
+    this.approvalError.set('');
+    this.isProcessingApproval.set(true);
+    const action$ = mode === 'approve'
+      ? this.applicationService.publishIntegrationMethod(version.id, version.revision ?? '')
+      : this.applicationService.rejectIntegrationMethod(version.id, version.revision ?? '');
+    action$.subscribe({
+      next: () => {
+        this.isProcessingApproval.set(false);
+        this.confirmMode.set(null);
+        this.confirmVersion.set(null);
+        this.loadApplication(appId);
+      },
+      error: (err) => {
+        console.error('Approval action failed', err);
+        this.isProcessingApproval.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.approvalError.set(message || 'The action failed. Please try again.');
+      }
+    });
+  }
+
+  // ── Start-review confirmation modal ───────────────────────────────────────
+  // Flips an IN_REVIEW revision to REVIEWING (locking it for editing); only then do the
+  // approve/reject actions become available. Superuser-only, gated the same as approve/reject.
+  protected readonly startReviewVersion = signal<IntegrationMethod | null>(null);
+  protected readonly isProcessingStartReview = signal<boolean>(false);
+  protected readonly startReviewError = signal<string>('');
+  protected readonly startReviewVersionLabel = computed(() =>
+    this.versionBadge(this.startReviewVersion()?.revision ?? ''));
+
+  protected openStartReview(version: IntegrationMethod): void {
+    this.startReviewError.set('');
+    this.startReviewVersion.set(version);
+  }
+
+  protected closeStartReview(): void {
+    if (this.isProcessingStartReview()) return;
+    this.startReviewVersion.set(null);
+  }
+
+  protected submitStartReview(): void {
+    const appId = this.application()?.id;
+    const version = this.startReviewVersion();
+    if (!appId || !version || this.isProcessingStartReview()) return;
+    this.startReviewError.set('');
+    this.isProcessingStartReview.set(true);
+    this.applicationService.startReviewIntegrationMethod(version.id, version.revision ?? '').subscribe({
+      next: () => {
+        this.isProcessingStartReview.set(false);
+        this.startReviewVersion.set(null);
+        this.loadApplication(appId);
+      },
+      error: (err) => {
+        console.error('Start review failed', err);
+        this.isProcessingStartReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.startReviewError.set(message || 'The action failed. Please try again.');
+      }
+    });
+  }
+
+  // Stops an ongoing review: flips REVIEWING back to IN_REVIEW (direct action, no modal).
+  protected readonly isProcessingStopReview = signal<boolean>(false);
+
+  protected stopReview(version: IntegrationMethod): void {
+    const appId = this.application()?.id;
+    if (!appId || this.isProcessingStopReview()) return;
+    this.isProcessingStopReview.set(true);
+    this.applicationService.stopReviewIntegrationMethod(version.id, version.revision ?? '').subscribe({
+      next: () => {
+        this.isProcessingStopReview.set(false);
+        this.loadApplication(appId);
+      },
+      error: (err) => {
+        console.error('Stop review failed', err);
+        this.isProcessingStopReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.toastService.show('Stop review failed', message || 'The action failed. Please try again.', 'danger');
+      }
     });
   }
 
@@ -209,22 +389,50 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return `${id}|${revision ?? ''}`;
   }
 
+  /**
+   * Unique key for a single version row's collapsible state. The method id is shared across
+   * revisions, so it must be combined with the revision — otherwise expanding a section in one
+   * version row expands it in every other row of the same method.
+   */
+  protected rowKey(version: IntegrationMethod): string {
+    return this.versionKey(version.id, version.revision);
+  }
+
   protected cancelRequest(): void {
     this.pendingCancelType = 'request';
-    this.pendingCancelVersionId = null;
+    this.pendingCancelVersion = null;
     this.isCancelConfirmOpen.set(true);
   }
 
   protected closeCancelConfirm(): void {
     this.isCancelConfirmOpen.set(false);
     this.pendingCancelType = null;
-    this.pendingCancelVersionId = null;
+    this.pendingCancelVersion = null;
   }
 
   protected confirmCancel(): void {
-    if (this.pendingCancelType === 'version' && this.pendingCancelVersionId) {
-      this.cancelledVersionIds.update(ids => [...ids, this.pendingCancelVersionId!]);
-      this.closeCancelConfirm();
+    if (this.pendingCancelType === 'version' && this.pendingCancelVersion) {
+      const appId = this.application()?.id;
+      const { id, revision } = this.pendingCancelVersion;
+      if (!appId) { this.closeCancelConfirm(); return; }
+      this.applicationService.cancelIntegrationMethod(id, revision ?? '').subscribe({
+        next: ({ applicationDeleted }) => {
+          this.closeCancelConfirm();
+          // The app goes with its only never-published revision, so there is no detail page to return to.
+          if (applicationDeleted) {
+            this.router.navigate(['/applications']);
+          } else {
+            this.loadApplication(appId);
+          }
+        },
+        error: (err) => {
+          console.error('Failed to cancel integration method', err);
+          this.closeCancelConfirm();
+          const e = err as { error?: { message?: string } | string; message?: string };
+          const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+          this.toastService.show('Cancel request failed', message || 'The action failed. Please try again.', 'danger');
+        }
+      });
     } else if (this.pendingCancelType === 'request') {
       const requestId = this.application()?.requestId;
       if (!requestId) { this.closeCancelConfirm(); return; }
@@ -237,27 +445,13 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected isGlobalRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
-    return !!caps && caps.length > 0 && caps.every(c => c.objectName.toLowerCase() === 'global');
-  }
-
-  protected isGlobalMethod(version: IntegrationMethod): boolean {
-    return !!version.objectClassCapabilities &&
-      version.objectClassCapabilities.length > 0 &&
-      version.objectClassCapabilities.every(c => c.objectName.toLowerCase() === 'global');
+    return !!caps && caps.length > 0 && caps.every(c => c.resourceWide);
   }
 
   protected isCombinedRequest(): boolean {
     const caps = this.application()?.objectClassCapabilities;
     if (!caps || caps.length === 0) return false;
-    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
-           caps.some(c => c.objectName.toLowerCase() !== 'global');
-  }
-
-  protected isCombinedMethod(version: IntegrationMethod): boolean {
-    const caps = version.objectClassCapabilities;
-    if (!caps || caps.length === 0) return false;
-    return caps.some(c => c.objectName.toLowerCase() === 'global') &&
-           caps.some(c => c.objectName.toLowerCase() !== 'global');
+    return caps.some(c => c.resourceWide) && caps.some(c => !c.resourceWide);
   }
 
   protected toggleComboSection(key: string): void {
@@ -272,20 +466,37 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return this.expandedComboSections().has(key);
   }
 
-  protected getGlobalCaps(version: IntegrationMethod): string[] {
-    return version.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
+  // Connectors section is expanded by default, so the set tracks COLLAPSED rows.
+  protected readonly collapsedConnectorSections = signal<Set<string>>(new Set());
+
+  protected toggleConnectorsSection(key: string): void {
+    this.collapsedConnectorSections.update(set => {
+      const next = new Set(set);
+      if (next.has(key)) { next.delete(key); } else { next.add(key); }
+      return next;
+    });
   }
 
-  protected getSpecificOccs(version: IntegrationMethod): ObjectClassCapability[] {
-    return version.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
+  protected isConnectorsSectionExpanded(key: string): boolean {
+    return !this.collapsedConnectorSections().has(key);
+  }
+
+  protected readonly isObsoleteConnector = isObsoleteConnector;
+
+  /** Chip label: fully qualified class name plus the connector version, e.g. "…CsvConnector v2.9". */
+  protected connectorChipLabel(c: IncludedConnector): string {
+    const name = c.className || c.displayName || '';
+    if (!c.version) return name;
+    const version = c.version.toLowerCase().startsWith('v') ? c.version : 'v' + c.version;
+    return `${name} ${version}`;
   }
 
   protected getRequestGlobalCaps(): string[] {
-    return this.application()?.objectClassCapabilities?.find(c => c.objectName.toLowerCase() === 'global')?.capabilities ?? [];
+    return this.application()?.objectClassCapabilities?.find(c => c.resourceWide)?.capabilities ?? [];
   }
 
   protected getRequestSpecificOccs(): ObjectClassCapability[] {
-    return this.application()?.objectClassCapabilities?.filter(c => c.objectName.toLowerCase() !== 'global') ?? [];
+    return this.application()?.objectClassCapabilities?.filter(c => !c.resourceWide) ?? [];
   }
 
   protected toggleObjectClass(name: string): void {
@@ -302,18 +513,6 @@ export class ApplicationDetail implements OnInit, OnDestroy {
 
   protected toggleGlobalCapabilities(): void {
     this.globalCapabilitiesExpanded.update(v => !v);
-  }
-
-  protected toggleMethodGlobalCapabilities(versionId: string): void {
-    this.expandedGlobalCapabilities.update(set => {
-      const next = new Set(set);
-      if (next.has(versionId)) { next.delete(versionId); } else { next.add(versionId); }
-      return next;
-    });
-  }
-
-  protected isMethodGlobalCapabilitiesExpanded(versionId: string): boolean {
-    return this.expandedGlobalCapabilities().has(versionId);
   }
 
   protected toggleCapabilities(versionIndex: number): void {
@@ -387,11 +586,23 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return !!methods && methods.length > 0;
   }
 
-  protected navigateToPublish(): void {
+  protected navigateToApprove(): void {
     const appId = this.application()?.id;
-    if (appId) {
-      this.router.navigate(['/publish'], { queryParams: { appId } });
-    }
+    if (!appId) return;
+    // This tab may still show a session that ended elsewhere; a lost one gets the app-wide dialog.
+    this.authService.verifySession().subscribe(() => {
+      if (this.authService.sessionLost()) return;
+      // The publish form bounces anyone who can't upload to the homepage without a word, so say why here.
+      if (!this.authService.canUpload()) {
+        if (this.authService.isLoggedIn()) {
+          this.toastService.show('Permission Denied', "You don't have permission for this action.", 'warning');
+        } else {
+          this.toastService.show('Login Required', 'You need to log in to perform this action. Please log in and try again.', 'warning');
+        }
+        return;
+      }
+      this.router.navigate(['/approve'], { queryParams: { appId } });
+    });
   }
 
   protected navigateToEdit(versionId: string, revision: string | null): void {
@@ -602,6 +813,39 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     if (app && app.integrationMethods) {
       this.groupVersionsByLifecycleState(app.integrationMethods);
     }
+    this.persistFilters();
+  }
+
+  private filterStorageKey(id: string): string {
+    return `app-detail-filters:${id}`;
+  }
+
+  /** Persist the current filter selection so it survives navigating into an IM's details and back. */
+  private persistFilters(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
+    const payload = {
+      filterState: this.filterState(),
+      methodTypeFilter: this.methodTypeFilter(),
+      methodSearchQuery: this.methodSearchQuery(),
+      versionSearchQuery: this.versionSearchQuery()
+    };
+    try {
+      sessionStorage.setItem(this.filterStorageKey(id), JSON.stringify(payload));
+    } catch { /* storage unavailable — ignore */ }
+  }
+
+  /** Restore a previously persisted filter selection for this application, if any. */
+  private restoreFilters(id: string): void {
+    try {
+      const raw = sessionStorage.getItem(this.filterStorageKey(id));
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved.filterState) this.filterState.set(saved.filterState);
+      if (typeof saved.methodTypeFilter === 'string') this.methodTypeFilter.set(saved.methodTypeFilter);
+      if (typeof saved.methodSearchQuery === 'string') this.methodSearchQuery.set(saved.methodSearchQuery);
+      if (typeof saved.versionSearchQuery === 'string') this.versionSearchQuery.set(saved.versionSearchQuery);
+    } catch { /* malformed — ignore */ }
   }
 
   protected getTotalVersionsCount(): number {
@@ -620,6 +864,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         return 'With error';
       case 'IN_REVIEW':
         return 'In review';
+      case 'REVIEWING':
+        return 'Under review';
       case 'REJECTED':
         return 'Rejected';
       default:
@@ -648,15 +894,19 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
   }
 
+  /** The application detail lists supported capabilities only; NO and UNKNOWN show on the method's own page. */
+  protected supportedObjectCapabilities(version: IntegrationMethod): ObjectClassCapability[] {
+    return (version.objectClassCapabilities ?? [])
+      .map(o => ({
+        objectName: o.objectClass,
+        capabilities: o.capabilities.filter(c => c.state === 'YES').map(c => c.name),
+        resourceWide: false
+      }))
+      .filter(o => o.capabilities.length > 0);
+  }
+
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-
-    // Replace underscores with spaces
-    const withSpaces = text.replace(/_/g, ' ');
-
-    // Convert to lowercase and capitalize first letter
-    const formatted = withSpaces.toLowerCase();
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   protected formatConnectorType(framework: string | null): string {
@@ -671,18 +921,101 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return framework;
   }
 
-  protected downloadBundle(methodId: string, revision: string | null): void {
+  // Post-download help modal (where to copy the connectors in midPoint home)
+  protected readonly isDownloadInfoOpen = signal<boolean>(false);
+  protected readonly isDownloadPreparing = signal<boolean>(false);
+  protected readonly downloadInfoFileName = signal<string>('');
+  protected readonly downloadInfoFileSize = signal<number | null>(null);
+
+  // Edit application modal (superuser only)
+  protected readonly isEditModalOpen = signal<boolean>(false);
+
+  // Manual fill modal (opened from approval-confirm-modal)
+  protected readonly manualFillOpen = signal<boolean>(false);
+  protected readonly manualFillConnector = signal<ConnectorWithoutDownload | null>(null);
+  protected readonly manualFillMethodId = signal<string>('');
+
+  protected openManualFill(connector: ConnectorWithoutDownload): void {
+    this.manualFillConnector.set(connector);
+    this.manualFillMethodId.set(this.confirmVersion()?.id ?? '');
+    this.manualFillOpen.set(true);
+  }
+
+  protected closeManualFill(): void {
+    this.manualFillOpen.set(false);
+    this.manualFillConnector.set(null);
+    this.manualFillMethodId.set('');
+  }
+
+  protected onManualFillSuccess(): void {
+    this.closeManualFill();
+    // Refresh the approval modal's connector list directly
+    this.approvalConfirmModal?.onManualFillSuccess();
+    // Also reload application data for consistency
     const appId = this.application()?.id;
     if (appId) {
-      this.applicationService.downloadBundle(appId, methodId, revision ?? '').subscribe({
-        next: (warning) => this.bundleWarning.set(warning),
-        error: () => this.bundleWarning.set('Failed to download the bundle. Please try again.')
-      });
+      this.loadApplication(appId);
     }
   }
 
-  protected closeBundleWarning(): void {
-    this.bundleWarning.set(null);
+  protected onManualFillCancel(): void {
+    this.closeManualFill();
+  }
+
+  protected onManualFillError(message: string): void {
+    console.error('Manual fill error:', message);
+    // Keep the modal open so the user can retry
+  }
+
+  protected openEditModal(): void {
+    this.isEditModalOpen.set(true);
+  }
+
+  protected closeEditModal(): void {
+    this.isEditModalOpen.set(false);
+  }
+
+  protected onEditSaved(): void {
+    this.closeEditModal();
+    // Reload application data to reflect changes
+    const appId = this.application()?.id;
+    if (appId) {
+      this.loadApplication(appId);
+    }
+  }
+
+  protected downloadBundle(methodId: string, revision: string | null): void {
+    const appId = this.application()?.id;
+    if (appId) {
+      // Open right away: building the bundle can take a while and the click must show a reaction.
+      this.downloadInfoFileName.set('');
+      this.downloadInfoFileSize.set(null);
+      this.isDownloadPreparing.set(true);
+      this.isDownloadInfoOpen.set(true);
+      this.applicationService.downloadBundle(methodId, revision ?? '').subscribe({
+        next: (result) => {
+          if (result.warning) {
+            this.toastService.show(
+              'Download warning',
+              result.warning,
+              'warning'
+            )
+          }
+          this.downloadInfoFileName.set(result.fileName);
+          this.downloadInfoFileSize.set(result.size);
+          this.isDownloadPreparing.set(false);
+        },
+        error: () => {
+          this.isDownloadPreparing.set(false);
+          this.isDownloadInfoOpen.set(false);
+          this.toastService.show(
+            'Download error',
+            'Failed to download the bundle. Please try again.',
+            'danger');
+        }
+      }
+      );
+    }
   }
 
   // ==================== Logo Methods ====================
@@ -768,24 +1101,14 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       return;
     }
 
-    // Filter IN_REVIEW visibility: not logged in → hide all; Superuser → see all;
-    // OrganizationContributor → own + same org; others → own only
-    const currentUser = this.authService.currentUser();
-    const isLoggedIn = this.authService.isLoggedIn();
-    const role = this.authService.currentRole();
-    const isSuperuser = role === UserRole.Superuser;
-    const isOrgContributor = role === UserRole.OrganizationContributor;
-    const currentOrgId = this.authService.currentOrganizationId();
-
+    // IN_REVIEW, REVIEWING and REJECTED share the same restricted visibility, which is exactly the
+    // edit-ownership rule (AuthService.canEdit): only someone who may edit a draft can see it.
+    // Published (ACTIVE) revisions are visible to everyone.
     let filteredVersions = versions.filter(version => {
-      // IN_REVIEW and REJECTED share the same restricted visibility: not logged in → hidden;
-      // Superuser → all; author → own; OrganizationContributor → own + same org.
-      if (version.lifecycleState !== 'IN_REVIEW' && version.lifecycleState !== 'REJECTED') return true;
-      if (!isLoggedIn) return false;
-      if (isSuperuser) return true;
-      if (version.author === currentUser) return true;
-      if (isOrgContributor && currentOrgId !== null && version.organizationId === currentOrgId) return true;
-      return false;
+      if (version.lifecycleState !== 'IN_REVIEW'
+          && version.lifecycleState !== 'REVIEWING'
+          && version.lifecycleState !== 'REJECTED') return true;
+      return this.authService.canEdit(version.maintainer);
     });
 
     // Apply filters

@@ -10,9 +10,11 @@ import com.evolveum.midpoint.integration.catalog.configuration.TutorialStoragePr
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,15 +49,18 @@ public class TutorialStorageService {
 
     private final TutorialStorageProperties properties;
     private final IntegrationMethodRepository integrationMethodRepository;
+    private final ApplicationEventPublisher events;
     private final Path basePath;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     public TutorialStorageService(TutorialStorageProperties properties,
-                                   IntegrationMethodRepository integrationMethodRepository) {
+                                   IntegrationMethodRepository integrationMethodRepository,
+                                   ApplicationEventPublisher events) {
         this.properties = properties;
         this.integrationMethodRepository = integrationMethodRepository;
+        this.events = events;
         this.basePath = Paths.get(properties.basePath()).toAbsolutePath().normalize();
         log.info("Tutorial storage base path resolved to: {}", this.basePath);
         initStorageDirectory();
@@ -129,6 +134,8 @@ public class TutorialStorageService {
 
         updateFilePath(integrationMethodId, revision, folder);
         log.info("Saved tutorial file for integration method {}/{}: {}", integrationMethodId, revision, fileName);
+        // Files arrive after the work package was written, so it is told about each one.
+        events.publishEvent(new TutorialFileAddedEvent(integrationMethodId, revision, fileName));
     }
 
     /** Lists the tutorial file names stored for a given method revision. */

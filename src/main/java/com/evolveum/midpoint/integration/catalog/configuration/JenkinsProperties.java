@@ -12,6 +12,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record JenkinsProperties(
         String url,
         String apiToken,
-        String username
+        String username,
+        String jobName,
+        String callbackToken
 ) {
 }

@@ -4,49 +4,96 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { forkJoin, Observable } from 'rxjs';
+import { concat, forkJoin, of, Observable } from 'rxjs';
+import { toArray } from 'rxjs/operators';
 import EasyMDE from 'easymde';
 import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
+import { LinksService } from '../../services/links.service';
 import { PageHeader } from '../page-header/page-header';
-import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
-import { AddConnectorForm } from '../add-connector-form/add-connector-form';
-import { EditConnectorModal } from '../edit-connector-modal/edit-connector-modal';
+import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
+import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
+import { EditConnectorModal, ConnectorEditPayload } from '../edit-connector-modal/edit-connector-modal';
+import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
+import { MethodTypeModal } from '../method-type-modal/method-type-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
-import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
+import { hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { formatCapabilityLabel } from '../../core/capability-label';
+import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownPipe } from '../../core/markdown.pipe';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeader, CapabilityPicker, AddConnectorForm, EditConnectorModal],
+  imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal, MarkdownPipe,
+    SubmissionSuccessModal, MethodTypeModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })
 export class EditUpgradeForm implements OnInit, OnDestroy {
+  protected readonly links = inject(LinksService).links;
   protected readonly loading = signal<boolean>(true);
   protected readonly showAddConnector = signal<boolean>(false);
+  // Set once a connector is added directly to a mutable (in-review/rejected) revision this session.
+  protected readonly connectorAdded = signal<boolean>(false);
+  // Connectors added while on a PUBLISHED version: held here, unpersisted, until the user saves a new
+  // version. Nothing touches the backend (and no version is created) unless/until that save happens.
+  protected readonly stagedConnectors = signal<StagedConnector[]>([]);
+  protected readonly hasStagedConnectors = computed(() => this.stagedConnectors().length > 0);
   // protected readonly licenseExpanded = signal<boolean>(false);
   protected readonly appId = signal<string>('');
   protected readonly appName = signal<string>('');
   protected readonly appHasLogo = signal<boolean>(false);
   protected readonly logoLoadError = signal<boolean>(false);
   protected readonly versionId = signal<string>('');
+  // Surfaced when a Save / Save-as-new-version request fails, so the failure isn't silent.
+  protected readonly saveError = signal<string>('');
+  protected readonly isSaving = signal<boolean>(false);
 
   // Form fields
   protected readonly methodName = signal<string>('');
   protected readonly methodVersion = signal<string>('');
   protected readonly methodLifecycleState = signal<string | null>(null);
   protected readonly methodDescription = signal<string>('');
+  protected readonly methodLimitations = signal<string>('');
+  protected readonly limitationsMax = LIMITATIONS_MAX;
+  protected readonly methodMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
+  protected readonly maintainerSearch = signal<string>('');
+  protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
+  protected readonly filteredMaintainerOptions = computed(() => {
+    const search = this.maintainerSearch().toLowerCase().trim();
+    const options = this.maintainerOptions();
+    if (!search) return options;
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
+  });
+  /** What the maintainer combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly methodMaintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.methodMaintainer()));
   protected readonly methodTypes = signal<string[]>([]);
-  protected readonly imCapabilities = signal<CapabilityGroup[]>([]);
-  protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
+  protected readonly isMethodTypeModalOpen = signal<boolean>(false);
+  /**
+   * The catalog's types, loaded so the chosen names can be sent back as ids - the revision carries
+   * its types by name, and the publish flow matches them the same way.
+   */
+  private readonly allMethodTypes = signal<{ id: number; displayName: string }[]>([]);
+  protected readonly imCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  protected readonly initialCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  private readonly capabilitiesTouched = signal<boolean>(false);
 
   // Supported midPoint version range (loaded from DB, editable)
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
+  /* newest version first in the dropdowns; range validation uses the ascending midpointVersions order */
+  protected readonly midpointVersionsDesc = computed(() => [...this.midpointVersions()].reverse());
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
   protected readonly isMidpointVersionRangeInvalid = computed(() => {
@@ -58,7 +105,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     const maxIndex = versions.findIndex(v => v.id === maxId);
     return maxIndex < minIndex;
   });
-  // Mirrors the publish form's compatibility gate: "From" is required and the range must be valid.
+  // Supported application version range, free text: only saved, not checked or used for filtering.
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
+  // Mirrors the publish form's compatibility gate: midPoint "From" is required and its range must be valid.
   protected readonly isMidpointRangeValid = computed(() =>
     this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid()
   );
@@ -71,19 +121,141 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly tutorialFiles = signal<{ name: string; file?: File; isNew: boolean }[]>([]);
   private readonly initialFileNames = signal<string[]>([]);
 
-  // License type display labels
-  private readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
+  // Staged deletes stay in: adds are saved before deletes, so re-adding one would still hit the link.
+  protected readonly linkedConnectorIds = computed<number[]>(() => [
+    ...this.connectors().map(c => c.connectorId),
+    ...this.stagedConnectors().map(sc => sc.payload.existingConnectorId)
+  ].filter((id): id is number => id != null));
   protected readonly connectorCapsExpanded = signal<Set<string>>(new Set());
   protected readonly editingConnector = signal<ImplementationListItem | null>(null);
   protected readonly pendingDeleteConnector = signal<ImplementationListItem | null>(null);
 
+  // Staged connector changes to existing connectors — held in memory and applied only on
+  // Save / Save as new version (keyed by connectorId), never persisted immediately.
+  private readonly stagedEdits = signal<Map<number, ConnectorEditPayload>>(new Map());
+  private readonly stagedDeletes = signal<Set<number>>(new Set());
+  private readonly stagedCompat = signal<Map<number, { from: string; to: string | null }>>(new Map());
+
+  // Connector list the user sees: backend connectors minus staged deletes, with staged edits merged in.
+  protected readonly displayConnectors = computed<ImplementationListItem[]>(() => {
+    const deletes = this.stagedDeletes();
+    const edits = this.stagedEdits();
+    return this.connectors()
+      .filter(c => c.connectorId == null || !deletes.has(c.connectorId))
+      .map(c => (c.connectorId != null && edits.has(c.connectorId))
+        ? this.mergeConnectorEdit(c, edits.get(c.connectorId)!)
+        : c);
+  });
+
+  protected readonly hasPendingConnectorChanges = computed(() =>
+    this.stagedConnectors().length > 0 || this.stagedEdits().size > 0 ||
+    this.stagedDeletes().size > 0 || this.stagedCompat().size > 0
+  );
+
+  // A staged edit changing a connector's identity — version or className, which must match the
+  // Maven artifact — or an add/delete/compatibility change SUGGESTS saving as a new version,
+  // but never forces it: Save stays enabled, and the Save vs "Save as new version"
+  // choice is simply the author's signal to the reviewer of how they want the change treated
+  // (e.g. a wording fix may deliberately stay on the same IM version). The reviewer decides.
+  protected readonly hasMajorConnectorChanges = computed(() => {
+    if (this.stagedConnectors().length > 0 || this.stagedDeletes().size > 0 || this.stagedCompat().size > 0) {
+      return true;
+    }
+    const byId = new Map(this.connectors()
+      .filter(c => c.connectorId != null)
+      .map(c => [c.connectorId!, c] as const));
+    return Array.from(this.stagedEdits().entries()).some(([id, p]) => {
+      const original = byId.get(id);
+      return !original || this.isMajorConnectorEdit(original, p);
+    });
+  });
+
+  // Purely informational (see hasMajorConnectorChanges): shows the footer hint on a published
+  // revision, where both save buttons are offered. On a draft revision (only "Save" is shown —
+  // see isDraftState) the hint is pointless, so this stays false there.
+  protected readonly suggestsNewVersionForConnectorChange = computed(() =>
+    this.hasMajorConnectorChanges() && !this.isDraftState()
+  );
+
+  protected onMaintainerInput(event: Event): void {
+    this.maintainerSearch.set((event.target as HTMLInputElement).value);
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerFocus(): void {
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(true);
+  }
+
+  protected onMaintainerBlur(): void {
+    setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
+  }
+
+  protected selectMaintainerOption(option: Maintainer): void {
+    this.methodMaintainer.set(option);
+    this.maintainerSearch.set('');
+    this.isMaintainerDropdownOpen.set(false);
+  }
+
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.methodMaintainer());
+  }
+
+  /** The label of a staged connector's maintainer, for the card that previews it. */
+  protected maintainerText(maintainer: Maintainer | null): string {
+    return maintainerLabel(maintainer);
+  }
+
+  /** Whether a staged edit changes the connector identity (version, className). */
+  private isMajorConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): boolean {
+    const norm = (v: string | null | undefined): string => (v ?? '').trim();
+    return norm(p.version) !== norm(c.version)
+      || norm(p.className) !== norm(c.className);
+  }
+
+  protected isConnectorPending(connectorId: number | null): boolean {
+    if (connectorId == null) return false;
+    return this.stagedEdits().has(connectorId) || this.stagedCompat().has(connectorId);
+  }
+
+  /** Overlay a staged edit payload onto a connector so the card previews the pending values. */
+  private mergeConnectorEdit(c: ImplementationListItem, p: ConnectorEditPayload): ImplementationListItem {
+    return {
+      ...c,
+      name: p.displayName,
+      displayName: p.displayName,
+      connectorDisplayName: p.displayName,
+      bundleDisplayName: p.bundleDisplayName ?? c.bundleDisplayName,
+      implementationDescription: p.description,
+      // Only the label previews the staged pick; the permission check keeps the saved maintainer.
+      maintainerLabel: maintainerLabel(p.maintainer),
+      licenseType: p.license ?? '',
+      projectHomepage: p.projectHomepage ?? '',
+      ticketingLink: p.supportPortal ?? '',
+      gitCloneUrl: p.gitCloneUrl ?? '',
+      buildFramework: p.buildFramework ?? '',
+      pathToProjectDirectory: p.pathToProject ?? '',
+      className: p.className ?? '',
+      commitTag: p.commitTag ?? '',
+      version: p.version ?? c.version,
+      objectClassCapabilities: p.connectorCapabilities.map(g => ({
+        objectName: g.objectClass,
+        capabilities: g.capabilityNames,
+        resourceWide: g.resourceWide
+      }))
+    };
+  }
+
   private easyMde: EasyMDE | null = null;
-  private editorPreviewActivated = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -99,9 +271,24 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.appId.set(aId);
     this.versionId.set(vId);
 
+    if (this.authService.currentRole() === UserRole.Superuser) {
+      this.authService.getAllMaintainers().subscribe({
+        next: (all) => this.maintainerOptions.set(all),
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
+      });
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
+    }
+
     this.applicationService.getMidpointVersions().subscribe({
       next: (versions) => this.midpointVersions.set(versions),
       error: () => this.midpointVersions.set([])
+    });
+
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.allMethodTypes.set(types),
+      error: () => this.allMethodTypes.set([])
     });
 
     this.applicationService.getById(aId).subscribe({
@@ -120,25 +307,20 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');
+          this.methodLimitations.set(ver.limitations ?? '');
+          this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodTypes.set(ver.integMethodTypes ?? []);
           this.midpointMinVersionId.set(ver.midpointMinVersionId);
           this.midpointMaxVersionId.set(ver.midpointMaxVersionId);
+          this.appMinVersion.set(ver.appMinVersion ?? '');
+          this.appMaxVersion.set(ver.appMaxVersion ?? '');
           this.methodTutorial.set(ver.tutorial ?? '');
           if (this.easyMde && ver.tutorial) {
             this.easyMde.value(ver.tutorial);
-            if (!this.editorPreviewActivated) {
-              EasyMDE.togglePreview(this.easyMde);
-              this.editorPreviewActivated = true;
-            }
           }
-          this.loadTutorialFiles(aId, vId, ver.revision ?? '');
-          this.initialCapabilities.set(
-            (ver.objectClassCapabilities ?? []).map(oc => ({
-              objectClass: oc.objectName,
-              capabilityNames: oc.capabilities ?? []
-            }))
-          );
-          this.loadConnectors(aId, vId, ver.revision ?? '');
+          this.loadTutorialFiles(vId, ver.revision ?? '');
+          this.initialCapabilities.set(ver.objectClassCapabilities ?? []);
+          this.loadConnectors(vId, ver.revision ?? '');
         } else {
           this.finishLoading();
         }
@@ -147,8 +329,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
   }
 
-  private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
-    this.applicationService.listTutorialFiles(appId, methodId, revision).subscribe({
+  private loadTutorialFiles(methodId: string, revision: string): void {
+    this.applicationService.listTutorialFiles(methodId, revision).subscribe({
       next: (names) => {
         this.tutorialFiles.set(names.map(n => ({ name: n, isNew: false })));
         this.initialFileNames.set(names);
@@ -160,8 +342,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
   }
 
-  private loadConnectors(appId: string, methodId: string, revision: string): void {
-    this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
+  private loadConnectors(methodId: string, revision: string): void {
+    this.applicationService.getConnectorsForIntegrationMethod(methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
         this.finishLoading();
@@ -197,13 +379,12 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
     if (this.methodTutorial()) {
       this.easyMde.value(this.methodTutorial());
-      EasyMDE.togglePreview(this.easyMde);
-      this.editorPreviewActivated = true;
     }
   }
 
-  protected onImCapabilitiesChange(caps: CapabilityGroup[]): void {
+  protected onImCapabilitiesChange(caps: IntegrationMethodObjectCapabilities[]): void {
     this.imCapabilities.set(caps);
+    this.capabilitiesTouched.set(true);
   }
 
   protected onTutorialFileDrop(event: DragEvent): void {
@@ -232,7 +413,25 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   protected tutorialFileUrl(name: string): string {
-    return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
+    return this.applicationService.getTutorialFileUrl(this.versionId(), this.methodVersion(), name);
+  }
+
+  protected openMethodTypeModal(): void {
+    this.isMethodTypeModalOpen.set(true);
+  }
+
+  protected onMethodTypesChosen(types: string[]): void {
+    this.methodTypes.set(types);
+    this.isMethodTypeModalOpen.set(false);
+  }
+
+  /** The chosen types as ids, or null when they could not be resolved - which leaves them untouched. */
+  private chosenMethodTypeIds(): number[] | null {
+    const known = this.allMethodTypes();
+    if (known.length === 0) {
+      return null;
+    }
+    return known.filter(t => this.methodTypes().includes(t.displayName)).map(t => t.id);
   }
 
   protected removeTutorialFile(i: number): void {
@@ -268,8 +467,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   protected fmtLicense(key: string | null | undefined): string {
-    if (!key) return '—';
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   /** Turn a build-framework enum (e.g. "MAVEN") into a friendly label ("Maven"). */
@@ -278,26 +476,23 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 
-  /** Append " (you)" when the maintainer matches the logged-in user. */
-  protected formatMaintainer(maintainer: string): string {
-    if (!maintainer) return '—';
-    const user = this.authService.currentUser();
-    return user && user.trim().toLowerCase() === maintainer.trim().toLowerCase()
-      ? `${maintainer} (you)`
-      : maintainer;
+  /**
+   * Whether the current user may edit this connector's content. A connector is gated on its
+   * own maintainer (not the IM's): the IM maintainer must not edit connectors maintained by
+   * someone else. The server enforces the same rule. (Compatibility/delete/add remain IM-level
+   * actions, available to anyone who could open this edit form.)
+   */
+  protected canEditConnector(c: ImplementationListItem): boolean {
+    return this.authService.canEdit(c.maintainer);
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-    const withSpaces = text.replace(/_/g, ' ').toLowerCase();
-    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+    return formatCapabilityLabel(text);
   }
 
-  /** A connector's object-class capabilities, with the Global class first when present. */
+  /** A connector's object-class capabilities, with the resource-wide group first when present. */
   protected orderedConnectorCaps(caps: ObjectClassCapability[] | null | undefined): ObjectClassCapability[] {
-    return [...(caps ?? [])].sort((a, b) =>
-      (a.objectName === 'Global' ? 0 : 1) - (b.objectName === 'Global' ? 0 : 1)
-    );
+    return [...(caps ?? [])].sort((a, b) => (a.resourceWide ? 0 : 1) - (b.resourceWide ? 0 : 1));
   }
 
   protected getLogoUrl(): string {
@@ -320,9 +515,65 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.router.navigate(['/applications', this.appId()]);
   }
 
-  protected onConnectorSaved(): void {
+  protected openAddConnector(): void {
+    // The add-connector form replaces the edit form in the DOM, tearing out the tutorial textarea.
+    // Dispose the EasyMDE instance first (keeping its content) so we can cleanly rebuild it on return.
+    this.teardownEditor();
+    this.showAddConnector.set(true);
+  }
+
+  protected closeAddConnector(): void {
     this.showAddConnector.set(false);
-    this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
+    // The tutorial textarea is back in the DOM now; rebuild the editor over it.
+    setTimeout(() => this.initEditor(), 50);
+  }
+
+  protected onConnectorSaved(newRevision: string): void {
+    this.showAddConnector.set(false);
+    this.connectorAdded.set(true);
+    // The backend returns the revision the connector landed on. Adding to a published version forks a
+    // fresh in-review draft (a new revision); adding to an existing draft returns the same revision.
+    // When it changed, move the form onto the draft so the connector shows and Save edits the draft.
+    // Method-level form fields are left as-is so any in-progress edits aren't lost.
+    if (newRevision && newRevision !== this.methodVersion()) {
+      this.methodVersion.set(newRevision);
+      this.methodLifecycleState.set('IN_REVIEW');
+      this.loadTutorialFiles(this.versionId(), newRevision);
+    }
+    this.loadConnectors(this.versionId(), this.methodVersion());
+    // loadConnectors -> finishLoading rebuilds the editor, but rebuild explicitly too so the tutorial
+    // field never shows as a bare textarea.
+    setTimeout(() => this.initEditor(), 50);
+  }
+
+  /** A published (ACTIVE) revision is immutable, so connectors added to it must be staged, not persisted. */
+  protected isPublished(): boolean {
+    return this.methodLifecycleState() === 'ACTIVE';
+  }
+
+  protected onConnectorStaged(sc: StagedConnector): void {
+    // Hold the connector in the form. It is persisted only when the user saves a new version; until
+    // then the published revision is untouched and no new version exists.
+    this.stagedConnectors.update(list => [...list, sc]);
+    this.showAddConnector.set(false);
+    setTimeout(() => this.initEditor(), 50);
+  }
+
+  protected removeStagedConnector(index: number): void {
+    this.stagedConnectors.update(list => list.filter((_, i) => i !== index));
+  }
+
+  /**
+   * Capture the current tutorial content and dispose the EasyMDE instance before its textarea is
+   * removed from the DOM. Without this, the stale instance reference blocks re-initialisation and
+   * the field renders as an unstyled textarea when the edit form comes back.
+   */
+  private teardownEditor(): void {
+    if (this.easyMde) {
+      this.methodTutorial.set(this.easyMde.value());
+      this.easyMde.toTextArea();
+      this.easyMde = null;
+    }
   }
 
   protected openEditConnector(connector: ImplementationListItem): void {
@@ -333,9 +584,13 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.editingConnector.set(null);
   }
 
-  protected onConnectorEdited(): void {
+  /** Stage a connector edit; it is persisted only on Save / Save as new version. */
+  protected onConnectorEditStaged(payload: ConnectorEditPayload): void {
+    const connector = this.editingConnector();
     this.editingConnector.set(null);
-    this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
+    if (!connector || connector.connectorId == null) return;
+    const id = connector.connectorId;
+    this.stagedEdits.update(m => new Map(m).set(id, payload));
   }
 
   protected deleteConnector(connector: ImplementationListItem): void {
@@ -346,22 +601,16 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.pendingDeleteConnector.set(null);
   }
 
+  /** Stage the deletion; the connector is removed from the backend only on save. */
   protected confirmDeleteConnector(): void {
     const connector = this.pendingDeleteConnector();
-    if (!connector || connector.connectorId == null) {
-      this.pendingDeleteConnector.set(null);
-      return;
-    }
-    this.applicationService.deleteConnector(this.appId(), this.versionId(), this.methodVersion(), connector.connectorId).subscribe({
-      next: () => {
-        this.pendingDeleteConnector.set(null);
-        this.loadConnectors(this.appId(), this.versionId(), this.methodVersion());
-      },
-      error: (err) => {
-        console.error('Failed to delete connector', err);
-        this.pendingDeleteConnector.set(null);
-      }
-    });
+    this.pendingDeleteConnector.set(null);
+    if (!connector || connector.connectorId == null) return;
+    const id = connector.connectorId;
+    this.stagedDeletes.update(s => new Set(s).add(id));
+    // A deleted connector shouldn't carry pending edits/compat.
+    this.stagedEdits.update(m => { const n = new Map(m); n.delete(id); return n; });
+    this.stagedCompat.update(m => { const n = new Map(m); n.delete(id); return n; });
   }
 
   // ── "Set up connector compatibility" modal (connector version range) ──────────
@@ -370,11 +619,6 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   protected readonly compatTo = signal<string>('');
   protected readonly compatInfoDismissed = signal<boolean>(false);
   protected readonly compatSaving = signal<boolean>(false);
-
-  /** A version is valid when it is in X.Y.Z form (three dot-separated numbers). */
-  private isVersionFormatValid(v: string): boolean {
-    return /^\d+\.\d+\.\d+$/.test(v.trim());
-  }
 
   private compareVersions(a: string, b: string): number {
     const pa = a.trim().split('.').map(n => parseInt(n, 10));
@@ -385,29 +629,28 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     return 0;
   }
 
-  protected readonly isCompatFromValid = computed(() => this.isVersionFormatValid(this.compatFrom()));
-
-  protected readonly isCompatToValid = computed(() => {
-    const to = this.compatTo().trim();
-    return !to || this.isVersionFormatValid(to);
-  });
-
+  /**
+   * Only an ordering problem is reported: "to" lower than "from". Free-form versions that are not
+   * numeric compare as NaN, so they are never flagged.
+   */
   protected readonly isCompatRangeInvalid = computed(() => {
+    const from = this.compatFrom().trim();
     const to = this.compatTo().trim();
-    if (!this.isCompatFromValid() || !to || !this.isVersionFormatValid(to)) return false;
-    return this.compareVersions(to, this.compatFrom()) < 0;
+    if (!from || !to) return false;
+    return this.compareVersions(to, from) < 0;
   });
 
   protected readonly isCompatValid = computed(() =>
-    this.isCompatFromValid() && this.isCompatToValid() && !this.isCompatRangeInvalid()
+    !!this.compatFrom().trim() && !this.isCompatRangeInvalid()
   );
 
   protected openCompatibility(connector: ImplementationListItem): void {
     this.compatConnector.set(connector);
-    // Prefill strictly from the IM↔connector link's version range (connector_minVersion /
-    // connector_maxVersion) — never the connector bundle version or the midPoint range.
-    this.compatFrom.set(connector.connectorMinVersion ?? '');
-    this.compatTo.set(connector.connectorMaxVersion ?? '');
+    // Prefill from a staged compatibility change if one exists, else from the IM↔connector link's
+    // range (connector_minVersion / connector_maxVersion) — never the bundle or midPoint range.
+    const staged = connector.connectorId != null ? this.stagedCompat().get(connector.connectorId) : undefined;
+    this.compatFrom.set(staged ? staged.from : (connector.connectorMinVersion ?? ''));
+    this.compatTo.set(staged ? (staged.to ?? '') : (connector.connectorMaxVersion ?? ''));
     this.compatInfoDismissed.set(false);
   }
 
@@ -415,39 +658,35 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     this.compatConnector.set(null);
   }
 
+  /** Stage the compatibility range; it is persisted only on Save / Save as new version. */
   protected applyCompatibility(): void {
     const connector = this.compatConnector();
     if (!connector || connector.connectorId == null || !this.isCompatValid()) return;
+    const id = connector.connectorId;
     const from = this.compatFrom().trim();
     const to = this.compatTo().trim() || null;
-    this.compatSaving.set(true);
-    this.applicationService.updateConnectorCompatibility(
-      this.appId(), this.versionId(), this.methodVersion(), connector.connectorId,
-      { connectorVersionFrom: from, connectorVersionTo: to }
-    ).subscribe({
-      next: () => {
-        // Reflect the change locally so the card shows the new range without a full reload.
-        this.connectors.update(list => list.map(c =>
-          c.connectorId === connector.connectorId
-            ? { ...c, connectorMinVersion: from, connectorMaxVersion: to }
-            : c
-        ));
-        this.compatSaving.set(false);
-        this.compatConnector.set(null);
-      },
-      error: (err) => {
-        console.error('Failed to update connector compatibility', err);
-        this.compatSaving.set(false);
-      }
-    });
+    this.stagedCompat.update(m => new Map(m).set(id, { from, to }));
+    this.compatConnector.set(null);
   }
 
   protected isInReview(): boolean {
     return this.methodLifecycleState() === 'IN_REVIEW';
   }
-  
+
+  /**
+   * Draft (non-published) states editable in place with only "Save" — no "Save as new version".
+   * REJECTED is treated like IN_REVIEW here so a rejected method is fixed and resubmitted via Save.
+   * REVIEWING too: only a superuser (the reviewer) can open this form then, and their fixes must
+   * land on the revision under review, not fork a new draft.
+   */
+  protected isDraftState(): boolean {
+    const state = this.methodLifecycleState();
+    return state === 'IN_REVIEW' || state === 'REJECTED' || state === 'REVIEWING';
+  }
+
   // A minor "Save" shows a confirmation modal; a major "Save as new version" shows an upgrade modal.
-  // Either modal's "Go to catalog" then leaves to the app detail.
+  // Both are the same modal the publish flow ends on, so an author sees one confirmation whichever
+  // way their revision reached a reviewer; its "Done" then leaves to the app detail.
   protected readonly showSavedModal = signal<boolean>(false);
   protected readonly showNewVersionModal = signal<boolean>(false);
 
@@ -481,8 +720,24 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     }
   }
 
+  protected dismissSaveError(): void {
+    this.saveError.set('');
+  }
+
   protected save(): void {
     this.doSave(false);
+  }
+
+  /**
+   * The picker's list once it has changed, the loaded one before that. Keyed on a change rather than
+   * on an empty list, so removing every object sends none instead of the loaded ones.
+   */
+  private capabilitiesToSend(): IntegrationMethodObjectCapabilities[] {
+    return this.capabilitiesTouched() ? this.imCapabilities() : this.initialCapabilities();
+  }
+
+  protected capabilitiesValid(): boolean {
+    return imCapabilitiesValid(this.capabilitiesToSend());
   }
 
   protected saveAsNewVersion(): void {
@@ -490,52 +745,129 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
   }
 
   private doSave(major: boolean): void {
+    if (this.isSaving()) { return; }
+    this.saveError.set('');
+    this.isSaving.set(true);
     const tutorial = this.easyMde ? this.easyMde.value() : this.methodTutorial();
-    const capabilities = this.imCapabilities().length > 0
-      ? this.imCapabilities()
-      : this.initialCapabilities();
+    const capabilities = this.capabilitiesToSend();
 
     const newFiles = this.tutorialFiles().filter(f => f.isNew && f.file).map(f => f.file!);
     const keptNames = this.tutorialFiles().filter(f => !f.isNew).map(f => f.name);
     const removedNames = this.initialFileNames().filter(n => !keptNames.includes(n));
 
     this.applicationService.editIntegrationMethod(
-      this.appId(),
       this.versionId(),
       this.methodVersion(),
       {
         displayName: this.methodName(),
         description: this.methodDescription(),
+        limitations: this.methodLimitations(),
+        typeIds: this.chosenMethodTypeIds(),
         tutorial,
-        capabilities: capabilities.map(g => ({ objectClass: g.objectClass, capabilityNames: g.capabilityNames })),
+        capabilities,
         removeFile: false,
         // "Save" (major=false) is a minor in-place bump; "Save as new version" (major=true) is a major bump.
         minorBump: !major,
         midpointMinVersion: this.midpointMinVersionId(),
-        midpointMaxVersion: this.midpointMaxVersionId()
+        midpointMaxVersion: this.midpointMaxVersionId(),
+        appMinVersion: this.appMinVersion().trim() || null,
+        appMaxVersion: this.appMaxVersion().trim() || null,
+        maintainer: this.methodMaintainer()
       }
     ).subscribe({
       next: (savedRevision) => {
         this.methodVersion.set(savedRevision);
-        // The new revision starts with the previous revision's files copied forward by the backend;
-        // here we delete the files the user removed and upload the ones they added.
-        const ops: Observable<void>[] = [
-          ...removedNames.map(n => this.applicationService.deleteTutorialFile(this.appId(), this.versionId(), savedRevision, n)),
-          ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.appId(), this.versionId(), savedRevision, f))
+        // All staged connector changes are persisted only now, onto the freshly created revision
+        // (connector ids are carried forward by the backend fork). Run them sequentially since they
+        // all mutate the same method row: adds → edits → compatibility → deletes.
+        const adds = this.stagedConnectors();
+        const edits = Array.from(this.stagedEdits().entries());
+        const compat = Array.from(this.stagedCompat().entries());
+        const deletes = Array.from(this.stagedDeletes());
+        const connectorOps: Observable<unknown>[] = [
+          ...adds.map(sc =>
+            this.applicationService.addConnectorToIntegrationMethod(this.versionId(), savedRevision, sc.payload)),
+          ...edits.map(([connectorId, payload]) =>
+            this.applicationService.updateConnector(this.versionId(), savedRevision, connectorId, payload)),
+          ...compat.map(([connectorId, range]) =>
+            this.applicationService.updateConnectorCompatibility(this.versionId(), savedRevision, connectorId,
+              { connectorVersionFrom: range.from, connectorVersionTo: range.to })),
+          ...deletes.map(connectorId =>
+            this.applicationService.deleteConnector(this.versionId(), savedRevision, connectorId))
         ];
-        if (ops.length === 0) {
-          this.afterSave(major);
-          return;
-        }
-        forkJoin(ops).subscribe({
-          next: () => this.afterSave(major),
+        const connectors$: Observable<unknown[]> = connectorOps.length
+          ? concat(...connectorOps).pipe(toArray())
+          : of<unknown[]>([]);
+
+        connectors$.subscribe({
+          next: () => {
+            this.stagedConnectors.set([]);
+            this.stagedEdits.set(new Map());
+            this.stagedCompat.set(new Map());
+            this.stagedDeletes.set(new Set());
+            // The cards previewed the staged edits; without them they fall back to the list loaded
+            // with the page, so reload it or every saved connector change looks undone.
+            this.loadConnectors(this.versionId(), savedRevision);
+            // The new revision starts with the previous revision's files copied forward by the backend;
+            // here we delete the files the user removed and upload the ones they added.
+            const ops: Observable<void>[] = [
+              ...removedNames.map(n => this.applicationService.deleteTutorialFile(this.versionId(), savedRevision, n)),
+              ...newFiles.map(f => this.applicationService.uploadTutorialFile(this.versionId(), savedRevision, f))
+            ];
+            if (ops.length === 0) {
+              this.isSaving.set(false);
+              this.afterSave(major);
+              return;
+            }
+            forkJoin(ops).subscribe({
+              next: () => { this.isSaving.set(false); this.afterSave(major); },
+              error: (err) => {
+                console.error('Tutorial file sync failed', err);
+                this.isSaving.set(false);
+                this.afterSave(major);
+              }
+            });
+          },
           error: (err) => {
-            console.error('Tutorial file sync failed', err);
-            this.afterSave(major);
+            console.error('Persisting staged connector changes failed', err);
+            this.isSaving.set(false);
+            this.saveError.set(this.failureMessage(err,
+              'The new version was created, but applying a staged connector change failed. Please review the connectors.'));
           }
         });
       },
-      error: (err) => console.error('Save failed', err)
+      error: (err) => {
+        console.error('Save failed', err);
+        this.isSaving.set(false);
+        this.saveError.set(this.failureMessage(err,
+          'Saving failed. Please try again — if it keeps failing, reload the page and retry.'));
+      }
     });
+  }
+
+  /**
+   * What went wrong, as something a person can read. A failed response body is an object as often as
+   * a string, and one without a usable message used to be shown verbatim - which reads "[object
+   * Object]" and tells nobody anything.
+   */
+  private failureMessage(err: unknown, fallback: string): string {
+    const response = err as { error?: unknown; message?: string; status?: number };
+    const body = response?.error;
+
+    if (typeof body === 'string' && body.trim()) {
+      return body;
+    }
+    if (body && typeof body === 'object') {
+      const detail = body as { message?: string; error?: string; detail?: string };
+      for (const candidate of [detail.message, detail.detail, detail.error]) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+          return candidate;
+        }
+      }
+    }
+    if (typeof response?.message === 'string' && response.message.trim()) {
+      return response.message;
+    }
+    return fallback;
   }
 }

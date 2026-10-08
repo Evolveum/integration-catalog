@@ -6,23 +6,64 @@
 
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, computed
-} from '@angular/core';
+  signal, computed, input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { PageHeader } from '../page-header/page-header';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
 import { CatalogConnector } from '../../models/catalog-connector.model';
+import { ConnectorTag, isObsoleteConnector } from '../../models/connector-tag.model';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
+import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 type Step = 1 | 2;
+
+/** The exact payload sent to the add-connector endpoint. */
+export interface AddConnectorPayload {
+  existingConnectorId: number | null;
+  displayName: string;
+  description: string;
+  maintainer: Maintainer;
+  framework: string;
+  license: string | null;
+  projectHomepage: string | null;
+  gitCloneUrl: string | null;
+  buildFramework: string | null;
+  pathToProject: string | null;
+  className: string | null;
+  bundleDisplayName: string | null;
+  version: string | null;
+  commitTag: string | null;
+  midpointMinVersion: number | null;
+  midpointMaxVersion: number | null;
+  connectorVersionFrom: string | null;
+  connectorVersionTo: string | null;
+  connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
+}
+
+/** A connector held in the parent form (not yet persisted) until the user saves a new version. */
+export interface StagedConnector {
+  payload: AddConnectorPayload;
+  displayName: string;
+  version: string;
+  description: string;
+  maintainer: Maintainer;
+  license: string | null;
+  tags: ConnectorTag[]; // of the picked catalog connector; empty for a new one
+}
 
 @Component({
   selector: 'app-add-connector-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader],
+  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal, MarkdownEditor, MarkdownPipe, BackdropCloseDirective],
   templateUrl: './add-connector-form.html',
   styleUrls: ['./add-connector-form.scss']
 })
@@ -33,8 +74,13 @@ export class AddConnectorForm implements OnInit {
   @Input() appName = '';
   @Input() appHasLogo = false;
   @Input() logoUrl = '';
+  /** When true, saving the form does not persist anything; it stages the connector back to the parent. */
+  @Input() deferSave = false;
+  /** Connectors the method already has; the catalog picker hides them. */
+  readonly excludedConnectorIds = input<number[]>([]);
   @Output() close = new EventEmitter<void>();
-  @Output() saved = new EventEmitter<void>();
+  @Output() saved = new EventEmitter<string>();
+  @Output() staged = new EventEmitter<StagedConnector>();
 
   protected readonly step = signal<Step>(1);
   protected readonly isSaving = signal<boolean>(false);
@@ -49,16 +95,24 @@ export class AddConnectorForm implements OnInit {
   protected readonly catalogConnectors = signal<CatalogConnector[]>([]);
   protected readonly isCatalogLoading = signal<boolean>(false);
   protected readonly catalogSearch = signal<string>('');
+  // True when the connector search box holds a single character: prompt for at least 2.
+  protected readonly catalogSearchTooShort = computed(() => this.catalogSearch().trim().length === 1);
   protected readonly pendingCatalogConnector = signal<CatalogConnector | null>(null);
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
 
   protected readonly filteredCatalogConnectors = computed(() => {
     const q = this.catalogSearch().toLowerCase().trim();
-    return this.catalogConnectors().filter(c =>
-      !q ||
-      c.displayName.toLowerCase().includes(q) ||
-      (c.bundleDisplayName ?? '').toLowerCase().includes(q)
-    );
+    const excluded = new Set(this.excludedConnectorIds());
+    const all = this.catalogConnectors().filter(c => !excluded.has(c.connectorId));
+    // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
+    const matched = q.length < 2
+      ? all
+      : all.filter(c =>
+          c.displayName.toLowerCase().includes(q) ||
+          (c.bundleDisplayName ?? '').toLowerCase().includes(q)
+        );
+    return matched.slice(0, 10);
   });
 
   // ── Step 2: Connector details ─────────────────────────────
@@ -68,21 +122,24 @@ export class AddConnectorForm implements OnInit {
   protected readonly connectorName = signal<string>('');
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
   protected readonly connectorVersion = signal<string>('1.0.0');
-  protected readonly connectorMaintainer = signal<string>('');
-  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
-    return options.filter(o => o.toLowerCase().includes(search));
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
   });
-  protected readonly connectorLicense = signal<string>('');
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.connectorMaintainer()));
+  protected readonly connectorLicense = signal<string>('EUPL');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
-  protected readonly connectorBundleName = signal<string>('');
-  protected readonly bundleNameTaken = signal<boolean>(false);
   protected readonly connectorCapabilities = signal<CapabilityGroup[]>([]);
   protected readonly initialCapabilities = signal<CapabilityGroup[]>([]);
 
@@ -93,11 +150,11 @@ export class AddConnectorForm implements OnInit {
   protected readonly devCommitTag = signal<string>('');
   protected readonly devProjectFolderPath = signal<string>('');
   protected readonly devClassName = signal<string>('');
+  protected readonly isCommitHelpOpen = signal<boolean>(false);
+  protected readonly commitHelpTitle = COMMIT_HELP_TITLE;
+  protected readonly commitHelpSteps = COMMIT_HELP_STEPS;
 
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   // ── Computed helpers ──────────────────────────────────────
   protected get isExistingConnector(): boolean {
@@ -110,13 +167,6 @@ export class AddConnectorForm implements OnInit {
     }
     return this.connectorType() === 'java-based';
   }
-
-  protected readonly isConnectorVersionInvalid = computed(() => {
-    if (this.selectedCatalogConnector()) return false;
-    const v = this.connectorVersion().trim();
-    if (!v) return false;
-    return (v.match(/\./g) ?? []).length < 2;
-  });
 
   protected readonly isGitCloneUrlInvalid = computed(() => {
     const url = this.devGitCloneUrl();
@@ -133,15 +183,15 @@ export class AddConnectorForm implements OnInit {
     if (this.selectedCatalogConnector()) return true;
     const base = !!this.connectorName().trim()
       && !!this.connectorVersion().trim()
-      && !!this.connectorMaintainer().trim()
+      && !!this.connectorMaintainer()
       && !!this.connectorLicense();
-    if (!base || this.isConnectorVersionInvalid() || this.bundleNameTaken()) return false;
+    if (!base) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
-      && !!this.devProjectFolderPath().trim()
       && !this.isGitCloneUrlInvalid();
+    // Class name is optional; when given it still has to be a well-formed Java class name.
     const javaOk = !this.isJavaBasedConnector
-      || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
+      || (!!this.devBuildTool() && !this.isClassNameInvalid());
     return devOk && javaOk;
   });
 
@@ -152,24 +202,19 @@ export class AddConnectorForm implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(this.authService.defaultMaintainer());
     this.initMaintainerOptions();
   }
 
   private initMaintainerOptions(): void {
-    const currentUser = this.authService.currentUser();
-    const role = this.authService.currentRole();
-    const orgName = this.authService.currentOrganizationName();
-
-    if (role === UserRole.Superuser) {
+    if (this.authService.currentRole() === UserRole.Superuser) {
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
       });
-    } else if (role === UserRole.OrganizationContributor && orgName) {
-      this.maintainerOptions.set([orgName]);
-    } else if (currentUser) {
-      this.maintainerOptions.set([currentUser]);
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
     }
   }
 
@@ -187,14 +232,22 @@ export class AddConnectorForm implements OnInit {
     setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
   }
 
-  protected selectMaintainerOption(option: string): void {
+  protected selectMaintainerOption(option: Maintainer): void {
     this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
   }
 
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.connectorMaintainer());
+  }
+
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   protected showLogo(): boolean {
@@ -249,14 +302,12 @@ export class AddConnectorForm implements OnInit {
   private resetConnectorFields(): void {
     this.connectorName.set('');
     this.connectorVersion.set('1.0.0');
-    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(this.authService.defaultMaintainer());
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
-    this.connectorLicense.set('');
+    this.connectorLicense.set('EUPL');
     this.isLicenseDropdownOpen.set(false);
     this.connectorDescription.set('');
-    this.connectorBundleName.set('');
-    this.bundleNameTaken.set(false);
     this.connectorCapabilities.set([]);
     this.initialCapabilities.set([]);
     this.devProjectHomepage.set('');
@@ -271,26 +322,28 @@ export class AddConnectorForm implements OnInit {
   private populateFromCatalogConnector(c: CatalogConnector): void {
     this.connectorName.set(c.displayName ?? '');
     this.connectorVersion.set(c.version ?? '');
-    this.connectorMaintainer.set(c.maintainer ?? this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(c.maintainer ?? this.authService.defaultMaintainer());
     this.connectorLicense.set(c.licenseType ?? '');
-    this.devProjectHomepage.set(c.browseLink ?? '');
+    this.connectorDescription.set(c.description ?? '');
+    const caps: CapabilityGroup[] = (c.objectClassCapabilities ?? []).map(oc => ({
+      objectClass: oc.objectName,
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
+    }));
+    this.connectorCapabilities.set(caps);
+    this.initialCapabilities.set(caps);
+    this.devProjectHomepage.set(c.projectHomepage ?? '');
+    this.devSupportPortal.set(c.ticketingLink ?? '');
+    this.devCommitTag.set(c.commitTag ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(c.pathToProject ?? '');
+    this.devCommitTag.set(c.commitTag ?? '');
     this.devClassName.set(c.className ?? '');
     const bf = (c.buildFramework ?? '').toLowerCase();
     this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
   }
 
   // ── Step 2 actions ────────────────────────────────────────
-  protected onBundleNameBlur(): void {
-    const name = this.connectorBundleName().trim();
-    if (!name) return;
-    this.appService.checkBundleNameExists(name).subscribe({
-      next: exists => this.bundleNameTaken.set(exists),
-      error: () => this.bundleNameTaken.set(false)
-    });
-  }
-
   protected onLicenseBlur(): void {
     setTimeout(() => this.isLicenseDropdownOpen.set(false), 150);
   }
@@ -324,19 +377,20 @@ export class AddConnectorForm implements OnInit {
     this.isSaving.set(true);
     this.saveError.set('');
     const cc = this.selectedCatalogConnector();
-    const payload = {
+    const payload: AddConnectorPayload = {
       existingConnectorId: cc ? cc.id : null,
       displayName: this.connectorName(),
       description: this.connectorDescription(),
-      maintainer: this.connectorMaintainer(),
+      maintainer: this.connectorMaintainer()!,
       framework: this.isJavaBasedConnector ? 'JAVA_BASED' : 'LOW_CODE',
       license: this.connectorLicense() || null,
-      browseLink: this.devProjectHomepage() || null,
+      projectHomepage: this.devProjectHomepage() || null,
       gitCloneUrl: this.devGitCloneUrl() || null,
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
       className: this.devClassName() || null,
-      bundleName: this.connectorBundleName() || null,
+      // The form no longer asks for a bundle display name; the backend leaves it unset.
+      bundleDisplayName: null,
       version: this.connectorVersion() || null,
       commitTag: this.devCommitTag() || null,
       // midPoint range is set on the edit form; connector range via the "Set up compatibility" modal.
@@ -348,12 +402,29 @@ export class AddConnectorForm implements OnInit {
       connectorVersionTo: null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
-        capabilityNames: g.capabilityNames
+        capabilityNames: g.capabilityNames,
+        resourceWide: g.resourceWide
       }))
     };
 
-    this.appService.addConnectorToIntegrationMethod(this.appId, this.versionId, this.revision, payload).subscribe({
-      next: () => { this.isSaving.set(false); this.saved.emit(); },
+    if (this.deferSave) {
+      // Adding a connector to a published version must not persist anything yet. Hand the payload back
+      // to the parent so it can stage the connector and only commit it when saving a new version.
+      this.isSaving.set(false);
+      this.staged.emit({
+        payload,
+        displayName: cc ? cc.displayName : this.connectorName(),
+        version: payload.version ?? '',
+        description: payload.description ?? '',
+        maintainer: payload.maintainer,
+        license: payload.license,
+        tags: cc?.tags ?? []
+      });
+      return;
+    }
+
+    this.appService.addConnectorToIntegrationMethod(this.versionId, this.revision, payload).subscribe({
+      next: (savedRevision) => { this.isSaving.set(false); this.saved.emit(savedRevision); },
       error: err => {
         this.isSaving.set(false);
         console.error('Add connector failed', err);

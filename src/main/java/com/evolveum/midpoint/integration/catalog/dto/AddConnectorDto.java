@@ -20,15 +20,15 @@ public record AddConnectorDto(
         Integer existingConnectorId,                                 // connector.id (when linking an existing connector)
         String displayName,                                          // connector.display_name
         String description,                                          // connector.description
-        String maintainer,                                           // connector.maintainer
+        MaintainerDto maintainer,                                    // connector.maintainer
         ConnectorBundle.FrameworkType framework,                     // connector_bundle.framework
         ConnectorBundle.LicenseType license,                         // connector_bundle.license
-        String browseLink,                                           // connector_bundle_version.browse_link
-        String gitCloneUrl,                                          // connector_bundle_version.git_clone_url
+        String projectHomepage,                                      // connector_bundle.project_homepage
+        String gitCloneUrl,                                          // connector_bundle.git_clone_ulr
         BuildFrameworkType buildFramework,                           // connector_bundle.build_framework
         String pathToProject,                                        // connector_bundle_version.path_to_project
         String className,                                            // connector.fully_qualified_class_name
-        String bundleName,                                           // connector_bundle.bundle_name
+        String bundleDisplayName,                                    // connector_bundle.display_name (the form's "connector bundle name")
         String version,                                              // connector_bundle_version.bundle_version
         String commitTag,                                            // connector_bundle_version.commit_tag
         Integer midpointMinVersion,                                  // integration_method.midpoint_minversion

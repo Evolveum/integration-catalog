@@ -1,0 +1,64 @@
+/*!
+  Copyright (c) 2010-2026 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+@use 'self-service';
+
+.conn-col-version {
+  width: 26%;
+}
+
+.conn-col-uploaded {
+  width: 16%;
+}
+
+.conn-col-usage {
+  width: 34%;
+}
+
+.conn-tag {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid $color-border-light;
+  border-radius: 4px;
+  background-color: $color-bg-light;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
+// A tier tag keeps the chip shape in the tier's colors, the same as the badges on the application page.
+.conn-tag.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.conn-tag.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.conn-tag.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
+
+.conn-maintainer {
+  overflow-wrap: anywhere;
+
+  i {
+    font-size: 11px;
+    color: $color-text-muted;
+  }
+}
+
+// Keeps the version chips aligned whether or not a row has a usage toggle.
+.conn-chevron-space {
+  display: inline-block;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+// An expanded row and its usage list read as one row.
+.conn-row-expanded td {
+  border-bottom: none;
+}
+
+.conn-usage-row td {
+  padding-top: 0;
+}
+
+.conn-usage-link {
+  padding: 0.2rem 0;
+  font-size: 0.75rem;
+}

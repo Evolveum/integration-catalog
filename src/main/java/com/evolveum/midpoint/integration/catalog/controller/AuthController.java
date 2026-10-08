@@ -6,63 +6,83 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
-import com.evolveum.midpoint.integration.catalog.dto.LoginRequestDto;
-import com.evolveum.midpoint.integration.catalog.dto.LoginResponseDto;
+import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.dto.MyConnectorDto;
+import com.evolveum.midpoint.integration.catalog.dto.MyIntegrationMethodDto;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
+import com.evolveum.midpoint.integration.catalog.service.MyItemsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
+/**
+ * Identity endpoints. Authentication itself is handled by Spring Security's OIDC support:
+ * the login flow starts at /oauth2/authorization/oidc and logout at /logout —
+ * there is no password login here anymore.
+ */
 @RestController
 @RequestMapping("/api/auth")
-@Tag(name = "Auth", description = "Authentication endpoints")
+@Tag(name = "Auth", description = "Authenticated user identity endpoints")
 public class AuthController {
 
     private final AuthService authService;
+    private final MyItemsService myItemsService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, MyItemsService myItemsService) {
         this.authService = authService;
+        this.myItemsService = myItemsService;
     }
 
-    @Operation(summary = "Login", description = "Authenticate a user and return their profile")
+    @Operation(summary = "Current user", description = "Returns the profile of the authenticated user")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Login successful"),
-            @ApiResponse(responseCode = "401", description = "Invalid credentials")
+            @ApiResponse(responseCode = "200", description = "Authenticated user profile"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated")
     })
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
-        log.info("login attempt username={}", request.username());
-        return authService.login(request.username(), request.password())
-                .map(response -> {
-                    log.info("login successful username={}", request.username());
-                    return ResponseEntity.ok(response);
-                })
-                .orElseGet(() -> {
-                    log.warn("login failed username={}", request.username());
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-                });
+    @GetMapping("/me")
+    public ResponseEntity<CurrentUserDto> me(@AuthenticationPrincipal OidcUser oidcUser,
+                                             Authentication authentication) {
+        return ResponseEntity.ok(authService.getCurrentUser(authentication.getName(), oidcUser));
     }
 
-    @Operation(summary = "Get organization members", description = "Returns all usernames in the same organization as the given user")
-    @GetMapping("/organization/members")
-    public ResponseEntity<List<String>> getOrganizationMembers(@RequestParam String username) {
-        log.debug("getOrganizationMembers username={}", username);
-        return ResponseEntity.ok(authService.getOrganizationMembers(username));
+    @Operation(summary = "Current user's integration methods",
+            description = "Every revision of the integration methods the authenticated user maintains, "
+                    + "personally or through their organization")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The user's integration method revisions"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    @GetMapping("/me/integration-methods")
+    public ResponseEntity<List<MyIntegrationMethodDto>> myIntegrationMethods(@AuthenticationPrincipal OidcUser oidcUser,
+                                                                             Authentication authentication) {
+        return ResponseEntity.ok(myItemsService.myIntegrationMethods(authentication.getName(), oidcUser));
     }
 
-    @Operation(summary = "Get all maintainers", description = "Returns all usernames and organization names — for superuser use")
+    @Operation(summary = "Current user's connectors",
+            description = "The connectors the authenticated user maintains, personally or through their "
+                    + "organization, with their versions and the integration methods using each")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The user's connectors"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    @GetMapping("/me/connectors")
+    public ResponseEntity<List<MyConnectorDto>> myConnectors(@AuthenticationPrincipal OidcUser oidcUser,
+                                                             Authentication authentication) {
+        return ResponseEntity.ok(myItemsService.myConnectors(authentication.getName(), oidcUser));
+    }
+
+    @Operation(summary = "Get all maintainers",
+            description = "Returns every maintainer that can be chosen — superuser only")
     @GetMapping("/all-maintainers")
-    public ResponseEntity<List<String>> getAllMaintainers() {
-        log.debug("getAllMaintainers");
+    public ResponseEntity<List<MaintainerDto>> getAllMaintainers() {
         return ResponseEntity.ok(authService.getAllMaintainers());
     }
 }

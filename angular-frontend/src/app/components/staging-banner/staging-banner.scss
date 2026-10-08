@@ -1,0 +1,26 @@
+@use 'variables' as *;
+
+.staging-banner {
+  background-color: #F6C544;
+  min-height: 56px;
+  color: $color-text-dark;
+  gap: 0.75rem;
+}
+
+.staging-banner-icon {
+  font-size: 17px;
+}
+
+.staging-banner-pill {
+  background-color: $badge-background;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.staging-banner-text {
+  font-size: 0.9375rem;
+}

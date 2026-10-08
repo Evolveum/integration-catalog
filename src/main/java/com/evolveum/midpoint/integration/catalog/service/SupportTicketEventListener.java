@@ -1,0 +1,71 @@
+/*
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ */
+
+package com.evolveum.midpoint.integration.catalog.service;
+
+import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
+import com.evolveum.midpoint.integration.catalog.object.ExternalSystem;
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
+import com.evolveum.midpoint.integration.catalog.service.retry.PendingOperationService;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
+
+/**
+ * Turns what happens in the catalog into operations owed to the support portal.
+ */
+@Component
+@RequiredArgsConstructor
+public class SupportTicketEventListener {
+
+    private final PendingOperationService pendingOperationService;
+    private final OpenProjectProperties properties;
+
+    /** A revision was put in front of a reviewer, so the portal owes it a work package. */
+    @TransactionalEventListener
+    public void onIntegrationMethodSubmitted(IntegrationMethodSubmittedEvent event) {
+        submit(OpenWorkPackageHandler.OPERATION, event);
+    }
+
+    /** A connector was added to a revision already under review, so its work package owes a comment. */
+    @TransactionalEventListener
+    public void onConnectorAddedToReview(ConnectorAddedToReviewEvent event) {
+        submit(AppendConnectorHandler.OPERATION, event);
+    }
+
+    /** A file was stored for a revision, so the work package of a revision under review owes an attachment. */
+    @TransactionalEventListener
+    public void onTutorialFileAdded(TutorialFileAddedEvent event) {
+        submit(AttachTutorialFileHandler.OPERATION, event);
+    }
+
+    /** A build reported back, so the work package of the revision it built owes the outcome. */
+    @TransactionalEventListener
+    public void onBuildFinished(BuildFinishedEvent event) {
+        submit(CommentBuildOutcomeHandler.OPERATION, event);
+    }
+
+    /** The author withdrew a revision, so its work package owes the reviewer a note. */
+    @TransactionalEventListener
+    public void onIntegrationMethodCancelled(IntegrationMethodCancelledEvent event) {
+        submit(CommentCancellationHandler.OPERATION, event);
+    }
+
+    /**
+     * Records one operation and attempts it.
+     */
+    private void submit(String operation, Object event) {
+        if (!properties.isEnabled()) {
+            return;
+        }
+        pendingOperationService.submit(ExternalSystem.OPENPROJECT, operation, event);
+    }
+}

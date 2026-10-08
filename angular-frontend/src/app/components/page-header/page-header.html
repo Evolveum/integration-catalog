@@ -1,12 +1,43 @@
-<div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder">
-  <!-- Left: logo + title -->
-  <div class="d-flex align-items-center gap-2 header-brand">
-    <i class="fa-solid fa-globe header-globe-icon"></i>
-    <div class="d-flex flex-column">
-      <span class="header-title">Integration catalog</span>
-      <span class="header-subtitle">by Evolveum</span>
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<!-- Toast -->
+@if (toastService.toast(); as toast) {
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+  <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header"
+      [ngClass]="{
+        'text-bg-success': toast.type === 'success',
+        'text-bg-warning': toast.type === 'warning',
+        'text-bg-danger': toast.type === 'danger',
+        'text-bg-info': toast.type === 'info'
+      }">
+      <strong class="me-auto">
+        {{ toast.title }}
+      </strong>
+      <button type="button" class="btn-close" [class.btn-close-white]="toast.type !== 'warning'" (click)="closeToast()">
+      </button>
+    </div>
+    <div class="toast-body">
+      {{ toast.message }}
     </div>
   </div>
+</div>
+}
+
+<div class="page-header d-flex align-items-center px-4" [class.page-header-no-border]="breadcrumb || hideBorder"
+  [class.page-header-transparent]="transparentAtTop && scrolledToTop()">
+  <!-- Left: logo + title (links back to the homepage) -->
+  <a class="d-flex align-items-center gap-2 header-brand" routerLink="/applications">
+    <img src="assets/277-276-max.png" alt="" class="header-logo">
+    <div class="d-flex flex-column">
+      <span class="header-title">MidPoint Integration Catalog</span>
+      <span class="header-subtitle">by Evolveum</span>
+    </div>
+  </a>
 
   <!-- Right: user info or login -->
   <div class="ms-auto d-flex align-items-center gap-3">
@@ -25,16 +56,43 @@
 
 
     @if (currentUser()) {
-      <button class="header-user d-flex align-items-center gap-2" (click)="logout()" title="Logout">
-        <i class="fa-solid fa-user header-user-icon"></i>
-        <div class="d-flex flex-column text-start">
-          <span class="header-username">{{ currentUser() }}</span>
-          <span class="header-role">({{ authService.currentRole() }})</span>
-        </div>
-        <i class="fa-solid fa-chevron-down header-chevron"></i>
-      </button>
+      <div class="header-user-menu">
+        <button class="header-user d-flex align-items-center gap-2" type="button" (click)="toggleMenu()"
+          [class.header-user-active]="menuOpen()" [attr.aria-expanded]="menuOpen()" aria-haspopup="menu"
+          title="Account menu">
+          <span class="header-avatar">{{ userInitials() }}</span>
+          <div class="d-flex flex-column text-start">
+            <span class="header-username">{{ currentUser() }}</span>
+            <span class="header-role">({{ authService.currentRole() }})</span>
+          </div>
+          <i class="fa-solid fa-chevron-down header-chevron" [class.header-chevron-open]="menuOpen()"></i>
+        </button>
+
+        @if (menuOpen()) {
+          <div class="user-menu" role="menu">
+            <!-- A superuser sees every method and connector in the catalog instead of their own, plus the approval queue. -->
+            @if (isSuperuser()) {
+              <a class="user-menu-item" role="menuitem" routerLink="/all-integration-methods" (click)="closeMenu()">All integration methods</a>
+              <a class="user-menu-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
+              <a class="user-menu-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
+            } @else {
+              <a class="user-menu-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
+              <a class="user-menu-item" role="menuitem" routerLink="/my-connectors" (click)="closeMenu()">My connectors</a>
+            }
+            <div class="user-menu-separator"></div>
+            <a class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
+            <div class="user-menu-separator"></div>
+            <button class="user-menu-item user-menu-item-danger" type="button" role="menuitem" (click)="logout()">
+              <i class="fa-solid fa-power-off"></i>
+              <span>Sign out</span>
+            </button>
+          </div>
+
+          <div class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+        }
+      </div>
     } @else {
-      <button class="header-btn-login d-flex align-items-center gap-2" (click)="openLoginModal()">
+      <button class="header-btn-login d-flex align-items-center gap-2" (click)="login()">
         <i class="fa-solid fa-user header-user-icon"></i>
         <span>Login</span>
       </button>
@@ -42,10 +100,23 @@
   </div>
 </div>
 
+<app-staging-banner />
+
+<!-- The token names an organization the catalog has no row for, so nothing can be published
+     on its behalf until an administrator adds it. Only the publish flow opts in to the warning. -->
+@if (showUnregisteredOrgWarning && authService.organizationIsUnregistered()) {
+  <div class="unregistered-org-banner d-flex align-items-center px-4">
+    <i class="fa-solid fa-triangle-exclamation unregistered-org-banner-icon"></i>
+    <span class="unregistered-org-banner-text">
+      Your organization (<strong>{{ authService.currentOrganizationId() }}</strong>) is not registered in the catalog,
+      so you cannot publish on its behalf — everything you publish is attributed to you personally.
+      Ask an administrator to add the organization.
+    </span>
+  </div>
+}
+
 @if (breadcrumb) {
   <div class="page-header-breadcrumb px-4">
     <ng-content select="[breadcrumb]"></ng-content>
   </div>
 }
-
-<app-login-modal [isOpen]="loginModalOpen()" (modalClosed)="closeLoginModal()"></app-login-modal>

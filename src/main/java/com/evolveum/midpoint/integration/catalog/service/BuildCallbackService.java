@@ -6,17 +6,28 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.dto.VerifyBundleInformationForm;
+import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 
+import com.evolveum.midpoint.integration.catalog.service.event.BuildFinishedEvent;
+import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Strings;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,146 +41,350 @@ public class BuildCallbackService {
 
     private final IntegrationMethodRepository integrationMethodRepository;
     private final ConnectorBundleRepository connectorBundleRepository;
+    private final ConnectorVersionRepository connectorVersionRepository;
     private final ApplicationRepository applicationRepository;
     private final CapabilityRepository capabilityRepository;
     private final ConnVersionCapabilityRepository connVersionCapabilityRepository;
-    private final BundleMergeService bundleMergeService;
+    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
+    private final ConnectorRepository connectorRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * Successful build: activate the integration method and persist capabilities.
-     * The OID is the IntegrationMethod UUID.
+     * Successful build. A build produces one artifact, so the callback is about one connector bundle
+     * version and everything on it: the artifact URL and version land on that row, and every connector
+     * version built from it gets its class name, its capabilities and a cleared error.
+     *
+     * <p>The OID is the IntegrationMethod UUID.
      */
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
-        IntegrationMethod method = findLatestRevision(oid);
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, continueForm.getIntegrationMethodRevision(), integrationMethodRepository);
+        ConnectorBundleVersion bundleVersion = resolveBundleVersion(
+                continueForm.getConnectorBundleVersionId(), continueForm.getConnectorBundleVersionRevision(),
+                continueForm.getConnectorVersionId(), continueForm.getConnectorVersionRevision());
 
-        // Resolve connector and bundle version through linked connector
-        ConnectorBundleVersion bundleVersion = resolveConnectorBundleVersion(method);
-        ConnectorBundle sourceBundle = resolveConnectorBundle(method);
-
-        // Handle possible bundle rename / cross-bundle merge
+        ConnectorBundle sourceBundle = bundleVersion.getConnectorBundle();
         String newBundleName = continueForm.getConnectorBundle();
-        if (newBundleName != null && !newBundleName.isBlank()) {
-            Optional<ConnectorBundle> existingBundle = connectorBundleRepository.findByBundleName(newBundleName);
-            if (existingBundle.isPresent() && sourceBundle != null) {
-                ConnectorBundle targetBundle = existingBundle.get();
-                if (sourceBundle.getBundleName() == null || sourceBundle.getBundleName().isBlank()) {
-                    bundleMergeService.moveBundleVersionsAndDeleteBundle(sourceBundle, targetBundle);
-                    relinkConnectorToBundle(method, targetBundle);
-                }
-            } else if (sourceBundle != null) {
-                sourceBundle.setBundleName(newBundleName);
+        if (newBundleName == null || newBundleName.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "The build reported no connector bundle name; the bundle's identity cannot be set from it.");
+        }
+        // A missing artifact URL is what reports a connector as lacking build information, so a success
+        // without one would leave it reported that way.
+        if (continueForm.getDownloadLink() == null || continueForm.getDownloadLink().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "The build reported no download link; the connector cannot be downloaded without it.");
+        }
+
+        // The classes this build actually produced, in the order the job listed them.
+        List<String> builtClasses = splitClassNames(continueForm.getConnectorClass());
+        List<ConnectorVersion> builtVersions = List.copyOf(bundleVersion.getConnectorVersions());
+
+        assignClassNames(builtVersions, builtClasses);
+
+        if (continueForm.getCapability() != null && !continueForm.getCapability().isEmpty()) {
+            for (ConnectorVersion cv : builtVersions) {
+                persistCapabilitiesOnConnectorVersions(cv, continueForm.getCapability());
             }
         }
 
-        // Update connector version class name
-        if (continueForm.getConnectorClass() != null) {
-            updateConnectorVersionClassName(method, continueForm.getConnectorClass());
+        bundleVersion.setArtifactUrl(continueForm.getDownloadLink());
+        if (continueForm.getConnectorVersion() != null && !continueForm.getConnectorVersion().isBlank()) {
+            bundleVersion.setBundleVersion(continueForm.getConnectorVersion());
         }
-
-        // Persist capabilities on all linked connector versions
-        if (continueForm.getCapability() != null && !continueForm.getCapability().isEmpty()) {
-            persistCapabilitiesOnConnectorVersions(method, continueForm.getCapability());
+        bundleVersion.setErrorMessage("");
+        for (ConnectorVersion cv : builtVersions) {
+            cv.setErrorMessage("");
         }
+        connectorBundleVersionRepository.save(bundleVersion);
 
-        // Activate integration method
-        method.setLifecycleState(LifecycleType.ACTIVE);
-
-        // Activate application
         try {
             Application application = method.getApplication();
-            application.setLifecycleState(Application.ApplicationLifecycleType.ACTIVE);
             applicationRepository.save(application);
         } catch (Exception e) {
-            log.error("Failed to update application lifecycle state", e);
+            log.error("Failed save state after success building", e);
+        }
+
+        // Read while the rows still say something: adoptBundleName below clears the persistence context.
+        BuildFinishedEvent outcome = BuildFinishedEvent.succeeded(
+                method.getId(), method.getRevision(), newBundleName,
+                bundleVersion.getBundleVersion(), bundleVersion.getArtifactUrl(),
+                builtVersions.stream()
+                        .map(ConnectorVersion::getFullyQualifiedClassName)
+                        .filter(Objects::nonNull)
+                        .toList());
+
+        // Last, because it re-parents rows with bulk updates and clears the persistence context: nothing
+        // loaded above may be touched afterwards.
+        adoptBundleName(sourceBundle, bundleVersion, newBundleName);
+
+        eventPublisher.publishEvent(outcome);
+    }
+
+    /**
+     * Failed build: record the error on the bundle version and on every connector version built from it,
+     * so the reviewer sees it on each connector rather than only on the one that happened to be named,
+     * and report it on the revision's support work package.
+     */
+    @Transactional
+    public void failBuild(UUID oid, FailForm failForm) {
+        IntegrationMethod method = RepositoryUtil.findIntegrationMethod(
+                oid, failForm.getIntegrationMethodRevision(), integrationMethodRepository);
+        ConnectorBundleVersion bundleVersion = resolveBundleVersion(
+                failForm.getConnectorBundleVersionId(), failForm.getConnectorBundleVersionRevision(),
+                failForm.getConnectorVersionId(), failForm.getConnectorVersionRevision());
+
+        String errorMessage = failForm.getErrorMessage();
+        bundleVersion.setErrorMessage(errorMessage);
+        for (ConnectorVersion cv : bundleVersion.getConnectorVersions()) {
+            cv.setErrorMessage(errorMessage);
+        }
+        connectorBundleVersionRepository.save(bundleVersion);
+
+        integrationMethodRepository.save(method);
+
+        eventPublisher.publishEvent(BuildFinishedEvent.failed(
+                method.getId(), method.getRevision(), errorMessage));
+    }
+
+    @Transactional
+    public void verify(UUID oid, VerifyBundleInformationForm verifyPayload) {
+        ConnectorBundleVersion bundleVersion = resolveBundleVersion(
+                verifyPayload.getConnectorBundleVersionId(), verifyPayload.getConnectorBundleVersionRevision(),
+                verifyPayload.getConnectorVersionId(), verifyPayload.getConnectorVersionRevision());
+
+        String bundleName = verifyPayload.getBundleName();
+        String version = verifyPayload.getVersion();
+        String className = verifyPayload.getClassName();
+
+        Optional<ConnectorBundle> existingBundle = connectorBundleRepository.findByBundleNameAndLifecycleState(bundleName, LifecycleType.ACTIVE);
+        if (existingBundle.isEmpty()) {
+            return;
+        }
+
+        ConnectorBundle targetBundle = existingBundle.get();
+
+        validateVerifyPayload(version, className);
+
+        // A copy-on-write clone is expected to look like its original, so its class name is not a clash.
+        boolean allClones = !bundleVersion.getConnectorVersions().isEmpty()
+                && bundleVersion.getConnectorVersions().stream()
+                        .map(ConnectorVersion::getConnector)
+                        .allMatch(c -> c != null && c.getClonedFrom() != null);
+        if (allClones) {
+            return;
+        }
+
+        Optional<ConnectorBundleVersion> matchingVersion = findMatchingBundleVersion(targetBundle, version);
+
+        if (matchingVersion.isPresent()) {
+            checkForClassNameConflict(matchingVersion.get(), className, bundleName, version);
         }
     }
 
     /**
-     * Failed build: mark the integration method as errored.
+     * Gives the bundle the name the build reported. When another ACTIVE bundle already answers to that
+     * name, the artifact is that bundle's, and this one is merged into it instead of becoming a second
+     * row claiming the same name.
      */
-    @Transactional
-    public void failBuild(UUID oid, FailForm failForm) {
-        IntegrationMethod method = findLatestRevision(oid);
-        method.setLifecycleState(LifecycleType.WITH_ERROR);
-
-        Application application = method.getApplication();
-        List<IntegrationMethod> allMethods = integrationMethodRepository.findByApplicationId(application.getId());
-        if (allMethods.size() == 1) {
-            application.setLifecycleState(Application.ApplicationLifecycleType.WITH_ERROR);
-            applicationRepository.save(application);
+    private void adoptBundleName(ConnectorBundle source, ConnectorBundleVersion bundleVersion, String bundleName) {
+        if (source == null) {
+            return;
         }
+        ConnectorBundle target = connectorBundleRepository
+                .findByBundleNameAndLifecycleState(bundleName, LifecycleType.ACTIVE)
+                .filter(existing -> !existing.getId().equals(source.getId()))
+                .orElse(null);
+        if (target == null) {
+            source.setBundleName(bundleName);
+            connectorBundleRepository.save(source);
+            return;
+        }
+        mergeIntoBundle(source, bundleVersion, target);
+    }
+
+    /**
+     * Merges {@code source} into {@code target}: its connectors become connectors of the target bundle
+     * and the built version joins the target's versions, after which the emptied source bundle is
+     * deleted. That is what makes a bundle able to hold several connectors — the shape a Maven artifact
+     * shipping more than one connector class has always had.
+     *
+     * <p>If the target already carries this version, the two rows stand for the same build, so the
+     * connector versions are moved onto the target's row and the source's is dropped. Downloads recorded
+     * against it would go with it, which is safe here only because the row is a freshly built one.
+     *
+     * <p>Everything is done with bulk updates: both collections involved use orphanRemoval, so moving
+     * the entities between them would schedule them for deletion instead. The persistence context is
+     * cleared as a result — the caller must not touch loaded entities afterwards.
+     */
+    private void mergeIntoBundle(ConnectorBundle source, ConnectorBundleVersion bundleVersion, ConnectorBundle target) {
+        String version = bundleVersion.getBundleVersion() != null
+                ? bundleVersion.getBundleVersion() : bundleVersion.getRevision();
+        ConnectorBundleVersion targetVersion = version == null ? null
+                : connectorBundleVersionRepository
+                        .findByConnectorBundleIdAndBundleVersion(target.getId(), version)
+                        .orElse(null);
+
+        if (targetVersion != null) {
+            connectorVersionRepository.moveAllToBundleVersion(bundleVersion, targetVersion);
+            connectorBundleVersionRepository.deleteRow(bundleVersion.getId(), bundleVersion.getRevision());
+        }
+        // Any other version this bundle held (a draft that has not been built yet) comes along too.
+        connectorBundleVersionRepository.moveAllToBundle(source, target);
+        connectorRepository.moveAllToBundle(source, target);
+        connectorBundleRepository.deleteRow(source.getId());
+
+        log.info("Build reported bundle name {}: merged bundle {} into {}{}",
+                target.getBundleName(), source.getId(), target.getId(),
+                targetVersion != null ? " (sharing its existing version " + version + ")" : "");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private IntegrationMethod findLatestRevision(UUID id) {
-        return integrationMethodRepository.findByApplicationId(id).stream()
-                .filter(m -> m.getId().equals(id))
+    /**
+     * The bundle version a callback is about. Jenkins names it directly; a job that still reports only
+     * the connector version it was given is answered through that version's bundle.
+     */
+    private ConnectorBundleVersion resolveBundleVersion(String bundleVersionId, String bundleVersionRevision,
+                                                        String connectorVersionId, String connectorVersionRevision) {
+        if (bundleVersionId != null && !bundleVersionId.isBlank()
+                && bundleVersionRevision != null && !bundleVersionRevision.isBlank()) {
+            return connectorBundleVersionRepository
+                    .findById(new ConnectorBundleVersionId(Integer.valueOf(bundleVersionId), bundleVersionRevision))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "Connector bundle version not found: " + bundleVersionId + "/" + bundleVersionRevision));
+        }
+        ConnectorBundleVersion cbv = RepositoryUtil.findConnectorVersion(
+                connectorVersionId, connectorVersionRevision, connectorVersionRepository)
+                .getConnectorBundleVersion();
+        if (cbv == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Connector version " + connectorVersionId + " has no bundle version.");
+        }
+        return cbv;
+    }
+
+    /** The build reports the classes it produced as one comma-separated parameter. */
+    private static List<String> splitClassNames(String connectorClass) {
+        if (connectorClass == null || connectorClass.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(connectorClass.split(","))
+                .map(String::trim)
+                .filter(name -> !name.isEmpty())
+                .toList();
+    }
+
+    /**
+     * Writes the built class names back onto the connector versions of this build.
+     *
+     * <p>A name the build reports that a version already carries stays where it is — that is the normal
+     * case and the only one that is safe to match. Anything left over is handed to the versions that
+     * were not matched, in order, which covers the single-connector build whose class name the build
+     * corrected. A build reporting fewer classes than there are connectors leaves the rest untouched
+     * rather than guessing.
+     */
+    private void assignClassNames(List<ConnectorVersion> versions, List<String> builtClasses) {
+        if (builtClasses.isEmpty()) {
+            return;
+        }
+        List<String> unclaimed = new ArrayList<>(builtClasses);
+        List<ConnectorVersion> unmatched = new ArrayList<>();
+        for (ConnectorVersion cv : versions) {
+            if (cv.getFullyQualifiedClassName() != null && unclaimed.remove(cv.getFullyQualifiedClassName())) {
+                continue;
+            }
+            unmatched.add(cv);
+        }
+        for (int i = 0; i < unmatched.size() && i < unclaimed.size(); i++) {
+            ConnectorVersion cv = unmatched.get(i);
+            String className = unclaimed.get(i);
+            log.info("Build reported class {} for connector version {}/{} (was {})",
+                    className, cv.getId(), cv.getRevision(), cv.getFullyQualifiedClassName());
+            cv.setFullyQualifiedClassName(className);
+            // connector.fully_qualified_class_name mirrors the newest version.
+            Connector connector = cv.getConnector();
+            if (connector != null) {
+                connector.setFullyQualifiedClassName(className);
+                connectorRepository.save(connector);
+            }
+            connectorVersionRepository.save(cv);
+        }
+        if (unclaimed.size() > unmatched.size()) {
+            log.warn("Build reported {} class(es) that no connector version on this bundle version claims: {}",
+                    unclaimed.size() - unmatched.size(), unclaimed.subList(unmatched.size(), unclaimed.size()));
+        }
+    }
+
+    private void persistCapabilitiesOnConnectorVersions(ConnectorVersion connectorVersion,
+                                                        List<CapabilityType> capabilityTypes) {
+
+        // This version's own resource-wide group; every connector version has at most one.
+        ConnVersionCapability currentCapability = connectorVersion.getCapabilities().stream()
+                .filter(ConnVersionCapability::isResourceWide)
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Integration method not found: " + id));
-    }
+                .orElseGet(() -> {
+                    ConnVersionCapability group = new ConnVersionCapability();
+                    group.setObjectClass(ConnVersionCapability.RESOURCE_WIDE_LABEL);
+                    group.setResourceWide(true);
+                    group.setConnectorVersion(connectorVersion);
+                    connectorVersion.getCapabilities().add(group);
+                    connVersionCapabilityRepository.save(group);
+                    return group;
+                });
 
-    private ConnectorBundleVersion resolveConnectorBundleVersion(IntegrationMethod method) {
-        if (method.getConnectors() == null || method.getConnectors().isEmpty()) return null;
-        IntegrationMethodConnector link = method.getConnectors().get(0);
-        if (link.getConnector() == null || link.getConnector().getConnectorVersions().isEmpty()) return null;
-        return link.getConnector().getConnectorVersions().get(0).getConnectorBundleVersion();
-    }
-
-    private ConnectorBundle resolveConnectorBundle(IntegrationMethod method) {
-        if (method.getConnectors() == null || method.getConnectors().isEmpty()) return null;
-        IntegrationMethodConnector link = method.getConnectors().get(0);
-        if (link.getConnector() == null) return null;
-        return link.getConnector().getConnectorBundle();
-    }
-
-    private void relinkConnectorToBundle(IntegrationMethod method, ConnectorBundle targetBundle) {
-        if (method.getConnectors() == null) return;
-        for (IntegrationMethodConnector link : method.getConnectors()) {
-            if (link.getConnector() != null) {
-                link.getConnector().setConnectorBundle(targetBundle);
+        for (CapabilityType capType : capabilityTypes) {
+            if (!capType.isGlobal()){
+                continue;
             }
+
+            if (currentCapability.getItems().stream()
+                    .anyMatch(capability ->
+                            capability.getCapability() != null
+                                    && Strings.CS.equals(capability.getCapability().getName(), capType.name()))) {
+                continue;
+            }
+
+            Capability cap = capabilityRepository.findByName(capType.name())
+                    .orElseGet(() -> {
+                        Capability c = new Capability();
+                        c.setName(capType.name());
+                        return capabilityRepository.save(c);
+                    });
+
+            ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
+            item.setConnVersionCapabilityId(currentCapability.getId());
+            item.setCapabilityId(cap.getId());
+            item.setConnVersionCapability(currentCapability);
+            item.setCapability(cap);
+            currentCapability.getItems().add(item);
         }
     }
 
-    private void updateConnectorVersionClassName(IntegrationMethod method, String className) {
-        if (method.getConnectors() == null) return;
-        for (IntegrationMethodConnector link : method.getConnectors()) {
-            if (link.getConnector() == null) continue;
-            for (ConnectorVersion cv : link.getConnector().getConnectorVersions()) {
-                cv.setFullyQualifiedClassName(className);
-            }
+    private Optional<ConnectorBundleVersion> findMatchingBundleVersion(ConnectorBundle bundle, String version) {
+        return bundle.getBundleVersions().stream()
+                .filter(cbv -> version.equals(cbv.getBundleVersion()))
+                .filter(cv -> LifecycleType.ACTIVE == cv.getLifecycleState())
+                .findFirst();
+    }
+
+    private void validateVerifyPayload(String version, String className) {
+        if (version == null || version.isEmpty()) {
+            throw new IllegalArgumentException("Request payload lacks connector bundle version.");
+        }
+        if (className == null || className.isEmpty()) {
+            throw new IllegalArgumentException("Request payload lacks connector className.");
         }
     }
 
-    private void persistCapabilitiesOnConnectorVersions(IntegrationMethod method,
-                                                         List<CapabilityType> capabilityTypes) {
-        if (method.getConnectors() == null) return;
-        for (IntegrationMethodConnector link : method.getConnectors()) {
-            if (link.getConnector() == null) continue;
-            for (ConnectorVersion cv : link.getConnector().getConnectorVersions()) {
-                ConnVersionCapability group = new ConnVersionCapability();
-                group.setObjectClass("__ACCOUNT__");
-                group.setConnectorVersion(cv);
-
-                for (CapabilityType capType : capabilityTypes) {
-                    Capability cap = capabilityRepository.findByName(capType.name())
-                            .orElseGet(() -> {
-                                Capability c = new Capability();
-                                c.setName(capType.name());
-                                return capabilityRepository.save(c);
-                            });
-
-                    ConnVersionCapabilityItem item = new ConnVersionCapabilityItem();
-                    item.setConnVersionCapabilityId(group.getId());
-                    item.setCapabilityId(cap.getId());
-                    item.setConnVersionCapability(group);
-                    item.setCapability(cap);
-                    group.getItems().add(item);
-                }
-                connVersionCapabilityRepository.save(group);
-            }
+    private void checkForClassNameConflict(ConnectorBundleVersion bundleVersion, String className,
+                                           String bundleName, String version) {
+        boolean conflict = bundleVersion.getConnectorVersions().stream()
+                .anyMatch(cv -> className.equals(cv.getFullyQualifiedClassName()));
+        if (conflict) {
+            throw new ObjectAlreadyExist("Bundle " + bundleName + " version " + version
+                    + " already contains connector class " + className);
         }
     }
 }

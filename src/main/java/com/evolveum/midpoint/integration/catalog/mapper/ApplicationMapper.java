@@ -6,13 +6,17 @@
 
 package com.evolveum.midpoint.integration.catalog.mapper;
 
+import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.object.*;
-import com.evolveum.midpoint.integration.catalog.repository.CatalogUserRepository;
+import com.evolveum.midpoint.integration.catalog.repository.CapabilityRepository;
 import com.evolveum.midpoint.integration.catalog.repository.DownloadRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MidpointVersionRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
+import com.evolveum.midpoint.integration.catalog.service.AuthService;
+import com.evolveum.midpoint.integration.catalog.service.OwnershipService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -25,17 +29,25 @@ public class ApplicationMapper {
     private final RequestRepository requestRepository;
     private final VoteRepository voteRepository;
     private final DownloadRepository downloadRepository;
-    private final CatalogUserRepository catalogUserRepository;
+    private final OwnershipService ownershipService;
     private final MidpointVersionRepository midpointVersionRepository;
+    private final AuthService authService;
+    private final OpenProjectProperties openProjectProperties;
+    private final CapabilityRepository capabilityRepository;
 
     public ApplicationMapper(RequestRepository requestRepository, VoteRepository voteRepository,
-                             DownloadRepository downloadRepository, CatalogUserRepository catalogUserRepository,
-                             MidpointVersionRepository midpointVersionRepository) {
+                             DownloadRepository downloadRepository, OwnershipService ownershipService,
+                             MidpointVersionRepository midpointVersionRepository,
+                             AuthService authService, OpenProjectProperties openProjectProperties,
+                             CapabilityRepository capabilityRepository) {
         this.requestRepository = requestRepository;
         this.voteRepository = voteRepository;
         this.downloadRepository = downloadRepository;
-        this.catalogUserRepository = catalogUserRepository;
+        this.ownershipService = ownershipService;
         this.midpointVersionRepository = midpointVersionRepository;
+        this.authService = authService;
+        this.openProjectProperties = openProjectProperties;
+        this.capabilityRepository = capabilityRepository;
     }
 
     // ── Tag helpers ───────────────────────────────────────────────────────────
@@ -68,24 +80,19 @@ public class ApplicationMapper {
     // ── Integration-method versions ───────────────────────────────────────────
 
     /**
-     * Maps integration methods to IntegrationMethodDto.
-     * Capabilities are collected from IntegrationMethodCapability → items → Capability.
+     * Maps integration methods to IntegrationMethodDto, telling {@code viewer} the support ticket of
+     * every revision they are allowed to see one for. Capabilities are collected from
+     * IntegrationMethodCapability → items → Capability.
      */
-    public List<IntegrationMethodDto> mapIntegrationMethods(Application app) {
+    public List<IntegrationMethodDto> mapIntegrationMethods(Application app, String viewer) {
         if (app.getIntegrationMethods() == null) return null;
 
+        List<Capability> offered = capabilityRepository.findByOfferedForMethodTrueOrderByDisplayOrderAsc();
         return app.getIntegrationMethods().stream()
                 .map(method -> {
                     List<String> capabilities = collectCapabilities(method);
                     String lifecycleState = method.getLifecycleState() != null
                             ? method.getLifecycleState().name() : null;
-
-                    Integer organizationId = null;
-                    if (method.getAuthor() != null) {
-                        organizationId = catalogUserRepository.findByUsername(method.getAuthor())
-                                .map(u -> u.getOrganization() != null ? u.getOrganization().getId() : null)
-                                .orElse(null);
-                    }
 
                     // Connector info from first linked connector
                     String connectorVersion = null;
@@ -129,20 +136,34 @@ public class ApplicationMapper {
                         }
                     }
 
+                    // Every linked connector, so the card can list them all.
+                    List<IncludedConnectorDto> includedConnectors = method.getConnectors().stream()
+                            .map(IntegrationMethodConnector::getConnector)
+                            .filter(Objects::nonNull)
+                            .map(c -> new IncludedConnectorDto(
+                                    c.getFullyQualifiedClassName(),
+                                    c.getDisplayName(),
+                                    // Newest version row = the connector's current version
+                                    // (see buildIntegrationMethodListItem).
+                                    c.getConnectorVersions().stream()
+                                            .filter(cv -> cv.getConnectorBundleVersion() != null)
+                                            .max(Comparator.comparingInt(ConnectorVersion::getId))
+                                            .map(cv -> {
+                                                ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+                                                return cbv.getBundleVersion() != null
+                                                        ? cbv.getBundleVersion() : cbv.getRevision();
+                                            })
+                                            .orElse(null),
+                                    c.getDescription(),
+                                    mapConnectorTags(c)))
+                            .toList();
+
                     List<String> integMethodTypes = method.getIntegMethodTypes().stream()
                             .map(IntegrationMethodType::getDisplayName)
                             .toList();
 
-                    List<ObjectClassCapabilityDto> objectClassCapabilities = method.getCapabilities().stream()
-                            .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
-                            .map(cap -> new ObjectClassCapabilityDto(
-                                    cap.getObjectClass(),
-                                    cap.getItems().stream()
-                                            .filter(item -> item.getCapability() != null
-                                                    && item.getCapability().getName() != null)
-                                            .map(item -> item.getCapability().getName())
-                                            .toList()
-                            ))
+                    List<IntegrationMethodObjectCapabilitiesDto> objectClassCapabilities = method.getCapabilities().stream()
+                            .map(cap -> mapObjectCapabilities(cap, offered))
                             .toList();
 
                     long downloadCount = method.getConnectors().stream()
@@ -155,17 +176,21 @@ public class ApplicationMapper {
                             .mapToLong(cbv -> cbv.getDownloads() != null ? cbv.getDownloads().size() : 0L)
                             .sum();
 
+                    Integer supportTicketId = visibleSupportTicketId(method, viewer);
+                    String supportTicketUrl = supportTicketId != null
+                            ? openProjectProperties.workPackageUrl(supportTicketId) : null;
+
                     return new IntegrationMethodDto(
                             method.getId(),
                             method.getDescription(),
+                            method.getLimitations(),
                             null,           // implementationTags
                             capabilities,
                             objectClassCapabilities,
                             connectorVersion,
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
-                            method.getAuthor(),
-                            organizationId,
+                            method.getAuthor() != null ? method.getAuthor().getUsername() : null,
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -173,23 +198,71 @@ public class ApplicationMapper {
                             downloadCount,
                             method.getMidpointMinVersionId(),
                             method.getMidpointMaxVersionId(),
+                            method.getAppMinVersion(),
+                            method.getAppMaxVersion(),
                             connectorDisplayName,
                             integMethodTypes,
                             method.getRevision(),
                             method.getDisplayName(),
                             method.getTutorial(),
                             method.getFilePath(),
-                            null // method.getReviewedBy() temporarily disabled - see IntegrationMethod.reviewedBy
+                            method.getReviewedBy(),
+                            ownershipService.toDto(method.getMaintainer()),
+                            ownershipService.maintainerLabel(method),
+                            method.getCreatedAt() != null ? method.getCreatedAt().toLocalDate() : null,
+                            method.getUpdated() != null ? method.getUpdated().toLocalDate() : null,
+                            includedConnectors,
+                            supportTicketId,
+                            supportTicketUrl,
+                            method.supportTier(),
+                            !method.linkedConnectors().isEmpty()
                     );
                 })
                 .toList();
     }
 
+    /**
+     * The revision's support ticket id if {@code viewer} may be told it, otherwise null.
+     */
+    private Integer visibleSupportTicketId(IntegrationMethod method, String viewer) {
+        if (viewer == null || viewer.isBlank()
+                || method.getSupportTicketId() == null
+                || !openProjectProperties.isEnabled()) {
+            return null;
+        }
+        // The organization ids are part of the check: an item maintained by an organization
+        // carries no maintainer username, so a name-only comparison would hide the ticket
+        // from the very org-mates the review concerns.
+        return authService.canEdit(viewer, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())
+                ? method.getSupportTicketId() : null;
+    }
+
+    /**
+     * Every capability offered to methods, in display order, with the object's state for it; one
+     * without a row (offered only after the object was saved) is UNKNOWN.
+     */
+    private IntegrationMethodObjectCapabilitiesDto mapObjectCapabilities(IntegrationMethodCapability cap,
+                                                                         List<Capability> offered) {
+        Map<Integer, CapabilityState> stored = new HashMap<>();
+        if (cap.getItems() != null) {
+            cap.getItems().stream()
+                    .filter(item -> item.getState() != null)
+                    .forEach(item -> stored.put(item.getCapabilityId(), item.getState()));
+        }
+        List<IntegrationMethodCapabilityStateDto> states = offered.stream()
+                .map(c -> new IntegrationMethodCapabilityStateDto(
+                        c.getName(), stored.getOrDefault(c.getId(), CapabilityState.UNKNOWN)))
+                .toList();
+        return new IntegrationMethodObjectCapabilitiesDto(cap.getObjectClass(), states);
+    }
+
+    /** Supported capabilities only: the cards, the list filters and the application detail show nothing else. */
     private List<String> collectCapabilities(IntegrationMethod method) {
         if (method.getCapabilities() == null) return null;
         return method.getCapabilities().stream()
                 .filter(cap -> cap.getItems() != null)
                 .flatMap(cap -> cap.getItems().stream())
+                .filter(item -> item.getState() == CapabilityState.YES)
                 .filter(item -> item.getCapability() != null && item.getCapability().getName() != null)
                 .map(item -> item.getCapability().getName())
                 .distinct()
@@ -210,12 +283,19 @@ public class ApplicationMapper {
 
     // ── ApplicationDto mapping ────────────────────────────────────────────────
 
-    public ApplicationDto mapToApplicationDto(Application app) {
+    /**
+     * The application as {@code viewer} may see it, which for the submitting side and the reviewer
+     * includes the support ticket of each revision they are concerned with - see
+     * {@link #mapIntegrationMethods(Application, String)}. Pass null for an anonymous read.
+     */
+    public ApplicationDto mapToApplicationDto(Application app, String viewer) {
         List<String> capabilities = null;
         List<ObjectClassCapabilityDto> objectClassCapabilities = null;
         String requester = null;
         Long requestId = null;
         Long voteCount = null;
+        String integrationNeed = null;
+        String requestedIntegrationMethodType = null;
 
         if (app.getLifecycleState() == Application.ApplicationLifecycleType.REQUESTED) {
             Optional<Request> requestOpt = requestRepository.findByApplicationId(app.getId());
@@ -225,7 +305,8 @@ public class ApplicationMapper {
                         .filter(occ -> occ.getCapabilities() != null && occ.getCapabilities().length > 0)
                         .map(occ -> new ObjectClassCapabilityDto(
                                 occ.getObjectName(),
-                                Arrays.stream(occ.getCapabilities()).map(Enum::name).toList()
+                                Arrays.stream(occ.getCapabilities()).map(Enum::name).toList(),
+                                occ.isResourceWide()
                         ))
                         .toList();
                 capabilities = objectClassCapabilities.stream()
@@ -235,23 +316,29 @@ public class ApplicationMapper {
                 requester = request.getRequester();
                 requestId = request.getId();
                 voteCount = voteRepository.countByRequestId(requestId);
+                integrationNeed = request.getIntegrationNeed();
+                requestedIntegrationMethodType = request.getIntegrationMethodType() != null
+                        ? request.getIntegrationMethodType().getDisplayName() : null;
             }
         }
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, objectClassCapabilities);
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount,
+                objectClassCapabilities, integrationNeed, requestedIntegrationMethodType, viewer);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount) {
-        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null);
+        return mapToApplicationDto(app, capabilities, requester, requestId, voteCount, null, null, null, null);
     }
 
     public ApplicationDto mapToApplicationDto(Application app, List<String> capabilities, String requester,
                                                Long requestId, Long voteCount,
-                                               List<ObjectClassCapabilityDto> objectClassCapabilities) {
+                                               List<ObjectClassCapabilityDto> objectClassCapabilities,
+                                               String integrationNeed, String requestedIntegrationMethodType,
+                                               String viewer) {
         List<CountryOfOriginDto> origins = mapOrigins(app);
         List<ApplicationTagDto> categories = filterTagsByType(app, ApplicationTag.ApplicationTagType.CATEGORY);
         List<ApplicationTagDto> tags = mapAllTags(app);
-        List<IntegrationMethodDto> integrationMethods = mapIntegrationMethods(app);
+        List<IntegrationMethodDto> integrationMethods = mapIntegrationMethods(app, viewer);
         List<String> frameworks = extractFrameworks(app);
         String lifecycleState = app.getLifecycleState() != null ? app.getLifecycleState().name() : null;
 
@@ -271,6 +358,8 @@ public class ApplicationMapper {
                 .integrationMethods(integrationMethods)
                 .requestId(requestId)
                 .voteCount(voteCount)
+                .integrationNeed(integrationNeed)
+                .requestedIntegrationMethodType(requestedIntegrationMethodType)
                 .frameworks(frameworks)
                 .objectClassCapabilities(objectClassCapabilities)
                 .build();
@@ -326,17 +415,87 @@ public class ApplicationMapper {
         }
 
         List<String> frameworks = extractFrameworks(app);
-        List<String> midpointVersions = new ArrayList<>(); // ConnidVersion removed; revisit if re-added
 
-        String currentMidpointVersion = null;
-        Optional<MidpointVersion> currentVersionOpt = midpointVersionRepository.findByIsCurrentTrue();
-        if (currentVersionOpt.isPresent() && app.getIntegrationMethods() != null) {
-            Integer currentVersionId = currentVersionOpt.get().getId();
-            boolean hasCurrentVersion = app.getIntegrationMethods().stream()
-                    .anyMatch(m -> LifecycleType.ACTIVE == m.getLifecycleState()
-                               && currentVersionId.equals(m.getMidpointMinVersionId()));
-            if (hasCurrentVersion) {
-                currentMidpointVersion = currentVersionOpt.get().getVersion();
+        List<String> midpointVersions = new ArrayList<>();
+        if (app.getIntegrationMethods() != null) {
+            List<Integer> allVersionIds = midpointVersionRepository.findAll().stream()
+                    .map(MidpointVersion::getId)
+                    .sorted()
+                    .toList();
+            if (!allVersionIds.isEmpty()) {
+                int globalMin = allVersionIds.get(0);
+                int globalMax = allVersionIds.get(allVersionIds.size() - 1);
+                Set<Integer> coveredIds = new TreeSet<>();
+                for (IntegrationMethod method : app.getIntegrationMethods()) {
+                    if (LifecycleType.ACTIVE != method.getLifecycleState()) {
+                        continue;
+                    }
+                    Integer min = method.getMidpointMinVersionId();
+                    Integer max = method.getMidpointMaxVersionId();
+                    int lo = (min != null) ? min : globalMin;
+                    int hi = (max != null) ? max : globalMax;
+                    if (lo > hi) {
+                        int tmp = lo; lo = hi; hi = tmp;
+                    }
+                    for (Integer vid : allVersionIds) {
+                        if (vid >= lo && vid <= hi) {
+                            coveredIds.add(vid);
+                        }
+                    }
+                }
+                for (Integer id : coveredIds) {
+                    midpointVersions.add(String.valueOf(id));
+                }
+            }
+        }
+
+        // The versions the app's methods start at; when the user filters by a midPoint version the app
+        // doesn't run on, the catalog shows "Available since" with the earliest of these above it.
+        List<String> sinceMidpointVersions = null;
+        if (app.getIntegrationMethods() != null) {
+            sinceMidpointVersions = app.getIntegrationMethods().stream()
+                    .filter(m -> LifecycleType.ACTIVE == m.getLifecycleState())
+                    .map(IntegrationMethod::getMidpointMinVersionId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted()
+                    .map(String::valueOf)
+                    .toList();
+            if (sinceMidpointVersions.isEmpty()) {
+                sinceMidpointVersions = null;
+            }
+        }
+
+        // Distinct integration method type display names across the app's methods,
+        // used by the catalog's "Integration method" filter.
+        List<String> integrationMethodTypes = null;
+        if (app.getIntegrationMethods() != null) {
+            integrationMethodTypes = app.getIntegrationMethods().stream()
+                    .filter(m -> LifecycleType.ACTIVE == m.getLifecycleState())
+                    .filter(m -> m.getIntegMethodTypes() != null)
+                    .flatMap(m -> m.getIntegMethodTypes().stream())
+                    .map(IntegrationMethodType::getDisplayName)
+                    .filter(name -> name != null)
+                    .distinct()
+                    .toList();
+            if (integrationMethodTypes.isEmpty()) {
+                integrationMethodTypes = null;
+            }
+        }
+
+        // Distinct maintainer categories (Evolveum/Partner/Community) for the "Maintainer"
+        // filter, taken from the category stamped on each integration method when it was
+        // uploaded - it records the author's role at that moment.
+        List<String> maintainers = null;
+        if (app.getIntegrationMethods() != null) {
+            maintainers = app.getIntegrationMethods().stream()
+                    .map(IntegrationMethod::getMaintainer)
+                    .map(maintainer -> maintainer.getCategory().getDisplayName())
+                    .filter(StringUtils::isNotBlank)
+                    .distinct()
+                    .toList();
+            if (maintainers.isEmpty()) {
+                maintainers = null;
             }
         }
 
@@ -354,51 +513,9 @@ public class ApplicationMapper {
                 voteCount,
                 frameworks,
                 midpointVersions.isEmpty() ? null : midpointVersions,
-                currentMidpointVersion
-        );
-    }
-
-    // ── ActiveConnectorDto mapping ────────────────────────────────────────────
-
-    public ActiveConnectorDto toActiveConnectorDto(Application app) {
-        List<CountryOfOriginDto> origins = mapOrigins(app);
-        List<ApplicationTagDto> categories = null;
-        List<ApplicationTagDto> tags = null;
-        if (app.getApplicationApplicationTags() != null) {
-            categories = app.getApplicationApplicationTags().stream()
-                    .filter(aat -> aat.getApplicationTag().getTagType() == ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()))
-                    .toList();
-            tags = app.getApplicationApplicationTags().stream()
-                    .filter(aat -> aat.getApplicationTag().getTagType() != ApplicationTag.ApplicationTagType.CATEGORY)
-                    .map(aat -> new ApplicationTagDto(aat.getApplicationTag().getId(),
-                            aat.getApplicationTag().getName(), aat.getApplicationTag().getDisplayName(),
-                            aat.getApplicationTag().getTagType().name()))
-                    .toList();
-        }
-
-        List<String> capabilities = new ArrayList<>();
-        if (app.getIntegrationMethods() != null) {
-            app.getIntegrationMethods().stream()
-                    .flatMap(m -> collectCapabilities(m) != null ? collectCapabilities(m).stream() : Stream.empty())
-                    .distinct()
-                    .forEach(capabilities::add);
-        }
-
-        List<String> frameworks = extractFrameworks(app);
-
-        return new ActiveConnectorDto(
-                app.getId(),
-                app.getDisplayName(),
-                app.getDescription(),
-                origins,
-                categories,
-                tags,
-                capabilities.isEmpty() ? null : capabilities,
-                frameworks,
-                null
+                sinceMidpointVersions,
+                integrationMethodTypes,
+                maintainers
         );
     }
 
@@ -430,20 +547,24 @@ public class ApplicationMapper {
         String connectorMaxVersion = link != null ? link.getConnectorMaxVersion() : null;
         Integer connectorId = null;
         String connectorVersion = null;
-        String browseLink = null;
+        String projectHomepage = null;
+        String branchUrl = null;
         String gitCloneUrl = null;
         String buildFramework = null;
         String pathToProject = null;
         String className = null;
-        String maintainer = null;
+        Maintainer maintainer = null;
         String connectorDescription = null;
         String licenseType = null;
         String ticketingLink = null;
         String connectorDisplayName = null;
+        String bundleDisplayName = null;
         String bundleName = null;
         String bundleFramework = null;
         String commitTag = null;
+        boolean initialVersion = true;
         List<ObjectClassCapabilityDto> objectClassCapabilities = List.of();
+        List<ConnectorTagDto> connectorTags = List.of();
 
         if (connector != null) {
             connectorId = connector.getId();
@@ -453,26 +574,35 @@ public class ApplicationMapper {
             connectorDisplayName = connector.getDisplayName();
             ConnectorBundle bundle = connector.getConnectorBundle();
             if (bundle != null) {
+                // What describes the connector rather than one build of it lives on the bundle, and
+                // that includes the two fields fixed after the first version (license, clone URL).
                 licenseType = bundle.getLicense() != null ? bundle.getLicense().name() : null;
                 ticketingLink = bundle.getTicketingLink();
+                projectHomepage = bundle.getProjectHomepage();
+                gitCloneUrl = bundle.getGitCloneUrl();
+                bundleDisplayName = bundle.getDisplayName();
                 bundleName = bundle.getBundleName();
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
+                initialVersion = bundle.getBundleVersions().size() <= 1;
             }
-            // Get latest CBV
+            // connector's CURRENT version = the newest version row
             Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
                     .filter(cv -> cv.getConnectorBundleVersion() != null)
-                    .findFirst();
+                    .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
             if (latestCv.isPresent()) {
                 ConnectorBundleVersion cbv = latestCv.get().getConnectorBundleVersion();
-                connectorVersion = cbv.getRevision();
-                browseLink = cbv.getBrowseLink();
-                gitCloneUrl = cbv.getGitCloneUrl();
+                connectorVersion = cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cbv.getRevision();
+                branchUrl = cbv.getBrowseLink();
                 buildFramework = cbv.getBuildFramework() != null ? cbv.getBuildFramework().name() : null;
                 pathToProject = cbv.getPathToProject();
                 commitTag = cbv.getCommitTag();
+                className = latestCv.get().getFullyQualifiedClassName() != null
+                        ? latestCv.get().getFullyQualifiedClassName() : className;
             }
             objectClassCapabilities = mapConnectorVersionCapabilities(connector);
+            connectorTags = mapConnectorTags(connector);
         }
+
 
         return new ImplementationListItemDto(
                 method.getId(),
@@ -482,23 +612,40 @@ public class ApplicationMapper {
                 null,               // publishedDate (no direct field)
                 connectorVersion,
                 method.getDisplayName(),
-                maintainer,
+                ownershipService.toDto(maintainer),
+                ownershipService.maintainerLabel(maintainer),
                 licenseType,
                 connectorDescription,
-                browseLink,
+                projectHomepage,
+                branchUrl,
                 ticketingLink,
                 buildFramework,
                 gitCloneUrl,
                 pathToProject,
                 className,
                 connectorDisplayName,
+                bundleDisplayName,
                 bundleName,
                 bundleFramework,
                 commitTag,
                 objectClassCapabilities,
                 connectorMinVersion,
-                connectorMaxVersion
+                connectorMaxVersion,
+                initialVersion,
+                connectorTags
         );
+    }
+
+    public List<ConnectorTagDto> mapConnectorTags(Connector connector) {
+        if (connector.getConnectorConnectorTags() == null) {
+            return List.of();
+        }
+        return connector.getConnectorConnectorTags().stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(ConnectorTag::getName))
+                .map(tag -> new ConnectorTagDto(tag.getName(), tag.getDisplayName()))
+                .toList();
     }
 
     /**
@@ -507,13 +654,13 @@ public class ApplicationMapper {
      */
     private List<ObjectClassCapabilityDto> mapConnectorVersionCapabilities(Connector connector) {
         return connector.getConnectorVersions().stream()
-                .findFirst()
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                 .map(this::mapCapabilitiesOf)
                 .orElseGet(List::of);
     }
 
     /**
-     * Collects the object-class capabilities of the connector's latest <em>published</em>
+     * Collects the object-class capabilities of the connector's latest published
      * (ACTIVE) connector version, grouped by object class, so the publish form can pre-fill
      * the capability picker. Versions still in review (IN_REVIEW) are ignored.
      */
@@ -525,6 +672,21 @@ public class ApplicationMapper {
                 .orElseGet(List::of);
     }
 
+    /**
+     * The version a user knows the connector by, read off the same row as the capabilities above:
+     * the bundle version, as the revision is only a record counter.
+     */
+    public String latestPublishedConnectorVersion(Connector connector) {
+        return connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE)
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
+                .map(cv -> {
+                    ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+                    return cbv != null && cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cv.getRevision();
+                })
+                .orElse(connector.getRevision());
+    }
+
     private List<ObjectClassCapabilityDto> mapCapabilitiesOf(ConnectorVersion cv) {
         return cv.getCapabilities().stream()
                 .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())
@@ -534,7 +696,8 @@ public class ApplicationMapper {
                                 .filter(item -> item.getCapability() != null
                                         && item.getCapability().getName() != null)
                                 .map(item -> item.getCapability().getName())
-                                .toList()
+                                .toList(),
+                        cap.isResourceWide()
                 ))
                 .toList();
     }

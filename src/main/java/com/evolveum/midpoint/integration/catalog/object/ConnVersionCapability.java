@@ -20,12 +20,22 @@ import java.util.List;
 @Accessors(chain = true)
 public class ConnVersionCapability {
 
+    /** What a resource-wide group is called; only a label, since {@link #resourceWide} says what it is. */
+    public static final String RESOURCE_WIDE_LABEL = "Global";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "object_class", nullable = false)
     private String objectClass;
+
+    /**
+     * The capabilities of the whole resource rather than of one object class. A flag, not a reserved
+     * name, so an object class may be called anything - "Global" included.
+     */
+    @Column(name = "resource_wide", nullable = false)
+    private boolean resourceWide;
 
     @ManyToOne
     @JoinColumns({
@@ -36,4 +46,12 @@ public class ConnVersionCapability {
 
     @OneToMany(mappedBy = "connVersionCapability", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnVersionCapabilityItem> items = new ArrayList<>();
+
+    public static ConnVersionCapability createConnVersionCapabilityDraft(ConnVersionCapability srcCap, ConnectorVersion cv) {
+        ConnVersionCapability clone = new ConnVersionCapability();
+        clone.setObjectClass(srcCap.getObjectClass());
+        clone.setResourceWide(srcCap.isResourceWide());
+        clone.setConnectorVersion(cv);
+        return clone;
+    }
 }

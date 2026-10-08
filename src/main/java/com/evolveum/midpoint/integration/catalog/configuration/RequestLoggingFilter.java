@@ -11,6 +11,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,9 +22,13 @@ import java.io.IOException;
  * Logs one line per REST request: HTTP method, URI, resulting status and duration.
  * Covers every {@code /api/**} endpoint uniformly, so individual controller methods
  * don't have to repeat request/response boilerplate logging.
+ * <p>
+ * Ordered first, ahead of the Spring Security chain, so requests it turns away (401, 403) are
+ * logged too.
  */
 @Slf4j
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     @Override

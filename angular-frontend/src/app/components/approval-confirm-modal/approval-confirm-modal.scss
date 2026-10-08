@@ -1,0 +1,212 @@
+/*!
+  Copyright (c) 2010-2025 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.im-version-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: $color-black;
+  border: 1px solid $color-border-input;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  background: white;
+}
+
+.approval-modal-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1050;
+}
+
+.approval-modal-container {
+  z-index: 1055;
+}
+
+.approval-modal-dialog {
+  background: #fff;
+  border-radius: 12px;
+  width: 520px;
+  max-width: calc(100vw - 2rem);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.approval-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #eceef1;
+}
+
+.approval-modal-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1f2733;
+}
+
+.approval-modal-close {
+  border: none;
+  background: none;
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+.approval-modal-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.approval-info-card {
+  background: #f6f7f9;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.approval-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+}
+
+.approval-info-label {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.approval-info-value {
+  font-weight: 700;
+  color: #1f2733;
+  font-size: 0.9rem;
+}
+
+.approval-modal-desc {
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.approval-modal-section-title {
+  font-weight: 600;
+  color: #1f2733;
+  margin-bottom: 0.75rem;
+}
+
+.approval-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.approval-notice-warning {
+  background: #fdf6e3;
+  border: 1px solid #f5e2b8;
+  color: #7a5b00;
+}
+
+.approval-notice-success {
+  background: #e6f4ea;
+  border: 1px solid #bfe0c9;
+  color: #1a6b34;
+}
+
+.approval-notice-icon {
+  color: #d9a300;
+  margin-top: 0.15rem;
+}
+
+.approval-notice-icon-success {
+  color: #198754;
+  margin-top: 0.15rem;
+}
+
+.approval-notice-content {
+  flex-grow: 1;
+}
+
+.approval-notice-close {
+  border: none;
+  background: none;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.approval-ticket-link {
+  color: #0d6efd;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+.approval-ticket-ext {
+  font-size: 0.75rem;
+}
+
+.approval-refresh-btn {
+  width: 100%;
+  margin-top: 0.85rem;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  color: #344054;
+  font-size: 0.9rem;
+  padding: 0.55rem;
+  border-radius: 8px;
+
+  &:hover { background: #f8f9fa; }
+}
+
+.approval-modal-error {
+  color: #b02a37;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.approval-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #eceef1;
+}
+
+.approval-modal-cancel {
+  border: none;
+  background: none;
+  color: #0d6efd;
+  font-weight: 500;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+}
+
+.approval-confirm-approve {
+  background: #198754;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+
+  &:hover:not(:disabled) { background: #146c43; }
+}
+
+.approval-confirm-reject {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+
+  &:hover:not(:disabled) { background: #b02a37; }
+}
+
+.approval-confirm-approve:disabled,
+.approval-confirm-reject:disabled {
+  background: #e2e5e9;
+  color: #9aa1ab;
+  cursor: not-allowed;
+}

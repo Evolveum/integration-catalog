@@ -8,33 +8,34 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.dto.EditIntegrationMethodDto;
+import com.evolveum.midpoint.integration.catalog.exception.ConnectorSigningException;
 import com.evolveum.midpoint.integration.catalog.mapper.ApplicationMapper;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
+import com.evolveum.midpoint.integration.catalog.mapper.ConnectorMapper;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import com.evolveum.midpoint.integration.catalog.repository.adapter.ApplicationReadPort;
 
-import ch.qos.logback.classic.Logger;
+import jakarta.persistence.criteria.Join;
+import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -44,8 +45,7 @@ import java.util.stream.Collectors;
 @Service
 public class ApplicationService {
 
-    private static final Logger LOG
-            = (Logger) LoggerFactory.getLogger(ApplicationService.class);
+    private static final int RECENTLY_USED_KEPT = 10;
 
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagRepository applicationTagRepository;
@@ -53,7 +53,6 @@ public class ApplicationService {
     private final IntegrationMethodRepository integrationMethodRepository;
     private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
     private final MidpointVersionRepository midpointVersionRepository;
-    private final ConnectorBundleVersionRepository connectorBundleVersionRepository;
     private final GithubProperties githubProperties;
     private final JenkinsProperties jenkinsProperties;
     private final DownloadRepository downloadRepository;
@@ -61,16 +60,22 @@ public class ApplicationService {
     private final VoteRepository voteRepository;
     private final ApplicationReadPort applicationReadPort;
     private final ApplicationMapper applicationMapper;
+    private final ConnectorMapper connectorMapper;
     private final ConnectorBundleRepository connectorBundleRepository;
     private final ApplicationApplicationTagRepository applicationApplicationTagRepository;
     private final ApplicationTagService applicationTagService;
     private final RecentlyUsedApplicationRepository recentlyUsedApplicationRepository;
-    private final BundleMergeService bundleMergeService;
     private final RequestVotingService requestVotingService;
     private final ConnectorDownloadService connectorDownloadService;
     private final BuildCallbackService buildCallbackService;
     private final ConnectorUploadService connectorUploadService;
     private final CapabilityRepository capabilityRepository;
+    private final ConnectorVersionRepository connectorVersionRepository;
+    private final ConnectorRepository connectorRepository;
+    private final AuthService authService;
+    private final OrganizationService organizationService;
+    private final OwnershipService ownershipService;
+    private final ConnectorTagRepository connectorTagRepository;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -79,30 +84,36 @@ public class ApplicationService {
                               IntegrationMethodTypeRepository integrationMethodTypeRepository,
                               MidpointVersionRepository midpointVersionRepository,
                               ConnectorBundleRepository connectorBundleRepository,
-                              ConnectorBundleVersionRepository connectorBundleVersionRepository,
                               GithubProperties githubProperties,
                               JenkinsProperties jenkinsProperties,
                               DownloadRepository downloadRepository,
                               RequestRepository requestRepository,
                               VoteRepository voteRepository,
                               ApplicationReadPort applicationReadPort,
-                              ApplicationMapper applicationMapper,
+                              ApplicationMapper applicationMapper, ConnectorMapper connectorMapper,
                               ApplicationApplicationTagRepository applicationApplicationTagRepository,
                               ApplicationTagService applicationTagService,
-                              BundleMergeService bundleMergeService,
                               RequestVotingService requestVotingService,
                               ConnectorDownloadService connectorDownloadService,
                               BuildCallbackService buildCallbackService,
                               ConnectorUploadService connectorUploadService,
                               RecentlyUsedApplicationRepository recentlyUsedApplicationRepository,
-                              CapabilityRepository capabilityRepository) {
+                              CapabilityRepository capabilityRepository,
+                              ConnectorVersionRepository connectorVersionRepository,
+                              ConnectorRepository connectorRepository,
+                              AuthService authService,
+                              OrganizationService organizationService,
+                              OwnershipService ownershipService,
+                              ConnectorTagRepository connectorTagRepository) {
+        this.organizationService = organizationService;
+        this.connectorTagRepository = connectorTagRepository;
+        this.ownershipService = ownershipService;
         this.applicationRepository = applicationRepository;
         this.applicationTagRepository = applicationTagRepository;
         this.countryOfOriginRepository = countryOfOriginRepository;
         this.integrationMethodRepository = integrationMethodRepository;
         this.integrationMethodTypeRepository = integrationMethodTypeRepository;
         this.midpointVersionRepository = midpointVersionRepository;
-        this.connectorBundleVersionRepository = connectorBundleVersionRepository;
         this.githubProperties = githubProperties;
         this.jenkinsProperties = jenkinsProperties;
         this.downloadRepository = downloadRepository;
@@ -111,15 +122,72 @@ public class ApplicationService {
         this.applicationReadPort = applicationReadPort;
         this.applicationMapper = applicationMapper;
         this.connectorBundleRepository = connectorBundleRepository;
+        this.connectorMapper = connectorMapper;
         this.applicationApplicationTagRepository = applicationApplicationTagRepository;
         this.applicationTagService = applicationTagService;
-        this.bundleMergeService = bundleMergeService;
         this.requestVotingService = requestVotingService;
         this.connectorDownloadService = connectorDownloadService;
         this.buildCallbackService = buildCallbackService;
         this.connectorUploadService = connectorUploadService;
         this.recentlyUsedApplicationRepository = recentlyUsedApplicationRepository;
         this.capabilityRepository = capabilityRepository;
+        this.connectorVersionRepository = connectorVersionRepository;
+        this.connectorRepository = connectorRepository;
+        this.authService = authService;
+    }
+
+    /**
+     * Enforces that {@code username} may modify the integration-method revision (and its
+     * connectors). Throws 404 if the revision does not exist, or 403 if the caller does not
+     * own it (see {@link AuthService#canEdit}). Server-side counterpart of the client's
+     * edit-button gating — this is the check that actually protects the data.
+     */
+    private void assertCanEditMethod(String username, UUID methodId, String revision) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException(
+                        "Integration method not found: " + methodId + "/" + revision));
+        if (!authService.canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to modify this integration method.");
+        }
+        assertNotUnderReview(username, method);
+    }
+
+    /**
+     * Blocks edits by non-superusers while a revision is REVIEWING: once a review starts the revision
+     * is locked for its author until the review is resolved, so nothing changes underneath the
+     * reviewer. Superusers are exempt — the reviewer may fix findings directly during the review
+     * (or hand the revision back via stop-review for the author to fix). Mirrors the client, which
+     * disables the edit controls for this state for everyone but superusers.
+     */
+    private void assertNotUnderReview(String username, IntegrationMethod method) {
+        if (method.getLifecycleState() == LifecycleType.REVIEWING && !authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This integration method is locked while it is under review.");
+        }
+    }
+
+    /**
+     * Enforces that {@code username} may edit a specific connector's content. Unlike
+     * {@link #assertCanEditMethod}, this gates on the connector's own owner, so a connector
+     * maintained by someone else stays closed to the method's maintainer.
+     */
+    private void assertCanEditConnector(String username, UUID methodId, String revision, Integer connectorId) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException(
+                        "Integration method not found: " + methodId + "/" + revision));
+        Connector connector = method.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .filter(c -> connectorId.equals(c.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+        if (!authService.canEdit(username, method.getLifecycleState(), connector.getAuthor(), connector.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to modify this connector.");
+        }
+        assertNotUnderReview(username, method);
     }
 
     public Application getApplication(UUID uuid) {
@@ -139,7 +207,7 @@ public class ApplicationService {
     }
 
     public List<IntegrationMethodType> getIntegrationMethodTypes() {
-        return integrationMethodTypeRepository.findAll();
+        return integrationMethodTypeRepository.findAll(Sort.by("id"));
     }
 
     public List<MidpointVersionDto> getMidpointVersions() {
@@ -160,66 +228,128 @@ public class ApplicationService {
         return countryOfOriginRepository.findAll();
     }
 
-    public boolean checkBundleNameExists(String bundleName) {
-        if (bundleName == null || bundleName.isBlank()) return false;
-        return connectorBundleRepository.existsByBundleName(bundleName);
+    /**
+     * Whether the given connector version already exists in the catalog on another connector with
+     * the same identity (bundle name + class name). Duplicate versions are never blocked — the
+     * connector version must match the Maven artifact, so it is the reviewer's call; this check
+     * only feeds the warning telling them a matching version exists and should be reused.
+     */
+    public boolean checkConnectorVersionExists(String bundleName, String className, String version,
+                                               Integer excludeConnectorId) {
+        if (bundleName == null || bundleName.isBlank() || version == null || version.isBlank()) return false;
+        String normalizedClassName = (className == null || className.isBlank()) ? null : className.trim();
+        return connectorVersionRepository.existsDuplicateVersion(
+                bundleName.trim(), normalizedClassName, version.trim(), excludeConnectorId);
     }
 
     public List<CapabilityDto> getCapabilities() {
         return capabilityRepository.findAll().stream()
                 .sorted(java.util.Comparator.comparingInt(c -> c.getDisplayOrder() != null ? c.getDisplayOrder() : 0))
-                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder()))
+                .map(c -> new CapabilityDto(c.getName(), c.getGlobality(), c.getDisplayOrder(),
+                        c.isOfferedForMethod()))
                 .toList();
     }
 
     @Transactional
-    public String uploadConnector(UploadImplementationDto dto, String username) {
-        LOG.info("uploadConnector user={}", username);
-        return connectorUploadService.uploadConnector(dto, username);
+    public String uploadIntegration(UploadIntegrationDto dto, String username) {
+        log.info("uploadIntegration user={}", username);
+        return connectorUploadService.uploadIntegration(dto, username);
     }
 
     @Transactional
-    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto) {
-        LOG.info("editIntegrationMethod methodId={} currentRevision={}", methodId, currentRevision);
+    public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto,
+                                        String username) {
+        log.info("editIntegrationMethod methodId={} revision={} user={}", methodId, currentRevision, username);
+        assertCanEditMethod(username, methodId, currentRevision);
         return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
     }
 
     @Transactional
-    public void publishIntegrationMethod(UUID methodId, String revision, String username) {
-        LOG.info("publishIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
-        connectorUploadService.publishIntegrationMethod(methodId, revision, username);
+    public void startReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("startReviewIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        // Starting a review is a superuser-only action, mirroring approve/reject (the client already
+        // restricts it to superusers; this is the server-side enforcement).
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may start a review of an integration method.");
+        }
+        connectorUploadService.startReviewIntegrationMethod(methodId, revision, username);
+    }
+
+    @Transactional
+    public void stopReviewIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("stopReviewIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        // Stopping a review is a superuser-only action, mirroring start-review.
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may stop a review of an integration method.");
+        }
+        connectorUploadService.stopReviewIntegrationMethod(methodId, revision, username);
+    }
+
+    @Transactional
+    public void approveIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("approveIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        // Approving a revision is a superuser-only action (the client already restricts it to
+        // superusers; this is the server-side enforcement).
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may publish an integration method.");
+        }
+        connectorUploadService.approveIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
     public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
-        LOG.info("rejectIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        log.info("rejectIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        if (!authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a superuser may reject an integration method.");
+        }
         connectorUploadService.rejectIntegrationMethod(methodId, revision, username);
     }
 
+    /** Whoever may edit the revision may withdraw it; returns whether its application went too. */
     @Transactional
-    public void addConnectorToIntegrationMethod(UUID appId, UUID methodId, String revision,
-                                                AddConnectorDto dto, String username) {
-        LOG.info("addConnectorToIntegrationMethod appId={} methodId={} revision={} user={}", appId, methodId, revision, username);
-        connectorUploadService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, username);
+    public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
+        log.info("cancelIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        assertCanEditMethod(username, methodId, revision);
+        return connectorUploadService.cancelIntegrationMethod(methodId, revision, username);
     }
 
     @Transactional
-    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto) {
-        LOG.info("updateConnector methodId={} revision={} connectorId={}", methodId, revision, connectorId);
-        connectorUploadService.updateConnector(methodId, revision, connectorId, dto);
+    public String addConnectorToIntegrationMethod(UUID methodId, String revision,
+                                                  AddConnectorDto dto, String username) {
+        log.info("addConnectorToIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        assertCanEditMethod(username, methodId, revision);
+        return connectorUploadService.addConnectorToIntegrationMethod(methodId, revision, dto, username);
     }
 
     @Transactional
-    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
-        LOG.info("deleteConnectorFromIntegrationMethod methodId={} revision={} connectorId={}", methodId, revision, connectorId);
+    public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
+                                String username) {
+        log.info("updateConnector methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
+        // A connector is gated on its own maintainer, not the IM's: the IM maintainer must not
+        // be able to edit a connector maintained by someone else (a superuser still can).
+        assertCanEditConnector(username, methodId, revision, connectorId);
+        connectorUploadService.updateConnector(methodId, revision, connectorId, dto, username);
+    }
+
+    @Transactional
+    public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId,
+                                                     String username) {
+        log.info("deleteConnectorFromIntegrationMethod methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
+        assertCanEditMethod(username, methodId, revision);
         connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
     }
 
     @Transactional
     public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
-                                             String connectorVersionFrom, String connectorVersionTo) {
-        LOG.info("updateConnectorCompatibility methodId={} revision={} connectorId={} from={} to={}",
-                methodId, revision, connectorId, connectorVersionFrom, connectorVersionTo);
+                                             String connectorVersionFrom, String connectorVersionTo,
+                                             String username) {
+        log.info("updateConnectorCompatibility methodId={} revision={} connectorId={} from={} to={} user={}",
+                methodId, revision, connectorId, connectorVersionFrom, connectorVersionTo, username);
+        assertCanEditMethod(username, methodId, revision);
         connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
                 connectorVersionFrom, connectorVersionTo);
     }
@@ -233,13 +363,13 @@ public class ApplicationService {
 
     @Transactional
     public void successBuild(UUID oid, ContinueForm continueForm) {
-        LOG.info("successBuild oid={}", oid);
+        log.info("successBuild oid={}", oid);
         buildCallbackService.successBuild(oid, continueForm);
     }
 
     @Transactional
     public void failBuild(UUID oid, FailForm failForm) {
-        LOG.info("failBuild oid={}", oid);
+        log.info("failBuild oid={}", oid);
         buildCallbackService.failBuild(oid, failForm);
     }
 
@@ -269,8 +399,23 @@ public class ApplicationService {
         Specification<IntegrationMethod> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchForm.getMaintainer() != null && !searchForm.getMaintainer().isBlank()) {
-            spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("maintainer")), "%" + searchForm.getMaintainer().toLowerCase() + "%"));
+            // An item maintained by an organization carries no maintainer username, so the
+            // search has to match the organization's name as well as the username.
+            String pattern = "%" + searchForm.getMaintainer().toLowerCase() + "%";
+            List<String> organizationNames = organizationService.idsOfNamesContaining(searchForm.getMaintainer());
+            spec = spec.and((root, query, cb) -> {
+                Join<IntegrationMethod, Maintainer> maintainerJoin =
+                        root.join("maintainers");
+
+                var byUsername = cb.like(cb.lower(maintainerJoin.get("username")), pattern);
+                if (organizationNames.isEmpty()) {
+                    return byUsername;
+                }
+                Join<Maintainer, Organization> organizationJoin =
+                        maintainerJoin.join("organizations");
+
+                return cb.or(byUsername, organizationJoin.get("name").in(organizationNames));
+            });
         }
 
         if (searchForm.getLifecycleState() != null) {
@@ -296,9 +441,9 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Request createRequestFromForm(RequestFormDto dto) {
-        LOG.info("createRequestFromForm");
-        return requestVotingService.createRequestFromForm(dto);
+    public Request createRequestFromForm(RequestFormDto dto, String requester) {
+        log.info("createRequestFromForm requester={}", requester);
+        return requestVotingService.createRequestFromForm(dto, requester);
     }
 
     public Optional<Request> getRequest(Long id) {
@@ -310,7 +455,7 @@ public class ApplicationService {
     }
 
     public Vote submitVote(Long requestId, String voter) {
-        LOG.info("submitVote requestId={} voter={}", requestId, voter);
+        log.info("submitVote requestId={} voter={}", requestId, voter);
         return requestVotingService.submitVote(requestId, voter);
     }
 
@@ -322,13 +467,21 @@ public class ApplicationService {
         return requestVotingService.hasUserVoted(requestId, voter);
     }
 
-    public void cancelRequest(Long requestId) {
-        LOG.info("cancelRequest requestId={}", requestId);
+    /** The requester may cancel their own request; a superuser may cancel any. */
+    public void cancelRequest(Long requestId, String username) {
+        log.info("cancelRequest requestId={} user={}", requestId, username);
+        Request request = requestVotingService.getRequest(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
+        boolean isRequester = request.getRequester() != null
+                && request.getRequester().equalsIgnoreCase(username);
+        if (!isRequester && !authService.isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the requester or a superuser may cancel this request");
+        }
         requestVotingService.cancelRequest(requestId);
     }
 
     public void recordMethodDownload(UUID methodId, String revision, String ip, String userAgent) {
-        LOG.info("recordMethodDownload methodId={} revision={} ip={}", methodId, revision, ip);
         connectorDownloadService.recordMethodDownload(methodId, revision, ip, userAgent);
     }
 
@@ -361,10 +514,34 @@ public class ApplicationService {
         return page.map(applicationMapper::toCardDto);
     }
 
-    public List<ActiveConnectorDto> listActiveConnectors() {
-        return applicationReadPort.findByLifecycleState(Application.ApplicationLifecycleType.ACTIVE).stream()
-                .map(applicationMapper::toActiveConnectorDto)
+    /**
+     * Retrieves all active connectors from the integration catalog and maps them to signed connector DTOs.
+     *
+     * Only connectors with at least one version in {@link LifecycleType#ACTIVE} state are included.
+     * Each connector is transformed into a signed DTO before being returned.
+     *
+     * @return a list of allowed active connectors wrapped in {@link AllowedConnectorsListDto}
+     * @throws ConnectorSigningException if signing of connector data fails
+     */
+    public AllowedConnectorsListDto listActiveConnectors() {
+        List<SignedActiveConnectorDto> list = connectorRepository.findDistinctByConnectorVersionsLifecycleState(LifecycleType.ACTIVE)
+                .stream()
+                .map(connector -> {
+                    try {
+                        return connectorMapper.toActiveConnectorDto(connector);
+                    } catch (Exception e) {
+                        throw new ConnectorSigningException("Failed to sign connector data", e);
+                    }
+                })
                 .toList();
+
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.ENGLISH);
+
+        return new AllowedConnectorsListDto(
+                new SignedActiveConnectorsListDto(
+                        "Connectors from Integration catalog " + now.format(formatter),
+                        list));
     }
 
     @Transactional(readOnly = true)
@@ -386,27 +563,59 @@ public class ApplicationService {
                             .filter(c -> activeConnectorIds.contains(c.getId()))
                             .map(connector -> new CatalogConnectorDto(
                                     bundle.getId(),
+                                    connector.getId(),
                                     connector.getDisplayName(),
                                     connector.getDescription(),
-                                    connector.getRevision(),
+                                    applicationMapper.latestPublishedConnectorVersion(connector),
                                     bundle.getDisplayName(),
-                                    connector.getMaintainer(),
+                                    ownershipService.toDto(connector.getMaintainer()),
+                                    ownershipService.maintainerLabel(connector),
                                     bundle.getLicense() != null ? bundle.getLicense().name() : null,
-                                    bundle.getBuildFramework() != null ? bundle.getBuildFramework().name() : null,
+                                    latest != null && latest.getBuildFramework() != null
+                                            ? latest.getBuildFramework().name() : null,
                                     bundle.getFramework() != null ? bundle.getFramework().name() : null,
+                                    bundle.getProjectHomepage(),
                                     latest != null ? latest.getBrowseLink() : null,
-                                    latest != null ? latest.getGitCloneUrl() : bundle.getGitCloneUrl(),
-                                    latest != null ? latest.getPathToProject() : bundle.getPathToProject(),
+                                    bundle.getGitCloneUrl(),
+                                    bundle.getTicketingLink(),
+                                    latest != null ? latest.getCommitTag() : null,
+                                    latest != null ? latest.getPathToProject() : null,
                                     connector.getFullyQualifiedClassName(),
-                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector)
+                                    applicationMapper.mapLatestPublishedConnectorVersionCapabilities(connector),
+                                    applicationMapper.mapConnectorTags(connector)
                             ));
                 })
                 .toList();
     }
 
     @Transactional
-    public boolean verify(VerifyBundleInformationForm verifyPayload) {
-        return bundleMergeService.verify(verifyPayload);
+    public void verify(UUID uuid, VerifyBundleInformationForm verifyPayload) {
+        log.info("verify oid={}", uuid);
+        buildCallbackService.verify(uuid, verifyPayload);
+    }
+
+    /**
+     * A build produces one artifact, so it is started for the connector version's bundle version — every
+     * connector class on it is built by that single run.
+     */
+    @Transactional
+    public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
+        log.info("triggerBuild oid={}", oid);
+        ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
+                triggerBuildForm.getConnectorVersionId(),
+                triggerBuildForm.getConnectorVersionRevision(),
+                connectorVersionRepository);
+        IntegrationMethod integrationMethod = RepositoryUtil.findIntegrationMethod(
+                oid,
+                triggerBuildForm.getIntegrationMethodRevision(),
+                integrationMethodRepository);
+
+        ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
+        if (bundleVersion == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Connector version " + connectorVersion.getId() + " has no bundle version to build.");
+        }
+        return connectorUploadService.triggerJenkinsPipeline(bundleVersion, integrationMethod);
     }
 
     @Transactional(readOnly = true)
@@ -428,15 +637,19 @@ public class ApplicationService {
                 .toList();
     }
 
+    /**
+     * The list is shared by all users, so an application keeps one row whoever opened it, and only the
+     * newest {@link #RECENTLY_USED_KEPT} rows are kept.
+     */
     @Transactional
-    public void recordRecentlyUsed(UUID applicationId, String userId) {
-        LOG.info("recordRecentlyUsed applicationId={} user={}", applicationId, userId);
-        recentlyUsedApplicationRepository.deleteByUserIdAndApplicationId(userId, applicationId);
+    public void recordRecentlyUsed(UUID applicationId, String username) {
+        recentlyUsedApplicationRepository.deleteByApplicationId(applicationId);
         recentlyUsedApplicationRepository.flush();
         RecentlyUsedApplication entry = new RecentlyUsedApplication()
-                .setUserId(userId)
+                .setUsername(username)
                 .setApplicationId(applicationId);
-        recentlyUsedApplicationRepository.save(entry);
+        recentlyUsedApplicationRepository.saveAndFlush(entry);
+        recentlyUsedApplicationRepository.deleteAllButNewest(RECENTLY_USED_KEPT);
     }
 
     public long getTotalDownloadsCount() {
@@ -459,5 +672,141 @@ public class ApplicationService {
                             .sum();
                 })
                 .orElse(0L);
+    }
+
+    /**
+     * Returns connectors linked to a specific integration method revision that do NOT have
+     * download information (no artifactUrl set on the ConnectorBundleVersion). These are
+     * connectors that were added but the Jenkins build was never triggered (or did not
+     * complete successfully with upload/verify and upload/continue callbacks).
+     */
+    @Transactional(readOnly = true)
+    public List<ConnectorWithoutDownloadDto> getConnectorsWithoutDownloadInfo(UUID methodId, String revision) {
+        return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .map(method -> {
+                    List<ConnectorWithoutDownloadDto> result = new ArrayList<>();
+                    if (method.getConnectors() != null) {
+                        for (IntegrationMethodConnector imc : method.getConnectors()) {
+                            Connector connector = imc.getConnector();
+                            if (connector == null || connector.getConnectorVersions() == null || connector.getConnectorVersions().isEmpty()) {
+                                continue;
+                            }
+                            // Only the versions this review is about: a published one's build is not the
+                            // reviewer's business, and start-review moves a submitted row to REVIEWING,
+                            // so both under-review states have to count.
+                            for (ConnectorVersion connectorVersion : connector.getConnectorVersions()) {
+                                if (!ConnectorUploadService.UNDER_REVIEW.contains(connectorVersion.getLifecycleState())) {
+                                    continue;
+                                }
+                                ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
+                                // Check if artifactUrl is missing (build was not triggered or did not complete)
+                                if (bundleVersion == null || bundleVersion.getArtifactUrl() == null || bundleVersion.getArtifactUrl().isBlank()) {
+                                    result.add(new ConnectorWithoutDownloadDto(
+                                            connector.getId(),
+                                            connector.getDisplayName() != null ? connector.getDisplayName() : connector.getFullyQualifiedClassName(),
+                                            connector.getFullyQualifiedClassName(),
+                                            connector.getConnectorBundle() != null ? connector.getConnectorBundle().getBundleName() : null,
+                                            bundleVersion != null ? bundleVersion.getBundleVersion() : null,
+                                            String.valueOf(connectorVersion.getId()),
+                                            connectorVersion.getRevision(),
+                                            methodId,
+                                            revision
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    return result;
+                })
+                .orElseGet(List::of);
+    }
+
+    /**
+     * Updates the display name and/or description of an application.
+     * Only superusers are allowed to perform this operation.
+     */
+    @Transactional
+    public Application updateApplication(UUID applicationId, UpdateApplicationDto dto) {
+        log.info("updateApplication applicationId={}", applicationId);
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new RuntimeException("Application not found with id: " + applicationId));
+        if (dto.displayName() != null && !dto.displayName().isBlank()) {
+            application.setDisplayName(dto.displayName());
+        }
+        if (dto.description() != null) {
+            application.setDescription(dto.description());
+        }
+        return applicationRepository.save(application);
+    }
+
+    /**
+     * Sets the superuser-set tags of a connector: swaps its tier tag (null clears it) and adds or
+     * removes the obsolete tag. Its pending edit clones follow, since a version-bump approval replaces
+     * the connector with one of them. An obsolete connector cannot have a tier.
+     */
+    @Transactional
+    public void setConnectorTags(Integer connectorId, SupportTier tier, boolean obsolete) {
+        if (obsolete && tier != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An obsolete connector cannot have a support tier");
+        }
+        Connector connector = connectorRepository.findById(connectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connector not found: " + connectorId));
+        List<ConnectorTag> wanted = new ArrayList<>();
+        if (tier != null) {
+            wanted.add(tagByName(tier.tagName()));
+        }
+        if (obsolete) {
+            wanted.add(tagByName(ConnectorTag.OBSOLETE));
+        }
+        replaceManagedTags(connector, wanted);
+        connectorRepository.findByClonedFrom(connectorId).forEach(clone -> replaceManagedTags(clone, wanted));
+    }
+
+    private ConnectorTag tagByName(String name) {
+        return connectorTagRepository.findByName(name)
+                .orElseThrow(() -> new IllegalStateException("No connector_tag row for " + name));
+    }
+
+    /** Replaces the tier and obsolete tags of the connector with {@code wanted}; its other tags stay. */
+    private void replaceManagedTags(Connector connector, List<ConnectorTag> wanted) {
+        if (connector.getConnectorConnectorTags() == null) {
+            connector.setConnectorConnectorTags(new HashSet<>());
+        }
+        Set<ConnectorConnectorTag> links = connector.getConnectorConnectorTags();
+        links.removeIf(link -> link.getConnectorTag() != null
+                && (SupportTier.fromTagName(link.getConnectorTag().getName()) != null
+                    || ConnectorTag.OBSOLETE.equals(link.getConnectorTag().getName())));
+        for (ConnectorTag tag : wanted) {
+            ConnectorConnectorTag link = new ConnectorConnectorTag();
+            link.setConnector(connector);
+            link.setConnectorTag(tag);
+            links.add(link);
+        }
+        connectorRepository.save(connector);
+    }
+
+    /** Every published method with its tier, for the support-tier overview; the grouping is the page's. */
+    @Transactional(readOnly = true)
+    public List<IntegrationMethodTierDto> listSupportTiers() {
+        return integrationMethodRepository.findByLifecycleState(LifecycleType.ACTIVE).stream()
+                .filter(m -> m.getApplication() != null)
+                .map(m -> new IntegrationMethodTierDto(
+                        m.getApplication().getId(),
+                        m.getApplication().getDisplayName(),
+                        m.getId(),
+                        m.getRevision(),
+                        m.getDisplayName(),
+                        m.supportTier(),
+                        !m.linkedConnectors().isEmpty()))
+                .toList();
+    }
+
+    @Transactional
+    public void setFeatured(UUID applicationId, boolean featured) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Application not found with id: " + applicationId));
+        applicationTagService.setFeatured(application, featured);
+        applicationRepository.save(application);
     }
 }

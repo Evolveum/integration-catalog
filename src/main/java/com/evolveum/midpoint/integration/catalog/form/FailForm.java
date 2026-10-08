@@ -13,5 +13,9 @@ import lombok.Setter;
 @Getter
 public class FailForm {
     private String errorMessage;
-
+    private String integrationMethodRevision;
+    private String connectorBundleVersionId;
+    private String connectorBundleVersionRevision;
+    private String connectorVersionId;
+    private String connectorVersionRevision;
 }

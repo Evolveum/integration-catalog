@@ -184,6 +184,28 @@
 /* ========================================
    BADGES
    ======================================== */
+// "Toggle Featured": grey = not featured, green = featured on the homepage.
+.btn-featured {
+  background-color: #e9ecef;
+  color: #6c757d;
+
+  &:hover:not(:disabled) {
+    background-color: #dee2e6;
+    color: #495057;
+  }
+}
+
+.btn-featured-on {
+  background-color: #198754;
+  border-color: #198754 !important;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background-color: #157347;
+    color: #fff;
+  }
+}
+
 .badge-popular {
   background-color: #ffdd8c;
   color: #7A510B;
@@ -242,7 +264,7 @@
 }
 
 .badge-counter {
-  background-color: $color-dark-blue;
+  background-color: $color-brand-navy;
   color: white;
   width: 20px;
   height: 20px;
@@ -355,7 +377,7 @@
 .filter-chip {
   padding: 0.5rem 0.75rem;
   background-color: white;
-  border: 1px solid $color-dark-blue;
+  border: 1px solid $color-brand-navy;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -462,8 +484,8 @@
 }
 
 .checkbox-checked {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
 }
 
 .checkbox-unchecked {
@@ -472,7 +494,7 @@
 }
 
 .link-clear-filter {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.875rem;
   text-decoration: none;
 }
@@ -555,11 +577,11 @@
   background-color: transparent;
   border: none;
   padding: 0;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 600;
 
   &:hover {
-    color: color.adjust($color-dark-blue, $lightness: -10%);
+    color: color.adjust($color-brand-steel, $lightness: -10%);
     text-decoration: underline;
   }
 }
@@ -587,7 +609,7 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-dark-blue;
+  color: $color-primary-500;
   cursor: pointer;
   text-decoration: none;
 }
@@ -611,7 +633,7 @@
 }
 
 .breadcrumb-link:hover {
-  color: $color-dark-blue;
+  color: $color-primary-500;
   text-decoration: underline;
 }
 
@@ -635,7 +657,7 @@
    DOWNLOAD BUTTON
    ======================================== */
 .btn-download {
-  background-color: $midpoint-special-color;
+  background-color: $color-brand-steel;
   color: $btn-download-color;
   border: none;
 }
@@ -644,7 +666,7 @@
    PUBLISHING STATE
    ======================================== */
 .publishing-icon {
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
 }
 
 /* ========================================
@@ -706,7 +728,7 @@
   width: auto;
   min-width: 90px;
   border-radius: 50px;
-  border: 1px solid $color-dark-blue;
+  border: 1px solid $color-brand-navy;
   height: 38px;
   padding: 0 1rem;
   cursor: pointer;
@@ -719,7 +741,7 @@
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba($color-dark-blue, 0.2);
+    box-shadow: 0 0 0 2px rgba($color-brand-navy, 0.2);
   }
 }
 
@@ -749,7 +771,7 @@
 
   &.method-type-option-active {
     font-weight: 600;
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -802,21 +824,21 @@
 }
 
 .btn-create-method-primary {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
   color: #fff;
 }
 
 .btn-create-method-primary:hover {
-  background-color: color.adjust($color-dark-blue, $lightness: -8%);
-  border-color: color.adjust($color-dark-blue, $lightness: -8%);
+  background-color: color.adjust($color-brand-navy, $lightness: -8%);
+  border-color: color.adjust($color-brand-navy, $lightness: -8%);
   color: #fff;
 }
 
 .btn-add-method {
   background-color: #ffffff;
-  border: 1px solid $color-dark-blue;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
   padding: 0.5rem 1.25rem;
   border-radius: 4px;
   font-size: 0.875rem;
@@ -826,8 +848,8 @@
 
 .btn-add-method:hover {
   background-color: #f8f9fa;
-  border-color: $color-dark-blue;
-  color: $color-dark-blue;
+  border-color: $color-brand-navy;
+  color: $color-brand-steel;
 }
 
 /* ========================================
@@ -855,14 +877,14 @@
 .im-view-details-link {
   font-size: 0.875rem;
   font-weight: 600;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
 
   &:hover {
     text-decoration: underline;
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -871,6 +893,32 @@
   color: #7a4f00;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.im-badge-reviewing {
+  background-color: #cfe2f3;
+  color: #0b3d66;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* "View ticket" link shown under the Under-review badge. */
+.im-ticket-link {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: $color-brand-steel;
+  text-decoration: underline;
+  // .im-row-actions below is pulled up by a negative margin (see .im-row-actions) and its box
+  // covers this link even though its buttons are right-aligned. On hover that box becomes
+  // visible and would otherwise take the click, so lift the link above it.
+  position: relative;
+  z-index: 1;
+
+  &:hover {
+    color: $color-brand-steel-dark;
+  }
 }
 
 .im-badge-published {
@@ -899,6 +947,70 @@
   margin-bottom: 0.5rem;
 }
 
+/* Amber "Obsolete" tag inside a connector chip. */
+.connector-obsolete-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background-color: #fff3cd;
+  color: #7a4f00;
+  border: 1px solid #f5e2b8;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* Connector chip in the "Connectors" section; hovering it reveals the
+   connector's description in a tooltip above the chip. */
+.badge-connector {
+  position: relative;
+  overflow-wrap: anywhere;
+  text-align: left;
+  cursor: default;
+}
+
+.badge-connector .connector-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  width: max-content;
+  max-width: 320px;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.badge-connector .connector-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-width: 8px 4px;
+  border-top-color: $color-text-dark;
+}
+
+.badge-connector:hover .connector-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
 .im-method-tag {
   font-size: 0.8rem;
   color: #495057;
@@ -908,6 +1020,19 @@
   background: white;
 }
 
+/* Support tier: a chip for visitors, the same colors on the reviewer's select. */
+.im-tier-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+}
+
+.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
+
 /* ========================================
    COLLAPSIBLE METHOD CARD
    ======================================== */
@@ -915,6 +1040,23 @@
   border: 1px solid #dee2e6;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.im-obsolete-warning {
+  background: #fdf6e3;
+  border: 1px solid #f5e2b8;
+  color: #7a5b00;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  margin: 0 1.25rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.im-obsolete-warning-icon {
+  color: #d9a300;
+  margin-top: 0.2rem;
 }
 
 .im-method-header {
@@ -969,7 +1111,17 @@
 }
 
 .im-col-status {
-  flex: 0 0 220px;
+  flex: 0 0 260px;
+  // Full-height flex column so the always-visible approve/reject block can be
+  // pinned to the bottom of the row (see .im-row-actions-always).
+  display: flex;
+  flex-direction: column;
+
+  // Keep the state badge at its natural width; as a flex child it would
+  // otherwise stretch to the full column width.
+  > .badge {
+    align-self: flex-start;
+  }
 }
 
 .im-table-header {
@@ -986,14 +1138,21 @@
 .im-version-row {
   border-top: 1px solid #e9ecef;
   padding: 1rem 1.25rem;
-  cursor: pointer;
+  cursor: default;
   transition: background-color 0.15s;
   // Reserve room for the hover-revealed action buttons so the row height
-  // stays constant whether or not it is hovered.
-  min-height: 14.5rem;
+  // stays constant whether or not it is hovered. Published/rejected rows only
+  // stack up to three buttons, so they need far less than the review case.
+  min-height: 10rem;
 
   &:hover {
     background-color: #f8fbff;
+  }
+
+  // IN_REVIEW rows for superusers also render an always-visible Reject/Accept
+  // row beneath the hover actions, so they need the taller reserve.
+  &.im-version-row-review {
+    min-height: 12rem;
   }
 }
 
@@ -1025,6 +1184,11 @@
 .im-row-desc {
   color: #000;
   margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.app-description-text {
+  overflow-wrap: anywhere;
 }
 
 /* Hover-revealed per-version actions in the STATUS column */
@@ -1033,12 +1197,16 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.75rem;
-  margin-top: 0.6rem;
+  // Pull the stack up so the first button sits on the same horizontal line as
+  // the state badge (badge is left-aligned, buttons right-aligned).
+  margin-top: -1.7rem;
 }
 
-/* Always-visible actions (approve/reject) — not gated on hover */
+/* Always-visible actions (approve/reject) — not gated on hover.
+   Pinned to the bottom of the row, separated from the hover actions above. */
 .im-row-actions-always {
-  margin-top: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
 }
 
 .im-row-actions .btn,
@@ -1051,6 +1219,13 @@
   justify-content: center;
   gap: 0.4rem;
   white-space: nowrap;
+}
+
+/* Locked (under review) actions stay visible but non-interactive. */
+.im-row-actions .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* When approve/reject sit below, reserve the hover buttons' space (blank at rest)
@@ -1070,12 +1245,12 @@
 
 .btn-im-view-details {
   background: white;
-  border: 1px solid $midpoint-special-color;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-steel;
+  color: $color-brand-steel;
 
   &:hover {
     background: #f8f9fa;
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -1083,6 +1258,8 @@
   background: none;
   border: none;
   color: #dc3545;
+  // Nudge down so it sits slightly below the state-badge line.
+  margin-top: 0.25rem;
 
   &:hover {
     background: none;
@@ -1134,13 +1311,13 @@
 
 .btn-im-edit-upgrade {
   background-color: white;
-  border: 1px solid $midpoint-special-color;
-  color: $midpoint-special-color;
+  border: 1px solid $color-brand-steel;
+  color: $color-brand-steel;
   font-size: 0.8rem;
 
   &:hover:not(:disabled) {
     background-color: #f8f9fa;
-    color: $midpoint-special-color;
+    color: $color-brand-steel;
   }
 
   &:disabled {
@@ -1149,16 +1326,44 @@
   }
 }
 
+.btn-im-start-review {
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
+  color: white;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
+    color: white;
+  }
+}
+
+/* "Stop review" on a REVIEWING row — outline variant: white with dark-blue border/text,
+   filling dark blue on hover. */
+.btn-im-stop-review {
+  background-color: white;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
+    color: white;
+  }
+}
+
 .btn-im-download {
-  background-color: $midpoint-special-color;
-  border: 1px solid $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: white;
   font-size: 0.8rem;
 }
 
 .btn-im-download:hover:not(:disabled) {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
   color: white;
 }
 
@@ -1270,7 +1475,7 @@
 .cancel-keep-btn {
   background: none;
   border: none;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
 

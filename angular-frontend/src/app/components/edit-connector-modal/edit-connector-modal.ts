@@ -6,29 +6,54 @@
 
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, computed
-} from '@angular/core';
+  signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+
+/** Payload sent to updateConnector — also emitted for staging when deferSave is on. */
+export interface ConnectorEditPayload {
+  displayName: string;
+  description: string;
+  maintainer: Maintainer;
+  license: string | null;
+  projectHomepage: string | null;
+  supportPortal: string | null;
+  gitCloneUrl: string | null;
+  buildFramework: string | null;
+  pathToProject: string | null;
+  className: string | null;
+  bundleDisplayName: string | null;
+  commitTag: string | null;
+  version: string | null;
+  /** The version this edit was opened on, so the backend edits that row rather than guessing. */
+  baseVersion: string | null;
+  connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
+}
 
 @Component({
   selector: 'app-edit-connector-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker],
+  imports: [CommonModule, FormsModule, CapabilityPicker, MarkdownEditor, BackdropCloseDirective],
   templateUrl: './edit-connector-modal.html',
   styleUrls: ['./edit-connector-modal.scss']
 })
 export class EditConnectorModal implements OnInit {
-  @Input() appId = '';
   @Input() methodId = '';
   @Input() revision = '';
   @Input({ required: true }) connector!: ImplementationListItem;
+  /** When true, the modal does not persist; it emits the edit for the parent to stage. */
+  @Input() deferSave = false;
   @Output() close = new EventEmitter<void>();
   @Output() saved = new EventEmitter<void>();
+  @Output() stagedEdit = new EventEmitter<ConnectorEditPayload>();
 
   protected readonly isSaving = signal<boolean>(false);
   protected readonly saveError = signal<string>('');
@@ -39,16 +64,23 @@ export class EditConnectorModal implements OnInit {
   // ── Basic information & capabilities ──────────────────────
   protected readonly connectorName = signal<string>('');
   protected readonly connectorVersion = signal<string>('');
-  protected readonly connectorMaintainer = signal<string>('');
-  protected readonly maintainerOptions = signal<string[]>([]);
+  /** The version as loaded, kept while connectorVersion follows what the user types. */
+  private loadedVersion = '';
+  protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
-    return options.filter(o => o.toLowerCase().includes(search));
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
   });
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.connectorMaintainer()));
   protected readonly connectorLicense = signal<string>('');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
@@ -66,11 +98,13 @@ export class EditConnectorModal implements OnInit {
   protected readonly devClassName = signal<string>('');
 
   protected isJavaBased = false;
+  /**
+   * The license and the git clone URL are settled with the bundle's first version and fixed from then
+   * on — the backend answers a later change with 409 — so past that point they are shown read-only.
+   */
+  protected isInitialVersion = true;
 
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   // ── Validation ────────────────────────────────────────────
   protected readonly isGitCloneUrlInvalid = computed(() => {
@@ -86,15 +120,15 @@ export class EditConnectorModal implements OnInit {
 
   protected readonly isValid = computed(() => {
     const base = !!this.connectorName().trim()
-      && !!this.connectorMaintainer().trim()
+      && !!this.connectorMaintainer()
       && !!this.connectorLicense();
     if (!base) return false;
     const devOk = !!this.devGitCloneUrl().trim()
       && !!this.devCommitTag().trim()
-      && !!this.devProjectFolderPath().trim()
       && !this.isGitCloneUrlInvalid();
+    // Class name is optional; when given it still has to be a well-formed Java class name.
     const javaOk = !this.isJavaBased
-      || (!!this.devBuildTool() && !!this.devClassName().trim() && !this.isClassNameInvalid());
+      || (!!this.devBuildTool() && !this.isClassNameInvalid());
     return devOk && javaOk;
   });
 
@@ -106,15 +140,19 @@ export class EditConnectorModal implements OnInit {
   ngOnInit(): void {
     const c = this.connector;
     this.isJavaBased = c.bundleFramework === 'JAVA_BASED';
+    this.isInitialVersion = c.initialVersion;
 
-    this.connectorName.set(c.bundleDisplayName || c.name || '');
+    this.connectorName.set(c.connectorDisplayName || c.name || '');
     this.connectorVersion.set(c.version ?? '');
-    this.connectorMaintainer.set(c.maintainer ?? '');
+    this.loadedVersion = c.version ?? '';
+    this.connectorMaintainer.set(c.maintainer ?? null);
     this.connectorLicense.set(c.licenseType ?? '');
     this.connectorDescription.set(c.implementationDescription ?? '');
-    this.connectorBundleName.set(c.bundleName ?? '');
+    // The "connector bundle name" field is the bundle's label (connector_bundle.display_name);
+    // connector_bundle.bundle_name is the technical identity and is never shown or edited here.
+    this.connectorBundleName.set(c.bundleDisplayName ?? '');
 
-    this.devProjectHomepage.set(c.browseLink ?? '');
+    this.devProjectHomepage.set(c.projectHomepage ?? '');
     this.devSupportPortal.set(c.ticketingLink ?? '');
     this.devGitCloneUrl.set(c.gitCloneUrl ?? '');
     this.devCommitTag.set(c.commitTag ?? '');
@@ -125,29 +163,25 @@ export class EditConnectorModal implements OnInit {
 
     const caps: CapabilityGroup[] = (c.objectClassCapabilities ?? []).map(oc => ({
       objectClass: oc.objectName,
-      capabilityNames: oc.capabilities ?? []
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
     }));
     this.initialCapabilities.set(caps);
     this.connectorCapabilities.set(caps);
 
-    this.connectorMaintainer.set(c.maintainer ?? this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(c.maintainer ?? this.authService.defaultMaintainer());
     this.initMaintainerOptions();
   }
 
   private initMaintainerOptions(): void {
-    const currentUser = this.authService.currentUser();
-    const role = this.authService.currentRole();
-    const orgName = this.authService.currentOrganizationName();
-
-    if (role === UserRole.Superuser) {
+    if (this.authService.currentRole() === UserRole.Superuser) {
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
       });
-    } else if (role === UserRole.OrganizationContributor && orgName) {
-      this.maintainerOptions.set([orgName]);
-    } else if (currentUser) {
-      this.maintainerOptions.set([currentUser]);
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
     }
   }
 
@@ -166,15 +200,23 @@ export class EditConnectorModal implements OnInit {
     setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
   }
 
-  protected selectMaintainerOption(option: string): void {
+  protected selectMaintainerOption(option: Maintainer): void {
     this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
   }
 
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.connectorMaintainer());
+  }
+
   // ── License combobox ──────────────────────────────────────
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   protected onLicenseBlur(): void {
@@ -197,29 +239,38 @@ export class EditConnectorModal implements OnInit {
       this.saveError.set('This connector cannot be edited (missing identifier).');
       return;
     }
-    this.isSaving.set(true);
     this.saveError.set('');
 
-    const payload = {
+    const payload: ConnectorEditPayload = {
       displayName: this.connectorName(),
       description: this.connectorDescription(),
-      maintainer: this.connectorMaintainer(),
+      maintainer: this.connectorMaintainer()!,
       license: this.connectorLicense() || null,
-      browseLink: this.devProjectHomepage() || null,
+      projectHomepage: this.devProjectHomepage() || null,
       supportPortal: this.devSupportPortal() || null,
       gitCloneUrl: this.devGitCloneUrl() || null,
       buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
       pathToProject: this.devProjectFolderPath() || null,
       className: this.devClassName() || null,
-      bundleName: this.connectorBundleName() || null,
+      bundleDisplayName: this.connectorBundleName() || null,
       commitTag: this.devCommitTag() || null,
+      version: this.connectorVersion().trim() || null,
+      baseVersion: this.loadedVersion.trim() || null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
-        capabilityNames: g.capabilityNames
+        capabilityNames: g.capabilityNames,
+        resourceWide: g.resourceWide
       }))
     };
 
-    this.appService.updateConnector(this.appId, this.methodId, this.revision, connectorId, payload)
+    // Deferred: hand the edit to the parent to stage; nothing is persisted here.
+    if (this.deferSave) {
+      this.stagedEdit.emit(payload);
+      return;
+    }
+
+    this.isSaving.set(true);
+    this.appService.updateConnector(this.methodId, this.revision, connectorId, payload)
       .subscribe({
         next: () => { this.isSaving.set(false); this.saved.emit(); },
         error: err => {

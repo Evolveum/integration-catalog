@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,6 +37,10 @@ public class Application {
         ACTIVE,
         WITH_ERROR
     }
+
+    /** Column sizes: application.display_name varchar(255), application.description varchar(350). */
+    public static final int DISPLAY_NAME_MAX = 255;
+    public static final int DESCRIPTION_MAX = 350;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -65,7 +69,10 @@ public class Application {
     @Column(name = "updated")
     private LocalDateTime updated;
 
+    // Ordered by creation time (inherited across revisions) then revision, so a method
+    // keeps a stable position in the detail list even after edits/approvals.
     @OneToMany(mappedBy = "application", fetch = FetchType.EAGER)
+    @OrderBy("createdAt ASC, revision ASC")
     private List<IntegrationMethod> integrationMethods;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)

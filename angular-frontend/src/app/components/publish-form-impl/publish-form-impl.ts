@@ -4,20 +4,26 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, signal, computed, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, signal, computed, inject, Output, EventEmitter, Input, OnInit, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { MidpointVersion } from '../../models/application-detail.model';
+import { Observable, of, forkJoin } from 'rxjs';
+import { IntegrationMethodObjectCapabilities, MidpointVersion } from '../../models/application-detail.model';
 import { switchMap } from 'rxjs/operators';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { CatalogConnector } from '../../models/catalog-connector.model';
-import { IntegrationMethodCapabilityGroup } from '../../models/request.model';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
+import { SubmissionSuccessModal } from '../submission-success-modal/submission-success-modal';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/commit-help';
+import { LinksService } from '../../services/links.service';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
+import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -29,20 +35,22 @@ export interface ReviewSummary {
   methodName: string;
   methodVersion: string;
   methodDescription: string;
+  methodLimitations: string;
   methodTutorial: string;
+  methodMaintainer: Maintainer | null;
   applicationDescription: string;
   origins: string[];
   category: string;
   deploymentType: string;
   logoFile: File | null;
-  tutorialFile: File | null;
-  imCapabilities: IntegrationMethodCapabilityGroup[];
+  tutorialFiles: File[];
+  imCapabilities: IntegrationMethodObjectCapabilities[];
 }
 
 export interface Step5FormData {
   connectorName: string;
   connectorVersion: string;
-  connectorMaintainer: string;
+  connectorMaintainer: Maintainer | null;
   connectorLicense: string;
   connectorDescription: string;
   connectorBundleName: string;
@@ -61,7 +69,7 @@ export interface Step5FormData {
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CapabilityPicker],
+  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal, MarkdownEditor],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })
@@ -89,31 +97,30 @@ export class PublishFormImpl implements OnInit, OnChanges {
   // Basic info
   protected readonly connectorName = signal<string>('');
   // New connectors are always versioned 1.0.0 (field is read-only); existing catalog connectors overwrite this.
-  protected readonly connectorVersion = signal<string>('1.0.0');
-  protected readonly connectorMaintainer = signal<string>('');
-  protected readonly maintainerOptions = signal<string[]>([]);
+  protected readonly connectorVersion = signal<string>('');
+  protected readonly connectorMaintainer = signal<Maintainer | null>(null);
+  protected readonly maintainerLabel = maintainerLabel;
+  protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
   protected readonly isMaintainerDropdownOpen = signal<boolean>(false);
   protected readonly filteredMaintainerOptions = computed(() => {
     const search = this.maintainerSearch().toLowerCase().trim();
     const options = this.maintainerOptions();
     if (!search) return options;
-    return options.filter(o => o.toLowerCase().includes(search));
+    return options.filter(o => maintainerLabel(o).toLowerCase().includes(search));
   });
-  protected readonly connectorLicense = signal<string>('');
+  /** What the combobox input shows: the search being typed, or the chosen maintainer. */
+  protected readonly maintainerText = computed(() =>
+    this.isMaintainerDropdownOpen()
+      ? this.maintainerSearch()
+      : maintainerLabel(this.connectorMaintainer()));
+  protected readonly connectorLicense = signal<string>('EUPL');
   protected readonly isLicenseDropdownOpen = signal<boolean>(false);
   protected readonly connectorDescription = signal<string>('');
   protected readonly connectorBundleName = signal<string>('');
-  protected readonly bundleNameTaken = signal<boolean>(false);
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT',
-    'APACHE_2': 'Apache 2.0',
-    'BSD': 'BSD',
-    'EUPL': 'EUPL 1.2'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   // Connector capabilities (from CapabilityPicker child)
@@ -130,13 +137,21 @@ export class PublishFormImpl implements OnInit, OnChanges {
   protected readonly devRepoOwnership = signal<'evolveum' | 'own'>('evolveum');
   protected readonly devGithubApiKey = signal<string>('');
   protected readonly showGithubApiKey = signal<boolean>(false);
+  protected readonly isCommitHelpOpen = signal<boolean>(false);
+  protected readonly commitHelpTitle = COMMIT_HELP_TITLE;
+  protected readonly commitHelpSteps = COMMIT_HELP_STEPS;
   protected readonly devSourceFile = signal<File | null>(null);
   protected readonly devSourceFileDragOver = signal<boolean>(false);
 
   // Compatibility step
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
+  /* newest version first in the dropdowns; range validation uses the ascending midpointVersions order */
+  protected readonly midpointVersionsDesc = computed(() => [...this.midpointVersions()].reverse());
   protected readonly midpointMinVersionId = signal<number | null>(null);
   protected readonly midpointMaxVersionId = signal<number | null>(null);
+  /** Supported application range, free text: only saved, not checked or used for filtering. */
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
   protected readonly compatInfoDismissed = signal<boolean>(false);
   protected readonly connectorVersionFrom = signal<string>('');
   protected readonly connectorVersionTo = signal<string>('');
@@ -144,12 +159,11 @@ export class PublishFormImpl implements OnInit, OnChanges {
   // Publish state
   protected readonly publishConfirmed = signal<boolean>(false);
   protected readonly licenseExpanded = signal<boolean>(false);
+  protected readonly links = inject(LinksService).links;
   protected readonly isPublishing = signal<boolean>(false);
   protected readonly publishComplete = signal<boolean>(false);
-  protected readonly publishCreatedOn = signal<Date | null>(null);
   protected readonly publishedVersionId = signal<string | null>(null);
   protected readonly publishedApplicationId = signal<string | null>(null);
-  protected readonly emailCopied = signal<boolean>(false);
   protected readonly showVersionExistsWarning = signal<boolean>(false);
   protected readonly existingVersion = signal<string>('');
 
@@ -164,8 +178,10 @@ export class PublishFormImpl implements OnInit, OnChanges {
     return this.connectorType === 'java-based';
   }
 
+  /** Both "from" versions are the ones the method is stated to have been tested with, so both are required. */
   protected get isCompatibilityStepValid(): boolean {
-    return this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid();
+    return this.midpointMinVersionId() !== null && !this.isMidpointVersionRangeInvalid()
+            && this.connectorVersionFrom().trim() !== '';
   }
 
   protected getMidpointVersionLabel(id: number | null): string {
@@ -190,13 +206,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     return maxLabel ? `${minLabel} – ${maxLabel}` : `${minLabel}+`;
   });
 
-  protected readonly isConnectorVersionInvalid = computed(() => {
-    if (this.isExistingConnector) return false;
-    const v = this.connectorVersion().trim();
-    if (!v) return false;
-    return (v.match(/\./g) ?? []).length < 2;
-  });
-
   protected readonly isGitCloneUrlInvalid = computed(() => {
     const url = this.devGitCloneUrl();
     return !!url && !url.trim().endsWith('.git');
@@ -213,17 +222,24 @@ export class PublishFormImpl implements OnInit, OnChanges {
     if (this.isExistingConnector) return true;
     if (this.connectorCapabilities().length === 0) return false;
     if (!this.connectorVersion().trim()) return false;
-    if (this.isConnectorVersionInvalid()) return false;
-    if (this.bundleNameTaken()) return false;
     if (this.connectorType !== 'evolveum-hosted') {
-      if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim() || !this.devProjectFolderPath().trim()) return false;
+      if (!this.devGitCloneUrl().trim() || !this.devCommitTag().trim()) return false;
       if (this.isGitCloneUrlInvalid()) return false;
     }
     if (this.connectorType === 'java-based') {
-      if (!this.devBuildTool() || !this.devClassName().trim()) return false;
+      if (!this.devBuildTool()) return false;
     }
     if (this.isClassNameInvalid()) return false;
     return true;
+  }
+
+  /**
+   * The integration method's name, quoted, for the compatibility-step note. Empty when the method has
+   * not been named yet, so the sentence still reads correctly without it.
+   */
+  protected get compatScopeName(): string {
+    const name = this.reviewSummary?.methodName?.trim();
+    return name ? ` “${name}”` : '';
   }
 
   protected get connectorTypeLabel(): string {
@@ -242,25 +258,20 @@ export class PublishFormImpl implements OnInit, OnChanges {
     private authService: AuthService,
     private router: Router
   ) {
-    const currentUser = this.authService.currentUser();
-    const role = this.authService.currentRole();
-    const orgName = this.authService.currentOrganizationName();
-
-    if (role === UserRole.Superuser) {
+    if (this.authService.currentRole() === UserRole.Superuser) {
       this.authService.getAllMaintainers().subscribe({
         next: (all) => this.maintainerOptions.set(all),
-        error: () => this.maintainerOptions.set(currentUser ? [currentUser] : [])
+        // An unreachable directory leaves the superuser their own options rather than none.
+        error: () => this.maintainerOptions.set(this.authService.maintainerOptions())
       });
-    } else if (role === UserRole.OrganizationContributor && orgName) {
-      this.maintainerOptions.set([orgName]);
-    } else if (currentUser) {
-      this.maintainerOptions.set([currentUser]);
+    } else {
+      this.maintainerOptions.set(this.authService.maintainerOptions());
     }
   }
 
   ngOnInit(): void {
     if (!this.connectorMaintainer()) {
-      this.connectorMaintainer.set(this.authService.currentUser() ?? '');
+      this.connectorMaintainer.set(this.authService.defaultMaintainer());
     }
     this.applicationService.getMidpointVersions().subscribe({
       next: (versions) => this.midpointVersions.set(versions)
@@ -321,14 +332,13 @@ export class PublishFormImpl implements OnInit, OnChanges {
 
   private resetFields(): void {
     this.connectorName.set('');
-    this.connectorVersion.set('1.0.0');
+    this.connectorVersion.set('');
     this.connectorVersionFrom.set('');
     this.connectorVersionTo.set('');
-    this.connectorMaintainer.set(this.authService.currentUser() ?? '');
-    this.connectorLicense.set('');
+    this.connectorMaintainer.set(this.authService.defaultMaintainer());
+    this.connectorLicense.set('EUPL');
     this.connectorDescription.set('');
     this.connectorBundleName.set('');
-    this.bundleNameTaken.set(false);
     this.connectorCapabilities.set([]);
     this.capabilityPicker?.reset();
     this.devProjectHomepage.set('');
@@ -344,7 +354,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devSourceFile.set(null);
     this.devSourceFileDragOver.set(false);
     this.publishComplete.set(false);
-    this.publishCreatedOn.set(null);
     this.publishedVersionId.set(null);
     this.publishedApplicationId.set(null);
   }
@@ -353,25 +362,26 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.connectorName.set(connector.displayName ?? '');
     this.connectorVersion.set(connector.version ?? '');
     this.connectorVersionFrom.set(connector.version ?? '');
-    this.connectorMaintainer.set(connector.maintainer ?? this.authService.currentUser() ?? '');
+    this.connectorMaintainer.set(connector.maintainer ?? this.authService.defaultMaintainer());
     this.connectorLicense.set(connector.licenseType ?? '');
     this.connectorDescription.set(connector.description ?? '');
     this.connectorBundleName.set(connector.bundleDisplayName ?? '');
-    this.devProjectHomepage.set(connector.browseLink ?? '');
+    this.devProjectHomepage.set(connector.projectHomepage ?? '');
     this.devGitCloneUrl.set(connector.gitCloneUrl ?? '');
     this.devProjectFolderPath.set(connector.pathToProject ?? '');
     this.devClassName.set(connector.className ?? '');
     const bf = (connector.buildFramework ?? '').toLowerCase();
     this.devBuildTool.set(bf === 'maven' || bf === 'gradle' ? bf as 'maven' | 'gradle' : '');
-    this.devSupportPortal.set('');
-    this.devCommitTag.set('');
+    this.devSupportPortal.set(connector.ticketingLink ?? '');
+    this.devCommitTag.set(connector.commitTag ?? '');
     this.devRepoOwnership.set('evolveum');
     this.devGithubApiKey.set('');
     this.showGithubApiKey.set(false);
 
     const caps: CapabilityGroup[] = (connector.objectClassCapabilities ?? []).map(oc => ({
       objectClass: oc.objectName,
-      capabilityNames: oc.capabilities ?? []
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
     }));
     this.connectorCapabilities.set(caps);
   }
@@ -399,30 +409,37 @@ export class PublishFormImpl implements OnInit, OnChanges {
         displayName: summary?.methodName ?? '',
         revision: summary?.methodVersion ?? '',
         description: summary?.methodDescription ?? '',
+        limitations: summary?.methodLimitations ?? '',
         tutorial: summary?.methodTutorial ?? '',
+        maintainer: summary?.methodMaintainer ?? null,
         typeIds: summary?.methodTypeIds ?? [],
         midpointMinVersion: this.midpointMinVersionId(),
-        midpointMaxVersion: this.midpointMaxVersionId()
+        midpointMaxVersion: this.midpointMaxVersionId(),
+        appMinVersion: this.appMinVersion().trim() || null,
+        appMaxVersion: this.appMaxVersion().trim() || null
       },
       connector: {
         displayName: this.connectorName(),
         description: this.connectorDescription(),
-        maintainer: this.connectorMaintainer(),
+        maintainer: this.connectorMaintainer()!,
         framework: this.isExistingConnector
             ? (this.selectedCatalogConnector?.bundleFramework ?? 'JAVA_BASED')
             : this.mapConnectorTypeToFramework(this.connectorType),
         license: this.connectorLicense() || null,
         ticketingSystemLink: this.devSupportPortal() || null,
-        browseLink: this.devProjectHomepage() || null,
+        projectHomepage: this.devProjectHomepage() || null,
         gitCloneUrl: this.devGitCloneUrl() || null,
         buildFramework: this.devBuildTool() ? this.devBuildTool().toUpperCase() : null,
         pathToProject: this.devProjectFolderPath() || null,
         className: this.devClassName() || null,
-        bundleName: null,
         version: versionOverride ?? this.connectorVersion() ?? null,
         commitTag: this.devCommitTag() || null,
         bundleDisplayName: this.connectorBundleName() || null,
-        connectorBundleId: this.isExistingConnector ? (this.selectedCatalogConnector?.id ?? null) : null
+        // Picking a published connector links it as it is; every field above is disabled in that case,
+        // so there is nothing to copy it for. Without this the backend would build a duplicate of it.
+        existingConnectorId: this.isExistingConnector ? (this.selectedCatalogConnector?.connectorId ?? null) : null,
+        connectorMinVersion: this.connectorVersionFrom() || null,
+        connectorMaxVersion: this.connectorVersionTo() || null
       },
       files: [],
       integrationMethodCapabilities: summary?.imCapabilities ?? [],
@@ -441,8 +458,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
           ? this.applicationService.uploadLogo(applicationId, summary.logoFile)
           : of(null);
 
-        const tutorialUpload$: Observable<unknown> = (integrationMethodId && summary?.tutorialFile)
-          ? this.applicationService.uploadTutorial(integrationMethodId, summary.tutorialFile)
+        const tutorialFiles = summary?.tutorialFiles ?? [];
+        const tutorialUpload$: Observable<unknown> = (integrationMethodId && tutorialFiles.length > 0)
+          ? forkJoin(tutorialFiles.map(file => this.applicationService.uploadTutorial(integrationMethodId, file)))
           : of(null);
 
         return logoUpload$.pipe(
@@ -453,14 +471,12 @@ export class PublishFormImpl implements OnInit, OnChanges {
     ).subscribe({
       next: () => {
         this.isPublishing.set(false);
-        this.publishCreatedOn.set(new Date());
         this.publishComplete.set(true);
       },
       error: (error: HttpErrorResponse) => {
         this.isPublishing.set(false);
         const isPostPublishError = !!this.publishedApplicationId();
         if (isPostPublishError) {
-          this.publishCreatedOn.set(new Date());
           this.publishComplete.set(true);
           console.error('Logo or tutorial upload failed:', error);
         } else {
@@ -475,16 +491,9 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.existingVersion.set('');
   }
 
-  protected copyEmailToClipboard(): void {
-    navigator.clipboard.writeText('help@evolveum.com').then(() => {
-      this.emailCopied.set(true);
-      setTimeout(() => this.emailCopied.set(false), 3000);
-    });
-  }
-
-  protected navigateToAppDetail(): void {
-    const id = this.publishedApplicationId() || this.reviewSummary?.applicationId;
-    if (id) this.router.navigate(['/applications', id], { state: { showVersions: true } });
+  /** Leaves the finished wizard, which is what both closing the modal and "Done" mean. */
+  protected finishPublish(): void {
+    this.router.navigate(['/']);
   }
 
   protected printConsentDocument(): void {
@@ -494,7 +503,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
         `complies with Evolveum's Terms of Use and Acceptable Use Policy.`,
       `You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce, adapt, ` +
         `modify, translate, publish, publicly perform, publicly display and distribute this content solely for the ` +
-        `purpose of hosting and displaying it in the Integration Catalog under the license you have selected. Any ` +
+        `purpose of hosting and displaying it in the MidPoint Integration Catalog under the license you have selected. Any ` +
         `tutorial, documentation, or descriptive text accompanying your submission will be published under Evolveum's ` +
         `standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International ` +
         `(CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector or configuration ` +
@@ -524,10 +533,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
-  }
-
-  protected cancelPublish(): void {
-    this.router.navigate(['/applications']);
   }
 
   private extractApplicationIdFromResponse(response: string): string | null {
@@ -560,11 +565,19 @@ export class PublishFormImpl implements OnInit, OnChanges {
     setTimeout(() => this.isMaintainerDropdownOpen.set(false), 150);
   }
 
-  protected selectMaintainerOption(option: string): void {
+  protected selectMaintainerOption(option: Maintainer): void {
     this.connectorMaintainer.set(option);
     this.maintainerSearch.set('');
     this.isMaintainerDropdownOpen.set(false);
     this.emitChange();
+  }
+
+  protected maintainerOptionLabel(option: Maintainer): string {
+    return this.authService.maintainerOptionLabel(option);
+  }
+
+  protected isMaintainerSelected(option: Maintainer): boolean {
+    return this.authService.isSameMaintainer(option, this.connectorMaintainer());
   }
 
   protected onLicenseBlur(): void {
@@ -587,15 +600,6 @@ export class PublishFormImpl implements OnInit, OnChanges {
     this.devSourceFileDragOver.set(false);
     const file = event.dataTransfer?.files?.[0] ?? null;
     if (file) { this.devSourceFile.set(file); this.onFieldChange(); }
-  }
-
-  protected onBundleNameBlur(): void {
-    const name = this.connectorBundleName().trim();
-    if (!name) return;
-    this.applicationService.checkBundleNameExists(name).subscribe({
-      next: (exists) => this.bundleNameTaken.set(exists),
-      error: () => this.bundleNameTaken.set(false)
-    });
   }
 
 

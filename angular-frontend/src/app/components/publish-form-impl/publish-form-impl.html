@@ -16,62 +16,18 @@
   </div>
 }
 
-<!-- Email copied toast -->
-@if (emailCopied()) {
-  <div class="position-fixed bottom-0 start-50 translate-middle-x pb-4" style="z-index:9999;">
-    <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 shadow-sm" style="background:#212529; color:#fff; font-size:0.875rem;">
-      <i class="fa-solid fa-check"></i> Email address copied to clipboard
-    </div>
-  </div>
-}
-
-<!-- Step 7: Publish confirmation -->
+<!-- Step 7: submission confirmation, over the finished wizard -->
 @if (publishComplete()) {
-  <div class="publish-complete-wrap">
-    <i class="fa-regular fa-clock publish-complete-clock"></i>
-    <h4 class="publish-complete-title">Your integration method is awaiting approval</h4>
-    <p class="publish-complete-subtitle">
-      Our team will process your integration method promptly and expects to get back to you
-      <strong>within 1-4 weeks</strong>. If you have questions, please contact us at.
-      <!-- <a href="mailto:help&#64;evolveum.com" class="publish-email-link">help&#64;evolveum.com</a>. -->
-    </p>
-
-    <table class="publish-complete-table">
-      <thead>
-        <tr>
-          <th>Created on</th>
-          <th>Status</th>
-          <th>Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{{ publishCreatedOn() | date:'MMMM d, yyyy' }}</td>
-          <td><span class="publish-status-badge">Awaiting approval</span></td>
-          <td>
-            <button type="button" class="btn publish-app-detail-btn btn-sm" (click)="cancelPublish()">Cancel</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="publish-complete-footer">
-      @if (publishedApplicationId() || reviewSummary?.applicationId) {
-        <button type="button" class="btn btn-outline-secondary publish-app-detail-btn" (click)="navigateToAppDetail()">
-          @if (reviewSummary?.applicationLogoUrl) {
-            <img [src]="reviewSummary!.applicationLogoUrl" [alt]="reviewSummary!.applicationName" class="publish-app-detail-icon">
-          }
-          {{ reviewSummary?.applicationName }} application detail
-        </button>
-      }
-      <button type="button" class="btn btn-publish" routerLink="/">
-        Return to Integration catalog
-      </button>
-    </div>
-  </div>
+  <app-submission-success-modal
+    title="Integration method submitted for review"
+    subtitle="Method is now awaiting for approval"
+    [methodId]="publishedVersionId() ?? ''"
+    [revision]="reviewSummary?.methodVersion ?? ''"
+    (done)="finishPublish()"
+    (dismissed)="finishPublish()">
+  </app-submission-success-modal>
 }
 
-@if (!publishComplete()) {
   <!-- Modal body: step 5 or step 6 -->
   <div class="modal-body modal-body-upload">
 
@@ -79,6 +35,16 @@
     @if (internalStep() === 5) {
       <div class="step-content">
         <h5 class="step-title">Add connector</h5>
+
+        <!-- Note alert -->
+        @if (isExistingConnector) {
+          <div class="alert-info-note d-flex gap-2 align-items-start mt-2 mb-3">
+            <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+            <span class="alert-text">
+              <strong>Note</strong>&nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
+            </span>
+          </div>
+        }
 
         <!-- Accordion: Basic Information & Capabilities -->
         <div class="accordion-panel mb-3">
@@ -102,8 +68,10 @@
                     </span>
                   </label>
                   <input type="text" class="form-control"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="connectorName()"
                          (input)="connectorName.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
                          placeholder="Enter connector name">
                 </div>
                 <div class="col-4">
@@ -111,18 +79,16 @@
                     Connector version@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                       <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">Version of this connector (e.g. 1.0.0). Must contain at least two dots.</span>
+                      <span class="info-tooltip">Version of this connector (e.g. 1.0.0).</span>
                     </span>
                   </label>
                   <input type="text"
                          [class.form-control]="true"
-                         [class.input-disabled]="true"
+                         [class.input-disabled]="isExistingConnector"
                          [value]="connectorVersion()"
-                         disabled
-                         placeholder="e.g. 1.0.0">
-                  @if (isConnectorVersionInvalid() && !isExistingConnector) {
-                    <div class="field-error">Version must contain at least two dots (e.g. 1.0.0).</div>
-                  }
+                         (input)="connectorVersion.set($any($event.target).value); onFieldChange()"
+                         [disabled]="isExistingConnector"
+                         placeholder="e.g. 5.0.3">
                 </div>
               </div>
 
@@ -138,7 +104,7 @@
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
                          [class.input-disabled]="isExistingConnector"
-                         [value]="isMaintainerDropdownOpen() ? maintainerSearch() : connectorMaintainer()"
+                         [value]="maintainerText()"
                          (input)="onMaintainerInput($event)"
                          (focus)="onMaintainerFocus()"
                          (blur)="onMaintainerBlur()"
@@ -146,8 +112,8 @@
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
-                      @for (option of filteredMaintainerOptions(); track option) {
-                        <div class="maintainer-option" (mousedown)="selectMaintainerOption(option)">{{ option }}</div>
+                      @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                        <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                       }
                     </div>
                   }
@@ -176,10 +142,10 @@
                   </div>
                   @if (isLicenseDropdownOpen()) {
                     <div class="license-dropdown">
-                      @for (opt of licenseOptions; track opt) {
+                      @for (opt of licenseTypes.options(); track opt.name) {
                         <div class="license-option"
-                             [class.license-option-selected]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</div>
+                             [class.license-option-selected]="connectorLicense() === opt.name"
+                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</div>
                       }
                     </div>
                   }
@@ -189,36 +155,11 @@
               <!-- Description -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
-                <textarea class="form-control" rows="4" maxlength="350" placeholder="Type description..."
-                          [class.input-disabled]="isExistingConnector"
-                          [value]="connectorDescription()"
-                          (input)="connectorDescription.set($any($event.target).value); onFieldChange()"
-                          [disabled]="isExistingConnector"></textarea>
-                <div class="char-counter text-end text-muted">{{ connectorDescription().length }} / 350 characters</div>
+                <app-markdown-editor [value]="connectorDescription()"
+                                     (valueChange)="connectorDescription.set($event); onFieldChange()"
+                                     [disabled]="isExistingConnector"
+                                     placeholder="Type description..."></app-markdown-editor>
               </div>
-
-              <!-- Connector bundle name (java-based only) -->
-              @if (isJavaBasedConnector) {
-              <div class="mb-4">
-                <label class="form-label form-label-upload">
-                  Connector bundle name
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Display name for the connector bundle grouping related connector versions.</span>
-                  </span>
-                </label>
-                <input type="text" class="form-control"
-                       [class.input-disabled]="isExistingConnector"
-                       [value]="connectorBundleName()"
-                       (input)="connectorBundleName.set($any($event.target).value); bundleNameTaken.set(false); onFieldChange()"
-                       (blur)="onBundleNameBlur()"
-                       [disabled]="isExistingConnector"
-                       placeholder="Enter connector bundle name">
-                @if (bundleNameTaken()) {
-                  <div class="field-error">This bundle name is already taken. Please choose a different one.</div>
-                }
-              </div>
-              }
 
               <!-- Connector capabilities -->
               <div class="mb-3">
@@ -249,7 +190,7 @@
                   Project homepage
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip"><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the Integration Catalog.</span>
+                    <span class="info-tooltip"><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the MidPoint Integration Catalog.</span>
                   </span>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
@@ -261,6 +202,7 @@
                          placeholder="e.g. https://github.com/Evolveum/connector-ldap">
                 </div>
               </div>
+
 
               <!-- Support portal -->
               <div class="mb-3">
@@ -347,7 +289,7 @@
                     </div>
                     <div class="form-text">
                       Need help creating a GitHub API key? See Github's guide on personal access tokens:
-                      <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token"
+                      <a [attr.href]="links()?.githubTokenGuide"
                          target="_blank" rel="noopener noreferrer" class="github-api-key-link">
                         How to create Github API Key <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem;"></i>
                       </a>
@@ -396,7 +338,7 @@
                   Git clone URL@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">The technical address used by the build system (Jenkins) to download the source code. Copy the 'Clone' URL from your repository.</span>
+                    <span class="info-tooltip">The technical address used by the build system to download the source code. Copy the 'Clone' URL from your repository.</span>
                   </span>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center"
@@ -430,14 +372,24 @@
                          [value]="devCommitTag()"
                          (input)="devCommitTag.set($any($event.target).value); onFieldChange()"
                          [disabled]="isExistingConnector"
-                         placeholder="e.g. a3F8c31">
+                         placeholder="e.g. 35e32b6a00dec02ae7d7c45c6b7106779a1246aa">
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
-                  <a href="https://google.com" target="_blank" rel="noopener" class="commit-help-link d-inline-flex align-items-center gap-1">
+                  <button type="button" class="commit-help-link d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
                     How to find it <i class="fa-solid fa-arrow-right"></i>
-                  </a>
+                  </button>
                 </div>
+                @if (isCommitHelpOpen()) {
+                  <app-download-info-modal
+                    [title]="commitHelpTitle"
+                    lead=""
+                    icon="fa-code-commit"
+                    [steps]="commitHelpSteps"
+                    note=""
+                    (closed)="isCommitHelpOpen.set(false)">
+                  </app-download-info-modal>
+                }
               </div>
 
               <!-- Implementation details -->
@@ -446,7 +398,7 @@
               <!-- Project folder path -->
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
-                  Project folder path@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                  Project folder path
                   <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                     <i class="fa-solid fa-circle-info info-icon"></i>
                     <span class="info-tooltip"><strong>Location of the connector within the repository</strong><br><br>Specify the folder where the connector source code is located. Leave this field empty if the code is in the main (root) directory of the repository.</span>
@@ -468,7 +420,7 @@
               @if (isJavaBasedConnector) {
                 <div class="mb-0">
                   <label class="form-label d-flex align-items-center form-label-upload">
-                    {{ isExistingConnector ? 'Connector entry class' : 'Class name' }}@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
+                    {{ isExistingConnector ? 'Connector entry class' : 'Connector class name' }}
                     <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
                       <i class="fa-solid fa-circle-info info-icon"></i>
                       <span class="info-tooltip"><strong>The main entry point of the connector logic.</strong><br><br>Specify the full Java class name that implements the connector. Unlike file paths, this uses dot notation to separate packages (e.g., com.example.MyConnector). This class tells midPoint which part of the code to execute.</span>
@@ -481,7 +433,7 @@
                            [value]="devClassName()"
                            (input)="devClassName.set($any($event.target).value); onFieldChange()"
                            [disabled]="isExistingConnector"
-                           placeholder="e.g. org.identityconnectors.ldap.LdapConnector">
+                           placeholder="e.g., com.evolveum.polygon.connector.ldap.LdapConnector">
                   </div>
                   @if (isClassNameInvalid() && !isExistingConnector) {
                     <div class="field-error">Invalid format. Use a full Java class name with dots (e.g., com.project.ConnectorClass) and no spaces.</div>
@@ -492,16 +444,6 @@
             </div>
           }
         </div>
-
-        <!-- Note alert -->
-        @if (isExistingConnector) {
-          <div class="alert-info-note d-flex gap-2 align-items-start mt-2">
-            <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
-            <span class="alert-text">
-              <strong>Note</strong>&nbsp;Existing connector selected (read-only). To choose a different one or create a new one, please go back.
-            </span>
-          </div>
-        }
       </div>
     }
 
@@ -510,9 +452,18 @@
       <div class="step-content">
         <h5 class="step-title">Compatibility settings</h5>
         <p class="compat-step-desc">
-          Specify which versions of midPoint and connectors this integration method supports. <br />
+          Specify which versions of midPoint, the application and connectors this integration method supports. <br />
           This helps users find Integration methods compatible with their environments.
         </p>
+
+        <!-- Both ranges are stored on the integration method, not on the connector. -->
+        <div class="alert-info-note d-flex gap-2 align-items-start mb-3">
+          <i class="fa-solid fa-circle-info alert-icon flex-shrink-0 mt-1"></i>
+          <span class="alert-text">
+            <strong>Note</strong>&nbsp;These settings belong to the integration method{{ compatScopeName }}, not to the
+            connector itself. Other integration methods using the same connector keep their own ranges.
+          </span>
+        </div>
 
         <!-- Supported midPoint version -->
         <div class="compat-section mb-4">
@@ -528,7 +479,7 @@
                       [ngModel]="midpointMinVersionId()"
                       (ngModelChange)="midpointMinVersionId.set($event)">
                 <option [ngValue]="null">Select version</option>
-                @for (v of midpointVersions(); track v.id) {
+                @for (v of midpointVersionsDesc(); track v.id) {
                   <option [ngValue]="v.id">{{ v.version }}</option>
                 }
               </select>
@@ -539,7 +490,7 @@
                       [ngModel]="midpointMaxVersionId()"
                       (ngModelChange)="midpointMaxVersionId.set($event)">
                 <option [ngValue]="null">Select version</option>
-                @for (v of midpointVersions(); track v.id) {
+                @for (v of midpointVersionsDesc(); track v.id) {
                   <option [ngValue]="v.id">{{ v.version }}</option>
                 }
               </select>
@@ -552,9 +503,37 @@
           }
         </div>
 
+        <!-- Supported application version -->
+        <div class="compat-section mb-4">
+          <h6 class="compat-section-title">Supported application version</h6>
+          <p class="compat-section-desc">
+            Define the range of {{ reviewSummary?.applicationName || 'application' }} versions that have been tested with this integration method.
+          </p>
+          <div class="d-flex align-items-end gap-3 mb-2">
+            <div>
+              <label class="form-label form-label-upload">From version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMinVersion()"
+                     (input)="appMinVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2024.1">
+            </div>
+            <div>
+              <label class="form-label form-label-upload">To version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMaxVersion()"
+                     (input)="appMaxVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2025.2">
+            </div>
+          </div>
+        </div>
+
         <!-- Connector version ranges -->
         <div class="compat-section">
           <h6 class="compat-section-title">Connector version ranges</h6>
+          <p class="compat-section-desc">
+            Define the connector version range supported by this integration. Only connectors within
+            the specified range will be available for use.
+          </p>
           <div class="compat-connector-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
@@ -594,7 +573,10 @@
                        placeholder="e.g. 1.0.0">
               </div>
             </div>
-            <div class="form-text mb-3">Enter a version in the X.Y.Z format. Users can search for this connector by version range.</div>
+            @if (!connectorVersionFrom().trim()) {
+              <div class="field-error">"From version" is required.</div>
+            }
+            <div class="form-text mb-3">Users can search for this connector by version range.</div>
             @if (!compatInfoDismissed()) {
               <div class="compat-info-note d-flex gap-2 align-items-center">
                 <i class="fa-solid fa-circle-info compat-info-icon flex-shrink-0"></i>
@@ -656,6 +638,12 @@
             <div class="d-flex align-items-center gap-2 mb-1">
               <span class="review-detail-name">{{ reviewSummary?.methodName }}</span>
             </div>
+            @if (reviewSummary?.methodMaintainer) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Maintainer:</span>
+                <span class="review-detail-value">{{ maintainerLabel(reviewSummary?.methodMaintainer) }}</span>
+              </div>
+            }
             <p class="review-description mb-0">Integration method description: {{ reviewSummary?.methodDescription }}</p>
           </div>
         </div>
@@ -724,7 +712,7 @@
             }
             @if (devClassName() && (connectorType === 'java-based' || isExistingConnector)) {
               <div class="review-detail-row">
-                <span class="review-detail-label">{{ isExistingConnector ? 'Connector entry class:' : 'Class name:' }}</span>
+                <span class="review-detail-label">{{ isExistingConnector ? 'Connector entry class:' : 'Connector class name:' }}</span>
                 <span class="review-detail-value"><i class="fa-solid fa-link review-link-icon me-1"></i>{{ devClassName() }}</span>
               </div>
             }
@@ -746,6 +734,15 @@
                 <span class="review-detail-value">
                   {{ getMidpointVersionLabel(midpointMinVersionId()) }}
                   @if (midpointMaxVersionId()) { &nbsp;-&nbsp;{{ getMidpointVersionLabel(midpointMaxVersionId()) }} }
+                </span>
+              </div>
+            }
+            @if (appMinVersion().trim() || appMaxVersion().trim()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Supported application version:</span>
+                <span class="review-detail-value">
+                  {{ appMinVersion().trim() || '—' }}
+                  @if (appMaxVersion().trim()) { &nbsp;-&nbsp;{{ appMaxVersion().trim() }} }
                 </span>
               </div>
             }
@@ -780,22 +777,22 @@
           <p class="publish-license-text">
             By publishing this integration method, you confirm that you hold all rights necessary to publish this content
             under the license you have selected, that the content does not infringe any third-party rights, and that it
-            complies with Evolveum's <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> and
-            <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+            complies with Evolveum's <a [attr.href]="links()?.termsOfUse" target="_blank" rel="noopener">Terms of Use</a> and
+            <a [attr.href]="links()?.acceptableUsePolicy" target="_blank" rel="noopener">Acceptable Use Policy</a>.
           </p>
 
           @if (licenseExpanded()) {
             <p class="publish-license-text">
               You grant Evolveum a perpetual, irrevocable, non-exclusive, royalty-free, worldwide license to reproduce,
               adapt, modify, translate, publish, publicly perform, publicly display and distribute this content solely
-              for the purpose of hosting and displaying it in the Integration Catalog under the license you have
+              for the purpose of hosting and displaying it in the MidPoint Integration Catalog under the license you have
               selected. Any tutorial, documentation, or descriptive text accompanying your submission will be published
               under Evolveum's standard documentation license, the Creative Commons Attribution-NonCommercial-NoDerivatives
               4.0 International (CC BY-NC-ND 4.0) license, regardless of the license you have selected for the connector
               or configuration itself. Evolveum reserves the right to remove or decline publication of any submitted
               content at its sole discretion, including but not limited to content that violates these
-              <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> or the
-              <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+              <a [attr.href]="links()?.termsOfUse" target="_blank" rel="noopener">Terms of Use</a> or the
+              <a [attr.href]="links()?.acceptableUsePolicy" target="_blank" rel="noopener">Acceptable Use Policy</a>.
             </p>
           }
 
@@ -847,12 +844,11 @@
         <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing() || !publishConfirmed()" (click)="publishIntegrationMethod()">
           @if (isPublishing()) {
             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            Publishing...
+            Submitting...
           } @else {
-            Publish integration method <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
+            Submit/send to approve <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
           }
         </button>
       }
     </div>
   </div>
-}

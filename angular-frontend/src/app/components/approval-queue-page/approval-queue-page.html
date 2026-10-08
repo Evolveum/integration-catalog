@@ -1,0 +1,273 @@
+<!--
+ * Copyright (c) 2010-2026 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<app-page-header [hideBorder]="true"/>
+
+<div class="ss-page">
+  <div class="ss-content">
+    <button type="button" class="ss-back d-flex align-items-center gap-2" (click)="goBack()">
+      <i class="fa-solid fa-arrow-left"></i>Back
+    </button>
+
+    <div class="ss-title-row">
+      <h1 class="ss-title">Approval queue</h1>
+      <p class="ss-subtitle">Manage integration methods across the catalog.</p>
+    </div>
+
+    @if (!isSuperuser()) {
+      <div class="ss-empty"><p class="mb-0">Only a superuser can see the approval queue.</p></div>
+    } @else {
+
+      <div class="ss-stats" style="--ss-stat-count: 3">
+        <div class="ss-stat" [class.ss-stat-active]="!hasFilters() && !!revisions()">
+          <div class="ss-stat-body">
+            <div class="ss-stat-label">Total methods</div>
+            <div class="ss-stat-value">{{ totalCount() }}</div>
+          </div>
+          <button type="button" class="ss-stat-link" (click)="viewItems(null)">View items</button>
+        </div>
+        <div class="ss-stat" [class.ss-stat-active]="isOnlyState('IN_REVIEW')">
+          <div class="ss-stat-body">
+            <div class="ss-stat-label">Awaiting approval</div>
+            <div class="ss-stat-value">{{ awaitingCount() }}</div>
+          </div>
+          <button type="button" class="ss-stat-link" (click)="viewItems('IN_REVIEW')">View items</button>
+        </div>
+        <div class="ss-stat" [class.ss-stat-active]="isOnlyState('REVIEWING')">
+          <div class="ss-stat-body">
+            <div class="ss-stat-label">In review</div>
+            <div class="ss-stat-value">{{ reviewingCount() }}</div>
+          </div>
+          <button type="button" class="ss-stat-link" (click)="viewItems('REVIEWING')">View items</button>
+        </div>
+      </div>
+
+      <!-- ==================== FILTERS ==================== -->
+      <div class="ss-filters d-flex flex-wrap align-items-center">
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:state'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="states().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:state'" (click)="toggleMenu('filter:state')">
+              <span>State</span>
+              @if (states().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ states().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (states().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear state filter"
+                      (click)="clearFilter('states')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:state') {
+            <app-filter-menu [options]="stateOptions" [selected]="states()"
+                             (toggle)="toggleState($event)" (clear)="clearFilter('states')"/>
+          }
+        </div>
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:application'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="applications().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:application'" (click)="toggleMenu('filter:application')">
+              <span>Application</span>
+              @if (applications().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ applications().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (applications().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear application filter"
+                      (click)="clearFilter('applications')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:application') {
+            <app-filter-menu [options]="applicationOptions()" [selected]="applications()"
+                             (toggle)="toggleApplication($event)" (clear)="clearFilter('applications')"/>
+          }
+        </div>
+        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:maintainer'">
+          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="maintainers().size > 0">
+            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                    [attr.aria-expanded]="openMenuKey() === 'filter:maintainer'" (click)="toggleMenu('filter:maintainer')">
+              <span>Maintainer</span>
+              @if (maintainers().size) {
+                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ maintainers().size }}</span>
+              }
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            @if (maintainers().size) {
+              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear maintainer filter"
+                      (click)="clearFilter('maintainers')">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            }
+          </div>
+          @if (openMenuKey() === 'filter:maintainer') {
+            <app-filter-menu [options]="maintainerOptions()" [selected]="maintainers()"
+                             (toggle)="toggleMaintainer($event)" (clear)="clearFilter('maintainers')"/>
+          }
+        </div>
+        <label class="ss-search d-flex align-items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
+        </label>
+      </div>
+
+      <!-- ==================== QUEUE ==================== -->
+      @if (loadFailed()) {
+        <div class="ss-empty">
+          <p class="mb-0">The approval queue could not be loaded.</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()">Try again</button>
+        </div>
+      } @else if (!revisions()) {
+        <div class="ss-empty">
+          <div class="spinner-border spinner-border-sm" role="status"></div>
+          <p class="mb-0">Loading…</p>
+        </div>
+      } @else if (!totalCount()) {
+        <div class="ss-empty">
+          <div class="ss-empty-title">The queue is empty</div>
+          <p class="mb-0">Nothing is waiting for approval or under review.</p>
+        </div>
+      } @else if (!rows().length) {
+        <div class="ss-empty">
+          <p class="mb-0">No integration method matches the filters.</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="resetFilters()">Clear filters</button>
+        </div>
+      } @else {
+        <div class="ss-group">
+          <table class="ss-table">
+            <thead>
+              <tr>
+                <th>Integration method</th>
+                <th class="aq-col-author">Submitted by</th>
+                <th class="aq-col-app">Application</th>
+                <th class="aq-col-status">Status</th>
+                <th class="aq-col-ticket">Ticket</th>
+                <th class="aq-col-queue">In queue</th>
+                <th class="aq-col-actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (rev of pagedRows(); track rev.id + ':' + rev.revision) {
+                <tr class="ss-row-clickable" (click)="openDetails(rev)">
+                  <td>
+                    <span class="d-flex align-items-center gap-2">
+                      <span class="aq-name">{{ rev.displayName }}</span>
+                      <span class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    @if (rev.author) {
+                      <span class="d-flex align-items-center gap-2">
+                        <span class="ss-avatar">{{ initials(rev.author) }}</span>{{ rev.author }}
+                      </span>
+                    } @else {
+                      <span class="ss-muted">—</span>
+                    }
+                  </td>
+                  <td>
+                    <a class="ss-link" [routerLink]="['/applications', rev.applicationId]"
+                       (click)="$event.stopPropagation()">{{ rev.applicationDisplayName }}</a>
+                  </td>
+                  <td>
+                    @if (rev.lifecycleState === 'IN_REVIEW') {
+                      <span class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span>
+                    } @else {
+                      <span class="ss-badge ss-badge-reviewing"><i class="fa-solid fa-lock"></i>Under review</span>
+                    }
+                  </td>
+                  <td>
+                    @if (rev.supportTicketUrl) {
+                      <a class="ss-link" [href]="rev.supportTicketUrl" target="_blank" rel="noopener"
+                         (click)="$event.stopPropagation()">#{{ rev.supportTicketId }}</a>
+                    } @else {
+                      <span class="ss-muted">—</span>
+                    }
+                  </td>
+                  <td [class.aq-overdue]="isOverdue(rev)">{{ inQueue(rev) }}</td>
+                  <td class="aq-col-actions" (click)="$event.stopPropagation()">
+                    @if (rev.lifecycleState === 'IN_REVIEW') {
+                      <button type="button" class="btn btn-sm ss-outline-btn" (click)="openStartReview(rev)">Start review</button>
+                    } @else {
+                      <div class="ss-menu-wrap d-inline-block" [class.ss-menu-open]="openMenuKey() === rowKey(rev)">
+                        <button type="button" class="btn btn-sm aq-actions-btn d-flex align-items-center gap-2"
+                                aria-haspopup="menu" [attr.aria-expanded]="openMenuKey() === rowKey(rev)"
+                                (click)="toggleMenu(rowKey(rev))">
+                          Actions<i class="fa-solid fa-caret-down"></i>
+                        </button>
+                        @if (openMenuKey() === rowKey(rev)) {
+                          <div class="ss-menu ss-menu-right aq-menu" role="menu">
+                            <button type="button" class="ss-menu-item" role="menuitem" (click)="openApprove(rev)">
+                              <i class="fa-solid fa-check"></i>Approve
+                            </button>
+                            <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="reject()">
+                              <i class="fa-solid fa-xmark"></i>Reject
+                            </button>
+                            <div class="ss-menu-separator"></div>
+                            <button type="button" class="ss-menu-item" role="menuitem" [disabled]="isProcessingStopReview()"
+                                    (click)="stopReview(rev)">
+                              <i class="fa-solid fa-rotate-left"></i>Stop review
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pager [page]="page()" [totalPages]="totalPages()" (pageChange)="goToPage($event)"/>
+      }
+    }
+  </div>
+</div>
+
+@if (openMenuKey()) {
+  <div class="ss-click-backdrop position-fixed top-0 start-0 end-0 bottom-0" (click)="closeMenu()"></div>
+}
+
+<!-- ==================== MODALS ==================== -->
+<!-- Approve opens the same panel as the detail page: it checks the build data and the ticket first. -->
+@if (confirmRevision(); as revision) {
+  <app-approval-confirm-modal
+    mode="approve"
+    [methodId]="revision.id"
+    [revision]="revision.revision"
+    [methodName]="confirmMethodName()"
+    [versionLabel]="'v' + revision.revision"
+    [submittedBy]="confirmSubmittedBy()"
+    [processing]="isProcessingApproval()"
+    [error]="approvalError()"
+    (confirm)="submitApprove()"
+    (cancel)="closeApprove()"
+    (manualFill)="openManualFill($event)">
+  </app-approval-confirm-modal>
+}
+
+@if (manualFillConnector(); as connector) {
+  <app-manual-fill-modal
+    [connector]="connector"
+    [methodId]="confirmRevision()?.id || ''"
+    (submit)="onManualFillSuccess()"
+    (cancel)="closeManualFill()">
+  </app-manual-fill-modal>
+}
+
+@if (startReviewRevision(); as revision) {
+  <app-start-review-modal
+    [versionLabel]="'v' + revision.revision"
+    [processing]="isProcessingStartReview()"
+    [error]="startReviewError()"
+    (confirm)="submitStartReview()"
+    (cancel)="closeStartReview()">
+  </app-start-review-modal>
+}

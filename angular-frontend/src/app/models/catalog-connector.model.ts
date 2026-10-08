@@ -1,21 +1,33 @@
+import { Maintainer } from './maintainer.model';
+
+import { ConnectorTag } from './connector-tag.model';
+
 export interface CatalogConnectorObjectClassCapability {
   objectName: string;          // conn_version_capability.object_class
   capabilities: string[];      // capability.name items
+  resourceWide: boolean;       // conn_version_capability.resource_wide; objectName is then only a label
 }
 
 export interface CatalogConnector {
-  id: number;
+  id: number;                // connector_bundle.id
+  connectorId: number;       // connector.id — links this connector on publish instead of copying it;
+                             // a bundle can hold several, so its id alone cannot say which
   displayName: string;       // connector.display_name
   description: string;       // connector.description
   version: string;           // connector.revision
   bundleDisplayName: string; // connector_bundle.display_name
-  maintainer: string;        // connector.maintainer
+  maintainer: Maintainer | null; // connector.maintainer
+  maintainerLabel: string;   // connector.maintainer as label
   licenseType: string;       // connector_bundle.license
   buildFramework: string;    // connector_bundle.build_framework
   bundleFramework: string;   // connector_bundle.framework
-  browseLink: string;        // latest connector_bundle_version.browse_link
-  gitCloneUrl: string;       // latest connector_bundle_version.git_clone_url
+  projectHomepage: string;   // connector_bundle.project_homepage
+  branchUrl: string;         // latest connector_bundle_version.browse_link
+  gitCloneUrl: string;       // connector_bundle.git_clone_ulr
+  ticketingLink: string | null; // connector_bundle.ticketing_link
+  commitTag: string | null;  // latest connector_bundle_version.commit_tag
   pathToProject: string;     // latest connector_bundle_version.path_to_project
   className: string;         // connector.fully_qualified_class_name
   objectClassCapabilities: CatalogConnectorObjectClassCapability[]; // conn_version_capability + items
+  tags: ConnectorTag[];      // connector_connector_tag + connector_tag
 }

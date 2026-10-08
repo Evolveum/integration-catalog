@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +14,7 @@ import lombok.experimental.Accessors;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,18 +24,30 @@ import java.util.List;
 @Table(name = "connector_bundle")
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorBundle {
+public class ConnectorBundle implements SetOwnership, GetOwnershipListMaintainer {
 
     public enum FrameworkType {
         JAVA_BASED,
         LOW_CODE
     }
 
+    /** Stored by constant name; the display name is how the catalog and its UI spell the license. */
     public enum LicenseType {
-        MIT,
-        APACHE_2,
-        BSD,
-        EUPL
+        MIT("MIT"),
+        APACHE_2("Apache 2.0"),
+        BSD("BSD"),
+        EUPL("EUPL 1.2"),
+        CDDL("CDDL");
+
+        private final String displayName;
+
+        LicenseType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
     }
 
     @Id
@@ -42,8 +55,18 @@ public class ConnectorBundle {
     private Integer id;
 
     private String revision;
-    private String author;
-    private String maintainer;
+
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
+
+    @ManyToMany
+    @JoinTable(
+            name = "connector_bundle_maintainers",
+            joinColumns = @JoinColumn(name = "connector_bundle_id"),
+            inverseJoinColumns = @JoinColumn(name = "maintainer_id")
+    )
+    private List<Maintainer> maintainer = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -99,4 +122,47 @@ public class ConnectorBundle {
 
     @OneToMany(mappedBy = "connectorBundle", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnectorBundleVersion> bundleVersions = new ArrayList<>();
+
+    /**
+     * Adds one maintainer, as {@link SetOwnership} writes ownership one maintainer at a time.
+     *
+     * <p>Hidden from Jackson: it would otherwise be a second setter for the {@code maintainer}
+     * property beside the list one, which is ambiguous enough that building a deserializer for
+     * this class fails outright - and it is built, because a request DTO names an enum nested here.
+     */
+    @JsonIgnore
+    @Override
+    public ConnectorBundle setMaintainer(Maintainer maintainer) {
+        if (!this.maintainer.contains(maintainer)) {
+            this.maintainer.add(maintainer);
+        }
+        return this;
+    }
+
+    public ConnectorBundle setMaintainer(List<Maintainer> maintainer) {
+        this.maintainer = maintainer;
+        return this;
+    }
+
+    public static ConnectorBundle createConnectorBundleDraft(ConnectorBundle source) {
+        ConnectorBundle clone = new ConnectorBundle();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        // The same maintainers, in a list of the clone's own: two entities sharing one collection
+        // instance is what Hibernate refuses as a "shared reference to a collection".
+        clone.setMaintainer(new ArrayList<>(source.getMaintainer()));
+        clone.setLifecycleState(LifecycleType.IN_REVIEW);
+        clone.setBundleName(source.getBundleName());
+        clone.setDisplayName(source.getDisplayName());
+        clone.setDescription(source.getDescription());
+        clone.setFramework(source.getFramework());
+        clone.setLicense(source.getLicense());
+        clone.setTicketingLink(source.getTicketingLink());
+        clone.setProjectHomepage(source.getProjectHomepage());
+        clone.setGitCloneUrl(source.getGitCloneUrl());
+        clone.setPathToProject(source.getPathToProject());
+        clone.setBuildFramework(source.getBuildFramework());
+        return clone;
+    }
+
 }

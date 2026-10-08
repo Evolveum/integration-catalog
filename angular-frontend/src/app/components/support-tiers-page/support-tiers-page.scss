@@ -1,0 +1,131 @@
+/*!
+  Copyright (c) 2010-2026 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.tiers-page {
+  background-color: $color-white;
+  min-height: calc(100vh - 56px);
+}
+
+.tiers-content {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+.tiers-back {
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: $color-text-muted;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-brand-navy;
+  }
+}
+
+.tiers-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.tiers-subtitle {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.tiers-chip {
+  border: 1px solid $color-border-input;
+  background: $color-white;
+  color: $color-text-secondary;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  &:hover {
+    background: $color-bg-hover;
+  }
+}
+
+// Soft brand tint rather than a solid primary fill.
+.tiers-chip-active,
+.tiers-chip-active:hover {
+  background: $color-bg-selected;
+  border-color: $color-brand-steel;
+  color: $color-brand-navy;
+  font-weight: 600;
+}
+
+.tiers-app {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.tiers-app-name {
+  display: block;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  color: $color-brand-navy;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    color: $color-brand-steel;
+    text-decoration: underline;
+  }
+}
+
+.tiers-method {
+  padding: 0.4rem 0;
+  border-top: 1px solid #f1f3f5;
+}
+
+.tiers-method-title {
+  min-width: 0;
+}
+
+// Tells apart published revisions of one method, which share its name.
+.tiers-version {
+  flex-shrink: 0;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid $color-border-light;
+  border-radius: 4px;
+  background-color: $color-bg-light;
+  font-size: 0.6875rem;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
+.tiers-method-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: $color-text-dark;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-brand-steel;
+    text-decoration: underline;
+  }
+}
+
+.tiers-badge {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+}
+
+// Same tier colors as the method cards on the application page.
+.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }

@@ -13,7 +13,6 @@ import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapability;
-import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapabilityItem;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnector;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
@@ -21,18 +20,19 @@ import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRep
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -48,15 +48,6 @@ import java.util.zip.ZipOutputStream;
 
 /**
  * Assembles a downloadable ZIP bundle for an integration-method revision, containing:
- * <ul>
- *     <li>the tutorial text (integration_method.tutorial), converted from Markdown to AsciiDoc, as
- *         {@code tutorial.adoc};</li>
- *     <li>every uploaded tutorial file from the method's file_path folder, under {@code files/};</li>
- *     <li>JSON metadata for the application, integration method, and connectors, under {@code metadata/};</li>
- *     <li>the connector build JAR, resolved from the method's linked connector and fetched from its
- *         {@code artifact_url}. If the method has no connector artifact (or the fetch fails), the JAR is
- *         omitted, a {@code NOTICE.txt} explaining why is added, and the bundle carries a warning.</li>
- * </ul>
  */
 @Slf4j
 @Service
@@ -64,26 +55,35 @@ public class BundleService {
 
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
+    private final OwnershipService ownershipService;
     private final ObjectWriter jsonWriter;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
+    private final HttpClient httpClient;
+    private final Duration readTimeout;
     /** Cache of fetched artifact bytes, keyed by artifact URL — release URLs are immutable. */
     private final Map<String, byte[]> artifactCache = new ConcurrentHashMap<>();
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService,
-                         ObjectMapper objectMapper) {
+                         OwnershipService ownershipService,
+                         ObjectMapper objectMapper,
+                         @Value("${catalog.bundle-download.connect-timeout}") Duration connectTimeout,
+                         @Value("${catalog.bundle-download.read-timeout}") Duration readTimeout) {
         this.integrationMethodRepository = integrationMethodRepository;
         this.tutorialStorageService = tutorialStorageService;
+        this.ownershipService = ownershipService;
         this.jsonWriter = objectMapper.writerWithDefaultPrettyPrinter();
+        this.readTimeout = readTimeout;
+        this.httpClient = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
+                .connectTimeout(connectTimeout)
+                .build();
     }
 
     /**
      * A built ZIP bundle together with a suggested download file name and an optional warning.
-     * {@code warning} is {@code null} on success; when non-null it describes why the connector JAR
-     * could not be included (so callers can surface it to the user) — the ZIP is still valid.
+     * {@code warning} is {@code null} when the bundle is complete; otherwise it is a short summary of
+     * how many errors/warnings were found (detailed in the ZIP's ERROR.txt / WARNING.txt), so callers
+     * can surface it to the user — the ZIP is still valid either way.
      */
     public record Bundle(String fileName, byte[] data, String warning) {}
 
@@ -98,68 +98,111 @@ public class BundleService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Integration method not found: " + methodId + "/" + revision));
 
-        String warning;
+        // Problems found while assembling the bundle are split by severity: ERROR.txt collects important
+        // gaps (a missing connector build JAR), WARNING.txt collects minor ones (no tutorial text, or a
+        // tutorial/sample file that could not be included). Both are advisory — the ZIP is still produced.
+        List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(baos)) {
-            addTutorialXml(zip, method);
-            addTutorialFiles(zip, methodId, revision);
+            addTutorial(zip, method, warnings);
+            addTutorialFiles(zip, methodId, revision, warnings);
             addMetadata(zip, method);
-            warning = addConnectorJars(zip, method);
+            addConnectorJars(zip, method, errors);
+            writeIssues(zip, "ERROR.txt", "important problems", errors);
+            writeIssues(zip, "WARNING.txt", "minor problems", warnings);
         }
-        log.info("Built bundle for integration method {}/{}: {} bytes{}", methodId, revision, baos.size(),
-                warning == null ? "" : " (warning: " + warning + ")");
+        String warning = summarizeIssues(errors, warnings);
+        log.info("Built bundle for integration method {}/{}: {} bytes ({} error(s), {} warning(s))",
+                methodId, revision, baos.size(), errors.size(), warnings.size());
         return new Bundle(buildFileName(method), baos.toByteArray(), warning);
     }
 
-    /** Builds a download file name from the method's display name and revision, sanitised for filesystems. */
+    /** Builds the download file name as "application name (integration method name).zip". */
     private String buildFileName(IntegrationMethod method) {
-        String displayName = (method.getDisplayName() == null || method.getDisplayName().isBlank())
-                ? method.getId().toString()
-                : method.getDisplayName();
-        String revision = method.getRevision() == null ? "" : method.getRevision();
-        String raw = displayName + "-" + revision;
-        String safe = raw.trim().replaceAll("[^a-zA-Z0-9._-]+", "_");
-        return safe + ".zip";
+        String appName = method.getApplication() == null ? null : method.getApplication().getDisplayName();
+        String methodName = method.getDisplayName();
+        String safeApp = sanitiseNamePart(appName);
+        String safeMethod = sanitiseNamePart(methodName);
+        if (safeMethod.isEmpty()) {
+            safeMethod = method.getId().toString();
+        }
+        return safeApp.isEmpty()
+                ? safeMethod + ".zip"
+                : safeApp + " (" + safeMethod + ").zip";
     }
 
-    private void addTutorialXml(ZipOutputStream zip, IntegrationMethod method) throws IOException {
+    /**
+     * Keeps a name part to characters every filesystem accepts, and that are safe to place inside the
+     * quoted Content-Disposition filename: letters, digits, spaces, brackets and . _ - are kept, any
+     * other run (quotes and line breaks included) collapses to a single underscore.
+     */
+    private String sanitiseNamePart(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.trim()
+                .replaceAll("[^a-zA-Z0-9 ._()\\[\\]-]+", "_")
+                .replaceAll("\\s{2,}", " ")
+                .trim();
+    }
+
+    private void addTutorial(ZipOutputStream zip, IntegrationMethod method, List<String> warnings) throws IOException {
         String tutorial = method.getTutorial();
         if (tutorial == null || tutorial.isBlank()) {
-            log.debug("No tutorial text for {}/{}; skipping tutorial.adoc", method.getId(), method.getRevision());
+            log.debug("No tutorial text for {}/{}; skipping tutorial.md", method.getId(), method.getRevision());
+            warnings.add("No tutorial text: tutorial.md was not included.");
             return;
         }
-        // The tutorial is authored as Markdown; convert it to AsciiDoc for the bundle.
-        String asciidoc = MarkdownToAsciiDocConverter.convert(tutorial);
-        zip.putNextEntry(new ZipEntry("tutorial.adoc"));
-        zip.write(asciidoc.getBytes(StandardCharsets.UTF_8));
+        // The tutorial is authored as Markdown and ships that way, unconverted.
+        zip.putNextEntry(new ZipEntry("tutorial.md"));
+        zip.write(tutorial.getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
     }
 
-    private void addTutorialFiles(ZipOutputStream zip, UUID methodId, String revision) throws IOException {
-        List<String> files = tutorialStorageService.listTutorialFiles(methodId, revision);
+    /**
+     * Adds the method's additional tutorial/sample files. Having none is normal and not reported; only a
+     * file that exists but cannot be included is a warning, and the rest of the bundle is built anyway.
+     */
+    private void addTutorialFiles(ZipOutputStream zip, UUID methodId, String revision, List<String> warnings) throws IOException {
+        List<String> files;
+        try {
+            files = tutorialStorageService.listTutorialFiles(methodId, revision);
+        } catch (UncheckedIOException e) {
+            log.warn("Failed to list tutorial files for {}/{}: {}", methodId, revision, e.getMessage());
+            warnings.add("The additional tutorial/sample files could not be read, so none were included.");
+            return;
+        }
         for (String name : files) {
-            Path file = tutorialStorageService.resolveTutorialFile(methodId, revision, name);
+            byte[] content;
+            try {
+                // Read before opening the entry, so a failure never leaves a half-written file in the ZIP.
+                content = Files.readAllBytes(tutorialStorageService.resolveTutorialFile(methodId, revision, name));
+            } catch (IOException | RuntimeException e) {
+                log.warn("Failed to include tutorial file {} for {}/{}: {}", name, methodId, revision, e.getMessage());
+                warnings.add("Additional tutorial/sample file " + name + " could not be included.");
+                continue;
+            }
             zip.putNextEntry(new ZipEntry("files/" + name));
-            Files.copy(file, zip);
+            zip.write(content);
             zip.closeEntry();
         }
     }
 
     /**
      * Adds a build JAR for every connector linked to the method, each resolved from that connector's
-     * latest bundle version artifact URL. Never throws on a missing or unreachable artifact: connectors
-     * without a build file are collected into a {@code NOTICE.txt} and a combined warning message is
-     * returned (or {@code null} when every connector's JAR was bundled). Duplicate JAR file names are
-     * de-duplicated so the ZIP never has clashing entries.
+     * latest bundle version artifact URL. Never throws on a missing or unreachable artifact: the JAR is
+     * an important part of the bundle, so any connector without one is recorded as an error (surfaced in
+     * ERROR.txt). Duplicate JAR file names are de-duplicated so the ZIP never has clashing entries.
      */
-    private String addConnectorJars(ZipOutputStream zip, IntegrationMethod method) throws IOException {
+    private void addConnectorJars(ZipOutputStream zip, IntegrationMethod method, List<String> errors) throws IOException {
         List<IntegrationMethodConnector> links = method.getConnectors();
         if (links == null || links.isEmpty()) {
-            return null;
+            errors.add("No connector is linked to this integration method, so no build file (.jar) is included.");
+            return;
         }
 
         Set<String> usedEntryNames = new HashSet<>();
-        List<String> missing = new ArrayList<>();
 
         for (IntegrationMethodConnector link : links) {
             Connector connector = link.getConnector();
@@ -169,37 +212,59 @@ public class BundleService {
             String label = connectorLabel(connector);
             String artifactUrl = resolveArtifactUrl(connector);
             if (artifactUrl == null || artifactUrl.isBlank()) {
-                missing.add(label + " (no build file available)");
+                errors.add("Missing build file (.jar) for connector " + label + ": no build file available.");
                 continue;
             }
             try {
                 byte[] jar = artifactBytes(artifactUrl);
-                String entryName = uniqueEntryName(artifactEntryName(artifactUrl), usedEntryNames);
+                String entryName = "connectors/" + uniqueEntryName(artifactEntryName(artifactUrl), usedEntryNames);
                 zip.putNextEntry(new ZipEntry(entryName));
                 zip.write(jar);
                 zip.closeEntry();
             } catch (IOException e) {
                 log.warn("Failed to fetch connector artifact {} for {}/{}: {}",
                         artifactUrl, method.getId(), method.getRevision(), e.getMessage());
-                missing.add(label + " (build file could not be retrieved: " + e.getMessage() + ")");
+                errors.add("Missing build file (.jar) for connector " + label
+                        + ": could not be retrieved (" + e.getMessage() + ").");
             }
         }
-
-        if (missing.isEmpty()) {
-            return null;
-        }
-
-        String warning = "Some connector build files could not be included in this bundle. "
-                + "Missing: " + String.join("; ", missing) + ".";
-        writeNotice(zip, warning);
-        return warning;
     }
 
-    /** Writes a human-readable NOTICE.txt explaining which connector JARs are missing. */
-    private void writeNotice(ZipOutputStream zip, String warning) throws IOException {
-        zip.putNextEntry(new ZipEntry("NOTICE.txt"));
-        zip.write(warning.getBytes(StandardCharsets.UTF_8));
+    /**
+     * Writes a severity file (ERROR.txt / WARNING.txt) listing the collected issues, or nothing when
+     * there are none. {@code kind} is a short phrase used in the file's header line.
+     */
+    private void writeIssues(ZipOutputStream zip, String entryName, String kind, List<String> issues) throws IOException {
+        if (issues.isEmpty()) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("The following ").append(kind).append(" were found while building this bundle:\n\n");
+        for (int i = 0; i < issues.size(); i++) {
+            sb.append(i + 1).append(". ").append(issues.get(i)).append('\n');
+        }
+        zip.putNextEntry(new ZipEntry(entryName));
+        zip.write(sb.toString().getBytes(StandardCharsets.UTF_8));
         zip.closeEntry();
+    }
+
+    /** Short user-facing download warning summarising the collected issues (null when there are none). */
+    private String summarizeIssues(List<String> errors, List<String> warnings) {
+        if (errors.isEmpty() && warnings.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder("This bundle has ");
+        if (!errors.isEmpty()) {
+            sb.append(errors.size()).append(errors.size() == 1 ? " error" : " errors").append(" (see ERROR.txt)");
+        }
+        if (!warnings.isEmpty()) {
+            if (!errors.isEmpty()) {
+                sb.append(" and ");
+            }
+            sb.append(warnings.size()).append(warnings.size() == 1 ? " warning" : " warnings").append(" (see WARNING.txt)");
+        }
+        sb.append('.');
+        return sb.toString();
     }
 
     private String connectorLabel(Connector connector) {
@@ -258,7 +323,7 @@ public class BundleService {
 
     private byte[] downloadArtifact(String artifactUrl) throws IOException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(artifactUrl))
-                .timeout(Duration.ofSeconds(60))
+                .timeout(readTimeout)
                 .GET()
                 .build();
         try {
@@ -310,8 +375,9 @@ public class BundleService {
         meta.put("description", method.getDescription());
         meta.put("lifecycleState", method.getLifecycleState());
         meta.put("author", method.getAuthor());
-        meta.put("maintainer", method.getMaintainer());
-        meta.put("appVersion", method.getAppVersion());
+        meta.put("maintainer", ownershipService.maintainerLabel(method));
+        meta.put("appMinVersion", method.getAppMinVersion());
+        meta.put("appMaxVersion", method.getAppMaxVersion());
         meta.put("midpointMinVersionId", method.getMidpointMinVersionId());
         meta.put("midpointMaxVersionId", method.getMidpointMaxVersionId());
         meta.put("createdAt", method.getCreatedAt());
@@ -327,13 +393,18 @@ public class BundleService {
         for (IntegrationMethodCapability cap : method.getCapabilities()) {
             Map<String, Object> capMeta = new LinkedHashMap<>();
             capMeta.put("objectClass", cap.getObjectClass());
-            List<String> names = new ArrayList<>();
-            for (IntegrationMethodCapabilityItem item : cap.getItems()) {
-                if (item.getCapability() != null) {
-                    names.add(item.getCapability().getName());
-                }
-            }
-            capMeta.put("capabilities", names);
+            List<Map<String, Object>> states = new ArrayList<>();
+            cap.getItems().stream()
+                    .filter(item -> item.getCapability() != null)
+                    .sorted(Comparator.comparing(item -> item.getCapability().getDisplayOrder(),
+                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .forEach(item -> {
+                        Map<String, Object> state = new LinkedHashMap<>();
+                        state.put("name", item.getCapability().getName());
+                        state.put("state", item.getState());
+                        states.add(state);
+                    });
+            capMeta.put("capabilities", states);
             capabilities.add(capMeta);
         }
         meta.put("capabilities", capabilities);
@@ -353,7 +424,7 @@ public class BundleService {
             meta.put("fullyQualifiedClassName", connector.getFullyQualifiedClassName());
             meta.put("description", connector.getDescription());
             meta.put("author", connector.getAuthor());
-            meta.put("maintainer", connector.getMaintainer());
+            meta.put("maintainer", ownershipService.maintainerLabel(connector));
             meta.put("revision", connector.getRevision());
             meta.put("connectorMinVersion", link.getConnectorMinVersion());
             meta.put("connectorMaxVersion", link.getConnectorMaxVersion());

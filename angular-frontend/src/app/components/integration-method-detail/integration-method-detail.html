@@ -4,27 +4,9 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<!-- Bundle download warning toast (stays until dismissed) -->
-@if (bundleWarning()) {
-  <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 100000;">
-    <div class="toast-box rounded-2 overflow-hidden">
-      <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
-        <div class="d-flex align-items-center gap-2">
-          <span class="toast-icon" aria-hidden="true">!</span>
-          <strong>Download warning</strong>
-        </div>
-        <button type="button" class="btn-close" (click)="closeBundleWarning()" aria-label="Close"></button>
-      </div>
-      <div class="px-3 py-2 toast-body-warning">
-        {{ bundleWarning() }}
-      </div>
-    </div>
-  </div>
-}
-
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goBack()" style="cursor:pointer;">
       @if (showLogo()) {
@@ -44,7 +26,52 @@
 } @else {
   <div class="view-page">
     <div class="view-page-content">
-      <h2 class="view-page-title">{{ methodName() }}</h2>
+      <!-- In-review context for the reviewer: banner + submission meta around the title. -->
+      @if (isInReview()) {
+        <div class="review-banner d-flex align-items-start gap-2">
+          <i class="fa-solid fa-triangle-exclamation review-banner-icon"></i>
+          <span>This version is <strong>awaiting approval</strong> — submitted for review on {{ submittedDate() }} by {{ methodAuthor() || '—' }}. Review the details below before making a decision.</span>
+        </div>
+      } @else if (isReviewing()) {
+        <div class="reviewing-banner d-flex align-items-start gap-2">
+          <i class="fa-solid fa-lock reviewing-banner-icon"></i>
+          <span>This version is <strong>under review</strong> — started by {{ reviewerName() || '—' }} on {{ reviewStartDate() }} and is locked until the review is complete.</span>
+        </div>
+      }
+
+      <div class="view-page-title-row d-flex align-items-center flex-wrap gap-3">
+        <h2 class="view-page-title">{{ methodName() }}</h2>
+        @if (supportTier(); as tier) {
+          <span class="im-tier-badge" [class]="'tier-' + tier.toLowerCase()">{{ supportTierLabel(tier) }}</span>
+        }
+      </div>
+
+      @if (isInReview() || isReviewing()) {
+        <div class="review-meta d-flex align-items-center flex-wrap gap-3 mb-4">
+          @if (isInReview()) {
+            <span class="badge review-badge-awaiting d-inline-flex align-items-center">
+              <i class="fa-solid fa-triangle-exclamation me-1"></i>Awaiting approval
+            </span>
+          } @else {
+            <span class="badge review-badge-reviewing d-inline-flex align-items-center">
+              <i class="fa-solid fa-lock me-1"></i>Under review
+            </span>
+          }
+          <span class="review-meta-item d-inline-flex align-items-center">
+            <i class="fa-regular fa-calendar-days me-2"></i>Submitted {{ submittedDate() }}
+          </span>
+          <span class="review-meta-item d-inline-flex align-items-center">
+            <i class="fa-solid fa-user me-2"></i>Submitted by&nbsp;<span class="review-meta-author">{{ methodAuthor() || '—' }}</span>
+          </span>
+          @if (ticketUrl(); as url) {
+            <span class="review-meta-item d-inline-flex align-items-center">
+              <a class="review-meta-ticket d-inline-flex align-items-center" [href]="url" target="_blank" rel="noopener">
+                <i class="fa-solid fa-ticket me-2"></i><span class="review-meta-ticket-text">Open ticket #{{ ticketId() }}</span><i class="fa-solid fa-arrow-right ms-2"></i>
+              </a>
+            </span>
+          }
+        </div>
+      }
 
       <!-- Method summary -->
       <div class="view-summary mb-4">
@@ -54,92 +81,69 @@
         </div>
         <div class="view-row">
           <span class="view-label">Version:</span>
-          <span class="view-value">
-            @if (methodVersion()) {
-              <span class="im-version-badge">{{ versionBadge(methodVersion()) }}</span>
-            } @else { — }
-          </span>
+          <span class="view-value">{{ methodVersion() ? versionBadge(methodVersion()) : '—' }}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Supported midPoint version:</span>
-          <span class="view-value d-flex align-items-center flex-wrap gap-2">
-            <span class="midpoint-range-label">From</span>
-            <span class="im-method-tag im-method-tag-range">{{ midpointMinVersion() || '—' }}</span>
-            <span class="midpoint-range-dash">—</span>
-            <span class="midpoint-range-label">To</span>
-            <span class="im-method-tag im-method-tag-range">{{ midpointMaxVersion() || '—' }}</span>
+          <span class="view-value">From {{ midpointMinVersion() || '—' }}@if (midpointMaxVersion()) { to {{ midpointMaxVersion() }}}</span>
+        </div>
+        <div class="view-row">
+          <span class="view-label">Supported application version:</span>
+          <span class="view-value">
+            @if (appMinVersion()) {
+              From {{ appMinVersion() }}@if (appMaxVersion()) { to {{ appMaxVersion() }}}
+            } @else if (appMaxVersion()) {
+              Up to {{ appMaxVersion() }}
+            } @else {
+              —
+            }
           </span>
         </div>
         <div class="view-row">
           <span class="view-label">Integration method type:</span>
-          <span class="view-value d-flex align-items-center gap-2 flex-wrap">
-            @if (methodTypes().length > 0) {
-              @for (type of methodTypes(); track type) {
-                <span class="im-version-badge">{{ type }}</span>
-              }
-            } @else { — }
-          </span>
+          <span class="view-value">{{ methodTypes().length > 0 ? methodTypes().join(', ') : '—' }}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Description:</span>
           <span class="view-value">{{ methodDescription() || '—' }}</span>
         </div>
+        <!--
+          Stated limitations are shown to everyone, but an empty one only to whoever could fill it:
+          a consumer reading "Limitations: —" cannot tell "none" from "nobody has said", and every
+          method published before the field existed would say it.
+        -->
+        @if (methodLimitations() || canEdit()) {
+          <div class="view-row">
+            <span class="view-label">Limitations:</span>
+            <span class="view-value">{{ methodLimitations() || 'None stated' }}</span>
+          </div>
+        }
       </div>
 
-      <!-- Capabilities (divided by globality, each group collapsible) -->
+      <!-- Capabilities: one tab per object class, its capabilities as a grid of state cards -->
       <div class="mb-4">
-        @if (globalCapabilities().length > 0) {
-          <button type="button" class="caps-group-header d-flex align-items-center gap-2" (click)="toggleCaps('global')">
-            <i class="fa-solid icon-sm"
-               [class.fa-chevron-up]="isCapsExpanded('global')"
-               [class.fa-chevron-down]="!isCapsExpanded('global')"></i>
-            <span class="view-section-label mb-0">Global Capabilities</span>
-          </button>
-          @if (isCapsExpanded('global')) {
-            <div class="view-caps-box d-flex flex-wrap gap-2 mb-3">
-              @for (cap of globalCapabilities(); track cap) {
-                <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-              }
-            </div>
-          }
-        }
-
+        <label class="view-section-label">Capabilities</label>
         @if (specificCapabilities().length > 0) {
-          <!-- Layer 1: parent section wrapping all specific object classes -->
-          <button type="button" class="caps-group-header d-flex align-items-center gap-2" (click)="toggleCaps('specific')">
-            <i class="fa-solid icon-sm"
-               [class.fa-chevron-up]="isCapsExpanded('specific')"
-               [class.fa-chevron-down]="!isCapsExpanded('specific')"></i>
-            <span class="view-section-label mb-0">Specific Capabilities <span class="text-muted fw-normal">(Per object class)</span></span>
-          </button>
-          @if (isCapsExpanded('specific')) {
-            <div class="ms-3 mb-3">
-              @for (occ of specificCapabilities(); track occ.objectName) {
-                @let occKey = 'occ:' + occ.objectName;
-                <!-- Layer 2: each object class collapses independently -->
-                <div class="mb-2">
-                  <button type="button" class="caps-object-row d-flex align-items-center gap-2" (click)="toggleCaps(occKey)">
-                    <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isCapsExpanded(occKey)"
-                       [class.fa-chevron-down]="!isCapsExpanded(occKey)"></i>
-                    <span class="text-muted text-sm">{{ occ.capabilities.length }} capabilities</span>
-                  </button>
-                  @if (isCapsExpanded(occKey)) {
-                    <div class="view-caps-box d-flex flex-wrap gap-2 mt-2 ms-3">
-                      @for (cap of occ.capabilities; track cap) {
-                        <span class="badge badge-capability">{{ formatCapabilityText(cap) }}</span>
-                      }
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-        }
-
-        @if (globalCapabilities().length === 0 && specificCapabilities().length === 0) {
-          <label class="view-section-label">Global Capabilities</label>
+          <div class="caps-tabs d-flex flex-wrap gap-2 mb-2" role="tablist">
+            @for (occ of specificCapabilities(); track occ.objectClass) {
+              <button type="button" class="caps-tab" role="tab"
+                      [class.caps-tab-active]="occ.objectClass === selectedCapsObject()"
+                      [attr.aria-selected]="occ.objectClass === selectedCapsObject()"
+                      (click)="selectedCapsObject.set(occ.objectClass)">{{ occ.objectClass }}</button>
+            }
+          </div>
+          <div class="caps-grid">
+            @for (cap of selectedObjectCapabilities(); track cap.name) {
+              @let st = capabilityStates[cap.state];
+              <div class="caps-card">
+                <span class="caps-card-name">{{ formatCapabilityText(cap.name) }}</span>
+                <span class="caps-state" [ngClass]="'caps-state-' + cap.state.toLowerCase()">
+                  <i class="fa-regular me-1" [ngClass]="st.icon"></i>{{ st.label }}
+                </span>
+              </div>
+            }
+          </div>
+        } @else {
           <div class="view-caps-box text-muted">No capabilities defined.</div>
         }
       </div>
@@ -148,7 +152,11 @@
       <div class="mb-4">
         <label class="view-section-label">Integration tutorial</label>
         <div class="view-tutorial-wrapper">
-          <textarea id="view-tutorial-editor"></textarea>
+          @if (methodTutorial().trim()) {
+            <div class="view-tutorial-content" [innerHTML]="methodTutorial() | markdown"></div>
+          } @else {
+            <div class="view-tutorial-content text-muted">No tutorial provided.</div>
+          }
         </div>
       </div>
 
@@ -177,7 +185,12 @@
         @for (c of connectors(); track $index; let ci = $index) {
           <div class="view-connector-card">
             <div class="view-connector-card-header">
-              <span class="view-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <span class="view-connector-name">
+                {{ c.connectorDisplayName || c.name }}
+                @if (isObsoleteConnector(c.connectorTags)) {
+                  <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                }
+              </span>
               <button type="button" class="view-connector-see-compat d-flex align-items-center gap-2"
                       (click)="openCompatibility(c)" title="See connector compatibility">
                 <i class="fa-regular fa-eye"></i>See compatibility
@@ -185,14 +198,29 @@
             </div>
 
             <div class="view-connector-details">
+                @if (isObsoleteConnector(c.connectorTags)) {
+                  <div class="version-exists-warning d-flex align-items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation version-exists-warning-icon"></i>
+                    <span><strong>Obsolete connector.</strong> It is still allowed, but it is superseded and
+                      should not be used for new deployments.</span>
+                  </div>
+                }
                 <div class="view-connector-row">
                   <span class="view-connector-label">Maintainer:</span>
-                  <span class="view-connector-value">{{ formatMaintainer(c.maintainer) }}</span>
+                  <span class="view-connector-value">{{ c.maintainerLabel || '—' }}</span>
                 </div>
                 <div class="view-connector-row">
                   <span class="view-connector-label">Connector version:</span>
                   <span class="view-connector-value"><span class="im-version-badge">{{ c.version || '—' }}</span></span>
                 </div>
+                @if (hasDuplicateVersion(c)) {
+                  <div class="version-exists-warning d-flex align-items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation version-exists-warning-icon"></i>
+                    <span>Version <strong>{{ c.version }}</strong> of this connector already exists in the
+                      catalog. Check whether the existing version should be reused instead of approving
+                      a duplicate.</span>
+                  </div>
+                }
                 <div class="view-connector-row">
                   <span class="view-connector-label">License type:</span>
                   <span class="view-connector-value">{{ formatLicense(c.licenseType) }}</span>
@@ -200,7 +228,7 @@
                 @if (c.implementationDescription) {
                   <div class="view-connector-row">
                     <span class="view-connector-label">Connector description:</span>
-                    <span class="view-connector-value">{{ c.implementationDescription }}</span>
+                    <div class="view-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
                   </div>
                 }
 
@@ -213,7 +241,7 @@
                         @let key = ci + '-' + occ.objectName;
                         <div class="mb-1">
                           <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleCaps(key)" style="cursor:pointer;">
-                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                            <span class="fw-semibold text-sm">{{ occ.resourceWide ? 'All object classes (Global)' : occ.objectName }}</span>
                             <i class="fa-solid icon-sm"
                                [class.fa-chevron-up]="isCapsExpanded(key)"
                                [class.fa-chevron-down]="!isCapsExpanded(key)"></i>
@@ -233,7 +261,7 @@
                 }
 
                 <!-- Repository & documentation -->
-                @if (c.browseLink || c.ticketingLink) {
+                @if (c.projectHomepage || c.ticketingLink) {
                   <div class="view-subsection">
                     <button type="button" class="view-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-repo')">
                       <i class="fa-solid icon-sm"
@@ -242,11 +270,11 @@
                       <span>Repository &amp; Documentation</span>
                     </button>
                     @if (isSectionExpanded(ci + '-repo')) {
-                      @if (c.browseLink) {
+                      @if (c.projectHomepage) {
                         <div class="view-connector-row">
                           <span class="view-connector-label">Project homepage:</span>
                           <span class="view-connector-value">
-                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
+                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.projectHomepage }}
                           </span>
                         </div>
                       }
@@ -325,10 +353,8 @@
                       }
                       @if (c.className) {
                         <div class="view-connector-row">
-                          <span class="view-connector-label">Class name:</span>
-                          <span class="view-connector-value">
-                            <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
-                          </span>
+                          <span class="view-connector-label">Connector class name:</span>
+                          <span class="view-connector-value">{{ c.className }}</span>
                         </div>
                       }
                     }
@@ -348,11 +374,42 @@
         </button>
         @if (isActive()) {
           <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
-              <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
-            </button>
+            @if (canEdit()) {
+              <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
+                <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
+              </button>
+            }
             <button type="button" class="btn view-download-btn d-flex align-items-center gap-2" (click)="downloadConnector()">
               <i class="fa-solid fa-download"></i>Download
+            </button>
+          </div>
+        } @else if (isInReview() && isSuperuser()) {
+          <!-- Superuser starts the review here; this replaces the immediate approve/reject. -->
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn view-start-review-btn d-flex align-items-center gap-2"
+                    (click)="openStartReview()">
+              <i class="fa-solid fa-play"></i>Start review
+            </button>
+          </div>
+        } @else if (isReviewing() && isSuperuser()) {
+          <div class="d-flex align-items-center gap-3">
+            <!-- The reviewer may fix findings directly while the revision is under review
+                 (the edit lock only applies to non-superusers). -->
+            <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2"
+                    (click)="editAndUpgrade()">
+              <i class="fa-solid fa-pen-to-square"></i>Edit
+            </button>
+            <button type="button" class="btn btn-outline-danger border-0 d-flex align-items-center gap-2"
+                    (click)="openRejectConfirm()">
+              <i class="fa-solid fa-xmark"></i>Reject
+            </button>
+            <button type="button" class="btn view-stop-review-btn d-flex align-items-center gap-2"
+                    [disabled]="isProcessingStopReview()" (click)="stopReview()">
+              <i class="fa-solid fa-stop"></i>Stop review
+            </button>
+            <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2"
+                    (click)="openApproveConfirm()">
+              <i class="fa-solid fa-check"></i>Approve
             </button>
           </div>
         }
@@ -407,5 +464,42 @@
         </div>
       </div>
     </div>
+  }
+
+  <!-- Approve / Reject confirmation modal (two-step: pending → Refresh → ready → Confirm) -->
+  @if (confirmMode(); as mode) {
+    <app-approval-confirm-modal
+      [mode]="mode"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
+      [methodName]="confirmMethodName()"
+      [versionLabel]="versionBadge(methodVersion())"
+      [submittedBy]="submittedByLabel()"
+      [processing]="isProcessingApproval()"
+      [error]="approvalError()"
+      (confirm)="submitConfirm()"
+      (cancel)="closeConfirm()">
+    </app-approval-confirm-modal>
+  }
+
+  <!-- Start review confirmation modal (shared component) -->
+  @if (isStartReviewOpen()) {
+    <app-start-review-modal
+      [versionLabel]="versionBadge(methodVersion())"
+      [processing]="isProcessingStartReview()"
+      [error]="startReviewError()"
+      (confirm)="submitStartReview()"
+      (cancel)="closeStartReview()">
+    </app-start-review-modal>
+  }
+
+  <!-- Post-download help modal (where to copy the connectors in midPoint home) -->
+  @if (isDownloadInfoOpen()) {
+    <app-download-info-modal
+      [fileName]="downloadInfoFileName()"
+      [fileSize]="downloadInfoFileSize()"
+      [preparing]="isDownloadPreparing()"
+      (closed)="isDownloadInfoOpen.set(false)">
+    </app-download-info-modal>
   }
 }

@@ -12,14 +12,17 @@
     [appName]="appName()"
     [appHasLogo]="appHasLogo()"
     [logoUrl]="getLogoUrl()"
-    (close)="showAddConnector.set(false)"
-    (saved)="onConnectorSaved()">
+    [deferSave]="true"
+    [excludedConnectorIds]="linkedConnectorIds()"
+    (close)="closeAddConnector()"
+    (saved)="onConnectorSaved($event)"
+    (staged)="onConnectorStaged($event)">
   </app-add-connector-form>
 } @else {
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">Integration catalog</a>
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
     <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="cancel()" style="cursor:pointer;">
       @if (showLogo()) {
@@ -69,6 +72,31 @@
         </div>
       </div>
 
+      <!-- Maintainer -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload">
+          Maintainer <span class="text-danger">*</span>
+          <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="The person or team responsible for maintaining this integration method.">
+            <i class="fa-solid fa-circle-info info-icon-sm"></i>
+          </button>
+        </label>
+        <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
+          <input type="text" class="form-select"
+                 [value]="methodMaintainerText()"
+                 (input)="onMaintainerInput($event)"
+                 (focus)="onMaintainerFocus()"
+                 (blur)="onMaintainerBlur()"
+                 placeholder="Select maintainer...">
+          @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
+            <div class="maintainer-dropdown">
+              @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
+                <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
       <!-- Supported midPoint version -->
       <div class="mb-4">
         <label class="form-label form-label-upload d-block">Supported midPoint version</label>
@@ -78,7 +106,7 @@
                   [ngModel]="midpointMinVersionId()"
                   (ngModelChange)="midpointMinVersionId.set($event)">
             <option [ngValue]="null">Select version</option>
-            @for (v of midpointVersions(); track v.id) {
+            @for (v of midpointVersionsDesc(); track v.id) {
               <option [ngValue]="v.id">{{ v.version }}</option>
             }
           </select>
@@ -88,7 +116,7 @@
                   [ngModel]="midpointMaxVersionId()"
                   (ngModelChange)="midpointMaxVersionId.set($event)">
             <option [ngValue]="null">Select version</option>
-            @for (v of midpointVersions(); track v.id) {
+            @for (v of midpointVersionsDesc(); track v.id) {
               <option [ngValue]="v.id">{{ v.version }}</option>
             }
           </select>
@@ -98,6 +126,24 @@
         } @else {
           <div class="form-text mt-1">Only include versions you have actively tested. Untested versions can be added later.</div>
         }
+      </div>
+
+      <!-- Supported application version -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload d-block">Supported application version</label>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="midpoint-range-label">From</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMinVersion()"
+                 (input)="appMinVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2024.1">
+          <span class="midpoint-range-dash">—</span>
+          <span class="midpoint-range-label">To</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMaxVersion()"
+                 (input)="appMaxVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2025.2">
+        </div>
       </div>
 
       <!-- Description -->
@@ -112,12 +158,27 @@
         </div>
       </div>
 
-      <!-- Capabilities -->
+      <!-- Limitations -->
       <div class="mb-4">
         <label class="form-label form-label-upload">
-          Define capabilities for: <span class="text-danger">*</span>          
+          Limitations
+          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
+            <i class="fa-solid fa-circle-info info-icon"></i>
+            <span class="info-tooltip">What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</span>
+          </span>
         </label>
-        <app-capability-picker [initialCapabilities]="initialCapabilities()" (capabilitiesChange)="onImCapabilitiesChange($event)"></app-capability-picker>
+        <div class="position-relative">
+          <textarea class="form-control" rows="4" [attr.maxlength]="limitationsMax"
+                    placeholder="Describe what this integration method does not support..."
+                    [value]="methodLimitations()"
+                    (input)="methodLimitations.set($any($event.target).value)"></textarea>
+          <div class="char-counter text-end text-muted">{{ methodLimitations().length }} / {{ limitationsMax }} characters</div>
+        </div>
+      </div>
+
+      <!-- Capabilities -->
+      <div class="mb-4">
+        <app-im-capability-picker [initialCapabilities]="initialCapabilities()"(capabilitiesChange)="onImCapabilitiesChange($event)"></app-im-capability-picker>
       </div>
 
       <!-- Integration method type -->
@@ -131,6 +192,10 @@
           } @else {
             <span class="text-muted" style="font-size:0.875rem;">—</span>
           }
+          <button type="button" class="btn btn-link p-0 ms-1 edit-method-type-btn"
+                  (click)="openMethodTypeModal()" aria-label="Edit integration method type">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
         </div>
       </div>
 
@@ -187,24 +252,37 @@
         <div class="edit-connectors-header">
           <span class="edit-connectors-title">CONNECTORS</span>
           <button type="button" class="btn btn-sm edit-add-connector-btn"
-                  (click)="showAddConnector.set(true)">
+                  (click)="openAddConnector()">
             <i class="fa-solid fa-plus me-1"></i>Add new connector
           </button>
         </div>
 
-        @for (c of connectors(); track $index; let ci = $index) {
-          <div class="edit-connector-card">
+        @for (c of displayConnectors(); track $index; let ci = $index) {
+          <div class="edit-connector-card" [class.edit-connector-card-pending]="isConnectorPending(c.connectorId)">
             <div class="edit-connector-card-header">
-              <span class="edit-connector-name">{{ c.bundleDisplayName || c.name }}</span>
+              <div class="edit-connector-title-group">
+                <span class="edit-connector-name d-flex align-items-center gap-2">
+                  {{ c.connectorDisplayName || c.name }}
+                  @if (isObsoleteConnector(c.connectorTags)) {
+                    <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  }
+                  @if (isConnectorPending(c.connectorId)) {
+                    <span class="edit-connector-pending-badge">Pending</span>
+                  }
+                </span>
+                <span class="edit-connector-subtitle">v{{ c.version || '—' }} — configured</span>
+              </div>
               <div class="d-flex align-items-center gap-3">
                 <button type="button" class="edit-connector-see-compat d-flex align-items-center gap-2"
                         (click)="openCompatibility(c)" title="Set up connector compatibility">
                   <i class="fa-solid fa-screwdriver-wrench"></i>Set up compatibility
                 </button>
-                <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
-                        (click)="openEditConnector(c)">
-                  <i class="fa-solid fa-pencil"></i>Edit
-                </button>
+                @if (canEditConnector(c)) {
+                  <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
+                          (click)="openEditConnector(c)">
+                    <i class="fa-solid fa-pencil"></i>Edit
+                  </button>
+                }
                 <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
                         (click)="deleteConnector(c)">
                   <i class="fa-solid fa-trash-can"></i>Delete
@@ -215,7 +293,7 @@
             <div class="edit-connector-details">
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Maintainer:</span>
-                <span class="edit-connector-value">{{ formatMaintainer(c.maintainer) }}</span>
+                <span class="edit-connector-value">{{ c.maintainerLabel || '—' }}</span>
               </div>
               <div class="edit-connector-row">
                 <span class="edit-connector-label">Connector version:</span>
@@ -228,7 +306,7 @@
               @if (c.implementationDescription) {
                 <div class="edit-connector-row">
                   <span class="edit-connector-label">Connector description:</span>
-                  <span class="edit-connector-value">{{ c.implementationDescription }}</span>
+                  <div class="edit-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
                 </div>
               }
 
@@ -241,7 +319,7 @@
                       @let key = ci + '-' + occ.objectName;
                       <div class="mb-1">
                         <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleConnectorCaps(key)" style="cursor:pointer;">
-                          <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                          <span class="fw-semibold text-sm">{{ occ.resourceWide ? 'All object classes (Global)' : occ.objectName }}</span>
                           <i class="fa-solid icon-sm"
                              [class.fa-chevron-up]="isCapsExpanded(key)"
                              [class.fa-chevron-down]="!isCapsExpanded(key)"></i>
@@ -260,106 +338,98 @@
                 </div>
               }
 
-              <!-- Repository & documentation -->
-              @if (c.browseLink || c.ticketingLink) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-repo')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-repo')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-repo')"></i>
-                    <span>Repository &amp; Documentation</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-repo')) {
-                    @if (c.browseLink) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Project homepage:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.browseLink }}
-                        </span>
-                      </div>
-                    }
-                    @if (c.ticketingLink) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Support portal:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
-                        </span>
-                      </div>
-                    }
-                  }
+              <!-- Flat rows (old design): every field shown directly, no collapsible subsections -->
+              @if (c.projectHomepage) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project homepage:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.projectHomepage }}
+                  </span>
                 </div>
               }
-
-              <!-- Framework setting -->
+              @if (c.ticketingLink) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Support portal:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.ticketingLink }}
+                  </span>
+                </div>
+              }
               @if (c.buildFramework) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-framework')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-framework')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-framework')"></i>
-                    <span>Framework Setting</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-framework')) {
-                    <div class="edit-connector-row">
-                      <span class="edit-connector-label">Build tool:</span>
-                      <span class="edit-connector-value">{{ formatBuildTool(c.buildFramework) }}</span>
-                    </div>
-                  }
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Build tool:</span>
+                  <span class="edit-connector-value">{{ formatBuildTool(c.buildFramework) }}</span>
                 </div>
               }
+              @if (c.gitCloneUrl) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Git clone URL:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
+                  </span>
+                </div>
+              }
+              @if (c.commitTag) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Commit hash:</span>
+                  <span class="edit-connector-value">
+                    <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag }}
+                  </span>
+                </div>
+              }
+              @if (c.pathToProjectDirectory) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Project folder path:</span>
+                  <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
+                </div>
+              }
+              @if (c.className) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Connector class name:</span>
+                  <span class="edit-connector-value">{{ c.className }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
 
-              <!-- Source code access -->
-              <div class="edit-subsection">
-                <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-source')">
-                  <i class="fa-solid icon-sm"
-                     [class.fa-chevron-up]="isSectionExpanded(ci + '-source')"
-                     [class.fa-chevron-down]="!isSectionExpanded(ci + '-source')"></i>
-                  <span>Source Code Access</span>
-                </button>
-                @if (isSectionExpanded(ci + '-source')) {
-                  @if (c.gitCloneUrl) {
-                    <div class="edit-connector-row">
-                      <span class="edit-connector-label">Git clone URL:</span>
-                      <span class="edit-connector-value">
-                        <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.gitCloneUrl }}
-                      </span>
-                    </div>
-                  }
-                  <!-- Commit hash always shown, even when empty -->
-                  <div class="edit-connector-row">
-                    <span class="edit-connector-label">Commit hash:</span>
-                    <span class="edit-connector-value">
-                      <i class="fa-solid fa-tag me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.commitTag || '—' }}
-                    </span>
-                  </div>
+        <!-- Staged (not yet persisted) connectors: added while on a published version, committed on Save -->
+        @for (sc of stagedConnectors(); track $index; let si = $index) {
+          <div class="edit-connector-card edit-connector-card-pending">
+            <div class="edit-connector-card-header">
+              <span class="edit-connector-name d-flex align-items-center gap-2">
+                {{ sc.displayName || 'New connector' }}
+                @if (isObsoleteConnector(sc.tags)) {
+                  <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
                 }
+                <span class="edit-connector-pending-badge">Pending</span>
+              </span>
+              <button type="button" class="btn p-0 edit-connector-delete-btn d-flex align-items-center gap-1"
+                      (click)="removeStagedConnector(si)">
+                <i class="fa-solid fa-trash-can"></i>Remove
+              </button>
+            </div>
+            <div class="edit-connector-details">
+              <div class="edit-connector-row">
+                <span class="edit-connector-label">Connector version:</span>
+                <span class="edit-connector-value"><span class="im-version-badge">{{ sc.version || '—' }}</span></span>
               </div>
-
-              <!-- Implementation details -->
-              @if (c.pathToProjectDirectory || c.className) {
-                <div class="edit-subsection">
-                  <button type="button" class="edit-subsection-header d-flex align-items-center gap-2" (click)="toggleSection(ci + '-impl')">
-                    <i class="fa-solid icon-sm"
-                       [class.fa-chevron-up]="isSectionExpanded(ci + '-impl')"
-                       [class.fa-chevron-down]="!isSectionExpanded(ci + '-impl')"></i>
-                    <span>Implementation Details</span>
-                  </button>
-                  @if (isSectionExpanded(ci + '-impl')) {
-                    @if (c.pathToProjectDirectory) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Project folder path:</span>
-                        <span class="edit-connector-value">{{ c.pathToProjectDirectory }}</span>
-                      </div>
-                    }
-                    @if (c.className) {
-                      <div class="edit-connector-row">
-                        <span class="edit-connector-label">Class name:</span>
-                        <span class="edit-connector-value">
-                          <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.className }}
-                        </span>
-                      </div>
-                    }
-                  }
+              @if (sc.maintainer) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Maintainer:</span>
+                  <span class="edit-connector-value">{{ maintainerText(sc.maintainer) }}</span>
+                </div>
+              }
+              @if (sc.license) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">License type:</span>
+                  <span class="edit-connector-value">{{ fmtLicense(sc.license) }}</span>
+                </div>
+              }
+              @if (sc.description) {
+                <div class="edit-connector-row">
+                  <span class="edit-connector-label">Connector description:</span>
+                  <div class="edit-connector-value markdown-rendered" [innerHTML]="sc.description | markdown"></div>
                 </div>
               }
             </div>
@@ -370,18 +440,42 @@
       <!-- License / publishing notice -->
       <div class="edit-license-notice">
         <p class="edit-license-text">
-          By saving this change, you confirm that the updated content remains compliant with the license you originally selected and with Evolveum's <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Terms of Use</a> and
-          <a href="https://evolveum.com/terms-of-use/" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+          By saving this change, you confirm that the updated content remains compliant with the license you originally selected and with Evolveum's <a [attr.href]="links()?.termsOfUse" target="_blank" rel="noopener">Terms of Use</a> and
+          <a [attr.href]="links()?.acceptableUsePolicy" target="_blank" rel="noopener">Acceptable Use Policy</a>.
         </p>
       </div>
+
+      @if (saveError()) {
+        <div class="position-fixed end-0 p-3 toast-container" style="top: 70px; z-index: 100000;">
+          <div class="toast-box rounded-2 overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-danger">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation toast-icon"></i>
+                <strong>Save failed</strong>
+              </div>
+              <button type="button" class="btn-close btn-close-white" (click)="dismissSaveError()" aria-label="Close"></button>
+            </div>
+            <div class="px-3 py-2 toast-body-danger">
+              {{ saveError() }}
+            </div>
+          </div>
+        </div>
+      }
 
       <!-- Footer actions -->
       <div class="edit-footer">
         <button type="button" class="btn btn-link edit-cancel-btn" (click)="cancel()">Cancel</button>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn edit-save-btn" [disabled]="!isMidpointRangeValid()" (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
-          @if (!isInReview()) {
-            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid()" (click)="saveAsNewVersion()">
+        <div class="d-flex align-items-center gap-2">
+          @if (suggestsNewVersionForConnectorChange()) {
+            <span class="edit-save-hint text-muted me-1"></span>
+          } @else if (hasPendingConnectorChanges()) {
+            <span class="edit-save-hint text-muted me-1">You have unsaved connector changes</span>
+          }
+          <button type="button" class="btn edit-save-btn"
+                  [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()"
+                  (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+          @if (!isDraftState()) {
+            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()" (click)="saveAsNewVersion()">
               <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
             </button>
           }
@@ -392,14 +486,22 @@
 
   </div><!-- end edit-page -->
 
+  @if (isMethodTypeModalOpen()) {
+    <app-method-type-modal
+      [selected]="methodTypes()"
+      (save)="onMethodTypesChosen($event)"
+      (cancel)="isMethodTypeModalOpen.set(false)">
+    </app-method-type-modal>
+  }
+
   @if (editingConnector()) {
     <app-edit-connector-modal
-      [appId]="appId()"
       [methodId]="versionId()"
       [revision]="methodVersion()"
       [connector]="editingConnector()!"
+      [deferSave]="true"
       (close)="closeEditConnector()"
-      (saved)="onConnectorEdited()">
+      (stagedEdit)="onConnectorEditStaged($event)">
     </app-edit-connector-modal>
   }
 
@@ -418,7 +520,7 @@
           </button>
         </div>
         <div class="cancel-confirm-body">
-          Are you sure you want to delete "{{ pending.bundleDisplayName || pending.name }}"? This action cannot be undone.
+          Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? This action cannot be undone.
         </div>
         <hr class="cancel-confirm-separator">
         <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
@@ -431,54 +533,28 @@
     </div>
   }
 
-  <!-- "Changes saved" confirmation modal (shown after a minor Save) -->
+  <!-- "Changes saved" confirmation (shown after a minor Save) -->
   @if (showSavedModal()) {
-    <div class="saved-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeSavedModal()"></div>
-    <div class="saved-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-      <div class="saved-modal-dialog" (click)="$event.stopPropagation()">
-        <button type="button" class="btn p-0 saved-modal-close" (click)="closeSavedModal()" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="saved-modal-body d-flex flex-column align-items-center text-center">
-          <div class="saved-modal-check">
-            <i class="fa-solid fa-check"></i>
-          </div>
-          <h5 class="saved-modal-title">Changes has been successfully saved</h5>
-        </div>
-        <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">
-          <button type="button" class="btn saved-modal-close-link" (click)="closeSavedModal()">Close</button>
-          <button type="button" class="btn saved-modal-catalog-btn" (click)="savedGoToCatalog()">Go to catalog</button>
-        </div>
-      </div>
-    </div>
+    <app-submission-success-modal
+      title="Changes have been successfully saved"
+      subtitle="Changes are now awaiting for approval"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
+      (done)="savedGoToCatalog()"
+      (dismissed)="closeSavedModal()">
+    </app-submission-success-modal>
   }
 
-  <!-- "Upgraded to new version" modal (shown after "Save as new version") -->
+  <!-- "Upgraded to new version" confirmation (shown after "Save as new version") -->
   @if (showNewVersionModal()) {
-    <div class="saved-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeNewVersionModal()"></div>
-    <div class="saved-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-      <div class="saved-modal-dialog" (click)="$event.stopPropagation()">
-        <button type="button" class="btn p-0 saved-modal-close" (click)="closeNewVersionModal()" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="saved-modal-body d-flex flex-column align-items-center text-center">
-          <div class="saved-modal-check">
-            <i class="fa-solid fa-check"></i>
-          </div>
-          <h5 class="saved-modal-title">Integration method upgraded to {{ versionBadge(methodVersion()) }}</h5>
-        </div>
-        <ul class="new-version-list">
-          <li>Configuration metadata updated</li>
-          <li>Build artifacts generated and stored</li>
-          <li>Commit tag {{ methodVersion() }} created in repository</li>
-        </ul>
-        <hr class="saved-modal-separator">
-        <div class="saved-modal-footer d-flex justify-content-between align-items-center gap-3">
-          <button type="button" class="btn saved-modal-close-link" (click)="closeNewVersionModal()">Close</button>
-          <button type="button" class="btn saved-modal-catalog-btn" (click)="savedGoToCatalog()">Go to catalog</button>
-        </div>
-      </div>
-    </div>
+    <app-submission-success-modal
+      [title]="'Integration method upgraded to ' + versionBadge(methodVersion())"
+      subtitle="New version is now awaiting for approval"
+      [methodId]="versionId()"
+      [revision]="methodVersion()"
+      (done)="savedGoToCatalog()"
+      (dismissed)="closeNewVersionModal()">
+    </app-submission-success-modal>
   }
 
   <!-- "Set up connector compatibility" modal -->
@@ -498,6 +574,15 @@
             Define the connector version range supported by this integration. Only connectors within
             the specified range will be available for use.
           </p>
+
+          <!-- The range is stored per integration method, not on the connector. -->
+          <div class="compat-modal-note d-flex gap-2 align-items-start mb-3">
+            <i class="fa-solid fa-circle-info compat-modal-note-icon flex-shrink-0"></i>
+            <span class="flex-grow-1">
+              <strong>Note</strong>&nbsp;This range belongs to this integration method, not to the connector itself.
+              Other integration methods using the same connector keep their own ranges.
+            </span>
+          </div>
 
           <div class="d-flex align-items-start gap-3 mb-1">
             <div class="flex-grow-1">
@@ -525,10 +610,8 @@
 
           @if (isCompatRangeInvalid()) {
             <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
-          } @else if ((compatFrom().trim() && !isCompatFromValid()) || !isCompatToValid()) {
-            <div class="field-error">Enter versions in the X.Y.Z format (e.g. 1.0.0).</div>
           } @else {
-            <div class="form-text">Enter a version in the X.Y.Z format. Users can search for this connector by version range.</div>
+            <div class="form-text">Users can search for this connector by version range.</div>
           }
 
           @if (!compatInfoDismissed()) {

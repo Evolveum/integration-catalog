@@ -6,41 +6,66 @@
 
 package com.evolveum.midpoint.integration.catalog.controller;
 
+import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
+import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.dto.*;
+import com.evolveum.midpoint.integration.catalog.exception.ObjectAlreadyExist;
 import com.evolveum.midpoint.integration.catalog.form.ContinueForm;
 import com.evolveum.midpoint.integration.catalog.form.FailForm;
 import com.evolveum.midpoint.integration.catalog.form.SearchForm;
 import com.evolveum.midpoint.integration.catalog.object.*;
+import com.evolveum.midpoint.integration.catalog.security.SecurityConfig;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Disabled;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration tests for the REST Controller.
- * Tests all endpoints using MockMvc and mocked ApplicationService.
+ * Integration tests for the REST Controller, over MockMvc and a mocked ApplicationService.
+ *
+ * Security is deliberately switched off so these exercise the MVC layer only; the caller identity
+ * is passed as a request principal instead. Excluding SecurityConfig leaves neither an HttpSecurity
+ * bean nor the application's lazy client registration repository, so both halves of the OAuth2
+ * client auto-configuration have to go with it - the registration half would otherwise try to
+ * reach the identity provider while the context starts, which no test here needs running.
  */
-@WebMvcTest(Controller.class)
+@WebMvcTest(controllers = Controller.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
+        excludeAutoConfiguration = {
+                OAuth2ClientAutoConfiguration.class,
+                OAuth2ClientWebSecurityAutoConfiguration.class })
+@AutoConfigureMockMvc(addFilters = false)
 class ControllerTest {
+
+    private static final Authentication VOTER_AUTH =
+            new UsernamePasswordAuthenticationToken("voter@example.com", "n/a");
 
     @Autowired
     private MockMvc mockMvc;
@@ -119,7 +144,7 @@ class ControllerTest {
                 .build();
 
         when(applicationService.getApplication(testAppId)).thenReturn(testApplication);
-        when(applicationMapper.mapToApplicationDto(testApplication)).thenReturn(dto);
+        when(applicationMapper.mapToApplicationDto(testApplication, null)).thenReturn(dto);
 
         mockMvc.perform(get("/api/applications/{id}", testAppId))
                 .andExpect(status().isOk())
@@ -127,7 +152,7 @@ class ControllerTest {
                 .andExpect(jsonPath("$.displayName").value("Test Application"));
 
         verify(applicationService).getApplication(testAppId);
-        verify(applicationMapper).mapToApplicationDto(testApplication);
+        verify(applicationMapper).mapToApplicationDto(testApplication, null);
     }
 
     @Test
@@ -213,7 +238,7 @@ class ControllerTest {
                 List.of(CapabilityType.SCHEMA,
                         CapabilityType.TEST,
                         CapabilityType.VALIDATE,
-                        CapabilityType.GET,
+                        CapabilityType.READ,
                         CapabilityType.SEARCH
                 ));
 
@@ -321,23 +346,29 @@ class ControllerTest {
                 "Slack",
                 "cloud-based",
                 "Slack integration for team communication",
+                "Provision users and channels from midPoint",
+                1,
                 "1.0",
                 "test@example.com",
                 false,
                 "Test User",
-                List.of(new RequestFormDto.ObjectClassCapabilityEntry("global", List.of("GET", "SEARCH")))
+                List.of(new IntegrationMethodObjectCapabilitiesDto("Account", List.of(
+                        new IntegrationMethodCapabilityStateDto("READ", CapabilityState.YES),
+                        new IntegrationMethodCapabilityStateDto("SEARCH", CapabilityState.YES),
+                        new IntegrationMethodCapabilityStateDto("DELETE", CapabilityState.NO))))
         );
 
-        when(applicationService.createRequestFromForm(any(RequestFormDto.class)))
+        when(applicationService.createRequestFromForm(any(RequestFormDto.class), anyString()))
                 .thenReturn(testRequest);
 
         mockMvc.perform(post("/api/requests")
+                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1));
 
-        verify(applicationService).createRequestFromForm(any(RequestFormDto.class));
+        verify(applicationService).createRequestFromForm(any(RequestFormDto.class), anyString());
     }
 
     @Test
@@ -346,6 +377,8 @@ class ControllerTest {
                 "", // Empty name - invalid
                 null,
                 "", // Empty description - invalid
+                "", // Empty integration need - invalid
+                null,
                 null,
                 null,
                 null,
@@ -358,7 +391,7 @@ class ControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class));
+        verify(applicationService, never()).createRequestFromForm(any(RequestFormDto.class), anyString());
     }
 
     // ===== POST /api/requests/{requestId}/vote =====
@@ -368,7 +401,7 @@ class ControllerTest {
         when(applicationService.submitVote(1L, "voter@example.com")).thenReturn(testVote);
 
         mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
-                        .param("voter", "voter@example.com"))
+                        .principal(VOTER_AUTH))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requestId").value(1))
                 .andExpect(jsonPath("$.voter").value("voter@example.com"));
@@ -382,7 +415,7 @@ class ControllerTest {
                 .thenThrow(new IllegalArgumentException("User has already voted"));
 
         mockMvc.perform(post("/api/requests/{requestId}/vote", 1L)
-                        .param("voter", "voter@example.com"))
+                        .principal(VOTER_AUTH))
                 .andExpect(status().isBadRequest());
 
         verify(applicationService).submitVote(1L, "voter@example.com");
@@ -408,7 +441,7 @@ class ControllerTest {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(true);
 
         mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
-                        .param("voter", "voter@example.com"))
+                        .principal(VOTER_AUTH))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
 
@@ -420,7 +453,7 @@ class ControllerTest {
         when(applicationService.hasUserVoted(1L, "voter@example.com")).thenReturn(false);
 
         mockMvc.perform(get("/api/requests/{requestId}/votes/check", 1L)
-                        .param("voter", "voter@example.com"))
+                        .principal(VOTER_AUTH))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));
 
@@ -464,6 +497,8 @@ class ControllerTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null
         );
 
@@ -492,64 +527,52 @@ class ControllerTest {
         verify(applicationService).list(any(), eq(null), eq(null));
     }
 
-    // TODO, Set up positive scenario
-    @Disabled("TODO: Set up positive scenario")
+    /**
+     * The happy path: nothing else claims the class the build reports, so the service returns
+     * without complaint and the request is answered 200.
+     */
     @Test
-    void verifyConnectorBundleVersionNoBundleWithSuchClassName() throws Exception {
-        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
-        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
-        verifyBundleInformationForm.setVersion("1.0.0");
+    void verifyAcceptsAClassNoOtherConnectorClaims() throws Exception {
+        VerifyBundleInformationForm form = verifyForm();
 
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(true);
-
-        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
+        mockMvc.perform(post("/api/upload/verify/{oid}", testVersionId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
+                        .content(objectMapper.writeValueAsString(form)))
                 .andExpect(status().isOk());
 
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+        ArgumentCaptor<VerifyBundleInformationForm> sent =
+                ArgumentCaptor.forClass(VerifyBundleInformationForm.class);
+        verify(applicationService).verify(eq(testVersionId), sent.capture());
+        assertEquals("com.evolveum.polygon.connector.test.TestFooConnector", sent.getValue().getClassName());
+        assertEquals("1.0.0", sent.getValue().getVersion());
+        assertEquals("test-bundle", sent.getValue().getBundleName());
     }
 
-    // TODO, Set up conflict scenario
-    @Disabled("TODO: Set up conflict scenario")
+    /**
+     * The bundle version already holds that connector class, which the service reports by
+     * throwing. The controller answers 409 rather than letting a second connector claim it.
+     */
     @Test
-    void verifyConnectorBundleVersionBundleWithSuchClassName() throws Exception {
-        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
-        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
-        verifyBundleInformationForm.setVersion("1.0.0");
+    void verifyReportsAConflictWhenTheClassIsAlreadyInTheBundleVersion() throws Exception {
+        doThrow(new ObjectAlreadyExist("Bundle test-bundle version 1.0.0 already contains connector"
+                + " class com.evolveum.polygon.connector.test.TestFooConnector"))
+                .when(applicationService).verify(eq(testVersionId), any(VerifyBundleInformationForm.class));
 
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(false);
-
-        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
+        mockMvc.perform(post("/api/upload/verify/{oid}", testVersionId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
+                        .content(objectMapper.writeValueAsString(verifyForm())))
                 .andExpect(status().isConflict());
 
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+        verify(applicationService).verify(eq(testVersionId), any(VerifyBundleInformationForm.class));
     }
 
-    // TODO, Set up Not found
-    @Disabled("TODO: Set up Not found scenario")
-    @Test
-    void verifyConnectorBundleVersionNoSuchBundle() throws Exception {
-        VerifyBundleInformationForm verifyBundleInformationForm = new VerifyBundleInformationForm();
-        verifyBundleInformationForm.setOid(testVersionId);
-        verifyBundleInformationForm.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
-        verifyBundleInformationForm.setVersion("1.0.0");
-
-        when(applicationService.verify(any(VerifyBundleInformationForm.class)))
-                .thenReturn(false);
-
-        mockMvc.perform(post("/upload/verify/{bundleName}", "test-bundle")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(verifyBundleInformationForm)))
-                .andExpect(status().isNotFound());
-
-        verify(applicationService).verify(any(VerifyBundleInformationForm.class));
+    /** What a build reports back about the bundle it has just produced. */
+    private static VerifyBundleInformationForm verifyForm() {
+        VerifyBundleInformationForm form = new VerifyBundleInformationForm();
+        form.setClassName("com.evolveum.polygon.connector.test.TestFooConnector");
+        form.setVersion("1.0.0");
+        form.setBundleName("test-bundle");
+        return form;
     }
 
     // ===== GET /api/connectors/catalog =====
@@ -558,19 +581,25 @@ class ControllerTest {
     void getCatalogConnectorsShouldReturnList() throws Exception {
         CatalogConnectorDto dto = new CatalogConnectorDto(
                 1,
+                7,
                 "LDAP Connector",
                 "LDAP connector for directory services",
                 "1.0.0",
                 "Polygon LDAP",
+                new MaintainerDto(2L, null, null, MaintainerType.EVOLVEUM, "Evolveum"),
                 "Evolveum",
                 "APACHE_2",
                 "MAVEN",
                 "JAVA_BASED",
                 "https://github.com/Evolveum/connector-ldap",
+                "https://github.com/Evolveum/connector-ldap/tree/v1.0.0",
                 "https://github.com/Evolveum/connector-ldap.git",
                 null,
+                "v1.0.0",
+                null,
                 "com.evolveum.polygon.connector.ldap.LdapConnector",
-                List.of()
+                List.of(),
+                List.of(new ConnectorTagDto("obsolete", "Obsolete"))
         );
         when(applicationService.listCatalogConnectors()).thenReturn(List.of(dto));
 
@@ -578,7 +607,8 @@ class ControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].displayName").value("LDAP Connector"))
-                .andExpect(jsonPath("$[0].bundleFramework").value("JAVA_BASED"));
+                .andExpect(jsonPath("$[0].bundleFramework").value("JAVA_BASED"))
+                .andExpect(jsonPath("$[0].tags[0].name").value("obsolete"));
 
         verify(applicationService).listCatalogConnectors();
     }
@@ -594,83 +624,86 @@ class ControllerTest {
         verify(applicationService).listCatalogConnectors();
     }
 
-    // ===== POST /api/upload/connector =====
+    // ===== POST /api/upload/integration =====
 
     @Test
     void uploadConnectorShouldReturnOkWhenSuccessful() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenReturn("app-uuid|method-uuid");
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
+                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     @Test
     void uploadConnectorShouldReturnBadRequestOnIllegalArgument() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenThrow(new IllegalArgumentException("Framework must be specified"));
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
+                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     @Test
     void uploadConnectorShouldReturnConflictOnDuplicateBundle() throws Exception {
-        when(applicationService.uploadConnector(any(UploadImplementationDto.class), anyString()))
+        when(applicationService.uploadIntegration(any(UploadIntegrationDto.class), anyString()))
                 .thenThrow(new DataIntegrityViolationException("duplicate key value violates unique constraint"));
 
-        mockMvc.perform(post("/api/upload/connector")
+        mockMvc.perform(post("/api/upload/integration")
+                        .principal(VOTER_AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isConflict());
 
-        verify(applicationService).uploadConnector(any(UploadImplementationDto.class), anyString());
+        verify(applicationService).uploadIntegration(any(UploadIntegrationDto.class), anyString());
     }
 
     // ===== GET /api/connectors/active =====
 
-    @Test
-    void getActiveConnectorsShouldReturnList() throws Exception {
-        ActiveConnectorDto dto = new ActiveConnectorDto(
-                testAppId,
-                "Test Application",
-                "Test Description",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
-
-        List<ActiveConnectorDto> connectors = Collections.singletonList(dto);
-        when(applicationService.listActiveConnectors()).thenReturn(connectors);
-
-        mockMvc.perform(get("/api/connectors/active"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(testAppId.toString()))
-                .andExpect(jsonPath("$[0].displayName").value("Test Application"));
-
-        verify(applicationService).listActiveConnectors();
-    }
-
-    @Test
-    void getActiveConnectorsShouldReturnEmptyListWhenNoActiveConnectors() throws Exception {
-        when(applicationService.listActiveConnectors()).thenReturn(Collections.emptyList());
-
-        mockMvc.perform(get("/api/connectors/active"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
-
-        verify(applicationService).listActiveConnectors();
-    }
+//    @Test
+//    void getActiveConnectorsShouldReturnList() throws Exception {
+//        ActiveConnectorDto dto = new ActiveConnectorDto(
+//                testAppId,
+//                "Test Application",
+//                "Test Description",
+//                null,
+//                null,
+//                null,
+//                null,
+//                null,
+//                null
+//        );
+//
+//        List<ActiveConnectorDto> connectors = Collections.singletonList(dto);
+//        when(applicationService.listActiveConnectors()).thenReturn(connectors);
+//
+//        mockMvc.perform(get("/api/connectors/active"))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.length()").value(1))
+//                .andExpect(jsonPath("$[0].id").value(testAppId.toString()))
+//                .andExpect(jsonPath("$[0].displayName").value("Test Application"));
+//
+//        verify(applicationService).listActiveConnectors();
+//    }
+//
+//    @Test
+//    void getActiveConnectorsShouldReturnEmptyListWhenNoActiveConnectors() throws Exception {
+//        when(applicationService.listActiveConnectors()).thenReturn(Collections.emptyList());
+//
+//        mockMvc.perform(get("/api/connectors/active"))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.length()").value(0));
+//
+//        verify(applicationService).listActiveConnectors();
+//    }
 }

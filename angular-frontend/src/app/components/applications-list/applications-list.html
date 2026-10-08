@@ -5,7 +5,7 @@
  -->
 
 <div class="container-fluid p-0 position-relative page-bg">
-  <app-page-header [hideBorder]="true"></app-page-header>
+  <app-page-header [hideBorder]="true" [transparentAtTop]="heroUnderHeader()"></app-page-header>
 <!-- Login Required Toast Notification -->
   @if (showLoginRequiredMessage()) {
     <div class="position-fixed top-0 end-0 p-3 toast-container">
@@ -20,7 +20,7 @@
         </div>
         <!-- Light yellow message row -->
         <div class="px-3 py-2 toast-body-warning">
-          You need to log in to submit a request. Please log in and try again.
+          You need to log in to perform this action. Please log in and try again.
         </div>
       </div>
     </div>
@@ -44,12 +44,12 @@
 
   <div class="container-fluid p-0 page-bg">
     <!-- Hero Banner -->
-    <div class="bg-primary text-white py-5 hero-gradient position-relative">
+    <div class="bg-primary text-white pb-5 hero-gradient position-relative" [class.hero-under-header]="heroUnderHeader()">
 <div class="mx-auto content-width position-relative">
         <!-- title -->
         <div class="row">
           <div class="col-12 text-center">
-            <h1 class="display-6 fw-bold mb-3 hero-title">Integration Catalog</h1>
+            <h1 class="display-6 fw-bold mb-3 hero-title">MidPoint Integration Catalog</h1>
           </div>
         </div>
 
@@ -57,7 +57,7 @@
         <div class="row">
           <div class="col-12 text-center">
             <p class="lead mb-4 hero-subtitle">
-              Easily connect any application or system to midPoint.
+              Discover available integrations for a unified identity experience.
             </p>
           </div>
         </div>
@@ -68,11 +68,11 @@
             <div class="d-flex gap-5">
               <div class="text-center">
                 <div class="display-4 fw-bold mb-2 hero-stat-value">{{ activeIntegrationsCount() }}</div>
-                <div class="hero-stat-label">Active integrations</div>
+                <div class="hero-stat-label">Integrations available</div>
               </div>
               <div class="text-center">
                 <div class="display-4 fw-bold mb-2 hero-stat-value">{{ totalDownloadsCount() }}</div>
-                <div class="hero-stat-label">Apps downloaded</div>
+                <div class="hero-stat-label">Integrations downloaded</div>
               </div>
             </div>
           </div>
@@ -93,9 +93,8 @@
       <div class="row mb-3 mx-auto content-width">
         <div class="col-6">
           <p class="mb-0 description-text">
-            Explore available integrations to jump-start your workflow, build your own with AI-guided assistance,
-            or upload an existing configuration to get started in just minutes. The process is fast, flexible, and
-            user-friendly.
+            Explore ready-made integrations, build your own with AI-guided assistance
+            or upload an existing configuration to onboard an application. All in just a few minutes.
           </p>
         </div>
         <div class="col-6"></div>
@@ -115,7 +114,7 @@
             <input
               type="text"
               class="form-control border-start-0 search-input"
-              placeholder="Filter by name or version..."
+              placeholder="Search by name or description..."
               [value]="searchQuery()"
               (input)="onSearchChange($event)"
             />
@@ -132,7 +131,7 @@
     </div>
 
     <!-- Active Filters Row -->
-    @if (filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0 || filterState().maintainers.length > 0) {
+    @if (visibleChips().size > 0 || filterState().trending) {
       <div class="row mb-4 mx-auto content-width">
         <div class="col-12">
           <div class="d-flex align-items-center justify-content-between gap-3">
@@ -140,7 +139,7 @@
               <div class="d-inline-flex gap-2 align-items-center filter-chips-inner">
 
               <!-- Categories Filter Chip -->
-              @if (filterState().categories.length > 0) {
+              @if (visibleChips().has('categories')) {
                 <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Category</span>
                   <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
@@ -149,14 +148,30 @@
                   <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearCategoriesFilter()" class="btn-icon d-inline-flex align-items-center">
+                  <button type="button" (click)="removeChip('categories')" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-xmark icon-md"></i>
+                  </button>
+                </div>
+              }
+
+              <!-- Deployment Type Filter Chip -->
+              @if (visibleChips().has('deploymentTypes')) {
+                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
+                  <span>Deployment type</span>
+                  <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
+                    {{ filterState().deploymentTypes.length }}
+                  </span>
+                  <button type="button" (click)="toggleDropdown('deploymentTypes', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
+                    <i class="fa-solid fa-chevron-down icon-md"></i>
+                  </button>
+                  <button type="button" (click)="removeChip('deploymentTypes')" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- Capabilities Filter Chip -->
-              @if (filterState().capabilities.length > 0) {
+              @if (visibleChips().has('capabilities')) {
                 <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Capability</span>
                   <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
@@ -165,14 +180,14 @@
                   <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearCapabilitiesFilter()" class="btn-icon d-inline-flex align-items-center">
+                  <button type="button" (click)="removeChip('capabilities')" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- App Status Filter Chip -->
-              @if (filterState().appStatus.length > 0) {
+              @if (visibleChips().has('appStatus')) {
                 <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>App status</span>
                   <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
@@ -181,14 +196,14 @@
                   <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearAppStatusFilter()" class="btn-icon d-inline-flex align-items-center">
+                  <button type="button" (click)="removeChip('appStatus')" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- MidPoint Version Filter Chip -->
-              @if (filterState().midpointVersions.length > 0) {
+              @if (visibleChips().has('midpointVersions')) {
                 <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>MidPoint version</span>
                   <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
@@ -197,14 +212,14 @@
                   <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearMidpointVersionsFilter()" class="btn-icon d-inline-flex align-items-center">
+                  <button type="button" (click)="removeChip('midpointVersions')" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- Integration Method Filter Chip -->
-              @if (filterState().integrationMethods.length > 0) {
+              @if (visibleChips().has('integrationMethods')) {
                 <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Integration method</span>
                   <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
@@ -213,14 +228,14 @@
                   <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearIntegrationMethodsFilter()" class="btn-icon d-inline-flex align-items-center">
+                  <button type="button" (click)="removeChip('integrationMethods')" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
               }
 
               <!-- Maintainer Filter Chip -->
-              @if (filterState().maintainers.length > 0) {
+              @if (visibleChips().has('maintainers')) {
                 <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill">
                   <span>Maintainer</span>
                   <span class="badge rounded-circle badge-counter d-inline-flex align-items-center justify-content-center">
@@ -229,7 +244,7 @@
                   <button type="button" (click)="toggleDropdown('maintainers', $event); $event.stopPropagation()" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="clearMaintainersFilter()" class="btn-icon d-inline-flex align-items-center">
+                  <button type="button" (click)="removeChip('maintainers')" class="btn-icon d-inline-flex align-items-center">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -258,7 +273,7 @@
     }
 
     @if (!loading() && !error() && featuredApplications().length > 0) {
-      <h2 class="h3 mb-4 text-center section-title">Featured integration apps</h2>
+      <h2 class="h3 mb-4 text-center section-title">Featured Integration Apps</h2>
 
       <div class="position-relative mb-5 mx-auto content-width">
         <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center scroll-btn"
@@ -269,7 +284,7 @@
         </button>
 
         <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
-          <div class="d-flex gap-4 pe-5">
+          <div class="d-flex gap-4">
             @for (app of featuredApplications(); track app.id) {
               <div #featuredCard class="card position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
                 <!-- Status indicators at top right -->
@@ -330,10 +345,10 @@
                     <p class="text-center mt-auto mb-0 link-error">Error details</p>
                   } @else if (app.lifecycleState === 'IN_REVIEW') {
                     <!-- in review -->
-                  } @else if (app.currentMidpointVersion) {
+                  } @else if (availableSince(app); as sinceVersion) {
                     <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
                       <i class="fa-solid fa-circle-info flex-shrink-0"></i>
-                      <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
+                      <span>Available since midPoint version {{ sinceVersion }}</span>
                     </div>
                   }
                 </div>
@@ -353,10 +368,10 @@
 
     @if (!loading() && !error()) {
       <div class="mx-auto content-width">
-        @if (!(filterState().trending || filterState().categories.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0 || filterState().maintainers.length > 0)) {
+        @if (!(filterState().trending || filterState().categories.length > 0 || filterState().deploymentTypes.length > 0 || filterState().capabilities.length > 0 || filterState().appStatus.length > 0 || filterState().midpointVersions.length > 0 || filterState().integrationMethods.length > 0 || filterState().maintainers.length > 0)) {
           <!-- Row 1: More apps heading -->
           <div class="text-center mb-3">
-            <h2 class="h3 mb-0 section-title">More apps</h2>
+            <h2 class="h3 mb-0 section-title">More Apps</h2>
           </div>
 
           <!-- Row 2: Showing count -->
@@ -441,10 +456,10 @@
                   <p class="text-center mt-auto mb-0 link-error">Error details</p>
                 } @else if (app.lifecycleState === 'IN_REVIEW') {
                   <!-- in review -->
-                } @else if (app.currentMidpointVersion) {
+                } @else if (availableSince(app); as sinceVersion) {
                   <div class="current-version-banner mt-auto d-flex align-items-center gap-2">
                     <i class="fa-solid fa-circle-info flex-shrink-0"></i>
-                    <span>Available since midPoint version {{ app.currentMidpointVersion }}</span>
+                    <span>Available since midPoint version {{ sinceVersion }}</span>
                   </div>
                 }
               </div>
@@ -485,7 +500,7 @@
       <div class="py-5 mt-5 mx-auto content-width">
         <div class="mx-auto max-w-800">
           <h3 class="h4 mb-2 text-dark text-center">Need More Flexibility? Extend Your Integration</h3>
-          <p class="mb-4 text-center description-text">Choose from advanced options to tailor your midPoint setup, - whether you're uploading <br> your own configuration, requesting a custom solution, or bringing your own connector.</p>
+          <p class="mb-4 text-center description-text">Choose from advanced options to tailor your midPoint setup - whether you upload <br> our own configuration, check the connector reference sheet, or request a tailored solution.</p>
         </div>
 
         <!-- Upload Configuration -->
@@ -495,13 +510,32 @@
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
-              <h5 class="mb-1 fw-600">Upload and publish</h5>
+              <h5 class="mb-1">Upload and publish</h5>
               <p class="text mb-0">Upload a configuration file to create and publish a brand new integration method<br> in the catalog.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
               <button class="btn btn-option" (click)="openUploadModal()">
                 <i class="fa-solid fa-upload icon-xl"></i>
                 Upload and publish
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Integration Sheet -->
+        <div class="d-flex align-items-stretch mb-3 options-box overflow-hidden">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-purple bg-primary-subtle">
+            <i class="fa-solid fa-download options-icon"></i>
+          </div>
+          <div class="flex-grow-1 p-4 d-flex align-items-center">
+            <div class="flex-grow-1">
+              <h5 class="mb-1">Download connectors sheet</h5>
+              <p class="text mb-0">Lists all midPoint connectors and helps verify which are open-source and listed in the <br> integration catalog.</p>
+            </div>
+            <div class="flex-shrink-0 ms-4">
+              <button class="btn btn-option" (click)="downloadActiveConnectors()">
+                <i class="fa-solid fa-download icon-xl"></i>
+                Download sheet
               </button>
             </div>
           </div>
@@ -514,13 +548,13 @@
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
             <div class="flex-grow-1">
-              <h5 class="mb-1">Request Tailored Solution</h5>
+              <h5 class="mb-1">Send a request</h5>
               <p class="text mb-0">Need a specific integration or customization? Reach out to the Evolveum team or<br>partners to build a solution that fits your exact use case and infrastructure.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
               <button class="btn btn-option" (click)="openRequestModal()">
-                <i class="fa-solid fa-code-pull-request me-1 icon-xl"></i>
-                Request Tailored Solution
+                <i class="fa-solid fa-code-pull-request icon-xl"></i>
+                Send a request
               </button>
             </div>
           </div>
@@ -555,9 +589,27 @@
       </div>
     }
 
+    @if (openDropdown() === 'deploymentTypes' && dropdownPosition()) {
+      <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
+        @for (deployment of getAllAvailableDeploymentTypes(); track deployment.name) {
+          <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleDeploymentTypeInFilter(deployment.name); $event.stopPropagation()">
+            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isDeploymentTypeSelected(deployment.name)" [class.checkbox-unchecked]="!isDeploymentTypeSelected(deployment.name)">
+              @if (isDeploymentTypeSelected(deployment.name)) {
+                <i class="fa-solid fa-check icon-xs text-white"></i>
+              }
+            </div>
+            <span>{{ deployment.displayName }}</span>
+          </div>
+        }
+        <div class="border-top pt-2 mt-2">
+          <a href="javascript:void(0)" (click)="clearDeploymentTypesFilter(); $event.stopPropagation()" class="link-clear-filter">Clear filter</a>
+        </div>
+      </div>
+    }
+
     @if (openDropdown() === 'capabilities' && dropdownPosition()) {
       <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
-        @for (capability of allCapabilities; track capability) {
+        @for (capability of allCapabilities(); track capability) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleCapabilityInFilter(capability); $event.stopPropagation()">
             <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
               @if (isCapabilitySelected(capability)) {
@@ -611,7 +663,7 @@
 
     @if (openDropdown() === 'integrationMethods' && dropdownPosition()) {
       <div class="filter-dropdown rounded-2 overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
-        @for (method of allIntegrationMethods; track method) {
+        @for (method of allIntegrationMethods(); track method) {
           <div class="d-flex align-items-center gap-2 mb-2 cursor-pointer" (click)="toggleIntegrationMethodInFilter(method); $event.stopPropagation()">
             <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isIntegrationMethodSelected(method)" [class.checkbox-unchecked]="!isIntegrationMethodSelected(method)">
               @if (isIntegrationMethodSelected(method)) {
@@ -645,9 +697,21 @@
       </div>
     }
 
-    <!-- Backdrop to close dropdown when clicking outside -->
+    <!-- Backdrop to close the open popover when clicking outside (chip stays). -->
     @if (openDropdown()) {
       <div (click)="closeDropdown()" class="click-backdrop position-fixed top-0 start-0 end-0 bottom-0"></div>
+    }
+
+    <!-- Post-download help modal for the connectors sheet (import the JSON into midPoint) -->
+    @if (isSheetInfoOpen()) {
+      <app-download-info-modal
+        [fileName]="sheetInfoFileName()"
+        [fileSize]="sheetInfoFileSize()"
+        [preparing]="isSheetPreparing()"
+        [steps]="sheetDownloadSteps"
+        [note]="''"
+        (closed)="isSheetInfoOpen.set(false)">
+      </app-download-info-modal>
     }
   </div>
 </div>

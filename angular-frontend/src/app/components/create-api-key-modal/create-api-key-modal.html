@@ -1,0 +1,47 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<div class="create-key-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onClose()"></div>
+<div class="create-key-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="create-key-dialog">
+    <div class="create-key-header d-flex align-items-center">
+      <h2 class="create-key-title">Create API key</h2>
+      <button type="button" class="create-key-close ms-auto" title="Close" (click)="onClose()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="create-key-body">
+      <label class="create-key-label" for="api-key-name">Key name</label>
+      <input id="api-key-name" class="create-key-input" type="text" autocomplete="off"
+        placeholder="My new key" [ngModel]="name()" (ngModelChange)="name.set($event)">
+      <p class="create-key-help">Use a name that describes where this key will be used.</p>
+
+      <div class="create-key-label">Expiration</div>
+      <div class="create-key-chips d-flex flex-wrap gap-2">
+        @for (preset of presets; track preset.days) {
+          <button type="button" class="create-key-chip" [class.create-key-chip-active]="selectedPreset() === preset"
+            (click)="selectPreset(preset)">{{ preset.label }}</button>
+        }
+        <button type="button" class="create-key-chip" [class.create-key-chip-active]="customSelected()"
+          (click)="selectPreset(null)">Custom</button>
+      </div>
+
+      @if (customSelected()) {
+        <input class="create-key-input create-key-date" type="date" [min]="minCustomDate"
+          [ngModel]="customDate()" (ngModelChange)="customDate.set($event)">
+      }
+    </div>
+
+    <div class="create-key-footer d-flex align-items-center">
+      <button type="button" class="create-key-cancel" (click)="onClose()">Cancel</button>
+      <button type="button" class="create-key-submit ms-auto" [disabled]="!canSubmit() || busy"
+        (click)="onCreate()">
+        {{ busy ? 'Creating...' : 'Create API key' }}
+      </button>
+    </div>
+  </div>
+</div>

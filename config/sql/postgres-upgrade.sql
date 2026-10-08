@@ -1,0 +1,770 @@
+--
+-- Copyright (c) 2010-2025 Evolveum and contributors
+--
+-- Licensed under the EUPL-1.2 or later.
+--
+
+-- Cumulative database upgrade script.
+--
+-- Contains one apply_change section per schema change; every new schema change is
+-- APPENDED here as a new section. The current change number is stored in the
+-- m_global_metadata table under the 'schemaChangeNumber' key - the same mechanism as
+-- midPoint's native repository (postgres.sql / postgres-upgrade.sql). The table and the
+-- apply_change procedure are created by config/sql/postgres.sql.
+--
+-- Always re-run the WHOLE file against an existing database:
+--
+--   psql -v ON_ERROR_STOP=1 -U integration_catalog -d integration_catalog -f config/sql/postgres-upgrade.sql
+--
+-- It is safe to run this script repeatedly: apply_change(N, ...) executes only when the
+-- stored change number is lower than N, so already-applied sections are skipped and only
+-- the new ones take effect. The SQL inside apply_change does NOT have to be idempotent.
+--
+-- Use plain psql, NOT tools with their own transaction handling (pgAdmin):
+-- apply_change uses transaction-level advisory locking and relies on the
+-- transaction handling of the CALL statement.
+-- Never put an explicit COMMIT inside a change. If a later statement depends on
+-- an earlier one being committed (typically ALTER TYPE ... ADD VALUE followed by a use
+-- of the new value), split them into two apply_change calls.
+--
+-- Fresh installations DO need this file, and must run it right after postgres.sql:
+--
+--   psql ... -f config/sql/postgres.sql          -- baseline, stamps the change number it carries
+--   psql ... -f config/sql/postgres-upgrade.sql  -- applies every change appended since
+--
+-- postgres.sql is not maintained alongside this file: schema changes are appended here alone, so
+-- the baseline stays behind and this script closes the gap. Its trailing "call apply_change(N, ...,
+-- true)" stamp must therefore be left exactly as it is - raising it to match a change defined only
+-- here marks that change as applied without ever running it, and nothing afterwards will apply it,
+-- because apply_change skips any number already recorded. The result is a database that reports the
+-- right version while missing columns, which the startup check cannot detect.
+
+DO $$
+    begin
+        if to_regproc('apply_change') is null then
+            raise exception 'You are running the UPGRADE script, but the procedure ''apply_change'' is missing.
+Are you sure you are running this upgrade script on the correct database?
+Current database name is ''%'', schema name is ''%''.', current_database(), current_schema();
+        end if;
+    END
+$$;
+
+-- region change 2: connector.cloned_from
+-- Records the original connector a copy-on-write clone was made from; the approve step
+-- uses it to fold a same-version metadata edit back into the shared original connector.
+-- (Change 1 is the baseline schema created by config/sql/postgres.sql.)
+call apply_change(2, $aa$
+alter table connector add COLUMN IF NOT EXISTS cloned_from integer;
+$aa$);
+-- end of region
+
+-- region change 3: integration_method.support_ticket_id
+-- Links an in-review revision to the work package opened for it in the support portal, so the
+-- author and the reviewer discuss the submission there instead of in the catalog.
+--
+-- The column is deliberately not backfilled: revisions submitted before this change have no
+-- work package, and one cannot be invented for them. They keep NULL and behave as they do
+-- today - the reviewer approves without a ticket check.
+--
+-- A ticket belongs to the revision row, not to the method. Editing a published revision forks
+-- a new row (see ConnectorUploadService.clonePublishedAsDraft), which starts with NULL here and
+-- therefore gets its own work package; editing or resubmitting a revision that is still in
+-- review writes to the same row and so keeps the work package it already has.
+call apply_change(3, $aa$
+ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS support_ticket_id integer;
+$aa$);
+-- end of region
+
+-- region change 4: catalog_users.email
+-- Contact address for the people a submission names, so the support work package opened for a review
+-- can say who to write to, and can subscribe them to it, instead of only recording who submitted.
+-- Until now the catalog held no e-mail for anyone: catalog_users carried a username, a password, a
+-- role and an organization.
+--
+-- Only people get an address. A submission maintained by an organization is represented by its
+-- author, who is a member of that organization and the person who can act on what the review asks
+-- for, so every address the catalog needs is a personal one.
+--
+-- Nullable and deliberately not backfilled - there is no address to invent for an existing row. A
+-- submission by someone without one renders as a bare name, exactly as every submission does today.
+--
+-- 320 = 64 local part + "@" + 255 domain, the longest address RFC 5321 allows.
+call apply_change(4, $aa$
+ALTER TABLE catalog_users ADD COLUMN IF NOT EXISTS email varchar(320);
+$aa$);
+-- end of region
+
+-- region change 5: pending_operation
+-- Operations the catalog owes an external system, written down before they are attempted so that a
+-- system which is temporarily unreachable delays an operation instead of losing it. A scheduled job
+-- offers every row still marked PENDING back to its handler until it succeeds - see
+-- PendingOperationRetryJob.
+--
+-- Deliberately generic. The first user is the support portal, whose work packages were until now
+-- opened on a best-effort basis: a portal that was down left a log line and a submission with no
+-- ticket, with nothing to find it by afterwards. Nothing about the table says so, though. It records
+-- WHICH system owes the operation (target_system), WHICH operation of that system it is (operation)
+-- and everything needed to perform it as opaque JSON (payload), whose shape is known only to the
+-- handler registered for that pair. Another external system is therefore a new value in
+-- target_system plus a handler bean, with no DDL and no change to the job.
+--
+-- operation is free text rather than an enum type: the set of operations belongs to whoever
+-- integrates a system, and adding one must not mean altering a type shared by all of them.
+--
+-- No backfill. Rows begin with the first operation raised after this change; whatever was lost to an
+-- outage before it was never recorded anywhere and cannot be reconstructed.
+--
+-- The index serves the only query there is - the job asking one system what it is still owed - and
+-- covers the count beside it. Left as a plain composite index rather than a partial one on
+-- status = 'PENDING': completed rows outnumber pending ones over time, but not by enough to be worth
+-- an index whose predicate has to be repeated in every query that hopes to use it.
+call apply_change(5, $aa$
+CREATE TABLE IF NOT EXISTS pending_operation (
+    id              bigserial PRIMARY KEY,
+    -- Text rather than an enum type on purpose: a system joins the retry mechanism by being handled,
+    -- not by being declared, so adding one must not need a migration. Same for operation below.
+    target_system   varchar(50)  NOT NULL,
+    operation       varchar(100) NOT NULL,
+    payload         text         NOT NULL,
+    status          varchar(20)  NOT NULL,
+    attempts        integer      NOT NULL DEFAULT 0,
+    created_at      timestamp    NOT NULL,
+    last_attempt_at timestamp,
+    last_error      text
+);
+CREATE INDEX IF NOT EXISTS idx_pending_operation_pending
+    ON pending_operation (target_system, status, id);
+$aa$);
+-- end of region
+
+-- region change 6: only ACTIVE connector bundles compete for a bundle name
+-- unique_connector_bundle_bundle_name reserved (bundle_name, revision) across every lifecycle state,
+-- so a draft could not carry the name of the published bundle it was cloned from. The workaround was
+-- to hand the copy a suffixed revision (RepositoryUtil.uniqueBundleRevision), which then had to be
+-- reclaimed when the copy replaced the original - and it also made two rows of the same Maven artifact
+-- look like two different bundles.
+--
+-- A partial index instead: at most one ACTIVE bundle per (bundle_name, revision), with drafts and
+-- rejected leftovers free to repeat it. Adding lifecycle_state to the constraint tuple would have done
+-- the same for one draft but then collided on the second rejected draft of the same version.
+call apply_change(6, $aa$
+ALTER TABLE connector_bundle DROP CONSTRAINT IF EXISTS unique_connector_bundle_bundle_name;
+CREATE UNIQUE INDEX unique_active_bundle_name
+    ON connector_bundle (bundle_name, revision)
+    WHERE lifecycle_state = 'ACTIVE';
+$aa$);
+-- end of region
+
+-- region change 7: a request says which integration it asks for
+-- The request form had a single "Short description" that was stored as application.description, so
+-- whatever the requester wrote about the integration they need showed up in the catalog as the
+-- application's description. integration_need keeps that text on the request instead. The integration
+-- method type picked on the form was sent but never stored; integration_method_type_id keeps it.
+-- ON DELETE SET NULL: removing a type must not take the requests that mention it along.
+call apply_change(7, $aa$
+ALTER TABLE request ADD COLUMN integration_need text;
+ALTER TABLE request ADD COLUMN integration_method_type_id integer;
+ALTER TABLE ONLY request
+    ADD CONSTRAINT fk_request_imt FOREIGN KEY (integration_method_type_id) REFERENCES integration_method_type(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED;
+$aa$);
+-- end of region
+
+-- region change 8: obsolete connector tag
+-- Legacy connectors (e.g. DBTable, ScriptedSQL) stay allowed and counted, but the catalog warns about
+-- them. They are marked by linking this tag in connector_connector_tag. Tags are looked up by name, so
+-- the name becomes unique.
+call apply_change(8, $aa$
+ALTER TABLE ONLY connector_tag
+    ADD CONSTRAINT uq_connector_tag_name UNIQUE (name);
+INSERT INTO connector_tag (name, display_name) VALUES ('obsolete', 'Obsolete');
+$aa$);
+-- end of region
+
+-- region change 7: user data moved entirely to the identity provider
+-- Users, roles and organizations live in the identity provider (claims 'role', 'group',
+-- 'organization'); the application read them from token claims and, at the time, from the
+-- provider's administration API. The author/maintainer columns are plain text and stay.
+--
+-- This drops catalog_users, which change 4 had just given an email column. That address was the
+-- one thing the table still supplied that the token cannot - a token describes only its bearer,
+-- so it can answer "the caller's address" but never "that other person's address". Change 8
+-- therefore stamps author_email on the item at write time, the same way it stamps author_org_id,
+-- and change 4 becomes a column that existed only between these two changes.
+call apply_change(9, $aa$
+DROP TABLE IF EXISTS catalog_users;
+DROP INDEX IF EXISTS idx_catalog_users_org_id;
+$aa$);
+-- end of region
+
+-- region change 8: authors and maintainers become rows of their own
+-- The author and the maintainer stop being strings on the item. An author is now a row in
+-- authors (audit only - it confers no rights), and a maintainer a row in maintainers carrying
+-- what its category needs: a username for USER, an organization for ORG, nothing for the two
+-- catalog-wide ones. A bundle and a bundle version can have several maintainers, so those two
+-- reach them through join tables; the other three keep a single reference.
+--
+-- organizations.name changes meaning with it: it becomes the alias the identity provider emits,
+-- and the renameable human name moves to display_name. The database cannot know the aliases, so
+-- change 9 fills display_name from the name the rows already carry and the aliases have to be
+-- written into organizations.name by hand afterwards.
+call apply_change(10, $aa$
+ALTER TABLE organizations
+    ADD COLUMN IF NOT EXISTS display_name character varying(355);
+
+CREATE TYPE MaintainerType AS ENUM (
+	'USER',
+	'ORG',
+	'EVOLVEUM',
+	'COMMUNITY'
+);
+
+CREATE TABLE maintainers (
+    id              bigint NOT NULL,
+    username      character varying(355),
+    organization_id integer,
+    category        MaintainerType NOT NULL
+);
+
+ALTER TABLE maintainers ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME maintainer_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+ALTER TABLE maintainers
+ADD CONSTRAINT chk_maintainer_reference
+CHECK (
+    (category = 'USER'
+        AND username IS NOT NULL
+        AND organization_id IS NULL)
+    OR
+    (category = 'ORG'
+        AND username IS NULL
+        AND organization_id IS NOT NULL)
+    OR
+    (category IN ('EVOLVEUM', 'COMMUNITY')
+        AND username IS NULL
+        AND organization_id IS NULL)
+);
+
+ALTER TABLE ONLY maintainers
+    ADD CONSTRAINT maintainer_pkey PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX ux_maintainer_user
+    ON maintainers (category, username)
+    WHERE category = 'USER';
+
+CREATE UNIQUE INDEX ux_maintainer_org
+    ON maintainers (category, organization_id)
+    WHERE category = 'ORG';
+
+CREATE UNIQUE INDEX ux_maintainer_custom
+    ON maintainers (category)
+    WHERE category IN ('EVOLVEUM', 'COMMUNITY');
+
+CREATE TABLE connector_bundle_maintainers (
+    connector_bundle_id  integer NOT NULL,
+    maintainer_id       bigint NOT NULL
+);
+
+CREATE TABLE connector_bundle_version_maintainers (
+    connector_bundle_version_id   integer NOT NULL,
+    connector_bundle_version_revision character varying(255) NOT NULL,
+    maintainer_id                bigint NOT NULL
+);
+
+ALTER TABLE ONLY connector_bundle_maintainers
+    ADD CONSTRAINT connector_bundle_maintainers_pkey PRIMARY KEY (connector_bundle_id, maintainer_id);
+
+ALTER TABLE ONLY connector_bundle_version_maintainers
+    ADD CONSTRAINT connector_bundle_version_maintainers_pkey PRIMARY KEY (connector_bundle_version_id, connector_bundle_version_revision, maintainer_id);
+
+CREATE INDEX idx_cbmaint_maintainers_item      			ON connector_bundle_maintainers USING btree (maintainer_id, connector_bundle_id);
+CREATE INDEX idx_cbvmaint_maintainers_item    			ON connector_bundle_version_maintainers USING btree (maintainer_id, connector_bundle_version_id, connector_bundle_version_revision);
+
+ALTER TABLE ONLY maintainers
+    ADD CONSTRAINT fk_maint_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_maintainers
+    ADD CONSTRAINT fk_cb_maint_cb FOREIGN KEY (connector_bundle_id) REFERENCES connector_bundle(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_maintainers
+    ADD CONSTRAINT fk_cb_maint_maint FOREIGN KEY (maintainer_id) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_version_maintainers
+    ADD CONSTRAINT fk_cbv_maint_cbv FOREIGN KEY (connector_bundle_version_id, connector_bundle_version_revision) REFERENCES connector_bundle_version(id, revision) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_version_maintainers
+    ADD CONSTRAINT fk_cbv_maint_maint FOREIGN KEY (maintainer_id) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+CREATE TABLE authors (
+    id            bigint NOT NULL,
+    username    character varying(355) NOT NULL,
+    email         character varying(355) NOT NULL
+);
+
+ALTER TABLE authors ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME author_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+ALTER TABLE ONLY authors
+    ADD CONSTRAINT authors_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY authors
+    ADD CONSTRAINT unique_authors UNIQUE (username);
+
+$aa$);
+-- end of region
+
+-- region change 9: existing rows move onto those tables
+-- Export the database before running this: the author and maintainer each item carries are
+-- strings that no row in the new tables answers to, and there is nothing to match them against -
+-- a username is not an author row, and a maintainer that was an organization's display name is
+-- not an organization id. Every item is therefore handed the seeded COMMUNITY maintainer and a
+-- placeholder author, and who wrote what survives only in the export.
+--
+-- COMMUNITY rather than EVOLVEUM because it is the weaker of the two: it says nothing about who
+-- published the item, and change 8's rules let any contributor take over what it maintains.
+call apply_change(11, $aa$
+UPDATE organizations SET display_name = name WHERE display_name IS NULL;
+
+ALTER TABLE organizations
+    ALTER COLUMN display_name SET NOT NULL;
+
+INSERT INTO maintainers (id, username, organization_id, category) VALUES
+    (1,NULL,NULL,'COMMUNITY'),
+    (2,NULL,NULL,'EVOLVEUM');
+
+SELECT setval('maintainer_id_seq', 2);
+
+ALTER TABLE connector_version
+    ALTER COLUMN maintainer TYPE bigint USING 1;
+
+ALTER TABLE connector
+    ALTER COLUMN maintainer TYPE bigint USING 1;
+
+ALTER TABLE connector_bundle
+    DROP COLUMN IF EXISTS maintainer;
+
+ALTER TABLE connector_bundle_version
+    DROP COLUMN IF EXISTS maintainer;
+
+ALTER TABLE integration_method
+    ALTER COLUMN maintainer TYPE bigint USING 1;
+
+INSERT INTO authors (id, username, email) VALUES
+    (1, 'default user', 'default@user');
+
+SELECT setval('author_id_seq', 1);
+
+ALTER TABLE connector_version
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE connector
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE connector_bundle
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE connector_bundle_version
+    ALTER COLUMN author TYPE bigint USING 1;
+
+ALTER TABLE integration_method
+    ALTER COLUMN author TYPE bigint USING 1;
+
+-- The conversions above fill every row, so the columns can take the shape the baseline gives
+-- them: an item always has an author, and always has a maintainer - COMMUNITY when nothing else
+-- is chosen, which is what the default stands for.
+ALTER TABLE connector
+    ALTER COLUMN author SET NOT NULL,
+    ALTER COLUMN maintainer SET DEFAULT 1,
+    ALTER COLUMN maintainer SET NOT NULL;
+
+ALTER TABLE connector_version
+    ALTER COLUMN author SET NOT NULL,
+    ALTER COLUMN maintainer SET DEFAULT 1,
+    ALTER COLUMN maintainer SET NOT NULL;
+
+ALTER TABLE integration_method
+    ALTER COLUMN author SET NOT NULL,
+    ALTER COLUMN maintainer SET DEFAULT 1,
+    ALTER COLUMN maintainer SET NOT NULL;
+
+ALTER TABLE connector_bundle
+    ALTER COLUMN author SET NOT NULL;
+
+ALTER TABLE connector_bundle_version
+    ALTER COLUMN author SET NOT NULL;
+
+ALTER TABLE ONLY connector
+    ADD CONSTRAINT fk_c_maint FOREIGN KEY (maintainer) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_version
+    ADD CONSTRAINT fk_cv_maint FOREIGN KEY (maintainer) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY integration_method
+    ADD CONSTRAINT fk_im_maint FOREIGN KEY (maintainer) REFERENCES maintainers(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector
+    ADD CONSTRAINT fk_conn_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_version
+    ADD CONSTRAINT fk_cv_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle
+    ADD CONSTRAINT fk_cb_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY connector_bundle_version
+    ADD CONSTRAINT fk_cbv_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE ONLY integration_method
+    ADD CONSTRAINT fk_im_auth FOREIGN KEY (author) REFERENCES authors(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+$aa$);
+-- end of region
+
+-- region change 10: recently_used_applications.user_id is a username
+-- The column has held the principal name since the catalog started reading identity from the
+-- token - that is preferred_username, not an id of anything. Renamed so it stops promising a
+-- key into a user table that does not exist, and cannot come to be read as one.
+call apply_change(12, $aa$
+ALTER TABLE recently_used_applications RENAME COLUMN user_id TO username;
+
+ALTER INDEX IF EXISTS idx_rua_user_id RENAME TO idx_rua_username;
+$aa$);
+-- end of region
+
+-- region change 10: API key management (Gravitee-backed)
+-- One row per Gravitee API key. Gravitee owns the key itself - it mints the value, and the
+-- catalog never stores it, not even hashed: the value is shown once, at creation or renewal.
+--
+-- The Gravitee side is one application per KEY, each with a single subscription: Gravitee refuses
+-- a second live subscription of one application to the same plan ('plan.subscribed'), so a
+-- per-user application would cap every user at one key. Renewing (Gravitee's _renew on the
+-- subscription) mints a new key on that SAME subscription and gives the previous one a two-hour
+-- grace period, and both are listed - so the Gravitee key id is unique here, not the subscription.
+-- key_hint keeps the last four characters of the value, the only thing that tells the two keys
+-- apart for the user; on its own it is not a usable secret. replaced_at marks the row a renewal
+-- superseded. owner_sub is the identity provider's 'sub' claim rather than the username, because
+-- it survives a rename in the provider; owner_username is a display copy.
+call apply_change(13, $aa$
+CREATE TABLE api_key (
+    id                       uuid                     NOT NULL,
+    name                     character varying(255)   NOT NULL,
+    owner_sub                character varying(255)   NOT NULL,
+    owner_username           character varying(255)   NOT NULL,
+    gravitee_application_id  character varying(64)    NOT NULL,
+    gravitee_subscription_id character varying(64)    NOT NULL,
+    gravitee_api_key_id      character varying(64),
+    key_hint                 character varying(8),
+    created_at               timestamp with time zone NOT NULL DEFAULT now(),
+    expires_at               timestamp with time zone,
+    revoked_at               timestamp with time zone,
+    replaced_at              timestamp with time zone
+);
+ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY api_key ADD CONSTRAINT api_key_gravitee_key_uk UNIQUE (gravitee_api_key_id);
+CREATE INDEX api_key_owner_idx ON api_key (owner_username);
+CREATE INDEX api_key_subscription_idx ON api_key (gravitee_subscription_id);
+$aa$);
+-- end of region
+
+-- region change 14: which capability options each side offers
+-- An integration method says what it exposes per object class; the connector declares what it can
+-- technically do, so it keeps the wider list (and the resource-wide "Global" class, which methods
+-- no longer use at all). offered_for_method marks the rows a method may choose from - the nine
+-- object-specific ones below. Everything else, the request form included, still sees them all.
+--
+-- GET becomes READ: the capability always meant "read individual objects", and READ is the name
+-- midPoint uses. Both link tables reference capability by id, so every stored pick survives it,
+-- and RENAME VALUE rewrites the label in object_class_capabilities.capabilities in place.
+--
+-- ALTER TYPE ... ADD VALUE runs inside apply_change's transaction, which needs PostgreSQL 12 or
+-- newer and forbids using the new value before it commits. Nothing here does: the three new rows
+-- carry their names as capability.name text, never as "CapabilityType".
+call apply_change(14, $aa$
+ALTER TYPE "CapabilityType" RENAME VALUE 'GET' TO 'READ';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'PASSWORD';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'ACTIVATION';
+ALTER TYPE "CapabilityType" ADD VALUE IF NOT EXISTS 'ASSOCIATIONS';
+
+ALTER TABLE capability ADD COLUMN offered_for_method boolean DEFAULT true NOT NULL;
+
+UPDATE capability SET name = 'READ' WHERE name = 'GET';
+
+INSERT INTO capability (id, name, description, display_order, globality) VALUES
+    (19, 'PASSWORD',     'Manage the object password',         7, 'SPECIFIC'),
+    (20, 'ACTIVATION',   'Enable and disable the object',      8, 'SPECIFIC'),
+    (21, 'ASSOCIATIONS', 'Manage associations of the object',  9, 'SPECIFIC');
+
+SELECT setval('capability_id_seq', 21);
+
+-- Object-specific options in the order a method offers them, connector-only ones after.
+UPDATE capability SET display_order =  1 WHERE name = 'READ';
+UPDATE capability SET display_order =  2 WHERE name = 'CREATE';
+UPDATE capability SET display_order =  3 WHERE name = 'UPDATE';
+UPDATE capability SET display_order =  4 WHERE name = 'DELETE';
+UPDATE capability SET display_order =  5 WHERE name = 'SEARCH';
+UPDATE capability SET display_order =  6 WHERE name = 'LIVE_SYNC';
+UPDATE capability SET display_order = 10 WHERE name = 'UPDATE_DELTA';
+UPDATE capability SET display_order = 11 WHERE name = 'COMPLEX_UPDATE_DELTA';
+UPDATE capability SET display_order = 12 WHERE name = 'SYNC';
+UPDATE capability SET display_order = 13 WHERE name = 'VALIDATE';
+
+UPDATE capability SET offered_for_method = false
+ WHERE globality = 'GLOBAL'
+    OR name IN ('UPDATE_DELTA', 'COMPLEX_UPDATE_DELTA', 'SYNC', 'VALIDATE');
+$aa$);
+-- end of region
+
+-- region change 15: integration_method.limitations
+-- What the method cannot do, in the author's own words, so a consumer reads the gaps beside the
+-- capabilities rather than discovering them in use. Capabilities say what is supported; this says
+-- what is not, and nothing else in the model can express it.
+--
+-- 1000 characters here against 500 accepted by the API and the form: the room is deliberate, so a
+-- later relaxation of the limit is a change of validation rather than of the schema, and so a value
+-- that predates a tightening is never truncated by the column.
+--
+-- Nullable and not backfilled: a method published before this change states no limitations, which
+-- reads as "none given" and is exactly what was true of it.
+call apply_change(15, $aa$
+ALTER TABLE integration_method ADD COLUMN IF NOT EXISTS limitations character varying(1000);
+$aa$);
+-- end of region
+
+-- region change 16: integration_method_capability_item.state
+-- A method's capability is now YES, NO or UNKNOWN instead of "linked or not", so a consumer can tell
+-- a confirmed gap from one nobody determined. Every object of a method carries a row for every
+-- capability offered to methods; the connector side (conn_version_capability_item) is untouched.
+--
+-- Existing links become YES. The offered capabilities an object was missing become NO, since an
+-- absent link meant "not supported" until now.
+call apply_change(16, $aa$
+CREATE TYPE CapabilityState AS ENUM (
+	'YES',
+	'NO',
+	'UNKNOWN'
+);
+
+ALTER TABLE integration_method_capability_item ADD COLUMN state CapabilityState DEFAULT 'YES' NOT NULL;
+ALTER TABLE integration_method_capability_item ALTER COLUMN state DROP DEFAULT;
+
+INSERT INTO integration_method_capability_item (integration_method_capability_id, capability_id, state)
+SELECT imc.id, c.id, 'NO'
+  FROM integration_method_capability imc
+ CROSS JOIN capability c
+ WHERE c.offered_for_method
+   AND NOT EXISTS (SELECT 1 FROM integration_method_capability_item i
+                    WHERE i.integration_method_capability_id = imc.id AND i.capability_id = c.id);
+$aa$);
+
+-- region change 17: integration_method_capability_item.state
+-- A method's capability is now YES, NO or UNKNOWN instead of "linked or not", so a consumer can tell
+-- a confirmed gap from one nobody determined. Every object of a method carries a row for every
+-- capability offered to methods; the connector side (conn_version_capability_item) is untouched.
+--
+-- Existing links become YES. The offered capabilities an object was missing become NO, since an
+-- absent link meant "not supported" until now.
+call apply_change(17, $aa$
+ALTER TYPE LicenseType ADD VALUE IF NOT EXISTS 'CDDL';
+$aa$);
+-- end of region
+
+-- region change 18: connector.description as text
+-- The connector description is now written in the same markdown editor as the integration tutorial,
+-- so it is formatted text of no set length rather than a 350-character blurb. Widening keeps every
+-- existing value as it is.
+call apply_change(18, $aa$
+ALTER TABLE connector ALTER COLUMN description TYPE text;
+$aa$);
+-- end of region
+
+-- region change 19: request capability states
+-- The request form now uses the integration method's capability picker, so a request states every
+-- offered capability as YES / NO / UNKNOWN, like a method does (change 16). 'capabilities' keeps
+-- holding YES, so everything reading requests is unchanged; NO and UNKNOWN get columns of their own.
+--
+-- As in change 16, the offered capabilities an existing object did not request become NO.
+call apply_change(19, $aa$
+ALTER TABLE object_class_capabilities
+    ADD COLUMN unsupported_capabilities "CapabilityType"[] DEFAULT '{}'::"CapabilityType"[] NOT NULL,
+    ADD COLUMN unknown_capabilities "CapabilityType"[] DEFAULT '{}'::"CapabilityType"[] NOT NULL;
+
+UPDATE object_class_capabilities occ
+   SET unsupported_capabilities = COALESCE((
+        SELECT array_agg(c.name::"CapabilityType" ORDER BY c.display_order)
+          FROM capability c
+         WHERE c.offered_for_method
+           AND NOT c.name::"CapabilityType" = ANY (occ.capabilities)
+       ), '{}'::"CapabilityType"[]);
+$aa$);
+-- end of region
+
+-- region change 20: integration method support tier
+-- A reviewer assigns each integration method a support tier by hand (Standard / Advanced / Premium,
+-- where a subscription to a tier covers the ones below it). It is stored on connector bundle
+-- versions: setting it on a method sets it on every bundle version of every connector the method
+-- links to. NULL = not tiered, which every existing bundle version starts as.
+call apply_change(20, $aa$
+CREATE TYPE SupportTier AS ENUM ('STANDARD', 'ADVANCED', 'PREMIUM');
+ALTER TABLE connector_bundle_version ADD COLUMN support_tier SupportTier;
+$aa$);
+-- end of region
+
+-- region change 21: application versions
+-- An integration method states the range of application versions it supports as two free-text
+-- values; for now they are only saved, neither checked nor used for filtering. Replaces the single
+-- free-text integration_method.app_version, which nothing ever set.
+--
+-- This change also created an application_version table, a per-application list kept by a
+-- superuser. Nothing ever read it once the range became free text, so its CREATE TABLE was taken
+-- out again; databases that already ran this change keep it as an unused leftover.
+call apply_change(21, $aa$
+ALTER TABLE integration_method
+    DROP COLUMN app_version,
+    ADD COLUMN app_minVersion character varying(64),
+    ADD COLUMN app_maxVersion character varying(64);
+$aa$);
+-- end of region
+
+call apply_change(22, $aa$
+CREATE TABLE gravitee_application (
+    id                      uuid                     NOT NULL,
+    name                    character varying(255)   NOT NULL,
+    owner_username          character varying(255)   NOT NULL
+);
+ALTER TABLE ONLY gravitee_application ADD CONSTRAINT gravitee_application_pkey PRIMARY KEY (id);
+CREATE INDEX gravitee_application_owner_idx ON gravitee_application (owner_username);
+
+CREATE TABLE gravitee_subscription (
+    id                  uuid NOT NULL,
+    application_id      uuid NOT NULL,
+    api_id              uuid NOT NULL
+);
+
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT fk_gravitee_subscription_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT gravitee_subscription_pkey PRIMARY KEY (id);
+
+DROP INDEX IF EXISTS api_key_subscription_idx;
+DROP INDEX IF EXISTS api_key_owner_idx;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_pkey;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_gravitee_key_uk;
+
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS name;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS id;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS owner_username;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_application_id;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_subscription_id;
+
+ALTER TABLE api_key RENAME TO gravitee_api_key;
+ALTER TABLE gravitee_api_key RENAME COLUMN gravitee_api_key_id TO id;
+ALTER TABLE gravitee_api_key
+    ALTER COLUMN id TYPE uuid USING id::uuid;
+
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT gravitee_api_key_pkey PRIMARY KEY (id);
+ALTER TABLE gravitee_api_key
+    ADD COLUMN application_id UUID;
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT fk_gravitee_api_key_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+$aa$);
+
+-- region change 23: support tier as a connector tag
+-- The support tier moves from connector_bundle_version to the connector, held as a connector tag:
+-- one tag per tier under a fixed name the code knows (SupportTier), display_name being the tier's
+-- label. Each connector takes the tier of its most recently updated bundle version, the rule the
+-- catalog already used to show a method's tier, so nothing visible changes.
+call apply_change(23, $aa$
+INSERT INTO connector_tag (name, display_name) VALUES
+    ('supp_tier_standard', 'Standard'),
+    ('supp_tier_advanced', 'Advanced'),
+    ('supp_tier_premium', 'Premium');
+
+INSERT INTO connector_connector_tag (connector_id, tag_id)
+SELECT newest.connector_id, t.id
+  FROM (SELECT DISTINCT ON (cv.connector_id) cv.connector_id, cbv.support_tier
+          FROM connector_version cv
+          JOIN connector_bundle_version cbv ON cbv.id = cv.connector_bundle_version_id
+         WHERE cv.connector_id IS NOT NULL
+         ORDER BY cv.connector_id, cbv.updated DESC) newest
+  JOIN connector_tag t ON t.name = CASE newest.support_tier::text
+                                     WHEN 'STANDARD' THEN 'supp_tier_standard'
+                                     WHEN 'ADVANCED' THEN 'supp_tier_advanced'
+                                     WHEN 'PREMIUM' THEN 'supp_tier_premium'
+                                   END;
+
+ALTER TABLE connector_bundle_version DROP COLUMN support_tier;
+DROP TYPE SupportTier;
+$aa$);
+-- end of region
+
+-- region change 24: the API key's owner is the username
+-- The 'sub' claim was dropped from the identity the catalog keeps: a key is owned by a username, so
+-- owner_sub, which an older form of change 13 created on some databases, was never used and goes.
+-- Written as this branch's change 19 and renumbered when main's 19-23 came first; by now change 22
+-- has renamed api_key to gravitee_api_key and moved the owner index to gravitee_application, so only
+-- the column drop is left. Harmless where the column never existed.
+call apply_change(24, $aa$
+ALTER TABLE gravitee_api_key DROP COLUMN IF EXISTS owner_sub;
+$aa$);
+-- end of region
+
+-- region change 25: resource-wide capability groups are flagged, not named
+-- Resource-wide capabilities were a group whose object class was literally "Global", so no object
+-- class could be called that: a method silently dropped it, and a connector mixed it up with the
+-- resource-wide group. A flag now says what the group is, and "Global" is an ordinary name again.
+--
+-- Every existing row named Global, in any case, was a resource-wide group - that is how the name was
+-- read - so those rows are flagged. Methods have no resource-wide capabilities since change 14; their
+-- Global groups are leftovers every read already skipped, and are deleted (items go by cascade) so
+-- they do not surface as an object called "Global".
+call apply_change(25, $aa$
+ALTER TABLE conn_version_capability ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE conn_version_capability SET resource_wide = true WHERE lower(object_class) = 'global';
+
+ALTER TABLE object_class_capabilities ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE object_class_capabilities SET resource_wide = true WHERE lower(object_name) = 'global';
+
+DELETE FROM integration_method_capability WHERE lower(object_class) = 'global';
+$aa$);
+-- end of region
+
+-- Append new apply_change sections above this line. For every new change N (3 and higher):
+--   1. add a "-- region change N: <name>" section here containing
+--        call apply_change(N, $aa$
+--        <any SQL, does not have to be idempotent>
+--        $aa$);
+--      ($aa$ dollar-quoting keeps inner $$ function bodies intact; the procedure advances 'schemaChangeNumber'
+--      in m_global_metadata within the same transaction.
+--   2. fold the same DDL into config/sql/postgres.sql and raise its trailing apply_change stamp
+--      to N, so a schema created from that script alone is complete and needs no upgrade run.
+--   3. bump REQUIRED_VERSION in DatabaseSchemaVersionValidator to N.
+--
+-- Steps 1 and 2 go together, in that order, and neither is optional. This file is what brings a
+-- database that already exists up to date; postgres.sql is what a new one is built from. Raising
+-- that stamp without folding in the DDL records a change as applied without running it, and no
+-- later run can repair it - it has broken a fresh install twice.
+--
+-- Editing an already-applied section is limited to taking something out of it. A database that
+-- recorded change N skips it forever, so the edit reaches only databases below N - silently, with no
+-- error to notice. Dropping a statement is therefore survivable: databases above N keep whatever it
+-- created as an unused leftover, which costs nothing. ADDING one is not: those databases would never
+-- run it and would end up reporting version N while missing what it creates. Add by appending change
+-- N+1 instead, and drop a leftover the same way if it is worth the DDL.

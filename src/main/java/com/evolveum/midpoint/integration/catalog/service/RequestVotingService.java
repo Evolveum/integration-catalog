@@ -6,13 +6,18 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodCapabilityStateDto;
+import com.evolveum.midpoint.integration.catalog.dto.IntegrationMethodObjectCapabilitiesDto;
 import com.evolveum.midpoint.integration.catalog.dto.RequestFormDto;
 import com.evolveum.midpoint.integration.catalog.object.Application;
+import com.evolveum.midpoint.integration.catalog.object.CapabilityState;
 import com.evolveum.midpoint.integration.catalog.object.CapabilityType;
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.object.ObjectClassCapabilities;
 import com.evolveum.midpoint.integration.catalog.object.Request;
 import com.evolveum.midpoint.integration.catalog.object.Vote;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodTypeRepository;
 import com.evolveum.midpoint.integration.catalog.repository.ObjectClassCapabilitiesRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
@@ -36,6 +41,7 @@ public class RequestVotingService {
     private final ApplicationRepository applicationRepository;
     private final ApplicationTagService applicationTagService;
     private final ObjectClassCapabilitiesRepository objectClassCapabilitiesRepository;
+    private final IntegrationMethodTypeRepository integrationMethodTypeRepository;
 
     public List<Request> getRequests() {
         return requestRepository.findAll();
@@ -49,12 +55,20 @@ public class RequestVotingService {
         return requestRepository.findByApplicationId(appId);
     }
 
+    /**
+     * @param requester the authenticated username — taken from the security context, not from
+     *                  the form, so the recorded requester (who may later cancel the request)
+     *                  cannot be spoofed by the client
+     */
     @Transactional
-    public Request createRequestFromForm(RequestFormDto dto) {
+    public Request createRequestFromForm(RequestFormDto dto, String requester) {
         String integrationApplicationName = dto.integrationApplicationName();
         String description = dto.description();
         String deploymentType = dto.deploymentType();
-        String requester = dto.requester();
+        IntegrationMethodType integrationMethodType = dto.integrationMethodTypeId() == null ? null
+                : integrationMethodTypeRepository.findById(dto.integrationMethodTypeId())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Integration method type not found: " + dto.integrationMethodTypeId()));
 
         String abbreviatedName = integrationApplicationName.toLowerCase()
                 .replaceAll("[^a-z0-9_]", "_")
@@ -89,26 +103,23 @@ public class RequestVotingService {
             request.setMail(dto.contactEmail());
             request.setCollab(dto.openToCollaborate() != null && dto.openToCollaborate());
             request.setSystemVersion(dto.systemVersion());
+            request.setIntegrationNeed(dto.integrationNeed());
+            request.setIntegrationMethodType(integrationMethodType);
 
             request = requestRepository.save(request);
 
             if (dto.capabilities() != null) {
-                for (RequestFormDto.ObjectClassCapabilityEntry entry : dto.capabilities()) {
-                    if (entry.objectName() == null || entry.objectName().isBlank()) {
+                for (IntegrationMethodObjectCapabilitiesDto entry : dto.capabilities()) {
+                    if (entry.objectClass() == null || entry.objectClass().isBlank()
+                            || entry.capabilities() == null || entry.capabilities().isEmpty()) {
                         continue;
                     }
-                    List<String> caps = entry.capabilities();
-                    if (caps == null || caps.isEmpty()) {
-                        continue;
-                    }
-                    CapabilityType[] capArray = caps.stream()
-                            .map(CapabilityType::valueOf)
-                            .toArray(CapabilityType[]::new);
-
                     ObjectClassCapabilities occ = new ObjectClassCapabilities();
                     occ.setRequest(request);
-                    occ.setObjectName(entry.objectName());
-                    occ.setCapabilities(capArray);
+                    occ.setObjectName(entry.objectClass());
+                    occ.setCapabilities(inState(entry.capabilities(), CapabilityState.YES));
+                    occ.setUnsupportedCapabilities(inState(entry.capabilities(), CapabilityState.NO));
+                    occ.setUnknownCapabilities(inState(entry.capabilities(), CapabilityState.UNKNOWN));
                     objectClassCapabilitiesRepository.save(occ);
                 }
             }
@@ -158,5 +169,13 @@ public class RequestVotingService {
 
     public boolean hasUserVoted(Long requestId, String voter) {
         return voteRepository.existsByRequestIdAndVoter(requestId, voter);
+    }
+
+    private static CapabilityType[] inState(List<IntegrationMethodCapabilityStateDto> capabilities,
+                                            CapabilityState state) {
+        return capabilities.stream()
+                .filter(c -> c.state() == state)
+                .map(c -> CapabilityType.valueOf(c.name()))
+                .toArray(CapabilityType[]::new);
     }
 }

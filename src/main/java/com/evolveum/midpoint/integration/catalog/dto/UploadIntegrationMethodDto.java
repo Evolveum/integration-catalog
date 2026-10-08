@@ -6,6 +6,10 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+
+import jakarta.validation.constraints.Size;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -14,9 +18,16 @@ public record UploadIntegrationMethodDto(
         String displayName,         // integration_method.display_name
         String revision,            // integration_method.revision
         String description,         // integration_method.description
+        @Size(max = IntegrationMethod.LIMITATIONS_MAX)
+        String limitations,         // integration_method.limitations
         String tutorial,            // integration_method.tutorial
+        MaintainerDto maintainer,   // integration_method.maintainer; null falls back to the connector's
         List<Integer> typeIds,      // integration_method_type.id
         Integer midpointMinVersion, // midpoint_version.id (FK for min version)
-        Integer midpointMaxVersion  // midpoint_version.id (FK for max version)
+        Integer midpointMaxVersion, // midpoint_version.id (FK for max version)
+        @Size(max = IntegrationMethod.APP_VERSION_MAX)
+        String appMinVersion,       // integration_method.app_minversion (free text)
+        @Size(max = IntegrationMethod.APP_VERSION_MAX)
+        String appMaxVersion        // integration_method.app_maxversion (free text)
 ) {
 }

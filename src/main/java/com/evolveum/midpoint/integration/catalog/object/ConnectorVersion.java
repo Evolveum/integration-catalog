@@ -14,7 +14,7 @@ import lombok.experimental.Accessors;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
@@ -26,7 +26,7 @@ import java.util.List;
 @IdClass(ConnectorVersionId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class ConnectorVersion implements Persistable<Integer> {
+public class ConnectorVersion implements SetOwnership, GetOwnershipOneMaintainer, Persistable<Integer> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "connector_version_seq")
@@ -36,6 +36,12 @@ public class ConnectorVersion implements Persistable<Integer> {
     @Id
     private String revision;
 
+    /**
+     * Whether {@code save()} inserts or merges: the key is composite, so Spring Data cannot tell a
+     * fresh instance from a loaded one by its id and would merge every time - a wasted SELECT, and
+     * for the sequence-generated id a write through a managed copy that never reaches this
+     * instance. Lombok's getter is the {@link Persistable#isNew()} the class implements.
+     */
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;
@@ -46,8 +52,13 @@ public class ConnectorVersion implements Persistable<Integer> {
         this.isNew = false;
     }
 
-    private String author;
-    private String maintainer;
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
+
+    @OneToOne
+    @JoinColumn(name = "maintainer")
+    private Maintainer maintainer;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
@@ -81,4 +92,25 @@ public class ConnectorVersion implements Persistable<Integer> {
 
     @OneToMany(mappedBy = "connectorVersion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConnVersionCapability> capabilities = new ArrayList<>();
+
+    public static ConnectorVersion createConnectorVersionDraft(
+            ConnectorVersion source, Connector connector, ConnectorBundleVersion connectorBundleVersion) {
+        ConnectorVersion clone = createConnectorVersion(source, connector, connectorBundleVersion);
+        clone.setLifecycleState(LifecycleType.IN_REVIEW);
+        return clone;
+    }
+
+    public static ConnectorVersion createConnectorVersion(
+            ConnectorVersion source, Connector connector, ConnectorBundleVersion connectorBundleVersion) {
+        ConnectorVersion clone = new ConnectorVersion();
+        clone.setRevision(source.getRevision());
+        clone.setAuthor(source.getAuthor());
+        clone.setMaintainer(source.getMaintainer());
+        clone.setConnector(connector);
+        clone.setConnectorBundleVersion(connectorBundleVersion);
+        clone.setLifecycleState(source.getLifecycleState());
+        clone.setFullyQualifiedClassName(source.getFullyQualifiedClassName());
+        clone.setErrorMessage(source.getErrorMessage());
+        return clone;
+    }
 }

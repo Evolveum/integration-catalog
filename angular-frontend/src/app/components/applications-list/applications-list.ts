@@ -9,17 +9,23 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
+import { ApplicationsListStateService } from '../../services/applications-list-state.service';
 import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
 import { CategoryCount } from '../../models/category-count.model';
+import { MidpointVersion } from '../../models/application-detail.model';
 import { RequestForm } from '../request-form/request-form';
 import { FilterModal, FilterState } from '../filter-modal/filter-modal';
 import { AuthService } from '../../services/auth.service';
 import { PageHeader } from '../page-header/page-header';
+import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/download-info-modal';
+import { ToastService } from '../../services/toast.service';
+import { EnvironmentService } from '../../services/environment.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader],
+  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })
@@ -32,26 +38,8 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly categories = signal<CategoryCount[]>([]);
   protected readonly totalDownloadsCount = signal<number>(0);
 
-  protected readonly allCapabilities = [
-    'CREATE',
-    'GET',
-    'UPDATE',
-    'DELETE',
-    'TEST',
-    'SCRIPT_ON_CONNECTOR',
-    'SCRIPT_ON_RESOURCE',
-    'AUTHENTICATION',
-    'SEARCH',
-    'VALIDATE',
-    'SYNC',
-    'LIVE_SYNC',
-    'SCHEMA',
-    'DISCOVER_CONFIGURATION',
-    'RESOLVE_USERNAME',
-    'PARTIAL_SCHEMA',
-    'COMPLEX_UPDATE_DELTA',
-    'UPDATE_DELTA'
-  ];
+  // Loaded from the capability table so the dropdown matches the filter modal.
+  protected readonly allCapabilities = signal<string[]>([]);
 
   protected readonly allAppStatuses = [
     'ACTIVE',
@@ -76,18 +64,32 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected showPermissionDeniedMessage = signal<boolean>(false);
   protected dropdownPosition = signal<{ top: number; left: number } | null>(null);
 
+  /** The hero runs up behind a transparent header; on staging the banner between them breaks that, so it stays off. */
+  protected readonly heroUnderHeader = computed(() => !this.environmentService.isStaging());
+
   private activeChipElement: HTMLElement | null = null;
   private scrollListener: (() => void) | null = null;
+  private featuredScrollTarget: number | null = null;
 
   protected filterState = signal<FilterState>({
     trending: false,
     categories: [],
+    deploymentTypes: [],
     capabilities: [],
     appStatus: [],
     midpointVersions: [],
     integrationMethods: [],
     maintainers: []
   });
+
+  // Chips currently shown. A chip is pinned here when its filter is first
+  // applied and is removed ONLY via the chip "X" (removeChip). Clearing or
+  // deselecting a filter empties its selections but keeps the chip pinned.
+  protected readonly visibleChips = signal<Set<string>>(new Set());
+
+  // All defined application tags, so the chip dropdowns list every category /
+  // deployment type (including unused ones) — matching the filter modal.
+  private readonly allTags = signal<ApplicationTag[]>([]);
 
   protected readonly currentUser = computed(() => this.authService.currentUser());
   protected readonly canVote = () => this.authService.canVote();
@@ -103,14 +105,18 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     // Don't show featured apps when searching or filtering
     const hasActiveFilters = filters.trending ||
                             filters.categories.length > 0 ||
+                            filters.deploymentTypes.length > 0 ||
                             filters.capabilities.length > 0 ||
                             filters.appStatus.length > 0 ||
-                            filters.midpointVersions.length > 0;
+                            filters.midpointVersions.length > 0 ||
+                            filters.integrationMethods.length > 0 ||
+                            filters.maintainers.length > 0;
 
     if (query || activeTab !== 'all' || hasActiveFilters) {
       return [];
     }
-    return apps;
+    // Only what a superuser marked with "Toggle Featured" on the application detail.
+    return apps.filter(app => app.tags?.some(tag => tag.name === 'featured' && tag.tagType === 'COMMON'));
   });
 
   protected readonly moreApplications = computed(() => {
@@ -139,6 +145,18 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       });
     }
 
+    // Apps that need a midPoint upgrade go after the ones running on the filtered version;
+    // sort is stable, so each group keeps the order chosen above.
+    const needsUpgrade = (app: Application) =>
+      this.laterStartVersionId(app, filters.midpointVersions) !== null ? 1 : 0;
+    apps.sort((a, b) => needsUpgrade(a) - needsUpgrade(b));
+
+    // Name hits before description-only hits, each group keeping the order above.
+    if (query) {
+      const rank = new Map(apps.map(app => [app, this.searchRank(app, query)]));
+      apps.sort((a, b) => rank.get(a)! - rank.get(b)!);
+    }
+
     const start = this.currentPage() * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return apps.slice(start, end);
@@ -157,6 +175,20 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   });
 
   /**
+   * 0 = the name matches, also by its initials so "aws" finds "Amazon Web Services";
+   * 1 = only the description matches; -1 = no match.
+   * Null-guarded: name and description are nullable in the database, and one null would throw
+   * and empty the whole list rather than skipping that single application.
+   */
+  private searchRank(app: Application, query: string): number {
+    const name = (app.displayName ?? '').toLowerCase();
+    if (name.includes(query)) return 0;
+    const initials = name.split(/[\s\-_./()]+/).filter(word => word).map(word => word[0]).join('');
+    if (query.length > 1 && initials.startsWith(query)) return 0;
+    return (app.description ?? '').toLowerCase().includes(query) ? 1 : -1;
+  }
+
+  /**
    * Applies all filters to the applications list.
    * Shared by moreApplications and filteredCount computed signals.
    */
@@ -172,9 +204,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     // Filter by search query
     if (query) {
-      filtered = filtered.filter(app =>
-        app.displayName.toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(app => this.searchRank(app, query) >= 0);
     }
 
     // Apply advanced filters
@@ -186,10 +216,16 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       filtered = filtered.filter(app => {
         const allTags = [...(app.categories || []), ...(app.tags || [])];
         return filters.categories.every(selectedCat =>
-          allTags.some(tag =>
-            tag.name === selectedCat &&
-            (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT')
-          )
+          allTags.some(tag => tag.name === selectedCat && tag.tagType === 'CATEGORY')
+        );
+      });
+    }
+
+    if (filters.deploymentTypes.length > 0) {
+      filtered = filtered.filter(app => {
+        const allTags = [...(app.categories || []), ...(app.tags || [])];
+        return filters.deploymentTypes.every(selectedDep =>
+          allTags.some(tag => tag.name === selectedDep && tag.tagType === 'DEPLOYMENT')
         );
       });
     }
@@ -209,9 +245,30 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (filters.midpointVersions.length > 0) {
+      // app.midpointVersions holds the version ids covered by its methods' ranges;
+      // match apps supporting ANY of the selected versions, plus the ones only available on a
+      // later version (they get the "Available since" banner).
       filtered = filtered.filter(app =>
-        filters.midpointVersions.every((versionId: number) =>
+        filters.midpointVersions.some((versionId: number) =>
           app.midpointVersions?.includes(String(versionId))
+        ) || this.laterStartVersionId(app, filters.midpointVersions) !== null
+      );
+    }
+
+    if (filters.integrationMethods.length > 0) {
+      // Match apps offering ANY of the selected integration methods.
+      filtered = filtered.filter(app =>
+        filters.integrationMethods.some((method: string) =>
+          app.integrationMethodTypes?.includes(method)
+        )
+      );
+    }
+
+    if (filters.maintainers.length > 0) {
+      // Match apps maintained by ANY of the selected maintainer categories.
+      filtered = filtered.filter(app =>
+        filters.maintainers.some((maintainer: string) =>
+          app.maintainers?.includes(maintainer)
         )
       );
     }
@@ -226,16 +283,36 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private applicationService: ApplicationService,
     private router: Router,
-    protected authService: AuthService
+    protected authService: AuthService,
+    private listState: ApplicationsListStateService,
+    private toastService: ToastService,
+    private environmentService: EnvironmentService
   ) {}
 
   ngOnInit(): void {
+    this.restoreViewState();
     this.loadApplications();
     this.loadCategories();
     this.loadTotalDownloadsCount();
     this.applicationService.getMidpointVersions().subscribe({
       next: (versions) => this.allMidpointVersions.set(versions),
       error: (err) => console.error('Failed to load MidPoint versions', err)
+    });
+    this.applicationService.getIntegrationMethodTypes().subscribe({
+      next: (types) => this.allIntegrationMethods.set(types.map(t => t.displayName)),
+      error: (err) => console.error('Failed to load integration methods', err)
+    });
+    this.applicationService.getAllTags().subscribe({
+      next: (tags) => this.allTags.set(tags),
+      error: (err) => console.error('Failed to load application tags', err)
+    });
+    this.applicationService.getCapabilities().subscribe({
+      next: (caps) => this.allCapabilities.set(
+        [...caps]
+          .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER))
+          .map(c => c.name)
+      ),
+      error: (err) => console.error('Failed to load capabilities', err)
     });
   }
 
@@ -257,12 +334,14 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     this.filterState.set({
       trending: false,
       categories: [],
+      deploymentTypes: [],
       capabilities: [],
       appStatus: [],
       midpointVersions: [],
       integrationMethods: [],
       maintainers: []
     });
+    this.visibleChips.set(new Set());
     this.currentPage.set(0);
   }
 
@@ -319,8 +398,34 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.detachScrollListener();
+    this.saveViewState();
   }
 
+  /** Restore filters/search/paging saved before navigating away (e.g. to app detail). */
+  private restoreViewState(): void {
+    const saved = this.listState.restore();
+    if (!saved) return;
+    this.filterState.set(saved.filterState);
+    this.visibleChips.set(new Set(saved.visibleChips));
+    this.searchQuery.set(saved.searchQuery);
+    this.currentPage.set(saved.currentPage);
+    this.sortBy.set(saved.sortBy);
+    this.activeTab.set(saved.activeTab);
+  }
+
+  private saveViewState(): void {
+    this.listState.save({
+      filterState: this.filterState(),
+      visibleChips: Array.from(this.visibleChips()),
+      searchQuery: this.searchQuery(),
+      currentPage: this.currentPage(),
+      sortBy: this.sortBy(),
+      activeTab: this.activeTab()
+    });
+  }
+
+  // "Clear filter" link: clears the selections and closes the popover, but the
+  // chip itself stays (only the chip "X" / removeChip removes it).
   protected clearTrendingFilter(): void {
     this.filterState.update(state => ({ ...state, trending: false }));
     this.currentPage.set(0);
@@ -329,6 +434,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
   protected clearCategoriesFilter(): void {
     this.filterState.update(state => ({ ...state, categories: [] }));
+    this.currentPage.set(0);
+    this.closeDropdown();
+  }
+
+  protected clearDeploymentTypesFilter(): void {
+    this.filterState.update(state => ({ ...state, deploymentTypes: [] }));
     this.currentPage.set(0);
     this.closeDropdown();
   }
@@ -363,10 +474,40 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     this.closeDropdown();
   }
 
+  /**
+   * Chip "X": removes the chip entirely. This is the ONLY way a chip disappears —
+   * clearing selections or deselecting everything keeps the chip visible.
+   */
+  protected removeChip(type: string): void {
+    switch (type) {
+      case 'trending': this.clearTrendingFilter(); break;
+      case 'categories': this.clearCategoriesFilter(); break;
+      case 'deploymentTypes': this.clearDeploymentTypesFilter(); break;
+      case 'capabilities': this.clearCapabilitiesFilter(); break;
+      case 'appStatus': this.clearAppStatusFilter(); break;
+      case 'midpointVersions': this.clearMidpointVersionsFilter(); break;
+      case 'integrationMethods': this.clearIntegrationMethodsFilter(); break;
+      case 'maintainers': this.clearMaintainersFilter(); break;
+    }
+    this.visibleChips.update(set => {
+      const next = new Set(set);
+      next.delete(type);
+      return next;
+    });
+  }
+
   protected removeCategoryFilter(category: string): void {
     this.filterState.update(state => ({
       ...state,
       categories: state.categories.filter(c => c !== category)
+    }));
+    this.currentPage.set(0);
+  }
+
+  protected removeDeploymentTypeFilter(deployment: string): void {
+    this.filterState.update(state => ({
+      ...state,
+      deploymentTypes: state.deploymentTypes.filter(d => d !== deployment)
     }));
     this.currentPage.set(0);
   }
@@ -403,6 +544,19 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       this.filterState.update(state => ({
         ...state,
         categories: [...state.categories, category]
+      }));
+      this.currentPage.set(0);
+    }
+  }
+
+  protected toggleDeploymentTypeInFilter(deployment: string): void {
+    const deploymentTypes = this.filterState().deploymentTypes;
+    if (deploymentTypes.includes(deployment)) {
+      this.removeDeploymentTypeFilter(deployment);
+    } else {
+      this.filterState.update(state => ({
+        ...state,
+        deploymentTypes: [...state.deploymentTypes, deployment]
       }));
       this.currentPage.set(0);
     }
@@ -511,10 +665,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected formatCapability(capability: string): string {
-    return capability
-      .split('_')
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(' ');
+    return formatCapabilityLabel(capability);
   }
 
   protected formatAppStatus(status: string): string {
@@ -546,24 +697,41 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected getAllAvailableCategories(): Array<{name: string, displayName: string}> {
-    const categoriesMap = new Map<string, string>();
+    return this.collectTagsByType('CATEGORY');
+  }
 
+  protected getAllAvailableDeploymentTypes(): Array<{name: string, displayName: string}> {
+    return this.collectTagsByType('DEPLOYMENT');
+  }
+
+  private collectTagsByType(tagType: string): Array<{name: string, displayName: string}> {
+    const map = new Map<string, string>();
+    // All defined tags of this type (so unused ones still appear), like the modal.
+    for (const tag of this.allTags()) {
+      if (tag.tagType === tagType) {
+        map.set(tag.name, tag.displayName);
+      }
+    }
+    // Plus any present on apps but missing from the tag list.
     for (const app of this.applications()) {
-      const allTags = [...(app.categories || []), ...(app.tags || [])];
-      for (const tag of allTags) {
-        if (tag.tagType === 'CATEGORY' || tag.tagType === 'DEPLOYMENT') {
-          categoriesMap.set(tag.name, tag.displayName);
+      const appTags = [...(app.categories || []), ...(app.tags || [])];
+      for (const tag of appTags) {
+        if (tag.tagType === tagType) {
+          map.set(tag.name, tag.displayName);
         }
       }
     }
-
-    return Array.from(categoriesMap.entries())
+    return Array.from(map.entries())
       .map(([name, displayName]) => ({ name, displayName }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }
 
   protected isCategorySelected(category: string): boolean {
     return this.filterState().categories.includes(category);
+  }
+
+  protected isDeploymentTypeSelected(deployment: string): boolean {
+    return this.filterState().deploymentTypes.includes(deployment);
   }
 
   protected isCapabilitySelected(capability: string): boolean {
@@ -586,14 +754,30 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     return this.filterState().maintainers.includes(maintainer);
   }
 
-  protected readonly allMidpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
+  protected readonly allMidpointVersions = signal<MidpointVersion[]>([]);
 
-  protected readonly allIntegrationMethods: string[] = [
-    'SCIM',
-    'openLDAP',
-    'REST API',
-    'CSV file import'
-  ];
+  /**
+   * The earliest version an app becomes available at, for an app that runs on none of the filtered
+   * versions but has a method starting above the lowest of them; null when it runs on one of them
+   * or no version is filtered. Version ids are in release order.
+   */
+  private laterStartVersionId(app: Application, selected: number[]): number | null {
+    if (selected.length === 0 || selected.some(id => app.midpointVersions?.includes(String(id)))) {
+      return null;
+    }
+    const lowest = Math.min(...selected);
+    const later = (app.sinceMidpointVersions ?? []).map(Number).filter(id => id > lowest);
+    return later.length > 0 ? Math.min(...later) : null;
+  }
+
+  /** The version for the card's "Available since" banner, or null when the card needs none. */
+  protected availableSince(app: Application): string | null {
+    const id = this.laterStartVersionId(app, this.filterState().midpointVersions);
+    return id === null ? null : this.allMidpointVersions().find(v => v.id === id)?.version ?? null;
+  }
+
+  // Loaded from the backend so the dropdown matches the filter modal's full list.
+  protected readonly allIntegrationMethods = signal<string[]>([]);
 
   protected readonly allMaintainers: string[] = [
     'Evolveum',
@@ -613,13 +797,27 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected scrollLeft(): void {
-    const container = this.scrollContainer.nativeElement;
-    container.scrollBy({ left: -300, behavior: 'smooth' });
+    this.scrollFeaturedBy(-1);
   }
 
   protected scrollRight(): void {
+    this.scrollFeaturedBy(1);
+  }
+
+  /** Moves the featured row exactly one card, measuring the step from the rendered cards so it tracks the More apps grid geometry. */
+  private scrollFeaturedBy(direction: 1 | -1): void {
     const container = this.scrollContainer.nativeElement;
-    container.scrollBy({ left: 300, behavior: 'smooth' });
+    const cards = this.featuredCards.map(ref => ref.nativeElement);
+    if (cards.length < 2) return;
+
+    const step = cards[1].offsetLeft - cards[0].offsetLeft;
+    // Rapid clicks start from the pending target, not the mid-animation position, so none is lost.
+    const from = this.featuredScrollTarget ?? container.scrollLeft;
+    const maxLeft = container.scrollWidth - container.clientWidth;
+    const target = Math.min(maxLeft, Math.max(0, (Math.round(from / step) + direction) * step));
+
+    this.featuredScrollTarget = target;
+    container.scrollTo({ left: target, behavior: 'smooth' });
   }
 
   protected nextPage(): void {
@@ -639,6 +837,10 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected onScroll(): void {
+    const left = this.scrollContainer.nativeElement.scrollLeft;
+    if (this.featuredScrollTarget !== null && Math.abs(left - this.featuredScrollTarget) < 1) {
+      this.featuredScrollTarget = null;
+    }
     this.updateScrollButtons();
     this.updateCardOpacities();
   }
@@ -688,10 +890,20 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openRequestModal(): void {
+    this.authService.verifySession().subscribe(() => {
+      if (!this.authService.sessionLost()) this.startRequest();
+    });
+  }
+
+  private startRequest(): void {
     if (!this.authService.canRequest()) {
-      this.showLoginRequiredMessage.set(true);
-      setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-      this.authService.openLoginModal();
+      if (!this.authService.isLoggedIn()) {
+        this.showLoginRequiredMessage.set(true);
+        setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
+      } else {
+        this.showPermissionDeniedMessage.set(true);
+        setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
+      }
       return;
     }
     this.isRequestModalOpen.set(true);
@@ -710,18 +922,25 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   }
 
   protected openUploadModal(): void {
+    // This tab may still show a session that ended elsewhere, so ask the backend before starting.
+    this.authService.verifySession().subscribe(() => {
+      // A session that just turned out to be gone gets the app-wide "logged out" dialog instead.
+      if (!this.authService.sessionLost()) this.startUpload();
+    });
+  }
+
+  private startUpload(): void {
     if (!this.authService.canUpload()) {
       if (!this.authService.isLoggedIn()) {
         this.showLoginRequiredMessage.set(true);
         setTimeout(() => this.showLoginRequiredMessage.set(false), 5000);
-        this.authService.openLoginModal();
       } else {
         this.showPermissionDeniedMessage.set(true);
         setTimeout(() => this.showPermissionDeniedMessage.set(false), 5000);
       }
       return;
     }
-    this.router.navigate(['/publish']);
+    this.router.navigate(['/approve']);
   }
 
   protected reloadApplications(): void {
@@ -740,6 +959,19 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected applyFilter(filterState: FilterState): void {
     this.filterState.set(filterState);
     this.currentPage.set(0);
+    // Pin a chip for every filter that has a selection. Add-only: chips already
+    // pinned stay pinned (removed only via the chip "X").
+    this.visibleChips.update(set => {
+      const next = new Set(set);
+      if (filterState.categories.length) next.add('categories');
+      if (filterState.deploymentTypes.length) next.add('deploymentTypes');
+      if (filterState.capabilities.length) next.add('capabilities');
+      if (filterState.appStatus.length) next.add('appStatus');
+      if (filterState.midpointVersions.length) next.add('midpointVersions');
+      if (filterState.integrationMethods.length) next.add('integrationMethods');
+      if (filterState.maintainers.length) next.add('maintainers');
+      return next;
+    });
   }
 
   protected voteForRequest(app: Application): void {
@@ -755,10 +987,14 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    this.applicationService.submitVote(app.requestId, currentUser).subscribe({
+    const requestId = app.requestId;
+    this.applicationService.submitVote(requestId).subscribe({
       next: () => {
-        // Increment vote count locally
-        app.voteCount = (app.voteCount || 0) + 1;
+        // Count the vote locally rather than reloading the list. Change detection is zoneless,
+        // so mutating the application in place would render nothing until the next reload —
+        // the new count has to reach the template as a new object in a new array.
+        this.applications.update(apps => apps.map(a =>
+          a.requestId === requestId ? { ...a, voteCount: (a.voteCount ?? 0) + 1 } : a));
       },
       error: (err) => {
         if (err.status === 400) {
@@ -865,5 +1101,55 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
    */
   protected shouldShowAppLetterAvatar(app: Application): boolean {
     return !this.appHasLogo(app) || this.logoLoadErrors.has(app.id);
+  }
+
+  // Post-download help modal for the connectors sheet (import the JSON into midPoint)
+  protected readonly isSheetInfoOpen = signal<boolean>(false);
+  protected readonly sheetInfoFileName = signal<string>('');
+  protected readonly sheetInfoFileSize = signal<number | null>(null);
+  protected readonly isSheetPreparing = signal<boolean>(false);
+  protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
+    {
+      title: 'Import the downloaded JSON file into midPoint',
+      description: 'The imported list will be used to verify which connectors are allowed to '
+        + 'run in a production environment.'
+    }
+  ];
+
+  /**
+   * Download the active connectors sheet and show the post-download help modal, or a toast
+   * with the error message if the download failed.
+   */
+  protected downloadActiveConnectors(): void {
+    // Open right away so the click shows a reaction while the sheet is being prepared.
+    this.sheetInfoFileName.set('');
+    this.sheetInfoFileSize.set(null);
+    this.isSheetPreparing.set(true);
+    this.isSheetInfoOpen.set(true);
+    this.applicationService.downloadActiveConnectors().subscribe({
+      next: (result) => {
+        this.isSheetPreparing.set(false);
+        if (result.error) {
+          this.isSheetInfoOpen.set(false);
+          this.showDownloadToast(result.error);
+        } else {
+          this.sheetInfoFileName.set(result.fileName ?? '');
+          this.sheetInfoFileSize.set(result.size);
+        }
+      },
+      error: () => {
+        this.isSheetPreparing.set(false);
+        this.isSheetInfoOpen.set(false);
+        this.showDownloadToast('Download of active connectors failed.');
+      }
+    });
+  }
+
+  private showDownloadToast(message: string): void {
+    this.toastService.show(
+      'Download error',
+      message,
+      'danger'
+    );
   }
 }

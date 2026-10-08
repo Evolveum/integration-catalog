@@ -4,6 +4,42 @@
 */
 @use 'variables' as *;
 
+/* Maintainer combobox */
+.maintainer-combobox {
+  position: relative;
+
+  &.open input.form-select {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+.maintainer-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  max-height: calc(8 * 2.375rem);
+  overflow-y: auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.maintainer-option {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #212529;
+
+  &:hover {
+    background-color: #e9ecef;
+  }
+}
+
 /* ========================================
    BREADCRUMB (must live here due to Angular encapsulation)
    ======================================== */
@@ -18,12 +54,12 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-dark-blue;
+  color: $color-primary-500;
   cursor: pointer;
   text-decoration: none;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
     text-decoration: underline;
   }
 }
@@ -95,6 +131,13 @@
   font-size: 0.875rem;
 }
 
+.app-version-select {
+  width: auto;
+  min-width: 100px;
+  max-width: 220px;
+  font-size: 0.875rem;
+}
+
 .midpoint-range-label {
   font-size: 0.875rem;
   color: #1a202c;
@@ -142,6 +185,78 @@
 }
 
 /* ========================================
+   INFO ICON + TOOLTIP
+   The shared pattern, which lives in each component's own stylesheet rather than globally.
+   Keep in step with publish-form-main.scss.
+   ======================================== */
+.info-icon {
+  font-size: 14px;
+  color: $text-publishing-blue;
+}
+
+.info-icon-wrapper {
+  vertical-align: middle;
+}
+
+.info-icon-wrapper .info-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -2px;
+  transform: none;
+  background-color: $color-text-dark;
+  color: $color-white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
+  width: 250px;
+  text-align: left;
+  box-shadow: 0 2px 8px $shadow-card;
+  z-index: 1100;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+.info-icon-wrapper .info-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 5px;
+  transform: none;
+  border: 6px solid transparent;
+  border-width: 8px 4px;
+  border-bottom-color: $color-text-dark;
+}
+
+.info-icon-wrapper:hover .info-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-icon-wrapper svg {
+  transition: transform 0.2s ease;
+}
+
+.info-icon-wrapper:hover svg {
+  transform: scale(1.1);
+}
+
+.edit-method-type-btn {
+  font-size: 0.8rem;
+  color: $color-brand-steel;
+  text-decoration: none;
+  line-height: 1;
+
+  &:hover {
+    color: $color-brand-navy;
+  }
+}
+
+/* ========================================
    TUTORIAL EDITOR
    ======================================== */
 .edit-tutorial-wrapper {
@@ -177,8 +292,8 @@
 
   &:hover,
   &.tutorial-dropzone-over {
-    border-color: $midpoint-special-color;
-    background-color: rgba($midpoint-special-color, 0.04);
+    border-color: $color-brand-steel;
+    background-color: rgba($color-brand-steel, 0.04);
   }
 }
 
@@ -196,7 +311,7 @@
 }
 
 .tutorial-dropzone-link {
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
   font-weight: 500;
 }
 
@@ -258,7 +373,7 @@
   text-decoration: none;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
     text-decoration: underline;
   }
 }
@@ -315,8 +430,8 @@
 
 .edit-add-connector-btn {
   font-size: 0.8rem;
-  color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  color: $color-brand-steel;
+  border-color: $color-brand-navy;
 
   &:hover {
     background-color: #f8f9fa;
@@ -334,11 +449,50 @@
   }
 }
 
+// A staged (not yet persisted) connector: dashed outline + tinted background to read as "pending".
+.edit-connector-card-pending {
+  border-style: dashed;
+  border-color: $color-brand-steel;
+  background: #f8fbff;
+}
+
+.edit-connector-pending-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: $color-brand-steel;
+  background: #e3f0ff;
+}
+
+.edit-connector-obsolete-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #7a4f00;
+  background: #fff3cd;
+  border: 1px solid #f5e2b8;
+}
+
 .edit-connector-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+.edit-connector-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
 }
 
 .edit-connector-name {
@@ -347,13 +501,18 @@
   color: #1a202c;
 }
 
+.edit-connector-subtitle {
+  font-size: 0.8125rem;
+  color: #6c757d;
+}
+
 .edit-connector-edit-btn {
   font-size: 0.8125rem;
-  color: $midpoint-special-color;
+  color: $color-brand-steel;
   font-weight: 500;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
@@ -389,6 +548,11 @@
 .edit-connector-value {
   color: #212529;
   word-break: break-all;
+
+  // Prose (a rendered connector description) breaks between words, not inside them.
+  &.markdown-rendered {
+    word-break: normal;
+  }
 }
 
 /* Connector detail design ported from the IM-detail page */
@@ -410,7 +574,7 @@
   padding: 0;
   font-weight: 600;
   font-size: 0.8125rem;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   cursor: pointer;
 
   &:hover {
@@ -476,7 +640,7 @@
   color: #4b5563;
 
   a {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
     font-weight: 600;
     text-decoration: underline;
 
@@ -495,12 +659,12 @@
   align-items: center;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  border: 1px solid $color-dark-blue;
+  border: 1px solid $color-brand-navy;
   border-radius: 8px;
   background-color: #ffffff;
   font-size: 0.875rem;
   font-weight: 600;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
 
   &:hover {
     background-color: #f3f4f6;
@@ -519,21 +683,21 @@
 }
 
 .edit-cancel-btn {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.875rem;
   text-decoration: none;
   padding: 0;
 
   &:hover {
-    color: $color-dark-blue;
+    color: $color-brand-steel;
   }
 }
 
 .edit-save-btn {
   font-size: 0.875rem;
   background: #fff;
-  border: 1px solid $color-dark-blue;
-  color: $color-dark-blue;
+  border: 1px solid $color-brand-navy;
+  color: $color-brand-steel;
   padding: 0.4rem 1.25rem;
   border-radius: 4px;
 
@@ -544,16 +708,62 @@
 
 .edit-save-version-btn {
   font-size: 0.875rem;
-  background-color: $midpoint-special-color;
-  border: 1px solid $midpoint-special-color;
+  background-color: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
   color: #fff;
   padding: 0.4rem 1.25rem;
   border-radius: 4px;
 
   &:hover {
-    background-color: $color-dark-blue;
-    border-color: $color-dark-blue;
+    background-color: $color-brand-navy;
+    border-color: $color-brand-navy;
   }
+}
+
+.edit-save-hint {
+  font-size: 0.8125rem;
+}
+
+.edit-save-error {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #f5c2c7;
+  background: #fdf2f2;
+  color: #b02a37;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+/* Error toast (shown when a Save / Save-as-new-version fails) */
+.toast-container {
+  z-index: 100000;
+  // Bootstrap's .toast-container sets pointer-events: none; re-enable so the close X is clickable.
+  pointer-events: auto;
+}
+
+.toast-box {
+  min-width: 350px;
+  max-width: 420px;
+  border: 1px solid $toast-danger-border;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.toast-header-danger {
+  background-color: $toast-danger-header;
+  color: $toast-danger-header-text;
+  font-size: 1rem;
+}
+
+.toast-body-danger {
+  background-color: $toast-danger-body;
+  color: $toast-danger-text;
+  line-height: 1.4;
+}
+
+.toast-icon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 /* ========================================
@@ -621,7 +831,7 @@
 .cancel-keep-btn {
   background: none;
   border: none;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
 
@@ -641,113 +851,6 @@
   &:hover {
     background-color: #b02a37;
     border-color: #b02a37;
-    color: $color-white;
-  }
-}
-
-/* "Changes saved" confirmation modal */
-.saved-modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1040;
-}
-
-.saved-modal-container {
-  z-index: 1050;
-}
-
-.saved-modal-dialog {
-  position: relative;
-  background: $color-white;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  width: 480px;
-  max-width: 95vw;
-  padding: 1.25rem;
-}
-
-.saved-modal-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 1rem;
-  color: $color-gray-secondary;
-  background: none;
-  border: none;
-  font-size: 0.9rem;
-  line-height: 1;
-}
-
-.saved-modal-body {
-  padding: 1.5rem 1rem 2rem;
-}
-
-.saved-modal-check {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background-color: #e6f4ea;
-  color: $color-success;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.saved-modal-title {
-  font-weight: 600;
-  font-size: 1.0625rem;
-  color: $color-text-dark;
-  margin: 0;
-}
-
-/* Bulleted summary shown in the "upgraded to new version" modal */
-.new-version-list {
-  margin: 0 0 1.25rem;
-  padding-left: 1.75rem;
-  color: $color-text-secondary;
-  font-size: 0.9375rem;
-  line-height: 1.7;
-
-  li {
-    margin-bottom: 0.15rem;
-  }
-}
-
-/* Full-width divider above the modal footer (spans past the dialog's padding) */
-.saved-modal-separator {
-  margin: 0 -1.25rem 0.75rem;
-  border: 0;
-  border-top: 1px solid $color-border-light;
-  opacity: 1;
-}
-
-.saved-modal-footer {
-  padding-top: 0.25rem;
-}
-
-.saved-modal-close-link {
-  background: none;
-  border: none;
-  color: $color-dark-blue;
-  font-weight: 500;
-  padding: 0.4rem 0.75rem;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.saved-modal-catalog-btn {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
-  color: $color-white;
-  font-weight: 600;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-
-  &:hover {
-    background-color: #1b5e85;
-    border-color: #1b5e85;
     color: $color-white;
   }
 }
@@ -801,7 +904,7 @@
 }
 
 .compat-label-info {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 0.75rem;
   margin-left: 0.25rem;
 }
@@ -842,7 +945,7 @@
 .compat-modal-close-link {
   background: none;
   border: none;
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
 
@@ -852,8 +955,8 @@
 }
 
 .compat-modal-apply-btn {
-  background-color: $color-dark-blue;
-  border-color: $color-dark-blue;
+  background-color: $color-brand-navy;
+  border-color: $color-brand-navy;
   color: $color-white;
   font-weight: 600;
   padding: 0.4rem 1.25rem;

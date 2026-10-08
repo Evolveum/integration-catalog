@@ -25,5 +25,11 @@ if [ -f "$JENKINS_USERNAME_FILE" ]; then
     export JENKINS_USERNAME=$(cat "$JENKINS_USERNAME_FILE")
 fi
 
+# Read the support portal's service account token from secret file. The variable name is the
+# relaxed-binding form of the openproject.password property.
+if [ -f "$OPENPROJECT_PASSWORD_FILE" ]; then
+    export OPENPROJECT_PASSWORD=$(cat "$OPENPROJECT_PASSWORD_FILE")
+fi
+
 # Run Spring Boot application
 exec java -jar /integration-catalog/integration-catalog.jar

@@ -26,6 +26,8 @@ public record ApplicationDto(
         List<IntegrationMethodDto> integrationMethods,                     // integration_method
         Long requestId,                                                    // request.id
         Long voteCount,                                                    // computed: count of vote rows
+        String integrationNeed,                                            // request.integration_need
+        String requestedIntegrationMethodType,                             // integration_method_type.display_name via request
         List<String> frameworks,                                           // connector_bundle.framework
         List<ObjectClassCapabilityDto> objectClassCapabilities             // object_class_capabilities
 ) {
@@ -49,6 +51,8 @@ public record ApplicationDto(
         private List<IntegrationMethodDto> integrationMethods;
         private Long requestId;
         private Long voteCount;
+        private String integrationNeed;
+        private String requestedIntegrationMethodType;
         private List<String> frameworks;
         private List<ObjectClassCapabilityDto> objectClassCapabilities;
 
@@ -127,6 +131,16 @@ public record ApplicationDto(
             return this;
         }
 
+        public Builder integrationNeed(String integrationNeed) {
+            this.integrationNeed = integrationNeed;
+            return this;
+        }
+
+        public Builder requestedIntegrationMethodType(String requestedIntegrationMethodType) {
+            this.requestedIntegrationMethodType = requestedIntegrationMethodType;
+            return this;
+        }
+
         public Builder frameworks(List<String> frameworks) {
             this.frameworks = frameworks;
             return this;
@@ -154,6 +168,8 @@ public record ApplicationDto(
                     integrationMethods,
                     requestId,
                     voteCount,
+                    integrationNeed,
+                    requestedIntegrationMethodType,
                     frameworks,
                     objectClassCapabilities
             );

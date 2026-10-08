@@ -4,6 +4,22 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+import { Maintainer } from './maintainer.model';
+
+import { ConnectorTag } from './connector-tag.model';
+import { SupportTier } from '../core/support-tier';
+
+/** One published integration method in the support-tier overview. */
+export interface IntegrationMethodTier {
+  applicationId: string;          // application.id
+  applicationName: string;        // application.display_name
+  methodId: string;               // integration_method.id
+  revision: string;               // integration_method.revision
+  methodName: string;             // integration_method.display_name
+  supportTier: SupportTier | null; // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+  hasConnectorBundle: boolean;     // false = no connector to hold a tier, so it cannot be set
+}
+
 export interface MidpointVersion {
   id: number;           // midpoint_version.id
   version: string;      // midpoint_version.version
@@ -33,7 +49,8 @@ export interface IntegrationMethod {
   systemVersion: string | null;            // integration_method.system_version
   releasedDate: string | null;             // connector_bundle_version.released_date
   author: string | null;                   // connector.author
-  organizationId: number | null;           // connector.organization_id
+  maintainer: Maintainer | null;           // integration_method.maintainer
+  maintainerLabel: string | null;          // integration_method.maintainer as label
   lifecycleState: string | null;           // integration_method.lifecycle_state
   downloadLink: string | null;             // generated download URL
   framework: string | null;               // connector_bundle.framework
@@ -41,19 +58,51 @@ export interface IntegrationMethod {
   downloadCount: number | null;            // computed: count of download rows
   midpointMinVersionId: number | null;     // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
   midpointMaxVersionId: number | null;     // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+  appMinVersion: string | null;            // integration_method.app_minversion (free text)
+  appMaxVersion: string | null;            // integration_method.app_maxversion (free text)
   connectorDisplayName: string | null;     // connector.display_name
   integMethodTypes: string[] | null;       // integration_method_type.name
-  objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
+  objectClassCapabilities: IntegrationMethodObjectCapabilities[] | null; // every offered capability with its state
   revision: string | null;                // integration_method.revision
   displayName: string | null;             // integration_method.display_name
+  limitations: string | null;            // integration_method.limitations
   tutorial: string | null;               // integration_method.tutorial
   filePath: string | null;               // integration_method.file_path
-  reviewedBy: string | null;             // integration_method.reviewed_by (approver/rejecter)
+  reviewedBy: string | null;             // integration_method.reviewed_by (set at start-review, kept on approve/reject)
+  createdAt: string | null;              // integration_method.created_at (submitted-for-review date)
+  updated: string | null;                // integration_method.updated (= review start date while REVIEWING)
+  connectors: IncludedConnector[] | null; // connectors linked via integration_method_connector
+  supportTicketId: number | null;        // integration_method.support_ticket_id, only sent to those allowed to see it
+  supportTicketUrl: string | null;       // built from supportTicketId by the backend
+  supportTier: SupportTier | null;       // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+  hasConnectorBundle: boolean;           // false = no connector to hold a tier, so it cannot be set
 }
 
 export interface ObjectClassCapability {
   objectName: string;     // object_class_capabilities.object_name
   capabilities: string[]; // capability.name items
+  resourceWide: boolean;  // resource_wide; objectName is then only a label
+}
+
+/** Whether an integration method supports a capability on an object; UNKNOWN means nobody determined it. */
+export type CapabilityState = 'YES' | 'NO' | 'UNKNOWN';
+
+export interface CapabilityStateEntry {
+  name: string;           // capability.name
+  state: CapabilityState; // integration_method_capability_item.state
+}
+
+export interface IntegrationMethodObjectCapabilities {
+  objectClass: string;                 // integration_method_capability.object_class
+  capabilities: CapabilityStateEntry[]; // integration_method_capability_item
+}
+
+export interface IncludedConnector {
+  className: string | null;    // connector.fully_qualified_class_name
+  displayName: string | null;  // connector.display_name
+  version: string | null;      // connector_bundle_version.bundle_version of the current version
+  description: string | null;  // connector.description
+  tags: ConnectorTag[];        // connector_connector_tag + connector_tag
 }
 
 export interface ApplicationDetail {
@@ -72,6 +121,8 @@ export interface ApplicationDetail {
   integrationMethods: IntegrationMethod[] | null; // integration_method
   requestId: number | null;                 // request.id
   voteCount: number | null;                 // computed: count of vote rows
+  integrationNeed: string | null;           // request.integration_need
+  requestedIntegrationMethodType: string | null; // integration_method_type.display_name via request
   frameworks: string[] | null;              // connector_bundle.framework
   objectClassCapabilities: ObjectClassCapability[] | null; // object_class_capabilities
 }

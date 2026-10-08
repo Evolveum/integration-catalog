@@ -15,6 +15,15 @@ import lombok.Setter;
 @Getter @Setter
 public class ConnectorConnectorTag {
 
+    public ConnectorConnectorTag() {
+    }
+
+    public ConnectorConnectorTag(ConnectorConnectorTag srcTag) {
+        this.setConnector(srcTag.getConnector());
+        this.setConnector(srcTag.getConnector());
+        this.setConnectorTag(srcTag.getConnectorTag());
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

@@ -11,15 +11,16 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -27,7 +28,7 @@ import java.util.UUID;
 @IdClass(IntegrationMethodId.class)
 @Getter @Setter
 @Accessors(chain = true)
-public class IntegrationMethod implements Persistable<UUID> {
+public class IntegrationMethod implements SetOwnership, GetOwnershipOneMaintainer, Persistable<UUID> {
 
     @Id
     private UUID id;
@@ -35,16 +36,28 @@ public class IntegrationMethod implements Persistable<UUID> {
     @Id
     private String revision;
 
+    /**
+     * Whether {@code save()} inserts or merges: the key is composite and its id is assigned rather
+     * than generated, so Spring Data cannot tell a fresh revision from a loaded one and would merge
+     * every time, costing a SELECT per save. Lombok's getter is the {@link Persistable#isNew()} the
+     * class implements.
+     */
     @Transient
     @Setter(AccessLevel.NONE)
     private boolean isNew = true;
 
     @PrePersist
-    void assignIdIfMissing() {
+    void assignDefaults() {
         // A new revision of an existing method keeps that method's id (set explicitly);
         // a genuinely new method has no id yet, so we generate one here.
         if (this.id == null) {
             this.id = UUID.randomUUID();
+        }
+        // Default the creation time for genuinely new methods, but let a forked
+        // revision inherit its source's created_at (set explicitly) so the method
+        // keeps its original position when ordered by created_at.
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
         }
     }
 
@@ -73,6 +86,20 @@ public class IntegrationMethod implements Persistable<UUID> {
     private String displayName;
 
     private String description;
+
+    /**
+     * Longest limitations text the API and the form accept. The column takes 1000, so the limit can
+     * be relaxed without a schema change and a stored value is never truncated by tightening it.
+     */
+    public static final int LIMITATIONS_MAX = 500;
+
+    /** Longest application version text, the length of the app_minversion / app_maxversion columns. */
+    public static final int APP_VERSION_MAX = 64;
+
+    /** What the method cannot do, stated by its author; the column takes more than the API accepts. */
+    @Column(length = 1000)
+    private String limitations;
+
     @Column(columnDefinition = "TEXT")
     private String tutorial;
 
@@ -90,10 +117,16 @@ public class IntegrationMethod implements Persistable<UUID> {
     @Column(name = "lifecycle_state", columnDefinition = "LifecycleType", nullable = false)
     private LifecycleType lifecycleState;
 
-    private String author;
-    private String maintainer;
+    @OneToOne
+    @JoinColumn(name = "author")
+    private Author author;
 
-    @CreationTimestamp
+    @OneToOne
+    @JoinColumn(name = "maintainer")
+    private Maintainer maintainer;
+
+    // Not @CreationTimestamp: a forked revision inherits its source's created_at
+    // (see assignDefaults / createDraft) so a method keeps its original ordering.
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -101,19 +134,47 @@ public class IntegrationMethod implements Persistable<UUID> {
     @Column(nullable = false)
     private LocalDateTime updated;
 
-    @Column(name = "app_version")
-    private String appVersion;
+    /** Lowest application version of the supported range, free text; null = not stated. */
+    @Column(name = "app_minversion", length = APP_VERSION_MAX)
+    private String appMinVersion;
 
-    /** Username of the user who approved or rejected this in-review revision. */
-    // Temporarily disabled: the current (non-local) DB does not have the reviewed_by column,
-    // and mapping it makes Hibernate reference it in every query. Re-enable this together with
-    // the getReviewedBy()/setReviewedBy() usages once the column exists.
-    // @Column(name = "reviewed_by")
-    // private String reviewedBy;
+    /** Highest application version of the supported range, free text; null = no upper bound. */
+    @Column(name = "app_maxversion", length = APP_VERSION_MAX)
+    private String appMaxVersion;
+
+    /**
+     * Username of the reviewer: set when a review is started (REVIEWING) and kept when the
+     * revision is approved or rejected. Requires the reviewed_by column
+     * (see config/sql/add_reviewing_state.sql for existing databases).
+     */
+    @Column(name = "reviewed_by")
+    private String reviewedBy;
+
+    /** Support portal work package for this revision; null when none was opened. Not inherited by a fork. */
+    @Column(name = "support_ticket_id")
+    private Integer supportTicketId;
 
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodCapability> capabilities = new ArrayList<>();
 
     @OneToMany(mappedBy = "integrationMethod", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IntegrationMethodConnector> connectors = new ArrayList<>();
+
+    /** The connectors this revision links to; they hold its support tier. */
+    public List<Connector> linkedConnectors() {
+        return connectors.stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    /** The tier of the most recently updated tiered connector; null = not tiered or no connector. */
+    public SupportTier supportTier() {
+        return linkedConnectors().stream()
+                .filter(c -> c.supportTier() != null)
+                .max(Comparator.comparing(Connector::getUpdated, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(Connector::supportTier)
+                .orElse(null);
+    }
 }

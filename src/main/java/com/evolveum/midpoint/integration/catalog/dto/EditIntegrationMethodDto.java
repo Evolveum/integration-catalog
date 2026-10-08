@@ -6,15 +6,28 @@
 
 package com.evolveum.midpoint.integration.catalog.dto;
 
+import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 public record EditIntegrationMethodDto(
         String displayName,                                          // integration_method.display_name
         String description,                                          // integration_method.description
+        @Size(max = IntegrationMethod.LIMITATIONS_MAX)
+        String limitations,                                          // integration_method.limitations
         String tutorial,                                             // integration_method.tutorial
-        List<IntegrationMethodCapabilityGroupDto> capabilities,      // integration_method_capability + items
+        List<Integer> typeIds,                                       // integration_method_type.id; null leaves the types as they are
+        List<@Valid IntegrationMethodObjectCapabilitiesDto> capabilities, // integration_method_capability + items
         boolean removeFile,                                          // true → clear integration_method.file_path
         boolean minorBump,                                           // true → increment minor (x.Y.z → x.Y+1.1), false → patch (x.y.Z → x.y.Z+1)
         Integer midpointMinVersion,                                  // integration_method.midpoint_minversion (FK → midpoint_version.id)
-        Integer midpointMaxVersion                                   // integration_method.midpoint_maxversion (FK → midpoint_version.id)
+        Integer midpointMaxVersion,                                  // integration_method.midpoint_maxversion (FK → midpoint_version.id)
+        @Size(max = IntegrationMethod.APP_VERSION_MAX)
+        String appMinVersion,                                        // integration_method.app_minversion (free text)
+        @Size(max = IntegrationMethod.APP_VERSION_MAX)
+        String appMaxVersion,                                        // integration_method.app_maxversion (free text)
+        MaintainerDto maintainer                                     // integration_method.maintainer; null keeps the source revision's
 ) {}

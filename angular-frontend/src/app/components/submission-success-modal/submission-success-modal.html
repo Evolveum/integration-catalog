@@ -1,0 +1,55 @@
+<!-- Copied-to-clipboard toast -->
+@if (copiedNotice()) {
+  <div class="position-fixed bottom-0 start-50 translate-middle-x pb-4" style="z-index:9999;">
+    <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 shadow-sm" style="background:#212529; color:#fff; font-size:0.875rem;">
+      <i class="fa-solid fa-check"></i> {{ copiedNotice() }}
+    </div>
+  </div>
+}
+
+<div class="submitted-modal-backdrop position-fixed top-0 start-0 w-100 h-100"></div>
+<div class="submitted-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+  <div class="submitted-modal-dialog">
+    <button type="button" class="btn p-0 submitted-modal-close" (click)="dismissed.emit()" aria-label="Close">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="submitted-modal-head d-flex flex-column align-items-center text-center">
+      <div class="submitted-modal-check"><i class="fa-solid fa-check"></i></div>
+      <h5 class="submitted-modal-title">{{ title }}</h5>
+      @if (subtitle) {
+        <p class="submitted-modal-subtitle">{{ subtitle }}</p>
+      }
+    </div>
+
+    <!-- Only when the portal actually opened one: it is switched off in some deployments, and a
+         panel promising a ticket number that does not exist is worse than no panel. -->
+    @if (ticketId()) {
+      <h6 class="submitted-modal-section-title">Support portal ticket</h6>
+      <div class="submitted-ticket-panel d-flex align-items-center justify-content-between gap-3">
+        <span class="submitted-ticket-number">#{{ ticketId() }}</span>
+        @if (ticketUrl()) {
+          <div class="d-flex align-items-center gap-3">
+            <button type="button" class="btn submitted-ticket-action" (click)="copyTicketLink()">
+              <i class="fa-regular fa-copy me-1"></i>Copy link
+            </button>
+            <a class="btn submitted-ticket-action submitted-ticket-open"
+               [href]="ticketUrl()" target="_blank" rel="noopener">
+              Open ticket <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i>
+            </a>
+          </div>
+        }
+      </div>
+    }
+
+    <h6 class="submitted-modal-section-title">What happens next?</h6>
+    <p class="submitted-modal-text">
+      Our team will review your submission. No action is required right now. If we need
+      clarification or changes, we'll contact you through the review ticket, where you can
+      also follow updates and respond to requests.
+    </p>
+
+    <hr class="submitted-modal-separator">
+    <button type="button" class="btn submitted-modal-done w-100" (click)="done.emit()">Done</button>
+  </div>
+</div>

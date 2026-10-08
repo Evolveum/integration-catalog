@@ -31,8 +31,25 @@ public class ObjectClassCapabilities {
     @Column(name = "object_name", nullable = false, length = 30)
     private String objectName;
 
+    /** The capabilities asked of the whole resource; a flag, so "Global" stays usable as an object name. */
+    @Column(name = "resource_wide", nullable = false)
+    private boolean resourceWide;
+
+    /** Requested (state YES); everything that reads requests shows only these. */
     @Convert(converter = CapabilitiesArrayConverter.class)
     @ColumnTransformer(write = "?::\"CapabilityType\"[]")
     @Column(name = "capabilities")
     private CapabilityType[] capabilities;
+
+    /** State NO. */
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
+    @Column(name = "unsupported_capabilities")
+    private CapabilityType[] unsupportedCapabilities;
+
+    /** State UNKNOWN. */
+    @Convert(converter = CapabilitiesArrayConverter.class)
+    @ColumnTransformer(write = "?::\"CapabilityType\"[]")
+    @Column(name = "unknown_capabilities")
+    private CapabilityType[] unknownCapabilities;
 }

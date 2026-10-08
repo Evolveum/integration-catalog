@@ -1,0 +1,134 @@
+/*!
+  Copyright (c) 2010-2026 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.tags-modal-backdrop {
+  background: rgba($color-black, 0.4);
+  z-index: 1050;
+}
+
+.tags-modal-container {
+  z-index: 1055;
+}
+
+.tags-modal-dialog {
+  background: $color-white;
+  border-radius: 12px;
+  width: 560px;
+  max-width: calc(100vw - 2rem);
+  box-shadow: 0 12px 40px rgba($color-black, 0.2);
+  overflow: hidden;
+}
+
+.tags-modal-body {
+  padding: 1.5rem;
+}
+
+.tags-modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: $color-text-dark;
+  margin: 0;
+}
+
+.tags-modal-subtitle {
+  color: $color-text-muted;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.tags-modal-desc {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: $color-text-secondary;
+}
+
+.tags-modal-label {
+  display: block;
+  margin: 1.25rem 0 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.tags-modal-select {
+  font-weight: 600;
+
+  // Only the closed field takes the tier color; the open list stays plain white.
+  option {
+    background-color: $color-white;
+    color: $color-text-dark;
+    font-weight: normal;
+  }
+}
+
+.tags-modal-check {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: $color-text-dark;
+}
+
+.tags-modal-hint {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: $color-text-muted;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// Same tier colors as the badges on the application page.
+.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
+.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
+.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
+.tier-none     { color: $color-gray-secondary; }
+
+.tags-modal-error {
+  color: $toast-danger-text;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.tags-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid $color-separator;
+}
+
+.tags-modal-cancel {
+  border: none;
+  background: none;
+  color: $color-text-dark;
+  font-weight: 500;
+  padding: 0;
+
+  &:hover:not(:disabled) { text-decoration: underline; }
+  &:disabled { color: $color-text-light; cursor: not-allowed; }
+}
+
+.tags-modal-save {
+  background: $color-brand-steel;
+  border: 1px solid $color-brand-steel;
+  color: $color-white;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+
+  &:hover:not(:disabled) {
+    background: $color-brand-navy;
+    border-color: $color-brand-navy;
+    color: $color-white;
+  }
+
+  &:disabled {
+    background: $color-brand-steel;
+    border-color: $color-brand-steel;
+    color: $color-white;
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

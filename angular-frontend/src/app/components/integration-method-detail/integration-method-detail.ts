@@ -4,24 +4,33 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
-import EasyMDE from 'easymde';
-import { ApplicationService } from '../../services/application.service';
-import { AuthService } from '../../services/auth.service';
+import { CommonModule, DatePipe } from '@angular/common';
+import { ApplicationService, SupportTicket } from '../../services/application.service';
+import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { PageHeader } from '../page-header/page-header';
+import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
+import { StartReviewModal } from '../start-review-modal/start-review-modal';
+import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
-import { hasLogoDetail, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { isObsoleteConnector } from '../../models/connector-tag.model';
+import { CapabilityState, hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
+import { Maintainer } from '../../models/maintainer.model';
+import { ToastService } from '../../services/toast.service';
+import { formatCapabilityLabel } from '../../core/capability-label';
+import { MarkdownPipe } from '../../core/markdown.pipe';
+import { SupportTier, supportTierLabel } from '../../core/support-tier';
 
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
-  imports: [CommonModule, PageHeader],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, MarkdownPipe],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
-export class IntegrationMethodDetail implements OnInit, OnDestroy {
+export class IntegrationMethodDetail implements OnInit {
   protected readonly loading = signal<boolean>(true);
   protected readonly appId = signal<string>('');
   protected readonly appName = signal<string>('');
@@ -33,9 +42,20 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   protected readonly methodName = signal<string>('');
   protected readonly methodVersion = signal<string>('');
   protected readonly methodDescription = signal<string>('');
+  protected readonly methodLimitations = signal<string>('');
   protected readonly methodTypes = signal<string[]>([]);
-  protected readonly globalCapabilities = signal<string[]>([]);
-  protected readonly specificCapabilities = signal<ObjectClassCapability[]>([]);
+  protected readonly supportTier = signal<SupportTier | null>(null);
+  protected readonly supportTierLabel = supportTierLabel;
+  protected readonly specificCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
+  protected readonly selectedCapsObject = signal<string>('');
+  protected readonly selectedObjectCapabilities = computed(() =>
+    this.specificCapabilities().find(o => o.objectClass === this.selectedCapsObject())?.capabilities ?? []
+  );
+  protected readonly capabilityStates: Record<CapabilityState, { label: string; icon: string }> = {
+    YES: { label: 'Supported', icon: 'fa-circle-check' },
+    NO: { label: 'Not supported', icon: 'fa-circle-xmark' },
+    UNKNOWN: { label: 'Unknown', icon: 'fa-circle-question' }
+  };
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);
 
@@ -43,6 +63,42 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   // are only offered for published (ACTIVE) methods.
   protected readonly methodLifecycleState = signal<string | null>(null);
   protected readonly isActive = computed(() => this.methodLifecycleState() === 'ACTIVE');
+  // An in-review ("Awaiting approval") method offers Start review to superusers; once a review is
+  // started the revision is REVIEWING and offers Approve/Reject instead.
+  protected readonly isInReview = computed(() => this.methodLifecycleState() === 'IN_REVIEW');
+  protected readonly isReviewing = computed(() => this.methodLifecycleState() === 'REVIEWING');
+  protected readonly isProcessingApproval = signal<boolean>(false);
+  protected readonly approvalError = signal<string>('');
+
+  // Which confirmation modal is open (null = none); the modal component owns the two-step flow.
+  protected readonly confirmMode = signal<'approve' | 'reject' | null>(null);
+  protected readonly methodAuthor = signal<string>('');
+  // Submitted-for-review date = integration_method.created_at, formatted like "May 20, 2026".
+  protected readonly methodCreatedAt = signal<string | null>(null);
+  private readonly datePipe = new DatePipe('en-US');
+  protected readonly submittedDate = computed(() =>
+    this.datePipe.transform(this.methodCreatedAt(), 'MMMM d, yyyy') || '—');
+  // Support-portal work package opened when this revision was submitted. Null until loaded, and
+  // it stays null for a revision that has none or for a viewer not entitled to see it.
+  protected readonly supportTicket = signal<SupportTicket | null>(null);
+  protected readonly ticketId = computed(() => this.supportTicket()?.ticketId ?? null);
+  protected readonly ticketUrl = computed(() => this.supportTicket()?.url ?? null);
+  // Reviewer of a REVIEWING revision: reviewed_by is set at start-review, and updated is
+  // bumped by that same state flip (the row is then edit-locked, so it stays = review start).
+  protected readonly reviewerName = signal<string>('');
+  protected readonly methodUpdated = signal<string | null>(null);
+  protected readonly reviewStartDate = computed(() =>
+    this.datePipe.transform(this.methodUpdated(), 'MMMM d, yyyy') || '—');
+
+  protected readonly confirmMethodName = computed(() => this.methodName() || '—');
+  protected readonly submittedByLabel = computed(() =>
+    `${this.methodAuthor() || '—'} · ${this.submittedDate()}`
+  );
+
+  // Ownership of the opened revision, used to gate the "Edit and upgrade" action. The server
+  // enforces the same rule; hiding the button just avoids offering an action that would be rejected.
+  protected readonly methodMaintainer = signal<Maintainer | null>(null);
+  protected readonly canEdit = computed(() => this.authService.canEdit(this.methodMaintainer()));
 
   // Supported midPoint version range
   protected readonly midpointVersions = signal<MidpointVersion[]>([]);
@@ -51,20 +107,21 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
   protected readonly midpointMinVersion = computed(() => this.resolveMidpointVersion(this.methodMinVersionId()));
   protected readonly midpointMaxVersion = computed(() => this.resolveMidpointVersion(this.methodMaxVersionId()));
 
+  // Supported application version range, as version text
+  protected readonly appMinVersion = signal<string>('');
+  protected readonly appMaxVersion = signal<string>('');
+
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
+  protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
-
-  // Bundle download warning toast (stays until dismissed)
-  protected readonly bundleWarning = signal<string | null>(null);
-
-  private easyMde: EasyMDE | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private applicationService: ApplicationService,
-    private authService: AuthService
+    private authService: AuthService,
+    protected toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -94,14 +151,24 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
           this.methodName.set(ver.displayName ?? '');
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
+          this.methodAuthor.set(ver.author ?? '');
+          this.methodCreatedAt.set(ver.createdAt ?? null);
+          this.reviewerName.set(ver.reviewedBy ?? '');
+          this.methodUpdated.set(ver.updated ?? null);
+          this.methodMaintainer.set(ver.maintainer ?? null);
           this.methodDescription.set(ver.description ?? '');
+          this.methodLimitations.set(ver.limitations ?? '');
           this.methodTypes.set(ver.integMethodTypes ?? []);
+          this.supportTier.set(ver.supportTier ?? null);
           this.methodTutorial.set(ver.tutorial ?? '');
           this.methodMinVersionId.set(ver.midpointMinVersionId);
           this.methodMaxVersionId.set(ver.midpointMaxVersionId);
+          this.appMinVersion.set(ver.appMinVersion ?? '');
+          this.appMaxVersion.set(ver.appMaxVersion ?? '');
           this.setCapabilities(ver.objectClassCapabilities);
-          this.loadTutorialFiles(aId, vId, ver.revision ?? '');
-          this.loadConnectors(aId, vId, ver.revision ?? '');
+          this.loadTutorialFiles(vId, ver.revision ?? '');
+          this.loadConnectors(vId, ver.revision ?? '');
+          this.loadSupportTicket(vId, ver.revision ?? '');
         } else {
           this.finishLoading();
         }
@@ -110,19 +177,11 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     });
   }
 
-  // Global capabilities are stored under the reserved 'Global' object class; the rest are
-  // grouped per object class so we can show their globality separately.
-  private setCapabilities(occs: ObjectClassCapability[] | null): void {
-    const groups = occs ?? [];
-    this.globalCapabilities.set(
-      groups.filter(o => o.objectName === 'Global').flatMap(o => o.capabilities ?? [])
-    );
-    const specifics = groups.filter(o => o.objectName !== 'Global' && (o.capabilities?.length ?? 0) > 0);
+  private setCapabilities(occs: IntegrationMethodObjectCapabilities[] | null): void {
+    const specifics = (occs ?? [])
+      .filter(o => (o.capabilities?.length ?? 0) > 0);
     this.specificCapabilities.set(specifics);
-    // Start with Global expanded and the specific groups collapsed; each can then be toggled independently.
-    const expanded = new Set<string>();
-    if (this.globalCapabilities().length > 0) expanded.add('global');
-    this.expandedCaps.set(expanded);
+    this.selectedCapsObject.set(specifics[0]?.objectClass ?? '');
   }
 
   private resolveMidpointVersion(id: number | null): string {
@@ -130,56 +189,70 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     return this.midpointVersions().find(v => v.id === id)?.version ?? '';
   }
 
-  private loadTutorialFiles(appId: string, methodId: string, revision: string): void {
-    this.applicationService.listTutorialFiles(appId, methodId, revision).subscribe({
+  /**
+   * Loads the revision's support ticket, but only while it is under review and only for a viewer
+   * entitled to it — the endpoint answers 403 to anyone else, and asking would just log noise.
+   * Any failure leaves the ticket null, which simply hides the link.
+   */
+  private loadSupportTicket(methodId: string, revision: string): void {
+    if (!this.isInReview() && !this.isReviewing()) return;
+    if (!this.canEdit()) return;
+    this.applicationService.getSupportTicket(methodId, revision).subscribe({
+      next: (ticket) => this.supportTicket.set(ticket),
+      error: () => this.supportTicket.set(null)
+    });
+  }
+
+  private loadTutorialFiles(methodId: string, revision: string): void {
+    this.applicationService.listTutorialFiles(methodId, revision).subscribe({
       next: (names) => this.tutorialFiles.set(names),
       error: () => this.tutorialFiles.set([])
     });
   }
 
   protected tutorialFileUrl(name: string): string {
-    return this.applicationService.getTutorialFileUrl(this.appId(), this.versionId(), this.methodVersion(), name);
+    return this.applicationService.getTutorialFileUrl(this.versionId(), this.methodVersion(), name);
   }
 
-  private loadConnectors(appId: string, methodId: string, revision: string): void {
-    this.applicationService.getConnectorsForIntegrationMethod(appId, methodId, revision).subscribe({
+  private loadConnectors(methodId: string, revision: string): void {
+    this.applicationService.getConnectorsForIntegrationMethod(methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
+        this.checkDuplicateVersions(connectors);
         this.finishLoading();
       },
       error: () => this.finishLoading()
     });
   }
 
-  private finishLoading(): void {
-    this.loading.set(false);
-    setTimeout(() => this.initEditor(), 50);
-  }
+  // ── Duplicate connector-version warning (reviewer aid) ────────────────────
+  // Connector ids whose version already exists in the catalog on another connector with the same
+  // identity (bundle name + class name). Duplicates are never blocked — the version must match the
+  // Maven artifact — so this only feeds the reviewer's warning that the existing version should be
+  // reused. Checked for superusers on revisions awaiting or under review.
+  protected readonly duplicateVersionIds = signal<Set<number>>(new Set());
 
-  ngOnDestroy(): void {
-    if (this.easyMde) {
-      this.easyMde.toTextArea();
-      this.easyMde = null;
+  private checkDuplicateVersions(connectors: ImplementationListItem[]): void {
+    this.duplicateVersionIds.set(new Set());
+    if (!this.isSuperuser() || (!this.isInReview() && !this.isReviewing())) return;
+    for (const c of connectors) {
+      if (c.connectorId == null || !c.bundleName || !c.version) continue;
+      const id = c.connectorId;
+      this.applicationService.checkVersionExists(c.bundleName, c.className || null, c.version, id).subscribe({
+        next: (exists) => {
+          if (exists) this.duplicateVersionIds.update(s => new Set(s).add(id));
+        },
+        error: () => { /* informational check only; a failure just leaves the warning off */ }
+      });
     }
   }
 
-  private initEditor(): void {
-    const el = document.getElementById('view-tutorial-editor') as HTMLTextAreaElement | null;
-    if (!el || this.easyMde) return;
-    this.easyMde = new EasyMDE({
-      element: el,
-      spellChecker: false,
-      autosave: { enabled: false, uniqueId: 'view-tutorial-' + this.versionId() },
-      toolbar: ['bold', 'italic', 'strikethrough', '|',
-                'heading-1', 'heading-2', '|',
-                'unordered-list', 'ordered-list', '|',
-                'link', '|', 'preview', 'side-by-side'],
-      placeholder: 'No tutorial provided.',
-    });
-    this.easyMde.value(this.methodTutorial());
-    // Lock content: read-only, preview by default
-    this.easyMde.codemirror.setOption('readOnly', 'nocursor');
-    EasyMDE.togglePreview(this.easyMde);
+  protected hasDuplicateVersion(c: ImplementationListItem): boolean {
+    return c.connectorId != null && this.duplicateVersionIds().has(c.connectorId);
+  }
+
+  private finishLoading(): void {
+    this.loading.set(false);
   }
 
   // Connector detail sub-sections (Repository, Framework, Source, Implementation).
@@ -221,11 +294,9 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     this.compatConnector.set(null);
   }
 
-  /** A connector's object-class capabilities, with the Global class first when present. */
+  /** A connector's object-class capabilities, with the resource-wide group first when present. */
   protected orderedConnectorCaps(caps: ObjectClassCapability[] | null | undefined): ObjectClassCapability[] {
-    return [...(caps ?? [])].sort((a, b) =>
-      (a.objectName === 'Global' ? 0 : 1) - (b.objectName === 'Global' ? 0 : 1)
-    );
+    return [...(caps ?? [])].sort((a, b) => (a.resourceWide ? 0 : 1) - (b.resourceWide ? 0 : 1));
   }
 
   /** Derive the version badge ("v1", "v2", …) from the major part of the revision. */
@@ -240,32 +311,14 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
   }
 
-  /** Friendly labels for the LicenseType enum (mirrors the publish form). */
-  private readonly licenseLabels: Record<string, string> = {
-    MIT: 'MIT',
-    APACHE_2: 'Apache 2.0',
-    BSD: 'BSD',
-    EUPL: 'EUPL 1.2',
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   protected formatLicense(value: string): string {
-    if (!value) return '—';
-    return this.licenseLabels[value] ?? value;
-  }
-
-  /** Append " (you)" when the maintainer matches the logged-in user. */
-  protected formatMaintainer(maintainer: string): string {
-    if (!maintainer) return '—';
-    const user = this.authService.currentUser();
-    return user && user.trim().toLowerCase() === maintainer.trim().toLowerCase()
-      ? `${maintainer} (you)`
-      : maintainer;
+    return this.licenseTypes.label(value);
   }
 
   protected formatCapabilityText(text: string): string {
-    if (!text) return '';
-    const withSpaces = text.replace(/_/g, ' ').toLowerCase();
-    return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+    return formatCapabilityLabel(text);
   }
 
   protected getLogoUrl(): string {
@@ -292,14 +345,159 @@ export class IntegrationMethodDetail implements OnInit, OnDestroy {
     this.router.navigate(['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit']);
   }
 
-  protected downloadConnector(): void {
-    this.applicationService.downloadBundle(this.appId(), this.versionId(), this.methodVersion()).subscribe({
-      next: (warning) => this.bundleWarning.set(warning),
-      error: () => this.bundleWarning.set('Failed to download the bundle. Please try again.')
+  /** Only superusers may approve/reject an in-review revision. */
+  protected isSuperuser(): boolean {
+    return this.authService.currentRole() === UserRole.Superuser;
+  }
+
+  // ── Approve/Reject confirmation modal ─────────────────────────────────────
+  protected openApproveConfirm(): void {
+    this.openConfirm('approve');
+  }
+
+  protected openRejectConfirm(): void {
+    this.openConfirm('reject');
+  }
+
+  private openConfirm(mode: 'approve' | 'reject'): void {
+    this.approvalError.set('');
+    this.confirmMode.set(mode);
+  }
+
+  protected closeConfirm(): void {
+    if (this.isProcessingApproval()) return;
+    this.confirmMode.set(null);
+  }
+
+  protected submitConfirm(): void {
+    if (this.confirmMode() === 'approve') {
+      this.approve();
+    } else if (this.confirmMode() === 'reject') {
+      this.reject();
+    }
+  }
+
+  protected approve(): void {
+    if (this.isProcessingApproval()) return;
+    this.approvalError.set('');
+    this.isProcessingApproval.set(true);
+    this.applicationService.publishIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
+      next: () => this.goBack(),
+      error: (err) => this.handleApprovalError(err)
     });
   }
 
-  protected closeBundleWarning(): void {
-    this.bundleWarning.set(null);
+  protected reject(): void {
+    if (this.isProcessingApproval()) return;
+    this.approvalError.set('');
+    this.isProcessingApproval.set(true);
+    this.applicationService.rejectIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
+      next: () => this.goBack(),
+      error: (err) => this.handleApprovalError(err)
+    });
+  }
+
+  // Stops an ongoing review: flips REVIEWING back to IN_REVIEW (no confirmation modal).
+  protected readonly isProcessingStopReview = signal<boolean>(false);
+
+  protected stopReview(): void {
+    if (this.isProcessingStopReview()) return;
+    this.isProcessingStopReview.set(true);
+    this.applicationService.stopReviewIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
+      next: () => {
+        this.isProcessingStopReview.set(false);
+        // Mirror the backend: back to IN_REVIEW with no reviewer, so the footer swaps to Start review.
+        this.methodLifecycleState.set('IN_REVIEW');
+        this.reviewerName.set('');
+      },
+      error: (err) => {
+        console.error('Stop review failed', err);
+        this.isProcessingStopReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.toastService.show('Stop review failed', message || 'The action failed. Please try again.', 'danger');
+      }
+    });
+  }
+
+  private handleApprovalError(err: unknown): void {
+    console.error('Approval action failed', err);
+    this.isProcessingApproval.set(false);
+    const e = err as { error?: { message?: string } | string; message?: string };
+    const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+    this.approvalError.set(message || 'The action failed. Please try again.');
+  }
+
+  // ── Start-review confirmation modal ───────────────────────────────────────
+  // Flips IN_REVIEW -> REVIEWING (locking it for editing); only then do Approve/Reject appear.
+  protected readonly isStartReviewOpen = signal<boolean>(false);
+  protected readonly isProcessingStartReview = signal<boolean>(false);
+  protected readonly startReviewError = signal<string>('');
+
+  protected openStartReview(): void {
+    this.startReviewError.set('');
+    this.isStartReviewOpen.set(true);
+  }
+
+  protected closeStartReview(): void {
+    if (this.isProcessingStartReview()) return;
+    this.isStartReviewOpen.set(false);
+  }
+
+  protected submitStartReview(): void {
+    if (this.isProcessingStartReview()) return;
+    this.startReviewError.set('');
+    this.isProcessingStartReview.set(true);
+    this.applicationService.startReviewIntegrationMethod(this.versionId(), this.methodVersion()).subscribe({
+      next: () => {
+        this.isProcessingStartReview.set(false);
+        this.isStartReviewOpen.set(false);
+        // The page is read-only; flip the local state so the footer swaps to Approve/Reject.
+        this.methodLifecycleState.set('REVIEWING');
+      },
+      error: (err) => {
+        console.error('Start review failed', err);
+        this.isProcessingStartReview.set(false);
+        const e = err as { error?: { message?: string } | string; message?: string };
+        const message = (typeof e?.error === 'object' ? e.error?.message : e?.error) || e?.message;
+        this.startReviewError.set(message || 'The action failed. Please try again.');
+      }
+    });
+  }
+
+  // Post-download help modal (where to copy the connectors in midPoint home)
+  protected readonly isDownloadInfoOpen = signal<boolean>(false);
+  protected readonly downloadInfoFileName = signal<string>('');
+  protected readonly downloadInfoFileSize = signal<number | null>(null);
+  protected readonly isDownloadPreparing = signal<boolean>(false);
+
+  protected downloadConnector(): void {
+    // Open right away: building the bundle can take a while and the click must show a reaction.
+    this.downloadInfoFileName.set('');
+    this.downloadInfoFileSize.set(null);
+    this.isDownloadPreparing.set(true);
+    this.isDownloadInfoOpen.set(true);
+    this.applicationService.downloadBundle(this.versionId(), this.methodVersion()).subscribe({
+      next: (result) => {
+        if (result.warning) {
+          this.toastService.show(
+            'Download warning',
+            result.warning,
+            'warning'
+          )
+        }
+        this.downloadInfoFileName.set(result.fileName);
+        this.downloadInfoFileSize.set(result.size);
+        this.isDownloadPreparing.set(false);
+      },
+      error: () => {
+        this.isDownloadPreparing.set(false);
+        this.isDownloadInfoOpen.set(false);
+        this.toastService.show(
+          'Download error',
+          'Failed to download the bundle. Please try again.',
+          'danger');
+      }
+    });
   }
 }

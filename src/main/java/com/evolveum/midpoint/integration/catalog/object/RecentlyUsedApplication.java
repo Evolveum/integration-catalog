@@ -23,8 +23,8 @@ public class RecentlyUsedApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private String userId;
+    @Column(name = "username", nullable = false)
+    private String username;
 
     @Column(name = "application_id", nullable = false)
     private UUID applicationId;
