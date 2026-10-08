@@ -1055,13 +1055,13 @@ ALTER TABLE ONLY gravitee_api_key
 
 -- seed essential tables
 INSERT INTO application_tag (id, name, display_name, tag_type) OVERRIDING SYSTEM VALUE VALUES
-    (1, 'directory_systems',                	'Directory Systems',                	'CATEGORY'),
-	(2, 'hr_systems',                       	'HR Systems',                       	'CATEGORY'),
-	(3, 'office_and_email_systems',         	'Office and Email Systems',         	'CATEGORY'),
-	(4, 'security_and_access_control_systems',	'Security and Access Control Systems',	'CATEGORY'),
+    (1, 'directory_systems',                	'Directory systems',                	'CATEGORY'),
+	(2, 'hr_systems',                       	'HR systems',                       	'CATEGORY'),
+	(3, 'office_and_email_systems',         	'Office and email systems',         	'CATEGORY'),
+	(4, 'security_and_access_control_systems',	'Security and access control systems',	'CATEGORY'),
 	(5, 'other',	                            'Other',	                            'CATEGORY'),
-    (6, 'on-premise',   						'On Premise',   						'DEPLOYMENT'),
-    (7, 'cloud-based', 							'Cloud based', 							'DEPLOYMENT'),
+    (6, 'on-premise',   						'On-premise',   						'DEPLOYMENT'),
+    (7, 'cloud-based', 							'Cloud-based', 							'DEPLOYMENT'),
     (8, 'popular', 								'Popular', 								'COMMON');
 	
 SELECT setval('application_tag_id_seq', 8);

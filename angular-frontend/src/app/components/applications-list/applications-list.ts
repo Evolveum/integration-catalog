@@ -1110,9 +1110,16 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isSheetPreparing = signal<boolean>(false);
   protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
     {
+      title: 'Go to import page into midPoint',
+      description: 'In midPoint, in the left side main menu, click "Import object".'
+    },
+    {
       title: 'Import the downloaded JSON file into midPoint',
-      description: 'The imported list will be used to verify which connectors are allowed to '
-        + 'run in a production environment.'
+      description: 'In the Import object page, click "Choose file" and select the downloaded JSON file, and click "Import object".'
+    },
+    {
+      title: 'Successfully imported',
+      description: 'The imported list will be used to verify which connectors are allowed to run in a production environment.'
     }
   ];
 

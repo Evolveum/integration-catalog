@@ -253,7 +253,7 @@
               </div>
             </div>
             <div class="flex-shrink-0">
-              <p class="text-muted mb-0 text-nowrap">Showing {{ filteredCount() }} integrations.</p>
+              <p class="text-muted mb-0 text-nowrap">Showing {{ filteredCount() }} applications.</p>
             </div>
           </div>
         </div>
@@ -273,7 +273,7 @@
     }
 
     @if (!loading() && !error() && featuredApplications().length > 0) {
-      <h2 class="h3 mb-4 text-center section-title">Featured Integration Apps</h2>
+      <h2 class="pt-3 h3 mb-4 text-center section-title">Featured Integration Apps</h2>
 
       <div class="position-relative mb-5 mx-auto content-width">
         <button class="btn rounded-circle position-absolute top-50 start-0 translate-middle-y d-flex align-items-center justify-content-center scroll-btn"
@@ -376,21 +376,21 @@
 
           <!-- Row 2: Showing count -->
           <div class="text-center mb-3">
-            <p class="text-muted mb-0">Showing {{ filteredCount() }} integrations.</p>
+            <p class="text-muted mb-0">Showing {{ filteredCount() }} applications.</p>
           </div>
 
-          <!-- Row 3: Sort by -->
-          <div class="d-flex justify-content-end align-items-center gap-2" style="margin-bottom: 36px;">
-            <label class="mb-0 text-muted text-nowrap description-text">Sort by</label>
-            <div class="sort-select-wrapper position-relative d-inline-block">
-              <select class="form-select form-select-sm sort-select" [value]="sortBy()" (change)="onSortChange($event)">
-                <option value="alphabetical">&nbsp;Alphabetical</option>
-                <option value="popularity">&nbsp;Popularity</option>
-                <option value="activity">&nbsp;Activity</option>
-              </select>
-              <i class="fa-solid fa-sort-down sort-select-icon"></i>
-            </div>
-          </div>
+          <!-- Row 3: Sort by TODO We need to decide what criteria to use for sorting, but that's irrelevant for now. -->
+<!--          <div class="d-flex justify-content-end align-items-center gap-2" style="margin-bottom: 36px;">-->
+<!--            <label class="mb-0 text-muted text-nowrap description-text">Sort by</label>-->
+<!--            <div class="sort-select-wrapper position-relative d-inline-block">-->
+<!--              <select class="form-select form-select-sm sort-select" [value]="sortBy()" (change)="onSortChange($event)">-->
+<!--                <option value="alphabetical">&nbsp;Alphabetical</option>-->
+<!--                <option value="popularity">&nbsp;Popularity</option>-->
+<!--                <option value="activity">&nbsp;Activity</option>-->
+<!--              </select>-->
+<!--              <i class="fa-solid fa-sort-down sort-select-icon"></i>-->
+<!--            </div>-->
+<!--          </div>-->
         }
       </div>
 
@@ -499,8 +499,8 @@
       <!-- Advanced Options Section -->
       <div class="py-5 mt-5 mx-auto content-width">
         <div class="mx-auto max-w-800">
-          <h3 class="h4 mb-2 text-dark text-center">Need More Flexibility? Extend Your Integration</h3>
-          <p class="mb-4 text-center description-text">Choose from advanced options to tailor your midPoint setup - whether you upload <br> our own configuration, check the connector reference sheet, or request a tailored solution.</p>
+          <h3 class="h4 mb-2 text-dark text-center">Looking for more options? Choose your path</h3>
+          <p class="mb-4 text-center description-text">Choose from advanced options to tailor your midPoint setup - whether you upload <br> your own configuration, check the connector reference sheet, or request a tailored solution.</p>
         </div>
 
         <!-- Upload Configuration -->
