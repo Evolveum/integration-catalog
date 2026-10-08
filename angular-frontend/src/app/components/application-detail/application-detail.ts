@@ -262,9 +262,9 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   // Submitted-for-review date = integration_method.created_at, matching the method detail page.
   private readonly datePipe = new DatePipe('en-US');
 
-  protected readonly confirmConnectorName = computed(() => {
+  protected readonly confirmMethodName = computed(() => {
     const v = this.confirmVersion();
-    return v ? (v.connectorDisplayName || v.displayName || 'Integration method') : '';
+    return v ? (v.displayName || 'Integration method') : '';
   });
   protected readonly confirmVersionLabel = computed(() => this.versionBadge(this.confirmVersion()?.revision ?? ''));
   protected readonly confirmSubmittedBy = computed(() => {

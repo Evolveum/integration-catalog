@@ -90,10 +90,7 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly reviewStartDate = computed(() =>
     this.datePipe.transform(this.methodUpdated(), 'MMMM d, yyyy') || '—');
 
-  protected readonly confirmConnectorName = computed(() => {
-    const c = this.connectors()[0];
-    return c?.connectorDisplayName || c?.name || this.methodName() || '—';
-  });
+  protected readonly confirmMethodName = computed(() => this.methodName() || '—');
   protected readonly submittedByLabel = computed(() =>
     `${this.methodAuthor() || '—'} · ${this.submittedDate()}`
   );
@@ -116,15 +113,6 @@ export class IntegrationMethodDetail implements OnInit {
 
   // Connectors
   protected readonly connectors = signal<ImplementationListItem[]>([]);
-  /** Each connector's compatibility range; the connector name only matters once there is more than one. */
-  protected readonly applicationVersionRanges = computed(() => {
-    const connectors = this.connectors();
-    return connectors.map(c => ({
-      name: connectors.length > 1 ? (c.connectorDisplayName || c.name || '') : '',
-      from: c.connectorMinVersion,
-      to: c.connectorMaxVersion
-    }));
-  });
   protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 

@@ -22,9 +22,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 /**
- * Comments a connector added to a revision already under review onto that revision's work package,
- * rather than opening a second one.
+ * Adds a connector added to a revision already under review to that revision's work package - its
+ * description and a comment - rather than opening a second one.
  */
 @Slf4j
 @Component
@@ -78,6 +80,18 @@ public class AppendConnectorHandler implements RetryableOperationHandler<Connect
         }
 
         try {
+            // The description is rewritten first, so it lists every connector the revision carries;
+            // a retry rewrites it to the same text. The comment then tells the watchers what was added.
+            Optional<String> subject = openProjectClient.getTitleOfWorkPackage(method.getSupportTicketId());
+            if (subject.isEmpty()
+                    || openProjectClient.updateWorkPackage(method.getSupportTicketId(), subject.get(),
+                            descriptionBuilder.build(method)).isEmpty()) {
+                log.warn("Work package {} of integration method {}/{} no longer exists in the support portal, "
+                        + "so connector {} was not appended to it",
+                        method.getSupportTicketId(), event.methodId(), event.revision(), event.connectorId());
+                return OperationResult.obsolete("Work package #" + method.getSupportTicketId()
+                        + " no longer exists in the support portal.");
+            }
             openProjectClient.addComment(method.getSupportTicketId(),
                     descriptionBuilder.buildConnectorAddendum(method, event.connectorId()));
             // After the comment, so a retry never repeats it.

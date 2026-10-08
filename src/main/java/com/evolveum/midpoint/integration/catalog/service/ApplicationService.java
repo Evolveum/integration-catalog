@@ -549,7 +549,7 @@ public class ApplicationService {
                                     connector.getId(),
                                     connector.getDisplayName(),
                                     connector.getDescription(),
-                                    connector.getRevision(),
+                                    applicationMapper.latestPublishedConnectorVersion(connector),
                                     bundle.getDisplayName(),
                                     ownershipService.toDto(connector.getMaintainer()),
                                     ownershipService.maintainerLabel(connector),

@@ -259,14 +259,27 @@ class SupportTicketHandlersTest {
     // ── appending a connector ───────────────────────────────────────────────
 
     @Test
-    void anAddedConnectorIsCommentedOnTheWorkPackage() throws Exception {
+    void anAddedConnectorIsWrittenIntoTheDescriptionAndCommented() throws Exception {
         repositoryHolds(method(WORK_PACKAGE));
+        workPackageCanBeRewritten();
         when(descriptionBuilder.buildConnectorAddendum(any(), any())).thenReturn("a connector was added");
 
         OperationResult result = appendConnector.execute(new ConnectorAddedToReviewEvent(METHOD_ID, REVISION, 17));
 
         assertTrue(result.isCompleted());
+        verify(openProjectClient).updateWorkPackage(WORK_PACKAGE, "Create new IM: LDAP", "the description");
         verify(openProjectClient).addComment(WORK_PACKAGE, "a connector was added");
+    }
+
+    @Test
+    void anAddedConnectorIsGivenUpOnWhenTheWorkPackageIsGone() throws Exception {
+        repositoryHolds(method(WORK_PACKAGE));
+        when(openProjectClient.getTitleOfWorkPackage(WORK_PACKAGE)).thenReturn(Optional.empty());
+
+        OperationResult result = appendConnector.execute(new ConnectorAddedToReviewEvent(METHOD_ID, REVISION, 17));
+
+        assertTrue(result.isObsolete());
+        verify(openProjectClient, never()).addComment(anyInt(), anyString());
     }
 
     /** Retrying would say it twice: the operation that opens the work package describes it too. */
@@ -282,12 +295,19 @@ class SupportTicketHandlersTest {
     @Test
     void anAddedConnectorIsRetriedWhenThePortalRefuses() throws Exception {
         repositoryHolds(method(WORK_PACKAGE));
+        workPackageCanBeRewritten();
         when(descriptionBuilder.buildConnectorAddendum(any(), any())).thenReturn("a connector was added");
         doThrow(new IOException("portal down")).when(openProjectClient).addComment(anyInt(), anyString());
 
         OperationResult result = appendConnector.execute(new ConnectorAddedToReviewEvent(METHOD_ID, REVISION, 17));
 
         assertEquals(OperationOutcome.RETRY, result.outcome());
+    }
+
+    private void workPackageCanBeRewritten() throws Exception {
+        when(openProjectClient.getTitleOfWorkPackage(WORK_PACKAGE)).thenReturn(Optional.of("Create new IM: LDAP"));
+        when(openProjectClient.updateWorkPackage(anyInt(), anyString(), anyString()))
+                .thenReturn(Optional.of("the old description"));
     }
 
     // ── attaching an uploaded file ──────────────────────────────────────────

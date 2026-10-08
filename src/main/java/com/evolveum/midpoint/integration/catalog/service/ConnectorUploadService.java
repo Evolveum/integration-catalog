@@ -940,7 +940,7 @@ public class ConnectorUploadService {
         if (dto.existingConnectorId() != null) {
             connector = connectorRepository.findById(dto.existingConnectorId())
                     .orElseThrow(() -> new RuntimeException("Connector not found: " + dto.existingConnectorId()));
-            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), connector.getRevision(), DEFAULT_REVISION);
+            connectorMinVersion = firstNonBlank(dto.connectorVersionFrom(), currentVersionOf(connector), DEFAULT_REVISION);
         } else {
             UploadConnectorDto connDto = new UploadConnectorDto(
                     dto.displayName(),
@@ -1060,7 +1060,7 @@ public class ConnectorUploadService {
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
 
         String from = connectorVersionFrom == null || connectorVersionFrom.isBlank()
-                ? firstNonBlank(link.getConnector().getRevision(), DEFAULT_REVISION)
+                ? firstNonBlank(currentVersionOf(link.getConnector()), DEFAULT_REVISION)
                 : connectorVersionFrom.trim();
         String to = connectorVersionTo == null || connectorVersionTo.isBlank() ? null : connectorVersionTo.trim();
 
@@ -1320,6 +1320,20 @@ public class ConnectorUploadService {
     /** The version a connector is at, falling back to the connector's own revision. */
     private static String versionOf(Connector connector, ConnectorVersion version) {
         return firstNonBlank(versionKeyOf(version), connector.getRevision());
+    }
+
+    /**
+     * The version a compatibility range starts at when none is given: the newest published one, else
+     * the newest at all. Not the revision, which is a record counter every connector starts at 1.0.
+     */
+    private static String currentVersionOf(Connector connector) {
+        Comparator<ConnectorVersion> newest = Comparator.comparing(ConnectorVersion::getId,
+                Comparator.nullsFirst(Comparator.naturalOrder()));
+        ConnectorVersion current = connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE)
+                .max(newest)
+                .orElseGet(() -> connector.getConnectorVersions().stream().max(newest).orElse(null));
+        return versionOf(connector, current);
     }
 
     /**

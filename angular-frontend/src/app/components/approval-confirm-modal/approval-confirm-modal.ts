@@ -41,7 +41,7 @@ export class ApprovalConfirmModal implements OnInit {
   @Input({ required: true }) mode!: 'approve' | 'reject';
   @Input({ required: true }) methodId!: string;
   @Input({ required: true }) revision!: string;
-  @Input() connectorName = '';
+  @Input() methodName = '';
   @Input() versionLabel = '';
   @Input() submittedBy = '';
   @Input() processing = false;

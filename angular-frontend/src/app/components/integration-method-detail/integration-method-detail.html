@@ -84,16 +84,6 @@
           <span class="view-value">{{ methodVersion() ? versionBadge(methodVersion()) : '—' }}</span>
         </div>
         <div class="view-row">
-          <span class="view-label">Supported application version:</span>
-          <span class="view-value">
-            @for (r of applicationVersionRanges(); track $index) {
-              <div>@if (r.name) { <span>{{ r.name }}:</span> }From {{ r.from || '—' }}@if (r.to) { to {{ r.to }}}</div>
-            } @empty {
-              —
-            }
-          </span>
-        </div>
-        <div class="view-row">
           <span class="view-label">Supported midPoint version:</span>
           <span class="view-value">From {{ midpointMinVersion() || '—' }}@if (midpointMaxVersion()) { to {{ midpointMaxVersion() }}}</span>
         </div>
@@ -482,7 +472,7 @@
       [mode]="mode"
       [methodId]="versionId()"
       [revision]="methodVersion()"
-      [connectorName]="confirmConnectorName()"
+      [methodName]="confirmMethodName()"
       [versionLabel]="versionBadge(methodVersion())"
       [submittedBy]="submittedByLabel()"
       [processing]="isProcessingApproval()"

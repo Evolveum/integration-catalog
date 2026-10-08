@@ -243,9 +243,9 @@ export class ApprovalQueuePage {
   protected readonly isProcessingApproval = signal(false);
   protected readonly approvalError = signal('');
 
-  protected readonly confirmConnectorName = computed(() => {
+  protected readonly confirmMethodName = computed(() => {
     const r = this.confirmRevision();
-    return r ? (r.connectorDisplayName || r.displayName || 'Integration method') : '';
+    return r ? (r.displayName || 'Integration method') : '';
   });
 
   protected readonly confirmSubmittedBy = computed(() => {

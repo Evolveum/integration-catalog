@@ -672,6 +672,21 @@ public class ApplicationMapper {
                 .orElseGet(List::of);
     }
 
+    /**
+     * The version a user knows the connector by, read off the same row as the capabilities above:
+     * the bundle version, as the revision is only a record counter.
+     */
+    public String latestPublishedConnectorVersion(Connector connector) {
+        return connector.getConnectorVersions().stream()
+                .filter(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE)
+                .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
+                .map(cv -> {
+                    ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
+                    return cbv != null && cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cv.getRevision();
+                })
+                .orElse(connector.getRevision());
+    }
+
     private List<ObjectClassCapabilityDto> mapCapabilitiesOf(ConnectorVersion cv) {
         return cv.getCapabilities().stream()
                 .filter(cap -> cap.getItems() != null && !cap.getItems().isEmpty())

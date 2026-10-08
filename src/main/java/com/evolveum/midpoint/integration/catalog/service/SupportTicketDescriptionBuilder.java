@@ -116,7 +116,8 @@ public class SupportTicketDescriptionBuilder {
      */
     public String buildConnectorAddendum(IntegrationMethod method, Integer connectorId) {
         StringBuilder body = new StringBuilder();
-        body.append("A connector has been added to this submission since this work package was opened.\n");
+        body.append("A connector has been added to this submission since this work package was opened;"
+                + " the description above now includes it.\n");
 
         IntegrationMethodConnector link = method.getConnectors() == null ? null
                 : method.getConnectors().stream()
@@ -393,8 +394,8 @@ public class SupportTicketDescriptionBuilder {
 
     /**
      * The tutorial and the names of the files uploaded alongside it. The tutorial is pointed at rather
-     * than reproduced - it has no length limit and is attached instead. An empty file list points at
-     * the Files tab, because on a first submission the uploads arrive after this is written.
+     * than reproduced - it has no length limit and is attached instead. With no files uploaded the
+     * files line is left out; one that cannot be listed points at the Files tab.
      */
     private void appendTutorial(StringBuilder body, IntegrationMethod method) {
         body.append("\n### Integration tutorial\n\n");
@@ -410,17 +411,18 @@ public class SupportTicketDescriptionBuilder {
         try {
             files = join(tutorialStorageService.listTutorialFiles(method.getId(), method.getRevision()),
                     Function.identity());
+            if (files == null) {
+                // Nothing uploaded, nothing to point at. A file uploaded after this is written still
+                // lands in the Files tab, attached by its own operation.
+                return;
+            }
         } catch (Exception e) {
             log.warn("Could not list tutorial files for {}/{}: {}",
                     method.getId(), method.getRevision(), e.getMessage());
-            files = null;
+            files = "See the **Files** tab above";
         }
         body.append('\n');
-        if (files == null) {
-            bullet(body, "Additional tutorials/samples", "See the **Files** tab above");
-        } else {
-            bullet(body, "Additional tutorials/samples", files);
-        }
+        bullet(body, "Additional tutorials/samples", files);
         body.append('\n').append(FILES_NOTE).append('\n');
     }
 
@@ -538,7 +540,8 @@ public class SupportTicketDescriptionBuilder {
                                 Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                         .toList();
         for (ConnectorVersion version : versions) {
-            body.append("\n## Connector version ").append(blankToDash(version.getRevision())).append("\n\n");
+            String label = bundleVersionOf(version);
+            body.append("\n## Connector version ").append(blankToDash(label != null ? label : version.getRevision())).append("\n\n");
             bullet(body, "Author", authorWithEmail(version.getAuthor()));
             bullet(body, "Maintainer", maintainer(version));
             bullet(body, "Created", timestamp(version.getCreatedAt()));
@@ -629,22 +632,31 @@ public class SupportTicketDescriptionBuilder {
         List<ConnectorVersion> versions = connector.getConnectorVersions() == null
                 ? List.of()
                 : connector.getConnectorVersions();
-        String submitted = bundleRevision(versions.stream()
+        String submitted = newestBundleVersion(versions.stream()
                 .filter(version -> isDraft(version.getLifecycleState())));
         if (submitted == null) {
-            submitted = bundleRevision(versions.stream());
+            submitted = newestBundleVersion(versions.stream());
         }
         return submitted != null ? submitted : connector.getRevision();
     }
 
-    private String bundleRevision(Stream<ConnectorVersion> versions) {
+    /** Newest by row, as version strings do not sort: "3.10" would lose to "3.9". */
+    private String newestBundleVersion(Stream<ConnectorVersion> versions) {
         return versions
-                .map(ConnectorVersion::getConnectorBundleVersion)
-                .filter(Objects::nonNull)
-                .map(ConnectorBundleVersion::getRevision)
-                .filter(revision -> revision != null && !revision.isBlank())
-                .max(String.CASE_INSENSITIVE_ORDER)
+                .filter(version -> bundleVersionOf(version) != null)
+                .max(Comparator.comparing(ConnectorVersion::getId, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(SupportTicketDescriptionBuilder::bundleVersionOf)
                 .orElse(null);
+    }
+
+    private static String bundleVersionOf(ConnectorVersion version) {
+        ConnectorBundleVersion bundleVersion = version.getConnectorBundleVersion();
+        if (bundleVersion == null) {
+            return null;
+        }
+        String value = bundleVersion.getBundleVersion() != null && !bundleVersion.getBundleVersion().isBlank()
+                ? bundleVersion.getBundleVersion() : bundleVersion.getRevision();
+        return value == null || value.isBlank() ? null : value;
     }
 
     /** A markdown bullet, with an explicit note when there is nothing to show. */
