@@ -18,6 +18,7 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnect
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+import com.evolveum.midpoint.integration.catalog.util.ConnectorVersions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.extern.slf4j.Slf4j;
@@ -218,7 +219,7 @@ public class BundleService {
                 addArtifactUrllessDescription(zip, method, connector, label, warnings);
                 continue;
             }
-            String artifactUrl = resolveArtifactUrl(connector);
+            String artifactUrl = resolveArtifactUrl(link);
             if (artifactUrl == null || artifactUrl.isBlank()) {
                 errors.add("Missing build file (.jar) for connector " + label + ": no build file available.");
                 continue;
@@ -301,16 +302,14 @@ public class BundleService {
     }
 
     /**
-     * Resolves the build-artifact URL for a single connector, using its latest connector bundle
-     * version (most recently updated). Returns {@code null} if no bundle version carries an artifact URL.
+     * The build-artifact URL of the connector version the method uses (see {@link ConnectorVersions}),
+     * or {@code null} when that version carries none.
      */
-    private String resolveArtifactUrl(Connector connector) {
-        return connector.getConnectorVersions().stream()
+    private String resolveArtifactUrl(IntegrationMethodConnector link) {
+        return ConnectorVersions.used(link)
                 .map(ConnectorVersion::getConnectorBundleVersion)
-                .filter(cbv -> cbv != null && cbv.getArtifactUrl() != null && !cbv.getArtifactUrl().isBlank())
-                .max(Comparator.comparing(ConnectorBundleVersion::getUpdated,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
                 .map(ConnectorBundleVersion::getArtifactUrl)
+                .filter(url -> !url.isBlank())
                 .orElse(null);
     }
 
@@ -453,7 +452,8 @@ public class BundleService {
             meta.put("description", connector.getDescription());
             meta.put("author", connector.getAuthor());
             meta.put("maintainer", ownershipService.maintainerLabel(connector));
-            meta.put("revision", connector.getRevision());
+            meta.put("revision", ConnectorVersions.used(link).map(ConnectorVersions::versionOf)
+                    .orElse(connector.getRevision()));
             meta.put("connectorMinVersion", link.getConnectorMinVersion());
             meta.put("connectorMaxVersion", link.getConnectorMaxVersion());
 
