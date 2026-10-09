@@ -7,7 +7,7 @@
 <div class="container-fluid p-0 page-container">
   <app-page-header [breadcrumb]="true">
     <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-      <a class="breadcrumb-link" (click)="goBack()" style="cursor:pointer;">MidPoint Integration Catalog</a>
+      <a class="breadcrumb-link" [appNewTabRoute]="['/applications']" (click)="goBack()" style="cursor:pointer;">MidPoint Integration Catalog</a>
       @if (application()) {
         <span class="breadcrumb-sep">›</span>
         <span class="breadcrumb-current d-flex align-items-center gap-1">
@@ -573,11 +573,11 @@
                                         <i class="fa-solid fa-trash-can"></i>Cancel request
                                       </button>
                                     }
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-view-details" [appNewTabRoute]="methodRoute(version.id, version.revision, 'details')" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (canEdit(version)) {
-                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <button type="button" class="btn btn-im-edit-upgrade" [appNewTabRoute]="methodRoute(version.id, version.revision, 'edit')" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
                                         <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                       </button>
                                     }
@@ -597,11 +597,11 @@
                                         <i class="fa-solid fa-trash-can"></i>Cancel request
                                       </button>
                                     }
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-view-details" [appNewTabRoute]="methodRoute(version.id, version.revision, 'details')" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (isSuperuser()) {
-                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <button type="button" class="btn btn-im-edit-upgrade" [appNewTabRoute]="methodRoute(version.id, version.revision, 'edit')" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
                                         <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                       </button>
                                     } @else if (canEdit(version)) {
@@ -618,20 +618,20 @@
                                       </button>
                                     }
                                   } @else if (version.lifecycleState === 'REJECTED') {
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-view-details" [appNewTabRoute]="methodRoute(version.id, version.revision, 'details')" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (canEdit(version)) {
-                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <button type="button" class="btn btn-im-edit-upgrade" [appNewTabRoute]="methodRoute(version.id, version.revision, 'edit')" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
                                         <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                       </button>
                                     }
                                   } @else {
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button type="button" class="btn btn-im-view-details" [appNewTabRoute]="methodRoute(version.id, version.revision, 'details')" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (canEdit(version)) {
-                                      <button type="button" class="btn btn-im-edit-upgrade" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
+                                      <button type="button" class="btn btn-im-edit-upgrade" [appNewTabRoute]="methodRoute(version.id, version.revision, 'edit')" (click)="navigateToEdit(version.id, version.revision); $event.stopPropagation()">
                                         <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
                                       </button>
                                     }
