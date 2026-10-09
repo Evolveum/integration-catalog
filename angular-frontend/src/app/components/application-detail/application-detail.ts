@@ -250,8 +250,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   }
 
   /** Whether the current user may edit this method revision; see AuthService.canEdit. */
-  protected canEdit(version: Pick<IntegrationMethod, 'maintainer'>): boolean {
-    return this.authService.canEdit(version.maintainer);
+  protected canEdit(version: Pick<IntegrationMethod, 'maintainer' | 'lifecycleState' | 'author'>): boolean {
+    return this.authService.canEdit(version.maintainer, version.lifecycleState, version.author);
   }
 
   // ── Approve/Reject confirmation modal ─────────────────────────────────────
@@ -1112,7 +1112,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       if (version.lifecycleState !== 'IN_REVIEW'
           && version.lifecycleState !== 'REVIEWING'
           && version.lifecycleState !== 'REJECTED') return true;
-      return this.authService.canEdit(version.maintainer);
+      return this.canEdit(version);
     });
 
     // Apply filters
