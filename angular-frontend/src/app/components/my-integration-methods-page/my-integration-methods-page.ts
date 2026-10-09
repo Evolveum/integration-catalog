@@ -75,7 +75,7 @@ export class MyIntegrationMethodsPage {
   protected readonly states = signal<ReadonlySet<string>>(new Set());
   protected readonly applications = signal<ReadonlySet<string>>(new Set());
   protected readonly authors = signal<ReadonlySet<string>>(new Set());
-  /** Keys of the maintainers to show (all-methods page only). */
+  /** Keys of the maintainers to show; see `showMaintainerFilter`. */
   protected readonly maintainers = signal<ReadonlySet<string>>(new Set());
   /** Set by the Organization / Evolveum / Community stat cards. */
   protected readonly maintainerCategory = signal<MaintainerCategory | null>(null);
@@ -93,6 +93,10 @@ export class MyIntegrationMethodsPage {
   ];
 
   protected readonly isSuperuser = computed(() => this.authService.currentRole() === UserRole.Superuser);
+
+  /** On the own-items page every method is the user's, so only an organization's colleagues tell them apart by maintainer. */
+  protected readonly showMaintainerFilter = computed(() =>
+    this.allMethods || this.authService.currentRole() === UserRole.OrganizationContributor);
 
   /** Start/stop review and approve/reject: on the all-methods page only, the approval queue owns them otherwise. */
   protected readonly showReviewActions = this.allMethods;
@@ -238,9 +242,9 @@ export class MyIntegrationMethodsPage {
   protected viewItems(states: string[], category: MaintainerCategory | null = null): void {
     this.resetFilters();
     this.states.set(new Set(states));
-    // Where the Maintainer dropdown exists the card selects its maintainers there; the own-items
-    // page has no such dropdown, so the Organization card keeps the category chip.
-    if (category && this.allMethods) this.maintainers.set(this.categoryMaintainerKeys(category));
+    // Where the Maintainer dropdown exists the card selects its maintainers there; without it
+    // (an individual's own-items page) the Organization card keeps the category chip.
+    if (category && this.showMaintainerFilter()) this.maintainers.set(this.categoryMaintainerKeys(category));
     else this.maintainerCategory.set(category);
   }
 

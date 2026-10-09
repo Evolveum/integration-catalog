@@ -62,6 +62,9 @@ export class MyConnectorsPage {
   /** Every connector in the catalog (superuser) instead of the user's own. */
   protected readonly allConnectors = this.route.snapshot.data['scope'] === 'all';
   protected readonly isSuperuser = computed(() => this.authService.currentRole() === UserRole.Superuser);
+  /** On the own-items page every connector is the user's, so only an organization's colleagues tell them apart by maintainer. */
+  protected readonly showMaintainerFilter = computed(() =>
+    this.allConnectors || this.authService.currentRole() === UserRole.OrganizationContributor);
 
   protected readonly connectors = signal<MyConnector[] | null>(null);
   protected readonly loading = signal(false);
@@ -74,7 +77,7 @@ export class MyConnectorsPage {
   protected readonly tags = signal<ReadonlySet<string>>(new Set());
   protected readonly applications = signal<ReadonlySet<string>>(new Set());
   protected readonly authors = signal<ReadonlySet<string>>(new Set());
-  /** Keys of the maintainers to show (all-connectors page only). */
+  /** Keys of the maintainers to show; see `showMaintainerFilter`. */
   protected readonly maintainers = signal<ReadonlySet<string>>(new Set());
   /** Set by the Organization / Evolveum / Community stat cards. */
   protected readonly maintainerCategory = signal<MaintainerCategory | null>(null);
@@ -242,9 +245,9 @@ export class MyConnectorsPage {
   protected viewItems(usage: string | null, category: MaintainerCategory | null = null): void {
     this.resetFilters();
     if (usage) this.usages.set(new Set([usage]));
-    // Where the Maintainer dropdown exists the card selects its maintainers there; the own-items
-    // page has no such dropdown, so the Organization card keeps the category chip.
-    if (category && this.allConnectors) this.maintainers.set(this.categoryMaintainerKeys(category));
+    // Where the Maintainer dropdown exists the card selects its maintainers there; without it
+    // (an individual's own-items page) the Organization card keeps the category chip.
+    if (category && this.showMaintainerFilter()) this.maintainers.set(this.categoryMaintainerKeys(category));
     else this.maintainerCategory.set(category);
   }
 

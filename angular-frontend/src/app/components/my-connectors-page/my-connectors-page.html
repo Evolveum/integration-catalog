@@ -54,7 +54,7 @@
             <button type="button" class="ss-stat-link" (click)="viewItems(null, 'COMMUNITY')">View items</button>
           </div>
         } @else {
-          <div class="ss-stat" [class.ss-stat-active]="maintainerCategory() === 'ORG'">
+          <div class="ss-stat" [class.ss-stat-active]="showMaintainerFilter() ? isOnlyCategory('ORG') : maintainerCategory() === 'ORG'">
             <div class="ss-stat-body">
               <div class="ss-stat-label">Organization connectors</div>
               <div class="ss-stat-value">{{ organizationCount() }}</div>
@@ -126,29 +126,32 @@
                              (toggle)="toggleApplication($event)" (clear)="clearFilter('applications')"/>
           }
         </div>
-        <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:author'">
-          <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="authors().size > 0">
-            <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
-                    [attr.aria-expanded]="openMenuKey() === 'filter:author'" (click)="toggleMenu('filter:author')">
-              <span>Author</span>
-              @if (authors().size) {
-                <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ authors().size }}</span>
-              }
-              <i class="fa-solid fa-chevron-down"></i>
-            </button>
-            @if (authors().size) {
-              <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear author filter"
-                      (click)="clearFilter('authors')">
-                <i class="fa-solid fa-xmark"></i>
+        <!-- Own items are all the user's, so authors only tell apart the catalog-wide list. -->
+        @if (allConnectors) {
+          <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:author'">
+            <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="authors().size > 0">
+              <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
+                      [attr.aria-expanded]="openMenuKey() === 'filter:author'" (click)="toggleMenu('filter:author')">
+                <span>Author</span>
+                @if (authors().size) {
+                  <span class="badge rounded-circle ss-chip-counter d-inline-flex align-items-center justify-content-center">{{ authors().size }}</span>
+                }
+                <i class="fa-solid fa-chevron-down"></i>
               </button>
+              @if (authors().size) {
+                <button type="button" class="ss-chip-clear d-inline-flex align-items-center" aria-label="Clear author filter"
+                        (click)="clearFilter('authors')">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              }
+            </div>
+            @if (openMenuKey() === 'filter:author') {
+              <app-filter-menu [options]="authorOptions()" [selected]="authors()"
+                               (toggle)="toggleAuthor($event)" (clear)="clearFilter('authors')"/>
             }
           </div>
-          @if (openMenuKey() === 'filter:author') {
-            <app-filter-menu [options]="authorOptions()" [selected]="authors()"
-                             (toggle)="toggleAuthor($event)" (clear)="clearFilter('authors')"/>
-          }
-        </div>
-        @if (allConnectors) {
+        }
+        @if (showMaintainerFilter()) {
           <div class="ss-filter" [class.ss-menu-open]="openMenuKey() === 'filter:maintainer'">
             <div class="ss-chip d-inline-flex align-items-center gap-2 rounded-pill" [class.ss-chip-set]="maintainers().size > 0">
               <button type="button" class="ss-chip-toggle d-inline-flex align-items-center gap-2"
