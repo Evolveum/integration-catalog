@@ -22,6 +22,7 @@ import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 import { SupportTier, supportTierLabel } from '../../core/support-tier';
 
 interface MethodGroup {
@@ -37,7 +38,8 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe, BackdropCloseDirective],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe, BackdropCloseDirective,
+    NewTabRouteDirective],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -605,17 +607,19 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     });
   }
 
+  protected methodRoute(versionId: string, revision: string | null, page: 'details' | 'edit'): string[] {
+    return ['/applications', this.application()?.id ?? '', 'integration-method', versionId, revision ?? '', page];
+  }
+
   protected navigateToEdit(versionId: string, revision: string | null): void {
-    const appId = this.application()?.id;
-    if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision ?? '', 'edit']);
+    if (this.application()) {
+      this.router.navigate(this.methodRoute(versionId, revision, 'edit'));
     }
   }
 
   protected navigateToDetails(versionId: string, revision: string | null): void {
-    const appId = this.application()?.id;
-    if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision ?? '', 'details']);
+    if (this.application()) {
+      this.router.navigate(this.methodRoute(versionId, revision, 'details'));
     }
   }
 

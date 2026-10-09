@@ -19,6 +19,7 @@ import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { MyIntegrationMethod } from '../../models/my-items.model';
 import { maintainerFilterOptions, maintainerKey } from '../../models/maintainer.model';
 import { versionBadge } from '../../core/version-badge';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 /** From this many days in the queue the waiting time turns red. */
 const OVERDUE_DAYS = 3;
@@ -30,7 +31,8 @@ const OVERDUE_DAYS = 3;
 @Component({
   selector: 'app-approval-queue-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal, Pager, FilterMenu],
+  imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal, Pager, FilterMenu,
+    NewTabRouteDirective],
   templateUrl: './approval-queue-page.html',
   styleUrls: ['./approval-queue-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
@@ -223,9 +225,13 @@ export class ApprovalQueuePage {
     this.openMenuKey.set(null);
   }
 
+  protected detailsRoute(revision: MyIntegrationMethod): string[] {
+    return ['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'details'];
+  }
+
   protected openDetails(revision: MyIntegrationMethod): void {
     this.closeMenu();
-    this.router.navigate(['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'details']);
+    this.router.navigate(this.detailsRoute(revision));
   }
 
   /** Returns where the user came from, or to the catalog when opened directly. */
