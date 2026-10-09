@@ -32,7 +32,7 @@
     "@fontsource-variable/roboto": "^5.3.0",
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@ng-select/ng-select": "^21.8.2",
-    "asciidoctor": "^3.0.4",
+    "asciidoctor": "^4.1.1",
     "bootstrap": "^5.3.8",
     "easymde": "^2.18.0",
     "rxjs": "~7.8.0",
@@ -51,5 +51,11 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.2.0",
     "typescript": "~5.9.3"
+  },
+  "overrides": {
+    "@angular/build": {
+      "piscina": "^5.3.2",
+      "undici": "^7.29.1"
+    }
   }
 }
