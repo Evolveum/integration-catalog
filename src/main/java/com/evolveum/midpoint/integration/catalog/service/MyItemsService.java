@@ -18,6 +18,7 @@ import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository
 import com.evolveum.midpoint.integration.catalog.repository.OrganizationRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import com.evolveum.midpoint.integration.catalog.util.ConnectorVersions;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -208,8 +209,7 @@ public class MyItemsService {
                 .sorted(Comparator.comparing(ConnectorVersion::getId).reversed())
                 .toList();
 
-        // A link names no version row, only the connector: the version it was added with is its
-        // min version, and one matching none of the rows is taken to use the newest.
+        // A link names no version row, only the connector: it uses the newest version its max admits.
         Map<ConnectorVersion, List<MyConnectorDto.Usage>> usages = new IdentityHashMap<>();
         for (IntegrationMethodConnector link : links) {
             IntegrationMethod method = link.getIntegrationMethod();
@@ -217,10 +217,16 @@ public class MyItemsService {
                     || (method.getLifecycleState() != LifecycleType.ACTIVE && !seesDrafts.test(method.getId()))) {
                 continue;
             }
-            ConnectorVersion used = versions.stream()
-                    .filter(v -> Objects.equals(versionOf(v), link.getConnectorMinVersion()))
-                    .findFirst()
-                    .orElse(versions.get(0));
+            // Matched by key: the rows are listed from this connector, the link reaches them on its own.
+            ConnectorVersion used = ConnectorVersions.used(link)
+                    .flatMap(u -> versions.stream()
+                            .filter(v -> Objects.equals(v.getId(), u.getId())
+                                    && Objects.equals(v.getRevision(), u.getRevision()))
+                            .findFirst())
+                    .orElse(null);
+            if (used == null) {
+                continue;
+            }
             usages.computeIfAbsent(used, v -> new ArrayList<>()).add(new MyConnectorDto.Usage(
                     method.getApplication().getId(),
                     method.getApplication().getDisplayName(),

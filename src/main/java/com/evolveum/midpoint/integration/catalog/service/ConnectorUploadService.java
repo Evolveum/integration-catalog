@@ -30,6 +30,7 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.util.ConnectorVersions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
@@ -1300,7 +1301,27 @@ public class ConnectorUploadService {
             dropDraftVersion(connector, baseCv);
         }
 
+        if (versionChanged) {
+            admitVersion(link, requestedVersion);
+        }
+
         connectorRepository.save(connector);
+    }
+
+    /**
+     * Widens the link's version range just enough to take in {@code version}: the method uses the
+     * newest version its max admits, so a revision edited onto a version past its max would go on
+     * using an older one.
+     */
+    private static void admitVersion(IntegrationMethodConnector link, String version) {
+        String max = link.getConnectorMaxVersion();
+        if (max != null && !max.isBlank() && ConnectorVersions.compare(version, max) > 0) {
+            link.setConnectorMaxVersion(version);
+        }
+        String min = link.getConnectorMinVersion();
+        if (min == null || min.isBlank() || ConnectorVersions.compare(version, min) < 0) {
+            link.setConnectorMinVersion(version);
+        }
     }
 
     private static boolean isUnbuiltDraft(ConnectorVersion cv) {

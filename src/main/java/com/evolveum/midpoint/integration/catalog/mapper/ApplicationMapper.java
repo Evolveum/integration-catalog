@@ -16,6 +16,7 @@ import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.repository.VoteRepository;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
 import com.evolveum.midpoint.integration.catalog.service.OwnershipService;
+import com.evolveum.midpoint.integration.catalog.util.ConnectorVersions;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -111,51 +112,28 @@ public class ApplicationMapper {
                                     framework = bundle.getFramework().name();
                                 }
                             }
-                            connectorVersion = link.getConnector().getConnectorVersions().stream()
-                                    .filter(cv -> cv.getConnectorBundleVersion() != null
-                                            && cv.getConnectorBundleVersion().getBundleVersion() != null)
-                                    .map(cv -> cv.getConnectorBundleVersion().getBundleVersion())
-                                    .findFirst().orElse(null);
-                            downloadLink = link.getConnector().getConnectorVersions().stream()
-                                    .filter(cv -> cv.getConnectorBundleVersion() != null
-                                            && cv.getConnectorBundleVersion().getBrowseLink() != null)
-                                    .map(cv -> cv.getConnectorBundleVersion().getBrowseLink())
-                                    .findFirst().orElse(null);
-                            errorMessage = link.getConnector().getConnectorVersions().stream()
-                                    .map(ConnectorVersion::getConnectorBundleVersion)
-                                    .filter(cbv -> cbv != null && cbv.getErrorMessage() != null)
-                                    .map(ConnectorBundleVersion::getErrorMessage)
-                                    .findFirst().orElse(null);
-                            releasedDate = link.getConnector().getConnectorVersions().stream()
-                                    .map(ConnectorVersion::getConnectorBundleVersion)
-                                    .filter(cbv -> cbv != null && cbv.getCreatedAt() != null)
-                                    .map(ConnectorBundleVersion::getCreatedAt)
-                                    .max(Comparator.naturalOrder())
-                                    .map(java.time.LocalDateTime::toLocalDate)
+                            Optional<ConnectorVersion> used = ConnectorVersions.used(link);
+                            connectorVersion = used.map(ConnectorVersions::versionOf).orElse(null);
+                            ConnectorBundleVersion usedCbv = used.map(ConnectorVersion::getConnectorBundleVersion)
                                     .orElse(null);
+                            if (usedCbv != null) {
+                                downloadLink = usedCbv.getBrowseLink();
+                                errorMessage = usedCbv.getErrorMessage();
+                                releasedDate = usedCbv.getCreatedAt() != null
+                                        ? usedCbv.getCreatedAt().toLocalDate() : null;
+                            }
                         }
                     }
 
                     // Every linked connector, so the card can list them all.
                     List<IncludedConnectorDto> includedConnectors = method.getConnectors().stream()
-                            .map(IntegrationMethodConnector::getConnector)
-                            .filter(Objects::nonNull)
-                            .map(c -> new IncludedConnectorDto(
-                                    c.getFullyQualifiedClassName(),
-                                    c.getDisplayName(),
-                                    // Newest version row = the connector's current version
-                                    // (see buildIntegrationMethodListItem).
-                                    c.getConnectorVersions().stream()
-                                            .filter(cv -> cv.getConnectorBundleVersion() != null)
-                                            .max(Comparator.comparingInt(ConnectorVersion::getId))
-                                            .map(cv -> {
-                                                ConnectorBundleVersion cbv = cv.getConnectorBundleVersion();
-                                                return cbv.getBundleVersion() != null
-                                                        ? cbv.getBundleVersion() : cbv.getRevision();
-                                            })
-                                            .orElse(null),
-                                    c.getDescription(),
-                                    mapConnectorTags(c)))
+                            .filter(l -> l.getConnector() != null)
+                            .map(l -> new IncludedConnectorDto(
+                                    l.getConnector().getFullyQualifiedClassName(),
+                                    l.getConnector().getDisplayName(),
+                                    ConnectorVersions.used(l).map(ConnectorVersions::versionOf).orElse(null),
+                                    l.getConnector().getDescription(),
+                                    mapConnectorTags(l.getConnector())))
                             .toList();
 
                     List<String> integMethodTypes = method.getIntegMethodTypes().stream()
@@ -586,10 +564,8 @@ public class ApplicationMapper {
                 bundleFramework = bundle.getFramework() != null ? bundle.getFramework().name() : null;
                 initialVersion = bundle.getBundleVersions().size() <= 1;
             }
-            // connector's CURRENT version = the newest version row
-            Optional<ConnectorVersion> latestCv = connector.getConnectorVersions().stream()
-                    .filter(cv -> cv.getConnectorBundleVersion() != null)
-                    .max(java.util.Comparator.comparingInt(ConnectorVersion::getId));
+            // The version this method uses: the newest one its link's max version admits.
+            Optional<ConnectorVersion> latestCv = ConnectorVersions.used(link);
             if (latestCv.isPresent()) {
                 ConnectorBundleVersion cbv = latestCv.get().getConnectorBundleVersion();
                 connectorVersion = cbv.getBundleVersion() != null ? cbv.getBundleVersion() : cbv.getRevision();
