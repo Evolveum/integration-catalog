@@ -36,7 +36,7 @@ import java.util.*;
 @Service
 public class ApiKeyService {
 
-    private static final int MAX_EXPIRATION_DAYS = 365;
+    private static final int MAX_EXPIRATION_DAYS = 180;
 
     /** Gravitee's fixed renewal grace period; only assumed when its own answer cannot be read. */
     private static final Duration RENEWAL_GRACE = Duration.ofHours(2);

@@ -113,6 +113,15 @@
   margin-top: 0.85rem;
 }
 
+.create-key-date.is-invalid {
+  border-color: var(--bs-form-invalid-border-color);
+}
+
+.create-key-error {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
+}
+
 .create-key-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid $color-separator;
