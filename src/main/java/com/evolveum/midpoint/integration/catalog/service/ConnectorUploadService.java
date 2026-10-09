@@ -1106,10 +1106,16 @@ public class ConnectorUploadService {
             if (srcCbv != null) {
                 cbv = ConnectorBundleVersion.createConnectorBundleVersionDraft(srcCbv, bundle);
                 connectorBundleVersionRepository.save(cbv);
+                // Kept in sync in memory: a version change later in this transaction drops a copied
+                // draft, and dropDraftVersion removes its emptied row through these collections.
+                bundle.getBundleVersions().add(cbv);
             }
 
             ConnectorVersion cv = ConnectorVersion.createConnectorVersionDraft(srcCv, connectorClone, cbv);
             connectorVersionRepository.save(cv);
+            if (cbv != null) {
+                cbv.getConnectorVersions().add(cv);
+            }
 
             cloneCapabilitiesOfConnectorVersion(srcCv, cv);
 
@@ -1600,9 +1606,19 @@ public class ConnectorUploadService {
             ConnectorBundleVersion srcCbv = srcCv.getConnectorBundleVersion();
             ConnectorBundleVersion cbv = null;
             if (srcCbv != null && toBundle != null) {
-                cbv = ConnectorBundleVersion.createConnectorBundleVersion(srcCbv, toBundle);
-                cbv = connectorBundleVersionRepository.save(cbv);
-                toBundle.getBundleVersions().add(cbv);
+                // The bundle may already hold a row for this version without a connector version on it
+                // (one left empty by a dropped draft); a second row would break its unique version key.
+                cbv = srcCbv.getBundleVersion() == null ? null : connectorBundleVersionRepository
+                        .findByConnectorBundleIdAndBundleVersion(toBundle.getId(), srcCbv.getBundleVersion())
+                        .orElse(null);
+                if (cbv == null) {
+                    cbv = ConnectorBundleVersion.createConnectorBundleVersion(srcCbv, toBundle);
+                    cbv = connectorBundleVersionRepository.save(cbv);
+                    toBundle.getBundleVersions().add(cbv);
+                } else {
+                    // Such a row is a draft copy of this very source; it takes the source's state, as a copy would.
+                    cbv.setLifecycleState(srcCbv.getLifecycleState());
+                }
             }
 
             ConnectorVersion cv = ConnectorVersion.createConnectorVersion(srcCv, to, cbv);

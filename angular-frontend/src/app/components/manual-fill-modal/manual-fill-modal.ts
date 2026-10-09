@@ -51,10 +51,9 @@ export class ManualFillModal implements OnChanges {
   ngOnChanges(): void {
     // Pre-populate form when connector input changes (Inputs are not set in constructor).
     // Only populate empty fields - don't overwrite user-entered values on re-renders.
+    // The bundle name is left for the user to type: it is the build's identity, and a prefilled
+    // existing name would merge this connector into that bundle.
     if (this.connector) {
-      if (!this.bundleName) {
-        this.bundleName = this.connector.bundleName || '';
-      }
       if (!this.version) {
         this.version = this.connector.version || '';
       }

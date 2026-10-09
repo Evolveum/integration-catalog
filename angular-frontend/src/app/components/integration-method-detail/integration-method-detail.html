@@ -491,8 +491,18 @@
       [processing]="isProcessingApproval()"
       [error]="approvalError()"
       (confirm)="submitConfirm()"
-      (cancel)="closeConfirm()">
+      (cancel)="closeConfirm()"
+      (manualFill)="openManualFill($event)">
     </app-approval-confirm-modal>
+  }
+
+  @if (manualFillConnector(); as connector) {
+    <app-manual-fill-modal
+      [connector]="connector"
+      [methodId]="versionId()"
+      (submit)="onManualFillSuccess()"
+      (cancel)="closeManualFill()">
+    </app-manual-fill-modal>
   }
 
   <!-- Start review confirmation modal (shared component) -->
