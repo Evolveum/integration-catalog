@@ -22,9 +22,9 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
+    <a class="breadcrumb-link" [appNewTabRoute]="['/applications']" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
-    <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="cancel()" style="cursor:pointer;">
+    <a class="breadcrumb-link d-flex align-items-center gap-1" [appNewTabRoute]="['/applications', appId()]" (click)="cancel()" style="cursor:pointer;">
       @if (showLogo()) {
         <img [src]="getLogoUrl()" [alt]="appName()" class="breadcrumb-app-icon" (error)="onLogoError()">
       }
