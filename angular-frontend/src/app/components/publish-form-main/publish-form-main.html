@@ -186,7 +186,7 @@
 <div class="publish-page">
   <app-page-header [breadcrumb]="true" [showUnregisteredOrgWarning]="true">
     <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-      <a class="breadcrumb-link" [appNewTabRoute]="['/applications']" (click)="closeModal()" style="cursor:pointer;">MidPoint Integration Catalog</a>
+      <a class="breadcrumb-link" (click)="closeModal()" style="cursor:pointer;">MidPoint Integration Catalog</a>
       @if (currentStep() > 1 && selectedApplication()) {
         <span class="breadcrumb-sep">›</span>
         <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goToStep(1)" style="cursor:pointer;">

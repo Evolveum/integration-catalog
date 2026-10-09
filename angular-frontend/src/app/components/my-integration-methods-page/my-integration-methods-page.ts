@@ -22,7 +22,6 @@ import {
   MAINTAINER_CATEGORY_LABELS, MaintainerCategory, maintainerFilterOptions, maintainerKey, maintainerLabel
 } from '../../models/maintainer.model';
 import { versionBadge } from '../../core/version-badge';
-import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 /** All revisions of one method, newest first; `revisions` holds only those the filters let through. */
 interface MethodGroup {
@@ -48,7 +47,7 @@ interface MethodGroup {
   selector: 'app-my-integration-methods-page',
   standalone: true,
   imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal,
-    DownloadInfoModal, Pager, FilterMenu, NewTabRouteDirective],
+    DownloadInfoModal, Pager, FilterMenu],
   templateUrl: './my-integration-methods-page.html',
   styleUrls: ['./my-integration-methods-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
@@ -336,22 +335,14 @@ export class MyIntegrationMethodsPage {
     this.openMenuKey.set(null);
   }
 
-  protected detailsRoute(revision: MyIntegrationMethod): string[] {
-    return ['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'details'];
-  }
-
-  protected editRoute(revision: MyIntegrationMethod): string[] {
-    return ['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'edit'];
-  }
-
   protected openDetails(revision: MyIntegrationMethod): void {
     this.closeMenu();
-    this.router.navigate(this.detailsRoute(revision));
+    this.router.navigate(['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'details']);
   }
 
   protected openEdit(revision: MyIntegrationMethod): void {
     this.closeMenu();
-    this.router.navigate(this.editRoute(revision));
+    this.router.navigate(['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'edit']);
   }
 
   protected openApplication(applicationId: string): void {

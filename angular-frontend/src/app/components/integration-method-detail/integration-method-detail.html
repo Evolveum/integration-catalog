@@ -6,9 +6,9 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" [appNewTabRoute]="['/applications']" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
+    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
-    <a class="breadcrumb-link d-flex align-items-center gap-1" [appNewTabRoute]="applicationRoute()" (click)="goBack()" style="cursor:pointer;">
+    <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goBack()" style="cursor:pointer;">
       @if (showLogo()) {
         <img [src]="getLogoUrl()" [alt]="appName()" class="breadcrumb-app-icon" (error)="onLogoError()">
       }
@@ -382,13 +382,13 @@
 
       <!-- Footer: Back (left) + method actions (right) -->
       <div class="view-footer d-flex align-items-center justify-content-between">
-        <button type="button" class="btn view-back-btn d-flex align-items-center gap-2" [appNewTabRoute]="applicationRoute()" (click)="goBack()">
+        <button type="button" class="btn view-back-btn d-flex align-items-center gap-2" (click)="goBack()">
           <i class="fa-solid fa-arrow-left"></i>Back
         </button>
         @if (isActive()) {
           <div class="d-flex align-items-center gap-2">
             @if (canEdit()) {
-              <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" [appNewTabRoute]="editRoute()" (click)="editAndUpgrade()">
+              <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
                 <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
               </button>
             }
@@ -409,7 +409,7 @@
             <!-- The reviewer may fix findings directly while the revision is under review
                  (the edit lock only applies to non-superusers). -->
             <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2"
-                    [appNewTabRoute]="editRoute()" (click)="editAndUpgrade()">
+                    (click)="editAndUpgrade()">
               <i class="fa-solid fa-pen-to-square"></i>Edit
             </button>
             <button type="button" class="btn btn-outline-danger border-0 d-flex align-items-center gap-2"

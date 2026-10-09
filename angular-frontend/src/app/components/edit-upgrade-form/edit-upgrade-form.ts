@@ -28,13 +28,12 @@ import { formatCapabilityLabel } from '../../core/capability-label';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
-import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal, MarkdownPipe,
-    SubmissionSuccessModal, MethodTypeModal, NewTabRouteDirective],
+    SubmissionSuccessModal, MethodTypeModal],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })

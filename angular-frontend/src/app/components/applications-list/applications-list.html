@@ -286,7 +286,7 @@
         <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
           <div class="d-flex gap-4">
             @for (app of featuredApplications(); track app.id) {
-              <div #featuredCard class="card position-relative app-card" role="button" tabindex="0" [appNewTabRoute]="['/applications', app.id]" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
+              <div #featuredCard class="card position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
                 <!-- Status indicators at top right -->
                 <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                   @if (isPopular(app)) {
@@ -397,7 +397,7 @@
       <div class="apps-grid mb-4 mx-auto content-width">
         @for (app of moreApplications(); track app.id) {
           <div>
-            <div class="card shadow-sm position-relative app-card" role="button" tabindex="0" [appNewTabRoute]="['/applications', app.id]" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
+            <div class="card shadow-sm position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {

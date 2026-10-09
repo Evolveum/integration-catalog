@@ -21,12 +21,11 @@ import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/down
 import { ToastService } from '../../services/toast.service';
 import { EnvironmentService } from '../../services/environment.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
-import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal, NewTabRouteDirective],
+  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })

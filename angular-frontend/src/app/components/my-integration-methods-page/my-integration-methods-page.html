@@ -275,7 +275,7 @@
 
               <!-- A new version starts from the newest revision, as Edit and upgrade does on the detail page. -->
               <button type="button" class="btn btn-outline-secondary btn-sm ss-outline-btn d-flex align-items-center gap-1"
-                      [disabled]="!canEdit(group.latest)" [appNewTabRoute]="editRoute(group.latest)" (click)="openEdit(group.latest)">
+                      [disabled]="!canEdit(group.latest)" (click)="openEdit(group.latest)">
                 <i class="fa-solid fa-plus"></i>New version
               </button>
 
@@ -287,8 +287,8 @@
                 </button>
                 @if (openMenuKey() === 'group:' + group.id) {
                   <div class="ss-menu ss-menu-right" role="menu">
-                    <button type="button" class="ss-menu-item" role="menuitem" [appNewTabRoute]="detailsRoute(group.latest)" (click)="openDetails(group.latest)">View latest version</button>
-                    <button type="button" class="ss-menu-item" role="menuitem" [appNewTabRoute]="['/applications', group.applicationId]" (click)="openApplication(group.applicationId)">Open application</button>
+                    <button type="button" class="ss-menu-item" role="menuitem" (click)="openDetails(group.latest)">View latest version</button>
+                    <button type="button" class="ss-menu-item" role="menuitem" (click)="openApplication(group.applicationId)">Open application</button>
                   </div>
                 }
               </div>
@@ -307,7 +307,7 @@
                 </thead>
                 <tbody>
                   @for (rev of group.revisions; track rev.revision) {
-                    <tr class="ss-row-clickable" [appNewTabRoute]="detailsRoute(rev)" (click)="openDetails(rev)">
+                    <tr class="ss-row-clickable" (click)="openDetails(rev)">
                       <td>
                         <div class="d-flex align-items-center gap-3">
                           <span class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
@@ -365,7 +365,7 @@
                                     <button type="button" class="ss-menu-item" role="menuitem" (click)="openStartReview(rev)">Start review</button>
                                     <div class="ss-menu-separator"></div>
                                   }
-                                  <button type="button" class="ss-menu-item" role="menuitem" [appNewTabRoute]="editRoute(rev)" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
                                   <div class="ss-menu-separator"></div>
                                   <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="openCancel(rev)">
                                     <i class="fa-solid fa-trash-can"></i>Cancel request
@@ -380,7 +380,7 @@
                                   }
                                   <!-- Locked for the author while a review runs; disabled so they see why. -->
                                   <button type="button" class="ss-menu-item" role="menuitem" [disabled]="!canEdit(rev)"
-                                          [appNewTabRoute]="editRoute(rev)" (click)="openEdit(rev)">Edit and upgrade</button>
+                                          (click)="openEdit(rev)">Edit and upgrade</button>
                                   @if (showReviewActions && isSuperuser()) {
                                     <div class="ss-menu-separator"></div>
                                     <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="openConfirm(rev, 'reject')">
@@ -389,7 +389,7 @@
                                   }
                                 }
                                 @case ('ACTIVE') {
-                                  <button type="button" class="ss-menu-item" role="menuitem" [appNewTabRoute]="editRoute(rev)" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
                                   <button type="button" class="ss-menu-item" role="menuitem" (click)="download(rev)">Download</button>
                                   <div class="ss-menu-separator"></div>
                                   <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="deletePublished()">
@@ -397,7 +397,7 @@
                                   </button>
                                 }
                                 @default {
-                                  <button type="button" class="ss-menu-item" role="menuitem" [appNewTabRoute]="editRoute(rev)" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
                                 }
                               }
                             </div>

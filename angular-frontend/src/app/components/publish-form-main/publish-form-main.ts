@@ -22,13 +22,11 @@ import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
-import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe, BackdropCloseDirective,
-    NewTabRouteDirective],
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe, BackdropCloseDirective],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
 })
