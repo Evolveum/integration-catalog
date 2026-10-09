@@ -256,19 +256,27 @@ export class AuthService {
   /**
    * Whether the current user may see/edit an item with this maintainer. A copy of the server-side
    * `AuthService.canEdit`, which is authoritative: change that first, then mirror it here.
+   * A Community revision not yet published belongs to its author alone; a caller that passes no
+   * lifecycle state (a connector, whose author the frontend does not get) skips that rule.
    */
-  canEdit(maintainer: Maintainer | null | undefined): boolean {
+  canEdit(maintainer: Maintainer | null | undefined, lifecycleState?: string | null, author?: string | null): boolean {
     const user = this._currentUser();
     const role = this._currentRole();
     if (!user || !role || role === UserRole.ReadOnly) return false;
     if (role === UserRole.Superuser) return true;
     if (!maintainer) return false;
-    if (maintainer.category === 'COMMUNITY') return true;
+    if (maintainer.category === 'COMMUNITY') {
+      return !isDraftState(lifecycleState) || author === user;
+    }
     if (sameIgnoringCase(maintainer.username, user)) return true;
     // An organization acts as a team: whatever it maintains, all of its contributors may edit.
     return role === UserRole.OrganizationContributor
       && sameIgnoringCase(maintainer.organizationName, this._currentOrganizationName());
   }
+}
+
+function isDraftState(state: string | null | undefined): boolean {
+  return state === 'IN_REVIEW' || state === 'REVIEWING' || state === 'REJECTED';
 }
 
 function sameIgnoringCase(a: string | null | undefined, b: string | null | undefined): boolean {
