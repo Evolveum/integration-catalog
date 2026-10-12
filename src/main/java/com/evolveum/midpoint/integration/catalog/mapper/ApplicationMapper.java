@@ -88,9 +88,17 @@ public class ApplicationMapper {
     public List<IntegrationMethodDto> mapIntegrationMethods(Application app, String viewer) {
         if (app.getIntegrationMethods() == null) return null;
 
-        List<Capability> offered = capabilityRepository.findByOfferedForMethodTrueOrderByDisplayOrderAsc();
-        return app.getIntegrationMethods().stream()
+        return mapIntegrationMethods(app.getIntegrationMethods().stream()
                 .filter(method -> authService.canView(viewer, method))
+                .toList(), viewer);
+    }
+
+    /**
+     * Maps {@code methods} as given: the caller has already held back those {@code viewer} may not see.
+     */
+    public List<IntegrationMethodDto> mapIntegrationMethods(List<IntegrationMethod> methods, String viewer) {
+        List<Capability> offered = capabilityRepository.findByOfferedForMethodTrueOrderByDisplayOrderAsc();
+        return methods.stream()
                 .map(method -> {
                     List<String> capabilities = collectCapabilities(method);
                     String lifecycleState = method.getLifecycleState() != null

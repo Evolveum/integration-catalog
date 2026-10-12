@@ -102,6 +102,34 @@ class UnpublishedVisibilityIntegrationTest extends AbstractCatalogIntegrationTes
     }
 
     @Test
+    void applicationSearchFindsTheApplication() throws Exception {
+        Published published = publish(OWNER, null);
+        String displayName = jdbc.queryForObject("select display_name from application where id = ?",
+                String.class, published.applicationId());
+
+        String json = perform(post("/api/applications/search/{size}/{page}", 50, 0).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"keyword\": \"" + displayName + "\"}"), ANONYMOUS, 200);
+        List<String> ids = JsonPath.read(json, "$.content[*].id");
+
+        assertThat(ids).containsExactly(published.applicationId().toString());
+    }
+
+    @Test
+    void othersFindOnlyTheActiveMethodsBySearch() throws Exception {
+        Published active = publish(OWNER, null);
+        jdbc.update("update integration_method set lifecycle_state = 'ACTIVE' where id = ?", active.methodId());
+        Published inReview = publish(OWNER, active.applicationId());
+
+        for (RequestPostProcessor viewer : List.of(ANONYMOUS, OTHER)) {
+            assertThat(methodIdsBySearch(active.applicationId(), viewer))
+                    .containsExactly(active.methodId().toString());
+        }
+        assertThat(methodIdsBySearch(active.applicationId(), OWNER))
+                .containsExactlyInAnyOrder(active.methodId().toString(), inReview.methodId().toString());
+    }
+
+    @Test
     void anonymousIsRefusedTheSupportTicket() throws Exception {
         Published owners = publish(OWNER, null);
 
@@ -174,6 +202,14 @@ class UnpublishedVisibilityIntegrationTest extends AbstractCatalogIntegrationTes
     private List<String> methodIdsOfImplementations(UUID applicationId, RequestPostProcessor viewer) throws Exception {
         String json = perform(get("/api/applications/{id}/implementations", applicationId), viewer, 200);
         List<String> ids = JsonPath.read(json, "$[*].id");
+        return ids;
+    }
+
+    private List<String> methodIdsBySearch(UUID applicationId, RequestPostProcessor viewer) throws Exception {
+        String json = perform(post("/api/integration-methods/search/{size}/{page}", 50, 0).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"applicationId\": \"" + applicationId + "\"}"), viewer, 200);
+        List<String> ids = JsonPath.read(json, "$.content[*].id");
         return ids;
     }
 

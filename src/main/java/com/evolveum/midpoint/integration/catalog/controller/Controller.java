@@ -194,38 +194,30 @@ public class Controller {
 
     @Operation(summary = "Search applications by parameters")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Applications found"),
-            @ApiResponse(responseCode = "404", description = "Applications not found")
+            @ApiResponse(responseCode = "200", description = "Matching applications, an empty page when none match")
     })
     @PostMapping("/applications/search/{size}/{page}")
-    public ResponseEntity<Page<Application>> searchApplication(
+    public ResponseEntity<Page<ApplicationCardDto>> searchApplication(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
             @PathVariable int page) {
-        try {
-            return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
-        } catch (RuntimeException ex) {
-            log.error("searchApplication failed: {}", ex.getMessage(), ex);
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
     }
 
-    @Operation(summary = "Search integration methods by parameters")
+    @Operation(summary = "Search integration methods by parameters",
+            description = "Returns the matching methods the caller may see: every ACTIVE one, and the ones "
+                    + "not approved yet only to whoever may edit them")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Integration methods found"),
-            @ApiResponse(responseCode = "404", description = "Integration methods not found")
+            @ApiResponse(responseCode = "200", description = "Matching integration methods, an empty page when none match")
     })
     @PostMapping("/integration-methods/search/{size}/{page}")
-    public ResponseEntity<Page<IntegrationMethod>> searchIntegrationMethods(
+    public ResponseEntity<Page<IntegrationMethodDto>> searchIntegrationMethods(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
-            @PathVariable int page) {
-        try {
-            return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size));
-        } catch (RuntimeException ex) {
-            log.error("searchIntegrationMethods failed: {}", ex.getMessage(), ex);
-            return ResponseEntity.notFound().build();
-        }
+            @PathVariable int page,
+            Authentication authentication) {
+        String viewer = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size, viewer));
     }
 
     @Operation(summary = "Get Request by ID")

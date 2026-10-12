@@ -276,7 +276,9 @@ class ControllerTest {
         SearchForm searchForm = new SearchForm();
         searchForm.setKeyword("test");
 
-        Page<Application> page = new PageImpl<>(Collections.singletonList(testApplication));
+        ApplicationCardDto card = new ApplicationCardDto(testAppId, "Test", null, null, "ACTIVE",
+                null, null, null, null, null, null, null, null, null, null, null);
+        Page<ApplicationCardDto> page = new PageImpl<>(Collections.singletonList(card));
         when(applicationService.searchApplication(any(SearchForm.class), eq(0), eq(10)))
                 .thenReturn(page);
 

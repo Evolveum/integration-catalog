@@ -24,6 +24,7 @@ import jakarta.persistence.criteria.Join;
 import com.evolveum.midpoint.integration.catalog.util.RepositoryUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -366,7 +367,8 @@ public class ApplicationService {
         buildCallbackService.failBuild(oid, failForm);
     }
 
-    public Page<Application> searchApplication(SearchForm searchForm, int page, int size) {
+    @Transactional(readOnly = true)
+    public Page<ApplicationCardDto> searchApplication(SearchForm searchForm, int page, int size) {
         Specification<Application> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchForm.getKeyword() != null && !searchForm.getKeyword().isBlank()) {
@@ -385,10 +387,16 @@ public class ApplicationService {
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
-        return applicationRepository.findAll(spec, pageable);
+        return applicationRepository.findAll(spec, pageable).map(applicationMapper::toCardDto);
     }
 
-    public Page<IntegrationMethod> searchIntegrationMethods(SearchForm searchForm, int page, int size) {
+    /**
+     * Pages only the methods {@code viewer} (null when anonymous) may see, so a hidden revision
+     * neither shows up nor shifts the page boundaries.
+     */
+    @Transactional(readOnly = true)
+    public Page<IntegrationMethodDto> searchIntegrationMethods(SearchForm searchForm, int page, int size,
+                                                               String viewer) {
         Specification<IntegrationMethod> spec = (root, query, cb) -> cb.conjunction();
 
         if (searchForm.getMaintainer() != null && !searchForm.getMaintainer().isBlank()) {
@@ -421,8 +429,15 @@ public class ApplicationService {
                     cb.equal(root.get("application").get("id"), searchForm.getApplicationId()));
         }
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
-        return integrationMethodRepository.findAll(spec, pageable);
+        // canView is not expressible as a query, so the visible methods are paged in memory.
+        List<IntegrationMethod> visible = integrationMethodRepository.findAll(spec, Sort.by("id").ascending()).stream()
+                .filter(method -> authService.canView(viewer, method))
+                .toList();
+        Pageable pageable = PageRequest.of(page, size);
+        int from = (int) Math.min(pageable.getOffset(), visible.size());
+        int to = Math.min(from + size, visible.size());
+        return new PageImpl<>(applicationMapper.mapIntegrationMethods(visible.subList(from, to), viewer),
+                pageable, visible.size());
     }
 
     public List<Vote> getVotes() {
