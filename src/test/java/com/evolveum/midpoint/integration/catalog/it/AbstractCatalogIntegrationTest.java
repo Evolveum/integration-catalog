@@ -78,6 +78,8 @@ public abstract class AbstractCatalogIntegrationTest {
                 .idToken(token -> token
                         .subject(username)
                         .claim("preferred_username", username)
+                        // Publishing records the author with it, and authors.email is NOT NULL.
+                        .claim("email", username + "@example.com")
                         .claim("roles", List.of(role.getIdentifier())))
                 .authorities(new SimpleGrantedAuthority("ROLE_" + role.getIdentifier()));
     }

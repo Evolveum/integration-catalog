@@ -11,12 +11,15 @@ import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.AuthorRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
+import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -77,6 +80,7 @@ public class OwnershipService {
         if (requestedMaintainer.id() != null) {
             Optional<Maintainer> maintainer = maintainerRepository.findById(requestedMaintainer.id());
             if (maintainer.isPresent()) {
+                assertCallerMayAssign(maintainer.get());
                 item.setMaintainer(maintainer.get());
                 return;
             }
@@ -119,8 +123,38 @@ public class OwnershipService {
             }
         }
 
+        assertCallerMayAssign(maintainer);
         maintainer = maintainerRepository.save(maintainer);
         item.setMaintainer(maintainer);
+    }
+
+    /**
+     * A non-superuser hands an item only to a maintainer they act for - themselves, Community, or
+     * the organization they contribute for - which is what the maintainer dropdown offers and what
+     * {@link AuthService#canEdit} lets them edit afterwards. Without a signed-in user (a build
+     * callback, a background job) no maintainer is being chosen, so nothing is checked.
+     */
+    private void assertCallerMayAssign(Maintainer maintainer) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        OidcUser caller = currentOidcUser();
+        if (caller == null) {
+            return;
+        }
+        CatalogRole role = claims.effectiveRole(caller);
+        if (role == CatalogRole.SUPERUSER || maintainer.getCategory() == MaintainerType.COMMUNITY) {
+            return;
+        }
+        if (maintainer.getCategory() == MaintainerType.USER
+                && StringUtils.equalsIgnoreCase(maintainer.getUsername(), authentication.getName())) {
+            return;
+        }
+        String callerOrganization = role == CatalogRole.ORGANIZATION_CONTRIBUTOR ? claims.organizationName(caller) : null;
+        if (callerOrganization != null && maintainer.getOrganization() != null
+                && StringUtils.equalsIgnoreCase(maintainer.getOrganization().getName(), callerOrganization)) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "You may not set " + maintainerLabel(maintainer) + " as the maintainer.");
     }
 
     /**
