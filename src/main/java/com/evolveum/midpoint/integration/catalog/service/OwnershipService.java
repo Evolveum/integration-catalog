@@ -14,6 +14,7 @@ import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -145,12 +146,12 @@ public class OwnershipService {
             return;
         }
         if (maintainer.getCategory() == MaintainerType.USER
-                && StringUtils.equalsIgnoreCase(maintainer.getUsername(), authentication.getName())) {
+                && Strings.CI.equals(maintainer.getUsername(), authentication.getName())) {
             return;
         }
         String callerOrganization = role == CatalogRole.ORGANIZATION_CONTRIBUTOR ? claims.organizationName(caller) : null;
         if (callerOrganization != null && maintainer.getOrganization() != null
-                && StringUtils.equalsIgnoreCase(maintainer.getOrganization().getName(), callerOrganization)) {
+                && Strings.CI.equals(maintainer.getOrganization().getName(), callerOrganization)) {
             return;
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
