@@ -204,6 +204,26 @@ public class AuthService {
     }
 
     /**
+     * Whether {@code username} (null when anonymous) may see the revision: anyone an ACTIVE one, one
+     * not approved yet only whoever may edit it. Reads are open to all, so this is what hides drafts.
+     */
+    public boolean canView(String username, IntegrationMethod method) {
+        if (method.getLifecycleState() == LifecycleType.ACTIVE || isSuperuser(username)) {
+            return true;
+        }
+        return method.getMaintainer() != null
+                && canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer());
+    }
+
+    /** Throws 404 unless {@code username} may see the revision - a 403 would tell that it exists. */
+    public void assertCanViewMethod(String username, UUID methodId, String revision) {
+        integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .filter(method -> canView(username, method))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Integration method not found: " + methodId + "/" + revision));
+    }
+
+    /**
      * Enforces that {@code username} may modify the integration-method revision (and its
      * connectors). Throws 404 if the revision does not exist, or 403 if the caller does not
      * own it (see {@link AuthService#canEdit}). Server-side counterpart of the client's

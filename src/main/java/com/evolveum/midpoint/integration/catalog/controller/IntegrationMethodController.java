@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
+import com.evolveum.midpoint.integration.catalog.service.AuthService;
 import com.evolveum.midpoint.integration.catalog.service.BundleService;
 import com.evolveum.midpoint.integration.catalog.service.SupportTicketService;
 import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
@@ -49,15 +50,23 @@ public class IntegrationMethodController {
     private final TutorialStorageService tutorialStorageService;
     private final BundleService bundleService;
     private final SupportTicketService supportTicketService;
+    private final AuthService authService;
 
     public IntegrationMethodController(ApplicationService applicationService,
                                        TutorialStorageService tutorialStorageService,
                                        BundleService bundleService,
-                                       SupportTicketService supportTicketService) {
+                                       SupportTicketService supportTicketService,
+                                       AuthService authService) {
         this.applicationService = applicationService;
         this.tutorialStorageService = tutorialStorageService;
         this.bundleService = bundleService;
         this.supportTicketService = supportTicketService;
+        this.authService = authService;
+    }
+
+    /** The caller's username, or null for an anonymous read. */
+    private static String viewer(Authentication authentication) {
+        return authentication != null ? authentication.getName() : null;
     }
 
     @Operation(summary = "Get connectors without download info for an integration method revision",
@@ -262,8 +271,10 @@ public class IntegrationMethodController {
     @GetMapping("/connectors")
     public ResponseEntity<List<ImplementationListItemDto>> getConnectorsForIntegrationMethod(
             @PathVariable UUID methodId,
-            @PathVariable String revision) {
-        return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision));
+            @PathVariable String revision,
+            Authentication authentication) {
+        return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision,
+                viewer(authentication)));
     }
 
     @Operation(summary = "Update a connector of an integration method revision",
@@ -376,7 +387,9 @@ public class IntegrationMethodController {
     @GetMapping("/tutorial")
     public ResponseEntity<List<String>> listTutorialFiles(
             @PathVariable UUID methodId,
-            @PathVariable String revision) {
+            @PathVariable String revision,
+            Authentication authentication) {
+        authService.assertCanViewMethod(viewer(authentication), methodId, revision);
         return ResponseEntity.ok(tutorialStorageService.listTutorialFiles(methodId, revision));
     }
 
@@ -385,7 +398,9 @@ public class IntegrationMethodController {
     public ResponseEntity<byte[]> downloadTutorialFile(
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestParam("name") String name) {
+            @RequestParam("name") String name,
+            Authentication authentication) {
+        authService.assertCanViewMethod(viewer(authentication), methodId, revision);
         try {
             Path file = tutorialStorageService.resolveTutorialFile(methodId, revision, name);
             byte[] bytes = Files.readAllBytes(file);
@@ -418,7 +433,9 @@ public class IntegrationMethodController {
     public ResponseEntity<byte[]> downloadBundle(
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            Authentication authentication) {
+        authService.assertCanViewMethod(viewer(authentication), methodId, revision);
         try {
             BundleService.Bundle bundle = bundleService.buildBundle(methodId, revision);
             try {
@@ -479,7 +496,7 @@ public class IntegrationMethodController {
             @PathVariable String revision,
             Authentication authentication) {
         try {
-            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, authentication.getName()));
+            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, viewer(authentication)));
         } catch (IllegalArgumentException e) {
             log.warn("getSupportTicket rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());

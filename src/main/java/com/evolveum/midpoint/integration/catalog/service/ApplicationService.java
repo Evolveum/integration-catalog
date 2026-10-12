@@ -346,8 +346,10 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ImplementationListItemDto> getConnectorsForIntegrationMethod(UUID methodId, String revision) {
+    public List<ImplementationListItemDto> getConnectorsForIntegrationMethod(UUID methodId, String revision,
+                                                                             String viewer) {
         return integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .filter(method -> authService.canView(viewer, method))
                 .map(applicationMapper::mapConnectorsForMethod)
                 .orElseGet(List::of);
     }
@@ -601,6 +603,14 @@ public class ApplicationService {
                 oid,
                 triggerBuildForm.getIntegrationMethodRevision(),
                 integrationMethodRepository);
+        // Owning the method must not let the caller build a connector it does not link.
+        boolean linked = connectorVersion.getConnector() != null && integrationMethod.getConnectors().stream()
+                .anyMatch(link -> link.getConnector() != null
+                        && Objects.equals(link.getConnector().getId(), connectorVersion.getConnector().getId()));
+        if (!linked) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Connector version " + connectorVersion.getId() + " is not a connector of this integration method.");
+        }
 
         ConnectorBundleVersion bundleVersion = connectorVersion.getConnectorBundleVersion();
         if (bundleVersion == null) {
@@ -617,8 +627,9 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ImplementationListItemDto> getIntegrationMethodsByApplicationId(UUID applicationId) {
+    public List<ImplementationListItemDto> getIntegrationMethodsByApplicationId(UUID applicationId, String viewer) {
         return integrationMethodRepository.findByApplicationId(applicationId).stream()
+                .filter(method -> authService.canView(viewer, method))
                 .map(applicationMapper::mapToIntegrationMethodListItemDto)
                 .filter(dto -> dto != null)
                 .toList();

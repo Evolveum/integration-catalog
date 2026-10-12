@@ -471,14 +471,17 @@ public class Controller {
     }
 
     @Operation(summary = "Get integration methods for application",
-            description = "Returns all integration methods for a specific application")
+            description = "Returns the integration methods of an application the caller may see: every ACTIVE "
+                    + "one, and the ones not approved yet only to whoever may edit them")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Integration methods retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @GetMapping("/applications/{applicationId}/implementations")
-    public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(@PathVariable UUID applicationId) {
-        List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId);
+    public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(
+            @PathVariable UUID applicationId, Authentication authentication) {
+        String viewer = authentication != null ? authentication.getName() : null;
+        List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId, viewer);
         return ResponseEntity.ok(items);
     }
 

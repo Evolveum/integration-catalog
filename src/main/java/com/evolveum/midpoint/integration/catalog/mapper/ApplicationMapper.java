@@ -81,8 +81,8 @@ public class ApplicationMapper {
     // ── Integration-method versions ───────────────────────────────────────────
 
     /**
-     * Maps integration methods to IntegrationMethodDto, telling {@code viewer} the support ticket of
-     * every revision they are allowed to see one for. Capabilities are collected from
+     * Maps the integration methods {@code viewer} may see to IntegrationMethodDto, telling them the
+     * support ticket of every revision they are allowed to see one for. Capabilities are collected from
      * IntegrationMethodCapability → items → Capability.
      */
     public List<IntegrationMethodDto> mapIntegrationMethods(Application app, String viewer) {
@@ -90,6 +90,7 @@ public class ApplicationMapper {
 
         List<Capability> offered = capabilityRepository.findByOfferedForMethodTrueOrderByDisplayOrderAsc();
         return app.getIntegrationMethods().stream()
+                .filter(method -> authService.canView(viewer, method))
                 .map(method -> {
                     List<String> capabilities = collectCapabilities(method);
                     String lifecycleState = method.getLifecycleState() != null

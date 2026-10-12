@@ -216,7 +216,7 @@ class AuthControllerTest {
     /** The detail page lists a method's connectors to anyone, like the rest of the page. */
     @Test
     void listingConnectorsOfAMethodIsPublic() throws Exception {
-        when(applicationService.getConnectorsForIntegrationMethod(any(), eq("1.0"))).thenReturn(List.of());
+        when(applicationService.getConnectorsForIntegrationMethod(any(), eq("1.0"), any())).thenReturn(List.of());
 
         mockMvc.perform(get(METHOD_CONNECTORS, UUID.randomUUID(), "1.0"))
                 .andExpect(status().isOk());
