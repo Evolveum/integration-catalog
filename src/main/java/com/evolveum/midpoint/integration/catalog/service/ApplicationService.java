@@ -136,60 +136,6 @@ public class ApplicationService {
         this.authService = authService;
     }
 
-    /**
-     * Enforces that {@code username} may modify the integration-method revision (and its
-     * connectors). Throws 404 if the revision does not exist, or 403 if the caller does not
-     * own it (see {@link AuthService#canEdit}). Server-side counterpart of the client's
-     * edit-button gating — this is the check that actually protects the data.
-     */
-    private void assertCanEditMethod(String username, UUID methodId, String revision) {
-        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
-                .orElseThrow(() -> new RuntimeException(
-                        "Integration method not found: " + methodId + "/" + revision));
-        if (!authService.canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You are not allowed to modify this integration method.");
-        }
-        assertNotUnderReview(username, method);
-    }
-
-    /**
-     * Blocks edits by non-superusers while a revision is REVIEWING: once a review starts the revision
-     * is locked for its author until the review is resolved, so nothing changes underneath the
-     * reviewer. Superusers are exempt — the reviewer may fix findings directly during the review
-     * (or hand the revision back via stop-review for the author to fix). Mirrors the client, which
-     * disables the edit controls for this state for everyone but superusers.
-     */
-    private void assertNotUnderReview(String username, IntegrationMethod method) {
-        if (method.getLifecycleState() == LifecycleType.REVIEWING && !authService.isSuperuser(username)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "This integration method is locked while it is under review.");
-        }
-    }
-
-    /**
-     * Enforces that {@code username} may edit a specific connector's content. Unlike
-     * {@link #assertCanEditMethod}, this gates on the connector's own owner, so a connector
-     * maintained by someone else stays closed to the method's maintainer.
-     */
-    private void assertCanEditConnector(String username, UUID methodId, String revision, Integer connectorId) {
-        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
-                .orElseThrow(() -> new RuntimeException(
-                        "Integration method not found: " + methodId + "/" + revision));
-        Connector connector = method.getConnectors().stream()
-                .map(IntegrationMethodConnector::getConnector)
-                .filter(Objects::nonNull)
-                .filter(c -> connectorId.equals(c.getId()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException(
-                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
-        if (!authService.canEdit(username, method.getLifecycleState(), connector.getAuthor(), connector.getMaintainer())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "You are not allowed to modify this connector.");
-        }
-        assertNotUnderReview(username, method);
-    }
-
     public Application getApplication(UUID uuid) {
         return applicationRepository.findById(uuid)
                 .orElseThrow(() -> new RuntimeException("Application not found with id: " + uuid));
@@ -260,7 +206,7 @@ public class ApplicationService {
     public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto,
                                         String username) {
         log.info("editIntegrationMethod methodId={} revision={} user={}", methodId, currentRevision, username);
-        assertCanEditMethod(username, methodId, currentRevision);
+        authService.assertCanEditMethod(username, methodId, currentRevision);
         return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
     }
 
@@ -322,7 +268,7 @@ public class ApplicationService {
     @Transactional
     public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
         log.info("cancelIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
-        assertCanEditMethod(username, methodId, revision);
+        authService.assertCanEditMethod(username, methodId, revision);
         return connectorUploadService.cancelIntegrationMethod(methodId, revision, username);
     }
 
@@ -330,7 +276,7 @@ public class ApplicationService {
     public String addConnectorToIntegrationMethod(UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
         log.info("addConnectorToIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
-        assertCanEditMethod(username, methodId, revision);
+        authService.assertCanEditMethod(username, methodId, revision);
         return connectorUploadService.addConnectorToIntegrationMethod(methodId, revision, dto, username);
     }
 
@@ -340,7 +286,7 @@ public class ApplicationService {
         log.info("updateConnector methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
         // A connector is gated on its own maintainer, not the IM's: the IM maintainer must not
         // be able to edit a connector maintained by someone else (a superuser still can).
-        assertCanEditConnector(username, methodId, revision, connectorId);
+        authService.assertCanEditConnector(username, methodId, revision, connectorId);
         connectorUploadService.updateConnector(methodId, revision, connectorId, dto, username);
     }
 
@@ -348,7 +294,7 @@ public class ApplicationService {
     public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId,
                                                      String username) {
         log.info("deleteConnectorFromIntegrationMethod methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
-        assertCanEditMethod(username, methodId, revision);
+        authService.assertCanEditMethod(username, methodId, revision);
         connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
     }
 
@@ -358,7 +304,7 @@ public class ApplicationService {
                                              String username) {
         log.info("updateConnectorCompatibility methodId={} revision={} connectorId={} from={} to={} user={}",
                 methodId, revision, connectorId, connectorVersionFrom, connectorVersionTo, username);
-        assertCanEditMethod(username, methodId, revision);
+        authService.assertCanEditMethod(username, methodId, revision);
         connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
                 connectorVersionFrom, connectorVersionTo);
     }

@@ -531,10 +531,10 @@ public class Controller {
     @PostMapping(value = "/applications/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadLogo(
             @PathVariable UUID id,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            Application application = applicationService.getApplication(id);
-            logoStorageService.saveLogo(application, file);
+            logoStorageService.saveLogo(id, file, authentication);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
             log.warn("uploadLogo rejected: {}", ex.getMessage());
@@ -565,9 +565,10 @@ public class Controller {
     @PostMapping(value = "/integration-methods/{id}/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadTutorial(
             @PathVariable UUID id,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            tutorialStorageService.saveTutorial(id, file);
+            tutorialStorageService.saveTutorial(id, file, authentication);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
             log.warn("uploadTutorial rejected: {}", ex.getMessage());
@@ -647,10 +648,9 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @DeleteMapping("/applications/{id}/logo")
-    public ResponseEntity<Void> deleteLogo(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteLogo(@PathVariable UUID id, Authentication authentication) {
         try {
-            Application application = applicationService.getApplication(id);
-            logoStorageService.deleteLogo(application);
+            logoStorageService.deleteLogo(id, authentication);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {

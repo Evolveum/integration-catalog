@@ -10,9 +10,12 @@ import com.evolveum.midpoint.integration.catalog.configuration.LogoStorageProper
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.repository.ApplicationRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -35,12 +38,16 @@ public class LogoStorageService {
     );
 
     private final LogoStorageProperties logoStorageProperties;
+    private final ApplicationService applicationService;
+    private final AuthService authService;
     private final ApplicationRepository applicationRepository;
     private final Path basePath;
 
-    public LogoStorageService(LogoStorageProperties logoStorageProperties,
+    public LogoStorageService(LogoStorageProperties logoStorageProperties, ApplicationService applicationService, AuthService authService,
                               ApplicationRepository applicationRepository) {
         this.logoStorageProperties = logoStorageProperties;
+        this.applicationService = applicationService;
+        this.authService = authService;
         this.applicationRepository = applicationRepository;
         this.basePath = Paths.get(logoStorageProperties.basePath()).toAbsolutePath().normalize();
         log.info("Logo storage base path resolved to: {}", this.basePath);
@@ -90,7 +97,16 @@ public class LogoStorageService {
     }
 
     @Transactional
-    public Application saveLogo(Application application, MultipartFile file) throws IOException {
+    public void saveLogo(UUID applicationId, MultipartFile file, Authentication authentication) throws IOException {
+        Application application = applicationService.getApplication(applicationId);
+
+        if (application.getLifecycleState() == Application.ApplicationLifecycleType.ACTIVE) {
+            if (!authService.isSuperuser(authentication.getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only a superuser may edit a logo of application.");
+            }
+        }
+
         validateFile(file);
         deleteLogoFile(application.getLogoPath());
 
@@ -101,17 +117,26 @@ public class LogoStorageService {
 
         application.setLogoPath(safeFileName);
         log.info("Saved logo for application {}: {}", application.getId(), safeFileName);
-        return applicationRepository.save(application);
+        applicationRepository.save(application);
     }
 
     @Transactional
-    public Application deleteLogo(Application application) {
+    public void deleteLogo(UUID applicationId, Authentication authentication) {
+        Application application = applicationService.getApplication(applicationId);
+
+        if (application.getLifecycleState() == Application.ApplicationLifecycleType.ACTIVE) {
+            if (!authService.isSuperuser(authentication.getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only a superuser may delete a logo of application.");
+            }
+        }
+
         if (application.getLogoPath() != null) {
             deleteLogoFile(application.getLogoPath());
         }
         application.setLogoPath(null);
         log.info("Deleted logo for application {}", application.getId());
-        return applicationRepository.save(application);
+        applicationRepository.save(application);
     }
 
     public byte[] loadLogoBytes(String logoPath) {

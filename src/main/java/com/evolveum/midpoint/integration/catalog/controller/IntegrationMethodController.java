@@ -347,9 +347,10 @@ public class IntegrationMethodController {
     public ResponseEntity<Void> uploadTutorialForRevision(
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            tutorialStorageService.saveTutorialForRevision(methodId, revision, file);
+            tutorialStorageService.saveTutorialForRevision(methodId, revision, file, authentication);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
             log.warn("uploadTutorialForRevision rejected: {}", ex.getMessage());
@@ -446,9 +447,10 @@ public class IntegrationMethodController {
     public ResponseEntity<Void> deleteTutorialFile(
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestParam("name") String name) {
+            @RequestParam("name") String name,
+            Authentication authentication) {
         try {
-            tutorialStorageService.deleteTutorialFile(methodId, revision, name);
+            tutorialStorageService.deleteTutorialFile(methodId, revision, name, authentication);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
             log.warn("deleteTutorialFile rejected: {}", ex.getMessage());
