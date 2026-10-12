@@ -105,6 +105,9 @@ public class LogoStorageService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Only a superuser may edit a logo of application.");
             }
+        } else if (!authService.canEditUnpublishedApplication(authentication.getName(), application)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to edit the logo of this application.");
         }
 
         validateFile(file);
@@ -129,6 +132,9 @@ public class LogoStorageService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Only a superuser may delete a logo of application.");
             }
+        } else if (!authService.canEditUnpublishedApplication(authentication.getName(), application)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to delete the logo of this application.");
         }
 
         if (application.getLogoPath() != null) {

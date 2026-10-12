@@ -11,6 +11,7 @@ import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
+import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
@@ -38,18 +39,36 @@ public class AuthService {
     private final KeycloakUserDirectory keycloakUserDirectory;
     private final CatalogClaims claims;
     private final IntegrationMethodRepository integrationMethodRepository;
+    private final RequestRepository requestRepository;
 
     public AuthService(OrganizationService organizationService,
                        OwnershipService ownershipService,
                        MaintainerRepository maintainerRepository,
                        KeycloakUserDirectory keycloakUserDirectory,
-                       CatalogClaims claims, IntegrationMethodRepository integrationMethodRepository) {
+                       CatalogClaims claims, IntegrationMethodRepository integrationMethodRepository,
+                       RequestRepository requestRepository) {
         this.organizationService = organizationService;
         this.ownershipService = ownershipService;
         this.maintainerRepository = maintainerRepository;
         this.keycloakUserDirectory = keycloakUserDirectory;
         this.claims = claims;
         this.integrationMethodRepository = integrationMethodRepository;
+        this.requestRepository = requestRepository;
+    }
+
+    /**
+     * Whether {@code username} may change an application that is not published yet, such as its
+     * logo: whoever requested it or may edit one of its methods, or a superuser.
+     */
+    public boolean canEditUnpublishedApplication(String username, Application application) {
+        if (isSuperuser(username)) {
+            return true;
+        }
+        boolean requester = requestRepository.findByApplicationId(application.getId())
+                .map(request -> Strings.CI.equals(request.getRequester(), username))
+                .orElse(false);
+        return requester || integrationMethodRepository.findByApplicationId(application.getId()).stream()
+                .anyMatch(method -> canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer()));
     }
 
     /**

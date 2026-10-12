@@ -199,7 +199,40 @@ public class ApplicationService {
     @Transactional
     public String uploadIntegration(UploadIntegrationDto dto, String username) {
         log.info("uploadIntegration user={}", username);
+        limitApplicationTags(dto.application(), username);
+        if (dto.connector() != null && dto.connector().existingConnectorId() != null) {
+            assertMayLinkConnector(username, dto.connector().existingConnectorId());
+        }
         return connectorUploadService.uploadIntegration(dto, username);
+    }
+
+    /**
+     * Tags are for a superuser to curate. A contributor's publish keeps the ones the wizard sets on a
+     * new application, never Featured, and leaves an existing application's tags alone; origins stay
+     * open to every contributor.
+     */
+    private void limitApplicationTags(Application application, String username) {
+        if (application == null || application.getTags() == null || authService.isSuperuser(username)) {
+            return;
+        }
+        application.setTags(application.getId() != null ? List.of() : application.getTags().stream()
+                .filter(tag -> tag == null || !(ApplicationTag.FEATURED.equalsIgnoreCase(tag.name())
+                        && ApplicationTag.ApplicationTagType.COMMON.name().equalsIgnoreCase(tag.tagType())))
+                .toList());
+    }
+
+    /**
+     * A method may link a connector that is published, or one the caller may edit; somebody else's
+     * draft or rejected connector stays theirs.
+     */
+    private void assertMayLinkConnector(String username, Integer connectorId) {
+        Connector connector = connectorRepository.findById(connectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connector not found: " + connectorId));
+        boolean published = connector.getConnectorVersions() != null && connector.getConnectorVersions().stream()
+                .anyMatch(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE);
+        if (!published && !authService.canEdit(username, LifecycleType.IN_REVIEW, connector.getAuthor(), connector.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to use this connector.");
+        }
     }
 
     @Transactional
@@ -277,6 +310,9 @@ public class ApplicationService {
                                                   AddConnectorDto dto, String username) {
         log.info("addConnectorToIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
         authService.assertCanEditMethod(username, methodId, revision);
+        if (dto.existingConnectorId() != null) {
+            assertMayLinkConnector(username, dto.existingConnectorId());
+        }
         return connectorUploadService.addConnectorToIntegrationMethod(methodId, revision, dto, username);
     }
 
@@ -554,8 +590,9 @@ public class ApplicationService {
      * connector class on it is built by that single run.
      */
     @Transactional
-    public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm) {
-        log.info("triggerBuild oid={}", oid);
+    public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm, String username) {
+        log.info("triggerBuild oid={} user={}", oid, username);
+        authService.assertCanEditMethod(username, oid, triggerBuildForm.getIntegrationMethodRevision());
         ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
                 triggerBuildForm.getConnectorVersionId(),
                 triggerBuildForm.getConnectorVersionRevision(),

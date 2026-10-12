@@ -459,9 +459,11 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Building successfully start")
     })
     @PostMapping("/upload/trigger-build/{oid}")
-    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid) {
+    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid,
+                                               Authentication authentication) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.triggerBuild(oid, triggerBuildForm));
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(applicationService.triggerBuild(oid, triggerBuildForm, authentication.getName()));
         } catch (IllegalArgumentException e) {
             log.warn("triggerBuild rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -536,6 +538,8 @@ public class Controller {
         try {
             logoStorageService.saveLogo(id, file, authentication);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
             log.warn("uploadLogo rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -570,6 +574,8 @@ public class Controller {
         try {
             tutorialStorageService.saveTutorial(id, file, authentication);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
             log.warn("uploadTutorial rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -652,6 +658,8 @@ public class Controller {
         try {
             logoStorageService.deleteLogo(id, authentication);
             return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
                 log.warn("deleteLogo rejected: {}", ex.getMessage());

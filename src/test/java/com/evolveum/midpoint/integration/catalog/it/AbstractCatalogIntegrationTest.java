@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -60,6 +61,9 @@ public abstract class AbstractCatalogIntegrationTest {
     @Autowired
     private RequestVotingService requestVotingService;
 
+    @Autowired
+    private JdbcTemplate jdbc;
+
     @AfterEach
     void deleteTestData() {
         for (Application application : applicationRepository.findAll()) {
@@ -68,8 +72,19 @@ public abstract class AbstractCatalogIntegrationTest {
             }
             requestRepository.findByApplicationId(application.getId()).ifPresentOrElse(
                     request -> requestVotingService.cancelRequest(request.getId()),
-                    () -> applicationRepository.deleteById(application.getId()));
+                    () -> deleteApplication(application.getId()));
         }
+    }
+
+    /** Through the database's cascades: JPA cannot delete an application that has methods. */
+    private void deleteApplication(UUID applicationId) {
+        jdbc.update("""
+                delete from connector_bundle where id in (
+                    select c.connector_bundle_id from connector c
+                    join integration_method_connector imc on imc.connector_id = c.id
+                    join integration_method im on im.id = imc.integ_method_id
+                    where im.application_id = ?)""", applicationId);
+        jdbc.update("delete from application where id = ?", applicationId);
     }
 
     /** A signed-in user with the given catalog role. */

@@ -352,6 +352,8 @@ public class IntegrationMethodController {
         try {
             tutorialStorageService.saveTutorialForRevision(methodId, revision, file, authentication);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
             log.warn("uploadTutorialForRevision rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
