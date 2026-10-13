@@ -13,7 +13,7 @@ public record CatalogConnectorDto(
         Integer connectorId,      // connector.id  (sent as existingConnectorId, to link this very connector)
         String displayName,       // connector.display_name
         String description,       // connector.description
-        String version,           // connector.revision
+        String version,           // latest published connector_bundle_version.bundle_version
         String bundleDisplayName, // connector_bundle.display_name
         MaintainerDto maintainer, // connector.maintainer
         String maintainerLabel,   // connector.maintainer as label

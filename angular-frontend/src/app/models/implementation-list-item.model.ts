@@ -11,6 +11,7 @@ import { Maintainer } from './maintainer.model';
 export interface ObjectClassCapability {
   objectName: string;             // conn_version_capability.object_class
   capabilities: string[];         // capability.name items
+  resourceWide: boolean;          // conn_version_capability.resource_wide; objectName is then only a label
 }
 
 export interface ImplementationListItem {
@@ -44,4 +45,5 @@ export interface ImplementationListItem {
   // fields that are fixed from that point on (license, git clone URL).
   initialVersion: boolean;
   connectorTags: ConnectorTag[];  // connector_connector_tag + connector_tag
+  artifactUrl: string | null;     // connector_bundle_version.artifact_url
 }

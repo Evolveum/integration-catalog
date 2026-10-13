@@ -4,8 +4,6 @@
 */
 @use 'variables' as *;
 
-//TODO missing colors
-$midpoint-special-color: blue;
 
 .revoke-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
@@ -68,6 +66,6 @@ $midpoint-special-color: blue;
 /* Non-destructive confirmations (rotation) */
 .revoke-key-dialog-primary {
   .revoke-key-icon {
-    background-color: $midpoint-special-color;
+    background-color: $color-brand-steel;
   }
 }

@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.controller;
 
 import com.evolveum.midpoint.integration.catalog.dto.*;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
+import com.evolveum.midpoint.integration.catalog.service.AuthService;
 import com.evolveum.midpoint.integration.catalog.service.BundleService;
 import com.evolveum.midpoint.integration.catalog.service.SupportTicketService;
 import com.evolveum.midpoint.integration.catalog.service.TutorialStorageService;
@@ -40,7 +41,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/applications/{appId}/integration-method/{methodId}/{revision}") //TODO check if we need appId when we know methodId (all endpoints/all methods)
+@RequestMapping("/api/integration-method/{methodId}/{revision}")
 @Tag(name = "Integration method revision",
         description = "API for a single revision of an integration method")
 public class IntegrationMethodController {
@@ -49,15 +50,23 @@ public class IntegrationMethodController {
     private final TutorialStorageService tutorialStorageService;
     private final BundleService bundleService;
     private final SupportTicketService supportTicketService;
+    private final AuthService authService;
 
     public IntegrationMethodController(ApplicationService applicationService,
                                        TutorialStorageService tutorialStorageService,
                                        BundleService bundleService,
-                                       SupportTicketService supportTicketService) {
+                                       SupportTicketService supportTicketService,
+                                       AuthService authService) {
         this.applicationService = applicationService;
         this.tutorialStorageService = tutorialStorageService;
         this.bundleService = bundleService;
         this.supportTicketService = supportTicketService;
+        this.authService = authService;
+    }
+
+    /** The caller's username, or null for an anonymous read. */
+    private static String viewer(Authentication authentication) {
+        return authentication != null ? authentication.getName() : null;
     }
 
     @Operation(summary = "Get connectors without download info for an integration method revision",
@@ -70,7 +79,6 @@ public class IntegrationMethodController {
     })
     @GetMapping("/connectors-without-download")
     public ResponseEntity<List<ConnectorWithoutDownloadDto>> getConnectorsWithoutDownload(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision) {
         List<ConnectorWithoutDownloadDto> connectors = applicationService.getConnectorsWithoutDownloadInfo(methodId, revision);
@@ -80,7 +88,6 @@ public class IntegrationMethodController {
     @Operation(summary = "Save integration method as new version")
     @PutMapping
     public ResponseEntity<String> editIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @Valid @RequestBody EditIntegrationMethodDto dto,
@@ -91,8 +98,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("editIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("editIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -107,7 +116,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/start-review")
     public ResponseEntity<Void> startReviewIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -117,8 +125,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("startReviewIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("startReviewIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -133,7 +143,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/stop-review")
     public ResponseEntity<Void> stopReviewIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -143,8 +152,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("stopReviewIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("stopReviewIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -159,7 +170,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/approve")
     public ResponseEntity<Void> approveIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -169,8 +179,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("approveIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("approveIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -185,7 +197,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/reject")
     public ResponseEntity<Void> rejectIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -195,8 +206,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("rejectIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("rejectIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -212,7 +225,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/cancel")
     public ResponseEntity<CancelIntegrationMethodResultDto> cancelIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
@@ -222,8 +234,10 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (IllegalStateException e) {
+            log.warn("cancelIntegrationMethod rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
+            log.error("cancelIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -236,7 +250,6 @@ public class IntegrationMethodController {
     })
     @PostMapping("/connectors")
     public ResponseEntity<String> addConnectorToIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @RequestBody AddConnectorDto dto,
@@ -244,11 +257,12 @@ public class IntegrationMethodController {
         try {
             // Returns the revision the connector landed on: the same revision for a mutable draft, or a
             // freshly forked draft revision when the source was a published (immutable) version.
-            String savedRevision = applicationService.addConnectorToIntegrationMethod(appId, methodId, revision, dto, authentication.getName());
+            String savedRevision = applicationService.addConnectorToIntegrationMethod(methodId, revision, dto, authentication.getName());
             return ResponseEntity.ok(savedRevision);
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            log.error("addConnectorToIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -256,10 +270,11 @@ public class IntegrationMethodController {
     @Operation(summary = "List connectors of an integration method revision")
     @GetMapping("/connectors")
     public ResponseEntity<List<ImplementationListItemDto>> getConnectorsForIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
-            @PathVariable String revision) {
-        return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision));
+            @PathVariable String revision,
+            Authentication authentication) {
+        return ResponseEntity.ok(applicationService.getConnectorsForIntegrationMethod(methodId, revision,
+                viewer(authentication)));
     }
 
     @Operation(summary = "Update a connector of an integration method revision",
@@ -270,7 +285,6 @@ public class IntegrationMethodController {
     })
     @PutMapping("/connectors/{connectorId}")
     public ResponseEntity<Void> updateConnector(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
@@ -282,6 +296,11 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            // Logged before it is turned into a status: everything that reaches here becomes a 404
+            // carrying only the exception's own message, so an unexpected failure would otherwise
+            // leave no trace at all - and read to the user as "not found".
+            log.error("Failed to update connector {} of integration method {}/{}",
+                    connectorId, methodId, revision, e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -294,7 +313,6 @@ public class IntegrationMethodController {
     })
     @PutMapping("/connectors/{connectorId}/compatibility")
     public ResponseEntity<Void> updateConnectorCompatibility(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
@@ -307,6 +325,7 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            log.error("updateConnectorCompatibility failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -319,7 +338,6 @@ public class IntegrationMethodController {
     })
     @DeleteMapping("/connectors/{connectorId}")
     public ResponseEntity<Void> deleteConnectorFromIntegrationMethod(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             @PathVariable Integer connectorId,
@@ -330,6 +348,7 @@ public class IntegrationMethodController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
+            log.error("deleteConnectorFromIntegrationMethod failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -337,22 +356,28 @@ public class IntegrationMethodController {
     @Operation(summary = "Upload tutorial file for a specific integration method revision")
     @PostMapping(value = "/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadTutorialForRevision(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            tutorialStorageService.saveTutorialForRevision(methodId, revision, file);
+            tutorialStorageService.saveTutorialForRevision(methodId, revision, file, authentication);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadTutorialForRevision rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadTutorialForRevision rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadTutorialForRevision failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload tutorial: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadTutorialForRevision failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save tutorial file: " + ex.getMessage(), ex);
         }
@@ -361,19 +386,21 @@ public class IntegrationMethodController {
     @Operation(summary = "List tutorial files for a specific integration method revision")
     @GetMapping("/tutorial")
     public ResponseEntity<List<String>> listTutorialFiles(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
-            @PathVariable String revision) {
+            @PathVariable String revision,
+            Authentication authentication) {
+        authService.assertCanViewMethod(viewer(authentication), methodId, revision);
         return ResponseEntity.ok(tutorialStorageService.listTutorialFiles(methodId, revision));
     }
 
     @Operation(summary = "Download a single tutorial file for a specific integration method revision")
     @GetMapping("/tutorial/file")
     public ResponseEntity<byte[]> downloadTutorialFile(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestParam("name") String name) {
+            @RequestParam("name") String name,
+            Authentication authentication) {
+        authService.assertCanViewMethod(viewer(authentication), methodId, revision);
         try {
             Path file = tutorialStorageService.resolveTutorialFile(methodId, revision, name);
             byte[] bytes = Files.readAllBytes(file);
@@ -383,10 +410,13 @@ public class IntegrationMethodController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + "\"")
                     .body(bytes);
         } catch (IllegalArgumentException ex) {
+            log.warn("downloadTutorialFile rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
+            log.error("downloadTutorialFile failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (IOException ex) {
+            log.error("downloadTutorialFile failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to read tutorial file: " + ex.getMessage(), ex);
         }
@@ -401,10 +431,11 @@ public class IntegrationMethodController {
     })
     @GetMapping("/bundle")
     public ResponseEntity<byte[]> downloadBundle(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            HttpServletRequest request) {
+            HttpServletRequest request,
+            Authentication authentication) {
+        authService.assertCanViewMethod(viewer(authentication), methodId, revision);
         try {
             BundleService.Bundle bundle = bundleService.buildBundle(methodId, revision);
             try {
@@ -421,8 +452,10 @@ public class IntegrationMethodController {
             }
             return responseBuilder.body(bundle.data());
         } catch (IllegalArgumentException ex) {
+            log.warn("downloadBundle rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (IOException ex) {
+            log.error("downloadBundle failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to build bundle: " + ex.getMessage(), ex);
         }
@@ -431,16 +464,18 @@ public class IntegrationMethodController {
     @Operation(summary = "Delete a single tutorial file for a specific integration method revision")
     @DeleteMapping("/tutorial/file")
     public ResponseEntity<Void> deleteTutorialFile(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
-            @RequestParam("name") String name) {
+            @RequestParam("name") String name,
+            Authentication authentication) {
         try {
-            tutorialStorageService.deleteTutorialFile(methodId, revision, name);
+            tutorialStorageService.deleteTutorialFile(methodId, revision, name, authentication);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException ex) {
+            log.warn("deleteTutorialFile rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (IOException ex) {
+            log.error("deleteTutorialFile failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to delete tutorial file: " + ex.getMessage(), ex);
         }
@@ -457,13 +492,13 @@ public class IntegrationMethodController {
     })
     @GetMapping("/support-ticket")
     public ResponseEntity<SupportTicketDto> getSupportTicket(
-            @PathVariable UUID appId,
             @PathVariable UUID methodId,
             @PathVariable String revision,
             Authentication authentication) {
         try {
-            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, authentication.getName()));
+            return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, viewer(authentication)));
         } catch (IllegalArgumentException e) {
+            log.warn("getSupportTicket rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }

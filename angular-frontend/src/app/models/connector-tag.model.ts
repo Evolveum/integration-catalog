@@ -15,3 +15,10 @@ export const OBSOLETE_CONNECTOR_TAG = 'obsolete';
 export function isObsoleteConnector(tags: ConnectorTag[] | null | undefined): boolean {
   return !!tags?.some(t => t.name === OBSOLETE_CONNECTOR_TAG);
 }
+
+/** Connector published with no artifact to download; its versions never get an artifact URL. */
+export const ARTIFACT_URLLESS_CONNECTOR_TAG = 'arti_URLless';
+
+export function isArtifactUrllessConnector(tags: ConnectorTag[] | null | undefined): boolean {
+  return !!tags?.some(t => t.name === ARTIFACT_URLLESS_CONNECTOR_TAG);
+}

@@ -70,11 +70,16 @@
 
         @if (menuOpen()) {
           <div class="dropdown-menu show top-100 end-0 mt-2 user-menu" role="menu">
-<!--            <button class="dropdown-item" type="button" role="menuitem"-->
-<!--              (click)="openComingSoon('My integration methods')">My integration methods</button>-->
-<!--            <button class="dropdown-item" type="button" role="menuitem"-->
-<!--              (click)="openComingSoon('My connectors')">My connectors</button>-->
-<!--            <hr class="dropdown-divider">-->
+            <!-- A superuser sees every method and connector in the catalog instead of their own, plus the approval queue. -->
+            @if (isSuperuser()) {
+              <a class="dropdown-item" role="menuitem" routerLink="/all-integration-methods" (click)="closeMenu()">All integration methods</a>
+              <a class="dropdown-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
+              <a class="dropdown-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
+            } @else {
+              <a class="dropdown-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
+              <a class="dropdown-item" role="menuitem" routerLink="/my-connectors" (click)="closeMenu()">My connectors</a>
+            }
+            <hr class="dropdown-divider">
             <a class="dropdown-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
             <hr class="dropdown-divider">
             <button class="dropdown-item text-danger d-flex align-items-center gap-2" type="button" role="menuitem" (click)="logout()">

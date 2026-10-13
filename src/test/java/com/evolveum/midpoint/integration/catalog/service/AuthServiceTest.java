@@ -9,7 +9,9 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.object.*;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
+import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.junit.jupiter.api.AfterEach;
@@ -53,6 +55,12 @@ class AuthServiceTest {
     @Mock
     private KeycloakUserDirectory keycloakUserDirectory;
 
+    @Mock
+    private IntegrationMethodRepository integrationMethodRepository;
+
+    @Mock
+    private RequestRepository requestRepository;
+
     /** Aliases of the two seeded organizations, as the organization claim carries them. */
     private static final String ACME = "acme";
     private static final String EVOLVEUM = "evolveum";
@@ -61,8 +69,8 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(organizationService, ownershipService, maintainerRepository,
-                keycloakUserDirectory, new CatalogClaims("roles", "organization"));
+        authService = new AuthService(organizationService, ownershipService, maintainerRepository, keycloakUserDirectory,
+                new CatalogClaims("roles", "organization"), integrationMethodRepository, requestRepository);
     }
 
     @AfterEach

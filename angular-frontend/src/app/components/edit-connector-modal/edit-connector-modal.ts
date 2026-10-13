@@ -6,12 +6,12 @@
 
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, computed
-} from '@angular/core';
+  signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
+import { LicenseTypeService } from '../../services/license-type.service';
 import { CapabilityPicker, CapabilityGroup } from '../capability-picker/capability-picker';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
@@ -33,7 +33,9 @@ export interface ConnectorEditPayload {
   bundleDisplayName: string | null;
   commitTag: string | null;
   version: string | null;
-  connectorCapabilities: { objectClass: string; capabilityNames: string[] }[];
+  /** The version this edit was opened on, so the backend edits that row rather than guessing. */
+  baseVersion: string | null;
+  connectorCapabilities: { objectClass: string; capabilityNames: string[]; resourceWide: boolean }[];
 }
 
 @Component({
@@ -44,7 +46,6 @@ export interface ConnectorEditPayload {
   styleUrls: ['./edit-connector-modal.scss']
 })
 export class EditConnectorModal implements OnInit {
-  @Input() appId = '';
   @Input() methodId = '';
   @Input() revision = '';
   @Input({ required: true }) connector!: ImplementationListItem;
@@ -63,6 +64,8 @@ export class EditConnectorModal implements OnInit {
   // ── Basic information & capabilities ──────────────────────
   protected readonly connectorName = signal<string>('');
   protected readonly connectorVersion = signal<string>('');
+  /** The version as loaded, kept while connectorVersion follows what the user types. */
+  private loadedVersion = '';
   protected readonly connectorMaintainer = signal<Maintainer | null>(null);
   protected readonly maintainerOptions = signal<Maintainer[]>([]);
   protected readonly maintainerSearch = signal<string>('');
@@ -101,10 +104,7 @@ export class EditConnectorModal implements OnInit {
    */
   protected isInitialVersion = true;
 
-  protected readonly licenseOptions = ['MIT', 'APACHE_2', 'BSD', 'EUPL', 'CDDL'];
-  protected readonly licenseLabels: Record<string, string> = {
-    'MIT': 'MIT', 'APACHE_2': 'Apache 2.0', 'BSD': 'BSD', 'EUPL': 'EUPL 1.2', 'CDDL': 'CDDL'
-  };
+  protected readonly licenseTypes = inject(LicenseTypeService);
 
   // ── Validation ────────────────────────────────────────────
   protected readonly isGitCloneUrlInvalid = computed(() => {
@@ -144,6 +144,7 @@ export class EditConnectorModal implements OnInit {
 
     this.connectorName.set(c.connectorDisplayName || c.name || '');
     this.connectorVersion.set(c.version ?? '');
+    this.loadedVersion = c.version ?? '';
     this.connectorMaintainer.set(c.maintainer ?? null);
     this.connectorLicense.set(c.licenseType ?? '');
     this.connectorDescription.set(c.implementationDescription ?? '');
@@ -162,7 +163,8 @@ export class EditConnectorModal implements OnInit {
 
     const caps: CapabilityGroup[] = (c.objectClassCapabilities ?? []).map(oc => ({
       objectClass: oc.objectName,
-      capabilityNames: oc.capabilities ?? []
+      capabilityNames: oc.capabilities ?? [],
+      resourceWide: oc.resourceWide
     }));
     this.initialCapabilities.set(caps);
     this.connectorCapabilities.set(caps);
@@ -214,7 +216,7 @@ export class EditConnectorModal implements OnInit {
 
   // ── License combobox ──────────────────────────────────────
   protected fmtLicense(key: string): string {
-    return this.licenseLabels[key] ?? key;
+    return this.licenseTypes.label(key);
   }
 
   protected onLicenseBlur(): void {
@@ -253,9 +255,11 @@ export class EditConnectorModal implements OnInit {
       bundleDisplayName: this.connectorBundleName() || null,
       commitTag: this.devCommitTag() || null,
       version: this.connectorVersion().trim() || null,
+      baseVersion: this.loadedVersion.trim() || null,
       connectorCapabilities: this.connectorCapabilities().map(g => ({
         objectClass: g.objectClass,
-        capabilityNames: g.capabilityNames
+        capabilityNames: g.capabilityNames,
+        resourceWide: g.resourceWide
       }))
     };
 
@@ -266,7 +270,7 @@ export class EditConnectorModal implements OnInit {
     }
 
     this.isSaving.set(true);
-    this.appService.updateConnector(this.appId, this.methodId, this.revision, connectorId, payload)
+    this.appService.updateConnector(this.methodId, this.revision, connectorId, payload)
       .subscribe({
         next: () => { this.isSaving.set(false); this.saved.emit(); },
         error: err => {

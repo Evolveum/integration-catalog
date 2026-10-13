@@ -30,6 +30,8 @@ public record IntegrationMethodDto(
         Long downloadCount,                                         // computed: count of download rows
         Integer midpointMinVersionId,                               // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
         Integer midpointMaxVersionId,                               // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+        String appMinVersion,                                       // integration_method.app_minversion (free text)
+        String appMaxVersion,                                       // integration_method.app_maxversion (free text)
         String connectorDisplayName,                                // connector.display_name
         List<String> integMethodTypes,                              // integration_method_type.name
         String revision,                                            // integration_method.revision
@@ -44,5 +46,6 @@ public record IntegrationMethodDto(
         List<IncludedConnectorDto> connectors,                      // connectors linked via integration_method_connector
         Integer supportTicketId,                                    // integration_method.support_ticket_id, only for those allowed to see it
         String supportTicketUrl,                                    // generated from supportTicketId
-        SupportTier supportTier                                     // integration_method.support_tier, null = not tiered
+        SupportTier supportTier,                                    // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+        boolean hasConnectorBundle                                  // false = no connector to hold a tier, so it cannot be set
 ) {}

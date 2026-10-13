@@ -4,8 +4,6 @@
 */
 @use 'variables' as *;
 
-//TODO missing colors
-$color-dark-blue: blue;
 
 .settings-page {
   background-color: $color-white;
@@ -57,7 +55,7 @@ $color-dark-blue: blue;
 }
 
 .iam-banner-icon {
-  color: $color-dark-blue;
+  color: $color-brand-steel;
   font-size: 15px;
   flex-shrink: 0;
   align-self: flex-start;

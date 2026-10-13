@@ -53,6 +53,22 @@
   border-top: 1px solid #f1f3f5;
 }
 
+.tiers-method-title {
+  min-width: 0;
+}
+
+// Tells apart published revisions of one method, which share its name.
+.tiers-version {
+  flex-shrink: 0;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid $color-border-light;
+  border-radius: 4px;
+  background-color: $color-bg-light;
+  font-size: 0.6875rem;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
 .tiers-method-name {
   min-width: 0;
   overflow-wrap: anywhere;

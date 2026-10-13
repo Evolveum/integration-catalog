@@ -16,7 +16,8 @@ export interface IntegrationMethodTier {
   methodId: string;               // integration_method.id
   revision: string;               // integration_method.revision
   methodName: string;             // integration_method.display_name
-  supportTier: SupportTier | null; // integration_method.support_tier, null = not tiered
+  supportTier: SupportTier | null; // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+  hasConnectorBundle: boolean;     // false = no connector to hold a tier, so it cannot be set
 }
 
 export interface MidpointVersion {
@@ -57,6 +58,8 @@ export interface IntegrationMethod {
   downloadCount: number | null;            // computed: count of download rows
   midpointMinVersionId: number | null;     // integration_method.midpoint_min_version_id (FK → midpoint_version.id)
   midpointMaxVersionId: number | null;     // integration_method.midpoint_max_version_id (FK → midpoint_version.id)
+  appMinVersion: string | null;            // integration_method.app_minversion (free text)
+  appMaxVersion: string | null;            // integration_method.app_maxversion (free text)
   connectorDisplayName: string | null;     // connector.display_name
   integMethodTypes: string[] | null;       // integration_method_type.name
   objectClassCapabilities: IntegrationMethodObjectCapabilities[] | null; // every offered capability with its state
@@ -71,12 +74,14 @@ export interface IntegrationMethod {
   connectors: IncludedConnector[] | null; // connectors linked via integration_method_connector
   supportTicketId: number | null;        // integration_method.support_ticket_id, only sent to those allowed to see it
   supportTicketUrl: string | null;       // built from supportTicketId by the backend
-  supportTier: SupportTier | null;       // integration_method.support_tier, null = not tiered
+  supportTier: SupportTier | null;       // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+  hasConnectorBundle: boolean;           // false = no connector to hold a tier, so it cannot be set
 }
 
 export interface ObjectClassCapability {
   objectName: string;     // object_class_capabilities.object_name
   capabilities: string[]; // capability.name items
+  resourceWide: boolean;  // resource_wide; objectName is then only a label
 }
 
 /** Whether an integration method supports a capability on an object; UNKNOWN means nobody determined it. */

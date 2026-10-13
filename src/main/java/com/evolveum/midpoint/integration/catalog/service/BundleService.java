@@ -10,6 +10,7 @@ import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.Connector;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundleVersion;
+import com.evolveum.midpoint.integration.catalog.object.ConnectorTag;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodCapability;
@@ -17,9 +18,11 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodConnect
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
+import com.evolveum.midpoint.integration.catalog.util.ConnectorVersions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,28 +55,30 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class BundleService {
 
-    /** The reserved object class holding resource-wide capabilities; a connector's, not a method's. */
-    private static final String GLOBAL_OBJECT_CLASS = "Global";
-
     private final IntegrationMethodRepository integrationMethodRepository;
     private final TutorialStorageService tutorialStorageService;
     private final OwnershipService ownershipService;
     private final ObjectWriter jsonWriter;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
+    private final HttpClient httpClient;
+    private final Duration readTimeout;
     /** Cache of fetched artifact bytes, keyed by artifact URL — release URLs are immutable. */
     private final Map<String, byte[]> artifactCache = new ConcurrentHashMap<>();
 
     public BundleService(IntegrationMethodRepository integrationMethodRepository,
                          TutorialStorageService tutorialStorageService,
                          OwnershipService ownershipService,
-                         ObjectMapper objectMapper) {
+                         ObjectMapper objectMapper,
+                         @Value("${catalog.bundle-download.connect-timeout}") Duration connectTimeout,
+                         @Value("${catalog.bundle-download.read-timeout}") Duration readTimeout) {
         this.integrationMethodRepository = integrationMethodRepository;
         this.tutorialStorageService = tutorialStorageService;
         this.ownershipService = ownershipService;
         this.jsonWriter = objectMapper.writerWithDefaultPrettyPrinter();
+        this.readTimeout = readTimeout;
+        this.httpClient = HttpClient.newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL) // Nexus may redirect to a storage host
+                .connectTimeout(connectTimeout)
+                .build();
     }
 
     /**
@@ -105,7 +110,7 @@ public class BundleService {
             addTutorial(zip, method, warnings);
             addTutorialFiles(zip, methodId, revision, warnings);
             addMetadata(zip, method);
-            addConnectorJars(zip, method, errors);
+            addConnectorJars(zip, method, errors, warnings);
             writeIssues(zip, "ERROR.txt", "important problems", errors);
             writeIssues(zip, "WARNING.txt", "minor problems", warnings);
         }
@@ -191,8 +196,11 @@ public class BundleService {
      * latest bundle version artifact URL. Never throws on a missing or unreachable artifact: the JAR is
      * an important part of the bundle, so any connector without one is recorded as an error (surfaced in
      * ERROR.txt). Duplicate JAR file names are de-duplicated so the ZIP never has clashing entries.
+     * A connector published without an artifact URL has no JAR by design: its description takes the
+     * JAR's place and WARNING.txt points to it.
      */
-    private void addConnectorJars(ZipOutputStream zip, IntegrationMethod method, List<String> errors) throws IOException {
+    private void addConnectorJars(ZipOutputStream zip, IntegrationMethod method, List<String> errors,
+                                  List<String> warnings) throws IOException {
         List<IntegrationMethodConnector> links = method.getConnectors();
         if (links == null || links.isEmpty()) {
             errors.add("No connector is linked to this integration method, so no build file (.jar) is included.");
@@ -207,7 +215,11 @@ public class BundleService {
                 continue;
             }
             String label = connectorLabel(connector);
-            String artifactUrl = resolveArtifactUrl(connector);
+            if (connector.hasTag(ConnectorTag.ARTIFACT_URLLESS)) {
+                addArtifactUrllessDescription(zip, method, connector, label, warnings);
+                continue;
+            }
+            String artifactUrl = resolveArtifactUrl(link);
             if (artifactUrl == null || artifactUrl.isBlank()) {
                 errors.add("Missing build file (.jar) for connector " + label + ": no build file available.");
                 continue;
@@ -225,6 +237,26 @@ public class BundleService {
                         + ": could not be retrieved (" + e.getMessage() + ").");
             }
         }
+    }
+
+    /**
+     * Ships the description of a connector published without an artifact URL under the same name the
+     * support ticket attaches it with, since that is where its user learns how to get the connector.
+     */
+    private void addArtifactUrllessDescription(ZipOutputStream zip, IntegrationMethod method, Connector connector,
+                                               String label, List<String> warnings) throws IOException {
+        String fileName = SupportTicketAttachments.connectorDescriptionAttachment(method, connector);
+        if (fileName == null) {
+            warnings.add("Connector " + label + " was published without an artifact URL, so no build file (.jar)"
+                    + " is included, and it has no description either: check its page in the catalog.");
+            return;
+        }
+        String entryName = "connectors/" + fileName;
+        zip.putNextEntry(new ZipEntry(entryName));
+        zip.write(connector.getDescription().getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
+        warnings.add("Connector " + label + " was published without an artifact URL, so no build file (.jar)"
+                + " is included. See details in " + entryName + ".");
     }
 
     /**
@@ -270,16 +302,14 @@ public class BundleService {
     }
 
     /**
-     * Resolves the build-artifact URL for a single connector, using its latest connector bundle
-     * version (most recently updated). Returns {@code null} if no bundle version carries an artifact URL.
+     * The build-artifact URL of the connector version the method uses (see {@link ConnectorVersions}),
+     * or {@code null} when that version carries none.
      */
-    private String resolveArtifactUrl(Connector connector) {
-        return connector.getConnectorVersions().stream()
+    private String resolveArtifactUrl(IntegrationMethodConnector link) {
+        return ConnectorVersions.used(link)
                 .map(ConnectorVersion::getConnectorBundleVersion)
-                .filter(cbv -> cbv != null && cbv.getArtifactUrl() != null && !cbv.getArtifactUrl().isBlank())
-                .max(Comparator.comparing(ConnectorBundleVersion::getUpdated,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
                 .map(ConnectorBundleVersion::getArtifactUrl)
+                .filter(url -> !url.isBlank())
                 .orElse(null);
     }
 
@@ -320,7 +350,7 @@ public class BundleService {
 
     private byte[] downloadArtifact(String artifactUrl) throws IOException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(artifactUrl))
-                .timeout(Duration.ofSeconds(60))
+                .timeout(readTimeout)
                 .GET()
                 .build();
         try {
@@ -373,7 +403,8 @@ public class BundleService {
         meta.put("lifecycleState", method.getLifecycleState());
         meta.put("author", method.getAuthor());
         meta.put("maintainer", ownershipService.maintainerLabel(method));
-        meta.put("appVersion", method.getAppVersion());
+        meta.put("appMinVersion", method.getAppMinVersion());
+        meta.put("appMaxVersion", method.getAppMaxVersion());
         meta.put("midpointMinVersionId", method.getMidpointMinVersionId());
         meta.put("midpointMaxVersionId", method.getMidpointMaxVersionId());
         meta.put("createdAt", method.getCreatedAt());
@@ -387,10 +418,6 @@ public class BundleService {
 
         List<Map<String, Object>> capabilities = new ArrayList<>();
         for (IntegrationMethodCapability cap : method.getCapabilities()) {
-            // Resource-wide capabilities are exported with the connector, not with the method.
-            if (GLOBAL_OBJECT_CLASS.equalsIgnoreCase(cap.getObjectClass())) {
-                continue;
-            }
             Map<String, Object> capMeta = new LinkedHashMap<>();
             capMeta.put("objectClass", cap.getObjectClass());
             List<Map<String, Object>> states = new ArrayList<>();
@@ -425,7 +452,8 @@ public class BundleService {
             meta.put("description", connector.getDescription());
             meta.put("author", connector.getAuthor());
             meta.put("maintainer", ownershipService.maintainerLabel(connector));
-            meta.put("revision", connector.getRevision());
+            meta.put("revision", ConnectorVersions.used(link).map(ConnectorVersions::versionOf)
+                    .orElse(connector.getRevision()));
             meta.put("connectorMinVersion", link.getConnectorMinVersion());
             meta.put("connectorMaxVersion", link.getConnectorMaxVersion());
 

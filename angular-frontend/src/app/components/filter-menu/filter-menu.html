@@ -1,0 +1,27 @@
+<!--
+ * Copyright (c) 2010-2026 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+@if (searchable()) {
+  <label class="filter-menu-search d-flex align-items-center gap-2 mb-2">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input #searchInput type="text" placeholder="Search" [value]="query()" (input)="query.set($any($event.target).value)">
+  </label>
+}
+<div class="filter-menu-options">
+  @for (option of visibleOptions(); track option.value) {
+    <button type="button" class="ss-chip-option" (click)="toggle.emit(option.value)">
+      <span class="ss-checkbox" [class.ss-checkbox-checked]="selected().has(option.value)">
+        @if (selected().has(option.value)) { <i class="fa-solid fa-check"></i> }
+      </span>
+      <span>{{ option.label }}</span>
+    </button>
+  } @empty {
+    <div class="ss-chip-empty mb-2">{{ options().length ? 'No matches' : 'Nothing to choose from' }}</div>
+  }
+</div>
+<div class="ss-chip-dropdown-footer">
+  <button type="button" class="ss-chip-clear-link" (click)="clear.emit()">Clear filter</button>
+</div>

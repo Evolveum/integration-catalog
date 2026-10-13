@@ -30,6 +30,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		PendingOperationProperties.class,
 		CatalogProperties.class,
 		LinksProperties.class,
+		FooterProperties.class,
 		GraviteeProperties.class
 })
 public class IntegrationCatalogApplication {
@@ -38,6 +39,11 @@ public class IntegrationCatalogApplication {
 			= (Logger) LoggerFactory.getLogger(IntegrationCatalogApplication.class);
 
 	public static void main(String[] args) {
+		// Guarantee the banner is the first thing logged. Spring Boot's background
+		// pre-initializer warms up classes (e.g. Hibernate Validator) on a separate
+		// thread and can log before the banner is printed; disabling it keeps the
+		// banner on top. Must be set before SpringApplication.run(...).
+		System.setProperty("spring.backgroundpreinitializer.ignore", "true");
 		SpringApplication.run(IntegrationCatalogApplication.class, args);
 	}
 

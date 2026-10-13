@@ -1,35 +1,37 @@
 <configuration>
-         <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
-             <layout class="ch.qos.logback.classic.PatternLayout">
-                <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %class{36}.%M %L - %msg%n</Pattern>
-             </layout>
-           </appender>
-
-    <appender name="time-file-appender"
-              class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>integration-catalog.log</file>
-        <rollingPolicy
-                class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>app.%d{yyyy-MM-dd-mm}.%i.log.zip</fileNamePattern>
-            <maxHistory>20</maxHistory>
-        </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-            <maxFileSize>10MB</maxFileSize>
-        </triggeringPolicy>
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %class{36}.%M %L - %msg%n</pattern>
         </encoder>
-
     </appender>
 
+    <appender name="time-file-appender"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>./integration-catalog/logs/integration-catalog.log</file>
+        <rollingPolicy
+                class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>./integration-catalog/logs/app.%d{yyyy-MM-dd-HH}.%i.log.zip</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>24</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %class{36}.%M %L - %msg%n</pattern>
+        </encoder>
+    </appender>
 
+    <!--
+        Both appenders are active during startup, so initialization logs show in the
+        terminal AND are saved to file. Once the application is fully initialized, a
+        WARN threshold filter is added to the "stdout" appender programmatically (see
+        ConsoleLoggingToggle): afterwards only WARN/ERROR flash in the terminal while
+        INFO/DEBUG go to the file only. The file appender always captures everything.
+    -->
     <root level="INFO">
         <appender-ref ref="stdout"/>
-        <!--    <appender-ref ref="time-file-appender"/>-->
+        <appender-ref ref="time-file-appender"/>
     </root>
 
-    <logger name="com.evolveum.midpoint.integration.catalog" level="DEBUG">
-        <appender-ref ref="time-file-appender" />
-    </logger>
+    <!-- Our own package logs at DEBUG; inherits the root appenders (no duplicate file writes). -->
+    <logger name="com.evolveum.midpoint.integration.catalog" level="DEBUG"/>
 
 </configuration>

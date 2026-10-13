@@ -128,6 +128,24 @@
         }
       </div>
 
+      <!-- Supported application version -->
+      <div class="mb-4">
+        <label class="form-label form-label-upload d-block">Supported application version</label>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="midpoint-range-label">From</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMinVersion()"
+                 (input)="appMinVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2024.1">
+          <span class="midpoint-range-dash">—</span>
+          <span class="midpoint-range-label">To</span>
+          <input type="text" class="form-control app-version-select" maxlength="64"
+                 [value]="appMaxVersion()"
+                 (input)="appMaxVersion.set($any($event.target).value)"
+                 placeholder="e.g. 2025.2">
+        </div>
+      </div>
+
       <!-- Description -->
       <div class="mb-4">
         <label class="form-label form-label-upload">Description</label>
@@ -301,7 +319,7 @@
                       @let key = ci + '-' + occ.objectName;
                       <div class="mb-1">
                         <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleConnectorCaps(key)" style="cursor:pointer;">
-                          <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                          <span class="fw-semibold text-sm">{{ occ.resourceWide ? 'All object classes (Global)' : occ.objectName }}</span>
                           <i class="fa-solid icon-sm"
                              [class.fa-chevron-up]="isCapsExpanded(key)"
                              [class.fa-chevron-down]="!isCapsExpanded(key)"></i>
@@ -478,7 +496,6 @@
 
   @if (editingConnector()) {
     <app-edit-connector-modal
-      [appId]="appId()"
       [methodId]="versionId()"
       [revision]="methodVersion()"
       [connector]="editingConnector()!"
@@ -517,9 +534,8 @@
   <!-- "Changes saved" confirmation (shown after a minor Save) -->
   @if (showSavedModal()) {
     <app-submission-success-modal
-      title="Changes has been successfully saved"
+      title="Changes have been successfully saved"
       subtitle="Changes are now awaiting for approval"
-      [appId]="appId()"
       [methodId]="versionId()"
       [revision]="methodVersion()"
       (done)="savedGoToCatalog()"
@@ -532,7 +548,6 @@
     <app-submission-success-modal
       [title]="'Integration method upgraded to ' + versionBadge(methodVersion())"
       subtitle="New version is now awaiting for approval"
-      [appId]="appId()"
       [methodId]="versionId()"
       [revision]="methodVersion()"
       (done)="savedGoToCatalog()"

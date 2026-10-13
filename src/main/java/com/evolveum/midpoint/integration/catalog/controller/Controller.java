@@ -36,6 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -81,6 +82,7 @@ public class Controller {
             ApplicationDto dto = applicationMapper.mapToApplicationDto(app, viewer);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException ex) {
+            log.error("getApplication failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Failed to load application: " + ex.getMessage(), ex);
         }
@@ -97,6 +99,7 @@ public class Controller {
         try {
             return ResponseEntity.ok(applicationService.getApplicationTags());
         } catch (RuntimeException ex) {
+            log.error("getApplicationTags failed: {}", ex.getMessage(), ex);
             return ResponseEntity.notFound().build();
         }
     }
@@ -128,6 +131,7 @@ public class Controller {
         try {
             return ResponseEntity.ok(applicationService.getCountriesOfOrigin());
         } catch (RuntimeException ex) {
+            log.error("getCountriesOfOrigin failed: {}", ex.getMessage(), ex);
             return ResponseEntity.notFound().build();
         }
     }
@@ -154,8 +158,10 @@ public class Controller {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(applicationService.uploadIntegration(dto, authentication.getName()));
         } catch (IllegalArgumentException e) {
+            log.warn("uploadConnector rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("uploadConnector rejected: {}", e.getMostSpecificCause().getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Publish failed due to a data conflict (e.g. duplicate bundle version). " +
                 "Please ensure the database migration 03_fix_bundle_version_unique_constraint.sql has been applied. " +
@@ -188,36 +194,30 @@ public class Controller {
 
     @Operation(summary = "Search applications by parameters")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Applications found"),
-            @ApiResponse(responseCode = "404", description = "Applications not found")
+            @ApiResponse(responseCode = "200", description = "Matching applications, an empty page when none match")
     })
     @PostMapping("/applications/search/{size}/{page}")
-    public ResponseEntity<Page<Application>> searchApplication(
+    public ResponseEntity<Page<ApplicationCardDto>> searchApplication(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
             @PathVariable int page) {
-        try {
-            return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
-        } catch (RuntimeException ex) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
     }
 
-    @Operation(summary = "Search integration methods by parameters")
+    @Operation(summary = "Search integration methods by parameters",
+            description = "Returns the matching methods the caller may see: every ACTIVE one, and the ones "
+                    + "not approved yet only to whoever may edit them")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Integration methods found"),
-            @ApiResponse(responseCode = "404", description = "Integration methods not found")
+            @ApiResponse(responseCode = "200", description = "Matching integration methods, an empty page when none match")
     })
     @PostMapping("/integration-methods/search/{size}/{page}")
-    public ResponseEntity<Page<IntegrationMethod>> searchIntegrationMethods(
+    public ResponseEntity<Page<IntegrationMethodDto>> searchIntegrationMethods(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
-            @PathVariable int page) {
-        try {
-            return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size));
-        } catch (RuntimeException ex) {
-            return ResponseEntity.notFound().build();
-        }
+            @PathVariable int page,
+            Authentication authentication) {
+        String viewer = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size, viewer));
     }
 
     @Operation(summary = "Get Request by ID")
@@ -257,8 +257,10 @@ public class Controller {
             Request created = applicationService.createRequestFromForm(dto, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException ex) {
+            log.warn("createRequest rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (Exception ex) {
+            log.error("createRequest failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create request: " + ex.getMessage());
         }
     }
@@ -277,8 +279,10 @@ public class Controller {
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (IllegalArgumentException ex) {
+            log.warn("cancelRequest rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         } catch (Exception ex) {
+            log.error("cancelRequest failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to cancel request: " + ex.getMessage());
         }
@@ -296,6 +300,7 @@ public class Controller {
             Vote vote = applicationService.submitVote(requestId, authentication.getName());
             return ResponseEntity.status(HttpStatus.CREATED).body(vote);
         } catch (IllegalArgumentException ex) {
+            log.warn("submitVote rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
     }
@@ -387,6 +392,16 @@ public class Controller {
         return ResponseEntity.ok(applicationService.getCapabilities());
     }
 
+    @Operation(summary = "Get license types",
+            description = "Returns every license a connector may be published under, with its display name")
+    @ApiResponse(responseCode = "200", description = "License types retrieved successfully")
+    @GetMapping("/license-types")
+    public ResponseEntity<List<LicenseTypeDto>> getLicenseTypes() {
+        return ResponseEntity.ok(Arrays.stream(ConnectorBundle.LicenseType.values())
+                .map(license -> new LicenseTypeDto(license.name(), license.getDisplayName()))
+                .toList());
+    }
+
     @Operation(summary = "Get total downloads count",
             description = "Returns the total number of downloads across all applications")
     @ApiResponses(value = {
@@ -420,10 +435,13 @@ public class Controller {
             applicationService.verify(oid, verifyPayload);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
+            log.warn("verify rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (ObjectAlreadyExist e) {
+            log.warn("verify rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (Exception e) {
+            log.error("verify failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
@@ -433,23 +451,29 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Building successfully start")
     })
     @PostMapping("/upload/trigger-build/{oid}")
-    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid) {
+    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid,
+                                               Authentication authentication) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.triggerBuild(oid, triggerBuildForm));
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(applicationService.triggerBuild(oid, triggerBuildForm, authentication.getName()));
         } catch (IllegalArgumentException e) {
+            log.warn("triggerBuild rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
     @Operation(summary = "Get integration methods for application",
-            description = "Returns all integration methods for a specific application")
+            description = "Returns the integration methods of an application the caller may see: every ACTIVE "
+                    + "one, and the ones not approved yet only to whoever may edit them")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Integration methods retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @GetMapping("/applications/{applicationId}/implementations")
-    public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(@PathVariable UUID applicationId) {
-        List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId);
+    public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(
+            @PathVariable UUID applicationId, Authentication authentication) {
+        String viewer = authentication != null ? authentication.getName() : null;
+        List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId, viewer);
         return ResponseEntity.ok(items);
     }
 
@@ -457,13 +481,6 @@ public class Controller {
     @GetMapping("/integration-methods/tiers")
     public ResponseEntity<List<IntegrationMethodTierDto>> getSupportTiers() {
         return ResponseEntity.ok(applicationService.listSupportTiers());
-    }
-
-    @Operation(summary = "Set or clear the support tier of an integration method, all revisions (superuser only)")
-    @PutMapping("/integration-methods/{methodId}/tier")
-    public ResponseEntity<Void> setSupportTier(@PathVariable UUID methodId, @RequestBody SupportTierDto dto) {
-        applicationService.setSupportTier(methodId, dto.tier());
-        return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Mark an application as featured on the homepage, or not (superuser only)")
@@ -489,8 +506,10 @@ public class Controller {
             throw e;
         } catch (RuntimeException e) {
             if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                log.warn("updateApplication rejected: {}", e.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
             }
+            log.error("updateApplication failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to update application: " + e.getMessage(), e);
         }
@@ -509,20 +528,26 @@ public class Controller {
     @PostMapping(value = "/applications/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadLogo(
             @PathVariable UUID id,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            Application application = applicationService.getApplication(id);
-            logoStorageService.saveLogo(application, file);
+            logoStorageService.saveLogo(id, file, authentication);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadLogo rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadLogo rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload logo: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save logo file: " + ex.getMessage(), ex);
         }
@@ -539,19 +564,26 @@ public class Controller {
     @PostMapping(value = "/integration-methods/{id}/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadTutorial(
             @PathVariable UUID id,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            tutorialStorageService.saveTutorial(id, file);
+            tutorialStorageService.saveTutorial(id, file, authentication);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
+            log.warn("uploadTutorial rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("uploadTutorial rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("uploadTutorial failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to upload tutorial: " + ex.getMessage(), ex);
         } catch (IOException ex) {
+            log.error("uploadTutorial failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to save tutorial file: " + ex.getMessage(), ex);
         }
@@ -572,6 +604,7 @@ public class Controller {
         try {
             application = applicationService.getApplication(id);
         } catch (RuntimeException ex) {
+            log.warn("getLogo rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found");
         }
 
@@ -616,15 +649,18 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @DeleteMapping("/applications/{id}/logo")
-    public ResponseEntity<Void> deleteLogo(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteLogo(@PathVariable UUID id, Authentication authentication) {
         try {
-            Application application = applicationService.getApplication(id);
-            logoStorageService.deleteLogo(application);
+            logoStorageService.deleteLogo(id, authentication);
             return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                log.warn("deleteLogo rejected: {}", ex.getMessage());
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
             }
+            log.error("deleteLogo failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Failed to delete logo: " + ex.getMessage(), ex);
         }

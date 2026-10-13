@@ -21,5 +21,6 @@ public record ConnectorWithoutDownloadDto(
         String connectorVersionId,
         String connectorVersionRevision,
         UUID integrationMethodId,
-        String integrationMethodRevision
+        String integrationMethodRevision,
+        boolean newConnector  // never published: only such a connector may be marked as without an artifact URL
 ) {}

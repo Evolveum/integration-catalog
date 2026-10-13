@@ -26,4 +26,6 @@ public class ContinueForm {
     private String connectorBundleVersionRevision;
     private String connectorVersionId;
     private String connectorVersionRevision;
+    /** Set by the manual fill only: the connector has no artifact URL, so no download link is expected. */
+    private boolean artifactUrlless;
 }

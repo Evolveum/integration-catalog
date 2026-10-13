@@ -69,6 +69,8 @@ export interface UploadIntegrationMethodData {
   typeIds: number[];              // integration_method_type.id
   midpointMinVersion: number | null; // midpoint_version.id (FK for min version)
   midpointMaxVersion: number | null; // midpoint_version.id (FK for max version)
+  appMinVersion: string | null;      // integration_method.app_minversion (free text)
+  appMaxVersion: string | null;      // integration_method.app_maxversion (free text)
 }
 
 /**
@@ -108,6 +110,7 @@ export interface UploadFileItem {
 export interface IntegrationMethodCapabilityGroup {
   objectClass: string;          // object_class_capabilities.object_name
   capabilityNames: string[];    // capability.name via integration_method_capability_item / conn_version_capability_item
+  resourceWide: boolean;        // conn_version_capability.resource_wide; objectClass is then only a label
 }
 
 /**

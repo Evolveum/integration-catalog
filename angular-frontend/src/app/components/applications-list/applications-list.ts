@@ -7,7 +7,7 @@
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ViewChildren, ElementRef, AfterViewInit, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationsListStateService } from '../../services/applications-list-state.service';
 import { Application, ApplicationTag, hasLogo } from '../../models/application.model';
@@ -25,7 +25,7 @@ import { formatCapabilityLabel } from '../../core/capability-label';
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
+  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })
@@ -151,6 +151,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       this.laterStartVersionId(app, filters.midpointVersions) !== null ? 1 : 0;
     apps.sort((a, b) => needsUpgrade(a) - needsUpgrade(b));
 
+    // Name hits before description-only hits, each group keeping the order above.
+    if (query) {
+      const rank = new Map(apps.map(app => [app, this.searchRank(app, query)]));
+      apps.sort((a, b) => rank.get(a)! - rank.get(b)!);
+    }
+
     const start = this.currentPage() * this.itemsPerPage;
     const end = start + this.itemsPerPage;
     return apps.slice(start, end);
@@ -169,6 +175,20 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   });
 
   /**
+   * 0 = the name matches, also by its initials so "aws" finds "Amazon Web Services";
+   * 1 = only the description matches; -1 = no match.
+   * Null-guarded: name and description are nullable in the database, and one null would throw
+   * and empty the whole list rather than skipping that single application.
+   */
+  private searchRank(app: Application, query: string): number {
+    const name = (app.displayName ?? '').toLowerCase();
+    if (name.includes(query)) return 0;
+    const initials = name.split(/[\s\-_./()]+/).filter(word => word).map(word => word[0]).join('');
+    if (query.length > 1 && initials.startsWith(query)) return 0;
+    return (app.description ?? '').toLowerCase().includes(query) ? 1 : -1;
+  }
+
+  /**
    * Applies all filters to the applications list.
    * Shared by moreApplications and filteredCount computed signals.
    */
@@ -184,11 +204,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
 
     // Filter by search query
     if (query) {
-      // Null-guarded: display name is nullable in the database, and one null would throw here and
-      // empty the whole list rather than skipping that single application.
-      filtered = filtered.filter(app =>
-        (app.displayName ?? '').toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(app => this.searchRank(app, query) >= 0);
     }
 
     // Apply advanced filters
@@ -1094,9 +1110,16 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly isSheetPreparing = signal<boolean>(false);
   protected readonly sheetDownloadSteps: DownloadInfoStep[] = [
     {
+      title: 'Go to import page into midPoint',
+      description: 'In midPoint, in the left side main menu, click "Import object".'
+    },
+    {
       title: 'Import the downloaded JSON file into midPoint',
-      description: 'The imported list will be used to verify which connectors are allowed to '
-        + 'run in a production environment.'
+      description: 'In the Import object page, click "Choose file" and select the downloaded JSON file, and click "Import object".'
+    },
+    {
+      title: 'Successfully imported',
+      description: 'The imported list will be used to verify which connectors are allowed to run in a production environment.'
     }
   ];
 

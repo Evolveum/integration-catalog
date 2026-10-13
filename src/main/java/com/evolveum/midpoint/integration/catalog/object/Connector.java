@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -75,10 +76,41 @@ public class Connector implements SetOwnership, GetOwnershipOneMaintainer {
     @OneToMany(mappedBy = "connector", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ConnectorConnectorTag> connectorConnectorTags;
 
+    /** The tier held by one of its tags; null = not tiered. */
+    public SupportTier supportTier() {
+        if (connectorConnectorTags == null) {
+            return null;
+        }
+        return connectorConnectorTags.stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .filter(Objects::nonNull)
+                .map(tag -> SupportTier.fromTagName(tag.getName()))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
     /**
-     * @param bundle the bundle the clone belongs to, itself a draft of the source's bundle
+     * No version of it has been approved yet. A copy-on-write clone stands for a connector that is
+     * already published, so it never counts as new, whatever its own versions say.
      */
-    public static Connector createConnectorDraft(Connector source, ConnectorBundle bundle) {
+    public boolean isNeverPublished() {
+        return clonedFrom == null && connectorVersions.stream()
+                .noneMatch(cv -> cv.getLifecycleState() == LifecycleType.ACTIVE);
+    }
+
+    public boolean hasTag(String tagName) {
+        return connectorConnectorTags != null && connectorConnectorTags.stream()
+                .map(ConnectorConnectorTag::getConnectorTag)
+                .anyMatch(tag -> tag != null && tagName.equals(tag.getName()));
+    }
+
+    /**
+     * A copy of what describes this connector. The bundle it belongs to and the connector it is
+     * cloned from are the caller's to set: both are relationships only the caller knows, and the
+     * bundle is NOT NULL, so a caller that forgets is refused by the database.
+     */
+    public static Connector createConnectorDraft(Connector source) {
         Connector clone = new Connector();
         clone.setRevision(source.getRevision());
         clone.setAuthor(source.getAuthor());
@@ -86,9 +118,6 @@ public class Connector implements SetOwnership, GetOwnershipOneMaintainer {
         clone.setDisplayName(source.getDisplayName());
         clone.setFullyQualifiedClassName(source.getFullyQualifiedClassName());
         clone.setDescription(source.getDescription());
-        clone.setConnectorBundle(bundle);
-        // Always the first original, so a clone of a clone still folds back into it on approve.
-        clone.setClonedFrom(source.getClonedFrom() != null ? source.getClonedFrom() : source.getId());
         // A version-bump approval deletes the original and keeps the this, so the tags must travel with it.
         Set<ConnectorConnectorTag> thisTags = new HashSet<>();
         if (source.getConnectorConnectorTags() != null) {

@@ -51,6 +51,7 @@ rebel.xml
 # Backup, log and other files
 *~
 *.log
+logs/
 *.versionsBackup
 .DS_Store
 Thumbs.db
@@ -101,3 +102,5 @@ gravitee-local.properties
 
 # Local database of the integration tests (src/test/resources/application-integration-test.properties)
 it-db.local.properties
+/config/signing/integration-catalog.crt
+/config/signing/integration-catalog.p12

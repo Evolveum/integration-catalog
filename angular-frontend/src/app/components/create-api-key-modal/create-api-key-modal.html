@@ -32,7 +32,12 @@
 
       @if (customSelected()) {
         <input class="create-key-input create-key-date" type="date" [min]="minCustomDate"
-          [ngModel]="customDate()" (ngModelChange)="customDate.set($event)">
+          [class.is-invalid]="customDateTooLate()" [ngModel]="customDate()" (ngModelChange)="customDate.set($event)">
+        @if (customDateTooLate()) {
+          <p class="create-key-error text-danger mb-0">
+            A key can be valid for at most {{ maxExpirationDays }} days. Pick {{ maxCustomDate | date:'MMM d, y' }} or earlier.
+          </p>
+        }
       }
     </div>
 

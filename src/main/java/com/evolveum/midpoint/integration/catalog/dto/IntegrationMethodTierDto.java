@@ -17,5 +17,6 @@ public record IntegrationMethodTierDto(
         UUID methodId,            // integration_method.id
         String revision,          // integration_method.revision
         String methodName,        // integration_method.display_name
-        SupportTier supportTier   // integration_method.support_tier, null = not tiered
+        SupportTier supportTier,  // supp_tier_* connector tag of the latest tiered connector, null = not tiered
+        boolean hasConnectorBundle // false = no connector to hold a tier, so it cannot be set
 ) {}

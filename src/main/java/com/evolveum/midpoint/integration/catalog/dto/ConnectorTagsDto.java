@@ -8,7 +8,8 @@ package com.evolveum.midpoint.integration.catalog.dto;
 
 import com.evolveum.midpoint.integration.catalog.object.SupportTier;
 
-/** Body of {@code PUT /api/integration-methods/{id}/tier}; a null tier removes it. */
-public record SupportTierDto(
-        SupportTier tier
+/** Body of {@code PUT /api/all-connectors/{id}/tags}: the superuser-set tags of a connector. */
+public record ConnectorTagsDto(
+        SupportTier tier,  // null removes it; must be null when obsolete
+        boolean obsolete
 ) {}

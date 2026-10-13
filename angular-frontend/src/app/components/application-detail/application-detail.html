@@ -288,7 +288,7 @@
                   <!-- Search Integration Methods Section -->
                   <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="mb-0">Search integration methods</h5>
-                    @if (hasIntegrationMethods()) {
+                    @if (hasIntegrationMethods() && !isReadOnly()) {
                       <button type="button" class="btn btn-sm btn-outline-primary text-nowrap d-inline-flex align-items-center gap-2" (click)="navigateToApprove()">
                         <i class="fa-solid fa-plus"></i>Add new method
                       </button>
@@ -412,10 +412,14 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary px-4" (click)="resetFilters()">Reset filters</button>
                       } @else {
                         <p class="fw-semibold mb-2">No integration methods defined yet.</p>
-                        <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
-                        <button type="button" class="btn btn-sm btn-primary px-4" (click)="navigateToApprove()">
-                          <i class="fa-solid fa-plus me-1"></i>Add integration method
-                        </button>
+                        @if (isReadOnly()) {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}.</p>
+                        } @else {
+                          <p class="text-muted text-center mb-4">There are currently no methods configured for {{ application()?.displayName }}. Add a new method<br>to manage how identities and accounts are handled.</p>
+                          <button type="button" class="btn btn-sm btn-primary px-4" (click)="navigateToApprove()">
+                            <i class="fa-solid fa-plus me-1"></i>Add integration method
+                          </button>
+                        }
                       }
                     </div>
                   } @else {
@@ -431,22 +435,12 @@
                                 @for (type of method.types; track type) {
                                   <span class="badge border text-body bg-body">{{ type }}</span>
                                 }
-                                @if (isSuperuser()) {
-                                  <!-- Reviewer sets the tier by hand; the click must not collapse the card. -->
-                                  <select class="form-select form-select-sm im-tier-select"
-                                          [class]="supportTierClasses(method.supportTier) || 'text-secondary'"
-                                          [value]="method.supportTier ?? ''"
-                                          title="Support tier"
-                                          (click)="$event.stopPropagation()"
-                                          (change)="onSupportTierChange(method.id, method.supportTier, $event)">
-                                    <option value="">No tier</option>
-                                    @for (t of supportTiers; track t.value) {
-                                      <option [value]="t.value">{{ t.label }}</option>
-                                    }
-                                  </select>
-                                } @else if (method.supportTier) {
+                                <!-- Support tier badge hidden for now; restore by uncommenting.
+                                     Set by a superuser per connector bundle version, on the All connectors page.
+                                @if (method.supportTier) {
                                   <span class="badge border" [class]="supportTierClasses(method.supportTier)">{{ supportTierLabel(method.supportTier) }}</span>
                                 }
+                                -->
                               </div>
                               <div class="d-flex align-items-center gap-3">
                                 @if (method.publishedCount > 0) {
@@ -848,10 +842,9 @@
   @if (confirmMode(); as mode) {
     <app-approval-confirm-modal
       [mode]="mode"
-      [appId]="application()?.id || ''"
       [methodId]="confirmVersion()?.id || ''"
       [revision]="confirmVersion()?.revision || ''"
-      [connectorName]="confirmConnectorName()"
+      [methodName]="confirmMethodName()"
       [versionLabel]="confirmVersionLabel()"
       [submittedBy]="confirmSubmittedBy()"
       [processing]="isProcessingApproval()"

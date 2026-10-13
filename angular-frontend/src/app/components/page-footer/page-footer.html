@@ -1,0 +1,77 @@
+<!--
+ * Copyright (c) 2010-2025 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<ng-template #linkTpl let-item>
+  @let t = target(item.link);
+  @switch (t.kind) {
+    @case ('external') {
+      <a class="footer-link" [href]="t.href" target="_blank" rel="noopener noreferrer">
+        {{ item.label }}
+      </a>
+    }
+    @case ('internal') {
+      <a class="footer-link" [routerLink]="t.path">{{ item.label }}</a>
+    }
+    @default {
+      <span class="footer-link footer-link-plain">{{ item.label }}</span>
+    }
+  }
+</ng-template>
+
+<footer class="page-footer">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a class="footer-brand-link" routerLink="/applications">
+          <img src="assets/evolveum.svg" alt="Evolveum" class="footer-logo">
+          <span class="footer-title">MidPoint Integration Catalog</span>
+        </a>
+        @if (socialLinks().length) {
+          <div class="footer-social">
+            @for (s of socialLinks(); track s.key) {
+              @if (s.target.kind === 'external') {
+                <a class="footer-social-icon footer-social-icon--{{ s.key }}" [href]="s.target.href" target="_blank" rel="noopener noreferrer"
+                   [attr.aria-label]="s.label" [title]="s.label">
+                  <i class="fa-brands {{ s.icon }}" aria-hidden="true"></i>
+                </a>
+              } @else {
+                <span class="footer-social-icon" [attr.aria-label]="s.label" [title]="s.label">
+                  <i class="fa-brands {{ s.icon }}" aria-hidden="true"></i>
+                </span>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      @if (content()?.columns?.length) {
+        <nav class="footer-columns" aria-label="Footer">
+          @for (column of content()!.columns; track $index) {
+            <div class="footer-column">
+              <div class="footer-column-label">{{ column.label }}</div>
+              <ul class="footer-list">
+                @for (item of column.items; track $index) {
+                  <li><ng-container *ngTemplateOutlet="linkTpl; context: { $implicit: item }" /></li>
+                }
+              </ul>
+            </div>
+          }
+        </nav>
+      }
+    </div>
+
+    <div class="footer-bottom">
+      <span class="footer-copyright">&copy; {{ year }} Evolveum s.r.o.</span>
+      @if (content()?.bottomLinks?.length) {
+        <ul class="footer-bottom-links">
+          @for (item of content()!.bottomLinks; track $index) {
+            <li><ng-container *ngTemplateOutlet="linkTpl; context: { $implicit: item }" /></li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</footer>

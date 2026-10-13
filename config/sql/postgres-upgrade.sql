@@ -121,7 +121,9 @@ $aa$);
 call apply_change(5, $aa$
 CREATE TABLE IF NOT EXISTS pending_operation (
     id              bigserial PRIMARY KEY,
-    target_system   varchar(50)  NOT NULL, --TODO change to enum
+    -- Text rather than an enum type on purpose: a system joins the retry mechanism by being handled,
+    -- not by being declared, so adding one must not need a migration. Same for operation below.
+    target_system   varchar(50)  NOT NULL,
     operation       varchar(100) NOT NULL,
     payload         text         NOT NULL,
     status          varchar(20)  NOT NULL,
@@ -457,6 +459,7 @@ call apply_change(13, $aa$
 CREATE TABLE api_key (
     id                       uuid                     NOT NULL,
     name                     character varying(255)   NOT NULL,
+    owner_sub                character varying(255)   NOT NULL,
     owner_username           character varying(255)   NOT NULL,
     gravitee_application_id  character varying(64)    NOT NULL,
     gravitee_subscription_id character varying(64)    NOT NULL,
@@ -608,11 +611,147 @@ $aa$);
 
 -- region change 20: integration method support tier
 -- A reviewer assigns each integration method a support tier by hand (Standard / Advanced / Premium,
--- where a subscription to a tier covers the ones below it). The tier belongs to the method, so it
--- is kept equal on all its revisions. NULL = not tiered, which every existing method starts as.
+-- where a subscription to a tier covers the ones below it). It is stored on connector bundle
+-- versions: setting it on a method sets it on every bundle version of every connector the method
+-- links to. NULL = not tiered, which every existing bundle version starts as.
 call apply_change(20, $aa$
 CREATE TYPE SupportTier AS ENUM ('STANDARD', 'ADVANCED', 'PREMIUM');
-ALTER TABLE integration_method ADD COLUMN support_tier SupportTier;
+ALTER TABLE connector_bundle_version ADD COLUMN support_tier SupportTier;
+$aa$);
+-- end of region
+
+-- region change 21: application versions
+-- An integration method states the range of application versions it supports as two free-text
+-- values; for now they are only saved, neither checked nor used for filtering. Replaces the single
+-- free-text integration_method.app_version, which nothing ever set.
+--
+-- This change also created an application_version table, a per-application list kept by a
+-- superuser. Nothing ever read it once the range became free text, so its CREATE TABLE was taken
+-- out again; databases that already ran this change keep it as an unused leftover.
+call apply_change(21, $aa$
+ALTER TABLE integration_method
+    DROP COLUMN app_version,
+    ADD COLUMN app_minVersion character varying(64),
+    ADD COLUMN app_maxVersion character varying(64);
+$aa$);
+-- end of region
+
+call apply_change(22, $aa$
+CREATE TABLE gravitee_application (
+    id                      uuid                     NOT NULL,
+    name                    character varying(255)   NOT NULL,
+    owner_username          character varying(255)   NOT NULL
+);
+ALTER TABLE ONLY gravitee_application ADD CONSTRAINT gravitee_application_pkey PRIMARY KEY (id);
+CREATE INDEX gravitee_application_owner_idx ON gravitee_application (owner_username);
+
+CREATE TABLE gravitee_subscription (
+    id                  uuid NOT NULL,
+    application_id      uuid NOT NULL,
+    api_id              uuid NOT NULL
+);
+
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT fk_gravitee_subscription_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE ONLY gravitee_subscription
+    ADD CONSTRAINT gravitee_subscription_pkey PRIMARY KEY (id);
+
+DROP INDEX IF EXISTS api_key_subscription_idx;
+DROP INDEX IF EXISTS api_key_owner_idx;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_pkey;
+ALTER TABLE ONLY api_key DROP CONSTRAINT api_key_gravitee_key_uk;
+
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS name;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS id;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS owner_username;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_application_id;
+ALTER TABLE api_key
+    DROP COLUMN IF EXISTS gravitee_subscription_id;
+
+ALTER TABLE api_key RENAME TO gravitee_api_key;
+ALTER TABLE gravitee_api_key RENAME COLUMN gravitee_api_key_id TO id;
+ALTER TABLE gravitee_api_key
+    ALTER COLUMN id TYPE uuid USING id::uuid;
+
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT gravitee_api_key_pkey PRIMARY KEY (id);
+ALTER TABLE gravitee_api_key
+    ADD COLUMN application_id UUID;
+ALTER TABLE ONLY gravitee_api_key
+    ADD CONSTRAINT fk_gravitee_api_key_gravitee_application_id FOREIGN KEY (application_id) REFERENCES gravitee_application(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+$aa$);
+
+-- region change 23: support tier as a connector tag
+-- The support tier moves from connector_bundle_version to the connector, held as a connector tag:
+-- one tag per tier under a fixed name the code knows (SupportTier), display_name being the tier's
+-- label. Each connector takes the tier of its most recently updated bundle version, the rule the
+-- catalog already used to show a method's tier, so nothing visible changes.
+call apply_change(23, $aa$
+INSERT INTO connector_tag (name, display_name) VALUES
+    ('supp_tier_standard', 'Standard'),
+    ('supp_tier_advanced', 'Advanced'),
+    ('supp_tier_premium', 'Premium');
+
+INSERT INTO connector_connector_tag (connector_id, tag_id)
+SELECT newest.connector_id, t.id
+  FROM (SELECT DISTINCT ON (cv.connector_id) cv.connector_id, cbv.support_tier
+          FROM connector_version cv
+          JOIN connector_bundle_version cbv ON cbv.id = cv.connector_bundle_version_id
+         WHERE cv.connector_id IS NOT NULL
+         ORDER BY cv.connector_id, cbv.updated DESC) newest
+  JOIN connector_tag t ON t.name = CASE newest.support_tier::text
+                                     WHEN 'STANDARD' THEN 'supp_tier_standard'
+                                     WHEN 'ADVANCED' THEN 'supp_tier_advanced'
+                                     WHEN 'PREMIUM' THEN 'supp_tier_premium'
+                                   END;
+
+ALTER TABLE connector_bundle_version DROP COLUMN support_tier;
+DROP TYPE SupportTier;
+$aa$);
+-- end of region
+
+-- region change 24: the API key's owner is the username
+-- The 'sub' claim was dropped from the identity the catalog keeps: a key is owned by a username, so
+-- owner_sub, which an older form of change 13 created on some databases, was never used and goes.
+-- Written as this branch's change 19 and renumbered when main's 19-23 came first; by now change 22
+-- has renamed api_key to gravitee_api_key and moved the owner index to gravitee_application, so only
+-- the column drop is left. Harmless where the column never existed.
+call apply_change(24, $aa$
+ALTER TABLE gravitee_api_key DROP COLUMN IF EXISTS owner_sub;
+$aa$);
+-- end of region
+
+-- region change 25: resource-wide capability groups are flagged, not named
+-- Resource-wide capabilities were a group whose object class was literally "Global", so no object
+-- class could be called that: a method silently dropped it, and a connector mixed it up with the
+-- resource-wide group. A flag now says what the group is, and "Global" is an ordinary name again.
+--
+-- Every existing row named Global, in any case, was a resource-wide group - that is how the name was
+-- read - so those rows are flagged. Methods have no resource-wide capabilities since change 14; their
+-- Global groups are leftovers every read already skipped, and are deleted (items go by cascade) so
+-- they do not surface as an object called "Global".
+call apply_change(25, $aa$
+ALTER TABLE conn_version_capability ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE conn_version_capability SET resource_wide = true WHERE lower(object_class) = 'global';
+
+ALTER TABLE object_class_capabilities ADD COLUMN resource_wide boolean DEFAULT false NOT NULL;
+UPDATE object_class_capabilities SET resource_wide = true WHERE lower(object_name) = 'global';
+
+DELETE FROM integration_method_capability WHERE lower(object_class) = 'global';
+$aa$);
+-- end of region
+
+-- region change 26: connector without artifact URL
+-- Some connectors are published with no artifact to download. The reviewer marks such a connector in
+-- the manual fill dialog, which links this tag; a tagged connector is not reported as lacking its build
+-- information and does not block approval.
+call apply_change(26, $aa$
+INSERT INTO connector_tag (name, display_name) VALUES ('arti_URLless', 'Without artifact');
 $aa$);
 -- end of region
 

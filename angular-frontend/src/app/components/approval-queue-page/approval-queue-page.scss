@@ -1,0 +1,50 @@
+/*!
+  Copyright (c) 2010-2026 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+@use 'self-service';
+
+.aq-name {
+  overflow-wrap: anywhere;
+}
+
+.aq-col-author { width: 17%; }
+.aq-col-app { width: 14%; }
+.aq-col-status { width: 15%; }
+.aq-col-ticket { width: 9%; }
+.aq-col-queue { width: 9%; }
+
+.aq-col-actions {
+  width: 120px;
+  text-align: right;
+}
+
+.aq-overdue {
+  color: #dc3545 !important;
+}
+
+.aq-actions-btn {
+  margin-left: auto;
+  background-color: $color-white;
+  border: 1px solid $color-border-input;
+  color: $color-text-dark;
+
+  &:hover,
+  &:active {
+    background-color: $color-bg-hover;
+    color: $color-text-dark;
+  }
+
+  i {
+    font-size: 11px;
+  }
+}
+
+.aq-menu {
+  min-width: 170px;
+
+  .ss-menu-item i {
+    width: 14px;
+  }
+}

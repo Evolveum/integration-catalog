@@ -21,7 +21,6 @@
   <app-submission-success-modal
     title="Integration method submitted for review"
     subtitle="Method is now awaiting for approval"
-    [appId]="publishedApplicationId() ?? ''"
     [methodId]="publishedVersionId() ?? ''"
     [revision]="reviewSummary?.methodVersion ?? ''"
     (done)="finishPublish()"
@@ -143,10 +142,10 @@
                   </div>
                   @if (isLicenseDropdownOpen()) {
                     <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm">
-                      @for (opt of licenseOptions; track opt) {
+                      @for (opt of licenseTypes.options(); track opt.name) {
                         <button type="button" tabindex="-1" class="dropdown-item"
-                             [class.active]="connectorLicense() === opt"
-                             (mousedown)="selectLicenseOption(opt)">{{ fmtLicense(opt) }}</button>
+                             [class.active]="connectorLicense() === opt.name"
+                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</button>
                       }
                     </div>
                   }
@@ -434,7 +433,7 @@
                            [value]="devClassName()"
                            (input)="devClassName.set($any($event.target).value); onFieldChange()"
                            [disabled]="isExistingConnector"
-                           placeholder="e.g. org.identityconnectors.ldap.LdapConnector">
+                           placeholder="e.g., com.evolveum.polygon.connector.ldap.LdapConnector">
                   </div>
                   @if (isClassNameInvalid() && !isExistingConnector) {
                     <div class="field-error">Invalid format. Use a full Java class name with dots (e.g., com.project.ConnectorClass) and no spaces.</div>
@@ -453,7 +452,7 @@
       <div class="step-content">
         <h5 class="step-title">Compatibility settings</h5>
         <p class="compat-step-desc">
-          Specify which versions of midPoint and connectors this integration method supports. <br />
+          Specify which versions of midPoint, the application and connectors this integration method supports. <br />
           This helps users find Integration methods compatible with their environments.
         </p>
 
@@ -502,6 +501,30 @@
           } @else {
             <div class="form-text">Only include versions you have actively tested. Untested versions can be added later.</div>
           }
+        </div>
+
+        <!-- Supported application version -->
+        <div class="compat-section mb-4">
+          <h6 class="compat-section-title">Supported application version</h6>
+          <p class="compat-section-desc">
+            Define the range of {{ reviewSummary?.applicationName || 'application' }} versions that have been tested with this integration method.
+          </p>
+          <div class="d-flex align-items-end gap-3 mb-2">
+            <div>
+              <label class="form-label form-label-upload">From version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMinVersion()"
+                     (input)="appMinVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2024.1">
+            </div>
+            <div>
+              <label class="form-label form-label-upload">To version</label>
+              <input type="text" class="form-control compat-version-select" maxlength="64"
+                     [value]="appMaxVersion()"
+                     (input)="appMaxVersion.set($any($event.target).value)"
+                     placeholder="e.g. 2025.2">
+            </div>
+          </div>
         </div>
 
         <!-- Connector version ranges -->
@@ -712,6 +735,15 @@
                 </span>
               </div>
             }
+            @if (appMinVersion().trim() || appMaxVersion().trim()) {
+              <div class="review-detail-row">
+                <span class="review-detail-label">Supported application version:</span>
+                <span class="review-detail-value">
+                  {{ appMinVersion().trim() || '—' }}
+                  @if (appMaxVersion().trim()) { &nbsp;-&nbsp;{{ appMaxVersion().trim() }} }
+                </span>
+              </div>
+            }
             <!-- @if (connectorVersion()) {
               <div class="review-detail-row">
                 <span class="review-detail-label">Connector version:</span>
@@ -812,7 +844,7 @@
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             Submitting...
           } @else {
-            Submit/send to approve <i class="fa-solid fa-arrow-right"></i>
+            Send to approve <i class="fa-solid fa-arrow-right"></i>
           }
         </button>
       }

@@ -22,6 +22,9 @@ RUN mvn clean package -DskipTests
 
 # --- Stage 3: Runtime image ---
 FROM eclipse-temurin:21-jre-alpine
+
+RUN apk update && apk upgrade
+
 WORKDIR /integration-catalog
 COPY --from=backend-build /integration-catalog/backend/target/integration-catalog-*.jar integration-catalog.jar
 

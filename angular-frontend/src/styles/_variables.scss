@@ -41,6 +41,7 @@ $color-text-light: #adb5bd;
 $color-gray-secondary: #6c757d;
 $color-gray-dark: #5c636a;
 $color-icon-dark: #353A41;
+$color-gray-light: #dee2e6;
 
 // Background Colors
 $color-bg-light: #f8f9fa;
@@ -50,7 +51,7 @@ $color-bg-selected: #f0f6fc;
 $color-bg-muted: #e9ecef;
 
 // Border Colors
-$color-border-light: #dee2e6;
+$color-border-light: $color-gray-light;
 $color-border-input: #ced4da;
 $color-separator: #e4e7ec;
 
@@ -93,6 +94,13 @@ $color-info-text: #0c5460;
 // Accent Colors
 $color-accent-purple: #605cab;
 $color-accent-purple-light: rgba(96, 92, 168, 0.1);
+
+// Social network colours, taken from the evolveum.com footer hover tiles
+$color-social-linkedin: #13689b;
+$color-social-youtube: #ec1c24;
+$color-social-bluesky: #0085ff;
+$color-social-mastodon: #6364ff;
+$color-social-github: #5a5a5a;
 
 // Shadow Colors
 $shadow-card: rgba(0, 0, 0, 0.1);

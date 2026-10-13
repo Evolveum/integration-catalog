@@ -39,14 +39,15 @@ public class SupportTicketDescriptionBuilder {
 
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    /** Object class holding the resource-wide capabilities, as the detail page splits them. */
-    private static final String GLOBAL_OBJECT_CLASS = "Global";
-
     private static final String NOT_PROVIDED = "_not provided_";
 
     private static final String NO_BUILD_ERROR = "_check comments if any_";
 
     private static final String NESTED = "    ";
+
+    /** Shown in place of the artifact of a connector marked as having none, so its absence reads as intended. */
+    private static final String NO_ARTIFACT_URL =
+            "none, correctly - the connector is published without an artifact URL (see its description)";
 
     private static final String INTRO_NOTE =
             "An integration method has been submitted for review in the Integration Catalog.";
@@ -109,7 +110,8 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Connector classes", event.connectorClasses() == null || event.connectorClasses().isEmpty()
                 ? null
                 : String.join(", ", event.connectorClasses()));
-        bullet(body, "Artifact", event.artifactUrl());
+        // A success carries a download link unless the connector was marked as having no artifact URL.
+        bullet(body, "Artifact", StringUtils.isBlank(event.artifactUrl()) ? NO_ARTIFACT_URL : event.artifactUrl());
         return body.toString();
     }
 
@@ -119,7 +121,8 @@ public class SupportTicketDescriptionBuilder {
      */
     public String buildConnectorAddendum(IntegrationMethod method, Integer connectorId) {
         StringBuilder body = new StringBuilder();
-        body.append("A connector has been added to this submission since this work package was opened.\n");
+        body.append("A connector has been added to this submission since this work package was opened;"
+                + " the description above now includes it.\n");
 
         IntegrationMethodConnector link = method.getConnectors() == null ? null
                 : method.getConnectors().stream()
@@ -209,6 +212,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", singleLine(method.getDescription()));
         bullet(body, "Integration method type", integrationMethodTypes(method));
         bullet(body, "Supported midPoint version", midpointVersionRange(method));
+        bullet(body, "Supported application version", applicationVersionRange(method));
         bullet(body, "Author", method.getAuthor() != null ? authorWithEmail(method.getAuthor()) : "unknown");
         bullet(body, "Maintainer", maintainer(method));
         bullet(body, "Submitted", timestamp(method.getCreatedAt()));
@@ -254,8 +258,16 @@ public class SupportTicketDescriptionBuilder {
      * open-ended range is the normal case for a method that simply has not been capped yet.
      */
     private String midpointVersionRange(IntegrationMethod method) {
-        String min = midpointVersion(method.getMidpointMinVersionId());
-        String max = midpointVersion(method.getMidpointMaxVersionId());
+        return versionRange(midpointVersion(method.getMidpointMinVersionId()),
+                midpointVersion(method.getMidpointMaxVersionId()));
+    }
+
+    /** The supported application range, worded like {@link #midpointVersionRange}. */
+    private static String applicationVersionRange(IntegrationMethod method) {
+        return versionRange(method.getAppMinVersion(), method.getAppMaxVersion());
+    }
+
+    private static String versionRange(String min, String max) {
         if (min == null && max == null) {
             return null;
         }
@@ -291,7 +303,6 @@ public class SupportTicketDescriptionBuilder {
                 : method.getCapabilities();
 
         List<IntegrationMethodCapability> specific = groups.stream()
-                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
                 .filter(group -> capabilitiesOf(group).findAny().isPresent())
                 .sorted(Comparator.comparing(IntegrationMethodCapability::getObjectClass,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
@@ -354,23 +365,9 @@ public class SupportTicketDescriptionBuilder {
         return value == null ? null : sentenceCase(value.name());
     }
 
-
-    //TODO add display name as string to enum LicenseType, and use this enum in GUI (don't repeat options for every use)
-    /**
-     * Licenses are proper names rather than words, so casing rules do not help: they are spelled out
-     * the way the publish form offers them.
-     */
+    /** Licenses are proper names, so casing rules do not apply: the enum spells them out. */
     private static String licenseLabel(ConnectorBundle.LicenseType license) {
-        if (license == null) {
-            return null;
-        }
-        return switch (license) {
-            case MIT -> "MIT";
-            case APACHE_2 -> "Apache 2.0";
-            case BSD -> "BSD";
-            case EUPL -> "EUPL 1.2";
-            case CDDL -> "CDDL";
-        };
+        return license == null ? null : license.getDisplayName();
     }
 
     /** {@code PARTIAL_SCHEMA} to "Partial schema". */
@@ -395,15 +392,15 @@ public class SupportTicketDescriptionBuilder {
             body.append(NOT_PROVIDED).append('\n');
         } else {
             body.append("Attached to this work package as `")
-                    .append(SupportTicketService.LIMITATIONS_ATTACHMENT)
+                    .append(SupportTicketAttachments.LIMITATIONS_ATTACHMENT)
                     .append("` - see the **Files** tab above.\n");
         }
     }
 
     /**
      * The tutorial and the names of the files uploaded alongside it. The tutorial is pointed at rather
-     * than reproduced - it has no length limit and is attached instead. An empty file list points at
-     * the Files tab, because on a first submission the uploads arrive after this is written.
+     * than reproduced - it has no length limit and is attached instead. With no files uploaded the
+     * files line is left out; one that cannot be listed points at the Files tab.
      */
     private void appendTutorial(StringBuilder body, IntegrationMethod method) {
         body.append("\n### Integration tutorial\n\n");
@@ -411,7 +408,7 @@ public class SupportTicketDescriptionBuilder {
             body.append(NOT_PROVIDED).append('\n');
         } else {
             body.append("Attached to this work package as `")
-                    .append(SupportTicketService.TUTORIAL_ATTACHMENT)
+                    .append(SupportTicketAttachments.TUTORIAL_ATTACHMENT)
                     .append("` - see the **Files** tab above.\n");
         }
 
@@ -419,17 +416,18 @@ public class SupportTicketDescriptionBuilder {
         try {
             files = join(tutorialStorageService.listTutorialFiles(method.getId(), method.getRevision()),
                     Function.identity());
+            if (files == null) {
+                // Nothing uploaded, nothing to point at. A file uploaded after this is written still
+                // lands in the Files tab, attached by its own operation.
+                return;
+            }
         } catch (Exception e) {
             log.warn("Could not list tutorial files for {}/{}: {}",
                     method.getId(), method.getRevision(), e.getMessage());
-            files = null;
+            files = "See the **Files** tab above";
         }
         body.append('\n');
-        if (files == null) {
-            bullet(body, "Additional tutorials/samples", "See the **Files** tab above");
-        } else {
-            bullet(body, "Additional tutorials/samples", files);
-        }
+        bullet(body, "Additional tutorials/samples", files);
         body.append('\n').append(FILES_NOTE).append('\n');
     }
 
@@ -489,6 +487,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
+        appendArtifactUrlless(body, connector);
         bullet(body, "Maintainer", maintainer(connector));
         body.append('\n').append(CONNECTOR_PUBLISHED_NOTE).append('\n');
     }
@@ -498,6 +497,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Description", describedIn(link, connector));
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
+        appendArtifactUrlless(body, connector);
         bullet(body, "Author", authorWithEmail(connector.getAuthor()));
         bullet(body, "Maintainer", maintainer(connector));
         bullet(body, "Fully qualified class name", connector.getFullyQualifiedClassName());
@@ -510,12 +510,18 @@ public class SupportTicketDescriptionBuilder {
         appendConnectorVersions(body, connector);
     }
 
+    private static void appendArtifactUrlless(StringBuilder body, Connector connector) {
+        if (connector.hasTag(ConnectorTag.ARTIFACT_URLLESS)) {
+            bullet(body, "Artifact URL", NO_ARTIFACT_URL);
+        }
+    }
+
     /**
      * Where the connector's description is: attached, as the tutorial is, since it is formatted text
      * of no set length. Null when there is none, which the bullet shows as not provided.
      */
     private static String describedIn(IntegrationMethodConnector link, Connector connector) {
-        String fileName = SupportTicketService.connectorDescriptionAttachment(link.getIntegrationMethod(), connector);
+        String fileName = SupportTicketAttachments.connectorDescriptionAttachment(link.getIntegrationMethod(), connector);
         return fileName == null ? null : "attached as `" + fileName + "` - see the **Files** tab above";
     }
 
@@ -547,7 +553,8 @@ public class SupportTicketDescriptionBuilder {
                                 Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                         .toList();
         for (ConnectorVersion version : versions) {
-            body.append("\n## Connector version ").append(blankToDash(version.getRevision())).append("\n\n");
+            String label = bundleVersionOf(version);
+            body.append("\n## Connector version ").append(blankToDash(label != null ? label : version.getRevision())).append("\n\n");
             bullet(body, "Author", authorWithEmail(version.getAuthor()));
             bullet(body, "Maintainer", maintainer(version));
             bullet(body, "Created", timestamp(version.getCreatedAt()));
@@ -579,10 +586,10 @@ public class SupportTicketDescriptionBuilder {
                 : version.getCapabilities();
 
         String global = capabilityNames(groups.stream()
-                .filter(group -> GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .filter(ConnVersionCapability::isResourceWide)
                 .flatMap(this::capabilitiesOf));
         List<ConnVersionCapability> specific = groups.stream()
-                .filter(group -> !GLOBAL_OBJECT_CLASS.equalsIgnoreCase(group.getObjectClass()))
+                .filter(group -> !group.isResourceWide())
                 .filter(group -> capabilitiesOf(group).findAny().isPresent())
                 .sorted(Comparator.comparing(ConnVersionCapability::getObjectClass,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
@@ -638,22 +645,31 @@ public class SupportTicketDescriptionBuilder {
         List<ConnectorVersion> versions = connector.getConnectorVersions() == null
                 ? List.of()
                 : connector.getConnectorVersions();
-        String submitted = bundleRevision(versions.stream()
+        String submitted = newestBundleVersion(versions.stream()
                 .filter(version -> isDraft(version.getLifecycleState())));
         if (submitted == null) {
-            submitted = bundleRevision(versions.stream());
+            submitted = newestBundleVersion(versions.stream());
         }
         return submitted != null ? submitted : connector.getRevision();
     }
 
-    private String bundleRevision(Stream<ConnectorVersion> versions) {
+    /** Newest by row, as version strings do not sort: "3.10" would lose to "3.9". */
+    private String newestBundleVersion(Stream<ConnectorVersion> versions) {
         return versions
-                .map(ConnectorVersion::getConnectorBundleVersion)
-                .filter(Objects::nonNull)
-                .map(ConnectorBundleVersion::getRevision)
-                .filter(revision -> revision != null && !revision.isBlank())
-                .max(String.CASE_INSENSITIVE_ORDER)
+                .filter(version -> bundleVersionOf(version) != null)
+                .max(Comparator.comparing(ConnectorVersion::getId, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(SupportTicketDescriptionBuilder::bundleVersionOf)
                 .orElse(null);
+    }
+
+    private static String bundleVersionOf(ConnectorVersion version) {
+        ConnectorBundleVersion bundleVersion = version.getConnectorBundleVersion();
+        if (bundleVersion == null) {
+            return null;
+        }
+        String value = bundleVersion.getBundleVersion() != null && !bundleVersion.getBundleVersion().isBlank()
+                ? bundleVersion.getBundleVersion() : bundleVersion.getRevision();
+        return value == null || value.isBlank() ? null : value;
     }
 
     /** A markdown bullet, with an explicit note when there is nothing to show. */

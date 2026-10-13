@@ -9,12 +9,10 @@ package com.evolveum.midpoint.integration.catalog.repository;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.object.LifecycleType;
-import com.evolveum.midpoint.integration.catalog.object.SupportTier;
+import com.evolveum.midpoint.integration.catalog.object.Maintainer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,8 +27,7 @@ public interface IntegrationMethodRepository extends JpaRepository<IntegrationMe
     Optional<IntegrationMethod> findFirstByIdOrderByCreatedAtDesc(UUID id);
     List<IntegrationMethod> findByLifecycleState(LifecycleType lifecycleState);
 
-    /** The tier belongs to the method, not to one revision, so every revision gets it. */
-    @Modifying
-    @Query("UPDATE IntegrationMethod m SET m.supportTier = :tier WHERE m.id = :id")
-    int updateSupportTier(@Param("id") UUID id, @Param("tier") SupportTier tier);
+    List<IntegrationMethod> findByLifecycleStateIn(Collection<LifecycleType> lifecycleStates);
+
+    List<IntegrationMethod> findByMaintainerIn(Collection<Maintainer> maintainers);
 }

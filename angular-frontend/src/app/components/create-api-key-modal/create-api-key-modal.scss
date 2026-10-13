@@ -4,8 +4,6 @@
 */
 @use 'variables' as *;
 
-//TODO missing colors
-$color-dark-blue: blue;
 
 .create-key-backdrop {
   background: rgba(0, 0, 0, 0.4);
@@ -62,7 +60,7 @@ $color-dark-blue: blue;
 
   &:focus {
     outline: none;
-    border-color: $color-dark-blue;
+    border-color: $color-brand-steel;
   }
 
   &::placeholder {
@@ -78,6 +76,15 @@ $color-dark-blue: blue;
 
 .create-key-date {
   margin-top: 0.85rem;
+}
+
+.create-key-date.is-invalid {
+  border-color: var(--bs-form-invalid-border-color);
+}
+
+.create-key-error {
+  font-size: 0.8125rem;
+  margin-top: 0.5rem;
 }
 
 .create-key-footer {

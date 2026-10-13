@@ -84,18 +84,20 @@
           <span class="view-value">{{ methodVersion() ? versionBadge(methodVersion()) : '—' }}</span>
         </div>
         <div class="view-row">
+          <span class="view-label">Supported midPoint version:</span>
+          <span class="view-value">From {{ midpointMinVersion() || '—' }}@if (midpointMaxVersion()) { to {{ midpointMaxVersion() }}}</span>
+        </div>
+        <div class="view-row">
           <span class="view-label">Supported application version:</span>
           <span class="view-value">
-            @for (r of applicationVersionRanges(); track $index) {
-              <div>@if (r.name) { <span>{{ r.name }}:</span> }From {{ r.from || '—' }}@if (r.to) { to {{ r.to }}}</div>
-            } @empty {
+            @if (appMinVersion()) {
+              From {{ appMinVersion() }}@if (appMaxVersion()) { to {{ appMaxVersion() }}}
+            } @else if (appMaxVersion()) {
+              Up to {{ appMaxVersion() }}
+            } @else {
               —
             }
           </span>
-        </div>
-        <div class="view-row">
-          <span class="view-label">Supported midPoint version:</span>
-          <span class="view-value">From {{ midpointMinVersion() || '—' }}@if (midpointMaxVersion()) { to {{ midpointMaxVersion() }}}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Integration method type:</span>
@@ -239,7 +241,7 @@
                         @let key = ci + '-' + occ.objectName;
                         <div class="mb-1">
                           <div class="d-flex align-items-center gap-2 object-class-row" (click)="toggleCaps(key)" style="cursor:pointer;">
-                            <span class="fw-semibold text-sm">{{ occ.objectName }}</span>
+                            <span class="fw-semibold text-sm">{{ occ.resourceWide ? 'All object classes (Global)' : occ.objectName }}</span>
                             <i class="fa-solid icon-sm"
                                [class.fa-chevron-up]="isCapsExpanded(key)"
                                [class.fa-chevron-down]="!isCapsExpanded(key)"></i>
@@ -257,6 +259,19 @@
                     </div>
                   </div>
                 }
+
+                <div class="view-connector-row">
+                  <span class="view-connector-label">Artifact URL:</span>
+                  <span class="view-connector-value">
+                    @if (c.artifactUrl) {
+                      <i class="fa-solid fa-link me-1 text-muted" style="font-size:0.75rem;"></i>{{ c.artifactUrl }}
+                    } @else if (isArtifactUrllessConnector(c.connectorTags)) {
+                      <span class="text-muted">Connector without Artifact URL</span>
+                    } @else {
+                      —
+                    }
+                  </span>
+                </div>
 
                 <!-- Repository & documentation -->
                 @if (c.projectHomepage || c.ticketingLink) {
@@ -466,17 +481,26 @@
   @if (confirmMode(); as mode) {
     <app-approval-confirm-modal
       [mode]="mode"
-      [appId]="appId()"
       [methodId]="versionId()"
       [revision]="methodVersion()"
-      [connectorName]="confirmConnectorName()"
+      [methodName]="confirmMethodName()"
       [versionLabel]="versionBadge(methodVersion())"
       [submittedBy]="submittedByLabel()"
       [processing]="isProcessingApproval()"
       [error]="approvalError()"
       (confirm)="submitConfirm()"
-      (cancel)="closeConfirm()">
+      (cancel)="closeConfirm()"
+      (manualFill)="openManualFill($event)">
     </app-approval-confirm-modal>
+  }
+
+  @if (manualFillConnector(); as connector) {
+    <app-manual-fill-modal
+      [connector]="connector"
+      [methodId]="versionId()"
+      (submit)="onManualFillSuccess()"
+      (cancel)="closeManualFill()">
+    </app-manual-fill-modal>
   }
 
   <!-- Start review confirmation modal (shared component) -->

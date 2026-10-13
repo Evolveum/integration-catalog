@@ -20,12 +20,15 @@ interface ExpirationPreset {
   days: number;
 }
 
+/** Longest lifetime a key may get, the custom date included. */
+const MAX_EXPIRATION_DAYS = 180;
+
 const EXPIRATION_PRESETS: ExpirationPreset[] = [
   { label: '1 day', days: 1 },
   { label: '7 days', days: 7 },
   { label: '30 days', days: 30 },
   { label: '90 days', days: 90 },
-  { label: '180 days', days: 180 }
+  { label: '180 days', days: MAX_EXPIRATION_DAYS }
 ];
 
 /** Collects the name and expiration of a new key; the parent performs the creation. */
@@ -52,11 +55,19 @@ export class CreateApiKeyModal {
 
   /** Earliest date the picker accepts, so a key never expires the day it is made. */
   protected readonly minCustomDate = this.dateInputValue(this.plusDays(new Date(), 1));
+  protected readonly maxCustomDate = this.dateInputValue(this.plusDays(new Date(), MAX_EXPIRATION_DAYS));
+  protected readonly maxExpirationDays = MAX_EXPIRATION_DAYS;
 
   protected readonly customSelected = computed(() => this.selectedPreset() === null);
 
+  /** Later dates stay pickable on purpose, so the user sees why they are refused. */
+  protected readonly customDateTooLate = computed(() =>
+    this.customSelected() && this.customDate() > this.maxCustomDate);
+
   protected readonly canSubmit = computed(() =>
-    this.name().trim().length > 0 && (!this.customSelected() || this.customDate().length > 0));
+    this.name().trim().length > 0
+    && (!this.customSelected() || this.customDate().length > 0)
+    && !this.customDateTooLate());
 
   protected selectPreset(preset: ExpirationPreset | null): void {
     this.selectedPreset.set(preset);
@@ -72,12 +83,17 @@ export class CreateApiKeyModal {
     this.create.emit({ name: this.name().trim(), expiresAt: this.expiresAt() });
   }
 
-  /** The chosen expiration as an ISO instant: end of the custom day, or the preset's offset. */
+  /**
+   * The chosen expiration as an ISO instant: end of the custom day, or the preset's offset. The end
+   * of the last allowed day lies past the backend's now + 180 days, so it is cut to that moment.
+   */
   private expiresAt(): string | null {
     const preset = this.selectedPreset();
     if (preset) return this.plusDays(new Date(), preset.days).toISOString();
     const custom = new Date(`${this.customDate()}T23:59:59`);
-    return isNaN(custom.getTime()) ? null : custom.toISOString();
+    if (isNaN(custom.getTime())) return null;
+    const latest = this.plusDays(new Date(), MAX_EXPIRATION_DAYS);
+    return (custom > latest ? latest : custom).toISOString();
   }
 
   private plusDays(from: Date, days: number): Date {
