@@ -213,7 +213,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Integration method type", integrationMethodTypes(method));
         bullet(body, "Supported midPoint version", midpointVersionRange(method));
         bullet(body, "Supported application version", applicationVersionRange(method));
-        bullet(body, "Author", method.getAuthor() != null ? authorWithEmail(method.getAuthor()) : "unknown");
+        bullet(body, "Author", method.getAuthor() != null ? authorName(method.getAuthor()) : "unknown");
         bullet(body, "Maintainer", maintainer(method));
         bullet(body, "Submitted", timestamp(method.getCreatedAt()));
         appendCatalogLink(body, method, method.getApplication());
@@ -232,16 +232,9 @@ public class SupportTicketDescriptionBuilder {
         }
     }
 
-    /**
-     * The author with their address where one is recorded: {@code u1 (u1@acme.com)}. A bare name
-     * is a normal result - the address is optional on the row.
-     */
-    private String authorWithEmail(Author author) {
-        if (author == null || StringUtils.isBlank(author.getUsername())) {
-            return null;
-        }
-        return author.getUsername() +
-                (StringUtils.isNotBlank(author.getEmail()) ? (" (" + author.getEmail() + ")") : "");
+    /** The author's username only; their e-mail stays in our database. */
+    private String authorName(Author author) {
+        return author == null || StringUtils.isBlank(author.getUsername()) ? null : author.getUsername();
     }
 
     /** The maintainer as the ticket names them, whichever category it is. */
@@ -498,7 +491,7 @@ public class SupportTicketDescriptionBuilder {
         bullet(body, "Connector versions (from - to)", versionRange(link));
         bullet(body, "Connector version", submittedVersion(connector));
         appendArtifactUrlless(body, connector);
-        bullet(body, "Author", authorWithEmail(connector.getAuthor()));
+        bullet(body, "Author", authorName(connector.getAuthor()));
         bullet(body, "Maintainer", maintainer(connector));
         bullet(body, "Fully qualified class name", connector.getFullyQualifiedClassName());
         bullet(body, "Created", timestamp(connector.getCreatedAt()));
@@ -555,7 +548,7 @@ public class SupportTicketDescriptionBuilder {
         for (ConnectorVersion version : versions) {
             String label = bundleVersionOf(version);
             body.append("\n## Connector version ").append(blankToDash(label != null ? label : version.getRevision())).append("\n\n");
-            bullet(body, "Author", authorWithEmail(version.getAuthor()));
+            bullet(body, "Author", authorName(version.getAuthor()));
             bullet(body, "Maintainer", maintainer(version));
             bullet(body, "Created", timestamp(version.getCreatedAt()));
             appendBundleVersion(body, version.getConnectorBundleVersion());

@@ -401,7 +401,6 @@ public class BundleService {
         meta.put("displayName", method.getDisplayName());
         meta.put("description", method.getDescription());
         meta.put("lifecycleState", method.getLifecycleState());
-        meta.put("author", method.getAuthor());
         meta.put("maintainer", ownershipService.maintainerLabel(method));
         meta.put("appMinVersion", method.getAppMinVersion());
         meta.put("appMaxVersion", method.getAppMaxVersion());
@@ -450,7 +449,6 @@ public class BundleService {
             meta.put("displayName", connector.getDisplayName());
             meta.put("fullyQualifiedClassName", connector.getFullyQualifiedClassName());
             meta.put("description", connector.getDescription());
-            meta.put("author", connector.getAuthor());
             meta.put("maintainer", ownershipService.maintainerLabel(connector));
             meta.put("revision", ConnectorVersions.used(link).map(ConnectorVersions::versionOf)
                     .orElse(connector.getRevision()));
