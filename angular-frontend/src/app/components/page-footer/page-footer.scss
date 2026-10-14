@@ -8,6 +8,13 @@
 
 $footer-logo-height: 38px;
 
+/* Matches the pages' min-width: 1080px like the header does, so on a narrow screen the footer
+   spans the whole page instead of only the viewport's width */
+:host {
+  display: block;
+  min-width: 1080px;
+}
+
 .page-footer {
   background-color: $color-brand-navy;
   color: rgba($color-white, 0.85);
