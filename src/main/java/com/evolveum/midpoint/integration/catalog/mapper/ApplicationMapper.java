@@ -177,7 +177,7 @@ public class ApplicationMapper {
                             connectorVersion,
                             null,           // systemVersion
                             releasedDate,   // connector_bundle_version.created_at
-                            method.getAuthor() != null ? method.getAuthor().getUsername() : null,
+                            visibleAuthor(method, viewer),
                             lifecycleState,
                             downloadLink,
                             framework,
@@ -206,6 +206,18 @@ public class ApplicationMapper {
                     );
                 })
                 .toList();
+    }
+
+    /**
+     * The author's username for the author themself or a superuser, otherwise null: the author is
+     * our internal record, not someone the public should take for the method's author.
+     */
+    private String visibleAuthor(IntegrationMethod method, String viewer) {
+        String author = method.getAuthor() != null ? method.getAuthor().getUsername() : null;
+        if (author == null || viewer == null || viewer.isBlank()) {
+            return null;
+        }
+        return author.equals(viewer) || authService.isSuperuser(viewer) ? author : null;
     }
 
     /**

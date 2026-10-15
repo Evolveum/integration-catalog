@@ -77,6 +77,7 @@ public class ApplicationService {
     private final OrganizationService organizationService;
     private final OwnershipService ownershipService;
     private final ConnectorTagRepository connectorTagRepository;
+    private final SupportTicketService supportTicketService;
 
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationTagRepository applicationTagRepository,
@@ -105,7 +106,9 @@ public class ApplicationService {
                               AuthService authService,
                               OrganizationService organizationService,
                               OwnershipService ownershipService,
-                              ConnectorTagRepository connectorTagRepository) {
+                              ConnectorTagRepository connectorTagRepository,
+                              SupportTicketService supportTicketService) {
+        this.supportTicketService = supportTicketService;
         this.organizationService = organizationService;
         this.connectorTagRepository = connectorTagRepository;
         this.ownershipService = ownershipService;
@@ -284,6 +287,13 @@ public class ApplicationService {
                             .map(ConnectorWithoutDownloadDto::connectorName)
                             .distinct()
                             .collect(Collectors.joining(", ")));
+        }
+        // The support ticket gate the dialog shows, also enforced here so a direct POST can't skip it.
+        SupportTicketDto ticket = supportTicketService.getStatusOfWorkPackage(methodId, revision, username);
+        if (!ticket.approvalReady()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, ticket.error() != null ? ticket.error()
+                    : "Support ticket #" + ticket.ticketId() + " is " + ticket.status()
+                    + "; approval unlocks once the review is finished in the support portal.");
         }
         connectorUploadService.approveIntegrationMethod(methodId, revision, username);
     }

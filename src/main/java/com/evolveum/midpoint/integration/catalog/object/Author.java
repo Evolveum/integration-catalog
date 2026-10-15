@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,6 +30,8 @@ public class Author {
     @Column(nullable = false)
     private String username;
 
+    /** Our own record only: never serialized, shown or sent anywhere. */
+    @JsonIgnore
     @Column(nullable = false)
     private String email;
 }

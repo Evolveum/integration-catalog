@@ -41,6 +41,7 @@ class EndpointPermissionIntegrationTest extends AbstractCatalogIntegrationTest {
     private JdbcTemplate jdbc;
 
     private final List<UUID> applicationIds = new ArrayList<>();
+    private final List<Integer> countryIds = new ArrayList<>();
 
     @AfterEach
     void deletePublished() {
@@ -53,6 +54,9 @@ class EndpointPermissionIntegrationTest extends AbstractCatalogIntegrationTest {
                         where im.application_id = ?)""", applicationId);
             // Through the database's cascades: JPA cannot delete an application that has methods.
             jdbc.update("delete from application where id = ?", applicationId);
+        }
+        for (Integer countryId : countryIds) {
+            jdbc.update("delete from country_of_origin where id = ?", countryId);
         }
     }
 
@@ -73,12 +77,17 @@ class EndpointPermissionIntegrationTest extends AbstractCatalogIntegrationTest {
     @Test
     void anyContributorMayAddOriginsWhilePublishingIntoAnotherApplication() throws Exception {
         Published owners = publish(OWNER, "null", "[]", "[]");
-        Object[] country = jdbc.queryForObject("select id, display_name from country_of_origin order by id limit 1",
-                (rs, i) -> new Object[] {rs.getInt(1), rs.getString(2)});
+        // Its own country: a schema-only database (CI) has no seeded ones. The name is what the
+        // upload normalizes the display name to, so the upload links this row instead of creating one.
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        Integer countryId = jdbc.queryForObject(
+                "insert into country_of_origin (name, display_name) values (?, ?) returning id",
+                Integer.class, "it_origin_" + suffix, "IT Origin " + suffix);
+        countryIds.add(countryId);
 
-        publish(OTHER, "\"" + owners.applicationId() + "\"", "[]", "[\"" + country[1] + "\"]");
+        publish(OTHER, "\"" + owners.applicationId() + "\"", "[]", "[\"IT Origin " + suffix + "\"]");
 
-        assertThat(originsOf(owners.applicationId())).contains((Integer) country[0]);
+        assertThat(originsOf(owners.applicationId())).contains(countryId);
     }
 
     @Test

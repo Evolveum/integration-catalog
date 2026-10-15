@@ -29,10 +29,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.ConnectException;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
+import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
+import java.nio.channels.UnresolvedAddressException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Duration;
@@ -42,6 +47,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -230,11 +236,14 @@ public class BundleService {
                 zip.putNextEntry(new ZipEntry(entryName));
                 zip.write(jar);
                 zip.closeEntry();
-            } catch (IOException e) {
+            } catch (IOException | IllegalArgumentException e) {
+                // A malformed URL fails in URI.create / HttpRequest with an IllegalArgumentException;
+                // it belongs in ERROR.txt like any other unreachable artifact, not in a failed download.
+                String reason = describeFailure(artifactUrl, e);
                 log.warn("Failed to fetch connector artifact {} for {}/{}: {}",
-                        artifactUrl, method.getId(), method.getRevision(), e.getMessage());
+                        artifactUrl, method.getId(), method.getRevision(), reason, e);
                 errors.add("Missing build file (.jar) for connector " + label
-                        + ": could not be retrieved (" + e.getMessage() + ").");
+                        + ": could not be retrieved (" + reason + ").");
             }
         }
     }
@@ -338,6 +347,56 @@ public class BundleService {
         return name.isBlank() ? "connector.jar" : name;
     }
 
+    /**
+     * A readable reason for a failed artifact download. HttpClient throws the common network
+     * failures (unknown host, refused connection) without a message, so the cause chain is mapped
+     * to a sentence instead, falling back to the first message found or the exception's type.
+     */
+    static String describeFailure(String artifactUrl, Exception failure) {
+        if (failure instanceof IllegalArgumentException) {
+            return "invalid artifact URL: " + Objects.requireNonNullElse(failure.getMessage(), artifactUrl);
+        }
+        String host = hostOf(artifactUrl);
+        // Searched in this order across the whole chain: an unknown host surfaces as a
+        // ConnectException whose cause is the UnresolvedAddressException.
+        if (hasCause(failure, UnresolvedAddressException.class) || hasCause(failure, UnknownHostException.class)) {
+            return "host " + host + " could not be resolved";
+        }
+        if (hasCause(failure, HttpConnectTimeoutException.class)) {
+            return "connection to " + host + " timed out";
+        }
+        if (hasCause(failure, HttpTimeoutException.class)) {
+            return "download from " + host + " timed out";
+        }
+        if (hasCause(failure, ConnectException.class)) {
+            return "connection to " + host + " was refused or failed";
+        }
+        for (Throwable t = failure; t != null; t = t.getCause()) {
+            if (t.getMessage() != null && !t.getMessage().isBlank()) {
+                return t.getMessage();
+            }
+        }
+        return failure.getClass().getSimpleName();
+    }
+
+    private static boolean hasCause(Throwable failure, Class<? extends Throwable> type) {
+        for (Throwable t = failure; t != null; t = t.getCause()) {
+            if (type.isInstance(t)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String hostOf(String artifactUrl) {
+        try {
+            String host = URI.create(artifactUrl).getHost();
+            return host != null ? host : artifactUrl;
+        } catch (IllegalArgumentException e) {
+            return artifactUrl;
+        }
+    }
+
     private byte[] artifactBytes(String artifactUrl) throws IOException {
         byte[] cached = artifactCache.get(artifactUrl);
         if (cached != null) {
@@ -401,7 +460,6 @@ public class BundleService {
         meta.put("displayName", method.getDisplayName());
         meta.put("description", method.getDescription());
         meta.put("lifecycleState", method.getLifecycleState());
-        meta.put("author", method.getAuthor());
         meta.put("maintainer", ownershipService.maintainerLabel(method));
         meta.put("appMinVersion", method.getAppMinVersion());
         meta.put("appMaxVersion", method.getAppMaxVersion());
@@ -450,7 +508,6 @@ public class BundleService {
             meta.put("displayName", connector.getDisplayName());
             meta.put("fullyQualifiedClassName", connector.getFullyQualifiedClassName());
             meta.put("description", connector.getDescription());
-            meta.put("author", connector.getAuthor());
             meta.put("maintainer", ownershipService.maintainerLabel(connector));
             meta.put("revision", ConnectorVersions.used(link).map(ConnectorVersions::versionOf)
                     .orElse(connector.getRevision()));
