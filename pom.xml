@@ -17,25 +17,29 @@
 	</parent>
 	<groupId>com.evolveum.midpoint</groupId>
 	<artifactId>integration-catalog</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<name>integration-catalog</name>
 	<description>MidPoint Integration catalog</description>
 	<url/>
+	<organization>
+		<name>evolveum</name>
+		<url>https://www.evolveum.com</url>
+	</organization>
 	<licenses>
-		<license/>
+		<license>
+			<name>European Union Public License</name>
+			<url>https://joinup.ec.europa.eu/collection/eupl/eupl-text-11-12</url>
+			<distribution>repo</distribution>
+		</license>
 	</licenses>
-	<developers>
-		<developer/>
-	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection>https://github.com/Evolveum/integration-catalog.git</connection>
+		<developerConnection>git@github.com:Evolveum/integration-catalog.git</developerConnection>
+		<url>https://github.com/Evolveum/integration-catalog.git</url>
 	</scm>
 	<issueManagement>
-		<system>GitHub</system>
-		<url>https://github.com/Evolveum/integration-catalog/issues</url>
+		<system>OpenProject</system>
+		<url>https://support.evolveum.com/</url>
 	</issueManagement>
 	<properties>
 		<java.version>21</java.version>
