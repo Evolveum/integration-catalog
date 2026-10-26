@@ -418,6 +418,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       this.applicationService.cancelIntegrationMethod(id, revision ?? '').subscribe({
         next: ({ applicationDeleted }) => {
           this.closeCancelConfirm();
+          this.toastService.show('Request cancelled', 'The integration method has been withdrawn and deleted.', 'success');
           // The app goes with its only never-published revision, so there is no detail page to return to.
           if (applicationDeleted) {
             this.router.navigate(['/applications']);
@@ -437,8 +438,16 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       const requestId = this.application()?.requestId;
       if (!requestId) { this.closeCancelConfirm(); return; }
       this.applicationService.cancelRequest(requestId).subscribe({
-        next: () => { this.closeCancelConfirm(); this.router.navigate(['/applications']); },
-        error: (err) => { console.error('Failed to cancel request', err); this.closeCancelConfirm(); }
+        next: () => {
+          this.closeCancelConfirm();
+          this.toastService.show('Request cancelled', 'The application request has been cancelled.', 'success');
+          this.router.navigate(['/applications']);
+        },
+        error: (err) => {
+          console.error('Failed to cancel request', err);
+          this.closeCancelConfirm();
+          this.toastService.show('Cancel request failed', 'The action failed. Please try again.', 'danger');
+        }
       });
     }
   }
