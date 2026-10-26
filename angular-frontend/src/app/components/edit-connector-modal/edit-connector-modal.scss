@@ -4,38 +4,6 @@
 */
 @use 'variables' as *;
 
-/* ── Modal chrome ───────────────────────────────────────── */
-.ecm-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.45);
-  z-index: 1060;
-  display: flex; align-items: center; justify-content: center;
-  padding: 1rem;
-  overflow: auto;
-}
-
-.ecm-modal {
-  background: $color-white; border-radius: 8px;
-  width: 800px; flex-shrink: 0; max-height: 90vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0,0,0,.18);
-}
-
-.ecm-modal-header {
-  padding: 1.25rem 1.5rem; border-bottom: 1px solid $color-border-light; flex-shrink: 0;
-}
-
-.ecm-modal-title { font-size: 1.0625rem; font-weight: 600; color: $color-text-dark; }
-
-.ecm-modal-body {
-  flex: 1; overflow-y: auto;
-  padding: 1.25rem 1.5rem;
-}
-
-.ecm-modal-footer {
-  padding: 1rem 1.5rem; border-top: 1px solid $color-border-light; flex-shrink: 0;
-}
-
 /* ── Form labels ────────────────────────────────────────── */
 .form-label-upload {
   font-weight: 600;
@@ -45,23 +13,12 @@
 
 .char-counter { font-size: 0.75rem; margin-top: 0.25rem; }
 
-.field-error { font-size: 0.875rem; color: #dc3545; margin-top: 0.25rem; }
+.field-error { font-size: 0.875rem; color: $color-danger; margin-top: 0.25rem; }
 
 .input-disabled {
   background-color: $color-bg-disabled;
   color: $color-gray-secondary;
 }
-
-/* ── Info icon (native title tooltip) ──────────────────── */
-.btn-info-icon {
-  border: none;
-  background: none;
-  box-shadow: none !important;
-  position: relative;
-  top: -3px;
-  &:hover, &:focus, &:active { background: none; box-shadow: none; }
-}
-.info-icon-sm { font-size: 12px; color: $text-publishing-blue; }
 
 /* ── Accordion panels ───────────────────────────────────── */
 .accordion-panel {
@@ -74,7 +31,7 @@
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.875rem 1.25rem;
   cursor: pointer; user-select: none;
-  background: #f8f9fa; border-radius: 8px;
+  background: $color-bg-light; border-radius: 8px;
 }
 
 .accordion-chevron { font-size: 0.75rem; color: $color-text-secondary; width: 12px; }
@@ -88,12 +45,12 @@
 .accordion-panel-body {
   padding: 1.25rem 1.5rem 1.5rem;
   border-top: 1px solid $color-border-light;
-  background-color: #f8f9fa;
+  background-color: $color-bg-light;
   border-radius: 0 0 8px 8px;
 
   .form-control, .form-select, .method-link-wrapper,
   .method-link-input, .license-select-trigger {
-    background-color: #fff;
+    background-color: $color-white;
     border-color: $color-border-light;
   }
 
@@ -127,7 +84,7 @@
   &::placeholder { color: $color-gray-secondary; }
 }
 
-.method-link-wrapper--invalid { border-color: #dc3545; }
+.method-link-wrapper--invalid { border-color: $color-danger; }
 
 /* Fields settled with the bundle's first version and fixed afterwards. .accordion-panel-body paints
    every input inside it white with two classes of specificity, so each selector here has to carry two
@@ -164,8 +121,8 @@
 .maintainer-dropdown { max-height: calc(8 * 2.375rem); overflow-y: auto; }
 
 /* ── Radio ──────────────────────────────────────────────── */
-.form-check-input[type="radio"] { accent-color: $color-brand-steel !important; }
+.form-check-input[type="radio"] { accent-color: $color-brand-blue !important; }
 .form-check-input[type="radio"]:checked {
-  background-color: $color-brand-steel !important;
-  border-color: $color-brand-steel !important;
+  background-color: $color-brand-blue !important;
+  border-color: $color-brand-blue !important;
 }

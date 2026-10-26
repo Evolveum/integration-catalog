@@ -7,6 +7,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApplicationService, ConnectorWithoutDownload, SupportTicket } from '../../services/application.service';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /**
  * Reusable multi-step confirmation modal for approving or rejecting an in-review
@@ -33,9 +34,8 @@ import { ApplicationService, ConnectorWithoutDownload, SupportTicket } from '../
 @Component({
   selector: 'app-approval-confirm-modal',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './approval-confirm-modal.html',
-  styleUrls: ['./approval-confirm-modal.scss']
+  imports: [CommonModule, BackdropCloseDirective],
+  templateUrl: './approval-confirm-modal.html'
 })
 export class ApprovalConfirmModal implements OnInit {
   @Input({ required: true }) mode!: 'approve' | 'reject';

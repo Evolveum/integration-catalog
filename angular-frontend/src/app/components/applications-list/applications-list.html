@@ -119,11 +119,11 @@
               (input)="onSearchChange($event)"
             />
           </div>
-          <button class="btn btn-outline-secondary rounded-pill px-4 d-flex align-items-center gap-2" type="button" title="Filter" (click)="openFilterModal()">
+          <button class="btn btn-outline-gray rounded-pill px-4 d-flex align-items-center gap-2" type="button" title="Filter" (click)="openFilterModal()">
             <i class="fa-solid fa-filter icon-xl"></i>
             Filter
           </button>
-          <button class="btn btn-link text-body text-decoration-none text-nowrap" type="button" (click)="resetFilter()">
+          <button class="btn btn-link reset-filter-btn text-decoration-none text-nowrap" type="button" (click)="resetFilter()">
             Reset filter
           </button>
         </div>
@@ -140,15 +140,13 @@
 
               <!-- Categories Filter Chip -->
               @if (visibleChips().has('categories')) {
-                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill bg-white border border-2 border-primary px-3 py-2 small fw-semibold">
-                  <span>Category</span>
-                  <span class="badge rounded-pill text-bg-primary">
-                    {{ filterState().categories.length }}
-                  </span>
-                  <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" class="btn btn-link p-0 d-inline-flex align-items-center text-body">
+                <div class="filter-chip position-relative d-inline-flex align-items-center rounded-pill bg-white border border-2 border-primary">
+                  <button type="button" (click)="toggleDropdown('categories', $event); $event.stopPropagation()" class="btn btn-link btn-sm d-inline-flex align-items-center gap-2 ps-3 pe-2 py-2 text-body text-decoration-none">
+                    <span>Category</span>
+                    <span class="badge rounded-pill text-bg-primary">{{ filterState().categories.length }}</span>
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="removeChip('categories')" class="btn btn-link p-0 d-inline-flex align-items-center link-secondary">
+                  <button type="button" (click)="removeChip('categories')" class="btn btn-link p-0 me-3 d-inline-flex align-items-center link-secondary text-decoration-none" aria-label="Remove category filter">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -156,15 +154,13 @@
 
               <!-- Deployment Type Filter Chip -->
               @if (visibleChips().has('deploymentTypes')) {
-                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill bg-white border border-2 border-primary px-3 py-2 small fw-semibold">
-                  <span>Deployment type</span>
-                  <span class="badge rounded-pill text-bg-primary">
-                    {{ filterState().deploymentTypes.length }}
-                  </span>
-                  <button type="button" (click)="toggleDropdown('deploymentTypes', $event); $event.stopPropagation()" class="btn btn-link p-0 d-inline-flex align-items-center text-body">
+                <div class="filter-chip position-relative d-inline-flex align-items-center rounded-pill bg-white border border-2 border-primary">
+                  <button type="button" (click)="toggleDropdown('deploymentTypes', $event); $event.stopPropagation()" class="btn btn-link btn-sm d-inline-flex align-items-center gap-2 ps-3 pe-2 py-2 text-body text-decoration-none">
+                    <span>Deployment type</span>
+                    <span class="badge rounded-pill text-bg-primary">{{ filterState().deploymentTypes.length }}</span>
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="removeChip('deploymentTypes')" class="btn btn-link p-0 d-inline-flex align-items-center link-secondary">
+                  <button type="button" (click)="removeChip('deploymentTypes')" class="btn btn-link p-0 me-3 d-inline-flex align-items-center link-secondary text-decoration-none" aria-label="Remove deployment type filter">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -172,15 +168,13 @@
 
               <!-- Capabilities Filter Chip -->
               @if (visibleChips().has('capabilities')) {
-                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill bg-white border border-2 border-primary px-3 py-2 small fw-semibold">
-                  <span>Capability</span>
-                  <span class="badge rounded-pill text-bg-primary">
-                    {{ filterState().capabilities.length }}
-                  </span>
-                  <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn btn-link p-0 d-inline-flex align-items-center text-body">
+                <div class="filter-chip position-relative d-inline-flex align-items-center rounded-pill bg-white border border-2 border-primary">
+                  <button type="button" (click)="toggleDropdown('capabilities', $event); $event.stopPropagation()" class="btn btn-link btn-sm d-inline-flex align-items-center gap-2 ps-3 pe-2 py-2 text-body text-decoration-none">
+                    <span>Capability</span>
+                    <span class="badge rounded-pill text-bg-primary">{{ filterState().capabilities.length }}</span>
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="removeChip('capabilities')" class="btn btn-link p-0 d-inline-flex align-items-center link-secondary">
+                  <button type="button" (click)="removeChip('capabilities')" class="btn btn-link p-0 me-3 d-inline-flex align-items-center link-secondary text-decoration-none" aria-label="Remove capability filter">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -188,15 +182,13 @@
 
               <!-- App Status Filter Chip -->
               @if (visibleChips().has('appStatus')) {
-                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill bg-white border border-2 border-primary px-3 py-2 small fw-semibold">
-                  <span>App status</span>
-                  <span class="badge rounded-pill text-bg-primary">
-                    {{ filterState().appStatus.length }}
-                  </span>
-                  <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" class="btn btn-link p-0 d-inline-flex align-items-center text-body">
+                <div class="filter-chip position-relative d-inline-flex align-items-center rounded-pill bg-white border border-2 border-primary">
+                  <button type="button" (click)="toggleDropdown('appStatus', $event); $event.stopPropagation()" class="btn btn-link btn-sm d-inline-flex align-items-center gap-2 ps-3 pe-2 py-2 text-body text-decoration-none">
+                    <span>App status</span>
+                    <span class="badge rounded-pill text-bg-primary">{{ filterState().appStatus.length }}</span>
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="removeChip('appStatus')" class="btn btn-link p-0 d-inline-flex align-items-center link-secondary">
+                  <button type="button" (click)="removeChip('appStatus')" class="btn btn-link p-0 me-3 d-inline-flex align-items-center link-secondary text-decoration-none" aria-label="Remove app status filter">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -204,15 +196,13 @@
 
               <!-- MidPoint Version Filter Chip -->
               @if (visibleChips().has('midpointVersions')) {
-                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill bg-white border border-2 border-primary px-3 py-2 small fw-semibold">
-                  <span>MidPoint version</span>
-                  <span class="badge rounded-pill text-bg-primary">
-                    {{ filterState().midpointVersions.length }}
-                  </span>
-                  <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" class="btn btn-link p-0 d-inline-flex align-items-center text-body">
+                <div class="filter-chip position-relative d-inline-flex align-items-center rounded-pill bg-white border border-2 border-primary">
+                  <button type="button" (click)="toggleDropdown('midpointVersions', $event); $event.stopPropagation()" class="btn btn-link btn-sm d-inline-flex align-items-center gap-2 ps-3 pe-2 py-2 text-body text-decoration-none">
+                    <span>MidPoint version</span>
+                    <span class="badge rounded-pill text-bg-primary">{{ filterState().midpointVersions.length }}</span>
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="removeChip('midpointVersions')" class="btn btn-link p-0 d-inline-flex align-items-center link-secondary">
+                  <button type="button" (click)="removeChip('midpointVersions')" class="btn btn-link p-0 me-3 d-inline-flex align-items-center link-secondary text-decoration-none" aria-label="Remove midpoint version filter">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -220,15 +210,13 @@
 
               <!-- Integration Method Filter Chip -->
               @if (visibleChips().has('integrationMethods')) {
-                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill bg-white border border-2 border-primary px-3 py-2 small fw-semibold">
-                  <span>Integration method</span>
-                  <span class="badge rounded-pill text-bg-primary">
-                    {{ filterState().integrationMethods.length }}
-                  </span>
-                  <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" class="btn btn-link p-0 d-inline-flex align-items-center text-body">
+                <div class="filter-chip position-relative d-inline-flex align-items-center rounded-pill bg-white border border-2 border-primary">
+                  <button type="button" (click)="toggleDropdown('integrationMethods', $event); $event.stopPropagation()" class="btn btn-link btn-sm d-inline-flex align-items-center gap-2 ps-3 pe-2 py-2 text-body text-decoration-none">
+                    <span>Integration method</span>
+                    <span class="badge rounded-pill text-bg-primary">{{ filterState().integrationMethods.length }}</span>
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="removeChip('integrationMethods')" class="btn btn-link p-0 d-inline-flex align-items-center link-secondary">
+                  <button type="button" (click)="removeChip('integrationMethods')" class="btn btn-link p-0 me-3 d-inline-flex align-items-center link-secondary text-decoration-none" aria-label="Remove integration method filter">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -236,15 +224,13 @@
 
               <!-- Maintainer Filter Chip -->
               @if (visibleChips().has('maintainers')) {
-                <div class="filter-chip position-relative d-inline-flex align-items-center gap-2 rounded-pill bg-white border border-2 border-primary px-3 py-2 small fw-semibold">
-                  <span>Maintainer</span>
-                  <span class="badge rounded-pill text-bg-primary">
-                    {{ filterState().maintainers.length }}
-                  </span>
-                  <button type="button" (click)="toggleDropdown('maintainers', $event); $event.stopPropagation()" class="btn btn-link p-0 d-inline-flex align-items-center text-body">
+                <div class="filter-chip position-relative d-inline-flex align-items-center rounded-pill bg-white border border-2 border-primary">
+                  <button type="button" (click)="toggleDropdown('maintainers', $event); $event.stopPropagation()" class="btn btn-link btn-sm d-inline-flex align-items-center gap-2 ps-3 pe-2 py-2 text-body text-decoration-none">
+                    <span>Maintainer</span>
+                    <span class="badge rounded-pill text-bg-primary">{{ filterState().maintainers.length }}</span>
                     <i class="fa-solid fa-chevron-down icon-md"></i>
                   </button>
-                  <button type="button" (click)="removeChip('maintainers')" class="btn btn-link p-0 d-inline-flex align-items-center link-secondary">
+                  <button type="button" (click)="removeChip('maintainers')" class="btn btn-link p-0 me-3 d-inline-flex align-items-center link-secondary text-decoration-none" aria-label="Remove maintainer filter">
                     <i class="fa-solid fa-xmark icon-md"></i>
                   </button>
                 </div>
@@ -321,7 +307,7 @@
                            class="logo-image" />
                     </div>
                   } @else {
-                    <div class="letter-avatar-sm d-flex align-items-center justify-content-center" [style.background]="getAvatarGradient(app.displayName)">
+                    <div class="letter-avatar-sm d-flex align-items-center justify-content-center" [class]="avatarToneClass(app.displayName)">
                       {{ app.displayName.charAt(0) }}
                     </div>
                   }
@@ -432,7 +418,7 @@
                          class="logo-image" />
                   </div>
                 } @else {
-                  <div class="letter-avatar-sm d-flex align-items-center justify-content-center" [style.background]="getAvatarGradient(app.displayName)">
+                  <div class="letter-avatar-sm d-flex align-items-center justify-content-center" [class]="avatarToneClass(app.displayName)">
                     {{ app.displayName.charAt(0) }}
                   </div>
                 }
@@ -505,7 +491,7 @@
 
         <!-- Upload Configuration -->
         <div class="d-flex align-items-stretch mb-3 options-box overflow-hidden">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-purple">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box options-icon-box-purple">
             <i class="fa-solid fa-upload options-icon"></i>
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
@@ -524,7 +510,7 @@
 
         <!-- Download Integration Sheet -->
         <div class="d-flex align-items-stretch mb-3 options-box overflow-hidden">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-purple bg-primary-subtle">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box options-icon-box-blue">
             <i class="fa-solid fa-download options-icon"></i>
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
@@ -543,7 +529,7 @@
 
         <!-- Request Tailored Solution -->
         <div class="d-flex align-items-stretch options-box overflow-hidden">
-          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box-orange">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0 options-icon-box options-icon-box-yellow">
             <i class="fa-solid fa-code-pull-request options-icon"></i>
           </div>
           <div class="flex-grow-1 p-4 d-flex align-items-center">
@@ -607,15 +593,24 @@
 
     @if (openDropdown() === 'capabilities' && dropdownPosition()) {
       <div class="filter-dropdown dropdown-menu show shadow-sm overflow-auto" (click)="$event.stopPropagation()" [style.position]="'fixed'" [style.top.px]="dropdownPosition()!.top" [style.left.px]="dropdownPosition()!.left">
-        @for (capability of allCapabilities(); track capability) {
-          <div class="dropdown-item d-flex align-items-center gap-2 text-wrap cursor-pointer" (click)="toggleCapabilityInFilter(capability); $event.stopPropagation()">
-            <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
-              @if (isCapabilitySelected(capability)) {
-                <i class="fa-solid fa-check icon-xs text-white"></i>
-              }
+        @for (group of [
+          { title: 'All object classes (Global)', caps: globalCapabilities() },
+          { title: 'Specific object classes', caps: specificCapabilities() }
+        ]; track group.title) {
+          @if (!$first) {
+            <hr class="dropdown-divider">
+          }
+          <h6 class="dropdown-header">{{ group.title }}</h6>
+          @for (capability of group.caps; track capability) {
+            <div class="dropdown-item d-flex align-items-center gap-2 text-wrap cursor-pointer" (click)="toggleCapabilityInFilter(capability); $event.stopPropagation()">
+              <div class="checkbox-custom d-flex align-items-center justify-content-center" [class.checkbox-checked]="isCapabilitySelected(capability)" [class.checkbox-unchecked]="!isCapabilitySelected(capability)">
+                @if (isCapabilitySelected(capability)) {
+                  <i class="fa-solid fa-check icon-xs text-white"></i>
+                }
+              </div>
+              <span>{{ formatCapability(capability) }}</span>
             </div>
-            <span>{{ formatCapability(capability) }}</span>
-          </div>
+          }
         }
         <hr class="dropdown-divider">
         <a href="javascript:void(0)" (click)="clearCapabilitiesFilter(); $event.stopPropagation()" class="dropdown-item small text-primary">Clear filter</a>

@@ -5,10 +5,10 @@
  -->
 
 @if (isOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeModal()"></div>
-  <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto" [appBackdropClose]="filterDialog" (backdropClose)="closeModal()">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-filter">
-      <div #filterDialog class="modal-content modal-content-filter" (click)="$event.stopPropagation()">
+  <div class="modal-backdrop show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="Filters" [appBackdropClose]="filterDialog" (backdropClose)="closeModal()">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div #filterDialog class="modal-content overflow-hidden" (click)="$event.stopPropagation()">
 
         <div class="d-flex filter-layout">
           <!-- Left Sidebar -->
@@ -16,9 +16,7 @@
             <!-- <div
               class="filter-option d-flex align-items-center gap-3"
               [class.active]="selectedSection() === 'trending'"
-              (click)="selectSection('trending')"
-              style="padding: 0.75rem 1.5rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;"
-              [style.background-color]="selectedSection() === 'trending' ? '#e9ecef' : 'transparent'">
+              (click)="selectSection('trending')">
               <i class="fa-solid fa-chart-line" style="font-size: 14px;"></i>
               <span>Trending</span>
             </div> -->
@@ -87,16 +85,10 @@
               <div>
                 <h5 class="mb-4">Trending</h5>
                 <div>
-                  <span
-                    class="badge"
-                    [class.selected]="trending()"
-                    (click)="toggleTrending()"
-                    style="font-size: 0.875rem; padding: 0.5rem 1rem; cursor: pointer; border-radius: 20px; font-weight: normal;"
-                    [style.border]="trending() ? '1px solid #2722c7' : '1px solid #a6a6a6'"
-                    [style.background-color]="trending() ? '#f2f2f2' : 'white'"
-                    [style.color]="trending() ? '#0c3c85' : '#212529'">
+                  <button type="button" class="btn btn-sm rounded-pill btn-outline-primary"
+                          [class.active]="trending()" [attr.aria-pressed]="trending()" (click)="toggleTrending()">
                     Popular
-                  </span>
+                  </button>
                 </div>
               </div>
             } -->
@@ -143,18 +135,24 @@
             @if (selectedSection() === 'capabilities') {
               <div>
                 <h5 class="mb-4">Capabilities</h5>
-                <div class="d-flex flex-wrap gap-2">
-                  @for (capability of capabilities(); track capability) {
-                    <button
-                      type="button"
-                      class="btn btn-sm rounded-pill btn-outline-primary"
-                      [class.active]="isCapabilitySelected(capability)"
-                      [attr.aria-pressed]="isCapabilitySelected(capability)"
-                      (click)="toggleCapability(capability)">
-                      {{ formatCapability(capability) }}
-                    </button>
-                  }
-                </div>
+                @for (group of [
+                  { title: 'All object (Global)', caps: globalCapabilities() },
+                  { title: 'Specific object classes', caps: specificCapabilities() }
+                ]; track group.title) {
+                  <h6 class="fw-semibold mb-2" [class.mt-4]="!$first">{{ group.title }}</h6>
+                  <div class="d-flex flex-wrap gap-2">
+                    @for (capability of group.caps; track capability) {
+                      <button
+                        type="button"
+                        class="btn btn-sm rounded-pill btn-outline-primary"
+                        [class.active]="isCapabilitySelected(capability)"
+                        [attr.aria-pressed]="isCapabilitySelected(capability)"
+                        (click)="toggleCapability(capability)">
+                        {{ formatCapability(capability) }}
+                      </button>
+                    }
+                  </div>
+                }
               </div>
             }
 

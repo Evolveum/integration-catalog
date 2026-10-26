@@ -20,7 +20,7 @@
 .settings-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.35rem;
 }
 
@@ -33,7 +33,7 @@
 .settings-section-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.35rem;
 }
 
@@ -47,15 +47,15 @@
    READ-ONLY NOTICE
    ======================================== */
 .iam-banner {
-  background-color: #E7F3FB;
-  border: 1px solid #C7E2F4;
+  background-color: $color-primary-bg-subtle;
+  border: 1px solid $color-primary-border-subtle;
   border-radius: 6px;
   padding: 0.85rem 1rem;
   margin-bottom: 1.25rem;
 }
 
 .iam-banner-icon {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-size: 15px;
   flex-shrink: 0;
   align-self: flex-start;
@@ -67,7 +67,7 @@
   flex-direction: column;
   gap: 0.15rem;
   font-size: 0.8125rem;
-  color: #1f3a52;
+  color: $color-primary-text-emphasis;
   overflow-wrap: anywhere;
 }
 
@@ -93,8 +93,8 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: #DCE7F5;
-  color: #36538B;
+  background-color: $color-primary-bg-subtle;
+  color: $color-primary-text-emphasis;
   font-size: 1rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -107,7 +107,7 @@
 .profile-name {
   font-size: 1rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   overflow-wrap: anywhere;
 }
 

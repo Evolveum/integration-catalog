@@ -7,6 +7,7 @@
 import { Component, computed, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /** What the user filled in; a null expiration means the key never expires. */
 export interface CreateApiKeyRequest {
@@ -35,9 +36,8 @@ const EXPIRATION_PRESETS: ExpirationPreset[] = [
 @Component({
   selector: 'app-create-api-key-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './create-api-key-modal.html',
-  styleUrls: ['./create-api-key-modal.scss']
+  imports: [CommonModule, FormsModule, BackdropCloseDirective],
+  templateUrl: './create-api-key-modal.html'
 })
 export class CreateApiKeyModal {
   /** True while the key is being minted: the modal stays open but cannot be submitted again. */

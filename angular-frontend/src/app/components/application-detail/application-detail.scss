@@ -8,27 +8,17 @@
    PAGE LAYOUT
    ======================================== */
 .page-container {
-  background-color: #ffffff;
+  background-color: $color-white;
   min-height: 100vh;
 }
 
-.header-bar {
-  background-color: #d9e3ec;
-  padding: 0.75rem 0;
-}
-
-.header-bar-lg {
-  background-color: #d9e3ec;
-  padding: 1rem 0;
-}
-
 .header-section {
-  background-color: #e8eef3;
+  background-color: $color-primary-bg-subtle;
   padding: 2rem 0;
 }
 
 .sidebar-panel {
-  background-color: #f8f8ff;
+  background-color: $color-bg-light;
 }
 
 /* Keep the IM (left) panel at a stable width so its content doesn't squish.
@@ -80,7 +70,7 @@
   width: 70px;
   height: 70px;
   border-radius: 4px;
-  background-color: #ffffff;
+  background-color: $color-white;
 }
 
 .logo-image {
@@ -93,7 +83,7 @@
   width: 70px;
   height: 70px;
   border-radius: 4px;
-  color: white;
+  color: $color-white;
   font-size: 28px;
   font-weight: 600;
 }
@@ -102,38 +92,17 @@
    TEXT COLORS
    ======================================== */
 .text-title {
-  color: #1a202c;
+  color: $color-text-dark;
   font-weight: 600;
   font-size: 2rem;
 }
 
 .text-body {
-  color: #4a5568;
+  color: $color-gray-700;
 }
 
 .text-muted-custom {
-  color: #718096;
-}
-
-.text-black {
-  color: #000000;
-}
-
-.text-link {
-  color: #2c5282;
-}
-
-.text-error {
-  color: #842029;
-}
-
-.text-ai {
-  color: #502afa;
-}
-
-.text-edit {
-  color: #367FAA;
-  font-weight: 600;
+  color: $color-gray-600;
 }
 
 /* ========================================
@@ -181,44 +150,18 @@
 }
 
 /* ========================================
-   MODALS
+   FILTER MODAL
    ======================================== */
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1050;
-}
-
-.modal-content-box {
-  width: 90%;
-  max-width: 800px;
+// Fixed height, so switching sections doesn't resize the dialog.
+.filter-dialog-body {
   height: 500px;
   max-height: 80vh;
-  overflow: hidden;
-  z-index: 1051;
 }
 
-.modal-sidebar {
+.filter-sidebar {
   width: 250px;
 }
 
-.modal-main {
-  width: 550px;
-}
-
-/* ========================================
-   VERSION CARDS
-   ======================================== */
-.version-card {
-  background-color: #ffffff;
-}
-
-/* ========================================
-   ERROR BANNER
-   ======================================== */
-.error-banner {
-  background-color: #f8d7da;
-  border: 1px solid #f5c2c7;
-}
 
 /* ========================================
    DROPDOWNS
@@ -247,7 +190,7 @@
 
 .checkbox-unchecked {
   background-color: transparent;
-  border-color: #dee2e6;
+  border-color: $color-border-light;
 }
 
 /* ========================================
@@ -273,20 +216,20 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-primary-500;
+  color: $color-brand-blue;
   cursor: pointer;
   text-decoration: none;
 }
 
 .breadcrumb-sep {
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: $color-gray-500;
 }
 
 .breadcrumb-current {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #000;
+  color: $color-black;
 }
 
 .breadcrumb-app-icon {
@@ -297,7 +240,7 @@
 }
 
 .breadcrumb-link:hover {
-  color: $color-primary-500;
+  color: $color-brand-blue;
   text-decoration: underline;
 }
 
@@ -314,14 +257,14 @@
    ======================================== */
 .star-icon {
   font-size: 14px;
-  color: #f59e0b;
+  color: $color-warning;
 }
 
 /* ========================================
    PUBLISHING STATE
    ======================================== */
 .publishing-icon {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
 }
 
 /* ========================================
@@ -369,7 +312,7 @@
 
 .input-group .form-control:focus {
   box-shadow: none;
-  border-color: #dee2e6;
+  border-color: $color-border-light;
 }
 
 /* ========================================
@@ -384,8 +327,8 @@
   padding: 0 1rem;
   cursor: pointer;
   font-weight: 600;
-  color: #000000;
-  background: white;
+  color: $color-black;
+  background: $color-white;
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
@@ -403,12 +346,12 @@
 
 .method-divider {
   border: 0;
-  border-top: 1px solid #8d8d8d;
+  border-top: 1px solid $color-gray-600;
   margin: 0 0 1.5rem 0;
 }
 
 .method-empty-state {
-  background-color: #f8f9fa;
+  background-color: $color-bg-light;
   border-radius: 8px;
   padding: 3rem 2rem;
   text-align: center;
@@ -423,7 +366,7 @@
 
 .im-title {
   font-size: 1rem;
-  color: #1a202c;
+  color: $color-text-dark;
 }
 
 /* "View ticket" link shown under the Under-review badge. */
@@ -432,7 +375,7 @@
   margin-top: 0.5rem;
   font-size: 0.8rem;
   font-weight: 500;
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   text-decoration: underline;
   // .im-row-actions below is pulled up by a negative margin (see .im-row-actions) and its box
   // covers this link even though its buttons are right-aligned. On hover that box becomes
@@ -441,19 +384,19 @@
   z-index: 1;
 
   &:hover {
-    color: $color-brand-steel-dark;
+    color: $color-brand-blue-dark;
   }
 }
 
 .im-divider {
   border: 0;
-  border-top: 1px solid #7a7a7a;
+  border-top: 1px solid $color-gray-600;
   margin: 0.75rem 0 1rem 0;
 }
 
 .im-capabilities-header {
   font-weight: 600;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.5rem;
 }
 
@@ -512,20 +455,19 @@
   opacity: 1;
 }
 
-/* Support tier: a chip for visitors, the same colors on the reviewer's select. */
 /* ========================================
    COLLAPSIBLE METHOD CARD
    ======================================== */
 .im-method-card {
-  border: 1px solid #dee2e6;
+  border: 1px solid $color-border-light;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .im-obsolete-warning {
-  background: #fdf6e3;
-  border: 1px solid #f5e2b8;
-  color: #7a5b00;
+  background: $color-warning-bg-subtle;
+  border: 1px solid $color-warning-border-subtle;
+  color: $color-warning-text-emphasis;
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
   margin: 0 1.25rem 1rem;
@@ -535,7 +477,7 @@
 }
 
 .im-obsolete-warning-icon {
-  color: #d9a300;
+  color: $color-warning-text-emphasis;
   margin-top: 0.2rem;
 }
 
@@ -544,37 +486,37 @@
   cursor: pointer;
 
   &:hover {
-    background-color: #f8f9fa;
+    background-color: $color-bg-light;
   }
 }
 
 .im-method-chevron {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: $color-gray-600;
   margin-top: 0.2rem;
 }
 
 .im-method-title {
   font-size: 20px;
   font-weight: 600;
-  color: #000000;
+  color: $color-black;
 }
 
 .im-summary-published {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #15803d;
+  color: $color-success;
 }
 
 .im-summary-pending {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #b45309;
+  color: $color-warning-text-emphasis;
 }
 
 .im-version-count {
   font-size: 0.8125rem;
-  color: #6c757d;
+  color: $color-gray-600;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -605,18 +547,18 @@
 }
 
 .im-table-header {
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid $color-gray-200;
   padding: 0.5rem 1.25rem;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: #6c757d;
+  color: $color-gray-600;
   text-transform: uppercase;
-  background-color: #f8f9fa;
+  background-color: $color-bg-light;
 }
 
 .im-version-row {
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid $color-gray-200;
   padding: 1rem 1.25rem;
   cursor: default;
   transition: background-color 0.15s;
@@ -626,7 +568,7 @@
   min-height: 10rem;
 
   &:hover {
-    background-color: #f8fbff;
+    background-color: rgba($color-brand-blue, 0.04);
   }
 
   // IN_REVIEW rows for superusers also render an always-visible Reject/Accept
@@ -639,19 +581,19 @@
 .im-row-title {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.25rem;
 }
 
 .im-submitted-line {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #b45309;
+  color: $color-warning-text-emphasis;
   margin-bottom: 0.4rem;
 }
 
 .im-row-desc {
-  color: #000;
+  color: $color-black;
   margin-bottom: 0.75rem;
   overflow-wrap: anywhere;
 }
@@ -693,11 +635,6 @@
   visibility: visible;
 }
 
-.im-method-sep {
-  color: #adb5bd;
-  font-size: 0.8rem;
-}
-
 /* ========================================
    VERSIONS PLACEHOLDER
    ======================================== */
@@ -717,57 +654,6 @@
   cursor: not-allowed;
 }
 
-/* Cancel review request confirmation modal */
-.cancel-confirm-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1040;
-}
-
-.cancel-confirm-container {
-  z-index: 1050;
-}
-
-.cancel-confirm-dialog {
-  background: $color-white;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  width: 480px;
-  max-width: 95vw;
-}
-
-.cancel-confirm-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid $color-border-light;
-}
-
-.cancel-confirm-icon {
-  color: #e0502b;
-  font-size: 1.1rem;
-}
-
-.cancel-confirm-title {
-  font-weight: 600;
-  font-size: 1rem;
-  color: $color-text-dark;
-}
-
-.cancel-confirm-body {
-  padding: 1.25rem;
-  font-size: 0.9375rem;
-  color: $color-text-secondary;
-  line-height: 1.55;
-}
-
-.cancel-confirm-footer {
-  padding: 0.75rem 1.25rem 1rem;
-}
-
-.cancel-confirm-separator {
-  margin: 0;
-  border-color: $color-border-light;
-  opacity: 1;
-}
-
 /* Bundle download warning toast */
 .toast-container {
   z-index: 2000;
@@ -781,7 +667,7 @@
   max-width: 420px;
   border: 1px solid $toast-warning-border;
   border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 16px $shadow-popover;
 }
 
 .toast-header-warning {

@@ -25,8 +25,7 @@ import { ApplicationService, SupportTicket } from '../../services/application.se
 @Component({
   selector: 'app-submission-success-modal',
   standalone: true,
-  templateUrl: './submission-success-modal.html',
-  styleUrls: ['./submission-success-modal.scss']
+  templateUrl: './submission-success-modal.html'
 })
 export class SubmissionSuccessModal implements OnInit {
 

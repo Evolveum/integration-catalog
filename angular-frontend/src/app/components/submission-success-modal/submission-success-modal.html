@@ -1,53 +1,60 @@
 <!-- Copied-to-clipboard toast -->
 @if (copiedNotice()) {
   <div class="position-fixed bottom-0 start-50 translate-middle-x pb-4" style="z-index:9999;">
-    <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 shadow-sm" style="background:#212529; color:#fff; font-size:0.875rem;">
+    <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-2 shadow-sm text-bg-dark small">
       <i class="fa-solid fa-check"></i> {{ copiedNotice() }}
     </div>
   </div>
 }
 
-<div class="submitted-modal-backdrop position-fixed top-0 start-0 w-100 h-100"></div>
-<div class="submitted-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="submitted-modal-dialog">
-    <button type="button" class="btn-close submitted-modal-close" (click)="dismissed.emit()" aria-label="Close"></button>
+<!-- No backdrop close: only Done or the X dismiss it. -->
+<div class="modal-backdrop show"></div>
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="submitted-modal-title">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <button type="button" class="btn-close position-absolute top-0 end-0 m-3" (click)="dismissed.emit()" aria-label="Close"></button>
 
-    <div class="submitted-modal-head d-flex flex-column align-items-center text-center">
-      <div class="submitted-modal-check"><i class="fa-solid fa-check"></i></div>
-      <h5 class="submitted-modal-title">{{ title }}</h5>
-      @if (subtitle) {
-        <p class="submitted-modal-subtitle">{{ subtitle }}</p>
-      }
-    </div>
-
-    <!-- Only when the portal actually opened one: it is switched off in some deployments, and a
-         panel promising a ticket number that does not exist is worse than no panel. -->
-    @if (ticketId()) {
-      <h6 class="submitted-modal-section-title">Support portal ticket</h6>
-      <div class="submitted-ticket-panel d-flex align-items-center justify-content-between gap-3">
-        <span class="submitted-ticket-number">#{{ ticketId() }}</span>
-        @if (ticketUrl()) {
-          <div class="d-flex align-items-center gap-3">
-            <button type="button" class="btn btn-link p-0 link-body-emphasis text-decoration-none text-nowrap" (click)="copyTicketLink()">
-              <i class="fa-regular fa-copy me-1"></i>Copy link
-            </button>
-            <a class="btn btn-link p-0 text-decoration-none text-nowrap"
-               [href]="ticketUrl()" target="_blank" rel="noopener">
-              Open ticket <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i>
-            </a>
-          </div>
+      <div class="modal-header flex-column text-center pt-5 pb-4">
+        <span class="modal-icon modal-icon-lg bg-success-subtle text-success"><i class="fa-solid fa-check"></i></span>
+        <h2 id="submitted-modal-title" class="modal-title fs-5 fw-semibold text-break mt-3 mb-1">{{ title }}</h2>
+        @if (subtitle) {
+          <p class="text-body-secondary mb-0">{{ subtitle }}</p>
         }
       </div>
-    }
 
-    <h6 class="submitted-modal-section-title">What happens next?</h6>
-    <p class="submitted-modal-text">
-      Our team will review your submission. No action is required right now. If we need
-      clarification or changes, we'll contact you through the review ticket, where you can
-      also follow updates and respond to requests.
-    </p>
+      <div class="modal-body">
+        <!-- Only when the portal actually opened one: it is switched off in some deployments, and a
+             panel promising a ticket number that does not exist is worse than no panel. -->
+        @if (ticketId()) {
+          <h3 class="fs-6 fw-semibold mb-2">Support portal ticket</h3>
+          <!-- The number is what the panel is for; the actions wrap below it when the dialog narrows -->
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 bg-body-tertiary border rounded-2 px-3 py-2 mb-4">
+            <span class="fs-4 fw-semibold text-break">#{{ ticketId() }}</span>
+            @if (ticketUrl()) {
+              <div class="d-flex align-items-center gap-3">
+                <button type="button" class="btn btn-link p-0 link-body-emphasis text-decoration-none text-nowrap" (click)="copyTicketLink()">
+                  <i class="fa-regular fa-copy me-1"></i>Copy link
+                </button>
+                <a class="btn btn-link p-0 text-decoration-none text-nowrap"
+                   [href]="ticketUrl()" target="_blank" rel="noopener">
+                  Open ticket <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i>
+                </a>
+              </div>
+            }
+          </div>
+        }
 
-    <hr class="submitted-modal-separator">
-    <button type="button" class="btn btn-primary w-100" (click)="done.emit()">Done</button>
+        <h3 class="fs-6 fw-semibold mb-2">What happens next?</h3>
+        <p class="text-body-secondary mb-0">
+          Our team will review your submission. No action is required right now. If we need
+          clarification or changes, we'll contact you through the review ticket, where you can
+          also follow updates and respond to requests.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary w-100 m-0" (click)="done.emit()">Done</button>
+      </div>
+    </div>
   </div>
 </div>

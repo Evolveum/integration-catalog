@@ -23,12 +23,14 @@ import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { SupportTier, supportTierClasses, supportTierLabel } from '../../core/support-tier';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
   imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, ManualFillModal,
-    MarkdownPipe],
+    MarkdownPipe, BackdropCloseDirective, InfoTooltip],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })

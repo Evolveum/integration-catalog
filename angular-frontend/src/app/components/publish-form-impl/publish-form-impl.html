@@ -62,10 +62,7 @@
                 <div class="col-8">
                   <label class="form-label form-label-upload">
                     Connector name <span class="text-danger">*</span>
-                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                      <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">The display name of this connector in the catalog.</span>
-                    </span>
+                    <app-info-tooltip>The display name of this connector in the catalog.</app-info-tooltip>
                   </label>
                   <input type="text" class="form-control"
                          [class.input-disabled]="isExistingConnector"
@@ -77,10 +74,7 @@
                 <div class="col-4">
                   <label class="form-label form-label-upload">
                     Connector version@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
-                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                      <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">Version of this connector (e.g. 1.0.0).</span>
-                    </span>
+                    <app-info-tooltip>Version of this connector (e.g. 1.0.0).</app-info-tooltip>
                   </label>
                   <input type="text"
                          [class.form-control]="true"
@@ -96,10 +90,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   Maintainer <span class="text-danger">*</span>
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Select the person or team responsible for maintaining this connector.</span>
-                  </span>
+                  <app-info-tooltip>Select the person or team responsible for maintaining this connector.</app-info-tooltip>
                 </label>
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
@@ -124,10 +115,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   License type <span class="text-danger">*</span>
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Specifies the software licensing terms (e.g., Apache 2.0, EUPL 1.2). Used for compliance tracking and auditing purposes.</span>
-                  </span>
+                  <app-info-tooltip>Specifies the software licensing terms (e.g., Apache 2.0, EUPL 1.2). Used for compliance tracking and auditing purposes.</app-info-tooltip>
                 </label>
                 <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
                   <div class="form-select license-select-trigger"
@@ -188,10 +176,7 @@
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
                   Project homepage
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip"><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the MidPoint Integration Catalog.</span>
-                  </span>
+                  <app-info-tooltip><strong>External repository URL</strong><br><br>Link to the official project repository. This serves as the primary technical reference for this connector in the MidPoint Integration Catalog.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
@@ -208,10 +193,7 @@
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
                   Support portal
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip"><strong>Link to the support portal</strong><br><br>Provide the URL to the dedicated support page for this connector. This allows users to submit service requests, report bugs, or access professional technical assistance provided by the maintainer.</span>
-                  </span>
+                  <app-info-tooltip><strong>Link to the support portal</strong><br><br>Provide the URL to the dedicated support page for this connector. This allows users to submit service requests, report bugs, or access professional technical assistance provided by the maintainer.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
@@ -304,10 +286,7 @@
                 <div class="mb-3">
                   <label class="form-label d-flex align-items-center form-label-upload">
                     Build tool@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
-                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                      <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip">The build system used to compile this connector.</span>
-                    </span>
+                    <app-info-tooltip>The build system used to compile this connector.</app-info-tooltip>
                   </label>
                   <div class="d-flex gap-4">
                     <div class="form-check">
@@ -336,10 +315,7 @@
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
                   Git clone URL@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">The technical address used by the build system to download the source code. Copy the 'Clone' URL from your repository.</span>
-                  </span>
+                  <app-info-tooltip>The technical address used by the build system to download the source code. Copy the 'Clone' URL from your repository.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center"
                      [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid() && !isExistingConnector">
@@ -361,10 +337,7 @@
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
                   Commit hash@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip"><strong>Version identifier of the source code.</strong><br><br>Enter a specific release tag (e.g., 1.0.4) to build a stable version of the connector. If needed, you can also enter a development branch name to build from the latest code.</span>
-                  </span>
+                  <app-info-tooltip><strong>Version identifier of the source code.</strong><br><br>Enter a specific release tag (e.g., 1.0.4) to build a stable version of the connector. If needed, you can also enter a development branch name to build from the latest code.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-tag method-link-icon-i"></i></span>
@@ -385,6 +358,7 @@
                     [title]="commitHelpTitle"
                     lead=""
                     icon="fa-code-commit"
+                    [wide]="true"
                     [steps]="commitHelpSteps"
                     note=""
                     (closed)="isCommitHelpOpen.set(false)">
@@ -399,10 +373,7 @@
               <div class="mb-3">
                 <label class="form-label d-flex align-items-center form-label-upload">
                   Project folder path
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip"><strong>Location of the connector within the repository</strong><br><br>Specify the folder where the connector source code is located. Leave this field empty if the code is in the main (root) directory of the repository.</span>
-                  </span>
+                  <app-info-tooltip><strong>Location of the connector within the repository</strong><br><br>Specify the folder where the connector source code is located. Leave this field empty if the code is in the main (root) directory of the repository.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-regular fa-folder method-link-icon-i"></i></span>
@@ -421,10 +392,7 @@
                 <div class="mb-0">
                   <label class="form-label d-flex align-items-center form-label-upload">
                     {{ isExistingConnector ? 'Connector entry class' : 'Connector class name' }}
-                    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                      <i class="fa-solid fa-circle-info info-icon"></i>
-                      <span class="info-tooltip"><strong>The main entry point of the connector logic.</strong><br><br>Specify the full Java class name that implements the connector. Unlike file paths, this uses dot notation to separate packages (e.g., com.example.MyConnector). This class tells midPoint which part of the code to execute.</span>
-                    </span>
+                    <app-info-tooltip><strong>The main entry point of the connector logic.</strong><br><br>Specify the full Java class name that implements the connector. Unlike file paths, this uses dot notation to separate packages (e.g., com.example.MyConnector). This class tells midPoint which part of the code to execute.</app-info-tooltip>
                   </label>
                   <div class="method-link-wrapper d-flex align-items-center"
                        [class.method-link-wrapper--invalid]="isClassNameInvalid() && !isExistingConnector">
@@ -549,10 +517,7 @@
               <div class="flex-grow-1">
                 <label class="form-label form-label-upload">
                   From version <span class="text-danger">*</span>
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">The minimum connector version this integration method has been tested with.</span>
-                  </span>
+                  <app-info-tooltip>The minimum connector version this integration method has been tested with.</app-info-tooltip>
                 </label>
                 <input type="text" class="form-control"
                        [value]="connectorVersionFrom()"
@@ -562,10 +527,7 @@
               <div class="flex-grow-1">
                 <label class="form-label form-label-upload">
                   To version
-                  <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                    <i class="fa-solid fa-circle-info info-icon"></i>
-                    <span class="info-tooltip">Leave empty if you expect the connector to be compatible with future releases.</span>
-                  </span>
+                  <app-info-tooltip>Leave empty if you expect the connector to be compatible with future releases.</app-info-tooltip>
                 </label>
                 <input type="text" class="form-control"
                        [value]="connectorVersionTo()"

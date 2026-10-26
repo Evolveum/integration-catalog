@@ -12,11 +12,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService } from '../../services/application.service';
 import { ApplicationDetail } from '../../models/application-detail.model';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 @Component({
   selector: 'app-edit-application-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BackdropCloseDirective],
   templateUrl: './edit-application-modal.html',
   styleUrls: ['./edit-application-modal.scss']
 })

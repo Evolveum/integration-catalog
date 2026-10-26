@@ -17,6 +17,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 
 /** Payload sent to updateConnector — also emitted for staging when deferSave is on. */
 export interface ConnectorEditPayload {
@@ -41,7 +42,7 @@ export interface ConnectorEditPayload {
 @Component({
   selector: 'app-edit-connector-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, MarkdownEditor, BackdropCloseDirective],
+  imports: [CommonModule, FormsModule, CapabilityPicker, MarkdownEditor, BackdropCloseDirective, InfoTooltip],
   templateUrl: './edit-connector-modal.html',
   styleUrls: ['./edit-connector-modal.scss']
 })

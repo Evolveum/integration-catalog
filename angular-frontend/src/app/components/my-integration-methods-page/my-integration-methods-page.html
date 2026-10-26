@@ -23,7 +23,7 @@
         }
       </div>
       @if (authService.canUpload()) {
-        <button type="button" class="btn btn-primary ss-primary-btn ms-auto d-flex align-items-center gap-2"
+        <button type="button" class="btn btn-primary text-nowrap flex-shrink-0 ms-auto d-flex align-items-center gap-2"
                 (click)="createMethod()">
           <i class="fa-solid fa-plus"></i>Create new method
         </button>
@@ -274,7 +274,7 @@
               </div>
 
               <!-- A new version starts from the newest revision, as Edit and upgrade does on the detail page. -->
-              <button type="button" class="btn btn-outline-secondary btn-sm ss-outline-btn d-flex align-items-center gap-1"
+              <button type="button" class="btn btn-outline-primary btn-sm text-nowrap flex-shrink-0 d-flex align-items-center gap-1"
                       [disabled]="!canEdit(group.latest)" (click)="openEdit(group.latest)">
                 <i class="fa-solid fa-plus"></i>New version
               </button>
@@ -343,10 +343,10 @@
                       </td>
                       <td>
                         @switch (rev.lifecycleState) {
-                          @case ('ACTIVE') { <span class="ss-badge ss-badge-published"><i class="fa-regular fa-circle-check"></i>Published</span> }
-                          @case ('IN_REVIEW') { <span class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span> }
-                          @case ('REVIEWING') { <span class="ss-badge ss-badge-reviewing"><i class="fa-solid fa-lock"></i>Under review</span> }
-                          @case ('REJECTED') { <span class="ss-badge ss-badge-rejected"><i class="fa-solid fa-xmark"></i>Rejected</span> }
+                          @case ('ACTIVE') { <span class="ss-badge bg-success-subtle text-success-emphasis"><i class="fa-regular fa-circle-check"></i>Published</span> }
+                          @case ('IN_REVIEW') { <span class="ss-badge bg-warning-subtle text-warning-emphasis"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span> }
+                          @case ('REVIEWING') { <span class="ss-badge bg-info-subtle text-info-emphasis"><i class="fa-solid fa-lock"></i>Under review</span> }
+                          @case ('REJECTED') { <span class="ss-badge bg-danger-subtle text-danger-emphasis"><i class="fa-solid fa-xmark"></i>Rejected</span> }
                         }
                       </td>
                       <td class="ss-col-actions" (click)="$event.stopPropagation()">
@@ -423,28 +423,27 @@
 
 <!-- ==================== MODALS ==================== -->
 @if (cancelRevision()) {
-  <div class="cancel-confirm-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeCancel()"></div>
-  <div class="cancel-confirm-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-    <div class="cancel-confirm-dialog" (click)="$event.stopPropagation()">
-      <div class="cancel-confirm-header d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation cancel-confirm-icon"></i>
-          <span class="cancel-confirm-title">Cancel review request?</span>
+  <div class="modal-backdrop show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="cancel-confirm-title"
+       [appBackdropClose]="cancelDialog" (backdropClose)="closeCancel()">
+    <div class="modal-dialog modal-dialog-centered">
+      <div #cancelDialog class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2 id="cancel-confirm-title" class="modal-title fs-6 fw-semibold d-flex align-items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-danger"></i>Cancel review request?
+          </h2>
+          <button type="button" class="btn-close" (click)="closeCancel()" aria-label="Close"></button>
         </div>
-        <button type="button" class="btn p-0 cancel-confirm-close" (click)="closeCancel()" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <div class="cancel-confirm-body">
-        Are you sure you want to cancel this request? <strong>All progress and data</strong>
-        entered during the upload or edit will be <strong>permanently lost.</strong> This action cannot be undone.
-      </div>
-      <hr class="cancel-confirm-separator">
-      <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
-        <button type="button" class="btn cancel-keep-btn" (click)="closeCancel()">Keep request</button>
-        <button type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmCancel()">
-          <i class="fa-solid fa-trash-can"></i>Cancel request
-        </button>
+        <div class="modal-body text-body-secondary">
+          Are you sure you want to cancel this request? <strong>All progress and data</strong>
+          entered during the upload or edit will be <strong>permanently lost.</strong> This action cannot be undone.
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-link text-decoration-none" (click)="closeCancel()">Keep request</button>
+          <button type="button" class="btn btn-danger d-inline-flex align-items-center gap-2" (click)="confirmCancel()">
+            <i class="fa-solid fa-trash-can"></i>Cancel request
+          </button>
+        </div>
       </div>
     </div>
   </div>

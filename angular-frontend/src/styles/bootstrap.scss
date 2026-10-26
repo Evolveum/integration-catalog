@@ -5,9 +5,42 @@
 
 // Bootstrap compiled with the Evolveum brand, so its stock classes (btn-primary, text-bg-*,
 // links, form controls) look like the catalog and components don't need their own copies.
+// Every color comes from _variables.scss; Bootstrap derives the rest (body, borders, secondary/light/dark) from these.
 @use 'variables' as v;
 
-$primary: v.$color-brand-steel;
+$white: v.$color-white;
+$black: v.$color-black;
+$gray-100: v.$color-gray-100;
+$gray-200: v.$color-gray-200;
+$gray-300: v.$color-gray-300;
+$gray-400: v.$color-gray-400;
+$gray-500: v.$color-gray-500;
+$gray-600: v.$color-gray-600;
+$gray-700: v.$color-gray-700;
+$gray-800: v.$color-gray-800;
+$gray-900: v.$color-gray-900;
+
+$primary: v.$color-brand-blue;
+$success: v.$color-success;
+$info: v.$color-info;
+$warning: v.$color-warning;
+$danger: v.$color-danger;
+
+$primary-bg-subtle: v.$color-primary-bg-subtle;
+$primary-border-subtle: v.$color-primary-border-subtle;
+$primary-text-emphasis: v.$color-primary-text-emphasis;
+$success-bg-subtle: v.$color-success-bg-subtle;
+$success-border-subtle: v.$color-success-border-subtle;
+$success-text-emphasis: v.$color-success-text-emphasis;
+$info-bg-subtle: v.$color-info-bg-subtle;
+$info-border-subtle: v.$color-info-border-subtle;
+$info-text-emphasis: v.$color-info-text-emphasis;
+$warning-bg-subtle: v.$color-warning-bg-subtle;
+$warning-border-subtle: v.$color-warning-border-subtle;
+$warning-text-emphasis: v.$color-warning-text-emphasis;
+$danger-bg-subtle: v.$color-danger-bg-subtle;
+$danger-border-subtle: v.$color-danger-border-subtle;
+$danger-text-emphasis: v.$color-danger-text-emphasis;
 
 $font-family-sans-serif: 'Roboto Variable', Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -20,4 +53,31 @@ $input-focus-box-shadow: none;
 $form-select-focus-box-shadow: none;
 $form-check-input-focus-box-shadow: none;
 
+// Pagination numbers and Previous/Next are black, not link blue (the hover stays the link hover).
+$pagination-color: v.$color-black;
+
+// Info-icon tooltips (app-info-tooltip) hold whole sentences, some with a bold heading.
+$tooltip-bg: v.$color-gray-900;
+$tooltip-opacity: 1;
+$tooltip-max-width: 300px;
+
 @import 'bootstrap/scss/bootstrap';
+
+// Brand buttons go lighter on hover and press (combination.jpg), not Bootstrap's darker shade.
+.btn-primary {
+  --bs-btn-hover-bg: #{v.$color-brand-blue-light};
+  --bs-btn-hover-border-color: #{v.$color-brand-blue-light};
+  --bs-btn-active-bg: #{v.$color-brand-blue-light};
+  --bs-btn-active-border-color: #{v.$color-brand-blue-light};
+}
+
+// Multi-line tooltip text reads better left-aligned than centered.
+.tooltip-inner {
+  text-align: start;
+}
+
+// Gray outline button on white (homepage Filter); hover fills it gray like the stock outline buttons.
+.btn-outline-gray {
+  @include button-outline-variant(v.$color-gray-700);
+  --bs-btn-bg: #{v.$color-white};
+}

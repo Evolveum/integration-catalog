@@ -8,10 +8,7 @@
 <div class="mb-4">
   <label class="form-label form-label-upload">
     All object classes (Global)
-    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-      <i class="fa-solid fa-circle-info info-icon"></i>
-      <span class="info-tooltip">Capabilities that apply to all object classes regardless of type.</span>
-    </span>
+    <app-info-tooltip>Capabilities that apply to all object classes regardless of type.</app-info-tooltip>
   </label>
   <div class="position-relative">
     <div class="form-control d-flex flex-wrap align-items-center gap-2 cp-trigger"
@@ -22,7 +19,7 @@
         @for (cap of globalCaps(); track cap) {
           <span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center">
             {{ fmt(cap) }}
-            <button type="button" class="btn btn-link p-0 ms-2 d-inline-flex align-items-center link-secondary"
+            <button type="button" class="btn btn-link p-0 ms-2 d-inline-flex align-items-center link-secondary text-decoration-none"
                     (click)="removeGlobal(cap, $event)" [disabled]="disabled" aria-label="Remove">
               <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
             </button>
@@ -57,10 +54,7 @@
 <div>
   <label class="form-label form-label-upload">
     Specific object classes
-    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-      <i class="fa-solid fa-circle-info info-icon"></i>
-      <span class="info-tooltip">Capabilities that apply to a specific object class (e.g. Account, Group).</span>
-    </span>
+    <app-info-tooltip>Capabilities that apply to a specific object class (e.g. Account, Group).</app-info-tooltip>
   </label>
   @for (entry of entries(); track $index; let i = $index) {
     <div class="cp-oc-card">
@@ -95,7 +89,7 @@
             @for (cap of entry.capabilities; track cap) {
               <span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center">
                 {{ fmt(cap) }}
-                <button type="button" class="btn btn-link p-0 ms-2 d-inline-flex align-items-center link-secondary"
+                <button type="button" class="btn btn-link p-0 ms-2 d-inline-flex align-items-center link-secondary text-decoration-none"
                         (click)="removeSpecific(i, cap, $event)" [disabled]="disabled" aria-label="Remove">
                   <i class="fa-solid fa-circle-xmark cp-remove-icon"></i>
                 </button>

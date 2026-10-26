@@ -23,6 +23,7 @@ import { formatCapabilityLabel } from '../../core/capability-label';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { SupportTier, supportTierClasses, supportTierLabel } from '../../core/support-tier';
+import { avatarToneClass } from '../../core/avatar-tone';
 
 interface MethodGroup {
   id: string;
@@ -1051,17 +1052,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     return !this.hasLogo() || this.logoLoadError();
   }
 
-  protected getAvatarGradient(name: string): string {
-    const gradients = [
-      'linear-gradient(135deg, #0078d4 0%, #50e6ff 100%)',
-      'linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)',
-      'linear-gradient(135deg, #0d9488 0%, #5eead4 100%)',
-      'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)',
-      'linear-gradient(135deg, #be185d 0%, #f472b6 100%)',
-    ];
-    const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % gradients.length;
-    return gradients[index];
-  }
+  protected readonly avatarToneClass = avatarToneClass;
 
   private loadApplication(id: string): void {
     this.applicationService.getById(id).subscribe({

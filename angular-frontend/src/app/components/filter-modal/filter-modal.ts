@@ -67,8 +67,9 @@ export class FilterModal implements OnInit {
   protected readonly categories = signal<CategoryCount[]>([]);
   protected readonly deploymentTypes = signal<CategoryCount[]>([]);
   protected readonly midpointVersions = signal<{ id: number; version: string; versionName: string }[]>([]);
-  // Loaded from the capability table via the backend.
-  protected readonly capabilities = signal<string[]>([]);
+  // Loaded from the capability table via the backend, split by globality like the capability picker.
+  protected readonly globalCapabilities = signal<string[]>([]);
+  protected readonly specificCapabilities = signal<string[]>([]);
   protected readonly appStatuses = [
     { name: 'IN_REVIEW', displayName: 'In review' },
     { name: 'ACTIVE', displayName: 'Active' },
@@ -306,11 +307,12 @@ export class FilterModal implements OnInit {
 
   private loadCapabilities(): void {
     this.applicationService.getCapabilities().subscribe({
-      next: (caps) => this.capabilities.set(
-        [...caps]
-          .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER))
-          .map(c => c.name)
-      ),
+      next: (caps) => {
+        const sorted = [...caps]
+          .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER));
+        this.globalCapabilities.set(sorted.filter(c => c.globality === 'GLOBAL').map(c => c.name));
+        this.specificCapabilities.set(sorted.filter(c => c.globality === 'SPECIFIC').map(c => c.name));
+      },
       error: (err) => console.error('Error loading capabilities:', err)
     });
   }

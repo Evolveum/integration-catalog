@@ -1,182 +1,168 @@
 <!-- Define New Application Modal -->
 @if (showDefineNewModal()) {
-  <div class="define-new-overlay" [appBackdropClose]="defineNewDialog" (backdropClose)="cancelDefineNewModal()">
-    <div #defineNewDialog class="define-new-modal" (click)="$event.stopPropagation()">
-      <div class="define-new-modal-header d-flex justify-content-between align-items-center">
-        <div>
-          <h5 class="define-new-modal-title mb-1">Define new target application</h5>
-          <p class="define-new-modal-subtitle mb-0">Search or define a new application to continue.</p>
-        </div>
-        <button type="button" class="btn-close" (click)="cancelDefineNewModal()" aria-label="Close"></button>
-      </div>
-      <div class="define-new-modal-body" (click)="showOriginDropdown.set(false)">
-
-        <!-- Display Name -->
-        <div class="mb-4">
-          <label class="form-label d-flex align-items-center form-label-upload">
-            Display Name <span class="text-danger">&nbsp;*</span>
-            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-              <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">The name that will be displayed for this application in the catalog.</span>
-            </span>
-          </label>
-          <input type="text" class="form-control input-width-sm" [(ngModel)]="displayName" placeholder="TypeName...">
-        </div>
-
-        <!-- Upload Logo -->
-        <div class="mb-4">
-          <label class="form-label d-flex align-items-center form-label-upload">
-            Upload a logo
-            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-              <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">Supported formats: PNG, JPEG, GIF, SVG, WebP. Max size: 5MB.</span>
-            </span>
-          </label>
-          @if (logoPreviewUrl()) {
-            <div class="d-flex align-items-center gap-3">
-              <div class="border rounded p-2 bg-light">
-                <img [src]="logoPreviewUrl()" alt="Logo preview" class="logo-preview">
-              </div>
-              <div>
-                <div class="text-muted mb-1 upload-text">{{ logoFile()?.name }}</div>
-                <button type="button" class="btn btn-outline-danger btn-sm" (click)="clearLogo()">
-                  <i class="fa-solid fa-trash me-1 upload-btn-icon"></i>Remove
-                </button>
-              </div>
-            </div>
-          } @else {
-            <div class="logo-upload-area"
-                 [class.logo-upload-area-over]="logoDragOver()"
-                 (click)="modalLogoUpload.click()"
-                 (dragover)="$event.preventDefault(); logoDragOver.set(true)"
-                 (dragleave)="logoDragOver.set(false)"
-                 (drop)="onLogoDrop($event)">
-              <input #modalLogoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml,image/webp">
-              <i class="fa-regular fa-image mb-3 logo-icon"></i>
-              <h6 class="mb-2 upload-title">Click to upload or drag and drop</h6>
-              <p class="text-muted mb-0 upload-text">PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
-            </div>
-          }
-        </div>
-
-        <!-- Description -->
-        <div class="mb-4">
-          <label class="form-label d-flex align-items-center form-label-upload">
-            Description
-            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-              <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">Provide a brief description of what this application does.</span>
-            </span>
-          </label>
-          <div class="position-relative">
-            <textarea class="form-control" [value]="description()" (input)="onDescriptionChange($event)"
-                      placeholder="Type description of application..." rows="4" maxlength="350"></textarea>
-            <div class="text-end text-muted char-counter">{{ description().length }}/350 characters</div>
+  <div class="modal-backdrop show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="define-new-title"
+       [appBackdropClose]="defineNewDialog" (backdropClose)="cancelDefineNewModal()">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div #defineNewDialog class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h2 id="define-new-title" class="modal-title fs-6 fw-semibold mb-1">Define new target application</h2>
+            <p class="text-body-secondary small mb-0">Search or define a new application to continue.</p>
           </div>
+          <button type="button" class="btn-close" (click)="cancelDefineNewModal()" aria-label="Close"></button>
         </div>
+        <div class="modal-body" (click)="showOriginDropdown.set(false)">
 
-        <!-- Origin(s) -->
-        <div class="mb-4">
-          <label class="form-label d-flex align-items-center form-label-upload">
-            Origin(s)
-            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-              <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">Select one or more countries where this application originates from.</span>
-            </span>
-          </label>
-          @if (isLoadingCountries()) {
-            <div class="text-muted" style="padding: 0.5rem;">
-              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              Loading countries...
-            </div>
-          } @else {
-            <ng-select
-              [items]="allCountries()"
-              [multiple]="true"
-              [closeOnSelect]="false"
-              [searchable]="true"
-              [clearable]="false"
-              bindLabel="name"
-              placeholder="Search and select countries..."
-              [ngModel]="selectedCountriesModel()"
-              (ngModelChange)="onCountriesChange($event)"
-              notFoundText="No countries found">
-              <ng-template ng-option-tmp let-item="item">{{ item.name }}</ng-template>
-              <ng-template ng-multi-label-tmp let-items="items" let-clear="clear">
-                @for (item of items; track item.name) {
-                  <span class="badge d-inline-flex align-items-center me-2 mb-1 bg-primary-subtle text-primary-emphasis">
-                    <span style="white-space: nowrap;">{{ item.name }}</span>
-                    <i class="fa-solid fa-x ms-2" (click)="clear(item)" style="font-size: 0.5rem; cursor: pointer; color: #575757;"></i>
-                  </span>
-                }
-              </ng-template>
-            </ng-select>
-          }
-        </div>
+          <!-- Display Name -->
+          <div class="mb-4">
+            <label class="form-label d-flex align-items-center form-label-upload">
+              Display Name <span class="text-danger">&nbsp;*</span>
+              <app-info-tooltip>The name that will be displayed for this application in the catalog.</app-info-tooltip>
+            </label>
+            <input type="text" class="form-control input-width-sm" [(ngModel)]="displayName" placeholder="TypeName...">
+          </div>
 
-        <!-- Category -->
-        <div class="mb-4">
-          <label class="form-label d-flex align-items-center form-label-upload">
-            Category
-            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-              <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">Select the primary category this application belongs to.</span>
-            </span>
-          </label>
-          <div class="position-relative category-combobox" [class.open]="isCategoryDropdownOpen()">
-            <div class="form-select category-select-trigger"
-                 [class.category-placeholder]="!category()"
-                 tabindex="0"
-                 (click)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
-                 (blur)="onCategoryBlur()"
-                 (keydown.enter)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
-                 (keydown.space)="$event.preventDefault(); isCategoryDropdownOpen.set(!isCategoryDropdownOpen())">
-              {{ selectedCategoryLabel() || 'Select category...' }}
-            </div>
-            @if (isCategoryDropdownOpen()) {
-              <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm category-dropdown">
-                @for (cat of availableCategories(); track cat.name) {
-                  <button type="button" tabindex="-1" class="dropdown-item text-wrap text-break"
-                       [class.active]="category() === cat.name"
-                       (mousedown)="selectCategoryOption(cat.name)">{{ cat.displayName }}</button>
-                }
+          <!-- Upload Logo -->
+          <div class="mb-4">
+            <label class="form-label d-flex align-items-center form-label-upload">
+              Upload a logo
+              <app-info-tooltip>Supported formats: PNG, JPEG, GIF, SVG, WebP. Max size: 5MB.</app-info-tooltip>
+            </label>
+            @if (logoPreviewUrl()) {
+              <div class="d-flex align-items-center gap-3">
+                <div class="border rounded p-2 bg-light">
+                  <img [src]="logoPreviewUrl()" alt="Logo preview" class="logo-preview">
+                </div>
+                <div>
+                  <div class="text-muted mb-1 upload-text">{{ logoFile()?.name }}</div>
+                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="clearLogo()">
+                    <i class="fa-solid fa-trash me-1 upload-btn-icon"></i>Remove
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="logo-upload-area"
+                   [class.logo-upload-area-over]="logoDragOver()"
+                   (click)="modalLogoUpload.click()"
+                   (dragover)="$event.preventDefault(); logoDragOver.set(true)"
+                   (dragleave)="logoDragOver.set(false)"
+                   (drop)="onLogoDrop($event)">
+                <input #modalLogoUpload type="file" class="d-none" (change)="onLogoUpload($event)" accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml,image/webp">
+                <i class="fa-regular fa-image mb-3 logo-icon"></i>
+                <h6 class="mb-2 upload-title">Click to upload or drag and drop</h6>
+                <p class="text-muted mb-0 upload-text">PNG, JPEG, GIF, SVG, WebP (max 5MB)</p>
               </div>
             }
           </div>
-        </div>
 
-        <!-- Deployment Type -->
-        <div class="mb-2">
-          <label class="form-label d-flex align-items-center form-label-upload">
-            Deployment type
-            <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-              <i class="fa-solid fa-circle-info info-icon"></i>
-              <span class="info-tooltip">Choose how this application is deployed.</span>
-            </span>
-          </label>
-          <div class="d-flex gap-4">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="modalDeploymentType" id="modal-on-premise" value="on-premise" [(ngModel)]="deploymentType">
-              <label class="form-check-label" for="modal-on-premise">On-premise</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="modalDeploymentType" id="modal-cloud-based" value="cloud-based" [(ngModel)]="deploymentType">
-              <label class="form-check-label" for="modal-cloud-based">Cloud-based</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="modalDeploymentType" id="modal-both" value="both" [(ngModel)]="deploymentType">
-              <label class="form-check-label" for="modal-both">Both</label>
+          <!-- Description -->
+          <div class="mb-4">
+            <label class="form-label d-flex align-items-center form-label-upload">
+              Description
+              <app-info-tooltip>Provide a brief description of what this application does.</app-info-tooltip>
+            </label>
+            <div class="position-relative">
+              <textarea class="form-control" [value]="description()" (input)="onDescriptionChange($event)"
+                        placeholder="Type description of application..." rows="4" maxlength="350"></textarea>
+              <div class="text-end text-muted char-counter">{{ description().length }}/350 characters</div>
             </div>
           </div>
-        </div>
 
-      </div>
-      <div class="define-new-modal-footer d-flex justify-content-between align-items-center">
-        <button type="button" class="btn btn-link p-0 text-decoration-none" (click)="cancelDefineNewModal()">Cancel</button>
-        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="confirmDefineNew()" [disabled]="!canSubmitForm()">
-          Continue
-          <i class="fa-solid fa-arrow-right"></i>
-        </button>
+          <!-- Origin(s) -->
+          <div class="mb-4">
+            <label class="form-label d-flex align-items-center form-label-upload">
+              Origin(s)
+              <app-info-tooltip>Select one or more countries where this application originates from.</app-info-tooltip>
+            </label>
+            @if (isLoadingCountries()) {
+              <div class="text-muted" style="padding: 0.5rem;">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Loading countries...
+              </div>
+            } @else {
+              <ng-select
+                [items]="allCountries()"
+                [multiple]="true"
+                [closeOnSelect]="false"
+                [searchable]="true"
+                [clearable]="false"
+                bindLabel="name"
+                placeholder="Search and select countries..."
+                [ngModel]="selectedCountriesModel()"
+                (ngModelChange)="onCountriesChange($event)"
+                notFoundText="No countries found">
+                <ng-template ng-option-tmp let-item="item">{{ item.name }}</ng-template>
+                <ng-template ng-multi-label-tmp let-items="items" let-clear="clear">
+                  @for (item of items; track item.name) {
+                    <span class="badge d-inline-flex align-items-center me-2 mb-1 bg-primary-subtle text-primary-emphasis">
+                      <span style="white-space: nowrap;">{{ item.name }}</span>
+                      <i class="fa-solid fa-x ms-2 text-body-secondary" (click)="clear(item)" style="font-size: 0.5rem; cursor: pointer;"></i>
+                    </span>
+                  }
+                </ng-template>
+              </ng-select>
+            }
+          </div>
+
+          <!-- Category -->
+          <div class="mb-4">
+            <label class="form-label d-flex align-items-center form-label-upload">
+              Category
+              <app-info-tooltip>Select the primary category this application belongs to.</app-info-tooltip>
+            </label>
+            <div class="position-relative category-combobox" [class.open]="isCategoryDropdownOpen()">
+              <div class="form-select category-select-trigger"
+                   [class.category-placeholder]="!category()"
+                   tabindex="0"
+                   (click)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
+                   (blur)="onCategoryBlur()"
+                   (keydown.enter)="isCategoryDropdownOpen.set(!isCategoryDropdownOpen())"
+                   (keydown.space)="$event.preventDefault(); isCategoryDropdownOpen.set(!isCategoryDropdownOpen())">
+                {{ selectedCategoryLabel() || 'Select category...' }}
+              </div>
+              @if (isCategoryDropdownOpen()) {
+                <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm category-dropdown">
+                  @for (cat of availableCategories(); track cat.name) {
+                    <button type="button" tabindex="-1" class="dropdown-item text-wrap text-break"
+                         [class.active]="category() === cat.name"
+                         (mousedown)="selectCategoryOption(cat.name)">{{ cat.displayName }}</button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Deployment Type -->
+          <div class="mb-2">
+            <label class="form-label d-flex align-items-center form-label-upload">
+              Deployment type
+              <app-info-tooltip>Choose how this application is deployed.</app-info-tooltip>
+            </label>
+            <div class="d-flex gap-4">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="modalDeploymentType" id="modal-on-premise" value="on-premise" [(ngModel)]="deploymentType">
+                <label class="form-check-label" for="modal-on-premise">On-premise</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="modalDeploymentType" id="modal-cloud-based" value="cloud-based" [(ngModel)]="deploymentType">
+                <label class="form-check-label" for="modal-cloud-based">Cloud-based</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="modalDeploymentType" id="modal-both" value="both" [(ngModel)]="deploymentType">
+                <label class="form-check-label" for="modal-both">Both</label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-link text-decoration-none" (click)="cancelDefineNewModal()">Cancel</button>
+          <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="confirmDefineNew()" [disabled]="!canSubmitForm()">
+            Continue
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -294,7 +280,7 @@
                   <h5 class="step-title">Define integration method</h5>
                   <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
                     @for (title of selectedMethodTitles(); track title; let last = $last) {
-                      <span class="badge bg-body-tertiary text-secondary border">{{ title }}</span>
+                      <span class="badge bg-body-tertiary text-black border method-type-badge">{{ title }}</span>
                       @if (!last) { <span class="method-type-separator">+</span> }
                     }
                   </div>
@@ -304,20 +290,14 @@
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
                         Integration method name <span class="text-danger">&nbsp;*</span>
-                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                          <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">The display name for this integration in the catalog.</span>
-                        </span>
+                        <app-info-tooltip>The display name for this integration in the catalog.</app-info-tooltip>
                       </label>
                       <input type="text" class="form-control" [(ngModel)]="methodFormDisplayName" placeholder="Type name...">
                     </div>
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
                         Integration method version
-                        <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                          <i class="fa-solid fa-circle-info info-icon"></i>
-                          <span class="info-tooltip">Version of this integration method. It is assigned automatically; new integration methods start at 1.0.</span>
-                        </span>
+                        <app-info-tooltip>Version of this integration method. It is assigned automatically; new integration methods start at 1.0.</app-info-tooltip>
                       </label>
                       <div class="form-control-plaintext">{{ methodFormVersion() }}</div>
                     </div>
@@ -327,10 +307,7 @@
                   <div class="mb-4">
                     <label class="form-label d-flex align-items-center form-label-upload">
                       Maintainer <span class="text-danger">&nbsp;*</span>
-                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                        <i class="fa-solid fa-circle-info info-icon"></i>
-                        <span class="info-tooltip">Select the person or team responsible for maintaining this integration method.</span>
-                      </span>
+                      <app-info-tooltip>Select the person or team responsible for maintaining this integration method.</app-info-tooltip>
                     </label>
                     <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                       <input type="text" class="form-select"
@@ -363,10 +340,7 @@
                   <div class="mb-4">
                     <label class="form-label form-label-upload">
                       Limitations
-                      <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-                        <i class="fa-solid fa-circle-info info-icon"></i>
-                        <span class="info-tooltip">What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</span>
-                      </span>
+                      <app-info-tooltip>What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</app-info-tooltip>
                     </label>
                     <div class="position-relative">
                       <textarea class="form-control" [value]="methodFormLimitations()" (input)="onMethodFormLimitationsChange($event)"
@@ -501,7 +475,7 @@
                   <!-- Choose from existing connectors -->
                   <div class="connector-existing-link">
                     Do you want to use an existing connector?
-                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none" (click)="openConnectorCatalogModal()">
+                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none fw-semibold" (click)="openConnectorCatalogModal()">
                       Select one from the catalog.
                     </button>
                   </div>
@@ -549,7 +523,7 @@
                         @if (getAppLogoUrl(selectedApplication()!)) {
                           <img [src]="getAppLogoUrl(selectedApplication()!)" [alt]="selectedApplication()!.displayName" class="selected-app-logo mb-2">
                         } @else {
-                          <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
+                          <div class="app-avatar d-flex align-items-center justify-content-center mb-2" [class]="avatarToneClass(selectedApplication()!.displayName)">
                             {{ selectedApplication()!.displayName.charAt(0) }}
                           </div>
                         }
@@ -569,7 +543,7 @@
                         @if (logoPreviewUrl()) {
                           <img [src]="logoPreviewUrl()" alt="Logo preview" class="selected-app-logo mb-2">
                         } @else {
-                          <div class="app-avatar d-flex align-items-center justify-content-center mb-2">
+                          <div class="app-avatar app-avatar-new d-flex align-items-center justify-content-center mb-2">
                             {{ displayName().charAt(0) || 'N' }}
                           </div>
                         }
@@ -592,7 +566,7 @@
                         <div class="card mb-3 app-card" (click)="selectApplication(app)">
                           <div class="card-body d-flex align-items-start app-card-body">
                             <div class="flex-shrink-0 me-3">
-                              <div class="app-avatar d-flex align-items-center justify-content-center">
+                              <div class="app-avatar d-flex align-items-center justify-content-center" [class]="avatarToneClass(app.displayName)">
                                 {{ app.displayName.charAt(0) }}
                               </div>
                             </div>
@@ -693,7 +667,7 @@
                 @if (getAppLogoUrl(app)) {
                   <img [src]="getAppLogoUrl(app)" [alt]="app.displayName" class="recent-app-logo">
                 } @else {
-                  <div class="recent-app-initial d-flex align-items-center justify-content-center w-100 h-100">
+                  <div class="recent-app-initial d-flex align-items-center justify-content-center w-100 h-100" [class]="avatarToneClass(app.displayName)">
                     {{ app.displayName.charAt(0) }}
                   </div>
                 }
@@ -710,108 +684,116 @@
 
 <!-- Connector Catalog Modal -->
 @if (showConnectorCatalogModal()) {
-  <div class="cc-overlay" [appBackdropClose]="catalogDialog" (backdropClose)="closeConnectorCatalogModal()">
-    <div #catalogDialog class="cc-modal" (click)="$event.stopPropagation()">
+  <div class="modal-backdrop show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="cc-modal-title"
+       [appBackdropClose]="catalogDialog" (backdropClose)="closeConnectorCatalogModal()">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div #catalogDialog class="modal-content" (click)="$event.stopPropagation()">
 
-      <!-- Header -->
-      <div class="cc-modal-header d-flex justify-content-between align-items-start">
-        <div>
-          <h5 class="cc-modal-title mb-1">Active connectors catalog</h5>
-          <p class="cc-modal-subtitle mb-0">Select connector</p>
+        <!-- Header -->
+        <div class="modal-header align-items-start">
+          <div>
+            <h2 id="cc-modal-title" class="modal-title fs-6 fw-semibold mb-1">Active connectors catalog</h2>
+            <p class="text-body-secondary small mb-0">Select connector</p>
+          </div>
+          <button type="button" class="btn-close" (click)="closeConnectorCatalogModal()" aria-label="Close"></button>
         </div>
-        <button type="button" class="btn-close" (click)="closeConnectorCatalogModal()" aria-label="Close"></button>
-      </div>
 
-      <!-- Search -->
-      <div class="cc-modal-search">
-        <div class="search-input-wrapper">
-          <div class="d-flex align-items-center">
-            <span class="search-icon-wrapper d-flex align-items-center">
-              <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            </span>
-            <input
-              type="text"
-              class="search-input flex-grow-1"
-              [value]="connectorCatalogSearch()"
-              (input)="connectorCatalogSearch.set($any($event.target).value)"
-              placeholder="Search connector">
-            @if (connectorCatalogSearch()) {
-              <button class="btn btn-link link-secondary d-flex align-items-center" type="button" (click)="connectorCatalogSearch.set('')">
-                <i class="fa-solid fa-xmark clear-icon"></i>
-              </button>
+        <!-- Search -->
+        <div class="cc-search px-3 pt-3 pb-2">
+          <div class="search-input-wrapper">
+            <div class="d-flex align-items-center">
+              <span class="search-icon-wrapper d-flex align-items-center">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              </span>
+              <input
+                type="text"
+                class="search-input flex-grow-1"
+                [value]="connectorCatalogSearch()"
+                (input)="connectorCatalogSearch.set($any($event.target).value)"
+                placeholder="Search connector">
+              @if (connectorCatalogSearch()) {
+                <button class="btn btn-link link-secondary d-flex align-items-center" type="button" (click)="connectorCatalogSearch.set('')">
+                  <i class="fa-solid fa-xmark clear-icon"></i>
+                </button>
+              }
+            </div>
+            @if (connectorCatalogSearchTooShort()) {
+              <div class="search-hint">Please enter at least 2 characters to search.</div>
             }
           </div>
-          @if (connectorCatalogSearchTooShort()) {
-            <div class="search-hint">Please enter at least 2 characters to search.</div>
-          }
         </div>
-      </div>
 
-      <!-- List -->
-      <div class="cc-modal-body">
-        @if (isCatalogLoading()) {
-          <div class="cc-loading">
-            <span class="spinner-border spinner-border-sm me-2"></span> Loading connectors…
-          </div>
-        } @else if (filteredCatalogConnectors().length === 0) {
-          <div class="cc-empty">
-            No connectors match your search.
-          </div>
-        } @else {
-          @for (connector of filteredCatalogConnectors(); track connector.id) {
-            <div class="cc-connector-item"
-                 [class.selected]="selectedCatalogConnector()?.id === connector.id"
-                 (click)="selectedCatalogConnector.set(connector)">
-              <input type="radio"
-                     name="catalogConnector"
-                     [checked]="selectedCatalogConnector()?.id === connector.id"
-                     class="form-check-input flex-shrink-0 radio-input"
-                     style="pointer-events: none;">
-              <div class="cc-connector-info">
-                <div class="cc-connector-name">
-                  {{ connector.displayName }}
-                  @if (isObsoleteConnector(connector.tags)) {
-                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1 ms-2 align-middle"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
+        <!-- List -->
+        <div class="modal-body d-flex flex-column gap-2 pt-1">
+          @if (isCatalogLoading()) {
+            <div class="text-center text-body-secondary small py-4">
+              <span class="spinner-border spinner-border-sm me-2"></span> Loading connectors…
+            </div>
+          } @else if (filteredCatalogConnectors().length === 0) {
+            <div class="text-center text-body-secondary small py-4">
+              No connectors match your search.
+            </div>
+          } @else {
+            @for (connector of filteredCatalogConnectors(); track connector.id) {
+              <div class="cc-connector-item"
+                   [class.selected]="selectedCatalogConnector()?.id === connector.id"
+                   (click)="selectedCatalogConnector.set(connector)">
+                <input type="radio"
+                       name="catalogConnector"
+                       [checked]="selectedCatalogConnector()?.id === connector.id"
+                       class="form-check-input flex-shrink-0 radio-input"
+                       style="pointer-events: none;">
+                <div class="cc-connector-info">
+                  <div class="cc-connector-name">
+                    {{ connector.displayName }}
+                    @if (isObsoleteConnector(connector.tags)) {
+                      <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1 ms-2 align-middle"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
+                    }
+                  </div>
+                  @if (connector.description) {
+                    <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                   }
                 </div>
-                @if (connector.description) {
-                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
-                }
               </div>
-            </div>
+            }
           }
-        }
-      </div>
+        </div>
 
-      <!-- Footer -->
-      <div class="cc-modal-footer d-flex justify-content-end align-items-center gap-3">
-        <button type="button" class="btn btn-link p-0 text-decoration-none" (click)="closeConnectorCatalogModal()">Cancel</button>
-        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
-                [disabled]="!selectedCatalogConnector()"
-                (click)="confirmCatalogSelection()">
-          Continue
-          <i class="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
+        <!-- Footer -->
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-link text-decoration-none" (click)="closeConnectorCatalogModal()">Cancel</button>
+          <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                  [disabled]="!selectedCatalogConnector()"
+                  (click)="confirmCatalogSelection()">
+            Continue
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
 
+      </div>
     </div>
   </div>
 }
 
 <!-- Side-by-Side Modal -->
 @if (showSideBySideModal()) {
-  <div class="sbs-overlay">
-    <div class="sbs-modal-header">
-      <span class="sbs-modal-title">Integration Tutorial – Side by Side</span>
-      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closeSideBySideModal()">
-        <i class="fa-solid fa-xmark me-1"></i> Close
-      </button>
-    </div>
-    <div class="sbs-modal-body">
-      <div class="sbs-editor-pane">
-        <textarea id="sbs-editor"></textarea>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sbs-title">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header py-2 px-4">
+          <h2 id="sbs-title" class="modal-title fs-6 fw-semibold">Integration Tutorial – Side by Side</h2>
+          <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" (click)="closeSideBySideModal()">
+            <i class="fa-solid fa-xmark me-1"></i> Close
+          </button>
+        </div>
+        <div class="modal-body d-flex p-0 overflow-hidden">
+          <div class="sbs-editor-pane">
+            <textarea id="sbs-editor"></textarea>
+          </div>
+          <div class="sbs-preview-pane editor-preview" [innerHTML]="sbsPreviewHtml()"></div>
+        </div>
       </div>
-      <div class="sbs-preview-pane editor-preview" [innerHTML]="sbsPreviewHtml()"></div>
     </div>
   </div>
 }

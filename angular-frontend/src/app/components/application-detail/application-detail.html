@@ -57,7 +57,7 @@
                    class="logo-image" />
             </div>
           } @else {
-            <div class="letter-avatar d-flex align-items-center justify-content-center" [style.background]="getAvatarGradient(application()!.displayName)">
+            <div class="letter-avatar d-flex align-items-center justify-content-center" [class]="avatarToneClass(application()!.displayName)">
               {{ application()!.displayName.charAt(0) }}
             </div>
           }
@@ -361,11 +361,13 @@
 
                   <!-- Filter Modal -->
                   @if (isFilterModalOpen()) {
-                    <div class="position-fixed top-0 start-0 w-100 h-100 modal-backdrop" [appBackdropClose]="filterDialog" (backdropClose)="toggleFilterModal()">
-                      <div #filterDialog class="position-fixed top-50 start-50 translate-middle bg-white rounded shadow-lg modal-content-box" (click)="$event.stopPropagation()">
-                        <div class="d-flex flex-column h-100">
-                          <div class="d-flex flex-grow-1 overflow-hidden">
-                            <div class="border-end modal-sidebar overflow-auto">
+                    <div class="modal-backdrop show"></div>
+                    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="Filter integration methods"
+                         [appBackdropClose]="filterDialog" (backdropClose)="toggleFilterModal()">
+                      <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div #filterDialog class="modal-content overflow-hidden" (click)="$event.stopPropagation()">
+                          <div class="d-flex filter-dialog-body">
+                            <div class="border-end filter-sidebar flex-shrink-0 overflow-auto">
                               <div class="nav nav-pills flex-column gap-1 p-2">
                                 <button type="button" (click)="selectFilterSection('capabilities')" class="nav-link text-start" [class.active]="selectedFilterSection() === 'capabilities'" [attr.aria-current]="selectedFilterSection() === 'capabilities'">
                                   <span class="font-weight-medium">Capabilities</span>
@@ -375,7 +377,7 @@
                                 </button>
                               </div>
                             </div>
-                            <div class="p-4 modal-main overflow-auto">
+                            <div class="p-4 flex-grow-1 overflow-auto">
                               @if (selectedFilterSection() === 'capabilities') {
                                 <div class="d-flex flex-wrap gap-2">
                                   @for (capability of allCapabilities; track capability) {
@@ -812,26 +814,27 @@
 
   <!-- Cancel review request confirmation modal -->
   @if (isCancelConfirmOpen()) {
-    <div class="cancel-confirm-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeCancelConfirm()"></div>
-    <div class="cancel-confirm-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-      <div class="cancel-confirm-dialog" (click)="$event.stopPropagation()">
-        <div class="cancel-confirm-header d-flex align-items-center justify-content-between">
-          <div class="d-flex align-items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation cancel-confirm-icon"></i>
-            <span class="cancel-confirm-title">Cancel review request?</span>
+    <div class="modal-backdrop show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="cancel-confirm-title"
+         [appBackdropClose]="cancelDialog" (backdropClose)="closeCancelConfirm()">
+      <div class="modal-dialog modal-dialog-centered">
+        <div #cancelDialog class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2 id="cancel-confirm-title" class="modal-title fs-6 fw-semibold d-flex align-items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-danger"></i>Cancel review request?
+            </h2>
+            <button type="button" class="btn-close" (click)="closeCancelConfirm()" aria-label="Close"></button>
           </div>
-          <button type="button" class="btn-close" (click)="closeCancelConfirm()" aria-label="Close"></button>
-        </div>
-        <div class="cancel-confirm-body">
-          Are you sure you want to cancel this request? <strong>All progress and data</strong>
-          entered during the upload or edit will be <strong>permanently lost.</strong> This action cannot be undone.
-        </div>
-        <hr class="cancel-confirm-separator">
-        <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
-          <button type="button" class="btn btn-link text-decoration-none" (click)="closeCancelConfirm()">Keep request</button>
-          <button type="button" class="btn btn-danger d-inline-flex align-items-center gap-2" (click)="confirmCancel()">
-            <i class="fa-solid fa-trash-can"></i>Cancel request
-          </button>
+          <div class="modal-body text-body-secondary">
+            Are you sure you want to cancel this request? <strong>All progress and data</strong>
+            entered during the upload or edit will be <strong>permanently lost.</strong> This action cannot be undone.
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-link text-decoration-none" (click)="closeCancelConfirm()">Keep request</button>
+            <button type="button" class="btn btn-danger d-inline-flex align-items-center gap-2" (click)="confirmCancel()">
+              <i class="fa-solid fa-trash-can"></i>Cancel request
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,27 +1,27 @@
 @use 'variables' as *;
 
 .github-api-key-link {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-weight: 600;
 }
 
 .lighbulb-icon {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
 }
 
 /* Source file dropzone */
 .tutorial-dropzone {
   border: 1.5px dashed $color-border-input;
   border-radius: 6px;
-  background-color: #ffffff;
+  background-color: $color-white;
   padding: 2rem;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.15s, background-color 0.15s;
 
   &:hover, &.tutorial-dropzone-over {
-    border-color: $color-brand-steel;
-    background-color: rgba($color-brand-steel, 0.04);
+    border-color: $color-brand-blue;
+    background-color: rgba($color-brand-blue, 0.04);
   }
 }
 
@@ -38,7 +38,7 @@
 }
 
 .tutorial-dropzone-link {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-weight: 500;
 }
 
@@ -48,64 +48,12 @@
 }
 
 .form-check-input[type="radio"] {
-  accent-color: $color-brand-steel !important;
+  accent-color: $color-brand-blue !important;
 }
 
 .form-check-input[type="radio"]:checked {
-  background-color: $color-brand-steel !important;
-  border-color: $color-brand-steel !important;
-}
-
-/* Info icon tooltip */
-.info-icon-wrapper {
-  vertical-align: middle;
-}
-
-.info-icon-wrapper .info-tooltip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  top: calc(100% + 8px);
-  left: -2px;
-  background-color: $color-text-dark;
-  color: $color-white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  white-space: normal;
-  width: 400px;
-  text-align: left;
-  box-shadow: 0 2px 8px $shadow-card;
-  z-index: 1100;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-  pointer-events: none;
-  line-height: 1.4;
-}
-
-.info-icon-wrapper .info-tooltip::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 5px;
-  border: 6px solid transparent;
-  border-width: 8px 4px;
-  border-bottom-color: $color-text-dark;
-}
-
-.info-icon-wrapper:hover .info-tooltip {
-  visibility: visible;
-  opacity: 1;
-}
-
-/* Bold heading line inside the 5 tooltips that use <strong>…</strong><br><br>. */
-.info-icon-wrapper .info-tooltip strong {
-  font-weight: 700;
-}
-
-.info-icon {
-  font-size: 14px;
-  color: $text-publishing-blue;
+  background-color: $color-brand-blue !important;
+  border-color: $color-brand-blue !important;
 }
 
 /* Form labels */
@@ -137,8 +85,8 @@
 
 /* Alert info note */
 .alert-info-note {
-  background-color: $color-info-bg;
-  border: 1px solid $color-info-border;
+  background-color: $color-info-bg-subtle;
+  border: 1px solid $color-info-border-subtle;
   border-radius: 4px;
   padding: 0.75rem 1rem;
   margin-bottom: 1.5rem;
@@ -151,21 +99,21 @@
 }
 
 .alert-text {
-  color: $color-info-text;
+  color: $color-info-text-emphasis;
   font-size: 0.875rem;
 }
 
 /* License / publishing notice */
 .publish-license-notice {
   padding: 1.25rem 1.5rem;
-  background-color: #f3f4f6;
+  background-color: $color-bg-light;
   border-radius: 8px;
   font-size: 0.8125rem;
   line-height: 1.6;
-  color: #4b5563;
+  color: $color-gray-700;
 
   a {
-    color: $color-brand-steel;
+    color: $color-brand-blue;
     font-weight: 600;
     text-decoration: none;
 
@@ -188,7 +136,7 @@
   .form-check-label {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #1a202c;
+    color: $color-text-dark;
   }
 }
 
@@ -206,7 +154,7 @@
   padding: 0.875rem 1.25rem;
   cursor: pointer;
   user-select: none;
-  background: #f8f9fa;
+  background: $color-bg-light;
   border-radius: 8px;
 }
 
@@ -227,7 +175,7 @@
 .accordion-panel-body {
   padding: 1.25rem 1.5rem 1.5rem 1.5rem;
   border-top: 1px solid $color-border-light;
-  background-color: #f8f9fa;
+  background-color: $color-bg-light;
   border-radius: 0 0 8px 8px;
 
   .form-control,
@@ -235,7 +183,7 @@
   .method-link-wrapper,
   .method-link-input,
   .maintainer-combobox input {
-    background-color: #fff;
+    background-color: $color-white;
     border-color: $color-border-light;
   }
 
@@ -330,12 +278,12 @@
 }
 
 .method-link-wrapper--invalid {
-  border-color: #dc3545;
+  border-color: $color-danger;
 }
 
 .field-error {
   font-size: 0.875rem;
-  color: #dc3545;
+  color: $color-danger;
   margin-top: 0.25rem;
 }
 
@@ -349,7 +297,7 @@
   padding: 1rem 1.5rem;
   position: sticky;
   bottom: 0;
-  background: #fff;
+  background: $color-white;
   z-index: 10;
 }
 
@@ -369,7 +317,7 @@
 }
 
 .toast-body-warning {
-  background-color: $color-warning-bg;
+  background-color: $color-warning-bg-subtle;
   color: $color-black;
 }
 
@@ -379,7 +327,7 @@
 }
 
 .toast-body-success {
-  background-color: $color-success-bg;
+  background-color: $color-success-bg-subtle;
   color: $color-black;
 }
 
@@ -429,7 +377,7 @@
 .review-app-avatar {
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, $color-brand-sky 0%, #50e6ff 100%);
+  background: $avatar-new-gradient;
   border-radius: 4px;
   color: $color-white;
   font-size: 0.875rem;
@@ -549,12 +497,12 @@
 }
 
 .compat-info-note {
-  background-color: $color-info-bg;
-  border: 1px solid $color-info-border;
+  background-color: $color-info-bg-subtle;
+  border: 1px solid $color-info-border-subtle;
   border-radius: 4px;
   padding: 0.625rem 0.875rem;
   font-size: 0.8125rem;
-  color: $color-info-text;
+  color: $color-info-text-emphasis;
 }
 
 .compat-info-icon {

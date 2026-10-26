@@ -7,29 +7,6 @@
 /* The cards are the publish flow's, repeated here because those styles are scoped to that
    component. Keep the two in step: the point of this popup is that the choice looks the same. */
 
-.method-type-backdrop {
-  z-index: 1050;
-}
-
-.method-type-container {
-  z-index: 1051;
-  pointer-events: none;
-}
-
-.method-type-dialog {
-  pointer-events: auto;
-  width: 100%;
-  max-width: 1000px;
-  max-height: 85vh;
-}
-
-.step-subtitle {
-  font-size: 0.875rem;
-  color: $color-text-secondary;
-  margin-bottom: 1.5rem;
-  line-height: 1.5;
-}
-
 .im-grid {
   display: grid;
   /* minmax(0, ...) lets a column shrink below its nowrap title, which then ellipsizes instead of
@@ -56,7 +33,7 @@
 }
 
 .im-card-selected {
-  border: 2px solid $color-brand-steel;
+  border: 2px solid $color-brand-blue;
   background-color: $color-bg-selected;
 }
 
@@ -64,7 +41,7 @@
   width: 16px;
   height: 16px;
   pointer-events: none;
-  accent-color: $color-brand-steel;
+  accent-color: $color-brand-blue;
   flex-shrink: 0;
 }
 
@@ -92,11 +69,6 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
-}
-
-.field-error {
-  font-size: 0.8125rem;
-  color: $toast-danger-header;
 }
 
 @media (max-width: 768px) {

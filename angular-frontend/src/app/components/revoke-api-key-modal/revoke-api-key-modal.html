@@ -4,27 +4,30 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<div class="revoke-key-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onClose()"></div>
-<div class="revoke-key-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="revoke-key-dialog" [class.revoke-key-dialog-primary]="variant === 'primary'">
-    <button type="button" class="btn-close revoke-key-close" title="Close" aria-label="Close" (click)="onClose()"></button>
-
-    <div class="revoke-key-body d-flex gap-3">
-      <span class="revoke-key-icon d-flex align-items-center justify-content-center">
-        <i class="fa-solid" [class]="icon"></i>
-      </span>
-      <div>
-        <h2 class="revoke-key-title">{{ title }}</h2>
-        <p class="revoke-key-text">{{ text }}</p>
+<div class="modal-backdrop show"></div>
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="revoke-key-title"
+     [appBackdropClose]="dialog" (backdropClose)="onClose()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div #dialog class="modal-content">
+      <div class="modal-body d-flex align-items-start gap-3 p-4">
+        <!-- Non-destructive confirmations (rotation) take the primary color. -->
+        <span class="modal-icon" [class.text-bg-danger]="variant !== 'primary'" [class.text-bg-primary]="variant === 'primary'">
+          <i class="fa-solid" [class]="icon"></i>
+        </span>
+        <div class="flex-grow-1">
+          <h2 id="revoke-key-title" class="modal-title fs-5 fw-bold mb-2">{{ title }}</h2>
+          <p class="text-body-secondary mb-0">{{ text }}</p>
+        </div>
+        <button type="button" class="btn-close" title="Close" aria-label="Close" (click)="onClose()"></button>
       </div>
-    </div>
 
-    <div class="revoke-key-footer d-flex align-items-center">
-      <button type="button" class="btn btn-link link-secondary text-decoration-none px-0" (click)="onClose()">Close</button>
-      <button type="button" class="btn ms-auto" [class.btn-danger]="variant !== 'primary'"
-        [class.btn-primary]="variant === 'primary'" [disabled]="busy" (click)="onConfirm()">
-        {{ busy ? busyLabel : confirmLabel }}
-      </button>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-link text-decoration-none" (click)="onClose()">Close</button>
+        <button type="button" class="btn" [class.btn-danger]="variant !== 'primary'"
+          [class.btn-primary]="variant === 'primary'" [disabled]="busy" (click)="onConfirm()">
+          {{ busy ? busyLabel : confirmLabel }}
+        </button>
+      </div>
     </div>
   </div>
 </div>

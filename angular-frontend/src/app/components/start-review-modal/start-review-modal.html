@@ -4,32 +4,35 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<div class="start-review-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onCancel()"></div>
-<div class="start-review-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="start-review-dialog" (click)="$event.stopPropagation()">
-    <div class="start-review-body d-flex align-items-start gap-3">
-      <span class="start-review-icon d-flex align-items-center justify-content-center flex-shrink-0">
-        <i class="fa-solid fa-info"></i>
-      </span>
-      <div class="start-review-content">
-        <h2 class="start-review-title">Start review of version {{ versionLabel }}?</h2>
-        <p class="start-review-desc">
-          Starting the review will change this version's status to &ldquo;Under review&rdquo; and lock
-          it for editing. Other users will not be able to make changes until you approve, reject, or
-          stop the review.
-        </p>
-        @if (error) {
-          <div class="start-review-error">{{ error }}</div>
-        }
+<div class="modal-backdrop show"></div>
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="start-review-title"
+     [appBackdropClose]="dialog" (backdropClose)="onCancel()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div #dialog class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-body d-flex align-items-start gap-3 p-4">
+        <span class="modal-icon text-bg-info">
+          <i class="fa-solid fa-info"></i>
+        </span>
+        <div>
+          <h2 id="start-review-title" class="modal-title fs-5 fw-bold mb-2">Start review of version {{ versionLabel }}?</h2>
+          <p class="text-body-secondary mb-0">
+            Starting the review will change this version's status to &ldquo;Under review&rdquo; and lock
+            it for editing. Other users will not be able to make changes until you approve, reject, or
+            stop the review.
+          </p>
+          @if (error) {
+            <div class="text-danger small mt-3">{{ error }}</div>
+          }
+        </div>
       </div>
-    </div>
 
-    <div class="start-review-footer d-flex align-items-center justify-content-between">
-      <button type="button" class="btn btn-link p-0 link-body-emphasis text-decoration-none" [disabled]="processing" (click)="onCancel()">Cancel</button>
-      <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
-              [disabled]="processing" (click)="onConfirm()">
-        <i class="fa-solid fa-play"></i>Start review
-      </button>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-link text-decoration-none" [disabled]="processing" (click)="onCancel()">Cancel</button>
+        <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
+                [disabled]="processing" (click)="onConfirm()">
+          <i class="fa-solid fa-play"></i>Start review
+        </button>
+      </div>
     </div>
   </div>
 </div>

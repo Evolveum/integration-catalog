@@ -4,28 +4,31 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<div class="session-expired-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onClose()"></div>
-<div class="session-expired-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="session-expired-dialog" (click)="$event.stopPropagation()">
-    <div class="session-expired-body d-flex align-items-start gap-3">
-      <span class="session-expired-icon d-flex align-items-center justify-content-center flex-shrink-0">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-      </span>
-      <div>
-        <h2 class="session-expired-title">You have been logged out</h2>
-        <p class="session-expired-desc">
-          Your session has ended &mdash; you logged out in another tab, or it expired. Nothing can be
-          saved until you log in again. Logging in reloads the page, so changes not yet saved in an
-          open form will be lost.
-        </p>
+<div class="modal-backdrop show"></div>
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="session-expired-title"
+     [appBackdropClose]="dialog" (backdropClose)="onClose()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div #dialog class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-body d-flex align-items-start gap-3 p-4">
+        <span class="modal-icon text-bg-warning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </span>
+        <div>
+          <h2 id="session-expired-title" class="modal-title fs-5 fw-bold mb-2">You have been logged out</h2>
+          <p class="text-body-secondary mb-0">
+            Your session has ended &mdash; you logged out in another tab, or it expired. Nothing can be
+            saved until you log in again. Logging in reloads the page, so changes not yet saved in an
+            open form will be lost.
+          </p>
+        </div>
       </div>
-    </div>
 
-    <div class="session-expired-footer d-flex align-items-center justify-content-between">
-      <button type="button" class="btn btn-link p-0 link-body-emphasis text-decoration-none" (click)="onClose()">Close</button>
-      <button type="button" class="btn btn-primary d-flex align-items-center gap-2" (click)="onLogin()">
-        <i class="fa-solid fa-right-to-bracket"></i>Log in
-      </button>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-link text-decoration-none" (click)="onClose()">Close</button>
+        <button type="button" class="btn btn-primary d-flex align-items-center gap-2" (click)="onLogin()">
+          <i class="fa-solid fa-right-to-bracket"></i>Log in
+        </button>
+      </div>
     </div>
   </div>
 </div>

@@ -4,56 +4,64 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<!-- Backdrop intentionally has no click handler: the modal closes only via Understood or the X. -->
-<div class="download-info-backdrop position-fixed top-0 start-0 w-100 h-100"></div>
-<div class="download-info-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="download-info-dialog">
-    <button type="button" class="btn-close download-info-close" title="Close" aria-label="Close" (click)="onClose()"></button>
+<!-- No backdrop close: the modal closes only via Understood or the X. -->
+<div class="modal-backdrop show"></div>
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="download-info-title">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" [class.modal-lg]="wide">
+    <div class="modal-content">
+      <button type="button" class="btn-close position-absolute top-0 end-0 m-3" title="Close" aria-label="Close" (click)="onClose()"></button>
 
-    <div class="download-info-header d-flex flex-column align-items-center text-center">
-      <span class="download-info-check d-flex align-items-center justify-content-center">
-        <i class="fa-solid" [class]="preparing ? 'fa-spinner fa-spin' : icon"></i>
-      </span>
-      @if (preparing) {
-        <h2 class="download-info-title" aria-live="polite">Preparing your download&hellip;</h2>
-        <span class="download-info-file">This can take a moment. The file will be saved as soon as it is ready.</span>
-      } @else {
-        <h2 class="download-info-title" aria-live="polite">{{ title }}</h2>
-        @if (fileName) {
-          <span class="download-info-file">
-            {{ fileName }}@if (formattedSize(); as size) {&nbsp;&middot;&nbsp;{{ size }}}
+      <div class="modal-header flex-column text-center pt-5 pb-4">
+        <span class="modal-icon modal-icon-lg bg-success-subtle text-success">
+          <i class="fa-solid" [class]="preparing ? 'fa-spinner fa-spin' : icon"></i>
+        </span>
+        <h2 id="download-info-title" class="modal-title fs-5 fw-bold mt-3 mb-1" aria-live="polite">
+          @if (preparing) {
+            Preparing your download&hellip;
+          } @else {
+            {{ title }}
+          }
+        </h2>
+        @if (preparing) {
+          <span class="text-body-secondary small">This can take a moment. The file will be saved as soon as it is ready.</span>
+        } @else if (fileName) {
+          <span class="text-body-secondary small text-break">
+            {{ fileName }}
+            @if (formattedSize(); as size) {
+              <span class="text-nowrap">&middot; {{ size }}</span>
+            }
           </span>
         }
-      }
-    </div>
+      </div>
 
-    <div class="download-info-body">
-      @if (lead) {
-        <p class="download-info-lead">{{ lead }}</p>
-      }
+      <div class="modal-body px-4">
+        @if (lead) {
+          <p class="text-body-secondary mb-3">{{ lead }}</p>
+        }
 
-      @for (step of steps; track $index) {
-        <div class="download-info-step d-flex gap-3">
-          <span class="download-info-step-number d-flex align-items-center justify-content-center flex-shrink-0">{{ $index + 1 }}</span>
-          <div>
-            <div class="download-info-step-title">{{ step.title }}</div>
-            @if (step.description) {
-              <div class="download-info-step-desc">{{ step.description }}</div>
-            }
+        @for (step of steps; track $index) {
+          <div class="d-flex align-items-center gap-3 bg-body-tertiary border rounded-3 p-3 mb-2">
+            <span class="step-number d-flex align-items-center justify-content-center flex-shrink-0 rounded-circle bg-secondary-subtle small fw-bold">{{ $index + 1 }}</span>
+            <div>
+              <div class="step-title fw-bold">{{ step.title }}</div>
+              @if (step.description) {
+                <div class="text-body-secondary small mt-1">{{ step.description }}</div>
+              }
+            </div>
           </div>
-        </div>
-      }
+        }
 
-      @if (note) {
-        <div class="download-info-note d-flex align-items-start gap-2">
-          <i class="fa-solid fa-circle-info download-info-note-icon"></i>
-          <span>{{ note }}</span>
-        </div>
-      }
-    </div>
+        @if (note) {
+          <div class="alert alert-info d-flex align-items-start gap-2 small mt-3 mb-0">
+            <i class="fa-solid fa-circle-info mt-1"></i>
+            <span>{{ note }}</span>
+          </div>
+        }
+      </div>
 
-    <div class="download-info-footer">
-      <button type="button" class="btn btn-primary w-100" (click)="onClose()">Understood</button>
+      <div class="modal-footer border-0 px-4 pt-0 pb-4">
+        <button type="button" class="btn btn-primary w-100 m-0" (click)="onClose()">Understood</button>
+      </div>
     </div>
   </div>
 </div>

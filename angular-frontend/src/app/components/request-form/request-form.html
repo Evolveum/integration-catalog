@@ -26,15 +26,16 @@
 
 <!-- Request Tailored Solution Modal -->
 @if (isRequestModalOpen()) {
-  <div class="modal-backdrop modal-backdrop-overlay position-fixed top-0 start-0 w-100 h-100" (click)="closeRequestModal()"></div>
-    <div class="modal modal-container d-block position-fixed top-0 start-0 w-100 h-100 overflow-auto">
-      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-dialog-request">
+  <!-- No backdrop close: only Cancel or the X close it. -->
+  <div class="modal-backdrop show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="request-modal-title">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
-          <div class="modal-header modal-header-request">
-            <h6 class="modal-title mb-0 modal-title-request">Send a request</h6>
-            <button type="button" class="btn-close ms-auto" (click)="closeRequestModal()" aria-label="Close"></button>
+          <div class="modal-header">
+            <h2 id="request-modal-title" class="modal-title fs-6 fw-semibold">Send a request</h2>
+            <button type="button" class="btn-close" (click)="closeRequestModal()" aria-label="Close"></button>
           </div>
-          <div class="modal-body modal-body-request">
+          <div class="modal-body p-0">
             <!-- Row 1 -->
             <h4 class="form-heading text-center">Didn't find the integration you need?</h4>
 
@@ -46,9 +47,7 @@
             <div class="mb-3">
               <label class="form-label form-label-black">
                 Integration Application Name<span class="text-danger">&nbsp;*</span>
-                <button type="button" class="btn btn-link p-0 btn-info-icon" title="Application name information">
-                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                </button>
+                <app-info-tooltip>Application name information</app-info-tooltip>
               </label>
               <input type="text" class="form-control input-width-md" [(ngModel)]="formData.integrationApplicationName" required>
             </div>
@@ -57,9 +56,7 @@
             <div class="mb-3">
               <label class="form-label form-label-bold">
                 Integration method<span class="text-danger">&nbsp;*</span>
-                <button type="button" class="btn btn-link p-0 btn-info-icon" title="Integration method information">
-                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                </button>
+                <app-info-tooltip>Integration method information</app-info-tooltip>
               </label>
 
               <!-- Custom dropdown field -->
@@ -121,18 +118,14 @@
               <div class="flex-fill">
                 <label class="form-label form-label-black">
                   <span class="fw-600">System version</span>
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="The version of the application for which you are requesting a new integration method.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>The version of the application for which you are requesting a new integration method.</app-info-tooltip>
                 </label>
                 <input type="text" class="form-control" [(ngModel)]="formData.systemVersion">
               </div>
               <div class="flex-fill">
                 <label class="form-label form-label-black">
                   <span class="fw-600">Your contact email</span>
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Contact email information">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Contact email information</app-info-tooltip>
                 </label>
                 <input type="email" class="form-control" [(ngModel)]="formData.contactEmail">
               </div>
@@ -150,9 +143,7 @@
             <div class="mb-3">
               <label class="form-label form-label-bold">
                 Deployment type
-                <button type="button" class="btn btn-link p-0 btn-info-icon" title="Deployment type information">
-                  <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                </button>
+                <app-info-tooltip>Deployment type information</app-info-tooltip>
               </label>
               <div class="d-flex gap-4">
                 <div class="form-check">

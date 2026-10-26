@@ -11,7 +11,7 @@ import { AuthService, UserRole } from '../../services/auth.service';
 import { ApplicationService } from '../../services/application.service';
 import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
-import { SUPPORT_TIERS, SupportTier, supportTierOfTag } from '../../core/support-tier';
+import { SUPPORT_TIERS, SupportTier, supportTierClasses, supportTierOfTag } from '../../core/support-tier';
 import { Pager } from '../pager/pager';
 import { FilterMenu } from '../filter-menu/filter-menu';
 import { ConnectorTagsChange, ConnectorTagsModal } from '../connector-tags-modal/connector-tags-modal';
@@ -359,8 +359,7 @@ export class MyConnectorsPage {
 
   /** Colors a tier tag like the tier badges; '' for an ordinary tag. */
   protected tierClass(tag: ConnectorTag): string {
-    const tier = supportTierOfTag(tag.name);
-    return tier ? 'tier-' + tier.toLowerCase() : '';
+    return supportTierClasses(supportTierOfTag(tag.name));
   }
 
   /** The modal's Save: swaps the connector's tier and obsolete tags, here as on the server. */

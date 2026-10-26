@@ -4,22 +4,11 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-.manual-fill-backdrop {
-  z-index: 1060;
+// Opens on top of the approval modal, so it stacks one level above Bootstrap's defaults.
+.modal-backdrop {
+  --bs-backdrop-zindex: 1060;
 }
 
-.manual-fill-container {
-  z-index: 1070;
-}
-
-.manual-fill-dialog {
-  max-width: 520px;
-  width: 90%;
-  max-height: 90vh;
-}
-
-// Bundle and class names are long dotted strings with no natural break points.
-.error-text {
-  min-width: 0;
-  overflow-wrap: anywhere;
+.modal {
+  --bs-modal-zindex: 1065;
 }

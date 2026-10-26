@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { CapabilityState, IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 
 /** Every object sent supports something (the backend rule); a method may have no objects at all. */
 export function imCapabilitiesValid(groups: IntegrationMethodObjectCapabilities[]): boolean {
@@ -32,7 +33,7 @@ function newEntry(): Entry {
 @Component({
   selector: 'app-im-capability-picker',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, InfoTooltip],
   templateUrl: './im-capability-picker.html',
   styleUrls: ['./im-capability-picker.scss']
 })

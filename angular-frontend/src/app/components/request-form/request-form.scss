@@ -21,13 +21,13 @@
   margin-right: 0.5rem;
   cursor: pointer;
   appearance: auto;
-  accent-color: $color-brand-steel !important;
+  accent-color: $color-brand-blue !important;
 }
 
 /* Bootstrap radio button checked state */
 .modal .form-check-input[type="radio"]:checked {
-  background-color: $color-brand-steel !important;
-  border-color: $color-brand-steel !important;
+  background-color: $color-brand-blue !important;
+  border-color: $color-brand-blue !important;
 }
 
 .modal .form-check-input[type="radio"]:focus {
@@ -76,7 +76,7 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background-color: $color-primary;
+  background-color: $color-brand-blue;
 }
 
 .form-label {
@@ -91,7 +91,7 @@
 }
 
 .form-control:focus, .form-select:focus {
-  border-color: $color-primary;
+  border-color: $color-brand-blue;
   box-shadow: 0 0 0 0.2rem $shadow-primary;
 }
 
@@ -111,40 +111,12 @@
 }
 
 .toast-body-success {
-  background-color: $color-success-bg;
+  background-color: $color-success-bg-subtle;
   color: $color-black;
 }
 
 .toast-icon {
   font-size: 18px;
-}
-
-/* Modal Styles */
-.modal-backdrop-overlay {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1040;
-}
-
-.modal-container {
-  z-index: 1050;
-}
-
-.modal-dialog-request {
-  max-width: 800px;
-  margin: 1.75rem auto;
-}
-
-.modal-header-request {
-  border-bottom: 1px solid $color-border-light;
-  padding: 1rem 1.5rem;
-}
-
-.modal-title-request {
-  color: $color-text-muted;
-}
-
-.modal-body-request {
-  padding: 0;
 }
 
 /* Form Headings */
@@ -179,18 +151,6 @@
   width: 356px;
 }
 
-/* Info Icon Button */
-.btn-info-icon {
-  border: none;
-  position: relative;
-  top: -3px;
-}
-
-.info-icon-sm {
-  font-size: 12px;
-  color: $text-publishing-blue;
-}
-
 /* Integration Method Dropdown */
 .integration-method-trigger {
   min-height: 41px;
@@ -211,7 +171,7 @@
 
 .view-more-icon {
   font-size: 10px;
-  color: $color-brand-steel;
+  color: $color-brand-blue;
 }
 
 /* Form Separator */
@@ -243,8 +203,8 @@
   background-color: $color-white;
 
   &:checked {
-    background-color: $color-primary;
-    border-color: $color-primary;
+    background-color: $color-brand-blue;
+    border-color: $color-brand-blue;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;

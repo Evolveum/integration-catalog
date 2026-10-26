@@ -3,6 +3,7 @@
   Licensed under the EUPL-1.2 or later.
 */
 
+@use 'sass:list';
 @use 'styles/variables' as *;
 @import '@fortawesome/fontawesome-free/css/all.css';
 @import 'easymde/dist/easymde.min.css';
@@ -16,9 +17,36 @@ html {
 }
 
 
+.avatar-tone {
+  @for $i from 1 through list.length($avatar-gradients) {
+    &-#{$i - 1} {
+      background: list.nth($avatar-gradients, $i);
+    }
+  }
+}
+
 /* Native radios outside .form-check-input; Bootstrap's own take $primary. */
 input[type="radio"] {
-  accent-color: $color-brand-steel !important;
+  accent-color: $color-brand-blue !important;
+}
+
+/* Icon disc heading a confirm or success modal. Bootstrap has no fixed-size circle; the color
+   comes from a text-bg-* or *-subtle class on the same element. */
+.modal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  font-size: 1.1rem;
+}
+
+.modal-icon-lg {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.6rem;
 }
 
 /* Markdown rendered through the markdown pipe. Global: [innerHTML] content gets no component

@@ -9,7 +9,7 @@
    ======================================== */
 .page-header-breadcrumb-text {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: $color-gray-600;
 }
 
 .breadcrumb-link {
@@ -18,25 +18,25 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-primary-500;
+  color: $color-brand-blue;
   cursor: pointer;
   text-decoration: none;
 
   &:hover {
-    color: $color-primary-500;
+    color: $color-brand-blue;
     text-decoration: underline;
   }
 }
 
 .breadcrumb-sep {
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: $color-gray-500;
 }
 
 .breadcrumb-current {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #000;
+  color: $color-black;
 }
 
 .breadcrumb-app-icon {
@@ -71,18 +71,17 @@
 .view-page-title {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0;
 }
-
 
 /* ========================================
    IN-REVIEW CONTEXT (banner + submission meta)
    ======================================== */
 .review-banner {
-  background: #fdf6e3;
-  border: 1px solid #f5e2b8;
-  color: #7a5b00;
+  background: $color-warning-bg-subtle;
+  border: 1px solid $color-warning-border-subtle;
+  color: $color-warning-text-emphasis;
   border-radius: 8px;
   padding: 0.85rem 1rem;
   font-size: 0.9rem;
@@ -91,16 +90,16 @@
 }
 
 .review-banner-icon {
-  color: #d9a300;
+  color: $color-warning-text-emphasis;
   margin-top: 0.15rem;
 }
 
 /* Amber inline warning inside a connector card: the connector's version already exists in the
    catalog, so the reviewer should consider reusing the existing version. Informational only. */
 .version-exists-warning {
-  background: #fdf6e3;
-  border: 1px solid #f5e2b8;
-  color: #7a5b00;
+  background: $color-warning-bg-subtle;
+  border: 1px solid $color-warning-border-subtle;
+  color: $color-warning-text-emphasis;
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
   font-size: 0.85rem;
@@ -109,15 +108,15 @@
 }
 
 .version-exists-warning-icon {
-  color: #d9a300;
+  color: $color-warning-text-emphasis;
   margin-top: 0.15rem;
 }
 
 /* Cyan variant of the banner for the locked REVIEWING state. */
 .reviewing-banner {
-  background: #d1f0f5;
-  border: 1px solid #b3e2ec;
-  color: #0c5460;
+  background: $color-info-bg-subtle;
+  border: 1px solid $color-info-border-subtle;
+  color: $color-info-text-emphasis;
   border-radius: 8px;
   padding: 0.85rem 1rem;
   font-size: 0.9rem;
@@ -126,7 +125,7 @@
 }
 
 .reviewing-banner-icon {
-  color: #0aa2c0;
+  color: $color-info;
   margin-top: 0.15rem;
 }
 
@@ -139,19 +138,19 @@
 
 /* Vertical divider before each meta item (badge | date | submitted-by). */
 .review-meta-item {
-  color: #6c757d;
-  border-left: 1px solid #dee2e6;
+  color: $color-gray-600;
+  border-left: 1px solid $color-border-light;
   padding-left: 1rem;
 }
 
 .review-meta-author {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-weight: 500;
 }
 
 /* "Open ticket" link at the end of the meta row (hardcoded ticket for now). */
 .review-meta-ticket {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-weight: 500;
   text-decoration: none;
 
@@ -180,13 +179,13 @@
 }
 
 .view-label {
-  color: #1a202c;
+  color: $color-text-dark;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .view-value {
-  color: #212529;
+  color: $color-text-dark;
   overflow-wrap: anywhere;
 }
 
@@ -194,7 +193,7 @@
   display: block;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.4rem;
 }
 
@@ -215,13 +214,13 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.45rem 0.75rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid $color-border-light;
   border-radius: 6px;
 }
 
 .caps-card-name {
   font-size: 0.875rem;
-  color: #1a202c;
+  color: $color-text-dark;
   overflow-wrap: anywhere;
 }
 
@@ -235,19 +234,18 @@
 
 .midpoint-range-label {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: $color-gray-600;
 }
 
 .midpoint-range-dash {
-  color: #9ca3af;
+  color: $color-gray-500;
 }
-
 
 /* ========================================
    TUTORIAL (read-only preview)
    ======================================== */
 .view-tutorial-wrapper {
-  border: 1px solid #dee2e6;
+  border: 1px solid $color-border-light;
   border-radius: 4px;
   overflow: hidden;
 
@@ -265,7 +263,7 @@
     img { max-width: 100%; }
 
     pre {
-      background: #f6f8fa;
+      background: $color-bg-light;
       padding: 0.75rem;
       border-radius: 4px;
       overflow-x: auto;
@@ -276,7 +274,7 @@
       width: 100%;
 
       th, td {
-        border: 1px solid #dee2e6;
+        border: 1px solid $color-border-light;
         padding: 0.4rem 0.6rem;
       }
     }
@@ -288,7 +286,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.9rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid $color-border-light;
   border-radius: 6px;
   font-size: 0.875rem;
 
@@ -298,11 +296,11 @@
 }
 
 .view-tutorial-file-icon {
-  color: #6c757d;
+  color: $color-gray-600;
 }
 
 .view-tutorial-file-name {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   text-decoration: none;
   font-weight: 600;
 
@@ -313,7 +311,7 @@
 
 .view-tutorial-download {
   font-size: 0.875rem;
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   text-decoration: none;
   white-space: nowrap;
 
@@ -329,25 +327,19 @@
   margin-top: 2.5rem;
 }
 
-.view-connectors-header {
-  border-top: 2px solid #dee2e6;
-  padding-top: 1.25rem;
-  margin-bottom: 1rem;
-}
-
 .view-connectors-title {
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #1a202c;
+  color: $color-text-dark;
   text-transform: uppercase;
 }
 
 .view-connector-card {
-  border: 1px solid #dee2e6;
+  border: 1px solid $color-border-light;
   border-radius: 8px;
   padding: 1rem 1.25rem;
-  background: #fff;
+  background: $color-white;
 
   & + & {
     margin-top: 1rem;
@@ -361,50 +353,6 @@
 }
 
 /* "Connector compatibility" modal (read-only) */
-.compat-modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1040;
-}
-
-.compat-modal-container {
-  z-index: 1050;
-}
-
-.compat-modal-dialog {
-  background: $color-white;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  width: 600px;
-  max-width: 95vw;
-}
-
-.compat-modal-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid $color-border-light;
-}
-
-.compat-modal-title {
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: $color-text-dark;
-}
-
-.compat-modal-body {
-  padding: 1.25rem;
-}
-
-.compat-modal-desc {
-  font-size: 0.9375rem;
-  color: $color-text-secondary;
-  line-height: 1.55;
-  margin-bottom: 1.25rem;
-}
-
-.compat-label-info {
-  color: $color-brand-steel;
-  font-size: 0.75rem;
-  margin-left: 0.25rem;
-}
 
 .compat-range-dash {
   color: $color-gray-secondary;
@@ -416,11 +364,6 @@
 .compat-not-specified {
   font-style: italic;
   color: $color-black;
-}
-
-.compat-modal-footer {
-  padding: 0.75rem 1.25rem 1rem;
-  border-top: 1px solid $color-border-light;
 }
 
 /* Collapsible grouped sub-section inside a connector card */
@@ -437,18 +380,18 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: $color-gray-600;
   cursor: pointer;
 
   .icon-sm {
-    color: #6b7280;
+    color: $color-gray-600;
   }
 }
 
 .view-connector-name {
   font-weight: 600;
   font-size: 0.9375rem;
-  color: #1a202c;
+  color: $color-text-dark;
 }
 
 .view-connector-details {
@@ -466,13 +409,13 @@
 }
 
 .view-connector-label {
-  color: #000000;
+  color: $color-black;
   font-weight: 500;
   flex-shrink: 0;
 }
 
 .view-connector-value {
-  color: #212529;
+  color: $color-text-dark;
   word-break: break-all;
 
   // Prose (a rendered connector description) breaks between words, not inside them.
@@ -483,20 +426,11 @@
 
 .icon-sm {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: $color-gray-600;
 }
 
 .text-sm {
   font-size: 0.8125rem;
-}
-
-/* ========================================
-   PER-CONNECTOR ACTIONS
-   ======================================== */
-.view-connector-footer {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #f1f3f5;
 }
 
 /* ========================================
@@ -507,7 +441,7 @@
   align-items: center;
   margin-top: 2.5rem;
   padding-top: 1.25rem;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid $color-border-light;
 }
 
 /* Bundle download warning toast */
@@ -523,7 +457,7 @@
   max-width: 420px;
   border: 1px solid $toast-warning-border;
   border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 16px $shadow-popover;
 }
 
 .toast-header-warning {

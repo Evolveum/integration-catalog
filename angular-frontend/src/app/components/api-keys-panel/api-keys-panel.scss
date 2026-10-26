@@ -23,8 +23,8 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background-color: #DCE7F5;
-  color: $color-brand-steel;
+  background-color: $color-primary-bg-subtle;
+  color: $color-brand-blue;
   font-size: 16px;
   margin-bottom: 1rem;
 }
@@ -32,7 +32,7 @@
 .keys-empty-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.35rem;
 }
 
@@ -52,7 +52,7 @@
 .keys-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.35rem;
 }
 
@@ -66,15 +66,15 @@
    CREATED-KEY NOTICE (value shown once)
    ======================================== */
 .keys-created {
-  background-color: #D1E7DD;
-  border: 1px solid #A3CFBB;
+  background-color: $color-success-bg-subtle;
+  border: 1px solid $color-success-border-subtle;
   border-radius: 6px;
   padding: 0.9rem 1rem;
   margin-bottom: 1.25rem;
 }
 
 .keys-created-icon {
-  color: #146C43;
+  color: $color-success-text-emphasis;
   font-size: 15px;
   flex-shrink: 0;
   margin-top: 2px;
@@ -88,12 +88,12 @@
 .keys-created-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1a3a2a;
+  color: $color-success-text-emphasis;
 }
 
 .keys-created-text {
   font-size: 0.8125rem;
-  color: #2f4c3c;
+  color: $color-success-text-emphasis;
   margin-bottom: 0.75rem;
 }
 

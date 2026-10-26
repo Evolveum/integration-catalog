@@ -1,7 +1,7 @@
 @use 'variables' as *;
 
 .staging-banner {
-  background-color: #F6C544;
+  background-color: $color-warning;
   min-height: 56px;
   color: $color-text-dark;
   gap: 0.75rem;

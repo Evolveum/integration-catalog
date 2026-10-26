@@ -8,7 +8,7 @@
    PAGE LAYOUT
    ======================================== */
 .page-bg {
-  background-color: #e9ecef;
+  background-color: $color-bg-muted;
   min-width: 1080px;
 }
 
@@ -21,7 +21,7 @@
    HERO BANNER
    ======================================== */
 .hero-gradient {
-  background: linear-gradient(90deg, #14205f 0%, #265DA6 50%, #14205f 100%);
+  background: linear-gradient(90deg, $color-brand-navy 0%, $color-brand-blue 50%, $color-brand-navy 100%);
   padding-top: 3rem;
 
   // Pulled up behind the 56px header so one gradient covers both; the padding keeps the content in place
@@ -40,14 +40,14 @@
 }
 
 .hero-stat-value {
-  color: #A3CDCC;
+  color: $color-brand-sky;
   font-size: 3.5rem;
 }
 
 .hero-stat-label {
   font-size: 0.9rem;
   opacity: 0.9;
-  color: #A3CDCC;
+  color: $color-brand-sky;
 }
 
 /* ========================================
@@ -59,18 +59,18 @@
 }
 
 .toast-box {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px $shadow-card;
   min-width: 350px;
 }
 
 .toast-header-warning {
-  background-color: #ffc107;
-  color: #212529;
+  background-color: $color-warning;
+  color: $color-text-dark;
 }
 
 .toast-body-warning {
-  background-color: #fff3cd;
-  color: #212529;
+  background-color: $color-warning-bg-subtle;
+  color: $color-text-dark;
 }
 
 /* ========================================
@@ -100,7 +100,7 @@
    DESCRIPTION TEXT
    ======================================== */
 .description-text {
-  color: #303030;
+  color: $color-text-dark;
 }
 
 /* ========================================
@@ -108,19 +108,19 @@
    ======================================== */
 .search-icon-container {
   border-radius: 50px 0 0 50px;
-  border-color: #dee2e6;
+  border-color: $color-border-light;
 }
 
 .search-input {
   border-radius: 0 50px 50px 0;
-  border-color: #dee2e6;
+  border-color: $color-border-light;
   box-shadow: none;
   outline: none;
 }
 
 .search-icon {
   font-size: 18px;
-  color: #6c757d;
+  color: $color-gray-600;
 }
 
 /* ========================================
@@ -142,7 +142,7 @@
 }
 
 .filter-chip:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px $shadow-card;
 }
 
 /* ========================================
@@ -150,7 +150,7 @@
    ======================================== */
 .filter-chips-container {
   scrollbar-width: thin;
-  scrollbar-color: #dee2e6 transparent;
+  scrollbar-color: $color-gray-300 transparent;
 }
 
 .filter-chips-container::-webkit-scrollbar {
@@ -162,12 +162,12 @@
 }
 
 .filter-chips-container::-webkit-scrollbar-thumb {
-  background-color: #dee2e6;
+  background-color: $color-gray-300;
   border-radius: 3px;
 }
 
 .filter-chips-container::-webkit-scrollbar-thumb:hover {
-  background-color: #adb5bd;
+  background-color: $color-gray-500;
 }
 
 /* ========================================
@@ -210,13 +210,13 @@
   cursor: pointer;
 
   &:hover {
-    border-color: #62869A;
+    border-color: $color-brand-blue;
 
     &::after {  
       content: '';
       position: absolute;
       inset: 0;   
-      background-color: rgba(164, 234, 255, 0.1);
+      background-color: rgba($color-brand-blue, 0.04);
       border-radius: inherit;                                                                                                                                                             
       pointer-events: none;     
     }
@@ -244,7 +244,7 @@
   width: 50px;
   height: 50px;
   border-radius: 4px;
-  background-color: #ffffff;
+  background-color: $color-white;
 }
 
 .logo-image {
@@ -257,7 +257,7 @@
   width: 50px;
   height: 50px;
   border-radius: 4px;
-  color: white;
+  color: $color-white;
   font-size: 28px;
   font-weight: 600;
 }
@@ -278,18 +278,18 @@
 }
 
 .current-version-banner {
-  background-color: $color-info-bg;
-  border: 1px solid $color-info-border;
+  background-color: $color-info-bg-subtle;
+  border: 1px solid $color-info-border-subtle;
   border-radius: 6px;
   padding: 0.5rem 0.3rem;
   font-size: 0.7rem;
-  color: $color-info-text;
+  color: $color-info-text-emphasis;
   height: 38px;
   width: 100%;
   justify-content: center;
 
   i {
-    color: #0AA2C0;
+    color: $color-info;
   }
 }
 
@@ -313,15 +313,21 @@
 /* ========================================
    CARD LINKS & BUTTONS
    ======================================== */
+.reset-filter-btn {
+  --bs-btn-color: #{$color-gray-500};
+  --bs-btn-hover-color: #{$color-gray-700};
+  --bs-btn-active-color: #{$color-gray-700};
+}
+
 .link-details {
-  color: $color-brand-steel-dark;
+  color: $color-brand-blue-dark;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
 }
 
 .link-error {
-  color: #dc3545;
+  color: $color-danger;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
@@ -332,21 +338,7 @@
    ======================================== */
 .publishing-icon {
   font-size: 36px;
-  color: $color-brand-steel;
-}
-
-.in-review-info-box {
-  position: relative;
-  z-index: 1;
-  background-color: #ffffff;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 0.5rem 0.6rem;
-  font-size: 0.72rem;
-  color: #6c757d;
-  line-height: 1.4;
-  margin-left: -0.5rem;
-  margin-right: -0.5rem;
+  color: $color-brand-blue;
 }
 
 .card-description.card-description-single {
@@ -390,7 +382,7 @@
    ======================================== */
 .divider-line {
   border: 0;
-  border-top: 1px solid #6c757d;
+  border-top: 1px solid $color-gray-600;
   margin: 3rem auto;
   max-width: 1080px;
   width: 100%;
@@ -400,27 +392,45 @@
    ADVANCED OPTIONS SECTION
    ======================================== */
 .options-box {
-  background-color: white;
-  border: 1px solid #dee2e6;
+  background-color: $color-white;
+  border: 1px solid $color-border-light;
   border-radius: 8px;
   height: 148px;
 }
 
-.options-icon-box-purple {
-  background-color: #e6e6fa;
-  aspect-ratio: 1/1;
-  width: 137px;
-}
-
-.options-icon-box-orange {
-  background-color: #fff0e6;
+.options-icon-box {
+  background-color: $color-primary-bg-subtle;
   aspect-ratio: 1/1;
   width: 137px;
 }
 
 .options-icon {
   font-size: 40px;
-  color: #6c757d;
+  color: $color-gray-600;
+}
+
+.options-icon-box-purple {
+  background-color: $color-accent-purple-bg;
+
+  .options-icon {
+    color: $color-accent-purple;
+  }
+}
+
+.options-icon-box-blue {
+  background-color: $color-accent-blue-bg;
+
+  .options-icon {
+    color: $color-accent-blue;
+  }
+}
+
+.options-icon-box-yellow {
+  background-color: $color-accent-yellow-bg;
+
+  .options-icon {
+    color: $color-accent-yellow;
+  }
 }
 
 /* The three advanced-option buttons sit in separate rows, so nothing lines them up
@@ -456,7 +466,7 @@
 
 .checkbox-unchecked {
   background-color: transparent;
-  border-color: #dee2e6;
+  border-color: $color-border-light;
 }
 
 /* ========================================

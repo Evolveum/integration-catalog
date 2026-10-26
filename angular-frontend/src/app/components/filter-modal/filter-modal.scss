@@ -3,24 +3,7 @@
   Licensed under the EUPL-1.2 or later.
 */
 
-/* Modal Overlay */
-.modal-backdrop-overlay {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1040;
-}
-
-.modal-container {
-  z-index: 1050;
-}
-
-.modal-dialog-filter {
-  max-width: 800px;
-  margin: auto;
-}
-
-.modal-content-filter {
-  border-radius: 12px;
-}
+@use 'variables' as *;
 
 /* Two-panel Layout */
 .filter-layout {
@@ -32,9 +15,8 @@
   width: 250px;
   min-width: 250px;
   flex-shrink: 0;
-  background-color: #f8f9fa;
-  border-right: 1px solid #dee2e6;
-  border-radius: 12px 0 0 12px;
+  background-color: $color-bg-light;
+  border-right: 1px solid $color-border-light;
   padding: 1.5rem 0;
 }
 
@@ -42,28 +24,28 @@
 .filter-option {
   padding: 0.75rem 1.5rem;
   cursor: pointer;
-  color: #212529;
+  color: $color-text-dark;
   opacity: 0.75;
   background-color: transparent;
 }
 
 .filter-option.active {
-  color: #000000;
+  color: $color-black;
   opacity: 1;
-  background-color: #e9ecef;
+  background-color: $color-bg-muted;
 }
 
 .filter-option:hover {
-  background-color: #e9ecef !important;
+  background-color: $color-bg-muted !important;
 }
 
 .filter-option-icon {
   font-size: 18px;
-  color: #6c757d;
+  color: $color-gray-600;
 }
 
 .filter-option.active .filter-option-icon {
-  color: #0d6efd;
+  color: $color-brand-blue;
 }
 
 .filter-option-label {
@@ -84,9 +66,9 @@
 }
 
 .category-item:hover {
-  background-color: #f8f9fa !important;
+  background-color: $color-bg-light !important;
 }
 
 .category-item.selected {
-  background-color: #dee2e6;
+  background-color: $color-gray-300;
 }

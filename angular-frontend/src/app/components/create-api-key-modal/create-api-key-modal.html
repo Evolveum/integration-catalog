@@ -4,49 +4,52 @@
  * Licensed under the EUPL-1.2 or later.
  -->
 
-<div class="create-key-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onClose()"></div>
-<div class="create-key-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="create-key-dialog">
-    <div class="create-key-header d-flex align-items-center">
-      <h2 class="create-key-title">Create API key</h2>
-      <button type="button" class="btn-close ms-auto" title="Close" aria-label="Close" (click)="onClose()"></button>
-    </div>
-
-    <div class="create-key-body">
-      <label class="create-key-label" for="api-key-name">Key name</label>
-      <input id="api-key-name" class="create-key-input" type="text" autocomplete="off"
-        placeholder="My new key" [ngModel]="name()" (ngModelChange)="name.set($event)">
-      <p class="create-key-help">Use a name that describes where this key will be used.</p>
-
-      <div class="create-key-label">Expiration</div>
-      <div class="create-key-chips d-flex flex-wrap gap-2">
-        @for (preset of presets; track preset.days) {
-          <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="selectedPreset() === preset"
-            [attr.aria-pressed]="selectedPreset() === preset"
-            (click)="selectPreset(preset)">{{ preset.label }}</button>
-        }
-        <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="customSelected()"
-          [attr.aria-pressed]="customSelected()"
-          (click)="selectPreset(null)">Custom</button>
+<div class="modal-backdrop show"></div>
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="create-key-title"
+     [appBackdropClose]="dialog" (backdropClose)="onClose()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div #dialog class="modal-content">
+      <div class="modal-header">
+        <h2 id="create-key-title" class="modal-title fs-5 fw-semibold">Create API key</h2>
+        <button type="button" class="btn-close" title="Close" aria-label="Close" (click)="onClose()"></button>
       </div>
 
-      @if (customSelected()) {
-        <input class="create-key-input create-key-date" type="date" [min]="minCustomDate"
-          [class.is-invalid]="customDateTooLate()" [ngModel]="customDate()" (ngModelChange)="customDate.set($event)">
-        @if (customDateTooLate()) {
-          <p class="create-key-error text-danger mb-0">
-            A key can be valid for at most {{ maxExpirationDays }} days. Pick {{ maxCustomDate | date:'MMM d, y' }} or earlier.
-          </p>
-        }
-      }
-    </div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold small" for="api-key-name">Key name</label>
+        <input id="api-key-name" class="form-control" type="text" autocomplete="off"
+          placeholder="My new key" [ngModel]="name()" (ngModelChange)="name.set($event)">
+        <p class="form-text mb-4">Use a name that describes where this key will be used.</p>
 
-    <div class="create-key-footer d-flex align-items-center">
-      <button type="button" class="btn btn-link link-secondary text-decoration-none px-0" (click)="onClose()">Cancel</button>
-      <button type="button" class="btn btn-primary ms-auto" [disabled]="!canSubmit() || busy"
-        (click)="onCreate()">
-        {{ busy ? 'Creating...' : 'Create API key' }}
-      </button>
+        <div class="form-label fw-semibold small">Expiration</div>
+        <div class="d-flex flex-wrap gap-2">
+          @for (preset of presets; track preset.days) {
+            <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="selectedPreset() === preset"
+              [attr.aria-pressed]="selectedPreset() === preset"
+              (click)="selectPreset(preset)">{{ preset.label }}</button>
+          }
+          <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="customSelected()"
+            [attr.aria-pressed]="customSelected()"
+            (click)="selectPreset(null)">Custom</button>
+        </div>
+
+        @if (customSelected()) {
+          <input class="form-control mt-3" type="date" [min]="minCustomDate"
+            [class.is-invalid]="customDateTooLate()" [ngModel]="customDate()" (ngModelChange)="customDate.set($event)">
+          @if (customDateTooLate()) {
+            <div class="invalid-feedback d-block">
+              A key can be valid for at most {{ maxExpirationDays }} days. Pick {{ maxCustomDate | date:'MMM d, y' }} or earlier.
+            </div>
+          }
+        }
+      </div>
+
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-link text-decoration-none" (click)="onClose()">Cancel</button>
+        <button type="button" class="btn btn-primary" [disabled]="!canSubmit() || busy"
+          (click)="onCreate()">
+          {{ busy ? 'Creating...' : 'Create API key' }}
+        </button>
+      </div>
     </div>
   </div>
 </div>

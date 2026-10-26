@@ -49,9 +49,7 @@
         <div class="col-4">
           <label class="form-label form-label-upload">
             Integration method name <span class="text-danger">*</span>
-            <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="The display name for this integration in the catalog.">
-              <i class="fa-solid fa-circle-info info-icon-sm"></i>
-            </button>
+            <app-info-tooltip>The display name for this integration in the catalog.</app-info-tooltip>
           </label>
           <input type="text" class="form-control"
                  [value]="methodName()"
@@ -61,9 +59,7 @@
         <div class="col-8">
           <label class="form-label form-label-upload">
             Integration method version <span class="text-danger">*</span>
-            <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this integration method.">
-              <i class="fa-solid fa-circle-info info-icon-sm"></i>
-            </button>
+            <app-info-tooltip>Version of this integration method.</app-info-tooltip>
           </label>
           <input type="text" class="form-control edit-version-input"
                  [value]="methodVersion()"
@@ -76,9 +72,7 @@
       <div class="mb-4">
         <label class="form-label form-label-upload">
           Maintainer <span class="text-danger">*</span>
-          <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="The person or team responsible for maintaining this integration method.">
-            <i class="fa-solid fa-circle-info info-icon-sm"></i>
-          </button>
+          <app-info-tooltip>The person or team responsible for maintaining this integration method.</app-info-tooltip>
         </label>
         <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
           <input type="text" class="form-select"
@@ -162,10 +156,7 @@
       <div class="mb-4">
         <label class="form-label form-label-upload">
           Limitations
-          <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-            <i class="fa-solid fa-circle-info info-icon"></i>
-            <span class="info-tooltip">What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</span>
-          </span>
+          <app-info-tooltip>What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</app-info-tooltip>
         </label>
         <div class="position-relative">
           <textarea class="form-control" rows="4" [attr.maxlength]="limitationsMax"
@@ -507,25 +498,26 @@
 
   <!-- Delete connector confirmation modal -->
   @if (pendingDeleteConnector(); as pending) {
-    <div class="cancel-confirm-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="cancelDeleteConnector()"></div>
-    <div class="cancel-confirm-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-      <div class="cancel-confirm-dialog" (click)="$event.stopPropagation()">
-        <div class="cancel-confirm-header d-flex align-items-center justify-content-between">
-          <div class="d-flex align-items-center gap-2">
-            <i class="fa-solid fa-triangle-exclamation cancel-confirm-icon"></i>
-            <span class="cancel-confirm-title">Delete connector?</span>
+    <div class="modal-backdrop show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="delete-connector-title"
+         [appBackdropClose]="deleteDialog" (backdropClose)="cancelDeleteConnector()">
+      <div class="modal-dialog modal-dialog-centered">
+        <div #deleteDialog class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2 id="delete-connector-title" class="modal-title fs-6 fw-semibold d-flex align-items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-danger"></i>Delete connector?
+            </h2>
+            <button type="button" class="btn-close" (click)="cancelDeleteConnector()" aria-label="Close"></button>
           </div>
-          <button type="button" class="btn-close" (click)="cancelDeleteConnector()" aria-label="Close"></button>
-        </div>
-        <div class="cancel-confirm-body">
-          Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? This action cannot be undone.
-        </div>
-        <hr class="cancel-confirm-separator">
-        <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
-          <button type="button" class="btn btn-link text-decoration-none" (click)="cancelDeleteConnector()">Cancel</button>
-          <button type="button" class="btn btn-danger d-inline-flex align-items-center gap-2" (click)="confirmDeleteConnector()">
-            <i class="fa-solid fa-trash-can"></i>Delete
-          </button>
+          <div class="modal-body text-body-secondary">
+            Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? This action cannot be undone.
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-link text-decoration-none" (click)="cancelDeleteConnector()">Cancel</button>
+            <button type="button" class="btn btn-danger d-inline-flex align-items-center gap-2" (click)="confirmDeleteConnector()">
+              <i class="fa-solid fa-trash-can"></i>Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -557,82 +549,85 @@
 
   <!-- "Set up connector compatibility" modal -->
   @if (compatConnector(); as cc) {
-    <div class="compat-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="closeCompatibility()"></div>
-    <div class="compat-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-      <div class="compat-modal-dialog" (click)="$event.stopPropagation()">
-        <div class="compat-modal-header d-flex align-items-center justify-content-between">
-          <span class="compat-modal-title">Set up connector compatibility</span>
-          <button type="button" class="btn-close" (click)="closeCompatibility()" aria-label="Close"></button>
-        </div>
-
-        <div class="compat-modal-body">
-          <p class="compat-modal-desc">
-            Define the connector version range supported by this integration. Only connectors within
-            the specified range will be available for use.
-          </p>
-
-          <!-- The range is stored per integration method, not on the connector. -->
-          <div class="compat-modal-note d-flex gap-2 align-items-start mb-3">
-            <i class="fa-solid fa-circle-info compat-modal-note-icon flex-shrink-0"></i>
-            <span class="flex-grow-1">
-              <strong>Note</strong>&nbsp;This range belongs to this integration method, not to the connector itself.
-              Other integration methods using the same connector keep their own ranges.
-            </span>
+    <div class="modal-backdrop show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="compat-modal-title"
+         [appBackdropClose]="compatDialog" (backdropClose)="closeCompatibility()">
+      <div class="modal-dialog modal-dialog-centered">
+        <div #compatDialog class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2 id="compat-modal-title" class="modal-title fs-6 fw-semibold">Set up connector compatibility</h2>
+            <button type="button" class="btn-close" (click)="closeCompatibility()" aria-label="Close"></button>
           </div>
 
-          <div class="d-flex align-items-start gap-3 mb-1">
-            <div class="flex-grow-1">
-              <label class="form-label form-label-upload">
-                From version <span class="text-danger">*</span>
-                <i class="fa-solid fa-circle-info compat-label-info" title="The lowest connector version this integration supports."></i>
-              </label>
-              <input type="text" class="form-control"
-                     [value]="compatFrom()"
-                     (input)="compatFrom.set($any($event.target).value)"
-                     placeholder="e.g. 1.0.0">
-            </div>
-            <span class="compat-range-dash">—</span>
-            <div class="flex-grow-1">
-              <label class="form-label form-label-upload">
-                To version
-                <i class="fa-solid fa-circle-info compat-label-info" title="Leave empty for compatibility with future releases."></i>
-              </label>
-              <input type="text" class="form-control"
-                     [value]="compatTo()"
-                     (input)="compatTo.set($any($event.target).value)"
-                     placeholder="e.g. 1.0.0">
-            </div>
-          </div>
+          <div class="modal-body">
+            <p class="text-body-secondary mb-4">
+              Define the connector version range supported by this integration. Only connectors within
+              the specified range will be available for use.
+            </p>
 
-          @if (isCompatRangeInvalid()) {
-            <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
-          } @else {
-            <div class="form-text">Users can search for this connector by version range.</div>
-          }
-
-          @if (!compatInfoDismissed()) {
-            <div class="compat-modal-note d-flex gap-2 align-items-start mt-3">
-              <i class="fa-solid fa-circle-info compat-modal-note-icon flex-shrink-0"></i>
+            <!-- The range is stored per integration method, not on the connector. -->
+            <div class="alert alert-info d-flex gap-2 align-items-start small mb-3">
+              <i class="fa-solid fa-circle-info flex-shrink-0 mt-1"></i>
               <span class="flex-grow-1">
-                Do not specify a <em>To version</em> if you expect your integration method will be compatible
-                with future releases of the connector.
+                <strong>Note</strong>&nbsp;This range belongs to this integration method, not to the connector itself.
+                Other integration methods using the same connector keep their own ranges.
               </span>
-              <button type="button" class="btn-close flex-shrink-0" (click)="compatInfoDismissed.set(true)" aria-label="Dismiss"></button>
             </div>
-          }
-        </div>
 
-        <div class="compat-modal-footer d-flex justify-content-between align-items-center">
-          <button type="button" class="btn btn-link text-decoration-none" (click)="closeCompatibility()">Close</button>
-          <button type="button" class="btn btn-primary"
-                  [disabled]="!isCompatValid() || compatSaving()"
-                  (click)="applyCompatibility()">
-            @if (compatSaving()) {
-              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Applying…
+            <div class="d-flex align-items-start gap-3 mb-1">
+              <div class="flex-grow-1">
+                <label class="form-label form-label-upload">
+                  From version <span class="text-danger">*</span>
+                  <app-info-tooltip>The lowest connector version this integration supports.</app-info-tooltip>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="compatFrom()"
+                       (input)="compatFrom.set($any($event.target).value)"
+                       placeholder="e.g. 1.0.0">
+              </div>
+              <span class="compat-range-dash">—</span>
+              <div class="flex-grow-1">
+                <label class="form-label form-label-upload">
+                  To version
+                  <app-info-tooltip>Leave empty for compatibility with future releases.</app-info-tooltip>
+                </label>
+                <input type="text" class="form-control"
+                       [value]="compatTo()"
+                       (input)="compatTo.set($any($event.target).value)"
+                       placeholder="e.g. 1.0.0">
+              </div>
+            </div>
+
+            @if (isCompatRangeInvalid()) {
+              <div class="field-error">Invalid range. "To version" cannot be lower than "From version".</div>
             } @else {
-              Apply changes
+              <div class="form-text">Users can search for this connector by version range.</div>
             }
-          </button>
+
+            @if (!compatInfoDismissed()) {
+              <div class="alert alert-info d-flex gap-2 align-items-start small mt-3 mb-0">
+                <i class="fa-solid fa-circle-info flex-shrink-0 mt-1"></i>
+                <span class="flex-grow-1">
+                  Do not specify a <em>To version</em> if you expect your integration method will be compatible
+                  with future releases of the connector.
+                </span>
+                <button type="button" class="btn-close flex-shrink-0" (click)="compatInfoDismissed.set(true)" aria-label="Dismiss"></button>
+              </div>
+            }
+          </div>
+
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-link text-decoration-none" (click)="closeCompatibility()">Close</button>
+            <button type="button" class="btn btn-primary"
+                    [disabled]="!isCompatValid() || compatSaving()"
+                    (click)="applyCompatibility()">
+              @if (compatSaving()) {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Applying…
+              } @else {
+                Apply changes
+              }
+            </button>
+          </div>
         </div>
       </div>
     </div>

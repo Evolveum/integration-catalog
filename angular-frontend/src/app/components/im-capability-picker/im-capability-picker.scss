@@ -5,11 +5,6 @@
  */
 @use 'variables' as *;
 
-$state-yes: #146c43;
-$state-yes-bg: $color-success-bg;
-$state-no: #b02a37;
-$state-no-bg: #f8d7da;
-
 .imcp-heading {
   font-weight: 600;
   font-size: 0.875rem;
@@ -19,54 +14,6 @@ $state-no-bg: #f8d7da;
   font-size: 0.8125rem;
   color: $color-text-secondary;
   margin: 0.25rem 0 0.75rem;
-}
-
-/* Info icon tooltip — unified with the styled tooltip used across the publish form. */
-.info-icon-wrapper {
-  vertical-align: middle;
-}
-
-.info-icon-wrapper .info-tooltip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  top: calc(100% + 8px);
-  left: -2px;
-  background-color: $color-text-dark;
-  color: $color-white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  white-space: normal;
-  width: 400px;
-  max-width: 80vw;
-  text-align: left;
-  box-shadow: 0 2px 8px $shadow-card;
-  z-index: 1100;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-  pointer-events: none;
-  line-height: 1.4;
-}
-
-.info-icon-wrapper .info-tooltip::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 5px;
-  border: 6px solid transparent;
-  border-width: 8px 4px;
-  border-bottom-color: $color-text-dark;
-}
-
-.info-icon-wrapper:hover .info-tooltip {
-  visibility: visible;
-  opacity: 1;
-}
-
-.info-icon {
-  font-size: 14px;
-  color: $text-publishing-blue;
 }
 
 /* Accordion of objects */
@@ -123,8 +70,8 @@ $state-no-bg: #f8d7da;
   border-radius: 50%;
 }
 
-.imcp-state-yes     { color: $state-yes; background: $state-yes-bg; }
-.imcp-state-no      { color: $state-no; background: $state-no-bg; }
+.imcp-state-yes     { color: $color-success-text-emphasis; background: $color-success-bg-subtle; }
+.imcp-state-no      { color: $color-danger-text-emphasis; background: $color-danger-bg-subtle; }
 .imcp-state-unknown { color: $color-text-secondary; background: $color-bg-muted; }
 
 .imcp-object-body {
@@ -173,7 +120,7 @@ $state-no-bg: #f8d7da;
 .imcp-hint {
   margin-top: 0.4rem;
   font-size: 12px;
-  color: #bb2d3b;
+  color: $color-danger;
 }
 
 @media (max-width: 991.98px) {

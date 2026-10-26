@@ -5,7 +5,8 @@
  */
 
 import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
-import { SUPPORT_TIERS, SupportTier } from '../../core/support-tier';
+import { SUPPORT_TIERS, SupportTier, supportTierClasses } from '../../core/support-tier';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /** What the modal's Save sends. */
 export interface ConnectorTagsChange {
@@ -21,6 +22,7 @@ export interface ConnectorTagsChange {
 @Component({
   selector: 'app-connector-tags-modal',
   standalone: true,
+  imports: [BackdropCloseDirective],
   templateUrl: './connector-tags-modal.html',
   styleUrls: ['./connector-tags-modal.scss']
 })
@@ -34,6 +36,7 @@ export class ConnectorTagsModal implements OnInit {
   @Output() close = new EventEmitter<void>();
 
   protected readonly supportTiers = SUPPORT_TIERS;
+  protected readonly tierClasses = supportTierClasses;
   protected readonly selectedTier = signal<SupportTier | null>(null);
   protected readonly selectedObsolete = signal(false);
 

@@ -4,96 +4,105 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
+// The catalog's only color definitions. bootstrap.scss feeds Bootstrap from them, so its classes
+// (text-*, bg-*-subtle, btn-*, borders) and the component stylesheets share one palette.
+
 @use 'sass:color';
 
 $color-black: #000000;
 $color-white: #ffffff;
-$color-modal-title: #5B656F;
 
 // Brand Colors
-// The Evolveum brand ramp, taken from the evolveum.com theme CSS.
-// navy  - fills, borders, the header bar
-// steel - inline text and links, primary buttons
-// sky   - tints and gradient stops
-$color-brand-navy: #14205F;
-$color-brand-steel: #4E769A;
-$color-primary-500: #206F9D;
+// The Evolveum palette (colors.jpg), as used by the homepage header.
+// navy - fills, borders, the header bar
+// blue - Bootstrap's $primary: inline text and links, primary buttons; the lighter shade is the hover
+// sky  - tints and gradient stops
+$color-brand-navy: #14205F; //ppt 2-6 (column-row)
+$color-brand-blue: #265DA6; //ppt 2-5
+$color-brand-blue-dark: #164078; //ppt 1-5
+$color-brand-blue-light: #2F81D4; //ppt 3-5
 $color-brand-sky: #A3CCDC;
-$color-brand-steel-dark: color.mix($color-brand-steel, $color-black, 80%);
 
-// Purple from the original palette; survives for a single tinted background.
-$color-darker-blue: #605CA2;
-
-// Button Colors
-$btn-download-color: #ffffff;
-
-// Publishing Colors
-$text-publishing-blue: #17A2B8;
-$text-publishing-color: color.mix($text-publishing-blue, $color-black, 50%);
+// Gray Scale (Bootstrap's $gray-100 .. $gray-900)
+$color-gray-100: #f8f9fa;
+$color-gray-200: #e9ecef;
+$color-gray-300: #dee2e6;
+$color-gray-400: #ced4da;
+$color-gray-500: #adb5bd;
+$color-gray-600: #6c757d;
+$color-gray-700: #495057;
+$color-gray-800: #343a40;
+$color-gray-900: #212529;
 
 // Text Colors
-$color-text-dark: #212529;
-$color-text-secondary: #495057;
+$color-text-dark: $color-gray-900;
+$color-text-secondary: $color-gray-700;
 $color-text-muted: #5b656f;
-$color-text-light: #adb5bd;
-
-// Gray Scale
-$color-gray-secondary: #6c757d;
-$color-gray-dark: #5c636a;
-$color-icon-dark: #353A41;
-$color-gray-light: #dee2e6;
+$color-text-light: $color-gray-500;
+$color-gray-secondary: $color-gray-600;
+$color-icon-dark: $color-gray-800;
 
 // Background Colors
-$color-bg-light: #f8f9fa;
+$color-bg-light: $color-gray-100;
+$color-bg-muted: $color-gray-200; //also homepage BG color (.page-bg in applications-list)
 $color-bg-hover: #f1f3f5;
 $color-bg-disabled: #fcfcfc;
 $color-bg-selected: #f0f6fc;
-$color-bg-muted: #e9ecef;
 
 // Border Colors
-$color-border-light: $color-gray-light;
-$color-border-input: #ced4da;
+$color-gray-light: $color-gray-300;
+$color-border-light: $color-gray-300;
+$color-border-input: $color-gray-400;
 $color-separator: #e4e7ec;
 
-// Primary Colors (Bootstrap-like)
-$color-primary: #0d6efd;
-$color-primary-hover: #0b5ed7;
-$color-primary-active: #0a58ca;
-
-// Secondary Colors
-$color-secondary: #6c757d;
-$color-secondary-hover: #5c636a;
-$color-secondary-active: #565e64;
-
-// Success Colors
+// Status Colors
 $color-success: #198754;
-$color-success-bg: #d1e7dd;
-
-// Warning Colors
+$color-info: #0dcaf0;
 $color-warning: #ffc107;
-$color-warning-bg: #fff3cd;
+$color-danger: #dc3545;
 
-// Warning toast (download warning) — amber header + cream body, dark framed card
-$toast-warning-header: #FFC107;
-$toast-warning-body: #FFF3CD;
-$toast-warning-border: $toast-warning-header;
-$toast-warning-text: #353A41;
-
-// Error toast — red header + light-red body
-$toast-danger-header: #DC3545;
-$toast-danger-body: #F8D7DA;
-$toast-danger-border: $toast-danger-header;
-$toast-danger-header-text: #FFFFFF;
-$toast-danger-text: #842029;
-
-// Info Colors
-$color-info-bg: #d1ecf1;
-$color-info-border: #bee5eb;
-$color-info-text: #0c5460;
+// Soft variants of primary (= brand blue) and the status colors, mixed the way Bootstrap 5.3 does:
+// subtle background = 80% white, subtle border = 60% white, emphasis text = 60% black.
+$color-primary-bg-subtle: color.mix($color-white, $color-brand-blue, 80%);
+$color-primary-border-subtle: color.mix($color-white, $color-brand-blue, 60%);
+$color-primary-text-emphasis: color.mix($color-black, $color-brand-blue, 60%);
+$color-success-bg-subtle: color.mix($color-white, $color-success, 80%);
+$color-success-border-subtle: color.mix($color-white, $color-success, 60%);
+$color-success-text-emphasis: color.mix($color-black, $color-success, 60%);
+$color-info-bg-subtle: color.mix($color-white, $color-info, 80%);
+$color-info-border-subtle: color.mix($color-white, $color-info, 60%);
+$color-info-text-emphasis: color.mix($color-black, $color-info, 60%);
+$color-warning-bg-subtle: color.mix($color-white, $color-warning, 80%);
+$color-warning-border-subtle: color.mix($color-white, $color-warning, 60%);
+$color-warning-text-emphasis: color.mix($color-black, $color-warning, 60%);
+$color-danger-bg-subtle: color.mix($color-white, $color-danger, 80%);
+$color-danger-border-subtle: color.mix($color-white, $color-danger, 60%);
+$color-danger-text-emphasis: color.mix($color-black, $color-danger, 60%);
 
 // Accent Colors
-$color-accent-purple: #605cab;
-$color-accent-purple-light: rgba(96, 92, 168, 0.1);
+// Icon tiles of the homepage's advanced options; the tile background is the color at 10%.
+$color-accent-purple: #7F56D9;
+$color-accent-purple-bg: color.mix($color-accent-purple, $color-white, 10%);
+$color-accent-blue: #3C8DBC;
+$color-accent-blue-bg: color.mix($color-accent-blue, $color-white, 10%);
+$color-accent-yellow: #c09530;
+$color-accent-yellow-bg: color.mix($color-accent-yellow, $color-white, 10%);
+
+// Publishing Colors
+$text-publishing-blue: #17A2B8;
+
+// Warning toast (download warning) — amber header + cream body, dark framed card
+$toast-warning-header: $color-warning;
+$toast-warning-body: $color-warning-bg-subtle;
+$toast-warning-border: $toast-warning-header;
+$toast-warning-text: $color-gray-800;
+
+// Error toast — red header + light-red body
+$toast-danger-header: $color-danger;
+$toast-danger-body: $color-danger-bg-subtle;
+$toast-danger-border: $toast-danger-header;
+$toast-danger-header-text: $color-white;
+$toast-danger-text: $color-danger-text-emphasis;
 
 // Social network colours, taken from the evolveum.com footer hover tiles
 $color-social-linkedin: #13689b;
@@ -106,7 +115,17 @@ $color-social-github: #5a5a5a;
 $shadow-card: rgba(0, 0, 0, 0.1);
 $shadow-dropdown: rgba(0, 0, 0, 0.08);
 $shadow-teal: rgba(0, 129, 132, 0.15);
-$shadow-primary: rgba(13, 110, 253, 0.25);
+$shadow-primary: rgba($color-brand-blue, 0.25);
+$shadow-popover: rgba(0, 0, 0, 0.25);
 
-// Staging banner
-$badge-background: #FFF3CD
+// Letter avatars of applications: avatarToneClass() (core/avatar-tone.ts) picks one per name,
+// so its AVATAR_TONES must match the length of this list.
+$avatar-gradients: (
+  linear-gradient(135deg, #0078D4 0%, #50E6FF 100%),
+  linear-gradient(135deg, #7C3AED 0%, #C084FC 100%),
+  linear-gradient(135deg, #0D9488 0%, #5EEAD4 100%),
+  linear-gradient(135deg, #EA580C 0%, #FB923C 100%),
+  linear-gradient(135deg, #BE185D 0%, #F472B6 100%),
+);
+// Avatar of an application the publish form is about to create.
+$avatar-new-gradient: linear-gradient(135deg, $color-brand-sky 0%, #50E6FF 100%);

@@ -8,6 +8,7 @@ import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { OverflowTitleDirective } from '../../directives/overflow-title.directive';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /**
  * Picks the types of an integration method after it exists, with the cards the publish flow uses for
@@ -20,7 +21,7 @@ import { OverflowTitleDirective } from '../../directives/overflow-title.directiv
 @Component({
   selector: 'app-method-type-modal',
   standalone: true,
-  imports: [CommonModule, OverflowTitleDirective],
+  imports: [CommonModule, OverflowTitleDirective, BackdropCloseDirective],
   templateUrl: './method-type-modal.html',
   styleUrls: ['./method-type-modal.scss']
 })

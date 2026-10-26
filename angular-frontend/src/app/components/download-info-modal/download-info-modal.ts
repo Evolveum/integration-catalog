@@ -63,6 +63,8 @@ export class DownloadInfoModal {
    * bundle can take a while, and shows the file name and size once they are known.
    */
   @Input() preparing = false;
+  /** Bootstrap's large dialog (800px) instead of the default 500px, for help with longer steps. */
+  @Input() wide = false;
   @Output() closed = new EventEmitter<void>();
 
   protected onClose(): void {

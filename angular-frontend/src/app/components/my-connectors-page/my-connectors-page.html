@@ -293,7 +293,7 @@
                 </div>
               }
               @if (showNewVersion) {
-                <button type="button" class="btn btn-outline-secondary btn-sm ss-outline-btn d-flex align-items-center gap-1"
+                <button type="button" class="btn btn-outline-primary btn-sm text-nowrap flex-shrink-0 d-flex align-items-center gap-1"
                         [class.ms-auto]="!group.latestVersion" (click)="comingSoon('New connector version')">
                   <i class="fa-solid fa-plus"></i>New version
                 </button>
@@ -341,9 +341,9 @@
                           <span class="ss-version-chip">{{ version.version }}</span>
                           @if (version.lifecycleState && version.lifecycleState !== 'ACTIVE') {
                             @switch (version.lifecycleState) {
-                              @case ('IN_REVIEW') { <span class="ss-badge ss-badge-awaiting">Awaiting approval</span> }
-                              @case ('REVIEWING') { <span class="ss-badge ss-badge-reviewing">Under review</span> }
-                              @case ('REJECTED') { <span class="ss-badge ss-badge-rejected">Rejected</span> }
+                              @case ('IN_REVIEW') { <span class="ss-badge bg-warning-subtle text-warning-emphasis">Awaiting approval</span> }
+                              @case ('REVIEWING') { <span class="ss-badge bg-info-subtle text-info-emphasis">Under review</span> }
+                              @case ('REJECTED') { <span class="ss-badge bg-danger-subtle text-danger-emphasis">Rejected</span> }
                             }
                           }
                         </span>

@@ -21,6 +21,7 @@ import { DownloadInfoModal, DownloadInfoStep } from '../download-info-modal/down
 import { ToastService } from '../../services/toast.service';
 import { EnvironmentService } from '../../services/environment.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { avatarToneClass } from '../../core/avatar-tone';
 
 @Component({
   selector: 'app-applications-list',
@@ -39,7 +40,9 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
   protected readonly totalDownloadsCount = signal<number>(0);
 
   // Loaded from the capability table so the dropdown matches the filter modal.
-  protected readonly allCapabilities = signal<string[]>([]);
+  // Split by globality, like the filter modal's Capabilities tab.
+  protected readonly globalCapabilities = signal<string[]>([]);
+  protected readonly specificCapabilities = signal<string[]>([]);
 
   protected readonly allAppStatuses = [
     'ACTIVE',
@@ -307,11 +310,12 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
       error: (err) => console.error('Failed to load application tags', err)
     });
     this.applicationService.getCapabilities().subscribe({
-      next: (caps) => this.allCapabilities.set(
-        [...caps]
-          .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER))
-          .map(c => c.name)
-      ),
+      next: (caps) => {
+        const sorted = [...caps]
+          .sort((a, b) => (a.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.displayOrder ?? Number.MAX_SAFE_INTEGER));
+        this.globalCapabilities.set(sorted.filter(c => c.globality === 'GLOBAL').map(c => c.name));
+        this.specificCapabilities.set(sorted.filter(c => c.globality === 'SPECIFIC').map(c => c.name));
+      },
       error: (err) => console.error('Failed to load capabilities', err)
     });
   }
@@ -672,17 +676,7 @@ export class ApplicationsList implements OnInit, AfterViewInit, OnDestroy {
     return this.formatLifecycleState(status);
   }
 
-  protected getAvatarGradient(name: string): string {
-    const gradients = [
-      'linear-gradient(135deg, #0078d4 0%, #50e6ff 100%)',
-      'linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)',
-      'linear-gradient(135deg, #0d9488 0%, #5eead4 100%)',
-      'linear-gradient(135deg, #ea580c 0%, #fb923c 100%)',
-      'linear-gradient(135deg, #be185d 0%, #f472b6 100%)',
-    ];
-    const index = name.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % gradients.length;
-    return gradients[index];
-  }
+  protected readonly avatarToneClass = avatarToneClass;
 
   protected getCategoryDisplayName(categoryName: string): string {
     // Find the display name by looking through all applications' tags

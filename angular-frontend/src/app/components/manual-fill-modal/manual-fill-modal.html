@@ -4,76 +4,79 @@
  * Licensed under the EUPL-1.2 or later.
 -->
 
-<div class="manual-fill-backdrop bg-dark bg-opacity-50 position-fixed top-0 start-0 w-100 h-100" (click)="onCancel()"></div>
-<div class="manual-fill-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="manual-fill-dialog bg-white rounded-3 shadow-lg p-4 overflow-auto">
-    <!-- Header -->
-    <div class="pb-3 border-bottom mb-3 d-flex align-items-center justify-content-between">
-      <span class="fw-semibold fs-6 d-flex align-items-center gap-2">
-        <i class="fa-solid fa-pen-to-square"></i>Fill build info manually
-      </span>
-      <button type="button" class="btn-close" (click)="onCancel()" aria-label="Close"></button>
-    </div>
-
-    <!-- Connector info card -->
-    <div class="bg-light rounded-3 py-2 px-3 mb-3">
-      <div class="d-flex justify-content-between align-items-center py-1">
-        <span class="text-secondary fw-medium fs-6">Connector</span>
-        <span class="fw-semibold fs-6 text-dark">{{ connector.connectorName }}</span>
+<div class="modal-backdrop show"></div>
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="manual-fill-title"
+     [appBackdropClose]="dialog" (backdropClose)="onCancel()">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div #dialog class="modal-content">
+      <!-- Header -->
+      <div class="modal-header">
+        <h2 id="manual-fill-title" class="modal-title fs-5 fw-semibold d-flex align-items-center gap-2">
+          <i class="fa-solid fa-pen-to-square"></i>Fill build info manually
+        </h2>
+        <button type="button" class="btn-close" (click)="onCancel()" aria-label="Close"></button>
       </div>
-      @if (connector.version) {
-        <div class="d-flex justify-content-between align-items-center py-1">
-          <span class="text-secondary fw-medium fs-6">Version</span>
-          <span class="badge border text-body bg-body">{{ connector.version }}</span>
-        </div>
-      }
-    </div>
 
-    <!-- Form -->
-    <form #form="ngForm" novalidate>
-      <div class="mb-3">
-        <div class="mb-3">
-          <label class="form-label small mb-1">Bundle name <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" name="bundleName"
-                 [(ngModel)]="bundleName" placeholder="e.g. acde070d-8c4c-4f0d-9d8a-162843c10333" required />
+      <div class="modal-body">
+        <!-- Connector info card -->
+        <div class="bg-body-tertiary rounded-3 py-2 px-3 mb-3">
+          <div class="d-flex justify-content-between align-items-center gap-3 py-1">
+            <span class="text-secondary fw-medium">Connector</span>
+            <span class="fw-semibold text-break">{{ connector.connectorName }}</span>
+          </div>
+          @if (connector.version) {
+            <div class="d-flex justify-content-between align-items-center gap-3 py-1">
+              <span class="text-secondary fw-medium">Version</span>
+              <span class="badge border text-body bg-body">{{ connector.version }}</span>
+            </div>
+          }
         </div>
-        <div class="mb-3">
-          <label class="form-label small mb-1">Version <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" name="version"
-                 [(ngModel)]="version" placeholder="e.g. 1.0.0" required />
-        </div>
-        <div class="mb-3">
-          <label class="form-label small mb-1">Class name <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" name="className"
-                 [(ngModel)]="className" placeholder="e.g. com.evolveum.connector.csv.CsvFileConnector" required />
-        </div>
-        <div class="mb-3">
-          <label class="form-label small mb-1">Download link @if (!artifactUrlless) {<span class="text-danger">*</span>}</label>
-          <input type="text" class="form-control" name="downloadLink"
-                 [(ngModel)]="downloadLink" placeholder="https://..." [required]="!artifactUrlless"
-                 [disabled]="artifactUrlless" />
-        </div>
-        <!-- Chosen once, when the connector is first published; its later versions inherit it. -->
-        @if (connector.newConnector) {
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" role="switch" id="mf-artifact-urlless"
-                   name="artifactUrlless" [(ngModel)]="artifactUrlless" />
-            <label class="form-check-label small" for="mf-artifact-urlless">Connector without Artifact URL</label>
+
+        <!-- Form -->
+        <form #form="ngForm" novalidate>
+          <div class="mb-3">
+            <label class="form-label small mb-1">Bundle name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="bundleName"
+                   [(ngModel)]="bundleName" placeholder="e.g. acde070d-8c4c-4f0d-9d8a-162843c10333" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small mb-1">Version <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="version"
+                   [(ngModel)]="version" placeholder="e.g. 1.0.0" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small mb-1">Class name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="className"
+                   [(ngModel)]="className" placeholder="e.g. com.evolveum.connector.csv.CsvFileConnector" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small mb-1">Download link @if (!artifactUrlless) {<span class="text-danger">*</span>}</label>
+            <input type="text" class="form-control" name="downloadLink"
+                   [(ngModel)]="downloadLink" placeholder="https://..." [required]="!artifactUrlless"
+                   [disabled]="artifactUrlless" />
+          </div>
+          <!-- Chosen once, when the connector is first published; its later versions inherit it. -->
+          @if (connector.newConnector) {
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" role="switch" id="mf-artifact-urlless"
+                     name="artifactUrlless" [(ngModel)]="artifactUrlless" />
+              <label class="form-check-label small" for="mf-artifact-urlless">Connector without Artifact URL</label>
+            </div>
+          }
+        </form>
+
+        <!-- Error message. Bundle and class names are long dotted strings with no natural break points. -->
+        @if (errorMessage) {
+          <div class="alert alert-danger py-2 small mb-0 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span class="text-break">{{ errorMessage }}</span>
           </div>
         }
       </div>
 
-      <!-- Error message -->
-      @if (errorMessage) {
-        <div class="alert alert-danger py-2 small mb-3 d-flex align-items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <span class="error-text">{{ errorMessage }}</span>
-        </div>
-      }
-
       <!-- Footer actions -->
-      <div class="pt-3 border-top d-flex align-items-center justify-content-end gap-2">
-        <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="submitting">
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-link text-decoration-none" (click)="onCancel()" [disabled]="submitting">
           Cancel
         </button>
         <button type="button" class="btn btn-primary d-flex align-items-center gap-2" [disabled]="submitting" (click)="onSubmit()">
@@ -83,6 +86,6 @@
           <i class="fa-solid fa-check"></i>Submit
         </button>
       </div>
-    </form>
+    </div>
   </div>
 </div>

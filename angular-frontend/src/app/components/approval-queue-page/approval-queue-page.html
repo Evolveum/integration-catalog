@@ -178,9 +178,9 @@
                   </td>
                   <td>
                     @if (rev.lifecycleState === 'IN_REVIEW') {
-                      <span class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span>
+                      <span class="ss-badge bg-warning-subtle text-warning-emphasis"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span>
                     } @else {
-                      <span class="ss-badge ss-badge-reviewing"><i class="fa-solid fa-lock"></i>Under review</span>
+                      <span class="ss-badge bg-info-subtle text-info-emphasis"><i class="fa-solid fa-lock"></i>Under review</span>
                     }
                   </td>
                   <td>
@@ -194,7 +194,7 @@
                   <td [class.aq-overdue]="isOverdue(rev)">{{ inQueue(rev) }}</td>
                   <td class="aq-col-actions" (click)="$event.stopPropagation()">
                     @if (rev.lifecycleState === 'IN_REVIEW') {
-                      <button type="button" class="btn btn-sm ss-outline-btn" (click)="openStartReview(rev)">Start review</button>
+                      <button type="button" class="btn btn-sm btn-outline-primary text-nowrap flex-shrink-0" (click)="openStartReview(rev)">Start review</button>
                     } @else {
                       <div class="ss-menu-wrap d-inline-block" [class.ss-menu-open]="openMenuKey() === rowKey(rev)">
                         <button type="button" class="btn btn-sm aq-actions-btn d-flex align-items-center gap-2"

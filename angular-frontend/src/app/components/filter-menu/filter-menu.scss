@@ -13,7 +13,7 @@
   background: $color-white;
   border: 1px solid $color-border-light;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px $shadow-card;
   padding: 0.75rem;
   min-width: 200px;
   max-width: 300px;
@@ -67,7 +67,7 @@
   border: none;
   background: none;
   padding: 0;
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-size: 0.875rem;
   cursor: pointer;
 
