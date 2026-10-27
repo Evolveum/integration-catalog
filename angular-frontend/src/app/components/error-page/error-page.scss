@@ -1,0 +1,45 @@
+/*!
+  Copyright (c) 2010-2026 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.error-page {
+  background-color: $color-white;
+  min-height: calc(100vh - 56px);
+}
+
+.error-content {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 5rem 1.5rem 4rem;
+  text-align: center;
+}
+
+.error-status {
+  margin-bottom: 0.5rem;
+  font-size: 4.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: $color-brand-navy;
+}
+
+.error-title {
+  margin-bottom: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.error-description {
+  margin-bottom: 1rem;
+  color: $color-text-muted;
+}
+
+.error-path {
+  margin-bottom: 2rem;
+  font-size: 0.875rem;
+  color: $color-text-muted;
+  overflow-wrap: anywhere;
+}

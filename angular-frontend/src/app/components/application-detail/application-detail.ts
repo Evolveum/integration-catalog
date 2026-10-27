@@ -20,6 +20,7 @@ import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { SupportTier, supportTierLabel } from '../../core/support-tier';
@@ -1082,9 +1083,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to load application details');
-        this.loading.set(false);
         console.error('Error loading application:', err);
+        showErrorPage(this.router, err);
       }
     });
   }

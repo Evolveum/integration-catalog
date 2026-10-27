@@ -26,6 +26,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
 import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
@@ -324,10 +325,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.initialCapabilities.set(ver.objectClassCapabilities ?? []);
           this.loadConnectors(vId, ver.revision ?? '');
         } else {
-          this.finishLoading();
+          showErrorPage(this.router);
         }
       },
-      error: () => this.finishLoading()
+      error: (err) => showErrorPage(this.router, err)
     });
   }
 

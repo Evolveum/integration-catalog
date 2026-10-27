@@ -33,7 +33,8 @@ public class SpaForwardingController {
             "/my-connectors",
             "/all-connectors",
             "/approval-queue",
-            "/support-tiers"
+            "/support-tiers",
+            "/error-page/{status}"
     })
     public String forwardApplications() {
         return "forward:/index.html";
