@@ -142,7 +142,7 @@ public class ApplicationService {
 
     public Application getApplication(UUID uuid) {
         return applicationRepository.findById(uuid)
-                .orElseThrow(() -> new RuntimeException("Application not found with id: " + uuid));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found with id: " + uuid));
     }
 
     public List<ApplicationTagDto> getApplicationTags() {

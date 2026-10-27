@@ -17,5 +17,35 @@
     <a routerLink="/applications" class="btn btn-primary">
       <i class="fa-solid fa-arrow-left me-1"></i>Back to catalog
     </a>
+
+    @if (reportable && links()?.reportIssueUrl) {
+      <section class="error-report">
+        <h2 class="error-report-title">
+          <button type="button" class="error-report-toggle" aria-controls="error-report-body"
+                  [attr.aria-expanded]="reportOpen()" (click)="reportOpen.set(!reportOpen())">
+            Report this problem
+            <i class="fa-solid fa-chevron-down ms-1" [class.error-report-chevron-open]="reportOpen()"></i>
+          </button>
+        </h2>
+        @if (reportOpen()) {
+          <div id="error-report-body">
+            <p class="error-report-hint">
+              Copy the issue text below, open a new issue on the support portal, paste it into the description,
+              add a short title and fill in the steps that led to the error.
+            </p>
+            <pre class="error-report-details">{{ details }}</pre>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+              <button type="button" class="btn btn-outline-secondary" (click)="copyDetails()">
+                <i class="fa-solid me-1" [class.fa-check]="copied()" [class.fa-copy]="!copied()"></i>
+                {{ copied() ? 'Copied' : 'Copy issue text' }}
+              </button>
+              <a class="btn btn-outline-primary" [href]="links()!.reportIssueUrl" target="_blank" rel="noopener noreferrer">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Report issue
+              </a>
+            </div>
+          </div>
+        }
+      </section>
+    }
   </div>
 </div>

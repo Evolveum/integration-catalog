@@ -15,6 +15,7 @@ export interface ExternalLinks {
   copyrightGuidelines: string;
   githubTokenGuide: string;
   iamProfileUrl: string;
+  reportIssueUrl: string | null;
 }
 
 /**
