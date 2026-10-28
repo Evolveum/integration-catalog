@@ -108,6 +108,23 @@ public class SecurityConfig {
 
     private static final String POST_LOGOUT_REDIRECT = "{baseUrl}";
 
+    /**
+     * Everything is served from our own origin. Styles stay 'unsafe-inline': Angular injects component
+     * styles at runtime and the templates use style bindings; scripts carry the XSS risk and are locked.
+     * Requires inlineCritical off in angular.json, its onload handler would be blocked.
+     */
+    private static final String CONTENT_SECURITY_POLICY = String.join("; ",
+            "default-src 'self'",
+            "script-src 'self'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob:",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'");
+
     private final CatalogOidcUserService catalogOidcUserService;
     private final JenkinsProperties jenkinsProperties;
 
@@ -136,6 +153,7 @@ public class SecurityConfig {
                 // Reuses the MVC CORS mappings (configuration/CorsConfig) so preflights pass
                 // the security chain when the SPA is served from another origin.
                 .cors(Customizer.withDefaults())
+                .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY)))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
