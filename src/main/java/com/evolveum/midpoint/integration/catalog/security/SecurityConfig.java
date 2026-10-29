@@ -125,6 +125,10 @@ public class SecurityConfig {
         CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         repository.setCookieName(CSRF_COOKIE);
         repository.setHeaderName(CSRF_HEADER);
+        repository.setCookieCustomizer(cookie -> cookie
+                .secure(true)
+                .sameSite("Lax")
+        );
         return repository;
     }
 
