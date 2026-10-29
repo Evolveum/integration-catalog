@@ -1,0 +1,105 @@
+/*!
+  Copyright (c) 2010-2026 Evolveum and contributors
+  Licensed under the EUPL-1.2 or later.
+*/
+@use 'variables' as *;
+
+.error-page {
+  background-color: $color-white;
+  min-height: calc(100vh - 56px);
+}
+
+.error-content {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 5rem 1.5rem 4rem;
+  text-align: center;
+}
+
+.error-status {
+  margin-bottom: 0.5rem;
+  font-size: 4.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: $color-brand-navy;
+}
+
+.error-title {
+  margin-bottom: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: $color-text-dark;
+}
+
+.error-description {
+  margin-bottom: 1rem;
+  color: $color-text-muted;
+}
+
+.error-path {
+  margin-bottom: 2rem;
+  font-size: 0.875rem;
+  color: $color-text-muted;
+  overflow-wrap: anywhere;
+}
+
+.error-report {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid $color-border-light;
+}
+
+.error-report-title {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.error-report-toggle {
+  padding: 0;
+  font: inherit;
+  color: $color-text-dark;
+  background: none;
+  border: 0;
+
+  &:hover {
+    color: $color-brand-navy;
+  }
+
+  i {
+    font-size: 0.75em;
+    transition: transform 0.2s;
+  }
+}
+
+.error-report-chevron-open {
+  transform: rotate(180deg);
+}
+
+.error-report-hint {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: $color-text-muted;
+}
+
+.error-report-copied {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: $color-text-muted;
+}
+
+.error-report-details {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  font-size: 0.75rem;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: $color-text-secondary;
+  background-color: $color-bg-light;
+  border: 1px solid $color-border-light;
+  border-radius: 0.375rem;
+}

@@ -27,7 +27,14 @@ public class SpaForwardingController {
             "/applications/{appId}/integration-method/{versionId}/{revision}/details",
             "/applications/{appId}/integration-method/{versionId}/{revision}/edit",
             "/approve",
-            "/settings"
+            "/settings",
+            "/my-integration-methods",
+            "/all-integration-methods",
+            "/my-connectors",
+            "/all-connectors",
+            "/approval-queue",
+            "/support-tiers",
+            "/error-page/{status}"
     })
     public String forwardApplications() {
         return "forward:/index.html";

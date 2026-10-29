@@ -20,6 +20,7 @@ import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { SupportTier, supportTierLabel } from '../../core/support-tier';
@@ -418,6 +419,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       this.applicationService.cancelIntegrationMethod(id, revision ?? '').subscribe({
         next: ({ applicationDeleted }) => {
           this.closeCancelConfirm();
+          this.toastService.show('Request cancelled', 'The integration method has been withdrawn and deleted.', 'success');
           // The app goes with its only never-published revision, so there is no detail page to return to.
           if (applicationDeleted) {
             this.router.navigate(['/applications']);
@@ -437,8 +439,16 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       const requestId = this.application()?.requestId;
       if (!requestId) { this.closeCancelConfirm(); return; }
       this.applicationService.cancelRequest(requestId).subscribe({
-        next: () => { this.closeCancelConfirm(); this.router.navigate(['/applications']); },
-        error: (err) => { console.error('Failed to cancel request', err); this.closeCancelConfirm(); }
+        next: () => {
+          this.closeCancelConfirm();
+          this.toastService.show('Request cancelled', 'The application request has been cancelled.', 'success');
+          this.router.navigate(['/applications']);
+        },
+        error: (err) => {
+          console.error('Failed to cancel request', err);
+          this.closeCancelConfirm();
+          this.toastService.show('Cancel request failed', 'The action failed. Please try again.', 'danger');
+        }
       });
     }
   }
@@ -1073,9 +1083,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to load application details');
-        this.loading.set(false);
         console.error('Error loading application:', err);
+        showErrorPage(this.router, err);
       }
     });
   }

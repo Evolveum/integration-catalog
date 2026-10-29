@@ -15,6 +15,7 @@ import { ApplicationService } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { LicenseTypeService } from '../../services/license-type.service';
 import { LinksService } from '../../services/links.service';
+import { ToastService } from '../../services/toast.service';
 import { PageHeader } from '../page-header/page-header';
 import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
 import { AddConnectorForm, StagedConnector } from '../add-connector-form/add-connector-form';
@@ -25,6 +26,7 @@ import { ImplementationListItem } from '../../models/implementation-list-item.mo
 import { isObsoleteConnector } from '../../models/connector-tag.model';
 import { hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
@@ -261,7 +263,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private applicationService: ApplicationService,
-    private authService: AuthService
+    private authService: AuthService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -322,10 +325,10 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
           this.initialCapabilities.set(ver.objectClassCapabilities ?? []);
           this.loadConnectors(vId, ver.revision ?? '');
         } else {
-          this.finishLoading();
+          showErrorPage(this.router);
         }
       },
-      error: () => this.finishLoading()
+      error: (err) => showErrorPage(this.router, err)
     });
   }
 
@@ -342,13 +345,14 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     });
   }
 
-  private loadConnectors(methodId: string, revision: string): void {
+  private loadConnectors(methodId: string, revision: string, onLoaded?: () => void): void {
     this.applicationService.getConnectorsForIntegrationMethod(methodId, revision).subscribe({
       next: (connectors) => {
         this.connectors.set(connectors);
+        onLoaded?.();
         this.finishLoading();
       },
-      error: () => this.finishLoading()
+      error: () => { onLoaded?.(); this.finishLoading(); }
     });
   }
 
@@ -611,6 +615,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
     // A deleted connector shouldn't carry pending edits/compat.
     this.stagedEdits.update(m => { const n = new Map(m); n.delete(id); return n; });
     this.stagedCompat.update(m => { const n = new Map(m); n.delete(id); return n; });
+    this.toastService.show('Connector marked for deletion',
+      `"${connector.connectorDisplayName || connector.name}" will be deleted when you save your changes.`, 'info');
   }
 
   // ── "Set up connector compatibility" modal (connector version range) ──────────
@@ -801,13 +807,17 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
         connectors$.subscribe({
           next: () => {
-            this.stagedConnectors.set([]);
-            this.stagedEdits.set(new Map());
-            this.stagedCompat.set(new Map());
-            this.stagedDeletes.set(new Set());
-            // The cards previewed the staged edits; without them they fall back to the list loaded
-            // with the page, so reload it or every saved connector change looks undone.
-            this.loadConnectors(this.versionId(), savedRevision);
+            // The cards previewed the staged changes; without them they fall back to the list loaded
+            // with the page, so drop them only once the reloaded list is in, or every saved connector
+            // change looks undone until it arrives.
+            this.loadConnectors(this.versionId(), savedRevision, () => {
+              this.stagedConnectors.set([]);
+              this.stagedEdits.set(new Map());
+              this.stagedCompat.set(new Map());
+              this.stagedDeletes.set(new Set());
+            });
+            // Toasts stay until dismissed; "will be deleted when you save" is stale now.
+            if (deletes.length) { this.toastService.close(); }
             // The new revision starts with the previous revision's files copied forward by the backend;
             // here we delete the files the user removed and upload the ones they added.
             const ops: Observable<void>[] = [

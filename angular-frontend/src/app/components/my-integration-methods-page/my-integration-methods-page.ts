@@ -508,6 +508,7 @@ export class MyIntegrationMethodsPage {
     this.applicationService.cancelIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.closeCancel();
+        this.toastService.show('Request cancelled', 'The integration method has been withdrawn and deleted.', 'success');
         this.load();
       },
       error: err => {
