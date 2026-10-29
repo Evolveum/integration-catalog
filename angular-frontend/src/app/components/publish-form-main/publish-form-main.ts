@@ -139,18 +139,20 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
   protected readonly isObsoleteConnector = isObsoleteConnector;
 
-  protected readonly filteredCatalogConnectors = computed<CatalogConnector[]>(() => {
+  private readonly matchedCatalogConnectors = computed<CatalogConnector[]>(() => {
     const query = this.connectorCatalogSearch().toLowerCase().trim();
     const all = this.catalogConnectors();
-    // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
-    const matched = query.length < 2
+    // Only start filtering once at least 2 characters are typed.
+    return query.length < 2
       ? all
       : all.filter(c =>
           c.displayName?.toLowerCase().includes(query) ||
           c.description?.toLowerCase().includes(query)
         );
-    return matched.slice(0, 10);
   });
+  // The list is always capped at 10 entries; the modal tells the user how many more matched.
+  protected readonly filteredCatalogConnectors = computed(() => this.matchedCatalogConnectors().slice(0, 10));
+  protected readonly catalogMatchCount = computed(() => this.matchedCatalogConnectors().length);
   protected readonly selectedIntegrationMethod = signal<string[]>([]);
   protected readonly childInternalStep = signal<number>(5);
   protected readonly childConnectorName = signal<string>('');

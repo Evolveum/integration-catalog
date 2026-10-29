@@ -781,6 +781,12 @@
               </div>
             </div>
           }
+          @if (catalogMatchCount() > filteredCatalogConnectors().length) {
+            <div class="cc-more-hint">
+              Showing {{ filteredCatalogConnectors().length }} of {{ catalogMatchCount() }} connectors.
+              Use the search to find the others.
+            </div>
+          }
         }
       </div>
 
