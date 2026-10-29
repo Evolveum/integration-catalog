@@ -43,18 +43,20 @@ public class SupportTicketWatchers {
             addWatcher(workPackageId, login, userId, watching);
         }
 
-        for (String name : checkNullAndDistinctNames(method.getAuthor().getUsername(), method.getMaintainer().getUsername())) {
+        String author = method.getAuthor().getUsername();
+        for (String name : checkNullAndDistinctNames(author, method.getMaintainer().getUsername())) {
             OptionalInt userId = attempt(name, () -> openProjectClient.findUserIdByLogin(name));
             String who = name;
             if (userId.isEmpty()) {
                 // No account under that login: fall back to the address the row carries, which the
                 // author has and nobody else does.
-                String email = method.getAuthor().getEmail();
+                String email = name.equals(author) ? method.getAuthor().getEmail() : null;
                 if (email == null) {
                     log.debug("No portal login '{}' and no contact address for them, "
                             + "not watching work package {}", name, workPackageId);
                     continue;
                 }
+                userId = findOpUserByEmail(email, workPackageId);
                 who = email;
             }
             addWatcher(workPackageId, who, userId, watching);

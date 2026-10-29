@@ -5,6 +5,7 @@
  */
 
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PageHeader } from '../page-header/page-header';
 import { LinksService } from '../../services/links.service';
@@ -61,6 +62,11 @@ function toHtml(sections: IssueSection[]): string {
   }).join('');
 }
 
+/** Local time with the UTC offset, so support can line it up with server logs. */
+function formatTime(value: string | Date): string {
+  return new DatePipe('en-US').transform(value, 'MMM d, y, HH:mm:ss (zzzz)') ?? String(value);
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -97,24 +103,34 @@ export class ErrorPage {
   protected readonly details = toPlainText(this.issue);
 
   /**
+   * The portal cannot prefill the description from the URL, so the issue text is copied first and
+   * the portal opened after, while this page still has focus for the clipboard. The portal opens
+   * even when copying fails; the text stays on the page to copy by hand.
+   */
+  protected async reportIssue(event: MouseEvent, url: string): Promise<void> {
+    event.preventDefault();
+    this.copied.set(await this.copyDetails().then(() => true, () => false));
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  /**
    * Copies both flavours: rich editors (the portal's description field) paste the HTML as real
    * headings and lists, anything else gets the plain-text Markdown.
    */
-  protected copyDetails(): void {
-    const copy = typeof ClipboardItem === 'undefined'
+  private copyDetails(): Promise<void> {
+    return typeof ClipboardItem === 'undefined'
       ? navigator.clipboard.writeText(this.details)
       : navigator.clipboard.write([new ClipboardItem({
         'text/plain': new Blob([this.details], { type: 'text/plain' }),
         'text/html': new Blob([toHtml(this.issue)], { type: 'text/html' })
       })]);
-    copy.then(() => this.copied.set(true), () => {});
   }
 
   /** Sections for the user to fill, then the collected details. */
   private buildIssue(): IssueSection[] {
     const visited = this.navigationHistory.recent()
       .filter(page => !page.url.startsWith('/error-page'))
-      .map(page => `${page.at} ${page.url}`);
+      .map(page => `${formatTime(page.at)}: ${page.url}`);
     return [
       { heading: 'What were you trying to do', lines: [''] },
       { heading: 'Steps to reproduce', lines: ['', '', ''], list: 'ol' },
@@ -124,7 +140,7 @@ export class ErrorPage {
         heading: 'Error details',
         lines: [
           `Address: ${this.path ?? this.router.url}`,
-          `Time: ${new Date().toISOString()}`,
+          `Time: ${formatTime(new Date())}`,
           `Browser: ${navigator.userAgent}`
         ],
         list: 'ul'
