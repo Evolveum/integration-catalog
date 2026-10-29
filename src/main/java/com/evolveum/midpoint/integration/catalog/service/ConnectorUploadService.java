@@ -832,9 +832,9 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Deletes the connectors a cancelled revision brought in - new ones and copy-on-write clones - i.e.
-     * those no other revision links and that never had a version published. A connector reused from
-     * the catalog is left alone.
+     * Deletes the connectors a revision brought in and has just let go of (cancelled, or the connector
+     * removed from it) - new ones and copy-on-write clones - i.e. those no revision links any more and
+     * that never had a version published. A connector reused from the catalog is left alone.
      *
      * <p>Every such connector starts in a bundle of its own, deleted with it. Only a build can have
      * merged it into a published bundle, which then stays and loses just what the revision brought.
@@ -880,7 +880,7 @@ public class ConnectorUploadService {
                     && cbv.getConnectorVersions().isEmpty());
         }
         connectorRepository.flush();
-        log.info("Deleted {} connector(s) introduced by the cancelled revision", introduced.size());
+        log.info("Deleted {} unlinked, never-published connector(s)", introduced.size());
     }
 
     /**
@@ -1029,9 +1029,10 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Removes a connector from an integration method revision by deleting only the link between them.
-     * The connector itself may be shared with other methods, so it is left intact; orphanRemoval on the
-     * method's connectors collection deletes the join row.
+     * Removes a connector from an integration method revision. The link always goes (orphanRemoval on
+     * the method's connectors collection deletes the join row); the connector goes too when nothing
+     * links it any more and it was never published, the same rule a cancelled revision applies -
+     * otherwise it would be left behind with no method to reach it from.
      */
     @Transactional
     public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
@@ -1044,8 +1045,12 @@ public class ConnectorUploadService {
                 .orElseThrow(() -> new RuntimeException(
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
 
+        Connector connector = link.getConnector();
         method.getConnectors().remove(link);
         integrationMethodRepository.save(method);
+        integrationMethodRepository.flush();
+
+        deleteConnectorsIntroducedBy(List.of(connector));
     }
 
     /**

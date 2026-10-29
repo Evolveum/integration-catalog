@@ -11,6 +11,7 @@ import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@ang
 import { provideRouter } from '@angular/router';
 import { routes } from './app/app.routes';
 import { AuthService } from './app/services/auth.service';
+import { NavigationHistoryService } from './app/services/navigation-history.service';
 import { sessionExpiryInterceptor } from './app/services/session-expiry.interceptor';
 
 // Identity travels in the backend session cookie (OIDC login); the XSRF cookie is mirrored into
@@ -23,6 +24,8 @@ bootstrapApplication(AppComponent, {
       cookieName: 'IC-XSRF-TOKEN',
       headerName: 'X-IC-XSRF-TOKEN'
     }), withInterceptors([sessionExpiryInterceptor])),
-    provideAppInitializer(() => inject(AuthService).loadCurrentUser())
+    provideAppInitializer(() => inject(AuthService).loadCurrentUser()),
+    // Created up front so it sees every navigation, not only those after the error page first needs it.
+    provideAppInitializer(() => { inject(NavigationHistoryService); })
   ]
 }).catch(err => console.error(err));

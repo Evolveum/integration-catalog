@@ -81,6 +81,8 @@ public class Controller {
             String viewer = authentication != null ? authentication.getName() : null;
             ApplicationDto dto = applicationMapper.mapToApplicationDto(app, viewer);
             return ResponseEntity.ok(dto);
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             log.error("getApplication failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,

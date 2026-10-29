@@ -1,0 +1,53 @@
+<!--
+ * Copyright (c) 2010-2026 Evolveum and contributors
+ *
+ * Licensed under the EUPL-1.2 or later.
+ -->
+
+<app-page-header [hideBorder]="true"/>
+
+<div class="error-page">
+  <div class="error-content">
+    <p class="error-status">{{ status }}</p>
+    <h1 class="error-title">{{ text.title }}</h1>
+    <p class="error-description">{{ text.description }}</p>
+    @if (path) {
+      <p class="error-path">Requested address: <code>{{ path }}</code></p>
+    }
+    <a routerLink="/applications" class="btn btn-primary">
+      <i class="fa-solid fa-arrow-left me-1"></i>Back to catalog
+    </a>
+
+    @if (reportable && links()?.reportIssueUrl) {
+      <section class="error-report">
+        <h2 class="error-report-title">
+          <button type="button" class="error-report-toggle" aria-controls="error-report-body"
+                  [attr.aria-expanded]="reportOpen()" (click)="reportOpen.set(!reportOpen())">
+            Report this problem
+            <i class="fa-solid fa-chevron-down ms-1" [class.error-report-chevron-open]="reportOpen()"></i>
+          </button>
+        </h2>
+        @if (reportOpen()) {
+          <div id="error-report-body">
+            <p class="error-report-hint">
+              Clicking <strong>Report issue</strong> copies the text below and opens a new bug in the Support portal. Paste it into the
+              bug's description, add a short title and fill in the steps that led to the error.
+            </p>
+            <pre class="error-report-details">{{ details }}</pre>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+              <a class="btn btn-outline-primary" [href]="links()!.reportIssueUrl" target="_blank" rel="noopener noreferrer"
+                 (click)="reportIssue($event, links()!.reportIssueUrl!)">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Report issue
+              </a>
+            </div>
+            @if (copied()) {
+              <p class="error-report-copied">
+                <i class="fa-solid fa-check me-1"></i>Issue text copied, paste it into the description.
+              </p>
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+</div>

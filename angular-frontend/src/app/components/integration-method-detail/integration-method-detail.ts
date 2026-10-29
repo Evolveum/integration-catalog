@@ -21,6 +21,7 @@ import { CapabilityState, hasLogoDetail, IntegrationMethodObjectCapabilities, Mi
 import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { SupportTier, supportTierLabel } from '../../core/support-tier';
 
@@ -174,10 +175,10 @@ export class IntegrationMethodDetail implements OnInit {
           this.loadConnectors(vId, ver.revision ?? '');
           this.loadSupportTicket(vId, ver.revision ?? '');
         } else {
-          this.finishLoading();
+          showErrorPage(this.router);
         }
       },
-      error: () => this.finishLoading()
+      error: (err) => showErrorPage(this.router, err)
     });
   }
 
