@@ -30,11 +30,15 @@
         @if (reportOpen()) {
           <div id="error-report-body">
             <p class="error-report-hint">
-              Clicking <strong>Report issue</strong> copies the text below and opens a new bug in the Support portal. Paste it into the
-              bug's description, add a short title and fill in the steps that led to the error.
+              Use <strong>Copy issue text</strong> to copy text below. Then clicking <strong>Report issue</strong> opens a new bug in the Support portal.
+              Paste it into the bug's description, add a short title and fill in the steps that led to the error.
             </p>
             <pre class="error-report-details">{{ details }}</pre>
             <div class="d-flex flex-wrap justify-content-center gap-2">
+              <button type="button" class="btn btn-outline-secondary" (click)="copyIssueText()">
+                <i class="fa-solid me-1" [class.fa-check]="copied()" [class.fa-copy]="!copied()"></i>
+                {{ copied() ? 'Copied' : 'Copy issue text' }}
+              </button>
               <a class="btn btn-outline-primary" [href]="links()!.reportIssueUrl" target="_blank" rel="noopener noreferrer"
                  (click)="reportIssue($event, links()!.reportIssueUrl!)">
                 <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Report issue
