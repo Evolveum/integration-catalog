@@ -113,6 +113,10 @@ export class ErrorPage {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 
+  protected async copyIssueText(): Promise<void> {
+    this.copied.set(await this.copyDetails().then(() => true, () => false));
+  }
+
   /**
    * Copies both flavours: rich editors (the portal's description field) paste the HTML as real
    * headings and lists, anything else gets the plain-text Markdown.
