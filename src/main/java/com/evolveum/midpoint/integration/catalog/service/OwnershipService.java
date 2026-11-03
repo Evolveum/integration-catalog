@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -52,6 +53,20 @@ public class OwnershipService {
      * author is recorded for the audit trail only - {@link AuthService} grants nothing for it.
      */
     public void stampNew(SetOwnership item, String username, MaintainerDto requestedMaintainer) {
+        recordAuthor(item, username);
+        assignMaintainer(item, requestedMaintainer);
+    }
+
+    /**
+     * Stamps a new version row of an existing item, which takes over the item's maintainer: that one
+     * was checked when it was set on the item, and may be a personal one no longer assignable anew.
+     */
+    public void stampNewVersion(SetOwnership version, String username, GetOwnershipOneMaintainer item) {
+        recordAuthor(version, username);
+        copyMaintainer(item, version);
+    }
+
+    private void recordAuthor(SetOwnership item, String username) {
         OidcUser caller = currentOidcUser();
 //        String callerRole = caller != null ? claims.effectiveRole(caller) : null;
 //        Organization callerOrganization = caller != null
@@ -62,8 +77,6 @@ public class OwnershipService {
         Author author = authorRepository.findByUsername(username)
                 .orElseGet(() -> authorRepository.save(new Author().setUsername(username).setEmail(mail)));
         item.setAuthor(author);
-
-        assignMaintainer(item, requestedMaintainer);
     }
 
     /**
@@ -81,7 +94,7 @@ public class OwnershipService {
         if (requestedMaintainer.id() != null) {
             Optional<Maintainer> maintainer = maintainerRepository.findById(requestedMaintainer.id());
             if (maintainer.isPresent()) {
-                assertCallerMayAssign(maintainer.get());
+                assertCallerMayAssign(item, maintainer.get());
                 item.setMaintainer(maintainer.get());
                 return;
             }
@@ -124,18 +137,18 @@ public class OwnershipService {
             }
         }
 
-        assertCallerMayAssign(maintainer);
+        assertCallerMayAssign(item, maintainer);
         maintainer = maintainerRepository.save(maintainer);
         item.setMaintainer(maintainer);
     }
 
     /**
-     * A non-superuser hands an item only to a maintainer they act for - themselves, Community, or
-     * the organization they contribute for - which is what the maintainer dropdown offers and what
-     * {@link AuthService#canEdit} lets them edit afterwards. Without a signed-in user (a build
+     * A non-superuser hands an item only to a maintainer they act for - Community, the organization
+     * they contribute for, or otherwise themselves - which is what the maintainer dropdown offers and
+     * what {@link AuthService#canEdit} lets them edit afterwards. Without a signed-in user (a build
      * callback, a background job) no maintainer is being chosen, so nothing is checked.
      */
-    private void assertCallerMayAssign(Maintainer maintainer) {
+    private void assertCallerMayAssign(SetOwnership item, Maintainer maintainer) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         OidcUser caller = currentOidcUser();
         if (caller == null) {
@@ -145,17 +158,33 @@ public class OwnershipService {
         if (role == CatalogRole.SUPERUSER || maintainer.getCategory() == MaintainerType.COMMUNITY) {
             return;
         }
+        String callerOrganization = role == CatalogRole.ORGANIZATION_CONTRIBUTOR ? claims.organizationName(caller) : null;
+        // An organization contributor's work belongs to the organization, so they cannot name themselves,
+        // unless it has no row to name instead or they only keep what the item already says.
         if (maintainer.getCategory() == MaintainerType.USER
-                && Strings.CI.equals(maintainer.getUsername(), authentication.getName())) {
+                && Strings.CI.equals(maintainer.getUsername(), authentication.getName())
+                && (organizationOf(callerOrganization) == null || alreadyMaintains(item, maintainer))) {
             return;
         }
-        String callerOrganization = role == CatalogRole.ORGANIZATION_CONTRIBUTOR ? claims.organizationName(caller) : null;
         if (callerOrganization != null && maintainer.getOrganization() != null
                 && Strings.CI.equals(maintainer.getOrganization().getName(), callerOrganization)) {
             return;
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "You may not set " + maintainerLabel(maintainer) + " as the maintainer.");
+    }
+
+    private static boolean alreadyMaintains(SetOwnership item, Maintainer maintainer) {
+        if (maintainer.getId() == null) {
+            return false;
+        }
+        List<Maintainer> current = List.of();
+        if (item instanceof GetOwnershipOneMaintainer one && one.getMaintainer() != null) {
+            current = List.of(one.getMaintainer());
+        } else if (item instanceof GetOwnershipListMaintainer list) {
+            current = list.getMaintainer();
+        }
+        return current.stream().anyMatch(existing -> maintainer.getId().equals(existing.getId()));
     }
 
     /**

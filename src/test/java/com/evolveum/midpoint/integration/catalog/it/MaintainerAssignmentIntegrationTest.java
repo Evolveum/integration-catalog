@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -79,8 +81,44 @@ class MaintainerAssignmentIntegrationTest extends AbstractCatalogIntegrationTest
     }
 
     @Test
+    void organizationContributorMayNotPublishAsThemselves() throws Exception {
+        publish(organizationContributor("it-org-member", registeredOrganization()),
+                "{\"category\": \"USER\", \"username\": \"it-org-member\"}", status().isForbidden());
+    }
+
+    @Test
+    void organizationContributorMayPublishForTheirOrganizationOrCommunity() throws Exception {
+        String organization = registeredOrganization();
+        publish(organizationContributor("it-org-member", organization),
+                "{\"category\": \"ORG\", \"organizationName\": \"" + organization + "\"}", status().isOk());
+        publish(organizationContributor("it-org-member", organization), "{\"category\": \"COMMUNITY\"}", status().isOk());
+    }
+
+    @Test
+    void organizationContributorOfAnUnregisteredOrganizationMayPublishAsThemselves() throws Exception {
+        publish(organizationContributor("it-org-member", "it-unregistered-organization"),
+                "{\"category\": \"USER\", \"username\": \"it-org-member\"}", status().isOk());
+    }
+
+    @Test
     void superuserMayPublishForAnyone() throws Exception {
         publish(SUPERUSER, "{\"category\": \"USER\", \"username\": \"it-someone-else\"}", status().isOk());
+    }
+
+    private String registeredOrganization() {
+        return jdbc.queryForList("select name from organizations", String.class).getFirst();
+    }
+
+    private static RequestPostProcessor organizationContributor(String username, String organization) {
+        String role = CatalogRole.ORGANIZATION_CONTRIBUTOR.getIdentifier();
+        return oidcLogin()
+                .idToken(token -> token
+                        .subject(username)
+                        .claim("preferred_username", username)
+                        .claim("email", username + "@example.com")
+                        .claim("roles", List.of(role))
+                        .claim("organization", List.of(organization)))
+                .authorities(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
     /** Publishes a new application, method and connector, all maintained by {@code maintainerJson}. */
