@@ -95,6 +95,15 @@ class OwnershipServiceTest {
                 .setOrganization(new Organization().setId(2).setName(alias)));
     }
 
+    private Maintainer linkedEvolveumRow() {
+        Organization evolveum = new Organization().setId(1).setName("evolveum");
+        Maintainer linked = new Maintainer().setId(2L).setCategory(MaintainerType.EVOLVEUM).setOrganization(evolveum);
+        when(organizationService.getOrganizationByName("evolveum")).thenReturn(evolveum);
+        when(maintainerRepository.findByCategoryAndOrganization(MaintainerType.EVOLVEUM, evolveum))
+                .thenReturn(Optional.of(linked));
+        return linked;
+    }
+
     private static MaintainerDto dtoOf(Maintainer row) {
         return new MaintainerDto(row.getId(), row.getUsername(), null, row.getCategory(), null);
     }
@@ -108,6 +117,49 @@ class OwnershipServiceTest {
         ownershipService.assignMaintainer(method, dtoOf(acme));
 
         assertSame(acme, method.getMaintainer());
+    }
+
+    @Test
+    void choosingTheEvolveumOrganizationAssignsItsCatalogWideRow() {
+        callerIs("olivia", "OrganizationContributor", "evolveum");
+        Maintainer linked = linkedEvolveumRow();
+        when(maintainerRepository.save(linked)).thenReturn(linked);
+        IntegrationMethod method = new IntegrationMethod();
+
+        ownershipService.assignMaintainer(method,
+                new MaintainerDto(null, null, "evolveum", MaintainerType.ORG, "Evolveum"));
+
+        assertSame(linked, method.getMaintainer());
+    }
+
+    @Test
+    void savingAnItemOnTheOrganizationsOwnRowMovesItToTheCatalogWideRow() {
+        callerIs("olivia", "OrganizationContributor", "evolveum");
+        Maintainer linked = linkedEvolveumRow();
+        Maintainer ownRow = stored(new Maintainer().setId(14L).setCategory(MaintainerType.ORG)
+                .setOrganization(linked.getOrganization()));
+        IntegrationMethod method = new IntegrationMethod();
+
+        ownershipService.assignMaintainer(method, dtoOf(ownRow));
+
+        assertSame(linked, method.getMaintainer());
+    }
+
+    @Test
+    void anotherOrganizationKeepsItsOwnRow() {
+        callerIs("olivia", "OrganizationContributor", "acme");
+        linkedEvolveumRow();
+        Organization acmeOrg = new Organization().setId(3).setName("acme");
+        Maintainer ownRow = new Maintainer().setId(5L).setCategory(MaintainerType.ORG).setOrganization(acmeOrg);
+        when(organizationService.getOrganizationByName("acme")).thenReturn(acmeOrg);
+        when(maintainerRepository.findByCategoryAndOrganization(MaintainerType.ORG, acmeOrg))
+                .thenReturn(Optional.of(ownRow));
+        when(maintainerRepository.save(ownRow)).thenReturn(ownRow);
+        IntegrationMethod method = new IntegrationMethod();
+
+        ownershipService.assignMaintainer(method, new MaintainerDto(null, null, "acme", MaintainerType.ORG, "Acme"));
+
+        assertSame(ownRow, method.getMaintainer());
     }
 
     @Test

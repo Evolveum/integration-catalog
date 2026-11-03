@@ -42,6 +42,10 @@ export function maintainerLabel(maintainer: Maintainer | null | undefined): stri
 export function sameMaintainer(a: Maintainer | null, b: Maintainer | null): boolean {
   if (!a || !b) return a === b;
   if (a.id !== null && b.id !== null) return a.id === b.id;
+  // The Evolveum organization's option has no id and stands for the linked catalog-wide row.
+  if (a.organizationName && b.organizationName) {
+    return a.organizationName.toLowerCase() === b.organizationName.toLowerCase();
+  }
   if (a.category !== b.category) return false;
   const key = (m: Maintainer) => (m.username ?? m.organizationName ?? '').toLowerCase();
   return key(a) === key(b);

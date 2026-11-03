@@ -79,7 +79,8 @@ public class OwnershipService {
             throw new IllegalArgumentException("An item cannot be written without a maintainer");
         }
         if (requestedMaintainer.id() != null) {
-            Optional<Maintainer> maintainer = maintainerRepository.findById(requestedMaintainer.id());
+            Optional<Maintainer> maintainer = maintainerRepository.findById(requestedMaintainer.id())
+                    .map(this::catalogWideRowOf);
             if (maintainer.isPresent()) {
                 assertCallerMayAssign(maintainer.get());
                 item.setMaintainer(maintainer.get());
@@ -103,11 +104,11 @@ public class OwnershipService {
 
                 // One row per organization: the second item it maintains reuses the first one's row,
                 // which is what ux_maintainer_org enforces.
-                maintainer = maintainerRepository
+                maintainer = catalogWideRowOf(maintainerRepository
                         .findByCategoryAndOrganization(MaintainerType.ORG, organization)
                         .orElseGet(() -> new Maintainer()
                                 .setOrganization(organization)
-                                .setCategory(MaintainerType.ORG));
+                                .setCategory(MaintainerType.ORG)));
             }
             case USER -> {
                 String username = requestedMaintainer.username();
@@ -127,6 +128,19 @@ public class OwnershipService {
         assertCallerMayAssign(maintainer);
         maintainer = maintainerRepository.save(maintainer);
         item.setMaintainer(maintainer);
+    }
+
+    /**
+     * The row an organization's items go on: the catalog-wide {@link MaintainerType#EVOLVEUM} row when
+     * it is linked to that organization, or lists would show Evolveum twice, otherwise its own.
+     */
+    private Maintainer catalogWideRowOf(Maintainer maintainer) {
+        if (maintainer.getCategory() != MaintainerType.ORG) {
+            return maintainer;
+        }
+        return maintainerRepository
+                .findByCategoryAndOrganization(MaintainerType.EVOLVEUM, maintainer.getOrganization())
+                .orElse(maintainer);
     }
 
     /**
