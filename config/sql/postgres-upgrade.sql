@@ -755,6 +755,46 @@ INSERT INTO connector_tag (name, display_name) VALUES ('arti_URLless', 'Without 
 $aa$);
 -- end of region
 
+-- region change 27: catalog-wide Evolveum maintainer is linked to the Evolveum organization
+-- The EVOLVEUM row stays a row of its own beside any ORG row of the organization, but now names the
+-- organization, so that organization's contributors may edit what it maintains. The alias must match
+-- the Keycloak organization's; a database that seeded it under another alias needs it corrected by hand.
+call apply_change(27, $aa$
+INSERT INTO organizations (name, display_name, description)
+SELECT 'evolveum', 'Evolveum', 'Maintainer of midPoint and the Integration catalog'
+WHERE NOT EXISTS (SELECT 1 FROM organizations WHERE lower(name) = 'evolveum');
+
+ALTER TABLE maintainers DROP CONSTRAINT chk_maintainer_reference;
+
+UPDATE maintainers
+SET organization_id = (SELECT id FROM organizations WHERE lower(name) = 'evolveum' ORDER BY id LIMIT 1)
+WHERE category = 'EVOLVEUM';
+
+-- The foreign key is deferred, and Postgres refuses to alter a table with its check still pending.
+SET CONSTRAINTS fk_maint_org IMMEDIATE;
+
+ALTER TABLE maintainers
+ADD CONSTRAINT chk_maintainer_reference
+CHECK (
+    (category = 'USER'
+        AND username IS NOT NULL
+        AND organization_id IS NULL)
+    OR
+    (category = 'ORG'
+        AND username IS NULL
+        AND organization_id IS NOT NULL)
+    OR
+    (category = 'EVOLVEUM'
+        AND username IS NULL
+        AND organization_id IS NOT NULL)
+    OR
+    (category = 'COMMUNITY'
+        AND username IS NULL
+        AND organization_id IS NULL)
+);
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

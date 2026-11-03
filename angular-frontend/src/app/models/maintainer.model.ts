@@ -9,7 +9,7 @@ export type MaintainerCategory = 'USER' | 'ORG' | 'EVOLVEUM' | 'COMMUNITY';
 export interface Maintainer {
   id: number | null;                // maintainers.id; null until the row is created
   username: string | null;          // maintainers.username (USER only)
-  organizationName: string | null;  // organizations.name, the alias (ORG only)
+  organizationName: string | null;  // organizations.name, the alias (ORG and EVOLVEUM)
   category: MaintainerCategory;     // maintainers.category
   label: string | null;             // what to show for it; the server fills it in
 }

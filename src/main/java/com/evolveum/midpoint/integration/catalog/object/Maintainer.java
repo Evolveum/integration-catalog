@@ -31,7 +31,7 @@ public class Maintainer {
     @Column(nullable = false)
     private String username;
 
-    /** Set on a {@link MaintainerType#ORG} row only; null on every other. */
+    /** Set on a {@link MaintainerType#ORG} or {@link MaintainerType#EVOLVEUM} row; null on every other. */
     @OneToOne
     @JoinColumn(name = "organization_id")
     private Organization organization;

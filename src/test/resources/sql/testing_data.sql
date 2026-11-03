@@ -17,7 +17,7 @@
 -- the maintainer alone decides who may edit (AuthService.canEdit). The four published
 -- integration methods of "My Test App" cover one maintainer kind each, so the "Edit and upgrade"
 -- flow can be tried from every role:
---   Test 1 - maintained by Evolveum   -> superusers only
+--   Test 1 - maintained by Evolveum   -> Evolveum's organization contributors + superusers
 --   Test 2 - maintained by Acme (org) -> u1 + superusers
 --   Test 3 - maintained by u3         -> u3 + superusers (not u4)
 --   Test 4 - maintained by Community  -> every contributor
@@ -30,9 +30,9 @@
 -- name = the Keycloak organization alias carried in the token claim
 -- ============================================================
 
+-- postgres.sql already seeds organization 1 (evolveum), which its EVOLVEUM maintainer points at.
 INSERT INTO organizations (id, name, display_name, description) OVERRIDING SYSTEM VALUE VALUES
-    (1, 'evolveum', 'Evolveum', 'Maintainer of midPoint and the Integration catalog'),
-    (2, 'acme',     'Acme co.', 'Demo partner organization');
+    (2, 'acme', 'Acme co.', 'Demo partner organization');
 
 INSERT INTO authors (id, username, email) OVERRIDING SYSTEM VALUE VALUES
     (2, 'u5', 'u5@example.com'),

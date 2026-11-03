@@ -1223,7 +1223,7 @@ public class ConnectorUploadService {
 
         if (bundle != null) {
             bundle.setDisplayName(emptyToNull(dto.bundleDisplayName()));
-            ownershipService.copyMaintainer(connector, bundle);
+            ownershipService.assignMaintainer(bundle, dto.maintainer());
             bundle.setTicketingLink(dto.supportPortal());
             bundle.setProjectHomepage(dto.projectHomepage());
             if (isInitialVersion(bundle)) {
@@ -1239,7 +1239,7 @@ public class ConnectorUploadService {
 
         if (!versionChanged && !classNameChanged) {
             if (baseCv != null) {
-                applyVersionEdit(connector, baseCv, baseCbv, dto, requestedClassName, requestedCommitTag, null);
+                applyVersionEdit(baseCv, baseCbv, dto, requestedClassName, requestedCommitTag, null);
             }
             connectorRepository.save(connector);
             return;
@@ -1259,7 +1259,7 @@ public class ConnectorUploadService {
             String errorMessage = versionChanged
                     ? "Duplicate version with (" + connector.getDisplayName() + " " + requestedVersion + ")"
                     : null;
-            applyVersionEdit(connector, target, target.getConnectorBundleVersion(), dto,
+            applyVersionEdit(target, target.getConnectorBundleVersion(), dto,
                     requestedClassName, requestedCommitTag, errorMessage);
         } else {
             String errorMessage = !buildChanged && !replacesUnbuiltDraft
@@ -1275,7 +1275,7 @@ public class ConnectorUploadService {
                 cbv.setRevision(requestedVersion);
                 cbv.setBundleVersion(requestedVersion);
                 cbv.setConnectorBundle(bundle);
-                ownershipService.stampNewVersion(cbv, username, connector);
+                ownershipService.stampNew(cbv, username, dto.maintainer());
                 cbv.setLifecycleState(LifecycleType.IN_REVIEW);
                 cbv.setBrowseLink(dto.projectHomepage());  // one link, not two - see createBundleVersion
                 cbv.setPathToProject(emptyToNull(dto.pathToProject()));
@@ -1291,7 +1291,7 @@ public class ConnectorUploadService {
             cv.setConnector(connector);
             cv.setConnectorBundleVersion(cbv);
             cv.setRevision(requestedVersion);
-            ownershipService.stampNewVersion(cv, username, connector);
+            ownershipService.stampNew(cv, username, dto.maintainer());
             cv.setFullyQualifiedClassName(requestedClassName);
             cv.setLifecycleState(LifecycleType.IN_REVIEW);
             cv.setErrorMessage(errorMessage);
@@ -1687,15 +1687,18 @@ public class ConnectorUploadService {
 
     /**
      * Rewrites an existing connector version (+ its bundle version) with the edited build data. The
-     * maintainer is not among it: it describes the connector, not a build, so it is the connector's.
+     * maintainer is not among it: it describes the connector, not a build.
+     *
+     * @param className the resolved class name (blank means "unchanged", never "clear it")
+     * @param commitTag the resolved commit hash, resolved the same way
      */
-    private void applyVersionEdit(Connector connector, ConnectorVersion cv, ConnectorBundleVersion cbv, EditConnectorDto dto,
+    private void applyVersionEdit(ConnectorVersion cv, ConnectorBundleVersion cbv, EditConnectorDto dto,
                                   String className, String commitTag, String errorMessage) {
-        ownershipService.copyMaintainer(connector, cv);
+        ownershipService.assignMaintainer(cv, dto.maintainer());
         cv.setFullyQualifiedClassName(className);
         cv.setErrorMessage(errorMessage);
         if (cbv != null) {
-            ownershipService.copyMaintainer(connector, cbv);
+            ownershipService.assignMaintainer(cbv, dto.maintainer());
             cbv.setBrowseLink(dto.projectHomepage());  // one link, not two - see createBundleVersion
             // Optional (blank = repository root), so unlike the identifiers a blank value clears it.
             cbv.setPathToProject(emptyToNull(dto.pathToProject()));

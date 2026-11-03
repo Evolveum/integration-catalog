@@ -7,9 +7,6 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
-import com.evolveum.midpoint.integration.catalog.object.Author;
-import com.evolveum.midpoint.integration.catalog.object.Connector;
-import com.evolveum.midpoint.integration.catalog.object.ConnectorVersion;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.Maintainer;
 import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
@@ -40,9 +37,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 /**
- * Which maintainer a caller may set on an item. An organization contributor cannot name themselves,
- * but a method they already maintain personally must stay saveable, because the edit form sends its
- * maintainer back unchanged.
+ * Which maintainer a caller may set on an item: themselves or their organization if they contribute
+ * for it, never someone else.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -96,13 +92,7 @@ class OwnershipServiceTest {
 
     private Maintainer organization(String alias) {
         return stored(new Maintainer().setId(3L).setCategory(MaintainerType.ORG)
-                .setOrganization(registered(alias)));
-    }
-
-    private Organization registered(String alias) {
-        Organization organization = new Organization().setId(2).setName(alias);
-        when(organizationService.getOrganizationByName(alias)).thenReturn(organization);
-        return organization;
+                .setOrganization(new Organization().setId(2).setName(alias)));
     }
 
     private static MaintainerDto dtoOf(Maintainer row) {
@@ -121,50 +111,7 @@ class OwnershipServiceTest {
     }
 
     @Test
-    void organizationContributorMayNotNameThemselvesOnANewItem() {
-        callerIs("olivia", "OrganizationContributor", "acme");
-        registered("acme");
-        Maintainer own = personal("olivia");
-
-        assertThrows(ResponseStatusException.class,
-                () -> ownershipService.assignMaintainer(new IntegrationMethod(), dtoOf(own)));
-    }
-
-    @Test
-    void organizationContributorMayNotTakeOverAnItemOfTheirOrganization() {
-        callerIs("olivia", "OrganizationContributor", "acme");
-        registered("acme");
-        IntegrationMethod method = new IntegrationMethod().setMaintainer(organization("acme"));
-
-        assertThrows(ResponseStatusException.class,
-                () -> ownershipService.assignMaintainer(method, dtoOf(personal("olivia"))));
-    }
-
-    @Test
-    void organizationContributorMayKeepTheirExistingPersonalMaintainer() {
-        callerIs("olivia", "OrganizationContributor", "acme");
-        registered("acme");
-        Maintainer own = personal("olivia");
-        IntegrationMethod method = new IntegrationMethod().setMaintainer(own);
-
-        ownershipService.assignMaintainer(method, dtoOf(own));
-
-        assertSame(own, method.getMaintainer());
-    }
-
-    @Test
-    void organizationContributorMayMoveTheirPersonalItemToTheOrganization() {
-        callerIs("olivia", "OrganizationContributor", "acme");
-        Maintainer acme = organization("acme");
-        IntegrationMethod method = new IntegrationMethod().setMaintainer(personal("olivia"));
-
-        ownershipService.assignMaintainer(method, dtoOf(acme));
-
-        assertSame(acme, method.getMaintainer());
-    }
-
-    @Test
-    void organizationContributorOfAnUnregisteredOrganizationMayNameThemselves() {
+    void organizationContributorMayAssignThemselves() {
         callerIs("olivia", "OrganizationContributor", "acme");
         Maintainer own = personal("olivia");
         IntegrationMethod method = new IntegrationMethod();
@@ -172,30 +119,6 @@ class OwnershipServiceTest {
         ownershipService.assignMaintainer(method, dtoOf(own));
 
         assertSame(own, method.getMaintainer());
-    }
-
-    @Test
-    void individualContributorMayNameThemselves() {
-        callerIs("olivia", "IndividualContributor", "acme");
-        Maintainer own = personal("olivia");
-        IntegrationMethod method = new IntegrationMethod();
-
-        ownershipService.assignMaintainer(method, dtoOf(own));
-
-        assertSame(own, method.getMaintainer());
-    }
-
-    @Test
-    void aNewVersionRowTakesOverTheItemsPersonalMaintainerWithoutACheck() {
-        callerIs("olivia", "OrganizationContributor", "acme");
-        registered("acme");
-        Maintainer own = personal("olivia");
-        when(authorRepository.findByUsername("olivia")).thenReturn(Optional.of(new Author().setUsername("olivia")));
-        ConnectorVersion version = new ConnectorVersion();
-
-        ownershipService.stampNewVersion(version, "olivia", new Connector().setMaintainer(own));
-
-        assertSame(own, version.getMaintainer());
     }
 
     @Test
@@ -207,8 +130,21 @@ class OwnershipServiceTest {
     }
 
     @Test
-    void individualFromTheSameOrganizationMayNotAssignIt() {
+    void organizationContributorMayNotAssignAnotherOrganization() {
+        callerIs("olivia", "OrganizationContributor", "acme");
+
+        assertThrows(ResponseStatusException.class,
+                () -> ownershipService.assignMaintainer(new IntegrationMethod(), dtoOf(organization("evolveum"))));
+    }
+
+    @Test
+    void individualFromAnOrganizationMayAssignThemselvesButNotIt() {
         callerIs("olivia", "IndividualContributor", "acme");
+        Maintainer own = personal("olivia");
+        IntegrationMethod method = new IntegrationMethod();
+
+        ownershipService.assignMaintainer(method, dtoOf(own));
+        assertSame(own, method.getMaintainer());
 
         assertThrows(ResponseStatusException.class,
                 () -> ownershipService.assignMaintainer(new IntegrationMethod(), dtoOf(organization("acme"))));

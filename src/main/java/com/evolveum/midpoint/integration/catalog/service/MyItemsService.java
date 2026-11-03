@@ -150,9 +150,12 @@ public class MyItemsService {
         if (oidcUser != null && claims.effectiveRole(oidcUser) == CatalogRole.ORGANIZATION_CONTRIBUTOR) {
             String organizationName = claims.organizationName(oidcUser);
             if (organizationName != null) {
-                organizationRepository.findByName(organizationName)
-                        .flatMap(org -> maintainerRepository.findByCategoryAndOrganization(MaintainerType.ORG, org))
-                        .ifPresent(maintainers::add);
+                organizationRepository.findByName(organizationName).ifPresent(org -> {
+                    maintainerRepository.findByCategoryAndOrganization(MaintainerType.ORG, org)
+                            .ifPresent(maintainers::add);
+                    maintainerRepository.findByCategoryAndOrganization(MaintainerType.EVOLVEUM, org)
+                            .ifPresent(maintainers::add);
+                });
             }
         }
         return maintainers;

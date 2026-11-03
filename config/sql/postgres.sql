@@ -631,7 +631,11 @@ CHECK (
         AND username IS NULL
         AND organization_id IS NOT NULL)
     OR
-    (category IN ('EVOLVEUM', 'COMMUNITY')
+    (category = 'EVOLVEUM'
+        AND username IS NULL
+        AND organization_id IS NOT NULL)
+    OR
+    (category = 'COMMUNITY'
         AND username IS NULL
         AND organization_id IS NULL)
 );
@@ -1112,9 +1116,14 @@ INSERT INTO midpoint_version (id, version, version_name, is_current) values
 	
 SELECT setval('midpoint_version_id_seq', 10);
 
+INSERT INTO organizations (id, name, display_name, description) OVERRIDING SYSTEM VALUE VALUES
+    (1,'evolveum','Evolveum','Maintainer of midPoint and the Integration catalog');
+
+SELECT setval('organizations_id_seq', 1);
+
 INSERT INTO maintainers (id, username, organization_id, category) VALUES
     (1,NULL,NULL,'COMMUNITY'),
-    (2,NULL,NULL,'EVOLVEUM');
+    (2,NULL,1,'EVOLVEUM');
 
 SELECT setval('maintainer_id_seq', 2);
 
@@ -1130,5 +1139,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(26, $$ SELECT 1 $$, true);
+call apply_change(27, $$ SELECT 1 $$, true);
 -- end of region

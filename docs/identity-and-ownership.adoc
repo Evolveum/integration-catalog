@@ -224,9 +224,11 @@ when it has not been seeded.
 | `canEdit(username, author, authorOrgId, maintainer, maintainerOrgId)`
 | The authoritative access check (the client mirrors it for UX only). A superuser may edit
 anything; the designated maintainer may; and an organization contributor may edit whatever
-their organization maintains. An individual contributor gets nothing from belonging to an
-organization, and authorship grants nothing. All of it is comparison of values already in
-hand — no lookups.
+their organization maintains, which for Evolveum's includes the catalog-wide `EVOLVEUM` maintainer
+linked to it. An item an organization contributor maintains personally stays
+theirs alone: their colleagues may not edit it. An individual contributor gets nothing from
+belonging to an organization, and authorship grants nothing. All of it is comparison of values
+already in hand — no lookups.
 
 | `isSuperuser(String username)`
 | The caller's effective role, from their token.

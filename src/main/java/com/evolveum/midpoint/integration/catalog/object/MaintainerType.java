@@ -10,8 +10,9 @@ package com.evolveum.midpoint.integration.catalog.object;
  * What kind of maintainer a row refers to. Stored in the {@code MaintainerType} Postgres enum.
  *
  * <p>The category says which of the row's fields is filled: {@code USER} carries a username,
- * {@code ORG} an organization, and {@code EVOLVEUM} and {@code COMMUNITY} neither - they are the
- * two catalog-wide rows seeded with the schema, one of each.
+ * {@code ORG} an organization, {@code COMMUNITY} neither, and {@code EVOLVEUM} the Evolveum
+ * organization, though it is a row of its own beside any {@code ORG} row of it. The last two are the
+ * catalog-wide rows seeded with the schema, one of each.
  */
 public enum MaintainerType {
     USER("User"),

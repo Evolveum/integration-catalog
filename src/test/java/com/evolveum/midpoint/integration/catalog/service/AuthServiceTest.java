@@ -234,6 +234,30 @@ class AuthServiceTest {
     }
 
     @Test
+    void evolveumMaintainerIsSharedWithTheOrganizationItIsLinkedTo() {
+        Maintainer linked = seeded(2L, MaintainerType.EVOLVEUM).setOrganization(new Organization().setName(EVOLVEUM));
+        Author author = createAuthor("someone");
+
+        callerIs("OrganizationContributor", EVOLVEUM);
+        assertTrue(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+
+        callerIs("OrganizationContributor", ACME);
+        assertFalse(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+
+        // Belonging to the organization is not enough: the role has to say so.
+        callerIs("IndividualContributor", EVOLVEUM);
+        assertFalse(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+    }
+
+    @Test
+    void personalItemOfAnOrganizationContributorIsNotSharedWithTheOrganization() {
+        callerIs("OrganizationContributor", "acme");
+
+        assertTrue(canUserEdit("olivia", "olivia"));
+        assertFalse(canUserEdit("olivia", "bake"));
+    }
+
+    @Test
     void individualContributorDoesNotInheritItemsMaintainedByTheirOrganization() {
         callerIs("IndividualContributor", "acme");
 

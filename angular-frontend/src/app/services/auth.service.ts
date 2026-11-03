@@ -178,15 +178,17 @@ export class AuthService {
   }
 
   /**
-   * Options for the maintainer combobox of a non-superuser: the organization for an organization
-   * contributor, whose items belong to all of its contributors, otherwise just the user; Community
-   * for everyone. A superuser picks from {@link getAllMaintainers} instead.
+   * Options for the maintainer combobox of a non-superuser: the organization plus the user
+   * themselves for an organization contributor, otherwise just the user; Community for everyone.
+   * A superuser picks from {@link getAllMaintainers} instead.
    */
   maintainerOptions(): Maintainer[] {
-    const organization = this.registeredOrganizationMaintainer();
-    if (organization) return [organization, communityMaintainer()];
     const user = this._currentUser();
-    return user ? [userMaintainer(user), communityMaintainer()] : [communityMaintainer()];
+    const self = user ? [userMaintainer(user)] : [];
+    const organization = this.registeredOrganizationMaintainer();
+    return organization
+      ? [organization, ...self, communityMaintainer()]
+      : [...self, communityMaintainer()];
   }
 
   /**
