@@ -50,10 +50,9 @@ public class AllConnectorsController {
         return ResponseEntity.ok(myItemsService.allConnectors());
     }
 
-    @Operation(summary = "Set the support tier and obsolete tag of a connector — superuser only")
+    @Operation(summary = "Set the support tier and deprecated (obsolete) tag of a connector — superuser only")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Tags set"),
-            @ApiResponse(responseCode = "400", description = "Obsolete together with a support tier"),
             @ApiResponse(responseCode = "403", description = "Not a superuser"),
             @ApiResponse(responseCode = "404", description = "No such connector")
     })

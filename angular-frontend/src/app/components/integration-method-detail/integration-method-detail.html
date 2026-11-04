@@ -188,7 +188,7 @@
               <span class="view-connector-name">
                 {{ c.connectorDisplayName || c.name }}
                 @if (isObsoleteConnector(c.connectorTags)) {
-                  <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Deprecated</span>
                 }
               </span>
               <button type="button" class="view-connector-see-compat d-flex align-items-center gap-2"
@@ -201,7 +201,7 @@
                 @if (isObsoleteConnector(c.connectorTags)) {
                   <div class="version-exists-warning d-flex align-items-start gap-2">
                     <i class="fa-solid fa-triangle-exclamation version-exists-warning-icon"></i>
-                    <span><strong>Obsolete connector.</strong> It is still allowed, but it is superseded and
+                    <span><strong>Deprecated connector.</strong> It is still allowed, but it is superseded and
                       should not be used for new deployments.</span>
                   </div>
                 }

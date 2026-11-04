@@ -264,7 +264,7 @@
                 <span class="edit-connector-name d-flex align-items-center gap-2">
                   {{ c.connectorDisplayName || c.name }}
                   @if (isObsoleteConnector(c.connectorTags)) {
-                    <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                    <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Deprecated</span>
                   }
                   @if (isConnectorPending(c.connectorId)) {
                     <span class="edit-connector-pending-badge">Pending</span>
@@ -400,7 +400,7 @@
               <span class="edit-connector-name d-flex align-items-center gap-2">
                 {{ sc.displayName || 'New connector' }}
                 @if (isObsoleteConnector(sc.tags)) {
-                  <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                  <span class="edit-connector-obsolete-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Deprecated</span>
                 }
                 <span class="edit-connector-pending-badge">Pending</span>
               </span>

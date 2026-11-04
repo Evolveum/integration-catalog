@@ -13,14 +13,14 @@
         <div class="tags-modal-subtitle">{{ connectorName }}</div>
       }
       <p class="tags-modal-desc">
-        Set the support tier this connector is covered by, or mark it obsolete. Every integration method
-        using the connector shows these tags.
+        Set the support tier this connector is covered by, and mark it deprecated if it has been superseded.
+        Every integration method using the connector shows these tags.
       </p>
 
       <label for="tags-modal-tier" class="tags-modal-label">Support tier</label>
       <select id="tags-modal-tier" class="form-select tags-modal-select"
               [class]="'tier-' + (selectedTier() ?? 'none').toLowerCase()"
-              [disabled]="processing || selectedObsolete()" (change)="onTierChange($event)">
+              [disabled]="processing" (change)="onTierChange($event)">
         <!-- [selected] per option: a [value] on the select lands before the @for options exist. -->
         <option value="" [selected]="!selectedTier()">No tier</option>
         @for (t of supportTiers; track t.value) {
@@ -30,16 +30,11 @@
 
       <div class="form-check tags-modal-check">
         <input id="tags-modal-obsolete" class="form-check-input" type="checkbox" aria-describedby="tags-modal-obsolete-hint"
-               [checked]="selectedObsolete()" [disabled]="processing || !!selectedTier()" (change)="onObsoleteChange($event)">
-        <label for="tags-modal-obsolete" class="form-check-label">Obsolete</label>
+               [checked]="selectedObsolete()" [disabled]="processing" (change)="onObsoleteChange($event)">
+        <label for="tags-modal-obsolete" class="form-check-label">Deprecated</label>
       </div>
-      <!-- Mirrors ApplicationService.setConnectorTags: an obsolete connector cannot have a tier. -->
       <div id="tags-modal-obsolete-hint" class="tags-modal-hint">
-        @if (selectedTier()) {
-          Clear the support tier to mark the connector obsolete.
-        } @else if (selectedObsolete()) {
-          An obsolete connector cannot have a support tier.
-        }
+        A deprecated connector can keep its support tier while users migrate to its replacement.
       </div>
 
       @if (error) {

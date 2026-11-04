@@ -1064,7 +1064,7 @@ SELECT setval('integration_method_type_id_seq', 9);
 
 INSERT INTO connector_tag (id, name, display_name) OVERRIDING SYSTEM VALUE VALUES
     (1,'ai_generated','AI Generated'),
-    (2,'obsolete','Obsolete'),
+    (2,'obsolete','Deprecated'),
     -- Support tiers: the code knows these exact names (SupportTier), display_name is the tier's label.
     (3,'supp_tier_standard','Standard'),
     (4,'supp_tier_advanced','Advanced'),
@@ -1139,5 +1139,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(27, $$ SELECT 1 $$, true);
+call apply_change(28, $$ SELECT 1 $$, true);
 -- end of region

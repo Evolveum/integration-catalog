@@ -10,6 +10,6 @@ import com.evolveum.midpoint.integration.catalog.object.SupportTier;
 
 /** Body of {@code PUT /api/all-connectors/{id}/tags}: the superuser-set tags of a connector. */
 public record ConnectorTagsDto(
-        SupportTier tier,  // null removes it; must be null when obsolete
+        SupportTier tier,  // null removes it
         boolean obsolete
 ) {}

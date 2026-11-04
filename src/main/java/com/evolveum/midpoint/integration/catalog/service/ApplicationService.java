@@ -781,14 +781,12 @@ public class ApplicationService {
     /**
      * Sets the superuser-set tags of a connector: swaps its tier tag (null clears it) and adds or
      * removes the obsolete tag. Its pending edit clones follow, since a version-bump approval replaces
-     * the connector with one of them. An obsolete connector cannot have a tier.
+     * the connector with one of them. The two are independent: a connector users should migrate away
+     * from can stay supported in the meantime.
      */
     @Transactional
     public void setConnectorTags(Integer connectorId, SupportTier tier, boolean obsolete) {
         log.info("setConnectorTags connectorId={} tier={} obsolete={}", connectorId, tier, obsolete);
-        if (obsolete && tier != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "An obsolete connector cannot have a support tier");
-        }
         Connector connector = connectorRepository.findById(connectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Connector not found: " + connectorId));
         List<ConnectorTag> wanted = new ArrayList<>();

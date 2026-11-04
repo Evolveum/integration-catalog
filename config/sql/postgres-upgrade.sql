@@ -795,6 +795,14 @@ CHECK (
 $aa$);
 -- end of region
 
+-- region change 28: obsolete connector tag is shown as Deprecated
+-- A connector can be on a support tier while users migrate away from it, which "obsolete" misstates. Only
+-- the label changes: tags are looked up by name, so the name stays.
+call apply_change(28, $aa$
+UPDATE connector_tag SET display_name = 'Deprecated' WHERE name = 'obsolete';
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$

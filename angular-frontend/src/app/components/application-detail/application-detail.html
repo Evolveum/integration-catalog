@@ -459,7 +459,7 @@
                         @if (method.usesObsoleteConnector) {
                           <div class="im-obsolete-warning d-flex align-items-start gap-2">
                             <i class="fa-solid fa-triangle-exclamation im-obsolete-warning-icon"></i>
-                            <span><strong>This integration method uses an obsolete connector.</strong> The connector is still allowed, but it has been superseded and should not be used for new deployments.</span>
+                            <span><strong>This integration method uses a deprecated connector.</strong> The connector is still allowed, but it has been superseded and should not be used for new deployments.</span>
                           </div>
                         }
 
@@ -529,7 +529,7 @@
                                         <span class="badge badge-capability badge-connector" (click)="$event.stopPropagation()">
                                           {{ connectorChipLabel(connector) }}
                                           @if (isObsoleteConnector(connector.tags)) {
-                                            <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Obsolete</span>
+                                            <span class="connector-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Deprecated</span>
                                           }
                                           @if (connector.description) {
                                             <span class="connector-tooltip markdown-rendered" [innerHTML]="connector.description | markdown"></span>

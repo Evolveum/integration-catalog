@@ -9,7 +9,7 @@ export interface ConnectorTag {
   displayName: string; // connector_tag.display_name
 }
 
-/** Legacy connector: still allowed and counted, but the catalog warns about it. */
+/** Legacy connector, shown as Deprecated: still allowed and counted, but the catalog warns about it. */
 export const OBSOLETE_CONNECTOR_TAG = 'obsolete';
 
 export function isObsoleteConnector(tags: ConnectorTag[] | null | undefined): boolean {
