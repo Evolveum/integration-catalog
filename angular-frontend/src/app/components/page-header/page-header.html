@@ -57,7 +57,7 @@
 
     @if (currentUser()) {
       <div class="header-user-menu">
-        <button class="header-user d-flex align-items-center gap-2" type="button" (click)="toggleMenu()"
+        <button data-testid="header-user-menu" class="header-user d-flex align-items-center gap-2" type="button" (click)="toggleMenu()"
           [class.header-user-active]="menuOpen()" [attr.aria-expanded]="menuOpen()" aria-haspopup="menu"
           title="Account menu">
           <span class="header-avatar">{{ userInitials() }}</span>
@@ -74,7 +74,7 @@
             @if (isSuperuser()) {
               <a class="user-menu-item" role="menuitem" routerLink="/all-integration-methods" (click)="closeMenu()">All integration methods</a>
               <a class="user-menu-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
-              <a class="user-menu-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
+              <a data-testid="header-menu-approval-queue" class="user-menu-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
             } @else {
               <a class="user-menu-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
               <a class="user-menu-item" role="menuitem" routerLink="/my-connectors" (click)="closeMenu()">My connectors</a>
@@ -92,7 +92,7 @@
         }
       </div>
     } @else {
-      <button class="header-btn-login d-flex align-items-center gap-2" (click)="login()">
+      <button data-testid="header-login" class="header-btn-login d-flex align-items-center gap-2" (click)="login()">
         <i class="fa-solid fa-user header-user-icon"></i>
         <span>Login</span>
       </button>

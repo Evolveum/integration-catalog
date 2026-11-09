@@ -65,7 +65,7 @@
               <i class="fa-solid fa-circle-info info-icon-sm"></i>
             </button>
           </label>
-          <input type="text" class="form-control edit-version-input"
+          <input data-testid="edit-method-version" type="text" class="form-control edit-version-input"
                  [value]="methodVersion()"
                  disabled>
           <div class="form-text mt-1">The <strong>version number</strong> updates automatically upon clicking "Save as new version".</div>
@@ -168,7 +168,7 @@
           </span>
         </label>
         <div class="position-relative">
-          <textarea class="form-control" rows="4" [attr.maxlength]="limitationsMax"
+          <textarea data-testid="edit-method-limitations" class="form-control" rows="4" [attr.maxlength]="limitationsMax"
                     placeholder="Describe what this integration method does not support..."
                     [value]="methodLimitations()"
                     (input)="methodLimitations.set($any($event.target).value)"></textarea>
@@ -471,11 +471,11 @@
           } @else if (hasPendingConnectorChanges()) {
             <span class="edit-save-hint text-muted me-1">You have unsaved connector changes</span>
           }
-          <button type="button" class="btn edit-save-btn"
+          <button data-testid="edit-save" type="button" class="btn edit-save-btn"
                   [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()"
                   (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
           @if (!isDraftState()) {
-            <button type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()" (click)="saveAsNewVersion()">
+            <button data-testid="edit-save-as-new-version" type="button" class="btn edit-save-version-btn" [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()" (click)="saveAsNewVersion()">
               <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
             </button>
           }

@@ -76,7 +76,7 @@
         }
       </div>
       <div class="form-control d-flex align-items-center cp-oc-field mb-2">
-        <input type="text" class="border-0 flex-fill cp-oc-input"
+        <input data-testid="capability-object-class" type="text" class="border-0 flex-fill cp-oc-input"
                placeholder="Type object class to configure"
                [value]="entry.objectClass"
                (input)="updateObjectClass(i, $any($event.target).value)"
@@ -84,7 +84,7 @@
                [name]="'cp-oc-' + i">
       </div>
       <div class="position-relative">
-        <div class="form-control d-flex flex-wrap align-items-center gap-2 cp-trigger"
+        <div data-testid="capability-object-class-trigger" class="form-control d-flex flex-wrap align-items-center gap-2 cp-trigger"
              [class.cp-trigger-disabled]="!entry.objectClass"
              (click)="toggleEntryDropdown(i)">
           @if (!entry.objectClass) {
@@ -116,7 +116,7 @@
               <div class="p-4 cp-grid">
                 @for (cap of specificAvailable(); track cap) {
                   <label class="d-flex align-items-center cp-label">
-                    <input type="checkbox" (change)="onSpecificChange($event, i, cap)"
+                    <input data-testid="capability-object-class-option" type="checkbox" (change)="onSpecificChange($event, i, cap)"
                            [checked]="entry.capabilities.includes(cap)" [disabled]="disabled" class="cp-checkbox">
                     <span class="cp-label-text">{{ fmt(cap) }}</span>
                   </label>

@@ -431,7 +431,7 @@
                             <i class="fa-solid im-method-chevron" [class.fa-chevron-up]="isMethodExpanded(method.id)" [class.fa-chevron-down]="!isMethodExpanded(method.id)"></i>
                             <div>
                               <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="im-method-title">{{ method.name }}</span>
+                                <span data-testid="application-method-title" class="im-method-title">{{ method.name }}</span>
                                 @for (type of method.types; track type) {
                                   <span class="im-method-tag">{{ type }}</span>
                                 }
@@ -472,10 +472,10 @@
                           </div>
 
                           @for (version of method.versions; track version.revision) {
-                            <div class="im-version-row d-flex" [class.im-version-row-review]="(version.lifecycleState === 'IN_REVIEW' || version.lifecycleState === 'REVIEWING') && isSuperuser()">
+                            <div data-testid="application-version-row" class="im-version-row d-flex" [class.im-version-row-review]="(version.lifecycleState === 'IN_REVIEW' || version.lifecycleState === 'REVIEWING') && isSuperuser()">
                               <!-- VERSION -->
                               <div class="im-col-version">
-                                <span class="im-version-badge">{{ versionBadge(version.revision) }}</span>
+                                <span data-testid="application-version-badge" class="im-version-badge">{{ versionBadge(version.revision) }}</span>
                               </div>
 
                               <!-- DETAILS -->
@@ -560,7 +560,7 @@
                                     </a>
                                   }
                                 } @else if (version.lifecycleState === 'ACTIVE') {
-                                  <span class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
+                                  <span data-testid="application-version-status-published" class="badge im-badge-published"><i class="fa-regular fa-clock me-1"></i>Published</span>
                                 } @else if (version.lifecycleState === 'REJECTED') {
                                   <span class="badge im-badge-rejected"><i class="fa-solid fa-xmark me-1"></i>Rejected</span>
                                 }
@@ -573,7 +573,7 @@
                                         <i class="fa-solid fa-trash-can"></i>Cancel request
                                       </button>
                                     }
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button data-testid="application-version-view-details" type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (canEdit(version)) {
@@ -597,7 +597,7 @@
                                         <i class="fa-solid fa-trash-can"></i>Cancel request
                                       </button>
                                     }
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button data-testid="application-version-view-details" type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (isSuperuser()) {
@@ -618,7 +618,7 @@
                                       </button>
                                     }
                                   } @else if (version.lifecycleState === 'REJECTED') {
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button data-testid="application-version-view-details" type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (canEdit(version)) {
@@ -627,7 +627,7 @@
                                       </button>
                                     }
                                   } @else {
-                                    <button type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
+                                    <button data-testid="application-version-view-details" type="button" class="btn btn-im-view-details" (click)="navigateToDetails(version.id, version.revision); $event.stopPropagation()">
                                       <i class="fa-solid fa-eye"></i>View details
                                     </button>
                                     @if (canEdit(version)) {

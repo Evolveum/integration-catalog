@@ -36,22 +36,22 @@
       <div class="mb-3">
         <div class="mb-3">
           <label class="form-label small mb-1">Bundle name <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" name="bundleName"
+          <input data-testid="manual-fill-bundle-name" type="text" class="form-control" name="bundleName"
                  [(ngModel)]="bundleName" placeholder="e.g. acde070d-8c4c-4f0d-9d8a-162843c10333" required />
         </div>
         <div class="mb-3">
           <label class="form-label small mb-1">Version <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" name="version"
+          <input data-testid="manual-fill-version" type="text" class="form-control" name="version"
                  [(ngModel)]="version" placeholder="e.g. 1.0.0" required />
         </div>
         <div class="mb-3">
           <label class="form-label small mb-1">Class name <span class="text-danger">*</span></label>
-          <input type="text" class="form-control" name="className"
+          <input data-testid="manual-fill-class-name" type="text" class="form-control" name="className"
                  [(ngModel)]="className" placeholder="e.g. com.evolveum.connector.csv.CsvFileConnector" required />
         </div>
         <div class="mb-3">
           <label class="form-label small mb-1">Download link @if (!artifactUrlless) {<span class="text-danger">*</span>}</label>
-          <input type="text" class="form-control" name="downloadLink"
+          <input data-testid="manual-fill-download-link" type="text" class="form-control" name="downloadLink"
                  [(ngModel)]="downloadLink" placeholder="https://..." [required]="!artifactUrlless"
                  [disabled]="artifactUrlless" />
         </div>
@@ -78,7 +78,7 @@
         <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="submitting">
           Cancel
         </button>
-        <button type="button" class="btn btn-primary d-flex align-items-center gap-2" [disabled]="submitting" (click)="onSubmit()">
+        <button data-testid="manual-fill-submit" type="button" class="btn btn-primary d-flex align-items-center gap-2" [disabled]="submitting" (click)="onSubmit()">
           @if (submitting) {
             <span class="spinner-border spinner-border-sm" role="status"></span>
           }

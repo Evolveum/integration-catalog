@@ -6,7 +6,7 @@
 
 <div class="approval-modal-backdrop position-fixed top-0 start-0 w-100 h-100" (click)="onCancel()"></div>
 <div class="approval-modal-container position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-  <div class="approval-modal-dialog" (click)="$event.stopPropagation()">
+  <div data-testid="approval-dialog" class="approval-modal-dialog" (click)="$event.stopPropagation()">
     <div class="approval-modal-header d-flex align-items-center justify-content-between">
       <span class="approval-modal-title d-flex align-items-center gap-2">
         @if (mode === 'approve') {
@@ -79,7 +79,7 @@
                             }
                             <i class="fa-solid fa-hammer"></i>Trigger build
                           </button>
-                          <button type="button"
+                          <button data-testid="approval-manual-fill" type="button"
                                   class="btn btn-sm btn-outline-primary flex-fill"
                                   (click)="openManualFill(connector)">
                             <i class="fa-solid fa-pen-to-square"></i>Manual fill
@@ -96,7 +96,7 @@
               } @else {
                 <div class="mt-2 text-success d-flex align-items-center gap-2">
                   <i class="fa-solid fa-circle-check"></i>
-                  <span>All connectors have build information.</span>
+                  <span data-testid="approval-build-info-complete">All connectors have build information.</span>
                 </div>
               }
             }
@@ -105,7 +105,7 @@
             <i class="fa-solid fa-arrows-rotate"></i>Refresh
           </button>
         } @else {
-          <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refresh()">
+          <button data-testid="approval-continue" type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2" (click)="refresh()">
             <i class="fa-solid fa-arrow-right"></i>Continue
           </button>
         }
@@ -149,7 +149,7 @@
                 <strong>Support ticket ready</strong>
                 <div>Ticket #{{ ticketId() }} is {{ ticketStatus() }}.</div>
               } @else {
-                <strong>No support ticket</strong>
+                <strong data-testid="approval-no-ticket">No support ticket</strong>
                 <div>This version has no support ticket, so there is nothing to resolve before approving.</div>
               }
             } @else {
@@ -170,7 +170,7 @@
 
     <div class="approval-modal-footer d-flex align-items-center justify-content-between">
       <button type="button" class="btn approval-modal-cancel" (click)="onCancel()">Cancel</button>
-      <button type="button"
+      <button data-testid="approval-confirm" type="button"
               class="btn d-flex align-items-center gap-2"
               [class.approval-confirm-approve]="mode === 'approve'"
               [class.approval-confirm-reject]="mode === 'reject'"

@@ -388,7 +388,7 @@
         @if (isActive()) {
           <div class="d-flex align-items-center gap-2">
             @if (canEdit()) {
-              <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
+              <button data-testid="method-detail-edit-and-upgrade" type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" (click)="editAndUpgrade()">
                 <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
               </button>
             }
@@ -408,7 +408,7 @@
           <div class="d-flex align-items-center gap-3">
             <!-- The reviewer may fix findings directly while the revision is under review
                  (the edit lock only applies to non-superusers). -->
-            <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2"
+            <button data-testid="method-detail-edit-and-upgrade" type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2"
                     (click)="editAndUpgrade()">
               <i class="fa-solid fa-pen-to-square"></i>Edit
             </button>

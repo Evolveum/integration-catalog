@@ -34,7 +34,7 @@
     <!-- Step 5: Add connector -->
     @if (internalStep() === 5) {
       <div class="step-content">
-        <h5 class="step-title">Add connector</h5>
+        <h5 data-testid="publish-connector-title" class="step-title">Add connector</h5>
 
         <!-- Note alert -->
         @if (isExistingConnector) {
@@ -67,7 +67,7 @@
                       <span class="info-tooltip">The display name of this connector in the catalog.</span>
                     </span>
                   </label>
-                  <input type="text" class="form-control"
+                  <input data-testid="publish-connector-name" type="text" class="form-control"
                          [class.input-disabled]="isExistingConnector"
                          [value]="connectorName()"
                          (input)="connectorName.set($any($event.target).value); onFieldChange()"
@@ -82,7 +82,7 @@
                       <span class="info-tooltip">Version of this connector (e.g. 1.0.0).</span>
                     </span>
                   </label>
-                  <input type="text"
+                  <input data-testid="publish-connector-version" type="text"
                          [class.form-control]="true"
                          [class.input-disabled]="isExistingConnector"
                          [value]="connectorVersion()"
@@ -102,7 +102,7 @@
                   </span>
                 </label>
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
-                  <input type="text" class="form-select"
+                  <input data-testid="publish-connector-maintainer" type="text" class="form-select"
                          [class.input-disabled]="isExistingConnector"
                          [value]="maintainerText()"
                          (input)="onMaintainerInput($event)"
@@ -113,7 +113,7 @@
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                     <div class="maintainer-dropdown">
                       @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
-                        <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                        <div data-testid="maintainer-option" class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                       }
                     </div>
                   }
@@ -130,7 +130,7 @@
                   </span>
                 </label>
                 <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
-                  <div class="form-select license-select-trigger"
+                  <div data-testid="publish-connector-license" class="form-select license-select-trigger"
                        [class.license-placeholder]="!connectorLicense()"
                        [class.input-disabled]="isExistingConnector"
                        [attr.tabindex]="isExistingConnector ? -1 : 0"
@@ -143,7 +143,7 @@
                   @if (isLicenseDropdownOpen()) {
                     <div class="license-dropdown">
                       @for (opt of licenseTypes.options(); track opt.name) {
-                        <div class="license-option"
+                        <div data-testid="license-option" class="license-option"
                              [class.license-option-selected]="connectorLicense() === opt.name"
                              (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</div>
                       }
@@ -311,7 +311,7 @@
                   </label>
                   <div class="d-flex gap-4">
                     <div class="form-check">
-                      <input class="form-check-input" type="radio" name="devBuildTool" id="build-maven"
+                      <input data-testid="publish-connector-build-maven" class="form-check-input" type="radio" name="devBuildTool" id="build-maven"
                              [checked]="devBuildTool() === 'maven'"
                              (change)="devBuildTool.set('maven'); onFieldChange()"
                              [disabled]="isExistingConnector">
@@ -344,7 +344,7 @@
                 <div class="method-link-wrapper d-flex align-items-center"
                      [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid() && !isExistingConnector">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
-                  <input type="url" class="method-link-input flex-grow-1"
+                  <input data-testid="publish-connector-git-clone-url" type="url" class="method-link-input flex-grow-1"
                          [value]="devGitCloneUrl()"
                          (input)="devGitCloneUrl.set($any($event.target).value); onFieldChange()"
                          [disabled]="isExistingConnector"
@@ -368,7 +368,7 @@
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-tag method-link-icon-i"></i></span>
-                  <input type="text" class="method-link-input flex-grow-1"
+                  <input data-testid="publish-connector-commit" type="text" class="method-link-input flex-grow-1"
                          [value]="devCommitTag()"
                          (input)="devCommitTag.set($any($event.target).value); onFieldChange()"
                          [disabled]="isExistingConnector"
@@ -429,7 +429,7 @@
                   <div class="method-link-wrapper d-flex align-items-center"
                        [class.method-link-wrapper--invalid]="isClassNameInvalid() && !isExistingConnector">
                     <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
-                    <input type="text" class="method-link-input flex-grow-1"
+                    <input data-testid="publish-connector-class-name" type="text" class="method-link-input flex-grow-1"
                            [value]="devClassName()"
                            (input)="devClassName.set($any($event.target).value); onFieldChange()"
                            [disabled]="isExistingConnector"
@@ -450,7 +450,7 @@
     <!-- Step 6: Compatibility settings -->
     @if (internalStep() === 6) {
       <div class="step-content">
-        <h5 class="step-title">Compatibility settings</h5>
+        <h5 data-testid="publish-compat-title" class="step-title">Compatibility settings</h5>
         <p class="compat-step-desc">
           Specify which versions of midPoint, the application and connectors this integration method supports. <br />
           This helps users find Integration methods compatible with their environments.
@@ -475,7 +475,7 @@
           <div class="d-flex align-items-end gap-3 mb-2">
             <div>
               <label class="form-label form-label-upload">From version <span class="text-danger">*</span></label>
-              <select class="form-select compat-version-select"
+              <select data-testid="publish-compat-midpoint-from" class="form-select compat-version-select"
                       [ngModel]="midpointMinVersionId()"
                       (ngModelChange)="midpointMinVersionId.set($event)">
                 <option [ngValue]="null">Select version</option>
@@ -554,7 +554,7 @@
                     <span class="info-tooltip">The minimum connector version this integration method has been tested with.</span>
                   </span>
                 </label>
-                <input type="text" class="form-control"
+                <input data-testid="publish-compat-connector-from" type="text" class="form-control"
                        [value]="connectorVersionFrom()"
                        (input)="connectorVersionFrom.set($any($event.target).value)"
                        [placeholder]="connectorVersion() || '1.0.0'">
@@ -594,7 +594,7 @@
     <!-- Step 7: Review -->
     @if (internalStep() === 7) {
       <div class="step-content">
-        <h5 class="step-title">Review your setup</h5>
+        <h5 data-testid="publish-review-title" class="step-title">Review your setup</h5>
 
         <!-- Card 1: Target application -->
         <div class="review-card mb-3">
@@ -812,7 +812,7 @@
 
         <!-- Confirmation checkbox -->
         <div class="form-check publish-license-confirm mt-3">
-          <input class="form-check-input" type="checkbox" id="publishConfirmCheck"
+          <input data-testid="publish-confirm" class="form-check-input" type="checkbox" id="publishConfirmCheck"
                  [checked]="publishConfirmed()"
                  (change)="publishConfirmed.set($any($event.target).checked)">
           <label class="form-check-label" for="publishConfirmCheck">
@@ -831,17 +831,17 @@
     </button>
     <div>
       @if (internalStep() === 5) {
-        <button type="button" class="btn btn-primary btn-next" [disabled]="!isStep5Valid" (click)="nextInternalStep()">
+        <button data-testid="publish-connector-continue" type="button" class="btn btn-primary btn-next" [disabled]="!isStep5Valid" (click)="nextInternalStep()">
           Continue <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
         </button>
       }
       @if (internalStep() === 6) {
-        <button type="button" class="btn btn-primary btn-next" [disabled]="!isCompatibilityStepValid" (click)="nextInternalStep()">
+        <button data-testid="publish-compat-continue" type="button" class="btn btn-primary btn-next" [disabled]="!isCompatibilityStepValid" (click)="nextInternalStep()">
           Continue <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
         </button>
       }
       @if (internalStep() === 7) {
-        <button type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing() || !publishConfirmed()" (click)="publishIntegrationMethod()">
+        <button data-testid="publish-submit" type="button" class="btn btn-primary btn-publish" [disabled]="isPublishing() || !publishConfirmed()" (click)="publishIntegrationMethod()">
           @if (isPublishing()) {
             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
             Submitting...

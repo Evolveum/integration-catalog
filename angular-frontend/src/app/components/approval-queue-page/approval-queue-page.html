@@ -115,7 +115,7 @@
         </div>
         <label class="ss-search d-flex align-items-center gap-2">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
+          <input data-testid="approval-queue-search" type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
         </label>
       </div>
 
@@ -156,11 +156,11 @@
             </thead>
             <tbody>
               @for (rev of pagedRows(); track rev.id + ':' + rev.revision) {
-                <tr class="ss-row-clickable" (click)="openDetails(rev)">
+                <tr data-testid="approval-queue-row" class="ss-row-clickable" (click)="openDetails(rev)">
                   <td>
                     <span class="d-flex align-items-center gap-2">
                       <span class="aq-name">{{ rev.displayName }}</span>
-                      <span class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
+                      <span data-testid="approval-queue-version" class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
                     </span>
                   </td>
                   <td>
@@ -173,14 +173,14 @@
                     }
                   </td>
                   <td>
-                    <a class="ss-link" [routerLink]="['/applications', rev.applicationId]"
+                    <a data-testid="approval-queue-application-link" class="ss-link" [routerLink]="['/applications', rev.applicationId]"
                        (click)="$event.stopPropagation()">{{ rev.applicationDisplayName }}</a>
                   </td>
                   <td>
                     @if (rev.lifecycleState === 'IN_REVIEW') {
-                      <span class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span>
+                      <span data-testid="approval-queue-status-awaiting" class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span>
                     } @else {
-                      <span class="ss-badge ss-badge-reviewing"><i class="fa-solid fa-lock"></i>Under review</span>
+                      <span data-testid="approval-queue-status-reviewing" class="ss-badge ss-badge-reviewing"><i class="fa-solid fa-lock"></i>Under review</span>
                     }
                   </td>
                   <td>
@@ -194,17 +194,17 @@
                   <td [class.aq-overdue]="isOverdue(rev)">{{ inQueue(rev) }}</td>
                   <td class="aq-col-actions" (click)="$event.stopPropagation()">
                     @if (rev.lifecycleState === 'IN_REVIEW') {
-                      <button type="button" class="btn btn-sm ss-outline-btn" (click)="openStartReview(rev)">Start review</button>
+                      <button data-testid="approval-queue-start-review" type="button" class="btn btn-sm ss-outline-btn" (click)="openStartReview(rev)">Start review</button>
                     } @else {
                       <div class="ss-menu-wrap d-inline-block" [class.ss-menu-open]="openMenuKey() === rowKey(rev)">
-                        <button type="button" class="btn btn-sm aq-actions-btn d-flex align-items-center gap-2"
+                        <button data-testid="approval-queue-actions" type="button" class="btn btn-sm aq-actions-btn d-flex align-items-center gap-2"
                                 aria-haspopup="menu" [attr.aria-expanded]="openMenuKey() === rowKey(rev)"
                                 (click)="toggleMenu(rowKey(rev))">
                           Actions<i class="fa-solid fa-caret-down"></i>
                         </button>
                         @if (openMenuKey() === rowKey(rev)) {
                           <div class="ss-menu ss-menu-right aq-menu" role="menu">
-                            <button type="button" class="ss-menu-item" role="menuitem" (click)="openApprove(rev)">
+                            <button data-testid="approval-queue-approve" type="button" class="ss-menu-item" role="menuitem" (click)="openApprove(rev)">
                               <i class="fa-solid fa-check"></i>Approve
                             </button>
                             <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="reject()">

@@ -20,7 +20,7 @@
               <span class="info-tooltip">The name that will be displayed for this application in the catalog.</span>
             </span>
           </label>
-          <input type="text" class="form-control input-width-sm" [(ngModel)]="displayName" placeholder="TypeName...">
+          <input data-testid="define-new-name" type="text" class="form-control input-width-sm" [(ngModel)]="displayName" placeholder="TypeName...">
         </div>
 
         <!-- Upload Logo -->
@@ -174,7 +174,7 @@
       </div>
       <div class="define-new-modal-footer d-flex justify-content-between align-items-center">
         <button type="button" class="btn btn-link define-new-cancel-btn" (click)="cancelDefineNewModal()">Cancel</button>
-        <button type="button" class="btn btn-primary btn-next" (click)="confirmDefineNew()" [disabled]="!canSubmitForm()">
+        <button data-testid="define-new-continue" type="button" class="btn btn-primary btn-next" (click)="confirmDefineNew()" [disabled]="!canSubmitForm()">
           Continue
           <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
         </button>
@@ -270,11 +270,11 @@
               <!-- Step 2: Select Integration Method Type -->
               @if (currentStep() === 2) {
                 <div class="step-content">
-                  <h5 class="step-title">Select integration method type</h5>
+                  <h5 data-testid="publish-method-type-title" class="step-title">Select integration method type</h5>
                   <p class="step-subtitle">Choose one or more integration method types to best fit your environment. You can select multiple methods to create a hybrid integration tailored to your environment.</p>
                   <div class="im-grid">
                     @for (method of integrationMethodTypes(); track method.id) {
-                      <div class="im-card" [class.im-card-selected]="isMethodSelected(method.displayName)" (click)="toggleIntegrationMethod(method.displayName)">
+                      <div data-testid="publish-method-type-card" class="im-card" [class.im-card-selected]="isMethodSelected(method.displayName)" (click)="toggleIntegrationMethod(method.displayName)">
                         <div class="d-flex align-items-center">
                           <input type="checkbox" class="im-checkbox flex-shrink-0 me-2"
                                  [checked]="isMethodSelected(method.displayName)">
@@ -310,7 +310,7 @@
                           <span class="info-tooltip">The display name for this integration in the catalog.</span>
                         </span>
                       </label>
-                      <input type="text" class="form-control" [(ngModel)]="methodFormDisplayName" placeholder="Type name...">
+                      <input data-testid="publish-method-name" type="text" class="form-control" [(ngModel)]="methodFormDisplayName" placeholder="Type name...">
                     </div>
                     <div>
                       <label class="form-label d-flex align-items-center form-label-upload">
@@ -334,7 +334,7 @@
                       </span>
                     </label>
                     <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
-                      <input type="text" class="form-select"
+                      <input data-testid="publish-method-maintainer" type="text" class="form-select"
                              [value]="maintainerText()"
                              (input)="onMaintainerInput($event)"
                              (focus)="onMaintainerFocus()"
@@ -343,7 +343,7 @@
                       @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
                         <div class="maintainer-dropdown">
                           @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
-                            <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                            <div data-testid="maintainer-option" class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
                           }
                         </div>
                       }
@@ -447,7 +447,7 @@
                   <h5 class="step-title">Select connector type</h5>
 
                   <!-- Option 1: Java-based Connector -->
-                  <div class="connector-option mb-3 connector-option-card"
+                  <div data-testid="publish-connector-type-java" class="connector-option mb-3 connector-option-card"
                        [class.selected]="selectedConnectorType() === 'java-based'"
                        (click)="selectConnectorType('java-based')">
                     <div class="d-flex align-items-center">
@@ -611,7 +611,7 @@
                   @if (!selectedApplication() && !isDefineNewMode() && (!searchQuery() || filteredApplications().length === 0)) {
                     <div class="text-center py-4">
                       <p class="text-muted mb-3">Didn't find your app in the database? Add a new one!</p>
-                      <button type="button" class="btn d-inline-flex align-items-center btn-define-new" (click)="enterDefineNewMode()">
+                      <button data-testid="publish-define-new" type="button" class="btn d-inline-flex align-items-center btn-define-new" (click)="enterDefineNewMode()">
                         <i class="fa-solid fa-circle-plus me-2 trash-icon"></i>
                         Define new
                       </button>
@@ -641,19 +641,19 @@
                   </button>
                 }
                 @if (currentStep() === 2) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="selectedIntegrationMethod().length === 0">
+                  <button data-testid="publish-method-type-continue" type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="selectedIntegrationMethod().length === 0">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
                 }
                 @if (currentStep() === 3) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !methodFormMaintainer() || !capabilitiesValid()">
+                  <button data-testid="publish-method-continue" type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!methodFormDisplayName() || !methodFormVersion() || !methodFormMaintainer() || !capabilitiesValid()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
                 }
                 @if (currentStep() === 4) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedConnectorType()">
+                  <button data-testid="publish-connector-type-continue" type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!selectedConnectorType()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
