@@ -5,13 +5,14 @@
  */
 
 /** A connector's support tier, held as a connector tag; null means no tier yet. */
-export type SupportTier = 'STANDARD' | 'ADVANCED' | 'PREMIUM';
+export type SupportTier = 'STANDARD' | 'ADVANCED' | 'PREMIUM' | 'ENTERPRISE';
 
 /** Lowest first: a subscription to a tier covers that tier and every one before it. tagName = connector_tag.name holding it. */
 export const SUPPORT_TIERS: { value: SupportTier; label: string; tagName: string }[] = [
   { value: 'STANDARD', label: 'Standard', tagName: 'supp_tier_standard' },
   { value: 'ADVANCED', label: 'Advanced', tagName: 'supp_tier_advanced' },
-  { value: 'PREMIUM', label: 'Premium', tagName: 'supp_tier_premium' }
+  { value: 'PREMIUM', label: 'Premium', tagName: 'supp_tier_premium' },
+  { value: 'ENTERPRISE', label: 'Enterprise', tagName: 'supp_tier_enterprise' }
 ];
 
 export function supportTierLabel(tier: SupportTier | null | undefined): string {

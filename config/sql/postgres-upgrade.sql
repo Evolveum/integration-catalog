@@ -803,6 +803,14 @@ UPDATE connector_tag SET display_name = 'Deprecated' WHERE name = 'obsolete';
 $aa$);
 -- end of region
 
+-- region change 29: Enterprise support tier
+-- A fourth tier above Premium. A subscription covers its own tier and every one below it, so Enterprise
+-- covers Standard, Advanced and Premium too; that order lives in the code (SupportTier), not here.
+call apply_change(29, $aa$
+INSERT INTO connector_tag (name, display_name) VALUES ('supp_tier_enterprise', 'Enterprise');
+$aa$);
+-- end of region
+
 -- Append new apply_change sections above this line. For every new change N (3 and higher):
 --   1. add a "-- region change N: <name>" section here containing
 --        call apply_change(N, $aa$
