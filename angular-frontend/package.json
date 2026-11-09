@@ -1,6 +1,6 @@
 {
   "name": "ic-frontend-ngmodule",
-  "version": "1.0.3",
+  "version": "1.0.4-SNAPSHOT",
   "license": "EUPL-1.2",
   "scripts": {
     "ng": "ng",
