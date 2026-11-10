@@ -519,41 +519,42 @@ public class Controller {
 
     // ==================== Logo Endpoints ====================
 
-    @Operation(summary = "Upload application logo",
-            description = "Uploads a logo image for an application. Supported formats: PNG, JPEG, GIF, SVG, WebP")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Logo uploaded successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid file (wrong type, too large, or empty)"),
-            @ApiResponse(responseCode = "404", description = "Application not found"),
-            @ApiResponse(responseCode = "500", description = "Failed to save logo file")
-    })
-    @PostMapping(value = "/applications/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadLogo(
-            @PathVariable UUID id,
-            @RequestParam("file") MultipartFile file,
-            Authentication authentication) {
-        try {
-            logoStorageService.saveLogo(id, file, authentication);
-            return ResponseEntity.ok().build();
-        } catch (ResponseStatusException ex) {
-            throw ex;
-        } catch (IllegalArgumentException ex) {
-            log.warn("uploadLogo rejected: {}", ex.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
-        } catch (RuntimeException ex) {
-            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
-                log.warn("uploadLogo rejected: {}", ex.getMessage());
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
-            }
-            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to upload logo: " + ex.getMessage(), ex);
-        } catch (IOException ex) {
-            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to save logo file: " + ex.getMessage(), ex);
-        }
-    }
+    // Logo upload disabled until the legal matters around logos are finalised; uncomment to restore it.
+    // @Operation(summary = "Upload application logo",
+            // description = "Uploads a logo image for an application. Supported formats: PNG, JPEG, GIF, SVG, WebP")
+    // @ApiResponses(value = {
+            // @ApiResponse(responseCode = "200", description = "Logo uploaded successfully"),
+            // @ApiResponse(responseCode = "400", description = "Invalid file (wrong type, too large, or empty)"),
+            // @ApiResponse(responseCode = "404", description = "Application not found"),
+            // @ApiResponse(responseCode = "500", description = "Failed to save logo file")
+    // })
+    // @PostMapping(value = "/applications/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // public ResponseEntity<Void> uploadLogo(
+            // @PathVariable UUID id,
+            // @RequestParam("file") MultipartFile file,
+            // Authentication authentication) {
+        // try {
+            // logoStorageService.saveLogo(id, file, authentication);
+            // return ResponseEntity.ok().build();
+        // } catch (ResponseStatusException ex) {
+            // throw ex;
+        // } catch (IllegalArgumentException ex) {
+            // log.warn("uploadLogo rejected: {}", ex.getMessage());
+            // throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        // } catch (RuntimeException ex) {
+            // if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                // log.warn("uploadLogo rejected: {}", ex.getMessage());
+                // throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            // }
+            // log.error("uploadLogo failed: {}", ex.getMessage(), ex);
+            // throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    // "Failed to upload logo: " + ex.getMessage(), ex);
+        // } catch (IOException ex) {
+            // log.error("uploadLogo failed: {}", ex.getMessage(), ex);
+            // throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    // "Failed to save logo file: " + ex.getMessage(), ex);
+        // }
+    // }
 
     @Operation(summary = "Upload tutorial file for an integration method",
             description = "Uploads a tutorial document (PDF, XML, JSON, YAML, TXT) for an integration method. Stored on disk; path saved to integration_method.file_path.")
