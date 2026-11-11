@@ -31,7 +31,7 @@
         <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-warning">
           <div class="d-flex align-items-center gap-2">
             <i class="fa-solid fa-triangle-exclamation icon-xxl"></i>
-            <strong>Permission Denied</strong>
+            <strong data-testid="applications-permission-denied">Permission Denied</strong>
           </div>
           <button type="button" class="btn-close" (click)="closePermissionDeniedMessage()" aria-label="Close"></button>
         </div>
@@ -111,7 +111,7 @@
             <span class="input-group-text bg-white border-end-0 search-icon-container">
               <i class="fa-solid fa-magnifying-glass search-icon"></i>
             </span>
-            <input
+            <input data-testid="applications-search"
               type="text"
               class="form-control border-start-0 search-input"
               placeholder="Search by name or description..."
@@ -286,7 +286,7 @@
         <div class="scroll-container overflow-x-auto overflow-y-hidden" #scrollContainer (scroll)="onScroll()">
           <div class="d-flex gap-4">
             @for (app of featuredApplications(); track app.id) {
-              <div #featuredCard class="card position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
+              <div data-testid="applications-card" #featuredCard class="card position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
                 <!-- Status indicators at top right -->
                 <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                   @if (isPopular(app)) {
@@ -296,7 +296,7 @@
                     </span>
                   }
                   @if (app.lifecycleState === 'REQUESTED') {
-                    <span class="badge badge-requested-card">
+                    <span data-testid="applications-card-requested" class="badge badge-requested-card">
                       Requested
                     </span>
                   }
@@ -332,7 +332,7 @@
                   <!-- Bottom section based on lifecycle state -->
                   @if (app.lifecycleState === 'REQUESTED') {
                     <div class="mt-auto">
-                      <button class="btn btn-sm btn-vote w-100"
+                      <button data-testid="applications-card-vote" class="btn btn-sm btn-vote w-100"
                               [disabled]="!canVote()"
                               [style.opacity]="canVote() ? '1' : '0.6'"
                               [style.cursor]="canVote() ? 'pointer' : 'not-allowed'"
@@ -397,7 +397,7 @@
       <div class="apps-grid mb-4 mx-auto content-width">
         @for (app of moreApplications(); track app.id) {
           <div>
-            <div class="card shadow-sm position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
+            <div data-testid="applications-card" class="card shadow-sm position-relative app-card" role="button" tabindex="0" (click)="navigateToDetail(app.id)" (keydown.enter)="navigateToDetail(app.id)">
               <!-- Status indicators at top right -->
               <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
                 @if (isPopular(app)) {
@@ -407,7 +407,7 @@
                   </span>
                 }
                 @if (app.lifecycleState === 'REQUESTED') {
-                  <span class="badge badge-requested-card">
+                  <span data-testid="applications-card-requested" class="badge badge-requested-card">
                     Requested
                   </span>
                 }
@@ -443,7 +443,7 @@
                 <!-- Bottom section based on lifecycle state -->
                 @if (app.lifecycleState === 'REQUESTED') {
                   <div class="mt-auto">
-                    <button class="btn btn-sm btn-vote w-100"
+                    <button data-testid="applications-card-vote" class="btn btn-sm btn-vote w-100"
                             [disabled]="!currentUser()"
                             [style.opacity]="currentUser() ? '1' : '0.6'"
                             [style.cursor]="currentUser() ? 'pointer' : 'not-allowed'"
@@ -552,7 +552,7 @@
               <p class="text mb-0">Need a specific integration or customization? Reach out to the Evolveum team or<br>partners to build a solution that fits your exact use case and infrastructure.</p>
             </div>
             <div class="flex-shrink-0 ms-4">
-              <button class="btn btn-option" (click)="openRequestModal()">
+              <button data-testid="applications-send-request" class="btn btn-option" (click)="openRequestModal()">
                 <i class="fa-solid fa-code-pull-request icon-xl"></i>
                 Send a request
               </button>

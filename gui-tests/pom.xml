@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+	Copyright (c) 2010-2026 Evolveum and contributors
+
+	Licensed under the EUPL-1.2 or later.
+-->
+
+<!-- Standalone on purpose: the root pom is a jar and cannot aggregate modules, and building the
+     backend must not need a browser or a running catalog. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.evolveum.midpoint</groupId>
+	<artifactId>integration-catalog-gui-tests</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<name>integration-catalog-gui-tests</name>
+	<description>Browser tests of the MidPoint Integration catalog</description>
+
+	<properties>
+		<maven.compiler.release>21</maven.compiler.release>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<playwright.version>1.64.0</playwright.version>
+		<junit.version>6.1.3</junit.version>
+		<surefire.version>3.6.1</surefire.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.microsoft.playwright</groupId>
+			<artifactId>playwright</artifactId>
+			<version>${playwright.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>${surefire.version}</version>
+				<configuration>
+					<trimStackTrace>false</trimStackTrace>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>

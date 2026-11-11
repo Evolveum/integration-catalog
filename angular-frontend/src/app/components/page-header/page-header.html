@@ -15,7 +15,7 @@
         'text-bg-danger': toast.type === 'danger',
         'text-bg-info': toast.type === 'info'
       }">
-      <strong class="me-auto">
+      <strong data-testid="toast-title" class="me-auto">
         {{ toast.title }}
       </strong>
       <button type="button" class="btn-close" [class.btn-close-white]="toast.type !== 'warning'" (click)="closeToast()">
@@ -76,7 +76,7 @@
               <a class="user-menu-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
               <a data-testid="header-menu-approval-queue" class="user-menu-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
             } @else {
-              <a class="user-menu-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
+              <a data-testid="header-menu-my-methods" class="user-menu-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
               <a class="user-menu-item" role="menuitem" routerLink="/my-connectors" (click)="closeMenu()">My connectors</a>
             }
             <div class="user-menu-separator"></div>

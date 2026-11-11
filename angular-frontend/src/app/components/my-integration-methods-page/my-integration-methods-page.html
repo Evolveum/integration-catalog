@@ -213,7 +213,7 @@
 
         <label class="ss-search d-flex align-items-center gap-2">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
+          <input data-testid="my-methods-search" type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
         </label>
       </div>
 
@@ -244,7 +244,7 @@
         </div>
       } @else {
         @for (group of pagedGroups(); track group.id) {
-          <section class="ss-group">
+          <section data-testid="my-methods-group" class="ss-group">
             <div class="ss-group-head d-flex align-items-center">
               <button type="button" class="ss-collapse" (click)="toggleGroup(group.id)"
                       [attr.aria-expanded]="!isCollapsed(group.id)" aria-label="Toggle versions">
@@ -307,10 +307,10 @@
                 </thead>
                 <tbody>
                   @for (rev of group.revisions; track rev.revision) {
-                    <tr class="ss-row-clickable" (click)="openDetails(rev)">
+                    <tr data-testid="my-methods-row" class="ss-row-clickable" (click)="openDetails(rev)">
                       <td>
                         <div class="d-flex align-items-center gap-3">
-                          <span class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
+                          <span data-testid="my-methods-version" class="ss-version-chip">{{ versionBadge(rev.revision) }}</span>
                           <div class="im-version-text">
                             <div>{{ rev.displayName }}</div>
                             <div class="ss-cell-sub">
@@ -344,14 +344,14 @@
                       <td>
                         @switch (rev.lifecycleState) {
                           @case ('ACTIVE') { <span class="ss-badge ss-badge-published"><i class="fa-regular fa-circle-check"></i>Published</span> }
-                          @case ('IN_REVIEW') { <span class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span> }
+                          @case ('IN_REVIEW') { <span data-testid="my-methods-status-awaiting" class="ss-badge ss-badge-awaiting"><i class="fa-solid fa-hourglass-half"></i>Awaiting approval</span> }
                           @case ('REVIEWING') { <span class="ss-badge ss-badge-reviewing"><i class="fa-solid fa-lock"></i>Under review</span> }
                           @case ('REJECTED') { <span class="ss-badge ss-badge-rejected"><i class="fa-solid fa-xmark"></i>Rejected</span> }
                         }
                       </td>
                       <td class="ss-col-actions" (click)="$event.stopPropagation()">
                         <div class="ss-menu-wrap d-inline-block" [class.ss-menu-open]="openMenuKey() === rowKey(rev)">
-                          <button type="button" class="ss-kebab" aria-haspopup="menu" aria-label="Version actions"
+                          <button data-testid="my-methods-row-actions" type="button" class="ss-kebab" aria-haspopup="menu" aria-label="Version actions"
                                   [attr.aria-expanded]="openMenuKey() === rowKey(rev)" (click)="toggleMenu(rowKey(rev))">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
                           </button>
@@ -365,9 +365,9 @@
                                     <button type="button" class="ss-menu-item" role="menuitem" (click)="openStartReview(rev)">Start review</button>
                                     <div class="ss-menu-separator"></div>
                                   }
-                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <button data-testid="my-methods-edit" type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
                                   <div class="ss-menu-separator"></div>
-                                  <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="openCancel(rev)">
+                                  <button data-testid="my-methods-cancel" type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="openCancel(rev)">
                                     <i class="fa-solid fa-trash-can"></i>Cancel request
                                   </button>
                                 }
@@ -379,7 +379,7 @@
                                     <div class="ss-menu-separator"></div>
                                   }
                                   <!-- Locked for the author while a review runs; disabled so they see why. -->
-                                  <button type="button" class="ss-menu-item" role="menuitem" [disabled]="!canEdit(rev)"
+                                  <button data-testid="my-methods-edit" type="button" class="ss-menu-item" role="menuitem" [disabled]="!canEdit(rev)"
                                           (click)="openEdit(rev)">Edit and upgrade</button>
                                   @if (showReviewActions && isSuperuser()) {
                                     <div class="ss-menu-separator"></div>
@@ -389,7 +389,7 @@
                                   }
                                 }
                                 @case ('ACTIVE') {
-                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <button data-testid="my-methods-edit" type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
                                   <button type="button" class="ss-menu-item" role="menuitem" (click)="download(rev)">Download</button>
                                   <div class="ss-menu-separator"></div>
                                   <button type="button" class="ss-menu-item ss-menu-item-danger" role="menuitem" (click)="deletePublished()">
@@ -397,7 +397,7 @@
                                   </button>
                                 }
                                 @default {
-                                  <button type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
+                                  <button data-testid="my-methods-edit" type="button" class="ss-menu-item" role="menuitem" (click)="openEdit(rev)">Edit and upgrade</button>
                                 }
                               }
                             </div>
@@ -442,7 +442,7 @@
       <hr class="cancel-confirm-separator">
       <div class="cancel-confirm-footer d-flex justify-content-end align-items-center gap-3">
         <button type="button" class="btn cancel-keep-btn" (click)="closeCancel()">Keep request</button>
-        <button type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmCancel()">
+        <button data-testid="cancel-request-confirm" type="button" class="btn cancel-confirm-btn d-flex align-items-center gap-2" (click)="confirmCancel()">
           <i class="fa-solid fa-trash-can"></i>Cancel request
         </button>
       </div>
