@@ -120,13 +120,13 @@
             } @else if (mode === 'approve') {
               <strong>Support ticket still open</strong>
               @if (ticketStatus()) {
-                <div>Ticket <strong>#{{ ticketId() }}</strong> is <strong>{{ ticketStatus() }}</strong>. Approval unlocks once the review is finished in the support portal.</div>
+                <div>Ticket <strong data-testid="approval-ticket-id">#{{ ticketId() }}</strong> is <strong>{{ ticketStatus() }}</strong>. Approval unlocks once the review is finished in the support portal.</div>
               } @else {
-                <div>Finish the review of ticket <strong>#{{ ticketId() }}</strong> in the support portal before approving.</div>
+                <div>Finish the review of ticket <strong data-testid="approval-ticket-id">#{{ ticketId() }}</strong> in the support portal before approving.</div>
               }
             } @else {
               <strong>Reason not added yet</strong>
-              <div>Add reason to ticket <strong>#{{ ticketId() }}</strong> in the support portal. It'll show here once saved.</div>
+              <div>Add reason to ticket <strong data-testid="approval-ticket-id">#{{ ticketId() }}</strong> in the support portal. It'll show here once saved.</div>
             }
             @if (ticketUrl(); as url) {
               <a class="approval-ticket-link d-inline-flex align-items-center gap-2 mt-2" [href]="url" target="_blank" rel="noopener">
@@ -135,7 +135,7 @@
             }
           </div>
         </div>
-        <button type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2"
+        <button data-testid="approval-refresh" type="button" class="btn approval-refresh-btn d-flex align-items-center justify-content-center gap-2"
                 [disabled]="loading()" (click)="refresh()">
           <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="loading()"></i>Refresh to check again
         </button>
@@ -146,7 +146,7 @@
           <div class="approval-notice-content">
             @if (mode === 'approve') {
               @if (ticketId()) {
-                <strong>Support ticket ready</strong>
+                <strong data-testid="approval-ticket-ready">Support ticket ready</strong>
                 <div>Ticket #{{ ticketId() }} is {{ ticketStatus() }}.</div>
               } @else {
                 <strong data-testid="approval-no-ticket">No support ticket</strong>

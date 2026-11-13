@@ -18,13 +18,20 @@ These must be running:
 - the frontend on `http://localhost:4200`
 - Keycloak with the `integration-catalog` realm
 - the database
-- a backend started with the support portal and the retry job switched off:
+- the backend, with the support portal (OpenProject) on or off
 
-  ```
-  -Dopenproject.enabled=false -Dpending-operations.cron=-
-  ```
+With the portal on, a superuser can approve only after the review ticket is closed in OpenProject.
+The tests close it through OpenProject's REST API, so they need an API key in the environment
+(not as a `-D` option, which Surefire would copy into its reports):
 
-  With the portal off, submitting opens no ticket and the approval dialog shows *No support ticket*.
+```
+set GUI_OPENPROJECT_API_KEY=<key>                         (cmd)
+$env:GUI_OPENPROJECT_API_KEY = "<key>"                    (PowerShell)
+```
+
+Every test run then also leaves tickets in the portal. With the portal off
+(`-Dopenproject.enabled=false -Dpending-operations.cron=-` on the backend), nothing is needed: the
+approval dialog shows *No support ticket*.
 
 ## Running
 
@@ -45,6 +52,7 @@ runs do neither.
 | `-Dgui.contributor.username` | `u3` | an individual contributor |
 | `-Dgui.readOnly.username` | `u2` | a read-only user |
 | `-Dgui.<user>.password` | the username | e.g. `-Dgui.contributor.password=secret` |
+| `-Dgui.openproject.url` | `http://localhost:8090` | the support portal, when it is on |
 | `-Dgui.headless=false` | `true` | show the browser when debugging a failure |
 | `-Dgui.timeoutMs` | `20000` | how long an action or a check waits; raise it for a slow environment |
 | `-Dtest=AdminFlowTest` | all | run one class |

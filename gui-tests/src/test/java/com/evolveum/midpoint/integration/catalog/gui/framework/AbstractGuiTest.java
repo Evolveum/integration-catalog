@@ -36,6 +36,7 @@ public abstract class AbstractGuiTest {
     protected static final Account SUPERUSER = Account.fromProperties("superuser", "u5");
     protected static final Account CONTRIBUTOR = Account.fromProperties("contributor", "u3");
     protected static final Account READ_ONLY = Account.fromProperties("readOnly", "u2");
+    protected static final SupportPortal SUPPORT_PORTAL = new SupportPortal();
 
     private static final String BASE_URL = System.getProperty("gui.baseUrl", "http://localhost:4200");
     private static final boolean HEADLESS = Boolean.parseBoolean(System.getProperty("gui.headless", "true"));

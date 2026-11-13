@@ -38,7 +38,7 @@ class AdminFlowTest extends AbstractGuiTest {
     @Test
     void adminPublishesMethodThenSavesAndUpgradesIt() {
         Header header = new Header(page);
-        ApprovalQueue queue = new ApprovalQueue(ui);
+        ApprovalQueue queue = new ApprovalQueue(ui, SUPPORT_PORTAL);
         ApplicationDetail application = new ApplicationDetail(page);
         MethodEditForm editForm = new MethodEditForm(ui);
 

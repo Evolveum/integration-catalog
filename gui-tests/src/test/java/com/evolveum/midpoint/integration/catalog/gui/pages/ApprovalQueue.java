@@ -8,16 +8,24 @@ package com.evolveum.midpoint.integration.catalog.gui.pages;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.evolveum.midpoint.integration.catalog.gui.framework.SupportPortal;
 import com.evolveum.midpoint.integration.catalog.gui.framework.Ui;
 import com.microsoft.playwright.Locator;
 
-/** Approval needs a backend with the support portal off, so the dialog shows "No support ticket". */
+/** Works with the support portal on or off; see {@link SupportPortal}. */
 public final class ApprovalQueue {
 
-    private final Ui ui;
+    private static final Pattern TICKET_ID = Pattern.compile("#(\\d+)");
 
-    public ApprovalQueue(Ui ui) {
+    private final Ui ui;
+    private final SupportPortal portal;
+
+    public ApprovalQueue(Ui ui, SupportPortal portal) {
         this.ui = ui;
+        this.portal = portal;
     }
 
     /** @param versionBadge the major version as the row shows it, e.g. {@code v1} for both 1.0 and 1.1 */
@@ -62,10 +70,26 @@ public final class ApprovalQueue {
         row.getByTestId("approval-queue-approve").click();
     }
 
+    /**
+     * The ticket step ends in one of three ways: no ticket (portal off, or not opened yet), a ticket
+     * already closed, or an open ticket, which is closed in the portal and then rechecked.
+     */
     private void confirmApproval() {
         ui.expectVisible("approval-build-info-complete");
         ui.click("approval-continue");
-        ui.expectVisible("approval-no-ticket");
+
+        // The id reads just "#" while the ticket is loading, so only a number means it is still open.
+        Locator openTicket = ui.element("approval-ticket-id").filter(new Locator.FilterOptions().setHasText(TICKET_ID));
+        Locator outcome = ui.element("approval-no-ticket").or(ui.element("approval-ticket-ready")).or(openTicket);
+        outcome.first().waitFor();
+        if (openTicket.isVisible()) {
+            Matcher id = TICKET_ID.matcher(openTicket.textContent());
+            id.find();
+            portal.closeTicket(Integer.parseInt(id.group(1)));
+            ui.click("approval-refresh");
+            ui.expectVisible("approval-ticket-ready");
+        }
+
         ui.click("approval-confirm");
         ui.expectHidden("approval-dialog");
     }
