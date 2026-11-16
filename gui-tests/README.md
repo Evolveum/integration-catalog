@@ -13,7 +13,27 @@ The tests follow the base flow guides in `docs/`:
 | `ContributorFlowTest` | contributor guide, sections 3 and 4: publish, find the method in *My integration methods*, change it with *Save* while it awaits approval (1.0 becomes 1.1 in place), cancel the request |
 | `ApiKeyFlowTest` | a contributor creates an API key in *Settings* and revokes it; needs Gravitee (see below) |
 
-## Before a run
+## Running in Docker (CI)
+
+Only Docker is needed. `compose.yml` builds the catalog image (`docker/Dockerfile`) and starts it
+with an empty database, Keycloak with the development realm, a seeded OpenProject and Gravitee, then
+runs the tests in Playwright's image. From the repository root:
+
+```
+docker compose -f gui-tests/compose.yml run --rm --build gui-tests
+docker compose -f gui-tests/compose.yml down -v
+```
+
+The first command returns the tests' exit code, and the reports land in `gui-tests/target`. The
+second throws the whole stack away, so the next run starts from an empty database again and no
+cleanup is needed. No port is published, so the stack can run next to the local services.
+
+The stack needs about 8 GB of memory, and a cold start (image build, OpenProject's first boot) takes
+several minutes. Its fixtures are `docker/keycloak` (a copy of the development realm) and
+`docker/openproject` (a copy of `openProject/openproject-db/seed.sql.gz`); Gravitee is set up by
+`docker/gravitee/seed.sh` from the repository root.
+
+## Running against local services
 
 These must be running:
 
@@ -32,9 +52,8 @@ $env:GUI_OPENPROJECT_API_KEY = "<key>"                    (PowerShell)
 ```
 
 `ApiKeyFlowTest` needs Gravitee (`docker/gravitee`) and the backend started with the
-`-Dgravitee.*` options that `docker/gravitee/seed.sh` prints. Gravitee must also allow shared API
-keys (console: *Settings → API keys*, or `plan.security.sharedApiKey.enabled`), otherwise creating
-a key fails with HTTP 502.
+`-Dgravitee.*` options that `docker/gravitee/seed.sh` prints. The script also makes Gravitee allow
+shared API keys; without that, creating a key fails with HTTP 502.
 
 Every test run then also leaves tickets in the portal. With the portal off
 (`-Dopenproject.enabled=false -Dpending-operations.cron=-` on the backend), nothing is needed: the
