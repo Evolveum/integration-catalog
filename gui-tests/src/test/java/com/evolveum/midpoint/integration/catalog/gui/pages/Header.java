@@ -50,6 +50,17 @@ public final class Header {
         ui.click("header-menu-my-methods");
     }
 
+    /** Superuser only; a contributor has "My connectors" instead. */
+    public void openAllConnectors() {
+        ui.click("header-user-menu");
+        ui.click("header-menu-all-connectors");
+    }
+
+    public void openSettings() {
+        ui.click("header-user-menu");
+        ui.click("header-menu-settings");
+    }
+
     public void expectToast(String title) {
         assertThat(ui.element("toast-title")).hasText(title);
     }

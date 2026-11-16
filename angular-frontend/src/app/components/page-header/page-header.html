@@ -73,14 +73,14 @@
             <!-- A superuser sees every method and connector in the catalog instead of their own, plus the approval queue. -->
             @if (isSuperuser()) {
               <a class="user-menu-item" role="menuitem" routerLink="/all-integration-methods" (click)="closeMenu()">All integration methods</a>
-              <a class="user-menu-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
+              <a data-testid="header-menu-all-connectors" class="user-menu-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
               <a data-testid="header-menu-approval-queue" class="user-menu-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
             } @else {
               <a data-testid="header-menu-my-methods" class="user-menu-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
               <a class="user-menu-item" role="menuitem" routerLink="/my-connectors" (click)="closeMenu()">My connectors</a>
             }
             <div class="user-menu-separator"></div>
-            <a class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
+            <a data-testid="header-menu-settings" class="user-menu-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
             <div class="user-menu-separator"></div>
             <button class="user-menu-item user-menu-item-danger" type="button" role="menuitem" (click)="logout()">
               <i class="fa-solid fa-power-off"></i>

@@ -16,7 +16,7 @@
 
     <div class="create-key-body">
       <label class="create-key-label" for="api-key-name">Key name</label>
-      <input id="api-key-name" class="create-key-input" type="text" autocomplete="off"
+      <input data-testid="api-key-name" id="api-key-name" class="create-key-input" type="text" autocomplete="off"
         placeholder="My new key" [ngModel]="name()" (ngModelChange)="name.set($event)">
       <p class="create-key-help">Use a name that describes where this key will be used.</p>
 
@@ -43,7 +43,7 @@
 
     <div class="create-key-footer d-flex align-items-center">
       <button type="button" class="create-key-cancel" (click)="onClose()">Cancel</button>
-      <button type="button" class="create-key-submit ms-auto" [disabled]="!canSubmit() || busy"
+      <button data-testid="api-key-create-submit" type="button" class="create-key-submit ms-auto" [disabled]="!canSubmit() || busy"
         (click)="onCreate()">
         {{ busy ? 'Creating...' : 'Create API key' }}
       </button>

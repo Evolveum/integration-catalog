@@ -278,7 +278,7 @@
                   <i class="fa-solid fa-screwdriver-wrench"></i>Set up compatibility
                 </button>
                 @if (canEditConnector(c)) {
-                  <button type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
+                  <button data-testid="edit-connector-edit" type="button" class="btn p-0 edit-connector-edit-btn d-flex align-items-center gap-1"
                           (click)="openEditConnector(c)">
                     <i class="fa-solid fa-pencil"></i>Edit
                   </button>

@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.gui.framework;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+import com.microsoft.playwright.Download;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.SelectOption;
@@ -38,6 +39,18 @@ public final class Ui {
 
     public void fill(String testId, String value) {
         element(testId).fill(value);
+    }
+
+    /** For a Markdown editor (EasyMDE), which ignores {@code fill}: replaces its text by typing. */
+    public void typeMarkdown(String testId, String text) {
+        element(testId).click();
+        page.keyboard().press("ControlOrMeta+A");
+        page.keyboard().type(text);
+    }
+
+    /** Clicks a button that makes the browser save a file, and returns that file. */
+    public Download download(String testId) {
+        return page.waitForDownload(() -> click(testId));
     }
 
     public void check(String testId) {

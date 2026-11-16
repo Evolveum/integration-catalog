@@ -19,7 +19,7 @@
       <button type="button" class="settings-tab" [class.settings-tab-active]="activeTab() === 'profile'"
               (click)="activeTab.set('profile')">Profile
       </button>
-      <button type="button" class="settings-tab" [class.settings-tab-active]="activeTab() === 'api-keys'"
+      <button data-testid="settings-tab-api-keys" type="button" class="settings-tab" [class.settings-tab-active]="activeTab() === 'api-keys'"
               (click)="activeTab.set('api-keys')">API keys
       </button>
     </div>

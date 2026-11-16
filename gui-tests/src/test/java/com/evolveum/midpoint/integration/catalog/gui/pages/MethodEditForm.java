@@ -33,6 +33,24 @@ public final class MethodEditForm {
         ui.fill("edit-method-limitations", limitations);
     }
 
+    /** The changes in the connector dialog take effect only with Save or Save as new version. */
+    public void changeConnectorDescription(String description) {
+        ui.click("edit-connector-edit");
+        ui.typeMarkdown("edit-connector-description", description);
+        confirmConnector();
+    }
+
+    public void changeConnectorVersion(String version) {
+        ui.click("edit-connector-edit");
+        ui.fill("edit-connector-version", version);
+        confirmConnector();
+    }
+
+    private void confirmConnector() {
+        ui.click("edit-connector-confirm");
+        ui.expectHidden("edit-connector-confirm");
+    }
+
     /** Creates the next minor version. */
     public void save() {
         ui.click("edit-save");

@@ -503,7 +503,7 @@
                   <!-- Choose from existing connectors -->
                   <div class="connector-existing-link">
                     Do you want to use an existing connector?
-                    <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openConnectorCatalogModal()">
+                    <button data-testid="publish-connector-existing" type="button" class="connector-existing-anchor btn-link-inline" (click)="openConnectorCatalogModal()">
                       Select one from the catalog.
                     </button>
                   </div>
@@ -523,7 +523,7 @@
                         <span class="search-icon-wrapper d-flex align-items-center">
                           <i class="fa-solid fa-magnifying-glass search-icon"></i>
                         </span>
-                        <input
+                        <input data-testid="publish-application-search"
                           type="text"
                           class="search-input flex-grow-1"
                           [value]="searchQuery()"
@@ -591,7 +591,7 @@
                   @if (searchQuery() && filteredApplications().length > 0) {
                     <div class="search-results mb-4">
                       @for (app of filteredApplications(); track app.id) {
-                        <div class="card mb-3 app-card" (click)="selectApplication(app)">
+                        <div data-testid="publish-application-result" class="card mb-3 app-card" (click)="selectApplication(app)">
                           <div class="card-body d-flex align-items-start app-card-body">
                             <div class="flex-shrink-0 me-3">
                               <div class="app-avatar d-flex align-items-center justify-content-center">
@@ -636,7 +636,7 @@
               }
               <div>
                 @if (currentStep() === 1) {
-                  <button type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!canContinueStep1()">
+                  <button data-testid="publish-application-continue" type="button" class="btn btn-primary btn-next" (click)="nextStep()" [disabled]="!canContinueStep1()">
                     Continue
                     <i class="fa-solid fa-arrow-right ms-2 btn-next-icon"></i>
                   </button>
@@ -731,7 +731,7 @@
             <span class="search-icon-wrapper d-flex align-items-center">
               <i class="fa-solid fa-magnifying-glass search-icon"></i>
             </span>
-            <input
+            <input data-testid="connector-catalog-search"
               type="text"
               class="search-input flex-grow-1"
               [value]="connectorCatalogSearch()"
@@ -761,7 +761,7 @@
           </div>
         } @else {
           @for (connector of filteredCatalogConnectors(); track connector.id) {
-            <div class="cc-connector-item"
+            <div data-testid="connector-catalog-item" class="cc-connector-item"
                  [class.selected]="selectedCatalogConnector()?.id === connector.id"
                  (click)="selectedCatalogConnector.set(connector)">
               <input type="radio"
@@ -794,7 +794,7 @@
       <!-- Footer -->
       <div class="cc-modal-footer d-flex justify-content-end align-items-center gap-3">
         <button type="button" class="btn define-new-cancel-btn" (click)="closeConnectorCatalogModal()">Cancel</button>
-        <button type="button" class="btn btn-primary btn-next"
+        <button data-testid="connector-catalog-continue" type="button" class="btn btn-primary btn-next"
                 [disabled]="!selectedCatalogConnector()"
                 (click)="confirmCatalogSelection()">
           Continue

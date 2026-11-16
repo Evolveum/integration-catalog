@@ -13,7 +13,7 @@
   </div>
   <!-- The empty state carries its own buttons, so this one appears only next to a list. -->
   @if (activeKeys().length > 0) {
-    <button type="button" class="keys-btn keys-btn-primary ms-auto d-flex align-items-center gap-2"
+    <button data-testid="api-keys-create" type="button" class="keys-btn keys-btn-primary ms-auto d-flex align-items-center gap-2"
       (click)="openCreate()">
       <i class="fa-solid fa-plus"></i>Create key
     </button>
@@ -28,7 +28,7 @@
       <div class="keys-created-title">{{ createdTitle() }}</div>
       <div class="keys-created-text">{{ createdText() }}</div>
       <div class="keys-created-value d-flex align-items-center gap-2">
-        <span class="keys-created-secret">{{ valueVisible() ? value : maskedValue() }}</span>
+        <span data-testid="api-key-created-secret" class="keys-created-secret">{{ valueVisible() ? value : maskedValue() }}</span>
         <button type="button" class="keys-created-action ms-auto d-flex align-items-center gap-2"
           (click)="toggleValue()">
           <i class="fa-solid" [class.fa-eye]="!valueVisible()" [class.fa-eye-slash]="valueVisible()"></i>
@@ -64,7 +64,7 @@
     <p class="keys-empty-text">
       Create an API key to authenticate applications or devices that use Evolveum-hosted services.
     </p>
-    <button type="button" class="keys-btn keys-btn-primary d-flex align-items-center gap-2"
+    <button data-testid="api-keys-create" type="button" class="keys-btn keys-btn-primary d-flex align-items-center gap-2"
       (click)="openCreate()">
       <i class="fa-solid fa-plus"></i>Create key
     </button>
@@ -103,12 +103,12 @@
       </thead>
       <tbody>
         @for (key of rows; track key.id) {
-          <tr>
+          <tr data-testid="api-key-row">
             <td class="keys-table-name">{{ key.name }}</td>
             <!-- The last characters of the value: the only thing telling a rotated key from its successor. -->
             <td class="keys-table-hint">{{ key.keyHint ? '••••' + key.keyHint : '—' }}</td>
             <td>
-              <span class="keys-status" [class.keys-status-active]="status(key) === 'Active'"
+              <span data-testid="api-key-status" class="keys-status" [class.keys-status-active]="status(key) === 'Active'"
                 [class.keys-status-replaced]="status(key) === 'Replaced'"
                 [class.keys-status-revoked]="status(key) === 'Revoked'">{{ status(key) }}</span>
             </td>
@@ -119,7 +119,7 @@
             <td class="keys-table-actions">
               @if (hasActions(key)) {
                 <div class="keys-menu-anchor">
-                  <button type="button" class="keys-menu-btn" title="Key actions" (click)="toggleMenu(key.id)">
+                  <button data-testid="api-key-actions" type="button" class="keys-menu-btn" title="Key actions" (click)="toggleMenu(key.id)">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                   </button>
                   @if (openMenuKeyId() === key.id) {
@@ -130,7 +130,7 @@
                         </button>
                         <div class="keys-menu-separator"></div>
                       }
-                      <button type="button" class="keys-menu-item keys-menu-item-danger" role="menuitem"
+                      <button data-testid="api-key-revoke" type="button" class="keys-menu-item keys-menu-item-danger" role="menuitem"
                         (click)="revoke(key)">
                         Revoke
                       </button>

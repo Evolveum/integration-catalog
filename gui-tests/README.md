@@ -7,9 +7,11 @@ The tests follow the base flow guides in `docs/`:
 
 | Test | Covers |
 |---|---|
-| `AdminFlowTest` | admin guide, sections 1 and 3 to 8, as a superuser: publish an integration method, approve it, check that an anonymous visitor sees it, change it with *Save*, approve it, upgrade it with *Save as new version* and approve it once more |
+| `AdminFlowTest` | admin guide, sections 1 and 3 to 8, as a superuser: publish a new application with a new connector, approve it with build data, check that an anonymous visitor sees it, then change the connector description and the connector version, each with *Save* and with *Save as new version*, approving every change; then downloads the bundle and checks that *All connectors* lists the connector once, with versions 1.0.0, 1.0.1 and 1.0.2 |
+| `ExistingApplicationFlowTest` | a contributor publishes and changes the method before approval, a superuser approves it with a connector without an artifact URL; the contributor then publishes a second method to that application with the same connector, approved without build data; downloads the first method's bundle (no JAR for such a connector) and checks that the connector exists once, used by both methods |
 | `RequestFlowTest` | section 2 of both guides: a contributor requests an application, a read-only user is refused a request but votes for it, the requester cancels it |
 | `ContributorFlowTest` | contributor guide, sections 3 and 4: publish, find the method in *My integration methods*, change it with *Save* while it awaits approval (1.0 becomes 1.1 in place), cancel the request |
+| `ApiKeyFlowTest` | a contributor creates an API key in *Settings* and revokes it; needs Gravitee (see below) |
 
 ## Before a run
 
@@ -28,6 +30,11 @@ The tests close it through OpenProject's REST API, so they need an API key in th
 set GUI_OPENPROJECT_API_KEY=<key>                         (cmd)
 $env:GUI_OPENPROJECT_API_KEY = "<key>"                    (PowerShell)
 ```
+
+`ApiKeyFlowTest` needs Gravitee (`docker/gravitee`) and the backend started with the
+`-Dgravitee.*` options that `docker/gravitee/seed.sh` prints. Gravitee must also allow shared API
+keys (console: *Settings → API keys*, or `plan.security.sharedApiKey.enabled`), otherwise creating
+a key fails with HTTP 502.
 
 Every test run then also leaves tickets in the portal. With the portal off
 (`-Dopenproject.enabled=false -Dpending-operations.cron=-` on the backend), nothing is needed: the

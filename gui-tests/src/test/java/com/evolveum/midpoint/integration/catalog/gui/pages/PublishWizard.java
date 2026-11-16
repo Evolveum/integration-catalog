@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.gui.pages;
 
 import com.evolveum.midpoint.integration.catalog.gui.framework.Ui;
+import com.microsoft.playwright.Locator;
 
 /** The seven steps of "Upload and publish", each method ending on the next step. */
 public final class PublishWizard {
@@ -45,6 +46,14 @@ public final class PublishWizard {
         ui.expectVisible("publish-method-type-title");
     }
 
+    /** Needs at least 2 characters of the name; an application is found only once it is published. */
+    public void selectExistingApplication(String name) {
+        ui.fill("publish-application-search", name);
+        ui.element("publish-application-result").filter(new Locator.FilterOptions().setHasText(name)).click();
+        ui.click("publish-application-continue");
+        ui.expectVisible("publish-method-type-title");
+    }
+
     public void selectFirstMethodType() {
         ui.clickFirst("publish-method-type-card");
         ui.click("publish-method-type-continue");
@@ -62,6 +71,17 @@ public final class PublishWizard {
         ui.click("publish-connector-type-java");
         ui.click("publish-connector-type-continue");
         ui.expectVisible("publish-connector-title");
+    }
+
+    /** Replaces the connector type step; the connector step then shows the connector read-only. */
+    public void selectExistingConnector(String name) {
+        ui.click("publish-connector-existing");
+        ui.fill("connector-catalog-search", name);
+        ui.element("connector-catalog-item").filter(new Locator.FilterOptions().setHasText(name)).click();
+        ui.click("connector-catalog-continue");
+        ui.expectVisible("publish-connector-title");
+        ui.click("publish-connector-continue");
+        ui.expectVisible("publish-compat-title");
     }
 
     public void defineConnector(String name, String version, String className) {

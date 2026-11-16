@@ -58,7 +58,7 @@
         <!-- Chosen once, when the connector is first published; its later versions inherit it. -->
         @if (connector.newConnector) {
           <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" role="switch" id="mf-artifact-urlless"
+            <input data-testid="manual-fill-artifact-urlless" class="form-check-input" type="checkbox" role="switch" id="mf-artifact-urlless"
                    name="artifactUrlless" [(ngModel)]="artifactUrlless" />
             <label class="form-check-label small" for="mf-artifact-urlless">Connector without Artifact URL</label>
           </div>

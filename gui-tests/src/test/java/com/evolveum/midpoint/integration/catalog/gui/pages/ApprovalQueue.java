@@ -47,14 +47,19 @@ public final class ApprovalQueue {
         assertThat(row.getByTestId("approval-queue-status-reviewing")).isVisible();
     }
 
-    /** For a version with a new connector: fills its build data by hand, so no Jenkins build is needed. */
+    /** For a version with a connector that has no build data yet: fills it by hand, so no Jenkins build is needed. */
     public void approve(Locator row, ManualBuildInfo build) {
         openApproveDialog(row);
         ui.click("approval-manual-fill");
         ui.fill("manual-fill-bundle-name", build.bundleName());
         ui.fill("manual-fill-version", build.version());
         ui.fill("manual-fill-class-name", build.className());
-        ui.fill("manual-fill-download-link", build.downloadLink());
+        if (build.downloadLink() == null) {
+            // Offered only for a connector's first version; its later versions inherit the choice.
+            ui.check("manual-fill-artifact-urlless");
+        } else {
+            ui.fill("manual-fill-download-link", build.downloadLink());
+        }
         ui.click("manual-fill-submit");
         confirmApproval();
     }
@@ -94,6 +99,7 @@ public final class ApprovalQueue {
         ui.expectHidden("approval-dialog");
     }
 
+    /** @param downloadLink {@code null} for a connector without an artifact URL */
     public record ManualBuildInfo(String bundleName, String version, String className, String downloadLink) {
     }
 }
