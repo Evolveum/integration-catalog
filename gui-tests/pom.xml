@@ -60,4 +60,25 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Against the stack of compose.yml instead of the local development services. -->
+		<profile>
+			<id>docker</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<systemPropertyVariables>
+								<gui.baseUrl>http://localhost:18080</gui.baseUrl>
+								<gui.openproject.url>http://localhost:18090</gui.openproject.url>
+							</systemPropertyVariables>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

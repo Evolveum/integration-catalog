@@ -2,20 +2,22 @@
 #
 # Licensed under the EUPL-1.2 or later.
 
-# The GUI tests against a complete throwaway stack: nothing but Docker is needed, and every run
-# starts from an empty catalog database. From the repository root:
+# A complete throwaway environment for the GUI tests: Docker starts and initializes it, Maven then
+# runs the tests from outside against it. From the repository root:
 #
-#   docker compose -f gui-tests/compose.yml run --rm --build gui-tests
+#   docker compose -f gui-tests/compose.yml up -d --build --wait
+#   mvn -f gui-tests/pom.xml test -Pdocker
 #   docker compose -f gui-tests/compose.yml down -v
 #
-# "run" starts everything the tests depend on, waits until it is ready and returns the tests' exit
-# code; "down -v" throws the stack away, databases included. Reports and failure traces land in
-# gui-tests/target as with a local run.
+# The catalog database holds only the schema and its reference data; the tests create everything
+# else through the UI. "down -v" throws the stack away, databases included, so every run starts
+# from an empty catalog.
 #
-# The browser, the catalog and Keycloak share Keycloak's network namespace, so every URL the
-# browser sees is localhost, as on a developer's machine: the secure session and CSRF cookies work
-# over plain HTTP and the OIDC issuer is the same for the browser and the backend. No port is
-# published, so the stack can run next to a developer's local services.
+# Ports 18080 (catalog), 18081 (Keycloak) and 18090 (OpenProject) leave the usual development ports
+# free, so the stack can run next to a developer's local services. The catalog shares Keycloak's
+# network namespace and listens on the same port inside as outside: the browser and the backend
+# then reach Keycloak by the same URL, which OIDC requires, and every browser-facing URL is
+# localhost, where the catalog's secure cookies work over plain HTTP.
 
 name: ic-gui-tests
 
@@ -24,9 +26,12 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.2
     command: ["start-dev", "--import-realm"]
+    ports:
+      - "18080:18080"   # the catalog, which runs in this network namespace
+      - "18081:18081"
     environment:
-      KC_HTTP_PORT: "8081"
-      KC_HOSTNAME: http://localhost:8081
+      KC_HTTP_PORT: "18081"
+      KC_HOSTNAME: http://localhost:18081
       KC_HEALTH_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -63,11 +68,14 @@ services:
       dockerfile: docker/Dockerfile
     network_mode: service:keycloak
     environment:
+      SERVER_PORT: "18080"
       SPRING_DATASOURCE_URL: jdbc:postgresql://catalog-db:5432/integrationCatalog
       SPRING_DATASOURCE_USERNAME: integration_catalog
       SPRING_DATASOURCE_PASSWORD: integration_catalog
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_OIDC_ISSUERURI: http://localhost:18081/realms/integration-catalog
+      CATALOG_LINKS_IAMPROFILEURL: http://localhost:18081/realms/integration-catalog/account
       # The SPA is served by the backend itself here, not by ng serve on :4200.
-      CATALOG_PUBLICURL: http://localhost:8080
+      CATALOG_PUBLICURL: http://localhost:18080
       OPENPROJECT_URL: http://openproject
       GRAVITEE_MANAGEMENTURL: http://gravitee-management:8083
       # The API and plan ids and the token, written by gravitee-seed; overrides the empty defaults.
@@ -81,15 +89,18 @@ services:
         condition: service_healthy
       gravitee-seed:
         condition: service_completed_successfully
+      openproject:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:18080/actuator/health/readiness | grep -q UP"]
       interval: 5s
       timeout: 5s
       retries: 60
       start_period: 30s
 
   # The support portal, from the same seed as openProject/compose-openproject.yml: its project,
-  # custom field and the API key application.properties carries.
+  # custom field and the API key application.properties carries. The tests close review tickets
+  # through its REST API on port 18090.
   openproject-db:
     image: postgres:17-alpine
     environment:
@@ -106,8 +117,12 @@ services:
 
   openproject:
     image: openproject/openproject:17
+    ports:
+      - "18090:80"
     environment:
-      OPENPROJECT_HOST__NAME: openproject
+      OPENPROJECT_HOST__NAME: localhost:18090
+      # The catalog calls it by its service name.
+      OPENPROJECT_ADDITIONAL__HOST__NAMES: openproject
       OPENPROJECT_HTTPS: "false"
       OPENPROJECT_SECRET_KEY_BASE: gui-tests-only
       OPENPROJECT_DISABLE__SECRET_KEY_BASE__CHECK: "true"
@@ -171,32 +186,5 @@ services:
     depends_on:
       - gravitee-management
 
-  gui-tests:
-    image: mcr.microsoft.com/playwright/java:v1.64.0-noble
-    network_mode: service:keycloak
-    working_dir: /gui-tests
-    environment:
-      # The OpenProject key is the seeded one, already in application.properties; read from there
-      # so it is written down once. An environment variable keeps it out of the Surefire reports.
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
-    entrypoint:
-      - sh
-      - -c
-      - >-
-        export GUI_OPENPROJECT_API_KEY="$$(sed -n 's/^openproject\.api-key=//p' /catalog.properties | tr -d '\r')"
-        && exec mvn -B -f pom.xml clean test
-        -Dgui.baseUrl=http://localhost:8080
-        -Dgui.openproject.url=http://openproject
-    volumes:
-      - .:/gui-tests
-      - ../src/main/resources/application.properties:/catalog.properties:ro
-      - maven-repository:/root/.m2
-    depends_on:
-      catalog:
-        condition: service_healthy
-      openproject:
-        condition: service_healthy
-
 volumes:
   gravitee-seed:
-  maven-repository:

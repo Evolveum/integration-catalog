@@ -13,20 +13,24 @@ The tests follow the base flow guides in `docs/`:
 | `ContributorFlowTest` | contributor guide, sections 3 and 4: publish, find the method in *My integration methods*, change it with *Save* while it awaits approval (1.0 becomes 1.1 in place), cancel the request |
 | `ApiKeyFlowTest` | a contributor creates an API key in *Settings* and revokes it; needs Gravitee (see below) |
 
-## Running in Docker (CI)
+## Running against a Docker environment (CI)
 
-Only Docker is needed. `compose.yml` builds the catalog image (`docker/Dockerfile`) and starts it
-with an empty database, Keycloak with the development realm, a seeded OpenProject and Gravitee, then
-runs the tests in Playwright's image. From the repository root:
+`compose.yml` builds the catalog image (`docker/Dockerfile`) and starts it with an empty database,
+Keycloak with the development realm, a seeded OpenProject and Gravitee. Maven then runs the tests
+from outside against it. From the repository root:
 
 ```
-docker compose -f gui-tests/compose.yml run --rm --build gui-tests
+docker compose -f gui-tests/compose.yml up -d --build --wait
+mvn -f gui-tests/pom.xml test -Pdocker
 docker compose -f gui-tests/compose.yml down -v
 ```
 
-The first command returns the tests' exit code, and the reports land in `gui-tests/target`. The
-second throws the whole stack away, so the next run starts from an empty database again and no
-cleanup is needed. No port is published, so the stack can run next to the local services.
+The database holds only the schema; the tests create their data through the UI. `-Pdocker` points
+the tests at the stack: the catalog on `http://localhost:18080`, OpenProject on
+`http://localhost:18090`. They still need `GUI_OPENPROJECT_API_KEY` (see below); the stack's
+OpenProject has the key from `application.properties`. `down -v` throws the whole stack away, so
+the next run starts from an empty database again and no cleanup is needed. The ports differ from
+the development ones, so the stack can run next to the local services.
 
 The stack needs about 8 GB of memory, and a cold start (image build, OpenProject's first boot) takes
 several minutes. Its fixtures are `docker/keycloak` (a copy of the development realm) and
