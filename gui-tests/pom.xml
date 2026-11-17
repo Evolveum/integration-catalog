@@ -67,10 +67,34 @@
 			<id>docker</id>
 			<build>
 				<plugins>
+					<!-- The stack's OpenProject is seeded with the key application.properties carries,
+					     so nothing has to be set by hand. -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>properties-maven-plugin</artifactId>
+						<version>1.2.1</version>
+						<executions>
+							<execution>
+								<phase>initialize</phase>
+								<goals>
+									<goal>read-project-properties</goal>
+								</goals>
+								<configuration>
+									<files>
+										<file>${project.basedir}/../src/main/resources/application.properties</file>
+									</files>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<configuration>
+							<!-- An environment variable, not a system property: Surefire copies those into its reports. -->
+							<environmentVariables>
+								<GUI_OPENPROJECT_API_KEY>${openproject.api-key}</GUI_OPENPROJECT_API_KEY>
+							</environmentVariables>
 							<systemPropertyVariables>
 								<gui.baseUrl>http://localhost:18080</gui.baseUrl>
 								<gui.openproject.url>http://localhost:18090</gui.openproject.url>

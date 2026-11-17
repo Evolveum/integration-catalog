@@ -27,8 +27,9 @@ docker compose -f gui-tests/compose.yml down -v
 
 The database holds only the schema; the tests create their data through the UI. `-Pdocker` points
 the tests at the stack: the catalog on `http://localhost:18080`, OpenProject on
-`http://localhost:18090`. They still need `GUI_OPENPROJECT_API_KEY` (see below); the stack's
-OpenProject has the key from `application.properties`. `down -v` throws the whole stack away, so
+`http://localhost:18090`, and passes them the OpenProject key from `application.properties`, which
+the stack's OpenProject is seeded with, so nothing has to be set. In IDEA: tick the `docker` profile
+in the Maven window and run `test`. `down -v` throws the whole stack away, so
 the next run starts from an empty database again and no cleanup is needed. The ports differ from
 the development ones, so the stack can run next to the local services.
 
