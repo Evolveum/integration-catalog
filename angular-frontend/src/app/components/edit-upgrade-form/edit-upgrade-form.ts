@@ -5,6 +5,7 @@
  */
 
 import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
+import { PageTitleService } from '../../services/page-title.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -259,6 +260,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   private easyMde: EasyMDE | null = null;
 
+  private readonly pageTitle = inject(PageTitleService);
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -307,6 +310,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
+          this.pageTitle.setPageTitle(`Edit ${ver.displayName || 'Integration method'} – ${app.displayName}`);
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');

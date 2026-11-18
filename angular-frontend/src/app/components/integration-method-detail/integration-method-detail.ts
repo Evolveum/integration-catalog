@@ -5,6 +5,7 @@
  */
 
 import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { PageTitleService } from '../../services/page-title.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService, ConnectorWithoutDownload, SupportTicket } from '../../services/application.service';
@@ -121,6 +122,8 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly isArtifactUrllessConnector = isArtifactUrllessConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
+  private readonly pageTitle = inject(PageTitleService);
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -154,6 +157,7 @@ export class IntegrationMethodDetail implements OnInit {
             .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
+          this.pageTitle.setPageTitle(`${ver.displayName || 'Integration method'} – ${app.displayName}`);
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodAuthor.set(ver.author ?? '');

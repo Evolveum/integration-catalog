@@ -8,9 +8,10 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { inject, provideAppInitializer } from '@angular/core';
 import { AppComponent } from './app/app.component';
 import { provideHttpClient, withInterceptors, withXsrfConfiguration } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { provideRouter, TitleStrategy } from '@angular/router';
 import { routes } from './app/app.routes';
 import { AuthService } from './app/services/auth.service';
+import { PageTitleService } from './app/services/page-title.service';
 import { NavigationHistoryService } from './app/services/navigation-history.service';
 import { sessionExpiryInterceptor } from './app/services/session-expiry.interceptor';
 
@@ -20,6 +21,7 @@ import { sessionExpiryInterceptor } from './app/services/session-expiry.intercep
 bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(routes),
+    { provide: TitleStrategy, useExisting: PageTitleService },
     provideHttpClient(withXsrfConfiguration({
       cookieName: 'IC-XSRF-TOKEN',
       headerName: 'X-IC-XSRF-TOKEN'

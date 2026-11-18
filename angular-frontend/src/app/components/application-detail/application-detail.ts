@@ -4,7 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject, ViewChild } from '@angular/core';
+import { PageTitleService } from '../../services/page-title.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
@@ -159,6 +160,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly availableMethodTypes = signal<{ id: number; displayName: string }[]>([]);
 
   @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;
+
+  private readonly pageTitle = inject(PageTitleService);
 
   constructor(
     private route: ActivatedRoute,
@@ -1076,6 +1079,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.applicationService.getById(id).subscribe({
       next: (data) => {
         this.application.set(data);
+        this.pageTitle.setPageTitle(data.displayName);
         this.groupVersionsByLifecycleState(data.integrationMethods);
         // Start with only the first method card expanded.
         const firstId = this.groupedMethods()[0]?.id;

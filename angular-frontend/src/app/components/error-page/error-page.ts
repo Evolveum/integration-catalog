@@ -6,7 +6,7 @@
 
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, ActivatedRouteSnapshot, ResolveFn, Router, RouterLink } from '@angular/router';
 import { PageHeader } from '../page-header/page-header';
 import { LinksService } from '../../services/links.service';
 import { NavigationHistoryService } from '../../services/navigation-history.service';
@@ -92,8 +92,8 @@ export class ErrorPage {
 
   protected readonly links = inject(LinksService).links;
 
-  protected readonly status = this.resolveStatus();
-  protected readonly text = ERROR_TEXTS[this.status] ?? (this.status >= 500 ? ERROR_TEXTS[500] : FALLBACK_TEXT);
+  protected readonly status = resolveStatus(this.route.snapshot);
+  protected readonly text = errorText(this.status);
   protected readonly path = this.route.snapshot.queryParamMap.get('path')
     ?? (this.route.snapshot.paramMap.has('status') ? null : this.router.url);
   protected readonly reportable = this.status !== 401;
@@ -153,8 +153,16 @@ export class ErrorPage {
     ];
   }
 
-  private resolveStatus(): number {
-    const status = Number(this.route.snapshot.paramMap.get('status'));
-    return Number.isInteger(status) && status >= 400 && status < 600 ? status : 404;
-  }
 }
+
+function resolveStatus(route: ActivatedRouteSnapshot): number {
+  const status = Number(route.paramMap.get('status'));
+  return Number.isInteger(status) && status >= 400 && status < 600 ? status : 404;
+}
+
+function errorText(status: number): ErrorText {
+  return ERROR_TEXTS[status] ?? (status >= 500 ? ERROR_TEXTS[500] : FALLBACK_TEXT);
+}
+
+/** Route title of the error page, the same heading the page shows. */
+export const errorPageTitle: ResolveFn<string> = (route) => errorText(resolveStatus(route)).title;
