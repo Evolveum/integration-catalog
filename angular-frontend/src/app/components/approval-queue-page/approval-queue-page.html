@@ -156,7 +156,7 @@
             </thead>
             <tbody>
               @for (rev of pagedRows(); track rev.id + ':' + rev.revision) {
-                <tr class="ss-row-clickable" (click)="openDetails(rev)">
+                <tr class="ss-row-clickable" [appNewTabRoute]="detailsRoute(rev)" (click)="openDetails(rev)">
                   <td>
                     <span class="d-flex align-items-center gap-2">
                       <span class="aq-name">{{ rev.displayName }}</span>
