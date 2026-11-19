@@ -108,11 +108,15 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
     const result = Array.from(groups.values());
     result.forEach(g => {
-      g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision));
       // For a method with multiple versions, represent it by its OLDEST version so its
       // name/identity stays stable (matching its fixed, creation-order position).
-      const oldest = g.versions[0];
+      const oldest = g.versions.reduce((a, b) => this.compareRevisions(a.revision, b.revision) <= 0 ? a : b);
       g.name = oldest.displayName || oldest.connectorDisplayName || 'Integration method';
+      // Published revisions first, then the unapproved ones; newest first within each, so the
+      // latest draft sits right under the published version instead of after older drafts.
+      g.versions.sort((a, b) =>
+        Number(b.lifecycleState === 'ACTIVE') - Number(a.lifecycleState === 'ACTIVE')
+        || this.compareRevisions(b.revision, a.revision));
     });
     // Unified list in creation order (map insertion order = backend created_at ASC), independent of
     // lifecycle state — so a method keeps its position even when its state changes (e.g. on approval).
