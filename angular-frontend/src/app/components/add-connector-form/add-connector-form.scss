@@ -416,6 +416,11 @@
   font-size: 0.875rem; color: $color-text-secondary;
 }
 
+.cc-more-hint {
+  padding-top: 0.5rem; text-align: center;
+  font-size: 0.875rem; color: $color-text-secondary;
+}
+
 .cc-connector-item {
   display: flex; align-items: center; gap: 0.75rem;
   border: 2px solid $color-border-light;

@@ -94,7 +94,8 @@
           <th>Name</th>
           <th>Key</th>
           <th>Status</th>
-          <th>Last used</th>
+          <!-- Hidden until last-used is implemented: the backend always sends null, so every key showed "Never". -->
+          <!-- <th>Last used</th> -->
           <th>Created</th>
           <th>Expires</th>
           <th class="keys-table-actions"></th>
@@ -111,7 +112,7 @@
                 [class.keys-status-replaced]="status(key) === 'Replaced'"
                 [class.keys-status-revoked]="status(key) === 'Revoked'">{{ status(key) }}</span>
             </td>
-            <td>{{ key.lastUsedAt ? (key.lastUsedAt | date:'d/M/yyyy') : 'Never' }}</td>
+            <!-- <td>{{ key.lastUsedAt ? (key.lastUsedAt | date:'d/M/yyyy') : 'Never' }}</td> -->
             <td>{{ key.createdAt | date:'d/M/yyyy' }}</td>
             <!-- A replaced key stops within hours, so its end needs the time as well. -->
             <td>{{ key.expiresAt ? (key.expiresAt | date:(key.replacedAt ? 'd/M/yyyy HH:mm' : 'd/M/yyyy')) : 'Never' }}</td>

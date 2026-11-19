@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.object;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,6 +36,8 @@ public class Request {
     @Column(name = "requester")
     private String requester;
 
+    /** Requester's contact address: our own record only, never serialized. */
+    @JsonIgnore
     @Column(name = "mail", length = 50)
     private String mail;
 

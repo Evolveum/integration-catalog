@@ -22,7 +22,7 @@ public record EditIntegrationMethodDto(
         List<Integer> typeIds,                                       // integration_method_type.id; null leaves the types as they are
         List<@Valid IntegrationMethodObjectCapabilitiesDto> capabilities, // integration_method_capability + items
         boolean removeFile,                                          // true → clear integration_method.file_path
-        boolean minorBump,                                           // true → increment minor (x.Y.z → x.Y+1.1), false → patch (x.y.Z → x.y.Z+1)
+        boolean minorBump,                                           // true → "Save": next minor (2.0 → 2.1), in place on a draft; false → "Save as new version": highest major of the method + 1 (→ 3.0)
         Integer midpointMinVersion,                                  // integration_method.midpoint_minversion (FK → midpoint_version.id)
         Integer midpointMaxVersion,                                  // integration_method.midpoint_maxversion (FK → midpoint_version.id)
         @Size(max = IntegrationMethod.APP_VERSION_MAX)

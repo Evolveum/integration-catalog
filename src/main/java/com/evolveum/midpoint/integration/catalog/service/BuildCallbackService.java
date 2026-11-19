@@ -194,11 +194,7 @@ public class BuildCallbackService {
         validateVerifyPayload(version, className);
 
         // A copy-on-write clone is expected to look like its original, so its class name is not a clash.
-        boolean allClones = !bundleVersion.getConnectorVersions().isEmpty()
-                && bundleVersion.getConnectorVersions().stream()
-                        .map(ConnectorVersion::getConnector)
-                        .allMatch(c -> c != null && c.getClonedFrom() != null);
-        if (allClones) {
+        if (builtFromClones(bundleVersion)) {
             return;
         }
 
@@ -216,6 +212,13 @@ public class BuildCallbackService {
      */
     private void adoptBundleName(ConnectorBundle source, ConnectorBundleVersion bundleVersion, String bundleName) {
         if (source == null) {
+            return;
+        }
+        // A clone's bundle shares its original's name on purpose and holds copies of its versions: it
+        // stays separate until approval folds it back or retires the original (mergeCloneIntoOriginal).
+        if (builtFromClones(bundleVersion)) {
+            source.setBundleName(bundleName);
+            connectorBundleRepository.save(source);
             return;
         }
         ConnectorBundle target = connectorBundleRepository
@@ -267,6 +270,14 @@ public class BuildCallbackService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Whether every connector built from this bundle version is a copy-on-write clone. */
+    private static boolean builtFromClones(ConnectorBundleVersion bundleVersion) {
+        return !bundleVersion.getConnectorVersions().isEmpty()
+                && bundleVersion.getConnectorVersions().stream()
+                        .map(ConnectorVersion::getConnector)
+                        .allMatch(c -> c != null && c.getClonedFrom() != null);
+    }
 
     /**
      * Tags the connectors of this build as without an artifact URL, together with their pending edit

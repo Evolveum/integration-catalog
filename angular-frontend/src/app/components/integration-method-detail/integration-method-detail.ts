@@ -4,22 +4,25 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { PageTitleService } from '../../services/page-title.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
-import { ApplicationService, SupportTicket } from '../../services/application.service';
+import { ApplicationService, ConnectorWithoutDownload, SupportTicket } from '../../services/application.service';
 import { AuthService, UserRole } from '../../services/auth.service';
 import { LicenseTypeService } from '../../services/license-type.service';
 import { PageHeader } from '../page-header/page-header';
 import { ApprovalConfirmModal } from '../approval-confirm-modal/approval-confirm-modal';
 import { StartReviewModal } from '../start-review-modal/start-review-modal';
 import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
+import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isArtifactUrllessConnector, isObsoleteConnector } from '../../models/connector-tag.model';
 import { CapabilityState, hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
 import { Maintainer } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { SupportTier, supportTierLabel } from '../../core/support-tier';
 import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
@@ -27,8 +30,8 @@ import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, MarkdownPipe,
-    NewTabRouteDirective],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, ManualFillModal,
+    MarkdownPipe, NewTabRouteDirective],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -120,6 +123,8 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly isArtifactUrllessConnector = isArtifactUrllessConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
 
+  private readonly pageTitle = inject(PageTitleService);
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -153,6 +158,7 @@ export class IntegrationMethodDetail implements OnInit {
             .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
+          this.pageTitle.setPageTitle(`${ver.displayName || 'Integration method'} – ${app.displayName}`);
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodAuthor.set(ver.author ?? '');
@@ -174,10 +180,10 @@ export class IntegrationMethodDetail implements OnInit {
           this.loadConnectors(vId, ver.revision ?? '');
           this.loadSupportTicket(vId, ver.revision ?? '');
         } else {
-          this.finishLoading();
+          showErrorPage(this.router);
         }
       },
-      error: () => this.finishLoading()
+      error: (err) => showErrorPage(this.router, err)
     });
   }
 
@@ -407,6 +413,24 @@ export class IntegrationMethodDetail implements OnInit {
       next: () => this.goBack(),
       error: (err) => this.handleApprovalError(err)
     });
+  }
+
+  // ── Manual fill (from the approve modal) ──
+  @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;
+
+  protected readonly manualFillConnector = signal<ConnectorWithoutDownload | null>(null);
+
+  protected openManualFill(connector: ConnectorWithoutDownload): void {
+    this.manualFillConnector.set(connector);
+  }
+
+  protected closeManualFill(): void {
+    this.manualFillConnector.set(null);
+  }
+
+  protected onManualFillSuccess(): void {
+    this.closeManualFill();
+    this.approvalConfirmModal?.onManualFillSuccess();
   }
 
   // Stops an ongoing review: flips REVIEWING back to IN_REVIEW (no confirmation modal).

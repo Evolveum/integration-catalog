@@ -8,16 +8,18 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.TutorialStorageProperties;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
-import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodId;
 import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.service.event.TutorialFileAddedEvent;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -51,17 +53,19 @@ public class TutorialStorageService {
     private final IntegrationMethodRepository integrationMethodRepository;
     private final ApplicationEventPublisher events;
     private final Path basePath;
+    private final AuthService authService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     public TutorialStorageService(TutorialStorageProperties properties,
-                                   IntegrationMethodRepository integrationMethodRepository,
-                                   ApplicationEventPublisher events) {
+                                  IntegrationMethodRepository integrationMethodRepository,
+                                  ApplicationEventPublisher events, AuthService authService) {
         this.properties = properties;
         this.integrationMethodRepository = integrationMethodRepository;
         this.events = events;
         this.basePath = Paths.get(properties.basePath()).toAbsolutePath().normalize();
+        this.authService = authService;
         log.info("Tutorial storage base path resolved to: {}", this.basePath);
         initStorageDirectory();
     }
@@ -110,19 +114,21 @@ public class TutorialStorageService {
     }
 
     @Transactional
-    public void saveTutorial(UUID integrationMethodId, MultipartFile file) throws IOException {
+    public void saveTutorial(UUID integrationMethodId, MultipartFile file, Authentication authentication) throws IOException {
         IntegrationMethod method = integrationMethodRepository.findFirstByIdOrderByCreatedAtDesc(integrationMethodId)
                 .orElseThrow(() -> new RuntimeException("Integration method not found: " + integrationMethodId));
-        saveTutorialForRevision(integrationMethodId, method.getRevision(), file);
+        if (!authService.canEdit(authentication.getName(), method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to modify this integration method.");
+        }
+        saveTutorialForRevision(integrationMethodId, method.getRevision(), file, authentication);
     }
 
     @Transactional
-    public void saveTutorialForRevision(UUID integrationMethodId, String revision, MultipartFile file) throws IOException {
+    public void saveTutorialForRevision(UUID integrationMethodId, String revision, MultipartFile file, Authentication authentication) throws IOException {
         validateFile(file);
 
-        if (!integrationMethodRepository.existsById(new IntegrationMethodId(integrationMethodId, revision))) {
-            throw new RuntimeException("Integration method not found: " + integrationMethodId + "/" + revision);
-        }
+        authService.assertCanEditMethod(authentication.getName(), integrationMethodId, revision);
 
         String folder = folderName(integrationMethodId, revision);
         Path folderPath = basePath.resolve(folder);
@@ -169,12 +175,15 @@ public class TutorialStorageService {
     }
 
     @Transactional
-    public void deleteTutorialFile(UUID integrationMethodId, String revision, String fileName) throws IOException {
+    public void deleteTutorialFile(UUID integrationMethodId, String revision, String fileName, Authentication authentication) throws IOException {
         Path folderPath = basePath.resolve(folderName(integrationMethodId, revision)).normalize();
         Path target = folderPath.resolve(Paths.get(fileName).getFileName().toString()).normalize();
         if (!target.startsWith(folderPath)) {
             throw new IllegalArgumentException("Invalid tutorial file name: " + fileName);
         }
+
+        authService.assertCanEditMethod(authentication.getName(), integrationMethodId, revision);
+
         boolean deleted = Files.deleteIfExists(target);
         log.info("Delete tutorial file {} for {}/{}: {}", fileName, integrationMethodId, revision, deleted ? "removed" : "not found");
     }

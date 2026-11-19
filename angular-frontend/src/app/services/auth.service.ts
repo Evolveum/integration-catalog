@@ -171,10 +171,8 @@ export class AuthService {
    * behalf of their organization; everyone else (including superusers) as themselves.
    */
   defaultMaintainer(): Maintainer | null {
-    if (this._currentRole() === UserRole.OrganizationContributor) {
-      const alias = this._currentOrganizationName();
-      if (alias) return organizationMaintainer(alias, this._currentOrganizationDisplayName());
-    }
+    const organization = this.registeredOrganizationMaintainer();
+    if (organization) return organization;
     const user = this._currentUser();
     return user ? userMaintainer(user) : null;
   }
@@ -187,13 +185,22 @@ export class AuthService {
   maintainerOptions(): Maintainer[] {
     const user = this._currentUser();
     const self = user ? [userMaintainer(user)] : [];
-    if (this._currentRole() === UserRole.OrganizationContributor) {
-      const alias = this._currentOrganizationName();
-      if (alias) {
-        return [organizationMaintainer(alias, this._currentOrganizationDisplayName()), ...self, communityMaintainer()];
-      }
-    }
-    return [...self, communityMaintainer()];
+    const organization = this.registeredOrganizationMaintainer();
+    return organization
+      ? [organization, ...self, communityMaintainer()]
+      : [...self, communityMaintainer()];
+  }
+
+  /**
+   * The organization contributor's organization as a maintainer option, or null when there is
+   * none or the catalog has no row for it — the server rejects a maintainer it cannot resolve.
+   */
+  private registeredOrganizationMaintainer(): Maintainer | null {
+    const alias = this._currentOrganizationName();
+    const displayName = this._currentOrganizationDisplayName();
+    return this._currentRole() === UserRole.OrganizationContributor && alias && displayName
+      ? organizationMaintainer(alias, displayName)
+      : null;
   }
 
   /**

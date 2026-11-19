@@ -30,6 +30,7 @@ import com.evolveum.midpoint.integration.catalog.object.IntegrationMethodType;
 import com.evolveum.midpoint.integration.catalog.service.event.ConnectorAddedToReviewEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodCancelledEvent;
 import com.evolveum.midpoint.integration.catalog.service.event.IntegrationMethodSubmittedEvent;
+import com.evolveum.midpoint.integration.catalog.util.ConnectorVersions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.github.GHRepository;
@@ -831,9 +832,9 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Deletes the connectors a cancelled revision brought in - new ones and copy-on-write clones - i.e.
-     * those no other revision links and that never had a version published. A connector reused from
-     * the catalog is left alone.
+     * Deletes the connectors a revision brought in and has just let go of (cancelled, or the connector
+     * removed from it) - new ones and copy-on-write clones - i.e. those no revision links any more and
+     * that never had a version published. A connector reused from the catalog is left alone.
      *
      * <p>Every such connector starts in a bundle of its own, deleted with it. Only a build can have
      * merged it into a published bundle, which then stays and loses just what the revision brought.
@@ -879,7 +880,7 @@ public class ConnectorUploadService {
                     && cbv.getConnectorVersions().isEmpty());
         }
         connectorRepository.flush();
-        log.info("Deleted {} connector(s) introduced by the cancelled revision", introduced.size());
+        log.info("Deleted {} unlinked, never-published connector(s)", introduced.size());
     }
 
     /**
@@ -1028,9 +1029,10 @@ public class ConnectorUploadService {
     }
 
     /**
-     * Removes a connector from an integration method revision by deleting only the link between them.
-     * The connector itself may be shared with other methods, so it is left intact; orphanRemoval on the
-     * method's connectors collection deletes the join row.
+     * Removes a connector from an integration method revision. The link always goes (orphanRemoval on
+     * the method's connectors collection deletes the join row); the connector goes too when nothing
+     * links it any more and it was never published, the same rule a cancelled revision applies -
+     * otherwise it would be left behind with no method to reach it from.
      */
     @Transactional
     public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId) {
@@ -1043,8 +1045,12 @@ public class ConnectorUploadService {
                 .orElseThrow(() -> new RuntimeException(
                         "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
 
+        Connector connector = link.getConnector();
         method.getConnectors().remove(link);
         integrationMethodRepository.save(method);
+        integrationMethodRepository.flush();
+
+        deleteConnectorsIntroducedBy(List.of(connector));
     }
 
     /**
@@ -1106,10 +1112,16 @@ public class ConnectorUploadService {
             if (srcCbv != null) {
                 cbv = ConnectorBundleVersion.createConnectorBundleVersionDraft(srcCbv, bundle);
                 connectorBundleVersionRepository.save(cbv);
+                // Kept in sync in memory: a version change later in this transaction drops a copied
+                // draft, and dropDraftVersion removes its emptied row through these collections.
+                bundle.getBundleVersions().add(cbv);
             }
 
             ConnectorVersion cv = ConnectorVersion.createConnectorVersionDraft(srcCv, connectorClone, cbv);
             connectorVersionRepository.save(cv);
+            if (cbv != null) {
+                cbv.getConnectorVersions().add(cv);
+            }
 
             cloneCapabilitiesOfConnectorVersion(srcCv, cv);
 
@@ -1294,7 +1306,27 @@ public class ConnectorUploadService {
             dropDraftVersion(connector, baseCv);
         }
 
+        if (versionChanged) {
+            admitVersion(link, requestedVersion);
+        }
+
         connectorRepository.save(connector);
+    }
+
+    /**
+     * Widens the link's version range just enough to take in {@code version}: the method uses the
+     * newest version its max admits, so a revision edited onto a version past its max would go on
+     * using an older one.
+     */
+    private static void admitVersion(IntegrationMethodConnector link, String version) {
+        String max = link.getConnectorMaxVersion();
+        if (max != null && !max.isBlank() && ConnectorVersions.compare(version, max) > 0) {
+            link.setConnectorMaxVersion(version);
+        }
+        String min = link.getConnectorMinVersion();
+        if (min == null || min.isBlank() || ConnectorVersions.compare(version, min) < 0) {
+            link.setConnectorMinVersion(version);
+        }
     }
 
     private static boolean isUnbuiltDraft(ConnectorVersion cv) {
@@ -1600,9 +1632,19 @@ public class ConnectorUploadService {
             ConnectorBundleVersion srcCbv = srcCv.getConnectorBundleVersion();
             ConnectorBundleVersion cbv = null;
             if (srcCbv != null && toBundle != null) {
-                cbv = ConnectorBundleVersion.createConnectorBundleVersion(srcCbv, toBundle);
-                cbv = connectorBundleVersionRepository.save(cbv);
-                toBundle.getBundleVersions().add(cbv);
+                // The bundle may already hold a row for this version without a connector version on it
+                // (one left empty by a dropped draft); a second row would break its unique version key.
+                cbv = srcCbv.getBundleVersion() == null ? null : connectorBundleVersionRepository
+                        .findByConnectorBundleIdAndBundleVersion(toBundle.getId(), srcCbv.getBundleVersion())
+                        .orElse(null);
+                if (cbv == null) {
+                    cbv = ConnectorBundleVersion.createConnectorBundleVersion(srcCbv, toBundle);
+                    cbv = connectorBundleVersionRepository.save(cbv);
+                    toBundle.getBundleVersions().add(cbv);
+                } else {
+                    // Such a row is a draft copy of this very source; it takes the source's state, as a copy would.
+                    cbv.setLifecycleState(srcCbv.getLifecycleState());
+                }
             }
 
             ConnectorVersion cv = ConnectorVersion.createConnectorVersion(srcCv, to, cbv);

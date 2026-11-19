@@ -9,7 +9,9 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.object.*;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
+import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.junit.jupiter.api.AfterEach;
@@ -53,6 +55,12 @@ class AuthServiceTest {
     @Mock
     private KeycloakUserDirectory keycloakUserDirectory;
 
+    @Mock
+    private IntegrationMethodRepository integrationMethodRepository;
+
+    @Mock
+    private RequestRepository requestRepository;
+
     /** Aliases of the two seeded organizations, as the organization claim carries them. */
     private static final String ACME = "acme";
     private static final String EVOLVEUM = "evolveum";
@@ -61,8 +69,8 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(organizationService, ownershipService, maintainerRepository,
-                keycloakUserDirectory, new CatalogClaims("roles", "organization"));
+        authService = new AuthService(organizationService, ownershipService, maintainerRepository, keycloakUserDirectory,
+                new CatalogClaims("roles", "organization"), integrationMethodRepository, requestRepository);
     }
 
     @AfterEach
@@ -223,6 +231,30 @@ class AuthServiceTest {
         assertTrue(canOrgEdit("olivia", "acme"));
         // Maintained by another organization -> off limits.
         assertFalse(canOrgEdit("olivia", "evolveum"));
+    }
+
+    @Test
+    void evolveumMaintainerIsSharedWithTheOrganizationItIsLinkedTo() {
+        Maintainer linked = seeded(2L, MaintainerType.EVOLVEUM).setOrganization(new Organization().setName(EVOLVEUM));
+        Author author = createAuthor("someone");
+
+        callerIs("OrganizationContributor", EVOLVEUM);
+        assertTrue(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+
+        callerIs("OrganizationContributor", ACME);
+        assertFalse(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+
+        // Belonging to the organization is not enough: the role has to say so.
+        callerIs("IndividualContributor", EVOLVEUM);
+        assertFalse(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+    }
+
+    @Test
+    void personalItemOfAnOrganizationContributorIsNotSharedWithTheOrganization() {
+        callerIs("OrganizationContributor", "acme");
+
+        assertTrue(canUserEdit("olivia", "olivia"));
+        assertFalse(canUserEdit("olivia", "bake"));
     }
 
     @Test

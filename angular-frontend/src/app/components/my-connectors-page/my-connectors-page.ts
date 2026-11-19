@@ -402,7 +402,7 @@ export class MyConnectorsPage {
 function withManagedTags(tags: ConnectorTag[], change: ConnectorTagsChange): ConnectorTag[] {
   const others = tags.filter(t => !supportTierOfTag(t.name) && t.name !== OBSOLETE_CONNECTOR_TAG);
   const tierTag = SUPPORT_TIERS.filter(t => t.value === change.tier).map(t => ({ name: t.tagName, displayName: t.label }));
-  const obsoleteTag = change.obsolete ? [{ name: OBSOLETE_CONNECTOR_TAG, displayName: 'Obsolete' }] : [];
+  const obsoleteTag = change.obsolete ? [{ name: OBSOLETE_CONNECTOR_TAG, displayName: 'Deprecated' }] : [];
   return [...others, ...tierTag, ...obsoleteTag]
     .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
 }

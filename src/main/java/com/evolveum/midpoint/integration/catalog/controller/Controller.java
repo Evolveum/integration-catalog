@@ -81,6 +81,8 @@ public class Controller {
             String viewer = authentication != null ? authentication.getName() : null;
             ApplicationDto dto = applicationMapper.mapToApplicationDto(app, viewer);
             return ResponseEntity.ok(dto);
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             log.error("getApplication failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -194,38 +196,30 @@ public class Controller {
 
     @Operation(summary = "Search applications by parameters")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Applications found"),
-            @ApiResponse(responseCode = "404", description = "Applications not found")
+            @ApiResponse(responseCode = "200", description = "Matching applications, an empty page when none match")
     })
     @PostMapping("/applications/search/{size}/{page}")
-    public ResponseEntity<Page<Application>> searchApplication(
+    public ResponseEntity<Page<ApplicationCardDto>> searchApplication(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
             @PathVariable int page) {
-        try {
-            return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
-        } catch (RuntimeException ex) {
-            log.error("searchApplication failed: {}", ex.getMessage(), ex);
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(applicationService.searchApplication(searchForm, page, size));
     }
 
-    @Operation(summary = "Search integration methods by parameters")
+    @Operation(summary = "Search integration methods by parameters",
+            description = "Returns the matching methods the caller may see: every ACTIVE one, and the ones "
+                    + "not approved yet only to whoever may edit them")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Integration methods found"),
-            @ApiResponse(responseCode = "404", description = "Integration methods not found")
+            @ApiResponse(responseCode = "200", description = "Matching integration methods, an empty page when none match")
     })
     @PostMapping("/integration-methods/search/{size}/{page}")
-    public ResponseEntity<Page<IntegrationMethod>> searchIntegrationMethods(
+    public ResponseEntity<Page<IntegrationMethodDto>> searchIntegrationMethods(
             @RequestBody SearchForm searchForm,
             @PathVariable int size,
-            @PathVariable int page) {
-        try {
-            return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size));
-        } catch (RuntimeException ex) {
-            log.error("searchIntegrationMethods failed: {}", ex.getMessage(), ex);
-            return ResponseEntity.notFound().build();
-        }
+            @PathVariable int page,
+            Authentication authentication) {
+        String viewer = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(applicationService.searchIntegrationMethods(searchForm, page, size, viewer));
     }
 
     @Operation(summary = "Get Request by ID")
@@ -459,9 +453,11 @@ public class Controller {
             @ApiResponse(responseCode = "200", description = "Building successfully start")
     })
     @PostMapping("/upload/trigger-build/{oid}")
-    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid) {
+    public ResponseEntity<String> triggerBuild(@RequestBody TriggerBuildForm triggerBuildForm, @PathVariable UUID oid,
+                                               Authentication authentication) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(applicationService.triggerBuild(oid, triggerBuildForm));
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(applicationService.triggerBuild(oid, triggerBuildForm, authentication.getName()));
         } catch (IllegalArgumentException e) {
             log.warn("triggerBuild rejected: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -469,14 +465,17 @@ public class Controller {
     }
 
     @Operation(summary = "Get integration methods for application",
-            description = "Returns all integration methods for a specific application")
+            description = "Returns the integration methods of an application the caller may see: every ACTIVE "
+                    + "one, and the ones not approved yet only to whoever may edit them")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Integration methods retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @GetMapping("/applications/{applicationId}/implementations")
-    public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(@PathVariable UUID applicationId) {
-        List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId);
+    public ResponseEntity<List<ImplementationListItemDto>> getIntegrationMethodsByApplicationId(
+            @PathVariable UUID applicationId, Authentication authentication) {
+        String viewer = authentication != null ? authentication.getName() : null;
+        List<ImplementationListItemDto> items = applicationService.getIntegrationMethodsByApplicationId(applicationId, viewer);
         return ResponseEntity.ok(items);
     }
 
@@ -520,39 +519,42 @@ public class Controller {
 
     // ==================== Logo Endpoints ====================
 
-    @Operation(summary = "Upload application logo",
-            description = "Uploads a logo image for an application. Supported formats: PNG, JPEG, GIF, SVG, WebP")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Logo uploaded successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid file (wrong type, too large, or empty)"),
-            @ApiResponse(responseCode = "404", description = "Application not found"),
-            @ApiResponse(responseCode = "500", description = "Failed to save logo file")
-    })
-    @PostMapping(value = "/applications/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> uploadLogo(
-            @PathVariable UUID id,
-            @RequestParam("file") MultipartFile file) {
-        try {
-            Application application = applicationService.getApplication(id);
-            logoStorageService.saveLogo(application, file);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException ex) {
-            log.warn("uploadLogo rejected: {}", ex.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
-        } catch (RuntimeException ex) {
-            if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
-                log.warn("uploadLogo rejected: {}", ex.getMessage());
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
-            }
-            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to upload logo: " + ex.getMessage(), ex);
-        } catch (IOException ex) {
-            log.error("uploadLogo failed: {}", ex.getMessage(), ex);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to save logo file: " + ex.getMessage(), ex);
-        }
-    }
+    // Logo upload disabled until the legal matters around logos are finalised; uncomment to restore it.
+    // @Operation(summary = "Upload application logo",
+            // description = "Uploads a logo image for an application. Supported formats: PNG, JPEG, GIF, SVG, WebP")
+    // @ApiResponses(value = {
+            // @ApiResponse(responseCode = "200", description = "Logo uploaded successfully"),
+            // @ApiResponse(responseCode = "400", description = "Invalid file (wrong type, too large, or empty)"),
+            // @ApiResponse(responseCode = "404", description = "Application not found"),
+            // @ApiResponse(responseCode = "500", description = "Failed to save logo file")
+    // })
+    // @PostMapping(value = "/applications/{id}/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // public ResponseEntity<Void> uploadLogo(
+            // @PathVariable UUID id,
+            // @RequestParam("file") MultipartFile file,
+            // Authentication authentication) {
+        // try {
+            // logoStorageService.saveLogo(id, file, authentication);
+            // return ResponseEntity.ok().build();
+        // } catch (ResponseStatusException ex) {
+            // throw ex;
+        // } catch (IllegalArgumentException ex) {
+            // log.warn("uploadLogo rejected: {}", ex.getMessage());
+            // throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        // } catch (RuntimeException ex) {
+            // if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
+                // log.warn("uploadLogo rejected: {}", ex.getMessage());
+                // throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            // }
+            // log.error("uploadLogo failed: {}", ex.getMessage(), ex);
+            // throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    // "Failed to upload logo: " + ex.getMessage(), ex);
+        // } catch (IOException ex) {
+            // log.error("uploadLogo failed: {}", ex.getMessage(), ex);
+            // throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    // "Failed to save logo file: " + ex.getMessage(), ex);
+        // }
+    // }
 
     @Operation(summary = "Upload tutorial file for an integration method",
             description = "Uploads a tutorial document (PDF, XML, JSON, YAML, TXT) for an integration method. Stored on disk; path saved to integration_method.file_path.")
@@ -565,10 +567,13 @@ public class Controller {
     @PostMapping(value = "/integration-methods/{id}/tutorial", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> uploadTutorial(
             @PathVariable UUID id,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            tutorialStorageService.saveTutorial(id, file);
+            tutorialStorageService.saveTutorial(id, file, authentication);
             return ResponseEntity.ok().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (IllegalArgumentException ex) {
             log.warn("uploadTutorial rejected: {}", ex.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
@@ -647,11 +652,12 @@ public class Controller {
             @ApiResponse(responseCode = "404", description = "Application not found")
     })
     @DeleteMapping("/applications/{id}/logo")
-    public ResponseEntity<Void> deleteLogo(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteLogo(@PathVariable UUID id, Authentication authentication) {
         try {
-            Application application = applicationService.getApplication(id);
-            logoStorageService.deleteLogo(application);
+            logoStorageService.deleteLogo(id, authentication);
             return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
                 log.warn("deleteLogo rejected: {}", ex.getMessage());

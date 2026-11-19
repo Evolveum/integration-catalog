@@ -35,8 +35,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -159,10 +161,10 @@ class ControllerTest {
     void getApplicationShouldReturnNotFoundWhenNotExists() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
         when(applicationService.getApplication(nonExistentId))
-                .thenThrow(new RuntimeException("Application not found with id: " + nonExistentId));
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found with id: " + nonExistentId));
 
         mockMvc.perform(get("/api/applications/{id}", nonExistentId))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isNotFound());
 
         verify(applicationService).getApplication(nonExistentId);
     }
@@ -276,7 +278,9 @@ class ControllerTest {
         SearchForm searchForm = new SearchForm();
         searchForm.setKeyword("test");
 
-        Page<Application> page = new PageImpl<>(Collections.singletonList(testApplication));
+        ApplicationCardDto card = new ApplicationCardDto(testAppId, "Test", null, null, "ACTIVE",
+                null, null, null, null, null, null, null, null, null, null, null);
+        Page<ApplicationCardDto> page = new PageImpl<>(Collections.singletonList(card));
         when(applicationService.searchApplication(any(SearchForm.class), eq(0), eq(10)))
                 .thenReturn(page);
 

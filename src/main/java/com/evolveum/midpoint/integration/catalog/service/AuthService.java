@@ -9,20 +9,21 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.object.*;
+import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
+import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
-import org.springframework.beans.factory.annotation.Value;
 import org.apache.commons.lang3.Strings;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Identity questions, answered from the token claims of the current session plus the organizations
@@ -37,17 +38,37 @@ public class AuthService {
     private final MaintainerRepository maintainerRepository;
     private final KeycloakUserDirectory keycloakUserDirectory;
     private final CatalogClaims claims;
+    private final IntegrationMethodRepository integrationMethodRepository;
+    private final RequestRepository requestRepository;
 
     public AuthService(OrganizationService organizationService,
                        OwnershipService ownershipService,
                        MaintainerRepository maintainerRepository,
                        KeycloakUserDirectory keycloakUserDirectory,
-                       CatalogClaims claims) {
+                       CatalogClaims claims, IntegrationMethodRepository integrationMethodRepository,
+                       RequestRepository requestRepository) {
         this.organizationService = organizationService;
         this.ownershipService = ownershipService;
         this.maintainerRepository = maintainerRepository;
         this.keycloakUserDirectory = keycloakUserDirectory;
         this.claims = claims;
+        this.integrationMethodRepository = integrationMethodRepository;
+        this.requestRepository = requestRepository;
+    }
+
+    /**
+     * Whether {@code username} may change an application that is not published yet, such as its
+     * logo: whoever requested it or may edit one of its methods, or a superuser.
+     */
+    public boolean canEditUnpublishedApplication(String username, Application application) {
+        if (isSuperuser(username)) {
+            return true;
+        }
+        boolean requester = requestRepository.findByApplicationId(application.getId())
+                .map(request -> Strings.CI.equals(request.getRequester(), username))
+                .orElse(false);
+        return requester || integrationMethodRepository.findByApplicationId(application.getId()).stream()
+                .anyMatch(method -> canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer()));
     }
 
     /**
@@ -180,5 +201,79 @@ public class AuthService {
         return authentication != null && authentication.getPrincipal() instanceof OidcUser oidcUser
                 ? oidcUser
                 : null;
+    }
+
+    /**
+     * Whether {@code username} (null when anonymous) may see the revision: anyone an ACTIVE one, one
+     * not approved yet only whoever may edit it. Reads are open to all, so this is what hides drafts.
+     */
+    public boolean canView(String username, IntegrationMethod method) {
+        if (method.getLifecycleState() == LifecycleType.ACTIVE || isSuperuser(username)) {
+            return true;
+        }
+        return method.getMaintainer() != null
+                && canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer());
+    }
+
+    /** Throws 404 unless {@code username} may see the revision - a 403 would tell that it exists. */
+    public void assertCanViewMethod(String username, UUID methodId, String revision) {
+        integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .filter(method -> canView(username, method))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Integration method not found: " + methodId + "/" + revision));
+    }
+
+    /**
+     * Enforces that {@code username} may modify the integration-method revision (and its
+     * connectors). Throws 404 if the revision does not exist, or 403 if the caller does not
+     * own it (see {@link AuthService#canEdit}). Server-side counterpart of the client's
+     * edit-button gating — this is the check that actually protects the data.
+     */
+    public void assertCanEditMethod(String username, UUID methodId, String revision) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException(
+                        "Integration method not found: " + methodId + "/" + revision));
+        if (!canEdit(username, method.getLifecycleState(), method.getAuthor(), method.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to modify this integration method.");
+        }
+        assertNotUnderReview(username, method);
+    }
+
+    /**
+     * Blocks edits by non-superusers while a revision is REVIEWING: once a review starts the revision
+     * is locked for its author until the review is resolved, so nothing changes underneath the
+     * reviewer. Superusers are exempt — the reviewer may fix findings directly during the review
+     * (or hand the revision back via stop-review for the author to fix). Mirrors the client, which
+     * disables the edit controls for this state for everyone but superusers.
+     */
+    private void assertNotUnderReview(String username, IntegrationMethod method) {
+        if (method.getLifecycleState() == LifecycleType.REVIEWING && !isSuperuser(username)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This integration method is locked while it is under review.");
+        }
+    }
+
+    /**
+     * Enforces that {@code username} may edit a specific connector's content. Unlike
+     * {@link #assertCanEditMethod}, this gates on the connector's own owner, so a connector
+     * maintained by someone else stays closed to the method's maintainer.
+     */
+    public void assertCanEditConnector(String username, UUID methodId, String revision, Integer connectorId) {
+        IntegrationMethod method = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision))
+                .orElseThrow(() -> new RuntimeException(
+                        "Integration method not found: " + methodId + "/" + revision));
+        Connector connector = method.getConnectors().stream()
+                .map(IntegrationMethodConnector::getConnector)
+                .filter(Objects::nonNull)
+                .filter(c -> connectorId.equals(c.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(
+                        "Connector " + connectorId + " is not linked to integration method " + methodId + "/" + revision));
+        if (!canEdit(username, method.getLifecycleState(), connector.getAuthor(), connector.getMaintainer())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are not allowed to modify this connector.");
+        }
+        assertNotUnderReview(username, method);
     }
 }
