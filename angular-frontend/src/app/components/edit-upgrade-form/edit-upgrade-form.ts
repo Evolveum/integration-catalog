@@ -31,12 +31,13 @@ import { showErrorPage } from '../../core/error-page';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal, MarkdownPipe,
-    SubmissionSuccessModal, MethodTypeModal],
+    SubmissionSuccessModal, MethodTypeModal, NewTabRouteDirective],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })
@@ -310,7 +311,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
-          this.pageTitle.setPageTitle(`Edit ${ver.displayName || 'Integration method'} – ${app.displayName}`);
+          this.pageTitle.setPageTitle(`Edit ${ver.displayName || 'Integration method'} â€“ ${app.displayName}`);
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');

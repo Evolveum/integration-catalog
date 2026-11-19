@@ -7,9 +7,9 @@
 <!-- Breadcrumb -->
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" style="cursor:pointer;" (click)="goToCatalog()">MidPoint Integration Catalog</a>
+    <a class="breadcrumb-link" style="cursor:pointer;" [appNewTabRoute]="['/applications']" (click)="goToCatalog()">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
-    <a class="breadcrumb-link d-flex align-items-center gap-1" style="cursor:pointer;" (click)="goToApp()">
+    <a class="breadcrumb-link d-flex align-items-center gap-1" style="cursor:pointer;" [appNewTabRoute]="['/applications', appId]" (click)="goToApp()">
       @if (showLogo()) {
         <img [src]="logoUrl" [alt]="appName" class="breadcrumb-app-icon" (error)="onLogoError()">
       }

@@ -25,12 +25,13 @@ import { formatCapabilityLabel } from '../../core/capability-label';
 import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { SupportTier, supportTierLabel } from '../../core/support-tier';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
   imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, ManualFillModal,
-    MarkdownPipe],
+    MarkdownPipe, NewTabRouteDirective],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -157,7 +158,7 @@ export class IntegrationMethodDetail implements OnInit {
             .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
-          this.pageTitle.setPageTitle(`${ver.displayName || 'Integration method'} – ${app.displayName}`);
+          this.pageTitle.setPageTitle(`${ver.displayName || 'Integration method'} â€“ ${app.displayName}`);
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodAuthor.set(ver.author ?? '');
@@ -346,12 +347,20 @@ export class IntegrationMethodDetail implements OnInit {
     this.router.navigate(['/applications']);
   }
 
+  protected applicationRoute(): string[] {
+    return ['/applications', this.appId()];
+  }
+
+  protected editRoute(): string[] {
+    return ['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit'];
+  }
+
   protected goBack(): void {
-    this.router.navigate(['/applications', this.appId()]);
+    this.router.navigate(this.applicationRoute());
   }
 
   protected editAndUpgrade(): void {
-    this.router.navigate(['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit']);
+    this.router.navigate(this.editRoute());
   }
 
   /** Only superusers may approve/reject an in-review revision. */
