@@ -19,7 +19,7 @@ import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isArtifactUrllessConnector, isObsoleteConnector } from '../../models/connector-tag.model';
 import { CapabilityState, hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
-import { Maintainer } from '../../models/maintainer.model';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { showErrorPage } from '../../core/error-page';
@@ -103,6 +103,7 @@ export class IntegrationMethodDetail implements OnInit {
   // Ownership of the opened revision, used to gate the "Edit and upgrade" action. The server
   // enforces the same rule; hiding the button just avoids offering an action that would be rejected.
   protected readonly methodMaintainer = signal<Maintainer | null>(null);
+  protected readonly methodMaintainerLabel = computed(() => maintainerLabel(this.methodMaintainer()));
   protected readonly canEdit = computed(() =>
     this.authService.canEdit(this.methodMaintainer(), this.methodLifecycleState(), this.methodAuthor()));
 

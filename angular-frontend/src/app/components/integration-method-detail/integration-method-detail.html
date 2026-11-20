@@ -84,6 +84,10 @@
           <span class="view-value">{{ methodVersion() ? versionBadge(methodVersion()) : '—' }}</span>
         </div>
         <div class="view-row">
+          <span class="view-label">Maintainer:</span>
+          <span class="view-value" data-testid="im-detail-maintainer">{{ methodMaintainerLabel() || '—' }}</span>
+        </div>
+        <div class="view-row">
           <span class="view-label">Supported midPoint version:</span>
           <span class="view-value">From {{ midpointMinVersion() || '—' }}@if (midpointMaxVersion()) { to {{ midpointMaxVersion() }}}</span>
         </div>
