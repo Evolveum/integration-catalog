@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
+import com.evolveum.midpoint.integration.catalog.object.Author;
 import com.evolveum.midpoint.integration.catalog.object.IntegrationMethod;
 import com.evolveum.midpoint.integration.catalog.object.Maintainer;
 import com.evolveum.midpoint.integration.catalog.object.MaintainerType;
@@ -14,6 +15,7 @@ import com.evolveum.midpoint.integration.catalog.object.Organization;
 import com.evolveum.midpoint.integration.catalog.repository.AuthorRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
+import com.evolveum.midpoint.integration.catalog.security.JenkinsPublisher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
@@ -34,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -200,5 +204,79 @@ class OwnershipServiceTest {
 
         assertThrows(ResponseStatusException.class,
                 () -> ownershipService.assignMaintainer(new IntegrationMethod(), dtoOf(organization("acme"))));
+    }
+
+    // --- connector pipeline ---------------------------------------------------------------
+
+    private static void pipelineCalls(String authorUsername, String authorEmail) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken(new JenkinsPublisher(authorUsername, authorEmail), null));
+    }
+
+    private Maintainer evolveumRow() {
+        Maintainer evolveum = new Maintainer().setId(1L).setCategory(MaintainerType.EVOLVEUM);
+        when(maintainerRepository.findByCategory(MaintainerType.EVOLVEUM)).thenReturn(Optional.of(evolveum));
+        when(maintainerRepository.save(evolveum)).thenReturn(evolveum);
+        return evolveum;
+    }
+
+    private static final MaintainerDto EVOLVEUM = new MaintainerDto(null, null, null, MaintainerType.EVOLVEUM, null);
+
+    @Test
+    void pipelineMayPublishAsEvolveum() {
+        pipelineCalls("alice", "alice@example.com");
+        Maintainer evolveum = evolveumRow();
+        IntegrationMethod method = new IntegrationMethod();
+
+        ownershipService.assignMaintainer(method, EVOLVEUM);
+
+        assertSame(evolveum, method.getMaintainer());
+    }
+
+    /** Without this the pipeline fell into the "no signed-in user" branch, which checks nothing. */
+    @Test
+    void pipelineMayNotPublishAsAnyoneElse() {
+        pipelineCalls("alice", "alice@example.com");
+
+        ResponseStatusException community = assertThrows(ResponseStatusException.class,
+                () -> ownershipService.assignMaintainer(new IntegrationMethod(), dtoOf(stored(
+                        new Maintainer().setId(5L).setCategory(MaintainerType.COMMUNITY)))));
+        assertEquals(HttpStatus.FORBIDDEN, community.getStatusCode());
+        assertThrows(ResponseStatusException.class,
+                () -> ownershipService.assignMaintainer(new IntegrationMethod(), dtoOf(personal("alice"))));
+        assertThrows(ResponseStatusException.class,
+                () -> ownershipService.assignMaintainer(new IntegrationMethod(), dtoOf(organization("acme"))));
+    }
+
+    @Test
+    void pipelineStampsTheAuthorItNames() {
+        pipelineCalls("alice", "alice@example.com");
+        evolveumRow();
+        when(authorRepository.findByUsername("alice")).thenReturn(Optional.empty());
+        when(authorRepository.save(any(Author.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        IntegrationMethod method = new IntegrationMethod();
+
+        ownershipService.stampNew(method, JenkinsPublisher.NAME, EVOLVEUM);
+
+        assertEquals("alice", method.getAuthor().getUsername());
+        assertEquals("alice@example.com", method.getAuthor().getEmail());
+    }
+
+    @Test
+    void pipelineMustNameTheAuthor() {
+        evolveumRow();
+
+        pipelineCalls(null, "alice@example.com");
+        ResponseStatusException noUsername = assertThrows(ResponseStatusException.class,
+                () -> ownershipService.stampNew(new IntegrationMethod(), JenkinsPublisher.NAME, EVOLVEUM));
+        assertEquals(HttpStatus.BAD_REQUEST, noUsername.getStatusCode());
+
+        pipelineCalls("alice", null);
+        assertThrows(ResponseStatusException.class,
+                () -> ownershipService.stampNew(new IntegrationMethod(), JenkinsPublisher.NAME, EVOLVEUM));
+
+        pipelineCalls("alice", "not an email");
+        assertThrows(ResponseStatusException.class,
+                () -> ownershipService.stampNew(new IntegrationMethod(), JenkinsPublisher.NAME, EVOLVEUM));
     }
 }

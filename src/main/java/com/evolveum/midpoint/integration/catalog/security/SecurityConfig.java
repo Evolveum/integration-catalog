@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 /**
  * OIDC login against the identity provider (this application is the OIDC client) plus the endpoint
@@ -153,6 +154,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         JenkinsCallbackFilter jenkinsCallbackFilter = new JenkinsCallbackFilter(jenkinsProperties);
+        JenkinsPublishFilter jenkinsPublishFilter = new JenkinsPublishFilter(jenkinsProperties);
         http
                 // Reuses the MVC CORS mappings (configuration/CorsConfig) so preflights pass
                 // the security chain when the SPA is served from another origin.
@@ -161,8 +163,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository())
                         .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
-                        .ignoringRequestMatchers(jenkinsCallbackFilter.authenticatedCallbackMatcher()))
+                        .ignoringRequestMatchers(new OrRequestMatcher(
+                                jenkinsCallbackFilter.authenticatedCallbackMatcher(),
+                                jenkinsPublishFilter.authenticatedPublishMatcher())))
                 .addFilterBefore(jenkinsCallbackFilter, AuthorizationFilter.class)
+                .addFilterBefore(jenkinsPublishFilter, AuthorizationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, HEALTH_CHECKS).permitAll()
 
@@ -172,6 +177,11 @@ public class SecurityConfig {
                         // manual-fill dialog with their session.
                         .requestMatchers(JenkinsCallbackFilter.CALLBACK_PATH_PATTERNS)
                                 .hasAnyRole(SUPERUSER, JenkinsCallbackFilter.CALLBACK_ROLE)
+
+                        // The connector pipeline, on the endpoints JenkinsPublishFilter lists and
+                        // only with its secret; the services limit it to Evolveum-maintained items.
+                        .requestMatchers(jenkinsPublishFilter.authenticatedPublishMatcher())
+                                .hasRole(JenkinsPublishFilter.PUBLISH_ROLE)
 
                         .requestMatchers(MAINTAINER_DIRECTORY).hasRole(SUPERUSER)
                         .requestMatchers(REVIEW_QUEUE).hasRole(SUPERUSER)

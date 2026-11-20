@@ -64,7 +64,7 @@ class JenkinsCallbackFilterTest {
     }
 
     private static JenkinsProperties properties(String callbackToken) {
-        return new JenkinsProperties("http://jenkins.example", "apiToken", "jenkins", "build", callbackToken);
+        return new JenkinsProperties("http://jenkins.example", "apiToken", "jenkins", "build", callbackToken, null);
     }
 
     /** The startup warning about a missing token is the only thing logged at WARN. */

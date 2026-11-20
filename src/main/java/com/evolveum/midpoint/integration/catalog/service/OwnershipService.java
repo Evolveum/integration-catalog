@@ -12,6 +12,7 @@ import com.evolveum.midpoint.integration.catalog.repository.AuthorRepository;
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import com.evolveum.midpoint.integration.catalog.security.JenkinsPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Records on a catalog item who owns it, at the moment it is written.
@@ -33,6 +35,8 @@ public class OwnershipService {
 
     private static final String DEFAULT_LABEL_EVOLVEUM = "Evolveum";
     private static final String DEFAULT_LABEL_COMMUNITY = "Community";
+
+    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+$");
 
     private final OrganizationService organizationService;
     private final CatalogClaims claims;
@@ -50,8 +54,16 @@ public class OwnershipService {
      * Stamps a newly written item: {@code username} authored it, and {@code requestedMaintainer}
      * (a category and what that category needs, as chosen in the publish form) maintains it. The
      * author is recorded for the audit trail only - {@link AuthService} grants nothing for it.
+     * When the connector pipeline publishes, the author is the person it names instead.
      */
     public void stampNew(SetOwnership item, String username, MaintainerDto requestedMaintainer) {
+        JenkinsPublisher publisher = JenkinsPublisher.current();
+        if (publisher != null) {
+            stampAuthor(item, requiredAuthorUsername(publisher), requiredAuthorEmail(publisher));
+            assignMaintainer(item, requestedMaintainer);
+            return;
+        }
+
         OidcUser caller = currentOidcUser();
 //        String callerRole = caller != null ? claims.effectiveRole(caller) : null;
 //        Organization callerOrganization = caller != null
@@ -59,11 +71,31 @@ public class OwnershipService {
 //                : null;
         String mail = caller != null ? caller.getEmail() : null;
 
+        stampAuthor(item, username, mail);
+        assignMaintainer(item, requestedMaintainer);
+    }
+
+    /** An author already on record keeps their stored email. */
+    private void stampAuthor(SetOwnership item, String username, String mail) {
         Author author = authorRepository.findByUsername(username)
                 .orElseGet(() -> authorRepository.save(new Author().setUsername(username).setEmail(mail)));
         item.setAuthor(author);
+    }
 
-        assignMaintainer(item, requestedMaintainer);
+    private static String requiredAuthorUsername(JenkinsPublisher publisher) {
+        if (StringUtils.isBlank(publisher.authorUsername())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "The X-Author-Username header is required to publish.");
+        }
+        return publisher.authorUsername();
+    }
+
+    private static String requiredAuthorEmail(JenkinsPublisher publisher) {
+        if (publisher.authorEmail() == null || !EMAIL.matcher(publisher.authorEmail()).matches()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "The X-Author-Email header is required to publish and must be an email address.");
+        }
+        return publisher.authorEmail();
     }
 
     /**
@@ -147,9 +179,17 @@ public class OwnershipService {
      * A non-superuser hands an item only to a maintainer they act for - themselves, Community, or
      * the organization they contribute for - which is what the maintainer dropdown offers and what
      * {@link AuthService#canEdit} lets them edit afterwards. Without a signed-in user (a build
-     * callback, a background job) no maintainer is being chosen, so nothing is checked.
+     * callback, a background job) no maintainer is being chosen, so nothing is checked. The
+     * connector pipeline publishes as Evolveum only.
      */
     private void assertCallerMayAssign(Maintainer maintainer) {
+        if (JenkinsPublisher.current() != null) {
+            if (maintainer.getCategory() != MaintainerType.EVOLVEUM) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "The connector pipeline may only set Evolveum as the maintainer.");
+            }
+            return;
+        }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         OidcUser caller = currentOidcUser();
         if (caller == null) {

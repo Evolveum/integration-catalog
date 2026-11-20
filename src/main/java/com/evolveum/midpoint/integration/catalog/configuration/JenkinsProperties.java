@@ -14,6 +14,7 @@ public record JenkinsProperties(
         String apiToken,
         String username,
         String jobName,
-        String callbackToken
+        String callbackToken,
+        String publishToken
 ) {
 }

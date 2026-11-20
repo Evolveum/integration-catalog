@@ -14,6 +14,7 @@ import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import com.evolveum.midpoint.integration.catalog.security.CatalogRole;
+import com.evolveum.midpoint.integration.catalog.security.JenkinsPublisher;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.apache.commons.lang3.Strings;
 import org.springframework.http.HttpStatus;
@@ -125,10 +126,15 @@ public class AuthService {
      * maintainer decides: a Superuser may edit anything, a COMMUNITY item is open to every
      * contributor, and otherwise the caller must be the maintainer or contribute for the
      * organization that is. Who authored the item grants nothing - it is recorded for audit.
+     * The connector pipeline may edit Evolveum-maintained items only.
      */
     public boolean canEdit(String username, LifecycleType lifecycleType, Author author, Maintainer maintainer) {
         if (username == null || username.isBlank()) {
             return false;
+        }
+
+        if (JenkinsPublisher.current() != null) {
+            return maintainer != null && maintainer.getCategory() == MaintainerType.EVOLVEUM;
         }
 
         OidcUser caller = currentOidcUser();

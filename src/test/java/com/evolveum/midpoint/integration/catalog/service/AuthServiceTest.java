@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRep
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
+import com.evolveum.midpoint.integration.catalog.security.JenkinsPublisher;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -266,6 +267,22 @@ class AuthServiceTest {
         assertFalse(canOrgEdit("dana", "acme"));
         // Their own items are unaffected.
         assertTrue(canUserEdit("dana", "dana"));
+    }
+
+    /** The pipeline edits Evolveum-maintained items only, whoever it names as the author. */
+    @Test
+    void pipelineEditsEvolveumItemsOnly() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken(new JenkinsPublisher("ben", "ben@example.com"), null));
+        Author author = createAuthor("ben");
+
+        assertTrue(authService.canEdit(JenkinsPublisher.NAME, LifecycleType.ACTIVE, author,
+                seeded(2L, MaintainerType.EVOLVEUM)));
+        assertFalse(authService.canEdit(JenkinsPublisher.NAME, LifecycleType.IN_REVIEW, author,
+                seeded(3L, MaintainerType.COMMUNITY)));
+        assertFalse(canUserEdit(JenkinsPublisher.NAME, "ben"));
+        assertFalse(canOrgEdit(JenkinsPublisher.NAME, EVOLVEUM));
+        assertFalse(authService.isSuperuser(JenkinsPublisher.NAME));
     }
 
     // ---- claim- and catalog-backed helpers ----

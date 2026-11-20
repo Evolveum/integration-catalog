@@ -74,7 +74,7 @@ class ConnectorUploadServiceUploadTest {
                 connectorVersionRepository, connectorBundleRepository, connectorBundleVersionRepository,
                 downloadRepository,
                 new GithubProperties("token", "group", "template"),
-                new JenkinsProperties("http://jenkins", "token", "user", "job", "callback-token"),
+                new JenkinsProperties("http://jenkins", "token", "user", "job", "callback-token", null),
                 applicationTagService, capabilityRepository, integrationMethodCapabilityRepository,
                 integrationMethodCapabilityItemRepository, connVersionCapabilityRepository,
                 connVersionCapabilityItemRepository, integrationMethodTypeRepository,
