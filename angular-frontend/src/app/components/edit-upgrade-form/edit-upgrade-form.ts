@@ -5,6 +5,7 @@
  */
 
 import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
+import { PageTitleService } from '../../services/page-title.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,12 +31,13 @@ import { showErrorPage } from '../../core/error-page';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal, MarkdownPipe,
-    SubmissionSuccessModal, MethodTypeModal],
+    SubmissionSuccessModal, MethodTypeModal, NewTabRouteDirective],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })
@@ -259,6 +261,8 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
 
   private easyMde: EasyMDE | null = null;
 
+  private readonly pageTitle = inject(PageTitleService);
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -307,6 +311,7 @@ export class EditUpgradeForm implements OnInit, OnDestroy {
             .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
+          this.pageTitle.setPageTitle(`Edit ${ver.displayName || 'Integration method'} – ${app.displayName}`);
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodDescription.set(ver.description ?? '');
