@@ -14,7 +14,8 @@ package com.evolveum.midpoint.integration.catalog.object;
 public enum SupportTier {
     STANDARD("supp_tier_standard"),
     ADVANCED("supp_tier_advanced"),
-    PREMIUM("supp_tier_premium");
+    PREMIUM("supp_tier_premium"),
+    ENTERPRISE("supp_tier_enterprise");
 
     private final String tagName;
 

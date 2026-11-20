@@ -13,6 +13,7 @@ import com.evolveum.midpoint.integration.catalog.repository.IntegrationMethodRep
 import com.evolveum.midpoint.integration.catalog.repository.MaintainerRepository;
 import com.evolveum.midpoint.integration.catalog.repository.RequestRepository;
 import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
+import com.evolveum.midpoint.integration.catalog.security.JenkinsPublisher;
 import com.evolveum.midpoint.integration.catalog.security.KeycloakUserDirectory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -234,6 +235,30 @@ class AuthServiceTest {
     }
 
     @Test
+    void evolveumMaintainerIsSharedWithTheOrganizationItIsLinkedTo() {
+        Maintainer linked = seeded(2L, MaintainerType.EVOLVEUM).setOrganization(new Organization().setName(EVOLVEUM));
+        Author author = createAuthor("someone");
+
+        callerIs("OrganizationContributor", EVOLVEUM);
+        assertTrue(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+
+        callerIs("OrganizationContributor", ACME);
+        assertFalse(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+
+        // Belonging to the organization is not enough: the role has to say so.
+        callerIs("IndividualContributor", EVOLVEUM);
+        assertFalse(authService.canEdit("olivia", LifecycleType.ACTIVE, author, linked));
+    }
+
+    @Test
+    void personalItemOfAnOrganizationContributorIsNotSharedWithTheOrganization() {
+        callerIs("OrganizationContributor", "acme");
+
+        assertTrue(canUserEdit("olivia", "olivia"));
+        assertFalse(canUserEdit("olivia", "bake"));
+    }
+
+    @Test
     void individualContributorDoesNotInheritItemsMaintainedByTheirOrganization() {
         callerIs("IndividualContributor", "acme");
 
@@ -242,6 +267,22 @@ class AuthServiceTest {
         assertFalse(canOrgEdit("dana", "acme"));
         // Their own items are unaffected.
         assertTrue(canUserEdit("dana", "dana"));
+    }
+
+    /** The pipeline edits Evolveum-maintained items only, whoever it names as the author. */
+    @Test
+    void pipelineEditsEvolveumItemsOnly() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken(new JenkinsPublisher("ben", "ben@example.com"), null));
+        Author author = createAuthor("ben");
+
+        assertTrue(authService.canEdit(JenkinsPublisher.NAME, LifecycleType.ACTIVE, author,
+                seeded(2L, MaintainerType.EVOLVEUM)));
+        assertFalse(authService.canEdit(JenkinsPublisher.NAME, LifecycleType.IN_REVIEW, author,
+                seeded(3L, MaintainerType.COMMUNITY)));
+        assertFalse(canUserEdit(JenkinsPublisher.NAME, "ben"));
+        assertFalse(canOrgEdit(JenkinsPublisher.NAME, EVOLVEUM));
+        assertFalse(authService.isSuperuser(JenkinsPublisher.NAME));
     }
 
     // ---- claim- and catalog-backed helpers ----

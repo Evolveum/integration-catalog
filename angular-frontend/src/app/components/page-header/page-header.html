@@ -15,7 +15,7 @@
         'text-bg-danger': toast.type === 'danger',
         'text-bg-info': toast.type === 'info'
       }">
-      <strong class="me-auto">
+      <strong data-testid="toast-title" class="me-auto">
         {{ toast.title }}
       </strong>
       <button type="button" class="btn-close" [class.btn-close-white]="toast.type !== 'warning'" (click)="closeToast()" aria-label="Close">
@@ -57,7 +57,7 @@
 
     @if (currentUser()) {
       <div class="dropdown">
-        <button class="header-user d-flex align-items-center gap-2 bg-transparent border-0 text-white" type="button" (click)="toggleMenu()"
+        <button data-testid="header-user-menu" class="header-user d-flex align-items-center gap-2 bg-transparent border-0 text-white" type="button" (click)="toggleMenu()"
           [class.header-user-active]="menuOpen()" [attr.aria-expanded]="menuOpen()" aria-haspopup="menu"
           title="Account menu">
           <span class="header-avatar">{{ userInitials() }}</span>
@@ -73,14 +73,14 @@
             <!-- A superuser sees every method and connector in the catalog instead of their own, plus the approval queue. -->
             @if (isSuperuser()) {
               <a class="dropdown-item" role="menuitem" routerLink="/all-integration-methods" (click)="closeMenu()">All integration methods</a>
-              <a class="dropdown-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
-              <a class="dropdown-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
+              <a data-testid="header-menu-all-connectors" class="dropdown-item" role="menuitem" routerLink="/all-connectors" (click)="closeMenu()">All connectors</a>
+              <a data-testid="header-menu-approval-queue" class="dropdown-item" role="menuitem" routerLink="/approval-queue" (click)="closeMenu()">Approval queue</a>
             } @else {
-              <a class="dropdown-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
+              <a data-testid="header-menu-my-methods" class="dropdown-item" role="menuitem" routerLink="/my-integration-methods" (click)="closeMenu()">My integration methods</a>
               <a class="dropdown-item" role="menuitem" routerLink="/my-connectors" (click)="closeMenu()">My connectors</a>
             }
             <hr class="dropdown-divider">
-            <a class="dropdown-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
+            <a data-testid="header-menu-settings" class="dropdown-item" role="menuitem" routerLink="/settings" (click)="closeMenu()">Settings</a>
             <hr class="dropdown-divider">
             <button class="dropdown-item text-danger d-flex align-items-center gap-2" type="button" role="menuitem" (click)="logout()">
               <i class="fa-solid fa-power-off"></i>
@@ -92,7 +92,7 @@
         }
       </div>
     } @else {
-      <button class="btn btn-sm btn-link link-light fw-semibold text-decoration-none d-flex align-items-center gap-2" (click)="login()">
+      <button data-testid="header-login" class="btn btn-sm btn-link link-light fw-semibold text-decoration-none d-flex align-items-center gap-2" (click)="login()">
         <i class="fa-solid fa-user header-user-icon"></i>
         <span>Login</span>
       </button>

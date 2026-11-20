@@ -23,6 +23,7 @@ import {
 } from '../../models/maintainer.model';
 import { versionBadge } from '../../core/version-badge';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 /** All revisions of one method, newest first; `revisions` holds only those the filters let through. */
 interface MethodGroup {
@@ -48,7 +49,7 @@ interface MethodGroup {
   selector: 'app-my-integration-methods-page',
   standalone: true,
   imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal,
-    DownloadInfoModal, Pager, FilterMenu, BackdropCloseDirective],
+    DownloadInfoModal, Pager, FilterMenu, BackdropCloseDirective, NewTabRouteDirective],
   templateUrl: './my-integration-methods-page.html',
   styleUrls: ['./my-integration-methods-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }
@@ -336,14 +337,22 @@ export class MyIntegrationMethodsPage {
     this.openMenuKey.set(null);
   }
 
+  protected detailsRoute(revision: MyIntegrationMethod): string[] {
+    return ['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'details'];
+  }
+
+  protected editRoute(revision: MyIntegrationMethod): string[] {
+    return ['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'edit'];
+  }
+
   protected openDetails(revision: MyIntegrationMethod): void {
     this.closeMenu();
-    this.router.navigate(['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'details']);
+    this.router.navigate(this.detailsRoute(revision));
   }
 
   protected openEdit(revision: MyIntegrationMethod): void {
     this.closeMenu();
-    this.router.navigate(['/applications', revision.applicationId, 'integration-method', revision.id, revision.revision, 'edit']);
+    this.router.navigate(this.editRoute(revision));
   }
 
   protected openApplication(applicationId: string): void {
@@ -509,6 +518,7 @@ export class MyIntegrationMethodsPage {
     this.applicationService.cancelIntegrationMethod(revision.id, revision.revision).subscribe({
       next: () => {
         this.closeCancel();
+        this.toastService.show('Request cancelled', 'The integration method has been withdrawn and deleted.', 'success');
         this.load();
       },
       error: err => {

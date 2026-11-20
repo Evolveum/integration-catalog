@@ -22,9 +22,9 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
+    <a class="breadcrumb-link" [appNewTabRoute]="['/applications']" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
-    <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="cancel()" style="cursor:pointer;">
+    <a class="breadcrumb-link d-flex align-items-center gap-1" [appNewTabRoute]="['/applications', appId()]" (click)="cancel()" style="cursor:pointer;">
       @if (showLogo()) {
         <img [src]="getLogoUrl()" [alt]="appName()" class="breadcrumb-app-icon" (error)="onLogoError()">
       }
@@ -61,7 +61,7 @@
             Integration method version <span class="text-danger">*</span>
             <app-info-tooltip>Version of this integration method.</app-info-tooltip>
           </label>
-          <input type="text" class="form-control edit-version-input"
+          <input data-testid="edit-method-version" type="text" class="form-control edit-version-input"
                  [value]="methodVersion()"
                  disabled>
           <div class="form-text mt-1">The <strong>version number</strong> updates automatically upon clicking "Save as new version".</div>
@@ -159,7 +159,7 @@
           <app-info-tooltip>What this integration method cannot do, so a consumer reads the gaps beside the capabilities instead of finding them in use. Leave empty if there are none worth stating.</app-info-tooltip>
         </label>
         <div class="position-relative">
-          <textarea class="form-control" rows="4" [attr.maxlength]="limitationsMax"
+          <textarea data-testid="edit-method-limitations" class="form-control" rows="4" [attr.maxlength]="limitationsMax"
                     placeholder="Describe what this integration method does not support..."
                     [value]="methodLimitations()"
                     (input)="methodLimitations.set($any($event.target).value)"></textarea>
@@ -255,7 +255,7 @@
                 <span class="edit-connector-name d-flex align-items-center gap-2">
                   {{ c.connectorDisplayName || c.name }}
                   @if (isObsoleteConnector(c.connectorTags)) {
-                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle text-uppercase d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
+                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle text-uppercase d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Deprecated</span>
                   }
                   @if (isConnectorPending(c.connectorId)) {
                     <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis text-uppercase">Pending</span>
@@ -269,7 +269,7 @@
                   <i class="fa-solid fa-screwdriver-wrench"></i>Set up compatibility
                 </button>
                 @if (canEditConnector(c)) {
-                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center gap-1"
+                  <button data-testid="edit-connector-edit" type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center gap-1"
                           (click)="openEditConnector(c)">
                     <i class="fa-solid fa-pencil"></i>Edit
                   </button>
@@ -391,7 +391,7 @@
               <span class="edit-connector-name d-flex align-items-center gap-2">
                 {{ sc.displayName || 'New connector' }}
                 @if (isObsoleteConnector(sc.tags)) {
-                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle text-uppercase d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
+                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle text-uppercase d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Deprecated</span>
                 }
                 <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis text-uppercase">Pending</span>
               </span>
@@ -462,11 +462,11 @@
           } @else if (hasPendingConnectorChanges()) {
             <span class="edit-save-hint text-muted me-1">You have unsaved connector changes</span>
           }
-          <button type="button" class="btn btn-outline-primary btn-sm"
+          <button data-testid="edit-save" type="button" class="btn btn-outline-primary btn-sm"
                   [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()"
                   (click)="save()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
           @if (!isDraftState()) {
-            <button type="button" class="btn btn-primary btn-sm" [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()" (click)="saveAsNewVersion()">
+            <button data-testid="edit-save-as-new-version" type="button" class="btn btn-primary btn-sm" [disabled]="!isMidpointRangeValid() || !capabilitiesValid() || !methodMaintainer() || isSaving()" (click)="saveAsNewVersion()">
               <i class="fa-solid fa-arrow-up me-1"></i>Save as new version
             </button>
           }
@@ -510,7 +510,7 @@
             <button type="button" class="btn-close" (click)="cancelDeleteConnector()" aria-label="Close"></button>
           </div>
           <div class="modal-body text-body-secondary">
-            Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? This action cannot be undone.
+            Are you sure you want to delete "{{ pending.connectorDisplayName || pending.name }}"? It is removed when you save your changes.
           </div>
           <div class="modal-footer justify-content-between">
             <button type="button" class="btn btn-link text-decoration-none" (click)="cancelDeleteConnector()">Cancel</button>

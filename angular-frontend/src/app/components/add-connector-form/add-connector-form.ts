@@ -24,6 +24,7 @@ import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { InfoTooltip } from '../info-tooltip/info-tooltip';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 type Step = 1 | 2;
 
@@ -64,7 +65,8 @@ export interface StagedConnector {
 @Component({
   selector: 'app-add-connector-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal, MarkdownEditor, MarkdownPipe, BackdropCloseDirective, InfoTooltip],
+  imports: [CommonModule, FormsModule, CapabilityPicker, PageHeader, DownloadInfoModal, MarkdownEditor, MarkdownPipe, BackdropCloseDirective, InfoTooltip,
+    NewTabRouteDirective],
   templateUrl: './add-connector-form.html',
   styleUrls: ['./add-connector-form.scss']
 })
@@ -102,19 +104,21 @@ export class AddConnectorForm implements OnInit {
   protected readonly selectedCatalogConnector = signal<CatalogConnector | null>(null);
   protected readonly isObsoleteConnector = isObsoleteConnector;
 
-  protected readonly filteredCatalogConnectors = computed(() => {
+  private readonly matchedCatalogConnectors = computed(() => {
     const q = this.catalogSearch().toLowerCase().trim();
     const excluded = new Set(this.excludedConnectorIds());
     const all = this.catalogConnectors().filter(c => !excluded.has(c.connectorId));
-    // Only start filtering once at least 2 characters are typed; always cap the list at 10 entries.
-    const matched = q.length < 2
+    // Only start filtering once at least 2 characters are typed.
+    return q.length < 2
       ? all
       : all.filter(c =>
           c.displayName.toLowerCase().includes(q) ||
           (c.bundleDisplayName ?? '').toLowerCase().includes(q)
         );
-    return matched.slice(0, 10);
   });
+  // The list is always capped at 10 entries; the modal tells the user how many more matched.
+  protected readonly filteredCatalogConnectors = computed(() => this.matchedCatalogConnectors().slice(0, 10));
+  protected readonly catalogMatchCount = computed(() => this.matchedCatalogConnectors().length);
 
   // ── Step 2: Connector details ─────────────────────────────
   protected readonly basicInfoExpanded = signal<boolean>(true);

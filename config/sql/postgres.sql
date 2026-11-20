@@ -631,7 +631,11 @@ CHECK (
         AND username IS NULL
         AND organization_id IS NOT NULL)
     OR
-    (category IN ('EVOLVEUM', 'COMMUNITY')
+    (category = 'EVOLVEUM'
+        AND username IS NULL
+        AND organization_id IS NOT NULL)
+    OR
+    (category = 'COMMUNITY'
         AND username IS NULL
         AND organization_id IS NULL)
 );
@@ -1060,15 +1064,17 @@ SELECT setval('integration_method_type_id_seq', 9);
 
 INSERT INTO connector_tag (id, name, display_name) OVERRIDING SYSTEM VALUE VALUES
     (1,'ai_generated','AI Generated'),
-    (2,'obsolete','Obsolete'),
+    (2,'obsolete','Deprecated'),
     -- Support tiers: the code knows these exact names (SupportTier), display_name is the tier's label.
     (3,'supp_tier_standard','Standard'),
     (4,'supp_tier_advanced','Advanced'),
     (5,'supp_tier_premium','Premium'),
     -- Connector published with no artifact to download; the code knows this exact name.
-    (6,'arti_URLless','Without artifact');
+    (6,'arti_URLless','Without artifact'),
+    -- Support tier above Premium; id 7 only because it was added later (change 29).
+    (7,'supp_tier_enterprise','Enterprise');
 
-SELECT setval('connector_tag_id_seq', 6);
+SELECT setval('connector_tag_id_seq', 7);
 
 -- display_order runs across the object-specific rows as a method offers them (1-9), with the
 -- connector-only ones after (10-13); offered_for_method is what tells the two lists apart.
@@ -1112,9 +1118,14 @@ INSERT INTO midpoint_version (id, version, version_name, is_current) values
 	
 SELECT setval('midpoint_version_id_seq', 10);
 
+INSERT INTO organizations (id, name, display_name, description) OVERRIDING SYSTEM VALUE VALUES
+    (1,'evolveum','Evolveum','Maintainer of midPoint and the Integration catalog');
+
+SELECT setval('organizations_id_seq', 1);
+
 INSERT INTO maintainers (id, username, organization_id, category) VALUES
     (1,NULL,NULL,'COMMUNITY'),
-    (2,NULL,NULL,'EVOLVEUM');
+    (2,NULL,1,'EVOLVEUM');
 
 SELECT setval('maintainer_id_seq', 2);
 
@@ -1130,5 +1141,5 @@ SELECT setval('author_id_seq', 1);
 -- installation is already at the current change number, so no upgrade section applies.
 -- Keep in sync with the newest apply_change call in upgrade.sql and with
 -- DatabaseSchemaVersionValidator.REQUIRED_VERSION.
-call apply_change(26, $$ SELECT 1 $$, true);
+call apply_change(29, $$ SELECT 1 $$, true);
 -- end of region

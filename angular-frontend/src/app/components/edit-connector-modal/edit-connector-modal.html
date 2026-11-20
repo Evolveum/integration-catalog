@@ -47,7 +47,7 @@
                     Connector version
                     <app-info-tooltip>Version of this connector (e.g. 1.0.0). When you save the integration method as a new version,<br>this becomes the version of the new connector. Take note that value is still just informative,<br>real value will be assigned during build phase from .pom file.</app-info-tooltip>
                   </label>
-                  <input type="text" class="form-control"
+                  <input data-testid="edit-connector-version" type="text" class="form-control"
                          [value]="connectorVersion()"
                          (input)="connectorVersion.set($any($event.target).value)"
                          placeholder="e.g. 1.0.0">
@@ -115,7 +115,7 @@
               <!-- Description -->
               <div class="mb-3">
                 <label class="form-label form-label-upload">Connector description</label>
-                <app-markdown-editor [value]="connectorDescription()"
+                <app-markdown-editor data-testid="edit-connector-description" [value]="connectorDescription()"
                                      (valueChange)="connectorDescription.set($event)"
                                      placeholder="Type description..."></app-markdown-editor>
               </div>
@@ -292,7 +292,7 @@
       <!-- Footer -->
       <div class="modal-footer justify-content-between">
         <button type="button" class="btn btn-link text-decoration-none" (click)="close.emit()">Cancel</button>
-        <button type="button" class="btn btn-primary"
+        <button data-testid="edit-connector-confirm" type="button" class="btn btn-primary"
                 [disabled]="!isValid() || isSaving()"
                 (click)="save()">
           @if (isSaving()) {

@@ -4,7 +4,8 @@
  * Licensed under the EUPL-1.2 or later.
  */
 
-import { Component, OnInit, OnDestroy, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject, ViewChild } from '@angular/core';
+import { PageTitleService } from '../../services/page-title.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
@@ -20,10 +21,12 @@ import { DownloadInfoModal } from '../download-info-modal/download-info-modal';
 import { EditApplicationModal } from '../edit-application-modal/edit-application-modal';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { SupportTier, supportTierClasses, supportTierLabel } from '../../core/support-tier';
 import { avatarToneClass } from '../../core/avatar-tone';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 interface MethodGroup {
   id: string;
@@ -38,7 +41,8 @@ interface MethodGroup {
 
 @Component({
   selector: 'app-application-detail',
-  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe, BackdropCloseDirective],
+  imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, EditApplicationModal, ManualFillModal, MarkdownPipe, BackdropCloseDirective,
+    NewTabRouteDirective],
   standalone: true,
   templateUrl: './application-detail.html',
   styleUrls: ['./application-detail.scss']
@@ -107,11 +111,15 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     }
     const result = Array.from(groups.values());
     result.forEach(g => {
-      g.versions.sort((a, b) => this.compareRevisions(a.revision, b.revision));
       // For a method with multiple versions, represent it by its OLDEST version so its
       // name/identity stays stable (matching its fixed, creation-order position).
-      const oldest = g.versions[0];
+      const oldest = g.versions.reduce((a, b) => this.compareRevisions(a.revision, b.revision) <= 0 ? a : b);
       g.name = oldest.displayName || oldest.connectorDisplayName || 'Integration method';
+      // Published revisions first, then the unapproved ones; newest first within each, so the
+      // latest draft sits right under the published version instead of after older drafts.
+      g.versions.sort((a, b) =>
+        Number(b.lifecycleState === 'ACTIVE') - Number(a.lifecycleState === 'ACTIVE')
+        || this.compareRevisions(b.revision, a.revision));
     });
     // Unified list in creation order (map insertion order = backend created_at ASC), independent of
     // lifecycle state — so a method keeps its position even when its state changes (e.g. on approval).
@@ -159,6 +167,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
   protected readonly availableMethodTypes = signal<{ id: number; displayName: string }[]>([]);
 
   @ViewChild(ApprovalConfirmModal) approvalConfirmModal?: ApprovalConfirmModal;
+
+  private readonly pageTitle = inject(PageTitleService);
 
   constructor(
     private route: ActivatedRoute,
@@ -420,6 +430,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       this.applicationService.cancelIntegrationMethod(id, revision ?? '').subscribe({
         next: ({ applicationDeleted }) => {
           this.closeCancelConfirm();
+          this.toastService.show('Request cancelled', 'The integration method has been withdrawn and deleted.', 'success');
           // The app goes with its only never-published revision, so there is no detail page to return to.
           if (applicationDeleted) {
             this.router.navigate(['/applications']);
@@ -439,8 +450,16 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       const requestId = this.application()?.requestId;
       if (!requestId) { this.closeCancelConfirm(); return; }
       this.applicationService.cancelRequest(requestId).subscribe({
-        next: () => { this.closeCancelConfirm(); this.router.navigate(['/applications']); },
-        error: (err) => { console.error('Failed to cancel request', err); this.closeCancelConfirm(); }
+        next: () => {
+          this.closeCancelConfirm();
+          this.toastService.show('Request cancelled', 'The application request has been cancelled.', 'success');
+          this.router.navigate(['/applications']);
+        },
+        error: (err) => {
+          console.error('Failed to cancel request', err);
+          this.closeCancelConfirm();
+          this.toastService.show('Cancel request failed', 'The action failed. Please try again.', 'danger');
+        }
       });
     }
   }
@@ -607,17 +626,19 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     });
   }
 
+  protected methodRoute(versionId: string, revision: string | null, page: 'details' | 'edit'): string[] {
+    return ['/applications', this.application()?.id ?? '', 'integration-method', versionId, revision ?? '', page];
+  }
+
   protected navigateToEdit(versionId: string, revision: string | null): void {
-    const appId = this.application()?.id;
-    if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision ?? '', 'edit']);
+    if (this.application()) {
+      this.router.navigate(this.methodRoute(versionId, revision, 'edit'));
     }
   }
 
   protected navigateToDetails(versionId: string, revision: string | null): void {
-    const appId = this.application()?.id;
-    if (appId) {
-      this.router.navigate(['/applications', appId, 'integration-method', versionId, revision ?? '', 'details']);
+    if (this.application()) {
+      this.router.navigate(this.methodRoute(versionId, revision, 'details'));
     }
   }
 
@@ -1058,6 +1079,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
     this.applicationService.getById(id).subscribe({
       next: (data) => {
         this.application.set(data);
+        this.pageTitle.setPageTitle(data.displayName);
         this.groupVersionsByLifecycleState(data.integrationMethods);
         // Start with only the first method card expanded.
         const firstId = this.groupedMethods()[0]?.id;
@@ -1065,9 +1087,8 @@ export class ApplicationDetail implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set('Failed to load application details');
-        this.loading.set(false);
         console.error('Error loading application:', err);
+        showErrorPage(this.router, err);
       }
     });
   }

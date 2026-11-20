@@ -16,7 +16,7 @@
 
       <div class="modal-header flex-column text-center pt-5 pb-4">
         <span class="modal-icon modal-icon-lg bg-success-subtle text-success"><i class="fa-solid fa-check"></i></span>
-        <h2 id="submitted-modal-title" class="modal-title fs-5 fw-semibold text-break mt-3 mb-1">{{ title }}</h2>
+        <h2 id="submitted-modal-title" data-testid="submission-success-title" class="modal-title fs-5 fw-semibold text-break mt-3 mb-1">{{ title }}</h2>
         @if (subtitle) {
           <p class="text-body-secondary mb-0">{{ subtitle }}</p>
         }
@@ -53,7 +53,7 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary w-100 m-0" (click)="done.emit()">Done</button>
+        <button data-testid="submission-success-done" type="button" class="btn btn-primary w-100 m-0" (click)="done.emit()">Done</button>
       </div>
     </div>
   </div>

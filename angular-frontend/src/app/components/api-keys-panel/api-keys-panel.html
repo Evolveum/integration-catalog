@@ -13,7 +13,7 @@
   </div>
   <!-- The empty state carries its own buttons, so this one appears only next to a list. -->
   @if (activeKeys().length > 0) {
-    <button type="button" class="btn btn-primary btn-sm mb-2 ms-auto d-flex align-items-center gap-2"
+    <button data-testid="api-keys-create" type="button" class="btn btn-primary btn-sm mb-2 ms-auto d-flex align-items-center gap-2"
       (click)="openCreate()">
       <i class="fa-solid fa-plus"></i>Create key
     </button>
@@ -28,7 +28,7 @@
       <div class="keys-created-title">{{ createdTitle() }}</div>
       <div class="keys-created-text">{{ createdText() }}</div>
       <div class="keys-created-value d-flex align-items-center gap-2">
-        <span class="keys-created-secret">{{ valueVisible() ? value : maskedValue() }}</span>
+        <span data-testid="api-key-created-secret" class="keys-created-secret">{{ valueVisible() ? value : maskedValue() }}</span>
         <button type="button" class="btn btn-sm btn-link link-secondary text-decoration-none text-nowrap ms-auto d-flex align-items-center gap-2"
           (click)="toggleValue()">
           <i class="fa-solid" [class.fa-eye]="!valueVisible()" [class.fa-eye-slash]="valueVisible()"></i>
@@ -62,7 +62,7 @@
     <p class="keys-empty-text">
       Create an API key to authenticate applications or devices that use Evolveum-hosted services.
     </p>
-    <button type="button" class="btn btn-primary btn-sm mb-2 d-flex align-items-center gap-2"
+    <button data-testid="api-keys-create" type="button" class="btn btn-primary btn-sm mb-2 d-flex align-items-center gap-2"
       (click)="openCreate()">
       <i class="fa-solid fa-plus"></i>Create key
     </button>
@@ -92,7 +92,8 @@
           <th>Name</th>
           <th>Key</th>
           <th>Status</th>
-          <th>Last used</th>
+          <!-- Hidden until last-used is implemented: the backend always sends null, so every key showed "Never". -->
+          <!-- <th>Last used</th> -->
           <th>Created</th>
           <th>Expires</th>
           <th class="keys-table-actions"></th>
@@ -100,27 +101,27 @@
       </thead>
       <tbody>
         @for (key of rows; track key.id) {
-          <tr>
+          <tr data-testid="api-key-row">
             <td class="keys-table-name">{{ key.name }}</td>
             <!-- The last characters of the value: the only thing telling a rotated key from its successor. -->
             <td class="keys-table-hint">{{ key.keyHint ? '••••' + key.keyHint : '—' }}</td>
             <td>
               <!-- Replaced = superseded by a rotation: still working through Gravitee's grace period, then expired. -->
-              <span class="badge" [ngClass]="{
+              <span data-testid="api-key-status" class="badge" [ngClass]="{
                   'bg-success-subtle text-success-emphasis border border-success-subtle': status(key) === 'Active',
                   'bg-warning-subtle text-warning-emphasis border border-warning-subtle': status(key) === 'Replaced',
                   'bg-danger-subtle text-danger-emphasis': status(key) === 'Revoked',
                   'bg-secondary-subtle text-secondary-emphasis': status(key) === 'Expired'
                 }">{{ status(key) }}</span>
             </td>
-            <td>{{ key.lastUsedAt ? (key.lastUsedAt | date:'d/M/yyyy') : 'Never' }}</td>
+            <!-- <td>{{ key.lastUsedAt ? (key.lastUsedAt | date:'d/M/yyyy') : 'Never' }}</td> -->
             <td>{{ key.createdAt | date:'d/M/yyyy' }}</td>
             <!-- A replaced key stops within hours, so its end needs the time as well. -->
             <td>{{ key.expiresAt ? (key.expiresAt | date:(key.replacedAt ? 'd/M/yyyy HH:mm' : 'd/M/yyyy')) : 'Never' }}</td>
             <td class="keys-table-actions">
               @if (hasActions(key)) {
                 <div class="dropdown d-inline-block">
-                  <button type="button" class="btn btn-link btn-sm link-secondary" title="Key actions" aria-haspopup="menu"
+                  <button data-testid="api-key-actions" type="button" class="btn btn-link btn-sm link-secondary" title="Key actions" aria-haspopup="menu"
                     [attr.aria-expanded]="openMenuKeyId() === key.id" (click)="toggleMenu(key.id)">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                   </button>
@@ -132,7 +133,7 @@
                         </button>
                         <hr class="dropdown-divider">
                       }
-                      <button type="button" class="dropdown-item text-danger" role="menuitem"
+                      <button data-testid="api-key-revoke" type="button" class="dropdown-item text-danger" role="menuitem"
                         (click)="revoke(key)">
                         Revoke
                       </button>

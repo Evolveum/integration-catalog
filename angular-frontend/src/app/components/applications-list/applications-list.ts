@@ -22,11 +22,12 @@ import { ToastService } from '../../services/toast.service';
 import { EnvironmentService } from '../../services/environment.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { avatarToneClass } from '../../core/avatar-tone';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-applications-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal],
+  imports: [CommonModule, FormsModule, RequestForm, FilterModal, PageHeader, DownloadInfoModal, NewTabRouteDirective],
   templateUrl: './applications-list.html',
   styleUrls: ['./applications-list.scss']
 })

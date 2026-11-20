@@ -23,7 +23,7 @@
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button type="button" class="nav-link" role="tab" [class.active]="activeTab() === 'api-keys'"
+        <button data-testid="settings-tab-api-keys" type="button" class="nav-link" role="tab" [class.active]="activeTab() === 'api-keys'"
                 [attr.aria-selected]="activeTab() === 'api-keys'"
                 (click)="activeTab.set('api-keys')">API keys
         </button>

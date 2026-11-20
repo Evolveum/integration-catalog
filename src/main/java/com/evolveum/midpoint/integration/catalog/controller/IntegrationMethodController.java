@@ -331,7 +331,8 @@ public class IntegrationMethodController {
     }
 
     @Operation(summary = "Remove a connector from an integration method revision",
-            description = "Unlinks a connector from the given integration method revision. The connector itself is left intact.")
+            description = "Unlinks a connector from the given integration method revision. The connector itself is "
+                    + "deleted too when no other revision links it and it has never been published.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Connector removed successfully"),
             @ApiResponse(responseCode = "404", description = "Integration method or connector not found")

@@ -37,7 +37,7 @@
         @if (entry.isOpen) {
           <div class="imcp-object-body">
             <label class="imcp-field-label" [for]="'im-cp-oc-' + i">Object Name</label>
-            <input type="text" class="form-control imcp-name-input" placeholder="e.g. Account"
+            <input data-testid="im-capability-object-name" type="text" class="form-control imcp-name-input" placeholder="e.g. Account"
                    [id]="'im-cp-oc-' + i" [name]="'im-cp-oc-' + i"
                    [value]="entry.objectClass"
                    (input)="updateObjectClass(i, $any($event.target).value)">
@@ -58,7 +58,7 @@
                     <span class="imcp-cap-name">{{ fmt(cap) }}</span>
                     <div class="btn-group btn-group-sm flex-shrink-0" role="group" [attr.aria-label]="fmt(cap)">
                       @for (opt of stateOptions; track opt.value) {
-                        <button type="button" class="btn"
+                        <button [attr.data-testid]="'im-capability-state-' + opt.value.toLowerCase()" type="button" class="btn"
                                 [ngClass]="opt.value === 'YES' ? 'btn-outline-success' : opt.value === 'NO' ? 'btn-outline-danger' : 'btn-outline-secondary'"
                                 [class.active]="state === opt.value"
                                 [attr.aria-pressed]="state === opt.value"

@@ -16,7 +16,7 @@
 
       <div class="modal-body">
         <label class="form-label fw-semibold small" for="api-key-name">Key name</label>
-        <input id="api-key-name" class="form-control" type="text" autocomplete="off"
+        <input data-testid="api-key-name" id="api-key-name" class="form-control" type="text" autocomplete="off"
           placeholder="My new key" [ngModel]="name()" (ngModelChange)="name.set($event)">
         <p class="form-text mb-4">Use a name that describes where this key will be used.</p>
 
@@ -45,7 +45,7 @@
 
       <div class="modal-footer justify-content-between">
         <button type="button" class="btn btn-link text-decoration-none" (click)="onClose()">Cancel</button>
-        <button type="button" class="btn btn-primary" [disabled]="!canSubmit() || busy"
+        <button data-testid="api-key-create-submit" type="button" class="btn btn-primary" [disabled]="!canSubmit() || busy"
           (click)="onCreate()">
           {{ busy ? 'Creating...' : 'Create API key' }}
         </button>

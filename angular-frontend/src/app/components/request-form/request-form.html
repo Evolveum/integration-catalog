@@ -12,13 +12,13 @@
       <div class="d-flex justify-content-between align-items-center px-3 py-2 toast-header-success">
         <div class="d-flex align-items-center gap-2">
           <i class="fa-solid fa-circle-check toast-icon"></i>
-          <strong>Request Successful!</strong>
+          <strong data-testid="request-success-title">Request Successful!</strong>
         </div>
         <button type="button" class="btn-close btn-close-white" (click)="closeSuccessMessage()" aria-label="Close"></button>
       </div>
       <!-- Light green message row -->
       <div class="px-3 py-2 toast-body-success">
-        Your request has been submitted. Our team will review it and get back to you.
+        Your integration request has been added to the Integration catalog as a new application with the "Requested" tag.
       </div>
     </div>
   </div>
@@ -49,7 +49,7 @@
                 Integration Application Name<span class="text-danger">&nbsp;*</span>
                 <app-info-tooltip>Application name information</app-info-tooltip>
               </label>
-              <input type="text" class="form-control input-width-md" [(ngModel)]="formData.integrationApplicationName" required>
+              <input data-testid="request-app-name" type="text" class="form-control input-width-md" [(ngModel)]="formData.integrationApplicationName" required>
             </div>
 
             <!-- Row 5 -->
@@ -105,12 +105,12 @@
             <!-- Row 8 & 9 -->
             <div class="mb-3">
               <label class="form-label form-label-bold">Application description<span class="text-danger">&nbsp;*</span></label>
-              <textarea class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the application: what it is and what it is used for." required></textarea>
+              <textarea data-testid="request-description" class="form-control" rows="3" [(ngModel)]="formData.description" placeholder="Briefly describe the application: what it is and what it is used for." required></textarea>
             </div>
 
             <div class="mb-3">
               <label class="form-label form-label-bold">Requested integration<span class="text-danger">&nbsp;*</span></label>
-              <textarea class="form-control" rows="3" [(ngModel)]="formData.integrationNeed" placeholder="Briefly describe the integration you need and your use case." required></textarea>
+              <textarea data-testid="request-integration-need" class="form-control" rows="3" [(ngModel)]="formData.integrationNeed" placeholder="Briefly describe the integration you need and your use case." required></textarea>
             </div>
 
             <!-- System Version & Contact Email side by side -->
@@ -183,7 +183,7 @@
               <button type="button" class="btn btn-link text-decoration-none ps-0" (click)="closeRequestModal()" [disabled]="isSubmitting()">
                 Cancel
               </button>
-              <button type="button" class="btn btn-primary" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description || !formData.integrationNeed || !capabilitiesValid()">
+              <button data-testid="request-submit" type="button" class="btn btn-primary" (click)="submitRequest()" [disabled]="isSubmitting() || !formData.integrationApplicationName || !formData.description || !formData.integrationNeed || !capabilitiesValid()">
                 {{ isSubmitting() ? 'Submitting...' : 'Submit request' }}
               </button>
             </div>

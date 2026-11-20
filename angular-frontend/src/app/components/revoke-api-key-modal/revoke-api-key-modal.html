@@ -23,7 +23,7 @@
 
       <div class="modal-footer justify-content-between">
         <button type="button" class="btn btn-link text-decoration-none" (click)="onClose()">Close</button>
-        <button type="button" class="btn" [class.btn-danger]="variant !== 'primary'"
+        <button data-testid="api-key-revoke-confirm" type="button" class="btn" [class.btn-danger]="variant !== 'primary'"
           [class.btn-primary]="variant === 'primary'" [disabled]="busy" (click)="onConfirm()">
           {{ busy ? busyLabel : confirmLabel }}
         </button>

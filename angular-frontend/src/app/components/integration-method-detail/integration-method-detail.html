@@ -6,9 +6,9 @@
 
 <app-page-header [breadcrumb]="true">
   <span breadcrumb class="page-header-breadcrumb-text d-flex align-items-center gap-2">
-    <a class="breadcrumb-link" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
+    <a class="breadcrumb-link" [appNewTabRoute]="['/applications']" (click)="goToCatalog()" style="cursor:pointer;">MidPoint Integration Catalog</a>
     <span class="breadcrumb-sep">›</span>
-    <a class="breadcrumb-link d-flex align-items-center gap-1" (click)="goBack()" style="cursor:pointer;">
+    <a class="breadcrumb-link d-flex align-items-center gap-1" [appNewTabRoute]="applicationRoute()" (click)="goBack()" style="cursor:pointer;">
       @if (showLogo()) {
         <img [src]="getLogoUrl()" [alt]="appName()" class="breadcrumb-app-icon" (error)="onLogoError()">
       }
@@ -82,6 +82,10 @@
         <div class="view-row">
           <span class="view-label">Version:</span>
           <span class="view-value">{{ methodVersion() ? versionBadge(methodVersion()) : '—' }}</span>
+        </div>
+        <div class="view-row">
+          <span class="view-label">Maintainer:</span>
+          <span class="view-value" data-testid="im-detail-maintainer">{{ methodMaintainerLabel() || '—' }}</span>
         </div>
         <div class="view-row">
           <span class="view-label">Supported midPoint version:</span>
@@ -188,7 +192,7 @@
               <span class="view-connector-name">
                 {{ c.connectorDisplayName || c.name }}
                 @if (isObsoleteConnector(c.connectorTags)) {
-                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2 align-middle d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Obsolete</span>
+                  <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2 align-middle d-inline-flex align-items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i>Deprecated</span>
                 }
               </span>
               <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center gap-2"
@@ -201,7 +205,7 @@
                 @if (isObsoleteConnector(c.connectorTags)) {
                   <div class="version-exists-warning d-flex align-items-start gap-2">
                     <i class="fa-solid fa-triangle-exclamation version-exists-warning-icon"></i>
-                    <span><strong>Obsolete connector.</strong> It is still allowed, but it is superseded and
+                    <span><strong>Deprecated connector.</strong> It is still allowed, but it is superseded and
                       should not be used for new deployments.</span>
                   </div>
                 }
@@ -211,7 +215,7 @@
                 </div>
                 <div class="view-connector-row">
                   <span class="view-connector-label">Connector version:</span>
-                  <span class="view-connector-value"><span class="badge border text-body bg-body">{{ c.version || '—' }}</span></span>
+                  <span data-testid="method-detail-connector-version" class="view-connector-value"><span class="badge border text-body bg-body">{{ c.version || '—' }}</span></span>
                 </div>
                 @if (hasDuplicateVersion(c)) {
                   <div class="version-exists-warning d-flex align-items-start gap-2">
@@ -228,7 +232,7 @@
                 @if (c.implementationDescription) {
                   <div class="view-connector-row">
                     <span class="view-connector-label">Connector description:</span>
-                    <div class="view-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
+                    <div data-testid="method-detail-connector-description" class="view-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
                   </div>
                 }
 
@@ -382,17 +386,17 @@
 
       <!-- Footer: Back (left) + method actions (right) -->
       <div class="view-footer d-flex align-items-center justify-content-between">
-        <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" (click)="goBack()">
+        <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" [appNewTabRoute]="applicationRoute()" (click)="goBack()">
           <i class="fa-solid fa-arrow-left"></i>Back
         </button>
         @if (isActive()) {
           <div class="d-flex align-items-center gap-2">
             @if (canEdit()) {
-              <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" (click)="editAndUpgrade()">
+              <button data-testid="method-detail-edit-and-upgrade" type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2" [appNewTabRoute]="editRoute()" (click)="editAndUpgrade()">
                 <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
               </button>
             }
-            <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2" (click)="downloadConnector()">
+            <button data-testid="method-detail-download" type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2" (click)="downloadConnector()">
               <i class="fa-solid fa-download"></i>Download
             </button>
           </div>
@@ -408,8 +412,8 @@
           <div class="d-flex align-items-center gap-3">
             <!-- The reviewer may fix findings directly while the revision is under review
                  (the edit lock only applies to non-superusers). -->
-            <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2"
-                    (click)="editAndUpgrade()">
+            <button data-testid="method-detail-edit-and-upgrade" type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2"
+                    [appNewTabRoute]="editRoute()" (click)="editAndUpgrade()">
               <i class="fa-solid fa-pen-to-square"></i>Edit
             </button>
             <button type="button" class="btn btn-outline-danger btn-sm border-0 d-inline-flex align-items-center gap-2"

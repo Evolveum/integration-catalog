@@ -28,7 +28,7 @@
 
       <div class="modal-footer justify-content-between">
         <button type="button" class="btn btn-link text-decoration-none" [disabled]="processing" (click)="onCancel()">Cancel</button>
-        <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
+        <button data-testid="start-review-confirm" type="button" class="btn btn-primary d-flex align-items-center gap-2"
                 [disabled]="processing" (click)="onConfirm()">
           <i class="fa-solid fa-play"></i>Start review
         </button>

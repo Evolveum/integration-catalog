@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Covers the shared-secret authentication of the build callbacks and the startup warning that
- * makes an unconfigured jenkins.callbackToken - which silently disables the whole integration
+ * makes an unconfigured jenkins.inboundAccessToken - which silently disables the whole integration
  * - visible in the application log.
  */
 class JenkinsCallbackFilterTest {
@@ -63,8 +63,8 @@ class JenkinsCallbackFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    private static JenkinsProperties properties(String callbackToken) {
-        return new JenkinsProperties("http://jenkins.example", "apiToken", "jenkins", "build", callbackToken);
+    private static JenkinsProperties properties(String accessToken) {
+        return new JenkinsProperties("http://jenkins.example", "apiToken", "jenkins", "build", accessToken);
     }
 
     /** The startup warning about a missing token is the only thing logged at WARN. */
@@ -84,7 +84,7 @@ class JenkinsCallbackFilterTest {
     private static MockHttpServletRequest request(String uri, String token) {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", uri);
         if (token != null) {
-            request.addHeader(JenkinsCallbackFilter.CALLBACK_TOKEN_HEADER, token);
+            request.addHeader(JenkinsCallbackFilter.TOKEN_HEADER, token);
         }
         return request;
     }
@@ -105,7 +105,7 @@ class JenkinsCallbackFilterTest {
         new JenkinsCallbackFilter(properties(null));
 
         assertEquals(1, warnings().size());
-        assertTrue(warnings().getFirst().getFormattedMessage().contains("jenkins.callbackToken is not configured"));
+        assertTrue(warnings().getFirst().getFormattedMessage().contains("jenkins.inboundAccessToken is not configured"));
     }
 
     @Test
@@ -146,6 +146,15 @@ class JenkinsCallbackFilterTest {
                 .anyMatch(("ROLE_" + JenkinsCallbackFilter.CALLBACK_ROLE)::equals));
     }
 
+    /** The header the pipeline used before the secret was shared with publishing is gone. */
+    @Test
+    void rejectsTheRetiredCallbackHeader() throws ServletException, IOException {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", CONTINUE);
+        request.addHeader("X-Callback-Token", "secret");
+
+        assertNull(filter(new JenkinsCallbackFilter(properties("secret")), request));
+    }
+
     // --- leaving everything else to the session ----------------------------------------
 
     @Test
@@ -167,7 +176,7 @@ class JenkinsCallbackFilterTest {
         filter(new JenkinsCallbackFilter(properties("secret")), request(CONTINUE, "wrong"));
 
         assertTrue(errors().stream().anyMatch(event ->
-                event.getFormattedMessage().contains(JenkinsCallbackFilter.CALLBACK_TOKEN_HEADER)));
+                event.getFormattedMessage().contains(JenkinsCallbackFilter.TOKEN_HEADER)));
     }
 
     @Test

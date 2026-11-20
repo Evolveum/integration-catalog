@@ -9,7 +9,7 @@ export type MaintainerCategory = 'USER' | 'ORG' | 'EVOLVEUM' | 'COMMUNITY';
 export interface Maintainer {
   id: number | null;                // maintainers.id; null until the row is created
   username: string | null;          // maintainers.username (USER only)
-  organizationName: string | null;  // organizations.name, the alias (ORG only)
+  organizationName: string | null;  // organizations.name, the alias (ORG and EVOLVEUM)
   category: MaintainerCategory;     // maintainers.category
   label: string | null;             // what to show for it; the server fills it in
 }
@@ -42,6 +42,10 @@ export function maintainerLabel(maintainer: Maintainer | null | undefined): stri
 export function sameMaintainer(a: Maintainer | null, b: Maintainer | null): boolean {
   if (!a || !b) return a === b;
   if (a.id !== null && b.id !== null) return a.id === b.id;
+  // The Evolveum organization's option has no id and stands for the linked catalog-wide row.
+  if (a.organizationName && b.organizationName) {
+    return a.organizationName.toLowerCase() === b.organizationName.toLowerCase();
+  }
   if (a.category !== b.category) return false;
   const key = (m: Maintainer) => (m.username ?? m.organizationName ?? '').toLowerCase();
   return key(a) === key(b);

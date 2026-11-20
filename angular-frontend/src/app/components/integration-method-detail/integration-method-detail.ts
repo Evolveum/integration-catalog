@@ -5,6 +5,7 @@
  */
 
 import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { PageTitleService } from '../../services/page-title.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ApplicationService, ConnectorWithoutDownload, SupportTicket } from '../../services/application.service';
@@ -18,19 +19,21 @@ import { ManualFillModal } from '../manual-fill-modal/manual-fill-modal';
 import { ImplementationListItem } from '../../models/implementation-list-item.model';
 import { isArtifactUrllessConnector, isObsoleteConnector } from '../../models/connector-tag.model';
 import { CapabilityState, hasLogoDetail, IntegrationMethodObjectCapabilities, MidpointVersion, ObjectClassCapability } from '../../models/application-detail.model';
-import { Maintainer } from '../../models/maintainer.model';
+import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { SupportTier, supportTierClasses, supportTierLabel } from '../../core/support-tier';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { InfoTooltip } from '../info-tooltip/info-tooltip';
+import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
   imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, ManualFillModal,
-    MarkdownPipe, BackdropCloseDirective, InfoTooltip],
+    MarkdownPipe, BackdropCloseDirective, InfoTooltip, NewTabRouteDirective],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -103,6 +106,7 @@ export class IntegrationMethodDetail implements OnInit {
   // Ownership of the opened revision, used to gate the "Edit and upgrade" action. The server
   // enforces the same rule; hiding the button just avoids offering an action that would be rejected.
   protected readonly methodMaintainer = signal<Maintainer | null>(null);
+  protected readonly methodMaintainerLabel = computed(() => maintainerLabel(this.methodMaintainer()));
   protected readonly canEdit = computed(() =>
     this.authService.canEdit(this.methodMaintainer(), this.methodLifecycleState(), this.methodAuthor()));
 
@@ -122,6 +126,8 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly isObsoleteConnector = isObsoleteConnector;
   protected readonly isArtifactUrllessConnector = isArtifactUrllessConnector;
   protected readonly expandedCaps = signal<Set<string>>(new Set());
+
+  private readonly pageTitle = inject(PageTitleService);
 
   constructor(
     private route: ActivatedRoute,
@@ -156,6 +162,7 @@ export class IntegrationMethodDetail implements OnInit {
             .at(-1);
         if (ver) {
           this.methodName.set(ver.displayName ?? '');
+          this.pageTitle.setPageTitle(`${ver.displayName || 'Integration method'} – ${app.displayName}`);
           this.methodVersion.set(ver.revision ?? '');
           this.methodLifecycleState.set(ver.lifecycleState ?? null);
           this.methodAuthor.set(ver.author ?? '');
@@ -177,10 +184,10 @@ export class IntegrationMethodDetail implements OnInit {
           this.loadConnectors(vId, ver.revision ?? '');
           this.loadSupportTicket(vId, ver.revision ?? '');
         } else {
-          this.finishLoading();
+          showErrorPage(this.router);
         }
       },
-      error: () => this.finishLoading()
+      error: (err) => showErrorPage(this.router, err)
     });
   }
 
@@ -344,12 +351,20 @@ export class IntegrationMethodDetail implements OnInit {
     this.router.navigate(['/applications']);
   }
 
+  protected applicationRoute(): string[] {
+    return ['/applications', this.appId()];
+  }
+
+  protected editRoute(): string[] {
+    return ['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit'];
+  }
+
   protected goBack(): void {
-    this.router.navigate(['/applications', this.appId()]);
+    this.router.navigate(this.applicationRoute());
   }
 
   protected editAndUpgrade(): void {
-    this.router.navigate(['/applications', this.appId(), 'integration-method', this.versionId(), this.methodVersion(), 'edit']);
+    this.router.navigate(this.editRoute());
   }
 
   /** Only superusers may approve/reject an in-review revision. */

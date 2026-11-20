@@ -13,7 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockMultipartFile;
+// Only the disabled logo tests use this; uncomment with them.
+// import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.ArrayList;
@@ -22,8 +23,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+// import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+// import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -160,39 +161,42 @@ class EndpointPermissionIntegrationTest extends AbstractCatalogIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    // Logo upload is disabled until the legal matters around logos are finalised (see Controller.uploadLogo);
+    // uncomment these tests together with the endpoint.
     // ── 4. The logo of an application that is not published yet ───────────────────────────────
 
-    @Test
-    void anotherContributorCannotReplaceTheLogoOfAnUnpublishedApplication() throws Exception {
-        Published owners = publish(OWNER, "null", "[]", "[]");
+    // @Test
+    // void anotherContributorCannotReplaceTheLogoOfAnUnpublishedApplication() throws Exception {
+        // Published owners = publish(OWNER, "null", "[]", "[]");
 
-        mockMvc.perform(multipart("/api/applications/{id}/logo", owners.applicationId())
-                        .file(new MockMultipartFile("file", "logo.png", "image/png", PNG))
-                        .with(OTHER).with(csrf()))
-                .andExpect(status().isForbidden());
-    }
+        // mockMvc.perform(multipart("/api/applications/{id}/logo", owners.applicationId())
+                        // .file(new MockMultipartFile("file", "logo.png", "image/png", PNG))
+                        // .with(OTHER).with(csrf()))
+                // .andExpect(status().isForbidden());
+    // }
 
-    @Test
-    void anotherContributorCannotDeleteTheLogoOfAnUnpublishedApplication() throws Exception {
-        Published owners = publish(OWNER, "null", "[]", "[]");
-        mockMvc.perform(multipart("/api/applications/{id}/logo", owners.applicationId())
-                        .file(new MockMultipartFile("file", "logo.png", "image/png", PNG))
-                        .with(OWNER).with(csrf()))
-                .andExpect(status().isOk());
+    // @Test
+    // void anotherContributorCannotDeleteTheLogoOfAnUnpublishedApplication() throws Exception {
+        // Published owners = publish(OWNER, "null", "[]", "[]");
+        // mockMvc.perform(multipart("/api/applications/{id}/logo", owners.applicationId())
+                        // .file(new MockMultipartFile("file", "logo.png", "image/png", PNG))
+                        // .with(OWNER).with(csrf()))
+                // .andExpect(status().isOk());
 
-        mockMvc.perform(delete("/api/applications/{id}/logo", owners.applicationId())
-                        .with(OTHER).with(csrf()))
-                .andExpect(status().isForbidden());
+        // mockMvc.perform(delete("/api/applications/{id}/logo", owners.applicationId())
+                        // .with(OTHER).with(csrf()))
+                // .andExpect(status().isForbidden());
 
-        assertThat(jdbc.queryForObject("select logo_path is not null from application where id = ?",
-                Boolean.class, owners.applicationId())).isTrue();
-    }
+        // assertThat(jdbc.queryForObject("select logo_path is not null from application where id = ?",
+                // Boolean.class, owners.applicationId())).isTrue();
+    // }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────────
 
-    /** The smallest valid PNG: one transparent pixel. */
-    private static final byte[] PNG = java.util.Base64.getDecoder().decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+    // Only the disabled logo tests use this; uncomment with them.
+    // /** The smallest valid PNG: one transparent pixel. */
+    // private static final byte[] PNG = java.util.Base64.getDecoder().decode(
+            // "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
 
     private record Published(UUID applicationId, UUID methodId) {
     }
