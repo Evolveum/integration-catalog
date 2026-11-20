@@ -19,7 +19,7 @@
   pointer-events: auto;
   background: $color-white;
   border-radius: 10px;
-  width: 460px;
+  width: 540px; // wide enough for every expiration option on one row, as in the design
   max-width: calc(100vw - 2rem);
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
@@ -159,4 +159,9 @@
     opacity: 0.55;
     cursor: not-allowed;
   }
+}
+
+// Sits on the first line of the text, as in the design.
+.create-key-alert-icon {
+  margin-top: 0.25rem;
 }
