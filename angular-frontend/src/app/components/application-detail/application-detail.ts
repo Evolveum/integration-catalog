@@ -26,12 +26,15 @@ import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 import { SupportTier, supportTierLabel } from '../../core/support-tier';
+import { MaintainerCategory } from '../../models/maintainer.model';
 
 interface MethodGroup {
   id: string;
   name: string;
   types: string[];
   supportTier: SupportTier | null; // the same on every revision
+  // Of the first listed revision: the latest published, else the newest draft.
+  maintainer: { label: string; category: MaintainerCategory | null } | null;
   versions: IntegrationMethod[];
   publishedCount: number;
   pendingCount: number;
@@ -95,6 +98,7 @@ export class ApplicationDetail implements OnInit, OnDestroy {
           name: v.displayName || v.connectorDisplayName || 'Integration method',
           types: v.integMethodTypes ?? [],
           supportTier: v.supportTier ?? null,
+          maintainer: null,
           versions: [],
           publishedCount: 0,
           pendingCount: 0,
@@ -119,6 +123,10 @@ export class ApplicationDetail implements OnInit, OnDestroy {
       g.versions.sort((a, b) =>
         Number(b.lifecycleState === 'ACTIVE') - Number(a.lifecycleState === 'ACTIVE')
         || this.compareRevisions(b.revision, a.revision));
+      const first = g.versions[0];
+      g.maintainer = first.maintainerLabel
+        ? { label: first.maintainerLabel, category: first.maintainer?.category ?? null }
+        : null;
     });
     // Unified list in creation order (map insertion order = backend created_at ASC), independent of
     // lifecycle state — so a method keeps its position even when its state changes (e.g. on approval).

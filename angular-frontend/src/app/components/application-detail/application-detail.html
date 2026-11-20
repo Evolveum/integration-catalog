@@ -452,7 +452,21 @@
                               </div>
                             </div>
                           </div>
-                          <span class="im-version-count">{{ method.versions.length }} version{{ method.versions.length === 1 ? '' : 's' }}</span>
+                          <div class="d-flex align-items-center gap-3">
+                            <!-- As on the self-service My integration methods page. -->
+                            @if (method.maintainer; as maintainer) {
+                              <div class="im-method-side">
+                                <span class="im-side-label">Maintainer</span>
+                                <span data-testid="application-method-maintainer" class="d-flex align-items-center gap-1 im-maintainer">
+                                  <i class="fa-solid" [class.fa-building]="maintainer.category === 'ORG' || maintainer.category === 'EVOLVEUM'"
+                                     [class.fa-users]="maintainer.category === 'COMMUNITY'"
+                                     [class.fa-user]="maintainer.category === 'USER' || !maintainer.category"></i>
+                                  {{ maintainer.label }}
+                                </span>
+                              </div>
+                            }
+                            <span class="im-version-count">{{ method.versions.length }} version{{ method.versions.length === 1 ? '' : 's' }}</span>
+                          </div>
                         </div>
 
                         <!-- Shown even when collapsed: legacy connectors stay usable, but users must notice. -->
