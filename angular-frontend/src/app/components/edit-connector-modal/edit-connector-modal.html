@@ -48,7 +48,7 @@
                     <i class="fa-solid fa-circle-info info-icon-sm"></i>
                   </button>
                 </label>
-                <input type="text" class="form-control"
+                <input data-testid="edit-connector-version" type="text" class="form-control"
                        [value]="connectorVersion()"
                        (input)="connectorVersion.set($any($event.target).value)"
                        placeholder="e.g. 1.0.0">
@@ -120,7 +120,7 @@
             <!-- Description -->
             <div class="mb-3">
               <label class="form-label form-label-upload">Connector description</label>
-              <app-markdown-editor [value]="connectorDescription()"
+              <app-markdown-editor data-testid="edit-connector-description" [value]="connectorDescription()"
                                    (valueChange)="connectorDescription.set($event)"
                                    placeholder="Type description..."></app-markdown-editor>
             </div>
@@ -309,7 +309,7 @@
     <!-- Footer -->
     <div class="ecm-modal-footer d-flex justify-content-between align-items-center">
       <button type="button" class="btn ecm-cancel-btn" (click)="close.emit()">Cancel</button>
-      <button type="button" class="btn btn-primary ecm-save-btn"
+      <button data-testid="edit-connector-confirm" type="button" class="btn btn-primary ecm-save-btn"
               [disabled]="!isValid() || isSaving()"
               (click)="save()">
         @if (isSaving()) {

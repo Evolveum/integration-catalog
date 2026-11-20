@@ -26,7 +26,7 @@
 
     <div class="start-review-footer d-flex align-items-center justify-content-between">
       <button type="button" class="btn start-review-cancel" [disabled]="processing" (click)="onCancel()">Cancel</button>
-      <button type="button" class="btn start-review-confirm d-flex align-items-center gap-2"
+      <button data-testid="start-review-confirm" type="button" class="btn start-review-confirm d-flex align-items-center gap-2"
               [disabled]="processing" (click)="onConfirm()">
         <i class="fa-solid fa-play"></i>Start review
       </button>

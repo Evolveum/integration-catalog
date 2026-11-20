@@ -1,0 +1,126 @@
+# GUI tests
+
+Browser tests of the rendered catalog, written with Playwright for Java and run by Maven. The browser
+is not visible. This is a standalone Maven project: building the backend does not touch it.
+
+The tests follow the base flow guides in `docs/`:
+
+| Test | Covers |
+|---|---|
+| `AdminFlowTest` | admin guide, sections 1 and 3 to 8, as a superuser: publish a new application with a new connector, approve it with build data, check that an anonymous visitor sees it, then change the connector description and the connector version, each with *Save* and with *Save as new version*, approving every change; then downloads the bundle and checks that *All connectors* lists the connector once, with versions 1.0.0, 1.0.1 and 1.0.2 |
+| `ExistingApplicationFlowTest` | a contributor publishes and changes the method before approval, a superuser approves it with a connector without an artifact URL; the contributor then publishes a second method to that application with the same connector, approved without build data; downloads the first method's bundle (no JAR for such a connector) and checks that the connector exists once, used by both methods |
+| `RequestFlowTest` | section 2 of both guides: a contributor requests an application, a read-only user is refused a request but votes for it, the requester cancels it |
+| `ContributorFlowTest` | contributor guide, sections 3 and 4: publish, find the method in *My integration methods*, change it with *Save* while it awaits approval (1.0 becomes 1.1 in place), cancel the request |
+| `ApiKeyFlowTest` | a contributor creates an API key in *Settings* and revokes it; needs Gravitee (see below) |
+
+## Running against a Docker environment (CI)
+
+`compose.yml` builds the catalog image (`docker/Dockerfile`) and starts it with an empty database,
+Keycloak with the development realm, a seeded OpenProject and Gravitee. Maven then runs the tests
+from outside against it. From the repository root:
+
+```
+docker compose -f gui-tests/compose.yml up -d --build --wait
+mvn -f gui-tests/pom.xml test -Pdocker
+docker compose -f gui-tests/compose.yml down -v
+```
+
+The database holds only the schema; the tests create their data through the UI. `-Pdocker` points
+the tests at the stack: the catalog on `http://localhost:18080`, OpenProject on
+`http://localhost:18090`, and passes them the OpenProject key from `application.properties`, which
+the stack's OpenProject is seeded with, so nothing has to be set. In IDEA: tick the `docker` profile
+in the Maven window and run `test`. `down -v` throws the whole stack away, so
+the next run starts from an empty database again and no cleanup is needed. The ports differ from
+the development ones, so the stack can run next to the local services.
+
+The stack needs about 8 GB of memory, and a cold start (image build, OpenProject's first boot) takes
+several minutes. Its fixtures are `docker/keycloak` (a copy of the development realm) and
+`docker/openproject` (a copy of `openProject/openproject-db/seed.sql.gz`); Gravitee is set up by
+`docker/gravitee/seed.sh` from the repository root.
+
+## Running against local services
+
+These must be running:
+
+- the frontend on `http://localhost:4200`
+- Keycloak with the `integration-catalog` realm
+- the database
+- the backend, with the support portal (OpenProject) on or off
+
+With the portal on, a superuser can approve only after the review ticket is closed in OpenProject.
+The tests close it through OpenProject's REST API, so they need an API key in the environment
+(not as a `-D` option, which Surefire would copy into its reports):
+
+```
+set GUI_OPENPROJECT_API_KEY=<key>                         (cmd)
+$env:GUI_OPENPROJECT_API_KEY = "<key>"                    (PowerShell)
+```
+
+`ApiKeyFlowTest` needs Gravitee (`docker/gravitee`) and the backend started with the
+`-Dgravitee.*` options that `docker/gravitee/seed.sh` prints. The script also makes Gravitee allow
+shared API keys; without that, creating a key fails with HTTP 502.
+
+Every test run then also leaves tickets in the portal. With the portal off
+(`-Dopenproject.enabled=false -Dpending-operations.cron=-` on the backend), nothing is needed: the
+approval dialog shows *No support ticket*.
+
+## Running
+
+From the repository root:
+
+```
+mvn -f gui-tests/pom.xml test
+```
+
+The first run downloads Playwright's browsers into the user's cache, not only the Chromium the tests
+use, and Surefire may warn about a `Corrupted channel` because of the download progress output. Later
+runs do neither.
+
+| Option | Default | |
+|---|---|---|
+| `-Dgui.baseUrl` | `http://localhost:4200` | where the frontend runs |
+| `-Dgui.superuser.username` | `u5` | a superuser |
+| `-Dgui.contributor.username` | `u3` | an individual contributor |
+| `-Dgui.readOnly.username` | `u2` | a read-only user |
+| `-Dgui.<user>.password` | the username | e.g. `-Dgui.contributor.password=secret` |
+| `-Dgui.openproject.url` | `http://localhost:8090` | the support portal, when it is on |
+| `-Dgui.headless=false` | `true` | show the browser when debugging a failure |
+| `-Dgui.timeoutMs` | `20000` | how long an action or a check waits; raise it for a slow environment |
+| `-Dtest=AdminFlowTest` | all | run one class |
+
+A failed test leaves a screenshot and a trace in `target/gui-tests`. Open the trace at
+<https://trace.playwright.dev>; the file is processed in the browser and not uploaded.
+
+## Writing tests
+
+- **Find elements by `data-testid`**, never by placeholder, label, text or CSS class, which change
+  for reasons unrelated to the test. When a test needs an element, add the attribute to its template.
+  Keycloak's login page is the one exception, as it is not our template.
+- **Name ids `<area>-<element>`** in kebab-case, e.g. `publish-connector-name`. Put the attribute right
+  after the tag name. Repeated elements share one id, and a test narrows them down by their content;
+  an id built at runtime uses `[attr.data-testid]`.
+- **Don't remove or rename a `data-testid`** without updating the tests. To see which ones are in use,
+  search this directory for the id.
+- **Tests call page classes, and page classes call `framework/Ui`.** A new way of working with a
+  component belongs in `Ui`, so it is written once.
+
+| Package | Contains |
+|---|---|
+| `framework` | `Ui` (working with components), `AbstractGuiTest` (browser lifecycle, failure evidence) |
+| `pages` | one class per page or wizard, with the steps a test can take there |
+| the root package | the tests |
+
+## Test data
+
+Every run creates real data named `e2e_<timestamp>_*` (application, integration method, connector).
+`RequestFlowTest` and `ContributorFlowTest` cancel what they created, so only a failed run leaves
+data behind; `AdminFlowTest` publishes its method, which cannot be cancelled. `cleanup.sql` removes
+the data with psql, and only previews unless told to commit:
+
+```
+psql -h <host> -U <user> -d <database> -f gui-tests/cleanup.sql               # preview, rolls back
+psql -h <host> -U <user> -d <database> -v commit=1 -f gui-tests/cleanup.sql   # deletes
+```
+
+It stops without deleting anything if real data depends on the test data. Support portal tickets are
+not touched; the preview lists their numbers so they can be closed by hand.

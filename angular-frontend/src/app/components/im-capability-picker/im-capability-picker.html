@@ -40,7 +40,7 @@
         @if (entry.isOpen) {
           <div class="imcp-object-body">
             <label class="imcp-field-label" [for]="'im-cp-oc-' + i">Object Name</label>
-            <input type="text" class="form-control imcp-name-input" placeholder="e.g. Account"
+            <input data-testid="im-capability-object-name" type="text" class="form-control imcp-name-input" placeholder="e.g. Account"
                    [id]="'im-cp-oc-' + i" [name]="'im-cp-oc-' + i"
                    [value]="entry.objectClass"
                    (input)="updateObjectClass(i, $any($event.target).value)">
@@ -61,7 +61,7 @@
                     <span class="imcp-cap-name">{{ fmt(cap) }}</span>
                     <div class="imcp-toggle" role="group" [attr.aria-label]="fmt(cap)">
                       @for (opt of stateOptions; track opt.value) {
-                        <button type="button" class="imcp-toggle-btn" [ngClass]="'imcp-toggle-' + opt.value.toLowerCase()"
+                        <button [attr.data-testid]="'im-capability-state-' + opt.value.toLowerCase()" type="button" class="imcp-toggle-btn" [ngClass]="'imcp-toggle-' + opt.value.toLowerCase()"
                                 [class.imcp-toggle-active]="state === opt.value"
                                 [attr.aria-pressed]="state === opt.value"
                                 [title]="opt.label" [attr.aria-label]="opt.label"

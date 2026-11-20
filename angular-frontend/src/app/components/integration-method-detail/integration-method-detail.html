@@ -211,7 +211,7 @@
                 </div>
                 <div class="view-connector-row">
                   <span class="view-connector-label">Connector version:</span>
-                  <span class="view-connector-value"><span class="im-version-badge">{{ c.version || '—' }}</span></span>
+                  <span data-testid="method-detail-connector-version" class="view-connector-value"><span class="im-version-badge">{{ c.version || '—' }}</span></span>
                 </div>
                 @if (hasDuplicateVersion(c)) {
                   <div class="version-exists-warning d-flex align-items-start gap-2">
@@ -228,7 +228,7 @@
                 @if (c.implementationDescription) {
                   <div class="view-connector-row">
                     <span class="view-connector-label">Connector description:</span>
-                    <div class="view-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
+                    <div data-testid="method-detail-connector-description" class="view-connector-value markdown-rendered" [innerHTML]="c.implementationDescription | markdown"></div>
                   </div>
                 }
 
@@ -388,11 +388,11 @@
         @if (isActive()) {
           <div class="d-flex align-items-center gap-2">
             @if (canEdit()) {
-              <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" [appNewTabRoute]="editRoute()" (click)="editAndUpgrade()">
+              <button data-testid="method-detail-edit-and-upgrade" type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2" [appNewTabRoute]="editRoute()" (click)="editAndUpgrade()">
                 <i class="fa-solid fa-pen-to-square"></i>Edit and upgrade
               </button>
             }
-            <button type="button" class="btn view-download-btn d-flex align-items-center gap-2" (click)="downloadConnector()">
+            <button data-testid="method-detail-download" type="button" class="btn view-download-btn d-flex align-items-center gap-2" (click)="downloadConnector()">
               <i class="fa-solid fa-download"></i>Download
             </button>
           </div>
@@ -408,7 +408,7 @@
           <div class="d-flex align-items-center gap-3">
             <!-- The reviewer may fix findings directly while the revision is under review
                  (the edit lock only applies to non-superusers). -->
-            <button type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2"
+            <button data-testid="method-detail-edit-and-upgrade" type="button" class="btn view-edit-upgrade-btn d-flex align-items-center gap-2"
                     [appNewTabRoute]="editRoute()" (click)="editAndUpgrade()">
               <i class="fa-solid fa-pen-to-square"></i>Edit
             </button>

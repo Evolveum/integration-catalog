@@ -23,7 +23,7 @@
 
     <div class="revoke-key-footer d-flex align-items-center">
       <button type="button" class="revoke-key-cancel" (click)="onClose()">Close</button>
-      <button type="button" class="revoke-key-confirm ms-auto" [disabled]="busy" (click)="onConfirm()">
+      <button data-testid="api-key-revoke-confirm" type="button" class="revoke-key-confirm ms-auto" [disabled]="busy" (click)="onConfirm()">
         {{ busy ? busyLabel : confirmLabel }}
       </button>
     </div>

@@ -221,7 +221,7 @@
 
         <label class="ss-search d-flex align-items-center gap-2">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
+          <input data-testid="connectors-search" type="text" placeholder="Search" [value]="search()" (input)="search.set($any($event.target).value)">
         </label>
       </div>
 
@@ -252,7 +252,7 @@
         </div>
       } @else {
         @for (group of pagedGroups(); track group.id) {
-          <section class="ss-group">
+          <section data-testid="connectors-group" class="ss-group">
             <div class="ss-group-head d-flex align-items-center">
               <button type="button" class="ss-collapse" (click)="toggleGroup(group.id)"
                       [attr.aria-expanded]="!isCollapsed(group.id)" aria-label="Toggle versions">
@@ -265,7 +265,7 @@
                     <span class="conn-tag" [class]="tierClass(tag)">{{ tag.displayName }}</span>
                   }
                 </div>
-                <div class="ss-group-sub">
+                <div data-testid="connectors-group-summary" class="ss-group-sub">
                   {{ group.versionCount }} {{ group.versionCount === 1 ? 'version' : 'versions' }} ·
                   @switch (group.usedByCount) {
                     @case (0) { Not used }
@@ -338,7 +338,7 @@
                           } @else {
                             <span class="conn-chevron-space"></span>
                           }
-                          <span class="ss-version-chip">{{ version.version }}</span>
+                          <span data-testid="connectors-version" class="ss-version-chip">{{ version.version }}</span>
                           @if (version.lifecycleState && version.lifecycleState !== 'ACTIVE') {
                             @switch (version.lifecycleState) {
                               @case ('IN_REVIEW') { <span class="ss-badge ss-badge-awaiting">Awaiting approval</span> }
