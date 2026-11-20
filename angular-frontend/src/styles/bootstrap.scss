@@ -55,6 +55,12 @@ $form-check-input-focus-box-shadow: none;
 
 // Pagination numbers and Previous/Next are black, not link blue (the hover stays the link hover).
 $pagination-color: v.$color-black;
+// No outlines between or around the page items, the look of the applications list (whose gray
+// page background hid them); on a white card they read as a frame. Transparent, not 0 wide, so
+// nothing shifts; the active page keeps its own border.
+$pagination-border-color: transparent;
+$pagination-hover-border-color: transparent;
+$pagination-disabled-border-color: transparent;
 
 // Info-icon tooltips (app-info-tooltip) hold whole sentences, some with a bold heading.
 $tooltip-bg: v.$color-gray-900;
