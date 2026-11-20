@@ -35,15 +35,15 @@ class JenkinsPublishFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    private static JenkinsPublishFilter filter(String publishToken) {
+    private static JenkinsPublishFilter filter(String accessToken) {
         return new JenkinsPublishFilter(
-                new JenkinsProperties("http://jenkins.example", "apiToken", "jenkins", "build", "callback", publishToken));
+                new JenkinsProperties("http://jenkins.example", "apiToken", "jenkins", "build", accessToken));
     }
 
     private static MockHttpServletRequest request(String method, String uri, String token) {
         MockHttpServletRequest request = new MockHttpServletRequest(method, uri);
         if (token != null) {
-            request.addHeader(JenkinsPublishFilter.PUBLISH_TOKEN_HEADER, token);
+            request.addHeader(JenkinsPublishFilter.TOKEN_HEADER, token);
         }
         return request;
     }
@@ -111,11 +111,11 @@ class JenkinsPublishFilterTest {
         assertNull(run(filter(""), request("POST", "/api/upload/integration", "")));
     }
 
-    /** The callback secret is a different key and opens none of the publish endpoints. */
+    /** The retired callback header opens nothing. */
     @Test
-    void doesNotAcceptTheCallbackSecret() throws ServletException, IOException {
+    void rejectsTheRetiredCallbackHeader() throws ServletException, IOException {
         MockHttpServletRequest request = request("POST", "/api/upload/integration", null);
-        request.addHeader(JenkinsCallbackFilter.CALLBACK_TOKEN_HEADER, "callback");
+        request.addHeader("X-Callback-Token", "secret");
 
         assertNull(run(filter("secret"), request));
     }

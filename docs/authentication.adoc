@@ -124,8 +124,8 @@ spring.security.oauth2.client.registration.keycloak.scope=openid,profile,email,o
 spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8081/realms/integration-catalog
 spring.security.oauth2.client.provider.keycloak.user-name-attribute=preferred_username
 
-# Shared secret for the Jenkins build callbacks (X-Callback-Token header).
-jenkins.callbackToken=
+# Shared secret Jenkins sends in the X-Jenkins-Token header: build callbacks and publishing.
+jenkins.accessToken=
 ----
 
 NOTE: The backend *starts and runs without Keycloak*. OIDC discovery of the `issuer-uri`
@@ -151,10 +151,16 @@ Key classes (package `security`):
   cache entries (or empty results) served while Keycloak is unreachable.
 * `JenkinsCallbackFilter` — shared-secret authentication for the build callbacks
   (`/api/upload/continue/**`, `/api/upload/verify/*`). A request carrying a valid
-  `X-Callback-Token` is authenticated as the machine principal `jenkins` with role
-  `Jenkins`; a request without one is left to session authentication, so the same
-  endpoints stay reachable from the manual-fill dialog. While `jenkins.callbackToken` is
-  unset nothing can authenticate as the pipeline, which is warned about at startup.
+  `X-Jenkins-Token` is authenticated as the machine principal `jenkins` with role `Jenkins`;
+  a request without one is left to session authentication, so the same endpoints stay
+  reachable from the manual-fill dialog. While `jenkins.accessToken` is unset nothing can
+  authenticate as the pipeline, which is warned about at startup.
+* `JenkinsPublishFilter` — the same secret, in the same header, lets the connector
+  pipeline publish. It is honoured on a fixed list of method + path pairs (the filter's
+  `ENDPOINTS`) and ignored everywhere else. The pipeline signs in as `jenkins` with role
+  `JenkinsPublisher`; it may only set and edit EVOLVEUM-maintained items, and names the
+  author of what it creates in `X-Author-Username` / `X-Author-Email`, which is recorded
+  but grants nothing.
 
 == 4. Endpoint authorization matrix
 
@@ -208,7 +214,7 @@ These have two legitimate callers, so the shared secret is an alternative creden
 than a gate on the path:
 
 * the Jenkins pipeline, which has no session and sends
-  `X-Callback-Token: <jenkins.callbackToken>` (exempt from CSRF, having no CSRF token);
+  `X-Jenkins-Token: <jenkins.accessToken>` (exempt from CSRF, having no CSRF token);
 * a contributor completing a build by hand in the manual-fill dialog, on their session and
   with the usual CSRF token.
 

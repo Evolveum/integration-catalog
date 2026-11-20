@@ -22,21 +22,19 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Authenticates the Jenkins build callbacks, which arrive without a user session, by the shared
- * secret the pipeline sends in the X-Callback-Token header.
+ * secret the pipeline sends in the X-Jenkins-Token header ({@link JenkinsAccessToken}).
  */
 @Slf4j
 public class JenkinsCallbackFilter extends OncePerRequestFilter {
 
     public static final String[] CALLBACK_PATH_PATTERNS =
             { "/api/upload/continue/**", "/api/upload/verify/*" };
-    public static final String CALLBACK_TOKEN_HEADER = "X-Callback-Token";
+    public static final String TOKEN_HEADER = JenkinsAccessToken.HEADER;
 
     public static final String CALLBACK_ROLE = "Jenkins";
 
@@ -53,11 +51,11 @@ public class JenkinsCallbackFilter extends OncePerRequestFilter {
 
     public JenkinsCallbackFilter(JenkinsProperties jenkinsProperties) {
         this.jenkinsProperties = jenkinsProperties;
-        if (isBlank(jenkinsProperties.callbackToken())) {
-            log.warn("jenkins.callbackToken is not configured - the Jenkins integration is disabled: no callback"
+        if (JenkinsAccessToken.isBlank(jenkinsProperties.accessToken())) {
+            log.warn("jenkins.accessToken is not configured - the Jenkins integration is disabled: no callback"
                             + " to {} can authenticate as the build pipeline, so builds cannot report their result."
                             + " Set the property to the shared secret the Jenkins pipeline sends in the {} header.",
-                    String.join(" and ", CALLBACK_PATH_PATTERNS), CALLBACK_TOKEN_HEADER);
+                    String.join(" and ", CALLBACK_PATH_PATTERNS), TOKEN_HEADER);
         }
     }
 
@@ -67,12 +65,12 @@ public class JenkinsCallbackFilter extends OncePerRequestFilter {
         if (callbackMatcher.matches(request)) {
             if (hasValidToken(request)) {
                 authenticateAsCallback();
-            } else if (request.getHeader(CALLBACK_TOKEN_HEADER) != null) {
+            } else if (request.getHeader(TOKEN_HEADER) != null) {
                 // We need to indicate that an invalid token has been received, but only in the log.
                 // We do not want to give the attacker any additional information,
                 // but we need to know that someone is trying to gain access.
                 log.error("The {} received for the request {} is incorrect.",
-                        CALLBACK_TOKEN_HEADER, request.getRequestURI());
+                        TOKEN_HEADER, request.getRequestURI());
             }
         }
         filterChain.doFilter(request, response);
@@ -90,16 +88,6 @@ public class JenkinsCallbackFilter extends OncePerRequestFilter {
     }
 
     private boolean hasValidToken(HttpServletRequest request) {
-        String expected = jenkinsProperties.callbackToken();
-        String provided = request.getHeader(CALLBACK_TOKEN_HEADER);
-        if (isBlank(expected) || provided == null) {
-            return false;
-        }
-        return MessageDigest.isEqual(
-                expected.getBytes(StandardCharsets.UTF_8), provided.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
+        return JenkinsAccessToken.matches(jenkinsProperties.accessToken(), request.getHeader(TOKEN_HEADER));
     }
 }

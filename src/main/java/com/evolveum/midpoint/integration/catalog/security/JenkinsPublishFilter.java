@@ -23,12 +23,11 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.List;
 
 /**
- * Signs the connector Jenkins pipeline in by the shared secret it sends in the X-Publish-Token header,
+ * Signs the connector Jenkins pipeline in by the shared secret it sends in the X-Jenkins-Token header
+ * ({@link JenkinsAccessToken}, the same one the build callbacks use),
  * on the listed endpoints only. Anywhere else the header is ignored and the request stays anonymous,
  * so a leaked secret opens nothing beyond this list. What the pipeline may then change is decided in
  * the services: Evolveum-maintained items only.
@@ -36,7 +35,7 @@ import java.util.List;
 @Slf4j
 public class JenkinsPublishFilter extends OncePerRequestFilter {
 
-    public static final String PUBLISH_TOKEN_HEADER = "X-Publish-Token";
+    public static final String TOKEN_HEADER = JenkinsAccessToken.HEADER;
     public static final String AUTHOR_USERNAME_HEADER = "X-Author-Username";
     public static final String AUTHOR_EMAIL_HEADER = "X-Author-Email";
 
@@ -63,9 +62,6 @@ public class JenkinsPublishFilter extends OncePerRequestFilter {
 
     public JenkinsPublishFilter(JenkinsProperties jenkinsProperties) {
         this.jenkinsProperties = jenkinsProperties;
-        if (isBlank(jenkinsProperties.publishToken())) {
-            log.info("jenkins.publishToken is not configured - the connector pipeline cannot publish.");
-        }
     }
 
     private static RequestMatcher endpoint(HttpMethod method, String pattern) {
@@ -78,10 +74,10 @@ public class JenkinsPublishFilter extends OncePerRequestFilter {
         if (ENDPOINTS.matches(request)) {
             if (hasValidToken(request)) {
                 authenticateAsPublisher(request);
-            } else if (request.getHeader(PUBLISH_TOKEN_HEADER) != null) {
+            } else if (request.getHeader(TOKEN_HEADER) != null) {
                 // Only the log learns the token was wrong; the caller just stays anonymous.
                 log.error("The {} received for the request {} {} is incorrect.",
-                        PUBLISH_TOKEN_HEADER, request.getMethod(), request.getRequestURI());
+                        TOKEN_HEADER, request.getMethod(), request.getRequestURI());
             }
         }
         filterChain.doFilter(request, response);
@@ -103,20 +99,10 @@ public class JenkinsPublishFilter extends OncePerRequestFilter {
     }
 
     private boolean hasValidToken(HttpServletRequest request) {
-        String expected = jenkinsProperties.publishToken();
-        String provided = request.getHeader(PUBLISH_TOKEN_HEADER);
-        if (isBlank(expected) || provided == null) {
-            return false;
-        }
-        return MessageDigest.isEqual(
-                expected.getBytes(StandardCharsets.UTF_8), provided.getBytes(StandardCharsets.UTF_8));
+        return JenkinsAccessToken.matches(jenkinsProperties.accessToken(), request.getHeader(TOKEN_HEADER));
     }
 
     private static String trimmed(String value) {
-        return isBlank(value) ? null : value.trim();
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
+        return JenkinsAccessToken.isBlank(value) ? null : value.trim();
     }
 }
