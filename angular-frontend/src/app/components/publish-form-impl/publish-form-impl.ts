@@ -24,6 +24,7 @@ import { COMMIT_HELP_STEPS, COMMIT_HELP_TITLE } from '../download-info-modal/com
 import { LinksService } from '../../services/links.service';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 
 export interface ReviewSummary {
   applicationId: string | null;
@@ -69,7 +70,7 @@ export interface Step5FormData {
 @Component({
   selector: 'app-publish-form-impl',
   standalone: true,
-  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal, MarkdownEditor],
+  imports: [CommonModule, FormsModule, CapabilityPicker, SubmissionSuccessModal, DownloadInfoModal, MarkdownEditor, InfoTooltip],
   templateUrl: './publish-form-impl.html',
   styleUrls: ['./publish-form-impl.scss']
 })
@@ -519,7 +520,7 @@ export class PublishFormImpl implements OnInit, OnChanges {
         <head>
           <title>Publishing consent document</title>
           <style>
-            body { font-family: Arial, Helvetica, sans-serif; color: #1a202c; line-height: 1.6; margin: 2.5rem; }
+            body { font-family: Arial, Helvetica, sans-serif; line-height: 1.6; margin: 2.5rem; }
             h1 { font-size: 1.25rem; margin-bottom: 1.5rem; }
             p { font-size: 0.9rem; margin: 0 0 1rem; }
           </style>

@@ -17,25 +17,10 @@
   padding: 1.5rem 1.5rem 4rem;
 }
 
-.settings-back {
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 1.5rem;
-  color: $color-brand-steel;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
 .settings-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.35rem;
 }
 
@@ -45,41 +30,10 @@
   margin-bottom: 1.5rem;
 }
 
-/* ========================================
-   TABS (page level and inside the card)
-   ======================================== */
-.settings-tabs {
-  gap: 1.5rem;
-  border-bottom: 1px solid $color-separator;
-  margin-bottom: 2rem;
-}
-
-.settings-tab,
-.profile-tab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 0 0 0.5rem;
-  color: $color-text-muted;
-  font-size: 0.875rem;
-  cursor: pointer;
-
-  &:hover {
-    color: $color-brand-steel;
-  }
-}
-
-.settings-tab-active,
-.profile-tab-active {
-  color: $color-brand-steel;
-  font-weight: 600;
-  border-bottom-color: $color-brand-steel;
-}
-
 .settings-section-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.35rem;
 }
 
@@ -93,15 +47,15 @@
    READ-ONLY NOTICE
    ======================================== */
 .iam-banner {
-  background-color: #E7F3FB;
-  border: 1px solid #C7E2F4;
+  background-color: $color-primary-bg-subtle;
+  border: 1px solid $color-primary-border-subtle;
   border-radius: 6px;
   padding: 0.85rem 1rem;
   margin-bottom: 1.25rem;
 }
 
 .iam-banner-icon {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-size: 15px;
   flex-shrink: 0;
   align-self: flex-start;
@@ -113,31 +67,8 @@
   flex-direction: column;
   gap: 0.15rem;
   font-size: 0.8125rem;
-  color: #1f3a52;
+  color: $color-primary-text-emphasis;
   overflow-wrap: anywhere;
-}
-
-.iam-banner-btn {
-  background-color: $color-white;
-  border: 1px solid $color-border-light;
-  border-radius: 6px;
-  padding: 0.45rem 0.85rem;
-  color: $color-text-dark;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-
-  &:hover {
-    background-color: $color-bg-hover;
-    color: $color-text-dark;
-  }
-
-  i {
-    font-size: 11px;
-    color: $color-text-muted;
-  }
 }
 
 /* ========================================
@@ -162,8 +93,8 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: #DCE7F5;
-  color: #36538B;
+  background-color: $color-primary-bg-subtle;
+  color: $color-primary-text-emphasis;
   font-size: 1rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -176,7 +107,7 @@
 .profile-name {
   font-size: 1rem;
   font-weight: 700;
-  color: #1a202c;
+  color: $color-text-dark;
   overflow-wrap: anywhere;
 }
 
@@ -184,23 +115,6 @@
   font-size: 0.8125rem;
   color: $color-text-muted;
   overflow-wrap: anywhere;
-}
-
-.profile-role-badge {
-  background-color: #DCE7F5;
-  color: #36538B;
-  border-radius: 4px;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.profile-tabs {
-  gap: 1.5rem;
-  border-bottom: 1px solid $color-separator;
-  margin-bottom: 1.5rem;
 }
 
 /* ========================================

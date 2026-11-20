@@ -5,17 +5,17 @@
 @use 'variables' as *;
 
 /* ── Breadcrumb ─────────────────────────────────────────── */
-.page-header-breadcrumb-text { font-size: 0.8125rem; color: #6b7280; }
+.page-header-breadcrumb-text { font-size: 0.8125rem; color: $color-gray-600; }
 
 .breadcrumb-link {
   background: none; border: none; padding: 0;
   font-size: 0.8125rem; font-weight: 500;
-  color: $color-primary-500; cursor: pointer; text-decoration: none;
-  &:hover { color: $color-primary-500; text-decoration: underline; }
+  color: $color-brand-blue; cursor: pointer; text-decoration: none;
+  &:hover { color: $color-brand-blue; text-decoration: underline; }
 }
 
-.breadcrumb-sep  { font-size: 0.8125rem; color: #9ca3af; }
-.breadcrumb-current { font-size: 0.8125rem; font-weight: 500; color: #000; }
+.breadcrumb-sep  { font-size: 0.8125rem; color: $color-gray-500; }
+.breadcrumb-current { font-size: 0.8125rem; font-weight: 500; color: $color-black; }
 .breadcrumb-app-icon { height: 1em; width: auto; object-fit: contain; vertical-align: middle; }
 
 /* ── Page layout ────────────────────────────────────────── */
@@ -50,50 +50,21 @@
 
 .char-counter { font-size: 0.75rem; margin-top: 0.25rem; }
 
-.field-error { font-size: 0.875rem; color: #dc3545; margin-top: 0.25rem; }
+.field-error { font-size: 0.875rem; color: $color-danger; margin-top: 0.25rem; }
 
 .input-disabled {
   background-color: $color-bg-disabled;
   color: $color-gray-secondary;
 }
 
-/* "How to find it →" helper link under Commit hash */
-.commit-help-link {
-  color: $color-brand-steel;
-  text-decoration: none;
-  font-weight: 500;
-  white-space: nowrap;
-  background: none;
-  padding: 0;
-  border: 0;
-  /* Single continuous underline across text + icon at one level (avoids the
-     uneven per-glyph underline that text-decoration produces on the flex link). */
-  border-bottom: 1px solid transparent;
-
-  &:hover { border-bottom-color: currentColor; }
-
-  i { font-size: 0.75rem; }
-}
-
-/* ── Info icon (native title tooltip) ──────────────────── */
-.btn-info-icon {
-  border: none;
-  background: none;
-  box-shadow: none !important;
-  position: relative;
-  top: -3px;
-  &:hover, &:focus, &:active { background: none; box-shadow: none; }
-}
-.info-icon-sm { font-size: 12px; color: $text-publishing-blue; }
-
 /* ── Connector type cards ───────────────────────────────── */
 .connector-option .form-check-input:checked {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
+  background-color: $color-brand-blue;
+  border-color: $color-brand-blue;
 }
 
 .connector-option .form-check-input:focus {
-  border-color: $color-brand-steel;
+  border-color: $color-brand-blue;
   box-shadow: 0 0 0 0.25rem $shadow-teal;
 }
 
@@ -104,7 +75,7 @@
   cursor: pointer;
   transition: all 0.2s;
   &.selected {
-    border-color: $color-brand-steel;
+    border-color: $color-brand-blue;
     background-color: $color-bg-selected;
   }
 }
@@ -113,16 +84,6 @@
   opacity: 0.55;
   cursor: not-allowed;
   pointer-events: none;
-}
-
-.connector-coming-soon-badge {
-  display: inline-block;
-  font-size: 0.7rem; font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 2px 8px; border-radius: 4px;
-  border: 1px solid #d5d7da;
-  background-color: #fafbfc; color: #525151;
-  margin-left: 0.5rem; vertical-align: middle;
 }
 
 .radio-input { width: 20px; height: 20px; cursor: pointer; }
@@ -138,14 +99,7 @@
   margin-top: 1.5rem;
 }
 
-.connector-existing-anchor {
-  color: $color-brand-steel; font-weight: 500; text-decoration: none;
-  &:hover { text-decoration: underline; }
-}
-
 .connector-existing-icon { font-size: 0.75rem; margin-left: 2px; }
-
-.btn-link-inline { background: none; border: none; padding: 0; cursor: pointer; }
 
 /* ── Accordion panels ───────────────────────────────────── */
 .accordion-panel {
@@ -158,7 +112,7 @@
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.875rem 1.25rem;
   cursor: pointer; user-select: none;
-  background: #f8f9fa; border-radius: 8px;
+  background: $color-bg-light; border-radius: 8px;
 }
 
 .accordion-chevron { font-size: 0.75rem; color: $color-text-secondary; width: 12px; }
@@ -172,12 +126,12 @@
 .accordion-panel-body {
   padding: 1.25rem 1.5rem 1.5rem;
   border-top: 1px solid $color-border-light;
-  background-color: #f8f9fa;
+  background-color: $color-bg-light;
   border-radius: 0 0 8px 8px;
 
   .form-control, .form-select, .method-link-wrapper,
   .method-link-input, .license-select-trigger {
-    background-color: #fff;
+    background-color: $color-white;
     border-color: $color-border-light;
   }
 
@@ -220,7 +174,7 @@
   &::placeholder { color: $color-gray-secondary; }
 }
 
-.method-link-wrapper--invalid { border-color: #dc3545; }
+.method-link-wrapper--invalid { border-color: $color-danger; }
 
 /* ── License combobox ───────────────────────────────────── */
 .license-combobox {
@@ -233,20 +187,7 @@
 .license-select-trigger { cursor: pointer; user-select: none; }
 .license-placeholder { color: $color-gray-secondary; }
 
-.license-dropdown {
-  position: absolute; top: 100%; left: 0; right: 0;
-  z-index: 1050; background: #fff;
-  border: 1px solid #dee2e6; border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-  max-height: calc(4 * 2.375rem); overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0,0,0,.1);
-}
-
-.license-option {
-  padding: 0.5rem 0.75rem; cursor: pointer; font-size: 1rem; color: #212529;
-  &:hover { background-color: #e9ecef; }
-  &.license-option-selected { background-color: $color-bg-selected; }
-}
+.license-dropdown { max-height: calc(4 * 2.375rem); overflow-y: auto; }
 
 /* ── Maintainer combobox ────────────────────────────────── */
 .maintainer-combobox {
@@ -256,29 +197,17 @@
   }
 }
 
-.maintainer-dropdown {
-  position: absolute; top: 100%; left: 0; right: 0;
-  z-index: 1050; background: #fff;
-  border: 1px solid #dee2e6; border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-  max-height: calc(8 * 2.375rem); overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0,0,0,.1);
-}
-
-.maintainer-option {
-  padding: 0.5rem 0.75rem; cursor: pointer; font-size: 1rem; color: #212529;
-  &:hover { background-color: #e9ecef; }
-}
+.maintainer-dropdown { max-height: calc(8 * 2.375rem); overflow-y: auto; }
 
 /* ── Alert info note ────────────────────────────────────── */
 .alert-info-note {
-  background-color: $color-info-bg;
-  border: 1px solid $color-info-border;
+  background-color: $color-info-bg-subtle;
+  border: 1px solid $color-info-border-subtle;
   border-radius: 4px; padding: 0.75rem 1rem;
 }
 
 .alert-icon { font-size: 16px; color: $text-publishing-blue; margin-top: 2px; }
-.alert-text { color: $color-info-text; font-size: 0.875rem; }
+.alert-text { color: $color-info-text-emphasis; font-size: 0.875rem; }
 
 /* ── Compatibility section ──────────────────────────────── */
 .compat-step-desc {
@@ -312,16 +241,6 @@
   font-size: 0.8125rem; color: $color-text-secondary; margin-top: 2px;
 }
 
-.compat-badge {
-  display: inline-block;
-  font-size: 0.75rem; font-weight: 500;
-  color: $color-text-secondary;
-  background: $color-bg-muted;
-  border: 1px solid $color-border-light;
-  border-radius: 4px; padding: 0.15rem 0.5rem;
-  white-space: nowrap;
-}
-
 .compat-range-label {
   font-size: 0.6875rem; font-weight: 700;
   letter-spacing: 0.06em; text-transform: uppercase;
@@ -329,19 +248,19 @@
 }
 
 .compat-info-note {
-  background-color: $color-info-bg;
-  border: 1px solid $color-info-border;
+  background-color: $color-info-bg-subtle;
+  border: 1px solid $color-info-border-subtle;
   border-radius: 4px; padding: 0.75rem 1rem;
-  font-size: 0.875rem; color: $color-info-text;
+  font-size: 0.875rem; color: $color-info-text-emphasis;
 }
 
 .compat-info-icon { font-size: 14px; color: $text-publishing-blue; }
 
 /* ── Footer navigation ──────────────────────────────────── */
 .ac-footer {
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid $color-border-light;
   padding: 1rem 0;
-  background: #fff;
+  background: $color-white;
   position: sticky;
   bottom: 0;
   z-index: 10;
@@ -365,62 +284,7 @@
   text-align: right;
 }
 
-.ac-btn-back {
-  color: $color-brand-steel;
-  background: none; border: none;
-  padding: 0.375rem 0.75rem; font-weight: 600;
-  &:hover { color: $color-brand-steel; }
-}
-
-.ac-btn-next {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
-  &:hover { background-color: $color-brand-navy; border-color: $color-brand-navy; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-
-.ac-btn-icon { font-size: 12px; }
-
 /* ── Catalog connector modal ────────────────────────────── */
-.cc-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.45);
-  z-index: 1050;
-  display: flex; align-items: center; justify-content: center;
-}
-
-.cc-modal {
-  background: $color-white; border-radius: 8px;
-  width: 100%; max-width: 560px; max-height: 85vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0,0,0,.18);
-}
-
-.cc-modal-header {
-  padding: 1.25rem 1.5rem 1rem; border-bottom: 1px solid $color-border-light; flex-shrink: 0;
-}
-
-.cc-modal-title   { font-size: 1rem; font-weight: 600; color: $color-text-dark; }
-.cc-modal-subtitle { font-size: 0.875rem; color: $color-text-secondary; }
-
-.cc-modal-search { padding: 1rem 1.5rem 0.75rem; flex-shrink: 0; }
-
-.cc-modal-body {
-  flex: 1; overflow-y: auto;
-  padding: 0 1.5rem 0.5rem;
-  display: flex; flex-direction: column; gap: 0.5rem;
-}
-
-.cc-loading, .cc-empty {
-  padding: 2rem 0; text-align: center;
-  font-size: 0.875rem; color: $color-text-secondary;
-}
-
-.cc-more-hint {
-  padding-top: 0.5rem; text-align: center;
-  font-size: 0.875rem; color: $color-text-secondary;
-}
-
 .cc-connector-item {
   display: flex; align-items: center; gap: 0.75rem;
   border: 2px solid $color-border-light;
@@ -428,7 +292,7 @@
   cursor: pointer; transition: border-color 0.15s, background-color 0.15s;
 
   &.selected {
-    border-color: $color-brand-steel;
+    border-color: $color-brand-blue;
     background-color: $color-bg-selected;
   }
 
@@ -437,24 +301,10 @@
 
 .cc-connector-info { flex: 1; min-width: 0; }
 .cc-connector-name { font-weight: 600; font-size: 0.9375rem; color: $color-text-dark; overflow-wrap: anywhere; }
-.cc-obsolete-tag {
-  display: inline-flex; align-items: center; margin-left: 0.5rem; padding: 0.1rem 0.5rem;
-  border-radius: 999px; background-color: #fff3cd; color: #7a4f00; border: 1px solid #f5e2b8;
-  font-size: 0.75rem; font-weight: 600; vertical-align: middle;
-}
 .cc-connector-desc {
   font-size: 0.8125rem; color: $color-text-secondary; margin-top: 0.25rem;
   display: -webkit-box; -webkit-line-clamp: 2;
   -webkit-box-orient: vertical; overflow: hidden;
-}
-
-.cc-modal-footer {
-  padding: 1rem 1.5rem; border-top: 1px solid $color-border-light; flex-shrink: 0;
-}
-
-.define-new-cancel-btn {
-  color: $color-brand-steel; font-weight: 600; padding: 0; text-decoration: none;
-  &:hover { color: $color-text-dark; }
 }
 
 /* ── Catalog search input ───────────────────────────────── */
@@ -471,26 +321,19 @@
   &::placeholder { color: $color-gray-secondary; }
 }
 
-.clear-search-btn {
-  background: none; border: none;
-  border-left: 1px solid $color-border-input;
-  padding: 0.375rem 0.75rem; cursor: pointer;
-  &:hover { opacity: 0.7; }
-}
-
 .search-icon  { font-size: 14px; color: $color-gray-secondary; }
 .clear-icon   { font-size: 12px; color: $color-gray-secondary; }
 
 /* Radio */
-.form-check-input[type="radio"] { accent-color: $color-brand-steel !important; }
+.form-check-input[type="radio"] { accent-color: $color-brand-blue !important; }
 .form-check-input[type="radio"]:checked {
-  background-color: $color-brand-steel !important;
-  border-color: $color-brand-steel !important;
+  background-color: $color-brand-blue !important;
+  border-color: $color-brand-blue !important;
 }
 
 // Shown when the connector search box holds a single character: prompts for at least 2.
 .search-hint {
   margin-top: 0.375rem;
   font-size: 0.85rem;
-  color: #946200;
+  color: $color-warning-text-emphasis;
 }

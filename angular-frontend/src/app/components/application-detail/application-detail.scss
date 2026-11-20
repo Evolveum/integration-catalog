@@ -2,34 +2,23 @@
   Copyright (c) 2010-2025 Evolveum and contributors
   Licensed under the EUPL-1.2 or later.
 */
-@use 'sass:color';
 @use 'variables' as *;
 
 /* ========================================
    PAGE LAYOUT
    ======================================== */
 .page-container {
-  background-color: #ffffff;
+  background-color: $color-white;
   min-height: 100vh;
 }
 
-.header-bar {
-  background-color: #d9e3ec;
-  padding: 0.75rem 0;
-}
-
-.header-bar-lg {
-  background-color: #d9e3ec;
-  padding: 1rem 0;
-}
-
 .header-section {
-  background-color: #e8eef3;
+  background-color: $color-primary-bg-subtle;
   padding: 2rem 0;
 }
 
 .sidebar-panel {
-  background-color: #f8f8ff;
+  background-color: $color-bg-light;
 }
 
 /* Keep the IM (left) panel at a stable width so its content doesn't squish.
@@ -81,7 +70,7 @@
   width: 70px;
   height: 70px;
   border-radius: 4px;
-  background-color: #ffffff;
+  background-color: $color-white;
 }
 
 .logo-image {
@@ -94,7 +83,7 @@
   width: 70px;
   height: 70px;
   border-radius: 4px;
-  color: white;
+  color: $color-white;
   font-size: 28px;
   font-weight: 600;
 }
@@ -103,38 +92,17 @@
    TEXT COLORS
    ======================================== */
 .text-title {
-  color: #1a202c;
+  color: $color-text-dark;
   font-weight: 600;
   font-size: 2rem;
 }
 
 .text-body {
-  color: #4a5568;
+  color: $color-gray-700;
 }
 
 .text-muted-custom {
-  color: #718096;
-}
-
-.text-black {
-  color: #000000;
-}
-
-.text-link {
-  color: #2c5282;
-}
-
-.text-error {
-  color: #842029;
-}
-
-.text-ai {
-  color: #502afa;
-}
-
-.text-edit {
-  color: #367FAA;
-  font-weight: 600;
+  color: $color-gray-600;
 }
 
 /* ========================================
@@ -182,292 +150,24 @@
 }
 
 /* ========================================
-   BADGES
+   FILTER MODAL
    ======================================== */
-// "Toggle Featured": grey = not featured, green = featured on the homepage.
-.btn-featured {
-  background-color: #e9ecef;
-  color: #6c757d;
-
-  &:hover:not(:disabled) {
-    background-color: #dee2e6;
-    color: #495057;
-  }
-}
-
-.btn-featured-on {
-  background-color: #198754;
-  border-color: #198754 !important;
-  color: #fff;
-
-  &:hover:not(:disabled) {
-    background-color: #157347;
-    color: #fff;
-  }
-}
-
-.badge-popular {
-  background-color: #ffdd8c;
-  color: #7A510B;
-  font-size: 0.7rem;
-  vertical-align: middle;
-  padding: 0.35rem 0.65rem;
-}
-
-.badge-capability {
-  background-color: #e8eef5;
-  color: #000000;
-  font-size: 0.8rem;
-  padding: 0.4rem 0.6rem;
-  font-weight: 400;
-}
-
-.badge-requested {
-  background-color: #cfe2ff;
-  color: #084298;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
-}
-
-.badge-deployment {
-  background-color: #cfe2ff;
-  color: #084298;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
-  width: fit-content;
-}
-
-.badge-locality {
-  background-color: #d1ecf1;
-  color: #0c5460;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
-  width: fit-content;
-}
-
-.badge-common {
-  background-color: #e2e3e5;
-  color: #2b2e31;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
-  width: fit-content;
-}
-
-.badge-show-more {
-  background-color: #ffffff;
-  color: #000000;
-  border: 1px solid #cbd5e0;
-  cursor: pointer;
-  font-size: 0.8rem;
-  padding: 0.4rem 0.6rem;
-  font-weight: 400;
-}
-
-.badge-counter {
-  background-color: $color-brand-navy;
-  color: white;
-  width: 20px;
-  height: 20px;
-  font-size: 0.75rem;
-}
-
-/* ========================================
-   BUTTONS
-   ======================================== */
-
-.btn-tab {
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.875rem;
-}
-
-.btn-tab-active {
-  background-color: #ffffff;
-  color: #1a202c;
-  font-weight: 600;
-}
-
-.btn-tab-inactive {
-  background-color: transparent;
-  color: #4a5568;
-  font-weight: 400;
-}
-
-.btn-filter {
-  background-color: white;
-  border: 1px solid #cbd5e0;
-  color: #000000;
-  padding: 0.4rem 0.75rem;
-  border-radius: 50px;
-  white-space: nowrap;
-}
-
-.btn-reset {
-  background-color: transparent;
-  border: none;
-  color: #000;
-  padding: 0.4rem 0.75rem;
-  white-space: nowrap;
-}
-
-.btn-edit {
-  font-size: 0.875rem;
-  border: none;
-  color: #367FAA;
-  font-weight: 600;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: #6c757d;
-}
-
-.filter-chip .btn-icon .fa-chevron-down {
-  color: #000000;
-}
-
-.btn-retry {
-  background: none;
-  border: none;
-  color: #000000;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.btn-edit-error {
-  background-color: #ffffff;
-  border: 1px solid #dee2e6;
-  color: #000000;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-/* ========================================
-   TABS
-   ======================================== */
-.tabs-container {
-  background-color: #dfe3e7;
-  padding: 0.25rem;
-  border-radius: 8px;
-  display: inline-flex;
-  gap: 0.25rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Legacy tab styling */
-.nav-tabs .nav-link {
-  color: #000 !important;
-}
-
-.nav-tabs .nav-link.active {
-  border-top: 3px solid #0d6efd !important;
-  border-top-left-radius: 0.25rem;
-  border-top-right-radius: 0.25rem;
-  font-weight: bold;
-}
-
-/* ========================================
-   FILTER CHIPS
-   ======================================== */
-.filter-chip {
-  padding: 0.5rem 0.75rem;
-  background-color: white;
-  border: 1px solid $color-brand-navy;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-/* ========================================
-   MODALS
-   ======================================== */
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1050;
-}
-
-.modal-content-box {
-  width: 90%;
-  max-width: 800px;
+// Fixed height, so switching sections doesn't resize the dialog.
+.filter-dialog-body {
   height: 500px;
   max-height: 80vh;
-  overflow: hidden;
-  z-index: 1051;
 }
 
-.modal-sidebar {
+.filter-sidebar {
   width: 250px;
 }
 
-.modal-main {
-  width: 550px;
-}
-
-.modal-section-btn {
-  text-align: left;
-  border: none;
-  border-left: 3px solid transparent;
-  padding: 1rem 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.modal-section-btn-active {
-  background-color: #f8f9fa;
-  border-left: 3px solid #0d6efd;
-}
-
-/* ========================================
-   SELECTABLE BADGES (FILTER)
-   ======================================== */
-.badge-selectable {
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  border-radius: 20px;
-  font-weight: normal;
-}
-
-.badge-selectable-active {
-  border: 1px solid #2722c7;
-  background-color: #f2f2f2;
-  color: #2722c7;
-}
-
-.badge-selectable-inactive {
-  border: 1px solid #a6a6a6;
-  background-color: white;
-  color: #212529;
-}
-
-/* ========================================
-   VERSION CARDS
-   ======================================== */
-.version-card {
-  background-color: #ffffff;
-}
-
-/* ========================================
-   ERROR BANNER
-   ======================================== */
-.error-banner {
-  background-color: #f8d7da;
-  border: 1px solid #f5c2c7;
-}
 
 /* ========================================
    DROPDOWNS
    ======================================== */
+/* Placed with fixed coordinates under its chip; z-index lifts it over .click-backdrop. */
 .filter-dropdown {
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 0.75rem;
   min-width: 200px;
   max-width: 300px;
   max-height: 300px;
@@ -490,100 +190,7 @@
 
 .checkbox-unchecked {
   background-color: transparent;
-  border-color: #dee2e6;
-}
-
-.link-clear-filter {
-  color: $color-brand-steel;
-  font-size: 0.875rem;
-  text-decoration: none;
-}
-
-/* ========================================
-   PAGINATION
-   ======================================== */
-/* Pagination styled to match the integration-method list footer mockup:
-   one connected segmented group (Previous | 1 | 2 | 3 | Next), all touching,
-   with rounding only on the far-left and far-right outer corners; the active
-   page is a subtle fill. */
-.im-list-footer {
-  .pagination {
-    gap: 0;
-    align-items: center;
-  }
-
-  .page-item .page-link {
-    min-height: 38px;
-    min-width: 38px;
-    margin-left: -1px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #dee2e6;
-    border-radius: 0;
-    background-color: #F8F9FA;
-    color: #1f2937;
-    font-weight: 600;
-
-    &:hover {
-      background-color: #eceef0;
-    }
-
-    &:focus {
-      outline: none;
-      box-shadow: none;
-    }
-  }
-
-  /* Numbered page buttons (between Previous and Next) are shorter than
-     Previous/Next. Fixed height (width stays 38px from the base rule);
-     min-height is reset so it can shrink below the base 38px. */
-  .page-item:not(:first-child):not(:last-child) .page-link {
-    min-height: 0;
-    height: 36px;
-    min-width: 0px;
-    width: 28px;
-  }
-
-  /* Previous = first item: round only the outer (left) corners */
-  .page-item:first-child .page-link {
-    margin-left: 0;
-    border-top-left-radius: 6px;
-    border-bottom-left-radius: 6px;
-  }
-
-  /* Next = last item: round only the outer (right) corners */
-  .page-item:last-child .page-link {
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-  }
-
-  .page-item.active .page-link,
-  .page-link-active {
-    position: relative;
-    z-index: 1;
-    background-color: #E9ECEF;
-    border-color: #cdd9e3;
-    color: #1f2937;
-  }
-
-  .page-item.disabled .page-link {
-    color: #adb5bd;
-    background-color: #F8F9FA;
-  }
-}
-
-.btn-go-to-catalog {
-  background-color: transparent;
-  border: none;
-  padding: 0;
-  color: $color-brand-steel;
-  font-weight: 600;
-
-  &:hover {
-    color: color.adjust($color-brand-steel, $lightness: -10%);
-    text-decoration: underline;
-  }
+  border-color: $color-border-light;
 }
 
 /* ========================================
@@ -609,20 +216,20 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-primary-500;
+  color: $color-brand-blue;
   cursor: pointer;
   text-decoration: none;
 }
 
 .breadcrumb-sep {
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: $color-gray-500;
 }
 
 .breadcrumb-current {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #000;
+  color: $color-black;
 }
 
 .breadcrumb-app-icon {
@@ -633,7 +240,7 @@
 }
 
 .breadcrumb-link:hover {
-  color: $color-primary-500;
+  color: $color-brand-blue;
   text-decoration: underline;
 }
 
@@ -650,23 +257,14 @@
    ======================================== */
 .star-icon {
   font-size: 14px;
-  color: #f59e0b;
-}
-
-/* ========================================
-   DOWNLOAD BUTTON
-   ======================================== */
-.btn-download {
-  background-color: $color-brand-steel;
-  color: $btn-download-color;
-  border: none;
+  color: $color-warning;
 }
 
 /* ========================================
    PUBLISHING STATE
    ======================================== */
 .publishing-icon {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
 }
 
 /* ========================================
@@ -714,16 +312,12 @@
 
 .input-group .form-control:focus {
   box-shadow: none;
-  border-color: #dee2e6;
+  border-color: $color-border-light;
 }
 
 /* ========================================
    INTEGRATION METHOD CARDS
    ======================================== */
-.method-type-dropdown {
-  position: relative;
-}
-
 .method-type-select {
   width: auto;
   min-width: 90px;
@@ -733,8 +327,8 @@
   padding: 0 1rem;
   cursor: pointer;
   font-weight: 600;
-  color: #000000;
-  background: white;
+  color: $color-black;
+  background: $color-white;
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
@@ -745,111 +339,22 @@
   }
 }
 
+/* Lifts the panel over .click-backdrop (9998). */
 .method-type-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 160px;
   z-index: 9999;
-  overflow: hidden;
-  padding: 0.25rem 0;
-}
-
-.method-type-option {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #f8f9fa;
-  }
-
-  &.method-type-option-active {
-    font-weight: 600;
-    color: $color-brand-steel;
-  }
-}
-
-.btn-method-filter {
-  background-color: white;
-  border: 1px solid #ced4da;
-  border-radius: 50px;
-  color: #212529;
-  padding: 0.4rem 1rem;
-  white-space: nowrap;
-  font-size: 0.875rem;
-}
-
-.btn-method-reset {
-  background: none;
-  border: none;
-  color: $color-gray-secondary;
-  font-size: 0.875rem;
-  white-space: nowrap;
-  cursor: pointer;
-  padding: 0;
 }
 
 .method-divider {
   border: 0;
-  border-top: 1px solid #8d8d8d;
+  border-top: 1px solid $color-gray-600;
   margin: 0 0 1.5rem 0;
 }
 
 .method-empty-state {
-  background-color: #f8f9fa;
+  background-color: $color-bg-light;
   border-radius: 8px;
   padding: 3rem 2rem;
   text-align: center;
-}
-
-.btn-create-method {
-  background-color: white;
-  border: 1px solid #dee2e6;
-  color: #212529;
-  padding: 0.5rem 1.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.btn-create-method:hover {
-  background-color: #f8f9fa;
-  border-color: #adb5bd;
-  color: #212529;
-}
-
-.btn-create-method-primary {
-  background-color: $color-brand-navy;
-  border-color: $color-brand-navy;
-  color: #fff;
-}
-
-.btn-create-method-primary:hover {
-  background-color: color.adjust($color-brand-navy, $lightness: -8%);
-  border-color: color.adjust($color-brand-navy, $lightness: -8%);
-  color: #fff;
-}
-
-.btn-add-method {
-  background-color: #ffffff;
-  border: 1px solid $color-brand-navy;
-  color: $color-brand-steel;
-  padding: 0.5rem 1.25rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.btn-add-method:hover {
-  background-color: #f8f9fa;
-  border-color: $color-brand-navy;
-  color: $color-brand-steel;
 }
 
 /* ========================================
@@ -861,45 +366,7 @@
 
 .im-title {
   font-size: 1rem;
-  color: #1a202c;
-}
-
-.im-revision-badge {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: #495057;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  padding: 0.1rem 0.45rem;
-  background: white;
-}
-
-.im-view-details-link {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: $color-brand-steel;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-
-  &:hover {
-    text-decoration: underline;
-    color: $color-brand-steel;
-  }
-}
-
-.im-badge-awaiting {
-  background-color: #fff3cd;
-  color: #7a4f00;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.im-badge-reviewing {
-  background-color: #cfe2f3;
-  color: #0b3d66;
-  font-size: 0.75rem;
-  font-weight: 500;
+  color: $color-text-dark;
 }
 
 /* "View ticket" link shown under the Under-review badge. */
@@ -908,7 +375,7 @@
   margin-top: 0.5rem;
   font-size: 0.8rem;
   font-weight: 500;
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   text-decoration: underline;
   // .im-row-actions below is pulled up by a negative margin (see .im-row-actions) and its box
   // covers this link even though its buttons are right-aligned. On hover that box becomes
@@ -917,48 +384,20 @@
   z-index: 1;
 
   &:hover {
-    color: $color-brand-steel-dark;
+    color: $color-brand-blue-dark;
   }
-}
-
-.im-badge-published {
-  background-color: #d1e7dd;
-  color: #0a3622;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.im-badge-rejected {
-  background-color: #f8d7da;
-  color: #842029;
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 
 .im-divider {
   border: 0;
-  border-top: 1px solid #7a7a7a;
+  border-top: 1px solid $color-gray-600;
   margin: 0.75rem 0 1rem 0;
 }
 
 .im-capabilities-header {
   font-weight: 600;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.5rem;
-}
-
-/* Amber "Obsolete" tag inside a connector chip. */
-.connector-obsolete-tag {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 0.4rem;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  background-color: #fff3cd;
-  color: #7a4f00;
-  border: 1px solid #f5e2b8;
-  font-size: 0.7rem;
-  font-weight: 600;
 }
 
 /* Connector chip in the "Connectors" section; hovering it reveals the
@@ -968,6 +407,11 @@
   overflow-wrap: anywhere;
   text-align: left;
   cursor: default;
+}
+
+// .badge sizes in em, so the Obsolete pill nested in the chip would shrink twice.
+.badge-connector .badge {
+  font-size: 1em;
 }
 
 .badge-connector .connector-tooltip {
@@ -1011,42 +455,19 @@
   opacity: 1;
 }
 
-.im-method-tag {
-  font-size: 0.8rem;
-  color: #495057;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  padding: 0.1rem 0.5rem;
-  background: white;
-}
-
-/* Support tier: a chip for visitors, the same colors on the reviewer's select. */
-.im-tier-badge {
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0.1rem 0.5rem;
-}
-
-.tier-standard { background-color: #eef3f8; color: #3e5f7b; border-color: #c9d8e6; }
-.tier-advanced { background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb; }
-.tier-premium  { background-color: #fff3cd; color: #7a5a00; border-color: #ffe69c; }
-.tier-enterprise { background-color: #e2d9f3; color: #432874; border-color: #c5b3e6; }
-
 /* ========================================
    COLLAPSIBLE METHOD CARD
    ======================================== */
 .im-method-card {
-  border: 1px solid #dee2e6;
+  border: 1px solid $color-border-light;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .im-obsolete-warning {
-  background: #fdf6e3;
-  border: 1px solid #f5e2b8;
-  color: #7a5b00;
+  background: $color-warning-bg-subtle;
+  border: 1px solid $color-warning-border-subtle;
+  color: $color-warning-text-emphasis;
   border-radius: 8px;
   padding: 0.6rem 0.85rem;
   margin: 0 1.25rem 1rem;
@@ -1056,7 +477,7 @@
 }
 
 .im-obsolete-warning-icon {
-  color: #d9a300;
+  color: $color-warning-text-emphasis;
   margin-top: 0.2rem;
 }
 
@@ -1065,37 +486,37 @@
   cursor: pointer;
 
   &:hover {
-    background-color: #f8f9fa;
+    background-color: $color-bg-light;
   }
 }
 
 .im-method-chevron {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: $color-gray-600;
   margin-top: 0.2rem;
 }
 
 .im-method-title {
   font-size: 20px;
   font-weight: 600;
-  color: #000000;
+  color: $color-black;
 }
 
 .im-summary-published {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #15803d;
+  color: $color-success;
 }
 
 .im-summary-pending {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #b45309;
+  color: $color-warning-text-emphasis;
 }
 
 .im-version-count {
   font-size: 0.8125rem;
-  color: #6c757d;
+  color: $color-gray-600;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1126,18 +547,18 @@
 }
 
 .im-table-header {
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid $color-gray-200;
   padding: 0.5rem 1.25rem;
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: #6c757d;
+  color: $color-gray-600;
   text-transform: uppercase;
-  background-color: #f8f9fa;
+  background-color: $color-bg-light;
 }
 
 .im-version-row {
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid $color-gray-200;
   padding: 1rem 1.25rem;
   cursor: default;
   transition: background-color 0.15s;
@@ -1147,7 +568,7 @@
   min-height: 10rem;
 
   &:hover {
-    background-color: #f8fbff;
+    background-color: rgba($color-brand-blue, 0.04);
   }
 
   // IN_REVIEW rows for superusers also render an always-visible Reject/Accept
@@ -1157,33 +578,22 @@
   }
 }
 
-.im-version-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: $color-black;
-  border: 1px solid $color-border-input;
-  border-radius: 4px;
-  padding: 0.1rem 0.45rem;
-  background: white;
-}
-
 .im-row-title {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #1a202c;
+  color: $color-text-dark;
   margin-bottom: 0.25rem;
 }
 
 .im-submitted-line {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #b45309;
+  color: $color-warning-text-emphasis;
   margin-bottom: 0.4rem;
 }
 
 .im-row-desc {
-  color: #000;
+  color: $color-black;
   margin-bottom: 0.75rem;
   overflow-wrap: anywhere;
 }
@@ -1210,25 +620,6 @@
   padding-top: 0.75rem;
 }
 
-.im-row-actions .btn,
-.im-row-actions-always .btn {
-  font-size: 0.8rem;
-  padding: 0.3rem 0.65rem;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  white-space: nowrap;
-}
-
-/* Locked (under review) actions stay visible but non-interactive. */
-.im-row-actions .btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
 /* When approve/reject sit below, reserve the hover buttons' space (blank at rest)
    so the always-visible buttons keep a fixed position instead of shifting on hover. */
 .im-row-actions.im-row-actions-reserved {
@@ -1242,135 +633,6 @@
 
 .im-version-row:hover .im-row-actions.im-row-actions-reserved {
   visibility: visible;
-}
-
-.btn-im-view-details {
-  background: white;
-  border: 1px solid $color-brand-steel;
-  color: $color-brand-steel;
-
-  &:hover {
-    background: #f8f9fa;
-    color: $color-brand-steel;
-  }
-}
-
-.btn-im-cancel {
-  background: none;
-  border: none;
-  color: #dc3545;
-  // Nudge down so it sits slightly below the state-badge line.
-  margin-top: 0.25rem;
-
-  &:hover {
-    background: none;
-    color: #b02a37;
-  }
-}
-
-.btn-im-reject {
-  background: none;
-  border: none;
-  color: #dc3545;
-
-  &:hover:not(:disabled) {
-    background: none;
-    color: #b02a37;
-  }
-}
-
-.btn-im-approve {
-  background-color: #fff;
-  border: 1px solid #198754;
-  color: #198754;
-  font-size: 0.8rem;
-
-  &:hover:not(:disabled) {
-    background-color: #f0fdf4;
-    border-color: #146c43;
-    color: #146c43;
-  }
-}
-
-.im-method-sep {
-  color: #adb5bd;
-  font-size: 0.8rem;
-}
-
-.btn-cancel-request {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.875rem;
-  color: #dc3545;
-  cursor: pointer;
-}
-
-.btn-cancel-request:hover {
-  color: #b02a37;
-}
-
-.btn-im-edit-upgrade {
-  background-color: white;
-  border: 1px solid $color-brand-steel;
-  color: $color-brand-steel;
-  font-size: 0.8rem;
-
-  &:hover:not(:disabled) {
-    background-color: #f8f9fa;
-    color: $color-brand-steel;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
-.btn-im-start-review {
-  background-color: $color-brand-steel;
-  border: 1px solid $color-brand-steel;
-  color: white;
-  font-size: 0.8rem;
-
-  &:hover:not(:disabled) {
-    background-color: $color-brand-navy;
-    border-color: $color-brand-navy;
-    color: white;
-  }
-}
-
-/* "Stop review" on a REVIEWING row — outline variant: white with dark-blue border/text,
-   filling dark blue on hover. */
-.btn-im-stop-review {
-  background-color: white;
-  border: 1px solid $color-brand-navy;
-  color: $color-brand-steel;
-  font-size: 0.8rem;
-
-  &:hover:not(:disabled) {
-    background-color: $color-brand-navy;
-    border-color: $color-brand-navy;
-    color: white;
-  }
-}
-
-.btn-im-download {
-  background-color: $color-brand-steel;
-  border: 1px solid $color-brand-steel;
-  color: white;
-  font-size: 0.8rem;
-}
-
-.btn-im-download:hover:not(:disabled) {
-  background-color: $color-brand-navy;
-  border-color: $color-brand-navy;
-  color: white;
-}
-
-.btn-im-download:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* ========================================
@@ -1392,114 +654,6 @@
   cursor: not-allowed;
 }
 
-.btn-filter:disabled,
-.btn-reset:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-version-cancel {
-  flex-shrink: 0;
-  font-size: 0.8125rem;
-  padding: 0.25rem 0.75rem;
-  color: $color-text-secondary;
-  border: 1px solid $color-border-input;
-  background: transparent;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
-    color: $color-text-dark;
-  }
-}
-
-/* Cancel review request confirmation modal */
-.cancel-confirm-backdrop {
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1040;
-}
-
-.cancel-confirm-container {
-  z-index: 1050;
-}
-
-.cancel-confirm-dialog {
-  background: $color-white;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  width: 480px;
-  max-width: 95vw;
-}
-
-.cancel-confirm-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid $color-border-light;
-}
-
-.cancel-confirm-icon {
-  color: #e0502b;
-  font-size: 1.1rem;
-}
-
-.cancel-confirm-title {
-  font-weight: 600;
-  font-size: 1rem;
-  color: $color-text-dark;
-}
-
-.cancel-confirm-close {
-  color: $color-gray-secondary;
-  background: none;
-  border: none;
-  font-size: 0.9rem;
-  line-height: 1;
-}
-
-.cancel-confirm-body {
-  padding: 1.25rem;
-  font-size: 0.9375rem;
-  color: $color-text-secondary;
-  line-height: 1.55;
-}
-
-.cancel-confirm-footer {
-  padding: 0.75rem 1.25rem 1rem;
-}
-
-.cancel-confirm-separator {
-  margin: 0;
-  border-color: $color-border-light;
-  opacity: 1;
-}
-
-.cancel-keep-btn {
-  background: none;
-  border: none;
-  color: $color-brand-steel;
-  font-weight: 500;
-  padding: 0.4rem 0.75rem;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.cancel-confirm-btn {
-  background-color: #dc3545;
-  border-color: #dc3545;
-  color: $color-white;
-  font-weight: 600;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-
-  &:hover {
-    background-color: #b02a37;
-    border-color: #b02a37;
-    color: $color-white;
-  }
-}
-
 /* Bundle download warning toast */
 .toast-container {
   z-index: 2000;
@@ -1513,7 +667,7 @@
   max-width: 420px;
   border: 1px solid $toast-warning-border;
   border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 16px $shadow-popover;
 }
 
 .toast-header-warning {

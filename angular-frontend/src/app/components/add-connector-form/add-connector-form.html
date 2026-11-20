@@ -74,7 +74,7 @@
             <div class="flex-grow-1">
               <div class="connector-title mb-1">
                 Low-code connector without repository
-                <span class="connector-coming-soon-badge"><i class="fa-regular fa-clock"></i> Coming soon</span>
+                <span class="badge bg-body-tertiary text-secondary border d-inline-flex align-items-center gap-1 ms-2 align-middle"><i class="fa-regular fa-clock"></i> Coming soon</span>
               </div>
               <div class="connector-description">
                 Don't have a repository yet? We'll create and host one for you, so you can start building your low-code connector right away.
@@ -86,7 +86,7 @@
         <!-- Existing connector link -->
         <div class="connector-existing-link">
           Do you want to use an existing connector?
-          <button type="button" class="connector-existing-anchor btn-link-inline" (click)="openCatalogModal()">
+          <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none" (click)="openCatalogModal()">
             Select one from the catalog.
           </button>
         </div>
@@ -121,9 +121,7 @@
                 <div class="col-8">
                   <label class="form-label form-label-upload">
                     Connector name <span class="text-danger">*</span>
-                    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="The display name of this connector in the catalog.">
-                      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                    </button>
+                    <app-info-tooltip>The display name of this connector in the catalog.</app-info-tooltip>
                   </label>
                   <input type="text" class="form-control"
                          [value]="connectorName()"
@@ -134,9 +132,7 @@
                 <div class="col-4">
                   <label class="form-label form-label-upload">
                     Connector version@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
-                    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Version of this connector (e.g. 1.0.0).">
-                      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                    </button>
+                    <app-info-tooltip>Version of this connector (e.g. 1.0.0).</app-info-tooltip>
                   </label>
                   <input type="text" class="form-control"
                          [class.input-disabled]="isExistingConnector"
@@ -151,9 +147,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   Maintainer <span class="text-danger">*</span>
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Person or team responsible for maintaining this connector.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Person or team responsible for maintaining this connector.</app-info-tooltip>
                 </label>
                 <div class="maintainer-combobox" [class.open]="isMaintainerDropdownOpen()">
                   <input type="text" class="form-select"
@@ -165,9 +159,9 @@
                          [disabled]="isExistingConnector"
                          placeholder="Select maintainer...">
                   @if (isMaintainerDropdownOpen() && filteredMaintainerOptions().length > 0) {
-                    <div class="maintainer-dropdown">
+                    <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm maintainer-dropdown">
                       @for (option of filteredMaintainerOptions(); track maintainerOptionLabel(option)) {
-                        <div class="maintainer-option" [class.selected]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</div>
+                        <button type="button" tabindex="-1" class="dropdown-item text-wrap text-break" [class.active]="isMaintainerSelected(option)" (mousedown)="selectMaintainerOption(option)">{{ maintainerOptionLabel(option) }}</button>
                       }
                     </div>
                   }
@@ -178,9 +172,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   License type <span class="text-danger">*</span>
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Software licensing terms (e.g., Apache 2.0, EUPL 1.2).">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Software licensing terms (e.g., Apache 2.0, EUPL 1.2).</app-info-tooltip>
                 </label>
                 <div class="license-combobox" [class.open]="isLicenseDropdownOpen()">
                   <div class="form-select license-select-trigger"
@@ -194,11 +186,11 @@
                     {{ connectorLicense() ? fmtLicense(connectorLicense()) : 'Select license' }}
                   </div>
                   @if (isLicenseDropdownOpen()) {
-                    <div class="license-dropdown">
+                    <div class="dropdown-menu show w-100 top-100 start-0 rounded-top-0 border-top-0 shadow-sm license-dropdown">
                       @for (opt of licenseTypes.options(); track opt.name) {
-                        <div class="license-option"
-                             [class.license-option-selected]="connectorLicense() === opt.name"
-                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</div>
+                        <button type="button" tabindex="-1" class="dropdown-item"
+                             [class.active]="connectorLicense() === opt.name"
+                             (mousedown)="selectLicenseOption(opt.name)">{{ opt.displayName }}</button>
                       }
                     </div>
                   }
@@ -245,9 +237,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   Project homepage
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Link to the official project repository.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Link to the official project repository.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
@@ -264,9 +254,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   Support portal
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Link to the dedicated support page for this connector.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Link to the dedicated support page for this connector.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-link method-link-icon-i"></i></span>
@@ -311,9 +299,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   Git clone URL@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Address used by the build system to download the source code.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Address used by the build system to download the source code.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center"
                      [class.method-link-wrapper--invalid]="isGitCloneUrlInvalid() && !isExistingConnector">
@@ -335,9 +321,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   Commit hash@if (!isExistingConnector) {<span class="text-danger">&nbsp;*</span>}
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Specific release tag or branch to build from.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Specific release tag or branch to build from.</app-info-tooltip>
                 </label>
                 <div class="method-link-wrapper d-flex align-items-center">
                   <span class="method-link-icon d-flex align-items-center px-2"><i class="fa-solid fa-tag method-link-icon-i"></i></span>
@@ -349,7 +333,7 @@
                 </div>
                 <div class="form-text d-flex align-items-center flex-wrap gap-2">
                   <span>Paste the full or short (7-character) commit hash from your Git repository.</span>
-                  <button type="button" class="commit-help-link d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
+                  <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-nowrap d-inline-flex align-items-center gap-1" (click)="isCommitHelpOpen.set(true)">
                     How to find it <i class="fa-solid fa-arrow-right"></i>
                   </button>
                 </div>
@@ -358,6 +342,7 @@
                     [title]="commitHelpTitle"
                     lead=""
                     icon="fa-code-commit"
+                    [wide]="true"
                     [steps]="commitHelpSteps"
                     note=""
                     (closed)="isCommitHelpOpen.set(false)">
@@ -369,9 +354,7 @@
               <div class="mb-3">
                 <label class="form-label form-label-upload">
                   Project folder path
-                  <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Relative path from the repository root to the connector module.">
-                    <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                  </button>
+                  <app-info-tooltip>Relative path from the repository root to the connector module.</app-info-tooltip>
                 </label>
                 <input type="text" class="form-control"
                        [class.input-disabled]="isExistingConnector"
@@ -386,9 +369,7 @@
                 <div class="mb-3">
                   <label class="form-label form-label-upload">
                     Connector class name
-                    <button type="button" class="btn btn-link p-0 ms-1 btn-info-icon" title="Fully qualified Java class name of the connector (e.g. com.example.MyConnector).">
-                      <i class="fa-solid fa-circle-info info-icon-sm"></i>
-                    </button>
+                    <app-info-tooltip>Fully qualified Java class name of the connector (e.g. com.example.MyConnector).</app-info-tooltip>
                   </label>
                   <div class="method-link-wrapper d-flex align-items-center"
                        [class.method-link-wrapper--invalid]="isClassNameInvalid() && !isExistingConnector">
@@ -422,23 +403,23 @@
       </div>
     }
     <div class="ac-footer-inner">
-    <button type="button" class="btn d-flex align-items-center ac-btn-back" (click)="back()">
-      <i class="fa-solid fa-arrow-left me-2 ac-btn-icon"></i>Back
+    <button type="button" class="btn btn-link text-decoration-none d-inline-flex align-items-center gap-2" (click)="back()">
+      <i class="fa-solid fa-arrow-left"></i>Back
     </button>
     <div>
       @if (step() === 1) {
-        <button type="button" class="btn btn-primary ac-btn-next" (click)="step.set(2)">
-          Continue <i class="fa-solid fa-arrow-right ms-2 ac-btn-icon"></i>
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" (click)="step.set(2)">
+          Continue <i class="fa-solid fa-arrow-right"></i>
         </button>
       }
       @if (step() === 2) {
-        <button type="button" class="btn btn-primary ac-btn-next"
+        <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
                 [disabled]="!isStep2Valid() || isSaving()"
                 (click)="save()">
           @if (isSaving()) {
-            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Saving...
           } @else {
-            Add connector <i class="fa-solid fa-arrow-right ms-2 ac-btn-icon"></i>
+            Add connector <i class="fa-solid fa-arrow-right"></i>
           }
         </button>
       }
@@ -450,87 +431,91 @@
 
 <!-- ═══════ Catalog connector modal ═══════ -->
 @if (showCatalogModal()) {
-  <div class="cc-overlay" [appBackdropClose]="catalogDialog" (backdropClose)="closeCatalogModal()">
-    <div #catalogDialog class="cc-modal" (click)="$event.stopPropagation()">
+  <div class="modal-backdrop show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="cc-modal-title"
+       [appBackdropClose]="catalogDialog" (backdropClose)="closeCatalogModal()">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div #catalogDialog class="modal-content" (click)="$event.stopPropagation()">
 
-      <div class="cc-modal-header d-flex justify-content-between align-items-start">
-        <div>
-          <h5 class="cc-modal-title mb-1">Active connectors catalog</h5>
-          <p class="cc-modal-subtitle mb-0">Select connector</p>
+        <div class="modal-header align-items-start">
+          <div>
+            <h2 id="cc-modal-title" class="modal-title fs-6 fw-semibold mb-1">Active connectors catalog</h2>
+            <p class="text-body-secondary small mb-0">Select connector</p>
+          </div>
+          <button type="button" class="btn-close" (click)="closeCatalogModal()" aria-label="Close"></button>
         </div>
-        <button type="button" class="btn-close" (click)="closeCatalogModal()" aria-label="Close"></button>
-      </div>
 
-      <div class="cc-modal-search">
-        <div class="search-input-wrapper">
-          <div class="d-flex align-items-center">
-            <span class="search-icon-wrapper d-flex align-items-center">
-              <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            </span>
-            <input type="text" class="search-input flex-grow-1"
-                   [value]="catalogSearch()"
-                   (input)="catalogSearch.set($any($event.target).value)"
-                   placeholder="Search connector">
-            @if (catalogSearch()) {
-              <button class="clear-search-btn d-flex align-items-center" type="button"
-                      (click)="catalogSearch.set('')">
-                <i class="fa-solid fa-xmark clear-icon"></i>
-              </button>
+        <div class="px-3 pt-3 pb-2">
+          <div class="search-input-wrapper">
+            <div class="d-flex align-items-center">
+              <span class="search-icon-wrapper d-flex align-items-center">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              </span>
+              <input type="text" class="search-input flex-grow-1"
+                     [value]="catalogSearch()"
+                     (input)="catalogSearch.set($any($event.target).value)"
+                     placeholder="Search connector">
+              @if (catalogSearch()) {
+                <button class="btn btn-link link-secondary d-flex align-items-center" type="button"
+                        (click)="catalogSearch.set('')">
+                  <i class="fa-solid fa-xmark clear-icon"></i>
+                </button>
+              }
+            </div>
+            @if (catalogSearchTooShort()) {
+              <div class="search-hint">Please enter at least 2 characters to search.</div>
             }
           </div>
         </div>
-        @if (catalogSearchTooShort()) {
-          <div class="search-hint">Please enter at least 2 characters to search.</div>
-        }
-      </div>
 
-      <div class="cc-modal-body">
-        @if (isCatalogLoading()) {
-          <div class="cc-loading">
-            <span class="spinner-border spinner-border-sm me-2"></span> Loading connectors…
-          </div>
-        } @else if (filteredCatalogConnectors().length === 0) {
-          <div class="cc-empty">No connectors match your search.</div>
-        } @else {
-          @for (connector of filteredCatalogConnectors(); track connector.id) {
-            <div class="cc-connector-item"
-                 [class.selected]="pendingCatalogConnector()?.id === connector.id"
-                 (click)="pendingCatalogConnector.set(connector)">
-              <input type="radio" name="acCatalogConnector"
-                     [checked]="pendingCatalogConnector()?.id === connector.id"
-                     class="form-check-input flex-shrink-0 radio-input"
-                     style="pointer-events: none;">
-              <div class="cc-connector-info">
-                <div class="cc-connector-name">
-                  {{ connector.displayName }}
-                  @if (isObsoleteConnector(connector.tags)) {
-                    <span class="cc-obsolete-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>Deprecated</span>
+        <div class="modal-body d-flex flex-column gap-2 pt-1">
+          @if (isCatalogLoading()) {
+            <div class="text-center text-body-secondary small py-4">
+              <span class="spinner-border spinner-border-sm me-2"></span> Loading connectors…
+            </div>
+          } @else if (filteredCatalogConnectors().length === 0) {
+            <div class="text-center text-body-secondary small py-4">No connectors match your search.</div>
+          } @else {
+            @for (connector of filteredCatalogConnectors(); track connector.id) {
+              <div class="cc-connector-item"
+                   [class.selected]="pendingCatalogConnector()?.id === connector.id"
+                   (click)="pendingCatalogConnector.set(connector)">
+                <input type="radio" name="acCatalogConnector"
+                       [checked]="pendingCatalogConnector()?.id === connector.id"
+                       class="form-check-input flex-shrink-0 radio-input"
+                       style="pointer-events: none;">
+                <div class="cc-connector-info">
+                  <div class="cc-connector-name">
+                    {{ connector.displayName }}
+                    @if (isObsoleteConnector(connector.tags)) {
+                      <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1 ms-2 align-middle"><i class="fa-solid fa-triangle-exclamation"></i>Deprecated</span>
+                    }
+                  </div>
+                  @if (connector.description) {
+                    <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
                   }
                 </div>
-                @if (connector.description) {
-                  <div class="cc-connector-desc markdown-rendered" [innerHTML]="connector.description | markdown"></div>
-                }
               </div>
-            </div>
+            }
+            @if (catalogMatchCount() > filteredCatalogConnectors().length) {
+              <div class="text-center text-body-secondary small pt-2">
+                Showing {{ filteredCatalogConnectors().length }} of {{ catalogMatchCount() }} connectors.
+                Use the search to find the others.
+              </div>
+            }
           }
-          @if (catalogMatchCount() > filteredCatalogConnectors().length) {
-            <div class="cc-more-hint">
-              Showing {{ filteredCatalogConnectors().length }} of {{ catalogMatchCount() }} connectors.
-              Use the search to find the others.
-            </div>
-          }
-        }
-      </div>
+        </div>
 
-      <div class="cc-modal-footer d-flex justify-content-end align-items-center gap-3">
-        <button type="button" class="btn define-new-cancel-btn" (click)="closeCatalogModal()">Cancel</button>
-        <button type="button" class="btn btn-primary ac-btn-next"
-                [disabled]="!pendingCatalogConnector()"
-                (click)="confirmCatalogSelection()">
-          Continue <i class="fa-solid fa-arrow-right ms-2 ac-btn-icon"></i>
-        </button>
-      </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-link text-decoration-none" (click)="closeCatalogModal()">Cancel</button>
+          <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2"
+                  [disabled]="!pendingCatalogConnector()"
+                  (click)="confirmCatalogSelection()">
+            Continue <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
 
+      </div>
     </div>
   </div>
 }

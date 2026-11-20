@@ -7,10 +7,7 @@
 <div>
   <div class="imcp-heading d-flex align-items-center">
     Object capabilities
-    <span class="info-icon-wrapper position-relative ms-2 d-inline-flex align-items-center">
-      <i class="fa-solid fa-circle-info info-icon"></i>
-      <span class="info-tooltip"><strong>Capability states</strong><br>✓ Supported - confirmed as present<br>✕ Not supported - confirmed as not present<br>? Unknown - not determined</span>
-    </span>
+    <app-info-tooltip><strong>Capability states</strong><br>✓ Supported - confirmed as present<br>✕ Not supported - confirmed as not present<br>? Unknown - not determined</app-info-tooltip>
   </div>
   <div class="imcp-subtitle">Add objects used by this integration method and define capability support. New capabilities start as Unknown.</div>
 
@@ -30,7 +27,7 @@
             </span>
           }
           @if (entries().length > 1) {
-            <button type="button" class="btn imcp-remove-btn" title="Remove object" aria-label="Remove object"
+            <button type="button" class="btn btn-link p-0 link-secondary" title="Remove object" aria-label="Remove object"
                     (click)="$event.stopPropagation(); removeEntry(i)">
               <i class="fa-solid fa-trash-can"></i>
             </button>
@@ -59,10 +56,11 @@
                   @let state = stateOf(entry, cap);
                   <div class="imcp-cap">
                     <span class="imcp-cap-name">{{ fmt(cap) }}</span>
-                    <div class="imcp-toggle" role="group" [attr.aria-label]="fmt(cap)">
+                    <div class="btn-group btn-group-sm flex-shrink-0" role="group" [attr.aria-label]="fmt(cap)">
                       @for (opt of stateOptions; track opt.value) {
-                        <button [attr.data-testid]="'im-capability-state-' + opt.value.toLowerCase()" type="button" class="imcp-toggle-btn" [ngClass]="'imcp-toggle-' + opt.value.toLowerCase()"
-                                [class.imcp-toggle-active]="state === opt.value"
+                        <button [attr.data-testid]="'im-capability-state-' + opt.value.toLowerCase()" type="button" class="btn"
+                                [ngClass]="opt.value === 'YES' ? 'btn-outline-success' : opt.value === 'NO' ? 'btn-outline-danger' : 'btn-outline-secondary'"
+                                [class.active]="state === opt.value"
                                 [attr.aria-pressed]="state === opt.value"
                                 [title]="opt.label" [attr.aria-label]="opt.label"
                                 [disabled]="!entry.objectClass"
@@ -84,7 +82,7 @@
     }
   </div>
 
-  <button type="button" class="btn imcp-add-btn" (click)="addEntry()">
+  <button type="button" class="btn btn-link btn-sm p-0 mt-3 text-decoration-none" (click)="addEntry()">
     <i class="fa-solid fa-circle-plus me-2"></i>Add object
   </button>
 </div>

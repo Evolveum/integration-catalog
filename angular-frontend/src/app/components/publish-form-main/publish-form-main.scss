@@ -12,103 +12,30 @@
 }
 
 .maintainer-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1050;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
   max-height: calc(8 * 2.375rem);
   overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.maintainer-option {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #e9ecef;
-  }
 }
 
 /* Radio button styling for connector options */
 .connector-option .form-check-input:checked {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
+  background-color: $color-brand-blue;
+  border-color: $color-brand-blue;
 }
 
 .connector-option .form-check-input:focus {
-  border-color: $color-brand-steel;
+  border-color: $color-brand-blue;
   box-shadow: 0 0 0 0.25rem $shadow-teal;
 }
 
 .connector-option .form-check-input[type="radio"],
 .form-check-input[type="radio"] {
-  accent-color: $color-brand-steel !important;
+  accent-color: $color-brand-blue !important;
 }
 
 /* Bootstrap radio button checked state */
 .form-check-input[type="radio"]:checked {
-  background-color: $color-brand-steel !important;
-  border-color: $color-brand-steel !important;
-}
-
-/* Info icon tooltip styles */
-.info-icon-wrapper {
-  vertical-align: middle;
-}
-
-.info-icon-wrapper .info-tooltip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  top: calc(100% + 8px);
-  left: -2px;
-  transform: none;
-  background-color: $color-text-dark;
-  color: $color-white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  white-space: normal;
-  width: 250px;
-  text-align: left;
-  box-shadow: 0 2px 8px $shadow-card;
-  z-index: 1100;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-  pointer-events: none;
-  line-height: 1.4;
-}
-
-.info-icon-wrapper .info-tooltip::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  left: 5px;
-  transform: none;
-  border: 6px solid transparent;
-  border-width: 8px 4px;
-  border-bottom-color: $color-text-dark;
-}
-
-.info-icon-wrapper:hover .info-tooltip {
-  visibility: visible;
-  opacity: 1;
-}
-
-.info-icon-wrapper svg {
-  transition: transform 0.2s ease;
-}
-
-.info-icon-wrapper:hover svg {
-  transform: scale(1.1);
+  background-color: $color-brand-blue !important;
+  border-color: $color-brand-blue !important;
 }
 
 /* Search input wrapper styles */
@@ -140,73 +67,15 @@
   color: $color-gray-secondary;
 }
 
-.clear-search-btn {
-  background: none;
-  border: none;
-  border-left: 1px solid $color-border-input;
-  padding: 0.375rem 0.75rem;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.clear-search-btn:hover {
-  opacity: 0.7;
-}
-
 /* Page Styles */
 .publish-page {
   display: block;
   min-height: 100vh;
   min-width: 1080px;
-  background: #fff;
+  background: $color-white;
 }
 
 /* Side-by-Side Modal */
-.sbs-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  background: $color-white;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sbs-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.625rem 1.5rem;
-  border-bottom: 1px solid $color-border-light;
-  flex-shrink: 0;
-}
-
-.sbs-modal-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: $color-text-dark;
-}
-
-.sbs-close-btn {
-  background: none;
-  border: 1px solid $color-border-input;
-  border-radius: 4px;
-  padding: 4px 14px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  color: $color-text-dark;
-
-  &:hover {
-    background: $color-bg-hover;
-  }
-}
-
-.sbs-modal-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
 .sbs-editor-pane {
   flex: 1;
   display: flex;
@@ -251,7 +120,7 @@
   padding: 1rem 1.5rem;
   position: sticky;
   bottom: 0;
-  background: #fff;
+  background: $color-white;
   z-index: 10;
 }
 
@@ -268,14 +137,14 @@
 .step-number-completed {
   background: transparent;
   border: none;
-  color: #198754;
+  color: $color-success;
 }
 
 .step-number-active {
   border-radius: 50%;
-  border: 1px solid $color-brand-steel;
-  background: $color-brand-steel;
-  box-shadow: inset 0 0 0 4px #fff;
+  border: 1px solid $color-brand-blue;
+  background: $color-brand-blue;
+  box-shadow: inset 0 0 0 4px $color-white;
 }
 
 .step-number-inactive {
@@ -332,22 +201,17 @@
   line-height: 1.5;
 }
 
-/* Step 3 – method type badges */
+// Bootstrap's badge is 0.75em; the selected method types read better a step larger.
 .method-type-badge {
-  display: inline-block;
-  background-color: $color-bg-light;
-  color: $color-text-dark;
-  font-size: 0.8125rem;
-  font-weight: 400;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid $color-border-input;
+  --bs-badge-font-size: 0.875rem;
+  --bs-badge-font-weight: 500;
 }
 
+// Same size and color as the .method-type-badge it sits between.
 .method-type-separator {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: $color-text-secondary;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-black;
   line-height: 1;
 }
 
@@ -356,12 +220,6 @@
   font-weight: 600;
   font-size: 0.875rem;
   margin-bottom: 1rem;
-}
-
-/* Info Icon */
-.info-icon {
-  font-size: 14px;
-  color: $text-publishing-blue;
 }
 
 /* Connector Option Card */
@@ -374,7 +232,7 @@
 }
 
 .connector-option-card.selected {
-  border-color: $color-brand-steel;
+  border-color: $color-brand-blue;
   background-color: $color-bg-selected;
 }
 
@@ -382,20 +240,6 @@
   opacity: 0.55;
   cursor: not-allowed;
   pointer-events: none;
-}
-
-.connector-coming-soon-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid #d5d7da;
-  background-color: #fafbfc;
-  color: #525151;
-  margin-left: 0.5rem;
-  vertical-align: middle;
 }
 
 .radio-input {
@@ -462,14 +306,18 @@
   padding: 1.5rem;
 }
 
+// Existing apps take their homepage tone (avatar-tone-N); only an app being defined uses the "new" gradient.
 .app-avatar {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, $color-brand-sky 0%, #50e6ff 100%);
   border-radius: 4px;
   color: $color-white;
   font-size: 24px;
   font-weight: 600;
+}
+
+.app-avatar-new {
+  background: $avatar-new-gradient;
 }
 
 .app-title {
@@ -483,7 +331,7 @@
 }
 
 .search-results .card:hover {
-  border-color: $color-brand-steel !important;
+  border-color: $color-brand-blue !important;
   box-shadow: 0 2px 8px $shadow-teal;
   transform: translateY(-2px);
 }
@@ -511,8 +359,8 @@
   transition: border-color 0.2s, background-color 0.2s;
 
   &:hover, &.logo-upload-area-over {
-    border-color: $color-brand-steel;
-    background-color: rgba($color-brand-steel, 0.04);
+    border-color: $color-brand-blue;
+    background-color: rgba($color-brand-blue, 0.04);
   }
 }
 
@@ -546,136 +394,9 @@
   margin-top: 0.25rem;
 }
 
-/* Footer Buttons */
-.btn-back {
-  color: $color-brand-steel;
-  background: none;
-  border: none;
-  padding: 0.375rem 0.75rem;
-  font-weight: 600;
-}
-
-.btn-back-icon {
-  font-size: 12px;
-}
-
-.btn-next {
-  background-color: $color-brand-steel;
-  border-color: $color-brand-steel;
-}
-
-.btn-next-icon {
-  font-size: 12px;
-}
-
-/* Define New Modal Overlay */
-.define-new-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.define-new-modal {
-  background: $color-white;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 700px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-}
-
-.define-new-modal-header {
-  padding: 1.25rem 1.5rem 1rem 1.5rem;
-  border-bottom: 1px solid $color-border-light;
-  flex-shrink: 0;
-}
-
-.define-new-modal-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: $color-text-dark;
-}
-
-.define-new-modal-subtitle {
-  font-size: 0.875rem;
-  color: $color-text-secondary;
-}
-
-.define-new-modal-body {
-  padding: 1.25rem 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.define-new-modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid $color-border-light;
-  flex-shrink: 0;
-}
-
-.define-new-cancel-btn {
-  color: $color-brand-steel;
-  font-weight: 600;
-  padding: 0;
-  text-decoration: none;
-
-  &:hover {
-    color: $color-text-dark;
-  }
-}
-
 /* Connector Catalog Modal */
-.cc-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cc-modal {
-  background: $color-white;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 560px;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-}
-
-.cc-modal-header {
-  padding: 1.25rem 1.5rem 1rem 1.5rem;
-  border-bottom: 1px solid $color-border-light;
-  flex-shrink: 0;
-}
-
-.cc-modal-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: $color-modal-title;
-}
-
-.cc-modal-subtitle {
-  font-size: 1.0625rem;
-  font-weight: 600;
-  color: $color-text-dark;
-  margin-top: 0.75rem;
-}
-
-.cc-modal-search {
-  padding: 1rem 1.5rem 0.75rem 1.5rem;
-  flex-shrink: 0;
-
-  /* Minimal underline-style search (overrides the shared pill style for this modal only) */
+/* Minimal underline-style search (overrides the shared pill style for this modal only) */
+.cc-search {
   .search-input-wrapper {
     border: none;
     border-bottom: 1px solid $color-border-light;
@@ -697,27 +418,6 @@
     font-size: 18px;
     color: $color-text-dark;
   }
-
-  .clear-search-btn {
-    border-left: none;
-  }
-}
-
-.cc-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 1.5rem 0.5rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.cc-loading,
-.cc-empty {
-  padding: 2rem 0;
-  text-align: center;
-  font-size: 0.875rem;
-  color: $color-text-secondary;
 }
 
 .cc-more-hint {
@@ -738,7 +438,7 @@
   transition: border-color 0.15s, background-color 0.15s;
 
   &.selected {
-    border-color: $color-brand-steel;
+    border-color: $color-brand-blue;
     background-color: $color-bg-selected;
   }
 
@@ -759,20 +459,6 @@
   overflow-wrap: anywhere;
 }
 
-.cc-obsolete-tag {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 0.5rem;
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  background-color: #fff3cd;
-  color: #7a4f00;
-  border: 1px solid #f5e2b8;
-  font-size: 0.75rem;
-  font-weight: 600;
-  vertical-align: middle;
-}
-
 .cc-connector-desc {
   font-size: 0.8125rem;
   color: $color-text-secondary;
@@ -782,19 +468,6 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
-}
-
-.cc-modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid $color-border-light;
-  flex-shrink: 0;
-}
-
-.btn-link-inline {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
 }
 
 /* Main layout: step sidebar + content side by side */
@@ -920,25 +593,25 @@
   padding: 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: $color-primary-500;
+  color: $color-brand-blue;
   cursor: pointer;
   text-decoration: none;
 
   &:hover {
-    color: $color-primary-500;
+    color: $color-brand-blue;
     text-decoration: underline;
   }
 }
 
 .breadcrumb-sep {
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: $color-gray-500;
 }
 
 .breadcrumb-current {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #000;
+  color: $color-black;
 }
 
 .breadcrumb-app-icon {
@@ -960,7 +633,6 @@
   font-size: 1.25rem;
   font-weight: 600;
   color: $color-white;
-  background: linear-gradient(135deg, $color-brand-sky 0%, #50e6ff 100%);
 }
 
 .recent-app-name {
@@ -971,16 +643,10 @@
   line-height: 1.2;
 }
 
-/* Origin Badge */
-.origin-badge-added {
-  background-color: rgba($color-darker-blue, 0.1);
-  color: $color-black;
-}
-
 /* Integration Method Cards (Step 2) */
 .im-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: 90px;
   gap: 1rem;
 }
@@ -996,13 +662,16 @@
   justify-content: center;
   transition: border-color 0.2s;
 
+  // Same hover as the connector catalog items (.cc-connector-item).
   &:hover:not(.im-card-selected) {
-    border-color: $color-border-input;
+    border-color: $color-gray-secondary;
   }
 }
 
+// The extra 1px is an inset shadow, not a wider border, so selecting a card doesn't shift the grid.
 .im-card-selected {
-  border: 2px solid $color-brand-steel;
+  border-color: $color-brand-blue;
+  box-shadow: inset 0 0 0 1px $color-brand-blue;
   background-color: $color-bg-selected;
 }
 
@@ -1010,7 +679,7 @@
   width: 16px;
   height: 16px;
   pointer-events: none;
-  accent-color: $color-brand-steel;
+  accent-color: $color-brand-blue;
   flex-shrink: 0;
 }
 
@@ -1045,14 +714,14 @@
 /* Step 3 – copyright / documentation license notice */
 .copyright-notice {
   padding: 1.25rem 1.5rem;
-  background-color: #f3f4f6;
+  background-color: $color-bg-light;
   border-radius: 8px;
   font-size: 0.8125rem;
   line-height: 1.6;
   color: $color-black;
 
   a {
-    color: $color-brand-steel;
+    color: $color-brand-blue;
     font-weight: 600;
     text-decoration: none;
 
@@ -1123,8 +792,8 @@
   transition: border-color 0.2s, background-color 0.2s;
 
   &:hover, &.tutorial-dropzone-over {
-    border-color: $color-brand-steel;
-    background-color: rgba($color-brand-steel, 0.04);
+    border-color: $color-brand-blue;
+    background-color: rgba($color-brand-blue, 0.04);
   }
 }
 
@@ -1142,7 +811,7 @@
 }
 
 .tutorial-dropzone-link {
-  color: $color-brand-steel;
+  color: $color-brand-blue;
   font-weight: 500;
 }
 
@@ -1192,47 +861,12 @@
   color: $color-text-dark;
 }
 
-.tutorial-file-new-badge {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  background-color: $color-success;
-  color: $color-white;
-  border-radius: 4px;
-  padding: 1px 6px;
-  flex-shrink: 0;
-}
-
-.tutorial-file-delete {
-  background: none;
-  border: none;
-  padding: 0 0.25rem;
-  cursor: pointer;
-  color: #dc3545;
-  font-size: 0.875rem;
-  flex-shrink: 0;
-  line-height: 1;
-
-  &:hover {
-    opacity: 0.7;
-  }
-}
-
 /* Step 4 – existing connectors link */
 .connector-existing-link {
   font-size: 0.875rem;
   color: $color-text-secondary;
   text-align: center;
   margin-top: 1.5rem;
-}
-
-.connector-existing-anchor {
-  color: $color-brand-steel;
-  font-weight: 500;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
 .connector-existing-icon {
@@ -1260,45 +894,13 @@
 }
 
 .category-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 1060;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
   max-height: 12rem;
   overflow-y: auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.category-option {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  font-size: 1rem;
-  color: #212529;
-
-  &:hover {
-    background-color: #e9ecef;
-  }
-
-  &.category-option-selected {
-    background-color: $color-bg-selected;
-  }
-}
-
-/* Define New Button */
-.btn-define-new {
-  background-color: $color-bg-muted;
-  border: 1px solid $color-border-input;
-  color: $color-text-dark;
 }
 
 // Shown when a search box holds a single character: prompts for at least 2.
 .search-hint {
   margin-top: 0.375rem;
   font-size: 0.85rem;
-  color: #946200;
+  color: $color-warning-text-emphasis;
 }

@@ -8,6 +8,7 @@ import { Component, Output, EventEmitter, Input, OnChanges, SimpleChanges, signa
 import { CommonModule } from '@angular/common';
 import { ApplicationService } from '../../services/application.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 
 export interface CapabilityGroup {
   objectClass: string;
@@ -18,7 +19,7 @@ export interface CapabilityGroup {
 @Component({
   selector: 'app-capability-picker',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, InfoTooltip],
   templateUrl: './capability-picker.html',
   styleUrls: ['./capability-picker.scss']
 })

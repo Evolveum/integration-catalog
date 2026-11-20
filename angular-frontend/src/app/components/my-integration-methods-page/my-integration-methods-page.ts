@@ -22,6 +22,7 @@ import {
   MAINTAINER_CATEGORY_LABELS, MaintainerCategory, maintainerFilterOptions, maintainerKey, maintainerLabel
 } from '../../models/maintainer.model';
 import { versionBadge } from '../../core/version-badge';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 /** All revisions of one method, newest first; `revisions` holds only those the filters let through. */
@@ -48,7 +49,7 @@ interface MethodGroup {
   selector: 'app-my-integration-methods-page',
   standalone: true,
   imports: [CommonModule, RouterLink, PageHeader, ApprovalConfirmModal, StartReviewModal, ManualFillModal,
-    DownloadInfoModal, Pager, FilterMenu, NewTabRouteDirective],
+    DownloadInfoModal, Pager, FilterMenu, BackdropCloseDirective, NewTabRouteDirective],
   templateUrl: './my-integration-methods-page.html',
   styleUrls: ['./my-integration-methods-page.scss'],
   host: { '(document:keydown.escape)': 'closeMenu()' }

@@ -22,12 +22,14 @@ import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
+import { avatarToneClass } from '../../core/avatar-tone';
 import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-publish-form-main',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe, BackdropCloseDirective,
+  imports: [CommonModule, FormsModule, NgSelectModule, PageHeader, PublishFormImpl, ImCapabilityPicker, OverflowTitleDirective, MarkdownPipe, BackdropCloseDirective, InfoTooltip,
     NewTabRouteDirective],
   templateUrl: './publish-form-main.html',
   styleUrls: ['./publish-form-main.scss']
@@ -39,6 +41,7 @@ export class PublishFormMain implements OnInit, OnDestroy {
   protected readonly sbsPreviewHtml = signal<string>('');
   protected readonly applications = signal<Application[]>([]);
   protected readonly recentlyUsedApps = signal<Application[]>([]);
+  protected readonly avatarToneClass = avatarToneClass;
 
   protected readonly currentStep = signal<number>(1);
   protected readonly selectedConnectorType = signal<string>('');

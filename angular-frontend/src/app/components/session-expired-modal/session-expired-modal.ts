@@ -6,11 +6,13 @@
 
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /** Tells a tab that still showed a logged-in user that the session has ended, and offers a login. */
 @Component({
   selector: 'app-session-expired-modal',
   standalone: true,
+  imports: [BackdropCloseDirective],
   templateUrl: './session-expired-modal.html',
   styleUrls: ['./session-expired-modal.scss']
 })

@@ -19,6 +19,17 @@ export function supportTierLabel(tier: SupportTier | null | undefined): string {
   return SUPPORT_TIERS.find(t => t.value === tier)?.label ?? '';
 }
 
+/** Bootstrap color classes for a tier's badge or select, one place for every page; '' when untiered. */
+export function supportTierClasses(tier: SupportTier | null | undefined): string {
+  switch (tier) {
+    case 'STANDARD': return 'bg-primary-subtle text-primary-emphasis border-primary-subtle';
+    case 'ADVANCED': return 'bg-success-subtle text-success-emphasis border-success-subtle';
+    case 'PREMIUM': return 'bg-warning-subtle text-warning-emphasis border-warning-subtle';
+    case 'ENTERPRISE': return 'bg-info-subtle text-info-emphasis border-info-subtle';
+    default: return '';
+  }
+}
+
 /** The tier a connector_tag name stands for; null for an ordinary tag. */
 export function supportTierOfTag(tagName: string): SupportTier | null {
   return SUPPORT_TIERS.find(t => t.tagName === tagName)?.value ?? null;

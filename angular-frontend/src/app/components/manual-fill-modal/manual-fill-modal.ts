@@ -8,6 +8,7 @@ import { Component, Input, Output, EventEmitter, OnChanges } from '@angular/core
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApplicationService, ConnectorWithoutDownload } from '../../services/application.service';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /**
  * Standalone popup modal for manually filling in connector build information.
@@ -17,7 +18,7 @@ import { ApplicationService, ConnectorWithoutDownload } from '../../services/app
 @Component({
   selector: 'app-manual-fill-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BackdropCloseDirective],
   templateUrl: './manual-fill-modal.html',
   styleUrls: ['./manual-fill-modal.scss']
 })

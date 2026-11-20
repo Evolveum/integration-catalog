@@ -24,14 +24,16 @@ import { ToastService } from '../../services/toast.service';
 import { formatCapabilityLabel } from '../../core/capability-label';
 import { showErrorPage } from '../../core/error-page';
 import { MarkdownPipe } from '../../core/markdown.pipe';
-import { SupportTier, supportTierLabel } from '../../core/support-tier';
+import { SupportTier, supportTierClasses, supportTierLabel } from '../../core/support-tier';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-integration-method-detail',
   standalone: true,
   imports: [CommonModule, PageHeader, ApprovalConfirmModal, StartReviewModal, DownloadInfoModal, ManualFillModal,
-    MarkdownPipe, NewTabRouteDirective],
+    MarkdownPipe, BackdropCloseDirective, InfoTooltip, NewTabRouteDirective],
   templateUrl: './integration-method-detail.html',
   styleUrls: ['./integration-method-detail.scss']
 })
@@ -51,15 +53,16 @@ export class IntegrationMethodDetail implements OnInit {
   protected readonly methodTypes = signal<string[]>([]);
   protected readonly supportTier = signal<SupportTier | null>(null);
   protected readonly supportTierLabel = supportTierLabel;
+  protected readonly supportTierClasses = supportTierClasses;
   protected readonly specificCapabilities = signal<IntegrationMethodObjectCapabilities[]>([]);
   protected readonly selectedCapsObject = signal<string>('');
   protected readonly selectedObjectCapabilities = computed(() =>
     this.specificCapabilities().find(o => o.objectClass === this.selectedCapsObject())?.capabilities ?? []
   );
-  protected readonly capabilityStates: Record<CapabilityState, { label: string; icon: string }> = {
-    YES: { label: 'Supported', icon: 'fa-circle-check' },
-    NO: { label: 'Not supported', icon: 'fa-circle-xmark' },
-    UNKNOWN: { label: 'Unknown', icon: 'fa-circle-question' }
+  protected readonly capabilityStates: Record<CapabilityState, { label: string; icon: string; badgeClasses: string }> = {
+    YES: { label: 'Supported', icon: 'fa-circle-check', badgeClasses: 'bg-success-subtle text-success-emphasis' },
+    NO: { label: 'Not supported', icon: 'fa-circle-xmark', badgeClasses: 'bg-danger-subtle text-danger-emphasis' },
+    UNKNOWN: { label: 'Unknown', icon: 'fa-circle-question', badgeClasses: 'border text-secondary bg-body' }
   };
   protected readonly methodTutorial = signal<string>('');
   protected readonly tutorialFiles = signal<string[]>([]);

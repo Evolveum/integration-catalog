@@ -5,6 +5,7 @@
  */
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /**
  * Confirms an action on an API key. The defaults are the revocation, which takes effect immediately
@@ -13,8 +14,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 @Component({
   selector: 'app-revoke-api-key-modal',
   standalone: true,
-  templateUrl: './revoke-api-key-modal.html',
-  styleUrls: ['./revoke-api-key-modal.scss']
+  imports: [BackdropCloseDirective],
+  templateUrl: './revoke-api-key-modal.html'
 })
 export class RevokeApiKeyModal {
   /** True while the action is in flight: the modal stays open but cannot be confirmed twice. */

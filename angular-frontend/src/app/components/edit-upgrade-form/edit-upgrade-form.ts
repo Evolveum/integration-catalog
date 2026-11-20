@@ -31,13 +31,15 @@ import { showErrorPage } from '../../core/error-page';
 import { LIMITATIONS_MAX } from '../../core/integration-method-limits';
 import { Maintainer, maintainerLabel } from '../../models/maintainer.model';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 import { NewTabRouteDirective } from '../../directives/new-tab-route.directive';
 
 @Component({
   selector: 'app-edit-upgrade-form',
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeader, ImCapabilityPicker, AddConnectorForm, EditConnectorModal, MarkdownPipe,
-    SubmissionSuccessModal, MethodTypeModal, NewTabRouteDirective],
+    SubmissionSuccessModal, MethodTypeModal, BackdropCloseDirective, InfoTooltip, NewTabRouteDirective],
   templateUrl: './edit-upgrade-form.html',
   styleUrls: ['./edit-upgrade-form.scss']
 })

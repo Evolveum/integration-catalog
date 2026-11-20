@@ -41,12 +41,15 @@
               }
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "src/styles/bootstrap.scss",
               "node_modules/@ng-select/ng-select/themes/default.theme.css",
               "src/styles.scss"
             ],
             "stylePreprocessorOptions": {
-              "includePaths": ["src/styles"]
+              "includePaths": ["src/styles"],
+              "sass": {
+                "silenceDeprecations": ["import"]
+              }
             }
           },
           "configurations": {
@@ -125,12 +128,15 @@
               }
             ],
             "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "src/styles/bootstrap.scss",
               "node_modules/@ng-select/ng-select/themes/default.theme.css",
               "src/styles.scss"
             ],
             "stylePreprocessorOptions": {
-              "includePaths": ["src/styles"]
+              "includePaths": ["src/styles"],
+              "sass": {
+                "silenceDeprecations": ["import"]
+              }
             }
           }
         }

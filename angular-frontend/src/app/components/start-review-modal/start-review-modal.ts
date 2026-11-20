@@ -6,6 +6,7 @@
 
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { BackdropCloseDirective } from '../../directives/backdrop-close.directive';
 
 /**
  * Reusable confirmation modal for starting a review of an in-review integration-method version.
@@ -16,9 +17,8 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-start-review-modal',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './start-review-modal.html',
-  styleUrls: ['./start-review-modal.scss']
+  imports: [CommonModule, BackdropCloseDirective],
+  templateUrl: './start-review-modal.html'
 })
 export class StartReviewModal {
   /** Human-readable version label, e.g. "v2". Shown in the heading. */

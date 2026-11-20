@@ -11,7 +11,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ApplicationService } from '../../services/application.service';
 import { AuthService } from '../../services/auth.service';
 import { ImCapabilityPicker, imCapabilitiesValid } from '../im-capability-picker/im-capability-picker';
-import { IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
+import { IntegrationMethodObjectCapabilities } from '../../models/application-detail.model';
+import { InfoTooltip } from '../info-tooltip/info-tooltip';
 
 interface IntegrationMethodOption {
   id: number;
@@ -21,7 +22,7 @@ interface IntegrationMethodOption {
 @Component({
   selector: 'app-request-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ImCapabilityPicker],
+  imports: [CommonModule, FormsModule, ImCapabilityPicker, InfoTooltip],
   templateUrl: './request-form.html',
   styleUrls: ['./request-form.scss']
 })

@@ -7,12 +7,12 @@
 // Same pager look as the applications list.
 .page-link-default {
   background-color: $color-white;
-  color: black;
+  color: $color-black;
   font-weight: 600;
 }
 
 .page-link-active {
-  background-color: $color-primary-500;
+  background-color: $color-brand-blue;
   color: $color-white;
   font-weight: 600;
 }

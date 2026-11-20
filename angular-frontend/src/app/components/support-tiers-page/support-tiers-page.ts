@@ -12,7 +12,7 @@ import { Pager } from '../pager/pager';
 import { versionBadge } from '../../core/version-badge';
 import { ApplicationService } from '../../services/application.service';
 import { IntegrationMethodTier } from '../../models/application-detail.model';
-import { SUPPORT_TIERS, SupportTier, isCoveredBy, supportTierLabel } from '../../core/support-tier';
+import { SUPPORT_TIERS, SupportTier, isCoveredBy, supportTierClasses, supportTierLabel } from '../../core/support-tier';
 
 interface ApplicationGroup {
   applicationId: string;
@@ -36,6 +36,7 @@ export class SupportTiersPage implements OnInit {
 
   protected readonly supportTiers = SUPPORT_TIERS;
   protected readonly supportTierLabel = supportTierLabel;
+  protected readonly supportTierClasses = supportTierClasses;
   protected readonly versionBadge = versionBadge;
   protected readonly loading = signal<boolean>(true);
   protected readonly error = signal<boolean>(false);

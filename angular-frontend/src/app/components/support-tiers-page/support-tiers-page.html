@@ -8,7 +8,7 @@
 
 <div class="tiers-page">
   <div class="tiers-content">
-    <a routerLink="/applications" class="tiers-back d-inline-flex align-items-center gap-2">
+    <a routerLink="/applications" class="btn btn-sm btn-link link-secondary p-0 mb-4 text-decoration-none d-inline-flex align-items-center gap-2">
       <i class="fa-solid fa-arrow-left"></i>Back to catalog
     </a>
 
@@ -19,10 +19,12 @@
     </p>
 
     <div class="d-flex flex-wrap gap-2 mb-4" role="group" aria-label="Support tier filter">
-      <button type="button" class="tiers-chip" [class.tiers-chip-active]="subscription() === null"
+      <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="subscription() === null"
+              [attr.aria-pressed]="subscription() === null"
               (click)="selectSubscription(null)">All</button>
       @for (t of supportTiers; track t.value) {
-        <button type="button" class="tiers-chip" [class.tiers-chip-active]="subscription() === t.value"
+        <button type="button" class="btn btn-sm rounded-pill btn-outline-primary" [class.active]="subscription() === t.value"
+                [attr.aria-pressed]="subscription() === t.value"
                 (click)="selectSubscription(t.value)">{{ t.label }}</button>
       }
     </div>
@@ -46,7 +48,7 @@
                   <span class="tiers-version">{{ versionBadge(m.revision) }}</span>
                 </span>
                 @if (m.supportTier) {
-                  <span class="tiers-badge" [class]="'tier-' + m.supportTier.toLowerCase()">{{ supportTierLabel(m.supportTier) }}</span>
+                  <span class="badge border flex-shrink-0" [class]="supportTierClasses(m.supportTier)">{{ supportTierLabel(m.supportTier) }}</span>
                 }
               </li>
             }
