@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Covers the shared-secret authentication of the build callbacks and the startup warning that
- * makes an unconfigured jenkins.accessToken - which silently disables the whole integration
+ * makes an unconfigured jenkins.inboundAccessToken - which silently disables the whole integration
  * - visible in the application log.
  */
 class JenkinsCallbackFilterTest {
@@ -105,7 +105,7 @@ class JenkinsCallbackFilterTest {
         new JenkinsCallbackFilter(properties(null));
 
         assertEquals(1, warnings().size());
-        assertTrue(warnings().getFirst().getFormattedMessage().contains("jenkins.accessToken is not configured"));
+        assertTrue(warnings().getFirst().getFormattedMessage().contains("jenkins.inboundAccessToken is not configured"));
     }
 
     @Test

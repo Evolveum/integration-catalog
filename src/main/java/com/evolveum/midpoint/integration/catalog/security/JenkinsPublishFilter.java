@@ -99,7 +99,7 @@ public class JenkinsPublishFilter extends OncePerRequestFilter {
     }
 
     private boolean hasValidToken(HttpServletRequest request) {
-        return JenkinsAccessToken.matches(jenkinsProperties.accessToken(), request.getHeader(TOKEN_HEADER));
+        return JenkinsAccessToken.matches(jenkinsProperties.inboundAccessToken(), request.getHeader(TOKEN_HEADER));
     }
 
     private static String trimmed(String value) {

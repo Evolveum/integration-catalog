@@ -51,8 +51,8 @@ public class JenkinsCallbackFilter extends OncePerRequestFilter {
 
     public JenkinsCallbackFilter(JenkinsProperties jenkinsProperties) {
         this.jenkinsProperties = jenkinsProperties;
-        if (JenkinsAccessToken.isBlank(jenkinsProperties.accessToken())) {
-            log.warn("jenkins.accessToken is not configured - the Jenkins integration is disabled: no callback"
+        if (JenkinsAccessToken.isBlank(jenkinsProperties.inboundAccessToken())) {
+            log.warn("jenkins.inboundAccessToken is not configured - the Jenkins integration is disabled: no callback"
                             + " to {} can authenticate as the build pipeline, so builds cannot report their result."
                             + " Set the property to the shared secret the Jenkins pipeline sends in the {} header.",
                     String.join(" and ", CALLBACK_PATH_PATTERNS), TOKEN_HEADER);
@@ -88,6 +88,6 @@ public class JenkinsCallbackFilter extends OncePerRequestFilter {
     }
 
     private boolean hasValidToken(HttpServletRequest request) {
-        return JenkinsAccessToken.matches(jenkinsProperties.accessToken(), request.getHeader(TOKEN_HEADER));
+        return JenkinsAccessToken.matches(jenkinsProperties.inboundAccessToken(), request.getHeader(TOKEN_HEADER));
     }
 }

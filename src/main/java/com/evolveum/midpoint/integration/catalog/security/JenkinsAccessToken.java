@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 /**
- * The one shared secret (jenkins.accessToken) Jenkins proves itself with, for both the build
+ * The one shared secret (jenkins.inboundAccessToken) Jenkins proves itself with, for both the build
  * callbacks and publishing; each filter decides which endpoints it opens.
  */
 final class JenkinsAccessToken {

@@ -132,6 +132,19 @@ class JenkinsPublishFilterTest {
         assertEquals("alice@example.com", publisher.authorEmail());
     }
 
+    /** Blank author headers count as missing, so creating anything is refused with a 400 later. */
+    @Test
+    void treatsBlankAuthorHeadersAsMissing() throws ServletException, IOException {
+        MockHttpServletRequest request = request("POST", "/api/upload/integration", "secret");
+        request.addHeader(JenkinsPublishFilter.AUTHOR_USERNAME_HEADER, "");
+        request.addHeader(JenkinsPublishFilter.AUTHOR_EMAIL_HEADER, "   ");
+
+        JenkinsPublisher publisher = (JenkinsPublisher) run(filter("secret"), request).getPrincipal();
+
+        assertNull(publisher.authorUsername());
+        assertNull(publisher.authorEmail());
+    }
+
     @Test
     void exemptsFromCsrfOnlyGrantedCallsProvingTheSecret() {
         JenkinsPublishFilter publishFilter = filter("secret");

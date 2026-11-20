@@ -265,18 +265,22 @@ class OwnershipServiceTest {
     @Test
     void pipelineMustNameTheAuthor() {
         evolveumRow();
+        String[][] invalidAuthors = {
+                { null, "alice@example.com" },
+                { "", "alice@example.com" },
+                { "   ", "alice@example.com" },
+                { "alice", null },
+                { "alice", "" },
+                { "alice", "   " },
+                { "alice", "not an email" }
+        };
 
-        pipelineCalls(null, "alice@example.com");
-        ResponseStatusException noUsername = assertThrows(ResponseStatusException.class,
-                () -> ownershipService.stampNew(new IntegrationMethod(), JenkinsPublisher.NAME, EVOLVEUM));
-        assertEquals(HttpStatus.BAD_REQUEST, noUsername.getStatusCode());
-
-        pipelineCalls("alice", null);
-        assertThrows(ResponseStatusException.class,
-                () -> ownershipService.stampNew(new IntegrationMethod(), JenkinsPublisher.NAME, EVOLVEUM));
-
-        pipelineCalls("alice", "not an email");
-        assertThrows(ResponseStatusException.class,
-                () -> ownershipService.stampNew(new IntegrationMethod(), JenkinsPublisher.NAME, EVOLVEUM));
+        for (String[] author : invalidAuthors) {
+            pipelineCalls(author[0], author[1]);
+            ResponseStatusException rejected = assertThrows(ResponseStatusException.class,
+                    () -> ownershipService.stampNew(new IntegrationMethod(), JenkinsPublisher.NAME, EVOLVEUM),
+                    () -> "author [" + author[0] + "] <" + author[1] + "> was accepted");
+            assertEquals(HttpStatus.BAD_REQUEST, rejected.getStatusCode());
+        }
     }
 }
