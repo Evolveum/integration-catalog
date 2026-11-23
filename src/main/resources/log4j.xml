@@ -1,7 +1,7 @@
 <configuration>
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %class{36}.%M %L - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:--}] %class{36}.%M %L - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -15,7 +15,7 @@
             <maxHistory>24</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %class{36}.%M %L - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:--}] %class{36}.%M %L - %msg%n</pattern>
         </encoder>
     </appender>
 

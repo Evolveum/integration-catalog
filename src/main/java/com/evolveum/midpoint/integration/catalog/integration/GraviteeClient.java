@@ -149,7 +149,7 @@ public class GraviteeClient {
         }
         if (response.statusCode() / 100 != 2) {
             throw new IOException("Gravitee refused to close the subscription (HTTP "
-                    + response.statusCode() + "): " + response.body());
+                    + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
     }
 
@@ -204,7 +204,7 @@ public class GraviteeClient {
         }
         if (response.statusCode() / 100 != 2) {
             throw new IOException("Gravitee refused to revoke the API key (HTTP "
-                    + response.statusCode() + "): " + response.body());
+                    + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
     }
 
@@ -264,7 +264,7 @@ public class GraviteeClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() / 100 != 2) {
             throw new IOException("Gravitee refused to " + action + " (HTTP " + response.statusCode()
-                    + "): " + response.body());
+                    + ")" + ErrorResponses.detail(response.body()));
         }
         return response.body() == null || response.body().isBlank()
                 ? objectMapper.createObjectNode()

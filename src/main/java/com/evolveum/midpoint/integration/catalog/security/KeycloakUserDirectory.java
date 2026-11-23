@@ -19,6 +19,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -155,7 +156,14 @@ public class KeycloakUserDirectory {
     private void markUnavailable(Exception e) {
         unavailableUntil = clock.getAsLong() + FAILURE_BACKOFF_MILLIS;
         log.warn("Keycloak admin API unavailable ({}); the maintainer list keeps to the users the"
-                + " catalog itself knows for the next {} s", e.getMessage(), FAILURE_BACKOFF_MILLIS / 1000);
+                + " catalog itself knows for the next {} s", reason(e), FAILURE_BACKOFF_MILLIS / 1000);
+    }
+
+    /** Status or exception type only: an error body of the admin API can carry user data. */
+    private static String reason(Exception e) {
+        return e instanceof RestClientResponseException response
+                ? "HTTP " + response.getStatusCode().value()
+                : e.getClass().getSimpleName();
     }
 
     /**
