@@ -17,14 +17,21 @@ import org.springframework.stereotype.Component;
 import java.net.http.HttpRequest;
 
 /**
- * Writes the trace context of the current request (the {@code traceparent} header, or whatever
- * {@code management.tracing.propagation.type} selects) onto a response or an outgoing call, so one
- * request can be followed through the logs of the catalog and of the systems it calls. The calls
- * made with {@link java.net.http.HttpClient} are not instrumented by Spring, hence this by hand.
- * Outside a request - the retry job - there is no trace context and nothing is written.
+ * Writes the trace context of the current request onto a response or an outgoing call, so one
+ * request can be followed through the logs of the catalog and of the systems it calls.
+ * <p>
+ * Outgoing calls get the headers {@code management.tracing.propagation.type} selects ({@code
+ * traceparent} for w3c). Spring does not add them to calls made with {@link java.net.http.HttpClient}
+ * (TracePropagationIntegrationTest shows it), hence this by hand. The response header is named by
+ * {@link #RESPONSE_HEADER} instead, so it can be renamed when infrastructure asks, without touching
+ * what the catalog sends on. Outside a request - the retry job - there is no trace context and
+ * nothing is written.
  */
 @Component
 public class TraceHeaders {
+
+    /** Response header carrying the request's trace context, in the W3C traceparent format. */
+    public static final String RESPONSE_HEADER = "traceparent";
 
     private final Tracer tracer;
     private final Propagator propagator;
@@ -55,7 +62,13 @@ public class TraceHeaders {
     public void addTo(HttpServletResponse response) {
         TraceContext context = tracer.currentTraceContext().context();
         if (context != null) {
-            propagator.inject(context, response, (carrier, name, value) -> carrier.setHeader(name, value));
+            response.setHeader(RESPONSE_HEADER, traceparent(context));
         }
+    }
+
+    /** version-traceid-spanid-flags, see https://www.w3.org/TR/trace-context/ */
+    static String traceparent(TraceContext context) {
+        return "00-" + context.traceId() + "-" + context.spanId() + "-"
+                + (Boolean.TRUE.equals(context.sampled()) ? "01" : "00");
     }
 }
