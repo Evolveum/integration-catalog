@@ -24,12 +24,6 @@ import java.util.UUID;
  * Logs one line per REST request: HTTP method, path, resulting status and duration.
  * Covers every {@code /api/**} endpoint uniformly, so individual controller methods
  * don't have to repeat request/response boilerplate logging.
- * <p>
- * Each request gets a random trace id, put into the MDC (printed by the log pattern on every line
- * the request writes) and returned in the {@value #TRACE_ID_HEADER} header. Logs are collected
- * centrally, so the trace id is what ties lines to one request - never the username or email.
- * The query string is left out, as it can carry user-entered values.
- * <p>
  * Ordered first, ahead of the Spring Security chain, so requests it turns away (401, 403) are
  * logged too.
  */
