@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.UploadIntegrationDto;
@@ -78,7 +79,8 @@ class ConnectorUploadServiceUploadTest {
                 applicationTagService, capabilityRepository, integrationMethodCapabilityRepository,
                 integrationMethodCapabilityItemRepository, connVersionCapabilityRepository,
                 connVersionCapabilityItemRepository, integrationMethodTypeRepository,
-                integrationMethodConnectorRepository, tutorialStorageService, ownershipService, events);
+                integrationMethodConnectorRepository, tutorialStorageService, ownershipService, events,
+                TraceHeaders.none());
     }
 
     @Test

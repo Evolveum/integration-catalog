@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.evolveum.midpoint.integration.catalog.dto.AddConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
@@ -89,6 +90,7 @@ public class ConnectorUploadService {
     private final TutorialStorageService tutorialStorageService;
     private final OwnershipService ownershipService;
     private final ApplicationEventPublisher events;
+    private final TraceHeaders traceHeaders;
 
     private record ApplicationResolution(
             Application application,
@@ -393,7 +395,7 @@ public class ConnectorUploadService {
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                     .orElse(null);
 
-            JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
+            JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties, traceHeaders);
             HttpResponse<String> response = jenkinsClient.triggerJob(
                     Map.ofEntries(
                             Map.entry("REPOSITORY_URL", gitCloneUrl),

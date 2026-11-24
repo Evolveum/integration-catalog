@@ -12,6 +12,7 @@ The tests follow the base flow guides in `docs/`:
 | `RequestFlowTest` | section 2 of both guides: a contributor requests an application, a read-only user is refused a request but votes for it, the requester cancels it |
 | `ContributorFlowTest` | contributor guide, sections 3 and 4: publish, find the method in *My integration methods*, change it with *Save* while it awaits approval (1.0 becomes 1.1 in place), cancel the request |
 | `ApiKeyFlowTest` | a contributor creates an API key in *Settings* and revokes it; needs Gravitee (see below) |
+| `RequestTracingTest` | request tracing: responses carry the W3C `traceparent` header, and a caller's own trace id is continued; checks headers only, creates no data |
 
 ## Running against a Docker environment (CI)
 

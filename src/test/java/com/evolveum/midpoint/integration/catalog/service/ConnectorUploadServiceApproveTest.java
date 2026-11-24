@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.evolveum.midpoint.integration.catalog.object.*;
 import com.evolveum.midpoint.integration.catalog.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,7 +114,8 @@ class ConnectorUploadServiceApproveTest {
                 applicationTagService, capabilityRepository, integrationMethodCapabilityRepository,
                 integrationMethodCapabilityItemRepository, connVersionCapabilityRepository,
                 connVersionCapabilityItemRepository, integrationMethodTypeRepository,
-                integrationMethodConnectorRepository, tutorialStorageService, ownershipService, events);
+                integrationMethodConnectorRepository, tutorialStorageService, ownershipService, events,
+                TraceHeaders.none());
 
         buildPublishedBundle();
         buildDraftClone();

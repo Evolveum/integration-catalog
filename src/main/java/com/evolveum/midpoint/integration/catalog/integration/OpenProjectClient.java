@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.integration;
 
 import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -50,10 +51,12 @@ public class OpenProjectClient {
     private final OpenProjectProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient client;
+    private final TraceHeaders traceHeaders;
 
-    public OpenProjectClient(OpenProjectProperties properties) {
+    public OpenProjectClient(OpenProjectProperties properties, TraceHeaders traceHeaders) {
         this.properties = properties;
         this.client = buildClient(properties);
+        this.traceHeaders = traceHeaders;
     }
 
 
@@ -461,11 +464,11 @@ public class OpenProjectClient {
     }
 
     private HttpRequest.Builder authorized(String uri) {
-        return HttpRequest.newBuilder()
+        return traceHeaders.addTo(HttpRequest.newBuilder()
                 .uri(URI.create(uri))
                 .timeout(properties.timeout())
                 .header("Accept", "application/json")
-                .header("Authorization", basicAuthHeader());
+                .header("Authorization", basicAuthHeader()));
     }
 
     private String basicAuthHeader() {

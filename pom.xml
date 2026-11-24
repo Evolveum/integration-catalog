@@ -62,6 +62,18 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
+		<!-- Request tracing: Micrometer Tracing over OpenTelemetry. Every log line of a request carries
+		     its trace id, taken from the incoming traceparent header or created; the header goes back
+		     in the response and on to Gravitee, OpenProject, Keycloak, Jenkins and Nexus. No span
+		     exporter on purpose: nothing is shipped to a tracing backend (yet). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-otel</artifactId>
+		</dependency>
 		<!-- Spring Boot 4 auto-configures Jackson 3, whose ObjectMapper lives in
 		     tools.jackson.databind. This module restores the auto-configured
 		     com.fasterxml.jackson.databind.ObjectMapper bean that BundleService

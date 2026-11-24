@@ -6,6 +6,7 @@
 
 package com.evolveum.midpoint.integration.catalog.service;
 
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.evolveum.midpoint.integration.catalog.object.Application;
 import com.evolveum.midpoint.integration.catalog.object.Connector;
 import com.evolveum.midpoint.integration.catalog.object.ConnectorBundle;
@@ -67,6 +68,7 @@ public class BundleService {
     private final ObjectWriter jsonWriter;
     private final HttpClient httpClient;
     private final Duration readTimeout;
+    private final TraceHeaders traceHeaders;
     /** Cache of fetched artifact bytes, keyed by artifact URL — release URLs are immutable. */
     private final Map<String, byte[]> artifactCache = new ConcurrentHashMap<>();
 
@@ -74,8 +76,10 @@ public class BundleService {
                          TutorialStorageService tutorialStorageService,
                          OwnershipService ownershipService,
                          ObjectMapper objectMapper,
+                         TraceHeaders traceHeaders,
                          @Value("${catalog.bundle-download.connect-timeout}") Duration connectTimeout,
                          @Value("${catalog.bundle-download.read-timeout}") Duration readTimeout) {
+        this.traceHeaders = traceHeaders;
         this.integrationMethodRepository = integrationMethodRepository;
         this.tutorialStorageService = tutorialStorageService;
         this.ownershipService = ownershipService;
@@ -408,7 +412,7 @@ public class BundleService {
     }
 
     private byte[] downloadArtifact(String artifactUrl) throws IOException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(artifactUrl))
+        HttpRequest request = traceHeaders.addTo(HttpRequest.newBuilder(URI.create(artifactUrl)))
                 .timeout(readTimeout)
                 .GET()
                 .build();

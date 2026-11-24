@@ -1,0 +1,63 @@
+= Integration Catalog GUI tests
+:toc:
+
+The job `integration-catalog-gui-tests` runs the GUI tests of
+https://github.com/Evolveum/integration-catalog[Evolveum/integration-catalog]: Playwright for Java
+drives a browser through the running catalog (`gui-tests/`, a standalone Maven project) -
+publishing and approving integration methods, editing their connectors, requests, API keys.
+
+[cols="1,3",options="header"]
+|===
+| File | What it is
+| `jobdsl/integration_catalog_gui_tests.groovy` | The job: parameters and a nightly `cron('H H(3-5) * * *')` trigger (Model B, see `architecture.adoc`). A cron trigger needs no `REGISTER_TRIGGERS_ONLY` run. The `integration-catalog 📚` view picks the job up by its name.
+| `pipelines/integration-catalog-gui-test-pipeline` | The pipeline.
+| `vars/getIntegrationCatalogGuiTestPodTemplate.groovy` | The agent pod.
+|===
+
+== Pod
+
+jnlp + `playwright` (`mcr.microsoft.com/playwright/java`: Maven, JDK and the browsers; the version
+must match the Playwright version in `gui-tests/pom.xml`), with a memory-backed `/dev/shm` for
+Chromium and its own Maven cache subdir, `/m2cache/integration-catalog-gui-tests/<branch>`.
+
+== Stages
+
+. *Checkout* - the application repo (shallow).
+. *Start test environment* - *TODO (infra):* the catalog and the services it needs, then a wait
+  for the catalog's `/actuator/health/readiness`, so a broken environment fails here rather than as
+  failed tests.
+. *GUI tests* - `mvn -f gui-tests/pom.xml test`, then `junit` over `gui-tests/target/surefire-reports`;
+  a failed test's screenshot and Playwright trace (`gui-tests/target/gui-tests/**`, open at
+  https://trace.playwright.dev) are archived.
+
+== Parameters
+
+[cols="1,1,3",options="header"]
+|===
+| Parameter | Default | Meaning
+| `BRANCH` | `main` | integration-catalog branch whose `gui-tests/` run
+| `PLAYWRIGHT_IMAGE` | `mcr.microsoft.com/playwright/java:v1.64.0-noble` | test runner image
+| `CATALOG_URL` | `http://localhost:8080` | where the browser opens the catalog
+| `OPENPROJECT_URL` | `http://localhost:8090` | the support portal the tests close review tickets in
+| `TESTS` | empty = all | Surefire `-Dtest` filter, e.g. `AdminFlowTest` or `!ApiKeyFlowTest`
+| `VERBOSE`, `CLEAN_WORKSPACE`, `CLEAN_M2_REPOSITORY` | | as in the other catalog jobs
+|===
+
+== What the tests need from the environment
+
+* The catalog (the image built by `integration-catalog-build`) on `CATALOG_URL`, with an *empty*
+  database (`config/sql/postgres.sql` only) - the tests create everything they need through the UI.
+* Keycloak with the `integration-catalog` realm (users `u2`, `u3`, `u5`, password = user name),
+  reachable *by the same URL* from the browser and from the catalog. Running every service as a
+  container of the agent pod gives exactly that: everything is `localhost`, which is also where the
+  catalog's secure session and CSRF cookies work over plain HTTP.
+* OpenProject on `OPENPROJECT_URL` with the project the catalog files its review tickets in. The
+  environment stage sets `env.OP_API_TOKEN` to its API key: the catalog uses it to open tickets, the
+  tests to close them before approving (passed as the environment variable
+  `GUI_OPENPROJECT_API_KEY`, never `-D`, which Surefire would copy into the archived reports).
+* Gravitee's management API, seeded by `docker/gravitee/seed.sh` of the application repo, for
+  `ApiKeyFlowTest` only. Without it, run with `TESTS=!ApiKeyFlowTest`.
+
+The application side's working reference for all of this is the Docker Compose setup of commit
+`436c477` in `Evolveum/integration-catalog` (`gui-tests/compose.yml` and `gui-tests/docker/`),
+with which all five tests passed against an empty database.

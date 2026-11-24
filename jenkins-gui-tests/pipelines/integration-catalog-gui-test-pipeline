@@ -1,0 +1,148 @@
+/*
+ * Copyright (C) 2010-2026 Evolveum and contributors
+ *
+ * This work is dual-licensed under the Apache License 2.0
+ * and European Union Public License. See LICENSE file for details.
+ *
+ * Integration Catalog GUI tests: Playwright for Java drives a browser through the running catalog
+ * (gui-tests/ in Evolveum/integration-catalog, a standalone Maven project). Backs
+ * integration-catalog-gui-tests (created by jobdsl/integration_catalog_gui_tests.groovy).
+ * See docs/integration-catalog-gui-tests.adoc.
+ *
+ * Parameters and the trigger are owned by the Job DSL job.
+ */
+
+@Library(value = 'jenkins-shared-library@master', changelog = false) _
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml getIntegrationCatalogGuiTestPodTemplate(
+                playwrightImage: (params.PLAYWRIGHT_IMAGE ?: 'mcr.microsoft.com/playwright/java:v1.64.0-noble'))
+        }
+    }
+
+    options {
+        timeout(time: 90, unit: 'MINUTES')
+        skipDefaultCheckout()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                script {
+                    def branch = params.BRANCH ?: 'main'
+
+                    env.MP_VERBOSE = (params.VERBOSE ?: '0') as String
+                    // A subdir of its own: the GUI tests resolve Playwright and JUnit only, nothing the
+                    // build and test jobs' repository would share.
+                    env.REPO_LOCAL = "/m2cache/integration-catalog-gui-tests/${branch}".replaceAll('[^A-Za-z0-9._/-]', '-')
+
+                    def extensions = [
+                        [$class: 'CleanBeforeCheckout'],
+                        [$class: 'CloneOption', honorRefspec: true, noTags: true, reference: '', shallow: true, depth: 1],
+                    ]
+                    if (params.CLEAN_WORKSPACE) {
+                        echo 'CLEAN_WORKSPACE is true: adding WipeWorkspace.'
+                        extensions.add([$class: 'WipeWorkspace'])
+                    }
+
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: branch]],
+                        userRemoteConfigs: [[url: 'https://github.com/Evolveum/integration-catalog.git']],
+                        extensions: extensions,
+                    ])
+
+                    env.APP_COMMIT = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                    currentBuild.description = "${branch} @ ${env.APP_COMMIT.take(8)}"
+                }
+            }
+        }
+
+        stage('Start test environment') {
+            steps {
+                // TODO (infra): start the catalog and the services it needs, see the pod template.
+                // Contract with the tests:
+                //   - the catalog answers on CATALOG_URL, Keycloak with the integration-catalog realm
+                //     (users u2, u3, u5, password = user name) is reachable from the browser;
+                //   - the catalog database starts empty (config/sql/postgres.sql only), the tests
+                //     create their data through the UI;
+                //   - env.OP_API_TOKEN holds the API key of the OpenProject on OPENPROJECT_URL, the
+                //     same one the catalog files its review tickets with: the tests close those
+                //     tickets themselves before approving.
+
+                writeFile file: 'ci/wait-for-services.sh',
+                          text: libraryResource('integration-catalog/wait-for-services.sh')
+                sh 'chmod +x ci/wait-for-services.sh'
+                // A broken environment fails here, not as five failed tests.
+                sh "./ci/wait-for-services.sh '${params.CATALOG_URL}/actuator/health/readiness' Catalog 900"
+            }
+        }
+
+        stage('GUI tests') {
+            steps {
+                container('playwright') {
+                    sh '''#!/bin/bash -e
+mkdir -p "$REPO_LOCAL" /root/.m2
+ln -sfn "$REPO_LOCAL" /root/.m2/repository
+'''
+                    script {
+                        if (params.CLEAN_M2_REPOSITORY) {
+                            sh 'rm -rf ~/.m2/repository/*'
+                        }
+                    }
+
+                    // The key as an environment variable, never -D: Surefire copies system
+                    // properties into its reports, which are archived.
+                    withEnv([
+                        "GUI_OPENPROJECT_API_KEY=${env.OP_API_TOKEN ?: ''}",
+                        "GUI_CATALOG_URL=${params.CATALOG_URL}",
+                        "GUI_OPENPROJECT_URL=${params.OPENPROJECT_URL}",
+                        "GUI_TESTS=${params.TESTS ?: ''}",
+                    ]) {
+                        script {
+                            try {
+                                // -e (not -ex) so the key in the environment is not echoed.
+                                sh '''#!/bin/bash -e
+if [ "${MP_VERBOSE}" -ge 1 ]; then
+    id
+    mvn --version
+fi
+
+mvn -B -ntp -f gui-tests/pom.xml \
+    -Dmaven.test.failure.ignore=true \
+    -Dgui.baseUrl="$GUI_CATALOG_URL" \
+    -Dgui.openproject.url="$GUI_OPENPROJECT_URL" \
+    ${GUI_TESTS:+-Dtest="$GUI_TESTS"} \
+    clean test
+'''
+                            } finally {
+                                junit testResults: 'gui-tests/target/surefire-reports/*.xml',
+                                      allowEmptyResults: true
+                                // A failed test leaves a screenshot and a Playwright trace
+                                // (open at https://trace.playwright.dev).
+                                archiveArtifacts allowEmptyArchive: true,
+                                                 artifacts: 'gui-tests/target/gui-tests/**',
+                                                 followSymlinks: false
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            step([
+                $class: 'Mailer',
+                notifyEveryUnstableBuild: true,
+                recipients: env.DEFAULT_MAIL_RECIPIENT,
+                sendToIndividuals: false
+            ])
+        }
+    }
+}

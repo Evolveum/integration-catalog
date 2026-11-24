@@ -8,6 +8,7 @@ package com.evolveum.midpoint.integration.catalog.security;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import io.micrometer.observation.ObservationRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -82,9 +83,10 @@ public class KeycloakUserDirectory {
             @Value("${spring.security.oauth2.client.registration.oidc.client-secret}") String clientSecret,
             @Value("${catalog.keycloak.directory-enabled:true}") boolean enabled,
             @Value("${catalog.keycloak.connect-timeout:2s}") Duration connectTimeout,
-            @Value("${catalog.keycloak.read-timeout:5s}") Duration readTimeout) {
+            @Value("${catalog.keycloak.read-timeout:5s}") Duration readTimeout,
+            ObservationRegistry observationRegistry) {
         this(issuerUri, clientId, clientSecret, enabled,
-                buildRestClient(connectTimeout, readTimeout), System::currentTimeMillis);
+                buildRestClient(connectTimeout, readTimeout, observationRegistry), System::currentTimeMillis);
     }
 
     /** Test seam: lets tests supply a mock-bound {@link RestClient} and a controllable clock. */
@@ -171,12 +173,17 @@ public class KeycloakUserDirectory {
      *
      * @param connectTimeout how long to wait for the connection to Keycloak
      * @param readTimeout how long to wait for its response
+     * @param observationRegistry makes each call carry the request's trace header to Keycloak
      */
-    private static RestClient buildRestClient(Duration connectTimeout, Duration readTimeout) {
+    private static RestClient buildRestClient(Duration connectTimeout, Duration readTimeout,
+                                              ObservationRegistry observationRegistry) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(connectTimeout);
         requestFactory.setReadTimeout(readTimeout);
-        return RestClient.builder().requestFactory(requestFactory).build();
+        return RestClient.builder()
+                .requestFactory(requestFactory)
+                .observationRegistry(observationRegistry)
+                .build();
     }
 
     /** The service-account token, re-fetched only once the cached one is about to expire. */

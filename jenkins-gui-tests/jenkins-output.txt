@@ -1,0 +1,320 @@
+Started by user lskublik
+Obtained pipelines/integration-catalog-pipeline from git https://gitlab.evolveum.com/infra/jenkins.git
+Loading library jenkins-shared-library@master
+Attempting to resolve master from remote references...
+ > git --version # timeout=10
+ > git --version # 'git version 2.47.3'
+using GIT_ASKPASS to set credentials https://gitlab.evolveum.com/infra/jenkins.git
+ > git ls-remote -- https://gitlab.evolveum.com/infra/jenkins.git # timeout=10
+Found match: refs/heads/master revision d61f801ceec4e303b98923e74ae669688b38fede
+The recommended git tool is: git
+using credential 9b51b4fe-2527-4e68-9313-2036fb58a040
+ > git rev-parse --resolve-git-dir /var/jenkins_home/workspace/integration-catalog-build@libs/580bfc05b208b2a29f18dae2adb00f83192a519f6655a1410bb1b6c0e5121045/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://gitlab.evolveum.com/infra/jenkins.git # timeout=10
+Fetching without tags
+Fetching upstream changes from https://gitlab.evolveum.com/infra/jenkins.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.47.3'
+using GIT_ASKPASS to set credentials https://gitlab.evolveum.com/infra/jenkins.git
+ > git fetch --no-tags --force --progress -- https://gitlab.evolveum.com/infra/jenkins.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+Checking out Revision d61f801ceec4e303b98923e74ae669688b38fede (master)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f d61f801ceec4e303b98923e74ae669688b38fede # timeout=10
+Commit message: "Take the midPoint Dockerfiles from github.com/Evolveum/midpoint-docker instead of the embedded copy in resources/midpoint-docker."
+[Pipeline] Start of Pipeline
+[Pipeline] podTemplate
+[Pipeline] {
+[Pipeline] node
+Created Pod: kubernetes jenkins-builds/integration-catalog-build-299-jhsm8-p762j-tzlkw
+[PodInfo] jenkins-builds/integration-catalog-build-299-jhsm8-p762j-tzlkw
+	Container [buildctl] waiting [ContainerCreating] No message
+	Container [buildkit] waiting [ContainerCreating] No message
+	Container [jnlp] waiting [ContainerCreating] No message
+	Container [maven] waiting [ContainerCreating] No message
+	Container [tools] waiting [ContainerCreating] No message
+	Pod [Pending][ContainersNotReady] containers with unready status: [jnlp maven buildkit buildctl tools]
+[PodInfo] jenkins-builds/integration-catalog-build-299-jhsm8-p762j-tzlkw
+	Container [buildctl] waiting [ContainerCreating] No message
+	Container [buildkit] waiting [ContainerCreating] No message
+	Container [jnlp] waiting [ContainerCreating] No message
+	Container [maven] waiting [ContainerCreating] No message
+	Container [tools] waiting [ContainerCreating] No message
+	Pod [Pending][ContainersNotReady] containers with unready status: [jnlp maven buildkit buildctl tools]
+Agent integration-catalog-build-299-jhsm8-p762j-tzlkw is provisioned from template integration-catalog-build_299-jhsm8-p762j
+---
+apiVersion: "v1"
+kind: "Pod"
+metadata:
+  annotations:
+    k8s-ttl-controller.twin.sh/ttl: "12h"
+    kubernetes.jenkins.io/last-refresh: "1794807725575"
+    buildUrl: "http://jenkins.jenkins.svc.cluster.local:8080/job/integration-catalog-build/299/"
+    runUrl: "job/integration-catalog-build/299/"
+  labels:
+    app: "integration-catalog"
+    jenkins/jenkins-jenkins-agent: "true"
+    jenkins/label-digest: "f1d10eaac88b55df7e41dec75da85c8c4510f4bf"
+    jenkins/label: "integration-catalog-build_299-jhsm8"
+    kubernetes.jenkins.io/controller: "http___jenkins_jenkins_svc_cluster_local_8080x"
+  name: "integration-catalog-build-299-jhsm8-p762j-tzlkw"
+  namespace: "jenkins-builds"
+spec:
+  containers:
+  - env:
+    - name: "JENKINS_SECRET"
+      value: "********"
+    - name: "JENKINS_AGENT_NAME"
+      value: "integration-catalog-build-299-jhsm8-p762j-tzlkw"
+    - name: "JENKINS_WEB_SOCKET"
+      value: "true"
+    - name: "REMOTING_OPTS"
+      value: "-noReconnectAfter 1d"
+    - name: "JENKINS_NAME"
+      value: "integration-catalog-build-299-jhsm8-p762j-tzlkw"
+    - name: "JENKINS_AGENT_WORKDIR"
+      value: "/home/jenkins/agent"
+    - name: "JENKINS_URL"
+      value: "http://jenkins.jenkins.svc.cluster.local:8080/"
+    image: "jenkins/inbound-agent:3327.v868139a_d00e0-6-jdk21"
+    name: "jnlp"
+    resources:
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+        ephemeral-storage: "1Gi"
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+        ephemeral-storage: "512Mi"
+    volumeMounts:
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  - command:
+    - "cat"
+    image: "maven:3.9.16-eclipse-temurin-21"
+    name: "maven"
+    resources:
+      limits:
+        memory: "12Gi"
+        cpu: "3"
+        ephemeral-storage: "16Gi"
+      requests:
+        memory: "2Gi"
+        cpu: "1"
+        ephemeral-storage: "4Gi"
+    tty: true
+    volumeMounts:
+    - mountPath: "/m2cache"
+      name: "m2-cache"
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  - command:
+    - "/bin/sh"
+    - "-c"
+    - "buildkitd --addr unix:///run/buildkit/buildkitd.sock"
+    env:
+    - name: "BUILDKIT_HOST"
+      value: "unix:///run/buildkit/buildkitd.sock"
+    image: "moby/buildkit:v0.14.1"
+    name: "buildkit"
+    resources:
+      limits:
+        memory: "8Gi"
+        cpu: "4"
+        ephemeral-storage: "16Gi"
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+        ephemeral-storage: "4Gi"
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities:
+        add:
+        - "SYS_ADMIN"
+      privileged: true
+    volumeMounts:
+    - mountPath: "/run/buildkit"
+      name: "buildkit-socket"
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  - command:
+    - "/bin/sh"
+    - "-c"
+    - "sleep 7200"
+    env:
+    - name: "BUILDKIT_HOST"
+      value: "unix:///run/buildkit/buildkitd.sock"
+    image: "moby/buildkit:v0.14.1"
+    name: "buildctl"
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+        ephemeral-storage: "2Gi"
+      requests:
+        memory: "512Mi"
+        cpu: "100m"
+        ephemeral-storage: "512Mi"
+    volumeMounts:
+    - mountPath: "/run/buildkit"
+      name: "buildkit-socket"
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  - command:
+    - "/bin/sh"
+    - "-c"
+    - "sleep 7200"
+    image: "registry.evolveum.com/internal/jenkins-tools:1"
+    name: "tools"
+    resources:
+      limits:
+        memory: "1Gi"
+        cpu: "1"
+        ephemeral-storage: "1Gi"
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+        ephemeral-storage: "256Mi"
+    tty: true
+    volumeMounts:
+    - mountPath: "/home/jenkins/agent"
+      name: "workspace-volume"
+      readOnly: false
+  imagePullSecrets:
+  - name: "harbor-pull-internal"
+  nodeSelector:
+    kubernetes.io/os: "linux"
+  restartPolicy: "Never"
+  serviceAccountName: "jenkins-test-runner"
+  terminationGracePeriodSeconds: 30
+  volumes:
+  - emptyDir: {}
+    name: "buildkit-socket"
+  - name: "m2-cache"
+    persistentVolumeClaim:
+      claimName: "jenkins-m2-cache"
+  - emptyDir:
+      medium: ""
+    name: "workspace-volume"
+
+Running on integration-catalog-build-299-jhsm8-p762j-tzlkw in /home/jenkins/agent/workspace/integration-catalog-build
+[Pipeline] {
+[Pipeline] timeout
+Timeout set to expire in 1 hr 0 min
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Checkout)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] checkout
+The recommended git tool is: NONE
+No credentials specified
+Cloning the remote Git repository
+Honoring refspec on initial clone
+Cloning repository https://github.com/Evolveum/integration-catalog.git
+ > git init /home/jenkins/agent/workspace/integration-catalog-build # timeout=10
+Fetching upstream changes from https://github.com/Evolveum/integration-catalog.git
+ > git --version # timeout=10
+ > git --version # 'git version 2.39.5'
+ > git fetch --tags --force --progress -- https://github.com/Evolveum/integration-catalog.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git config remote.origin.url https://github.com/Evolveum/integration-catalog.git # timeout=10
+ > git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+Avoid second fetch
+Checking out Revision 07d79b0aea116bfb2af8c4afd0f6c1b2b4e01103 (v1.0.3)
+Commit message: "Release 1.0.3"
+First time build. Skipping changelog.
+[Pipeline] sh
++ git rev-parse HEAD
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Resolve release)
+ > git rev-parse origin/v1.0.3^{commit} # timeout=10
+ > git rev-parse v1.0.3^{commit} # timeout=10
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 07d79b0aea116bfb2af8c4afd0f6c1b2b4e01103 # timeout=10
+[Pipeline] script
+[Pipeline] {
+[Pipeline] sh
++ git tag --points-at HEAD --list v*
+[Pipeline] readFile
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Check release)
+[Pipeline] container
+[Pipeline] {
+[Pipeline] withCredentials
+Masking supported pattern matches of $HARBOR_PASS
+[Pipeline] {
+[Pipeline] sh
++ crane auth login registry.evolveum.com -u 'robot$public+jenkins' -p ****
+
+WARNING! Your credentials are stored unencrypted in '/root/.docker/config.json'.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/go/credential-store/
+
+2026/11/16 05:42:18 logged in via /root/.docker/config.json
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] script
+[Pipeline] {
+[Pipeline] sh
++ crane digest registry.evolveum.com/public/integration-catalog:1.0.3
+[Pipeline] sh
++ crane digest registry.evolveum.com/public/integration-catalog:07d79b0a
+[Pipeline] readFile
+[Pipeline] echo
+registry.evolveum.com/public/integration-catalog:07d79b0a already exists, it is only tagged as 1.0.3, no rebuild.
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // container
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Trust Evolveum CA)
+Stage "Trust Evolveum CA" skipped due to when conditional
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build)
+Stage "Build" skipped due to when conditional
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build & push image)
+Stage "Build & push image" skipped due to when conditional
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Tag release)
+[Pipeline] container
+[Pipeline] {
+[Pipeline] sh
++ crane tag registry.evolveum.com/public/integration-catalog:07d79b0a 1.0.3
+2026/11/16 05:42:21 registry.evolveum.com/public/integration-catalog:1.0.3: digest: sha256:b1f58af2207dea0026557b63ca0ad748e6eb6c9609650bf0464e1125109f20f2 size: 2465
+[Pipeline] }
+[Pipeline] // container
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // timeout
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] }
+[Pipeline] // podTemplate
+[Pipeline] End of Pipeline
+Finished: SUCCESS

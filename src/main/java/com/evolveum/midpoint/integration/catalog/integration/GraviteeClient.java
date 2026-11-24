@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.integration;
 
 import com.evolveum.midpoint.integration.catalog.configuration.GraviteeProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -41,10 +42,12 @@ public class GraviteeClient {
     private final GraviteeProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient client;
+    private final TraceHeaders traceHeaders;
 
-    public GraviteeClient(GraviteeProperties properties) {
+    public GraviteeClient(GraviteeProperties properties, TraceHeaders traceHeaders) {
         this.properties = properties;
         this.client = HttpClient.newBuilder().connectTimeout(properties.timeout()).build();
+        this.traceHeaders = traceHeaders;
     }
 
     /** The key as Gravitee minted it: its id, the value the user sees once, and its own expiration. */
@@ -253,10 +256,10 @@ public class GraviteeClient {
     }
 
     private HttpRequest.Builder authorized(String url) {
-        return HttpRequest.newBuilder(URI.create(url))
+        return traceHeaders.addTo(HttpRequest.newBuilder(URI.create(url))
                 .timeout(properties.timeout())
                 .header("Authorization", "Bearer " + properties.token())
-                .header("Accept", "application/json");
+                .header("Accept", "application/json"));
     }
 
     /** Sends the request and parses the body, turning a non-2xx into a readable failure. */

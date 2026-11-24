@@ -11,6 +11,7 @@ import com.evolveum.midpoint.integration.catalog.dto.MaintainerDto;
 import com.evolveum.midpoint.integration.catalog.dto.CurrentUserDto;
 import com.evolveum.midpoint.integration.catalog.object.Vote;
 import com.evolveum.midpoint.integration.catalog.security.CatalogOidcUserService;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.evolveum.midpoint.integration.catalog.security.SecurityConfig;
 import com.evolveum.midpoint.integration.catalog.service.ApplicationService;
 import com.evolveum.midpoint.integration.catalog.service.AuthService;
@@ -45,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * with {@code oidcLogin()}, mirroring what {@link CatalogOidcUserService} grants after a real login.
  */
 @WebMvcTest(controllers = {AuthController.class, Controller.class, IntegrationMethodController.class})
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, TraceHeaders.class}) // TraceHeaders: needed by RequestLoggingFilter
 class AuthControllerTest {
 
     // JenkinsProperties needs no test setup: the application class's
