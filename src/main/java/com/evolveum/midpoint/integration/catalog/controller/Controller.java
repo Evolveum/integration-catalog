@@ -164,10 +164,9 @@ public class Controller {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             log.warn("uploadConnector rejected: {}", e.getMostSpecificCause().getMessage());
+            // The cause names the constraint and the values; it stays in the log above.
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "Publish failed due to a data conflict (e.g. duplicate bundle version). " +
-                "Please ensure the database migration 03_fix_bundle_version_unique_constraint.sql has been applied. " +
-                "Details: " + e.getMostSpecificCause().getMessage());
+                "Publish failed due to a data conflict (e.g. duplicate bundle version).");
         }
     }
 
@@ -282,7 +281,7 @@ public class Controller {
             throw ex;
         } catch (IllegalArgumentException ex) {
             log.warn("cancelRequest rejected: {}", ex.getMessage());
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            throw ClientErrors.notFound(ex);
         } catch (Exception ex) {
             log.error("cancelRequest failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -509,7 +508,7 @@ public class Controller {
         } catch (RuntimeException e) {
             if (e.getMessage() != null && e.getMessage().contains("not found")) {
                 log.warn("updateApplication rejected: {}", e.getMessage());
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+                throw ClientErrors.notFound(e);
             }
             log.error("updateApplication failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -580,7 +579,7 @@ public class Controller {
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
                 log.warn("uploadTutorial rejected: {}", ex.getMessage());
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+                throw ClientErrors.notFound(ex);
             }
             log.error("uploadTutorial failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -661,7 +660,7 @@ public class Controller {
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
                 log.warn("deleteLogo rejected: {}", ex.getMessage());
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+                throw ClientErrors.notFound(ex);
             }
             log.error("deleteLogo failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,

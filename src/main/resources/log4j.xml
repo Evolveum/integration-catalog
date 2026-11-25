@@ -31,7 +31,8 @@
         <appender-ref ref="time-file-appender"/>
     </root>
 
-    <!-- Our own package logs at DEBUG; inherits the root appenders (no duplicate file writes). -->
-    <logger name="com.evolveum.midpoint.integration.catalog" level="DEBUG"/>
+    <!-- Our own package logs at INFO like the rest. For more detail when debugging, start with
+         -Dlogging.level.com.evolveum.midpoint.integration.catalog=DEBUG, never commit it here. -->
+    <logger name="com.evolveum.midpoint.integration.catalog" level="INFO"/>
 
 </configuration>

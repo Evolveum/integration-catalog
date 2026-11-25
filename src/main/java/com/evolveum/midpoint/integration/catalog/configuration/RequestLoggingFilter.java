@@ -46,7 +46,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         // Before the chain, while the response is not committed yet.
-        traceHeaders.addTo(response);
+        traceHeaders.addTo(request, response);
         String uri = request.getRequestURI();
         if (!uri.startsWith("/api/")) {
             // Only log REST API traffic, not SPA static-resource forwarding.

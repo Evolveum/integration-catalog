@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.configuration;
 import io.micrometer.tracing.TraceContext;
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.propagation.Propagator;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,8 @@ public class TraceHeaders {
 
     /** Response header carrying the request's trace context, in the W3C traceparent format. */
     public static final String RESPONSE_HEADER = "traceparent";
+
+    private static final String TRACE_ID_ATTRIBUTE = TraceHeaders.class.getName() + ".traceId";
 
     private final Tracer tracer;
     private final Propagator propagator;
@@ -59,11 +62,21 @@ public class TraceHeaders {
         return request;
     }
 
-    public void addTo(HttpServletResponse response) {
+    /**
+     * Sets the response header, and keeps the trace id on the request for the error page, which
+     * runs after the trace is closed.
+     */
+    public void addTo(HttpServletRequest request, HttpServletResponse response) {
         TraceContext context = tracer.currentTraceContext().context();
         if (context != null) {
             response.setHeader(RESPONSE_HEADER, traceparent(context));
+            request.setAttribute(TRACE_ID_ATTRIBUTE, context.traceId());
         }
+    }
+
+    /** The trace id the request was served under, or null. */
+    public static String traceIdOf(HttpServletRequest request) {
+        return request.getAttribute(TRACE_ID_ATTRIBUTE) instanceof String traceId ? traceId : null;
     }
 
     /** version-traceid-spanid-flags, see https://www.w3.org/TR/trace-context/ */
