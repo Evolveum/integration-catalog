@@ -9,6 +9,7 @@ package com.evolveum.midpoint.integration.catalog.service;
 import com.evolveum.midpoint.integration.catalog.common.ItemFile;
 import com.evolveum.midpoint.integration.catalog.configuration.GithubProperties;
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.evolveum.midpoint.integration.catalog.dto.AddConnectorDto;
 import com.evolveum.midpoint.integration.catalog.dto.ApplicationTagDto;
 import com.evolveum.midpoint.integration.catalog.dto.EditConnectorDto;
@@ -89,6 +90,7 @@ public class ConnectorUploadService {
     private final TutorialStorageService tutorialStorageService;
     private final OwnershipService ownershipService;
     private final ApplicationEventPublisher events;
+    private final TraceHeaders traceHeaders;
 
     private record ApplicationResolution(
             Application application,
@@ -393,7 +395,7 @@ public class ConnectorUploadService {
                     .max(java.util.Comparator.comparingInt(ConnectorVersion::getId))
                     .orElse(null);
 
-            JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties);
+            JenkinsClient jenkinsClient = new JenkinsClient(jenkinsProperties, traceHeaders);
             HttpResponse<String> response = jenkinsClient.triggerJob(
                     Map.ofEntries(
                             Map.entry("REPOSITORY_URL", gitCloneUrl),
@@ -410,8 +412,8 @@ public class ConnectorUploadService {
                             Map.entry("SKIP_DEPLOY", "false"),
                             Map.entry("CONNECTOR_CLASS", classNames),
                             Map.entry("PATH_TO_PROJECT", pathToProject)));
-            log.info("Jenkins job triggered for bundle version {}/{} with {} connector class(es): {}",
-                    cbv.getId(), cbv.getRevision(), versions.size(), response.body());
+            log.info("Jenkins job triggered for bundle version {}/{} with {} connector class(es) (HTTP {})",
+                    cbv.getId(), cbv.getRevision(), versions.size(), response.statusCode());
             return response.body();
         } catch (Exception e) {
             log.error("Failed to trigger Jenkins pipeline: {}", e.getMessage());
@@ -616,7 +618,7 @@ public class ConnectorUploadService {
         }
         setConditionallyLifecycleState(draft, Set.of(LifecycleType.IN_REVIEW), LifecycleType.REVIEWING);
         draft.setReviewedBy(username);
-        log.info("Started review of integration method {}/{} by {}", methodId, revision, username);
+        log.info("Started review of integration method {}/{}", methodId, revision);
     }
 
     private void setConditionallyLifecycleState(IntegrationMethod draft, Set<LifecycleType> inStates, LifecycleType newState) {
@@ -662,7 +664,7 @@ public class ConnectorUploadService {
         }
         setConditionallyLifecycleState(draft, Set.of(LifecycleType.REVIEWING), LifecycleType.IN_REVIEW);
         draft.setReviewedBy(null);
-        log.info("Stopped review of integration method {}/{} by {}", methodId, revision, username);
+        log.info("Stopped review of integration method {}/{}", methodId, revision);
     }
 
     /**
@@ -710,8 +712,8 @@ public class ConnectorUploadService {
                     application.getId(), methodId, revision);
         }
 
-        log.info("Published integration method {}/{} by {}; superseded {} active revision(s) of major {}",
-                methodId, revision, username, superseded.size(), major);
+        log.info("Published integration method {}/{}; superseded {} active revision(s) of major {}",
+                methodId, revision, superseded.size(), major);
     }
 
     /**
@@ -783,7 +785,7 @@ public class ConnectorUploadService {
         draft.setReviewedBy(username);
         // Reject the connectors introduced with this revision too (mirrors promoteConnectorsToActive).
         rejectConnectorsOfMethod(draft);
-        log.info("Rejected integration method {}/{} by {}", methodId, revision, username);
+        log.info("Rejected integration method {}/{}", methodId, revision);
     }
 
     /**
@@ -826,7 +828,7 @@ public class ConnectorUploadService {
         if (workPackageId != null) {
             events.publishEvent(new IntegrationMethodCancelledEvent(methodId, revision, workPackageId, username));
         }
-        log.info("Cancelled integration method {}/{} by {}{}", methodId, revision, username,
+        log.info("Cancelled integration method {}/{}{}", methodId, revision,
                 deleteApplication ? "; deleted its application " + application.getId() : "");
         return deleteApplication;
     }

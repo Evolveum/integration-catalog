@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.integration;
 
 import com.evolveum.midpoint.integration.catalog.configuration.JenkinsProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -24,10 +25,12 @@ public class JenkinsClient {
 
     private final JenkinsProperties properties;
     private final HttpClient client;
+    private final TraceHeaders traceHeaders;
 
-    public JenkinsClient(JenkinsProperties properties) {
+    public JenkinsClient(JenkinsProperties properties, TraceHeaders traceHeaders) {
         this.properties = properties;
         this.client = HttpClient.newHttpClient();
+        this.traceHeaders = traceHeaders;
     }
 
     public HttpResponse<String> triggerJob(Map<String, String> parameters) throws IOException, InterruptedException {
@@ -37,9 +40,9 @@ public class JenkinsClient {
                 .queryParams(MultiValueMap.fromSingleValue(parameters))
                 .build().toUri();
 
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = traceHeaders.addTo(HttpRequest.newBuilder()
                 .uri(uri)
-                .header("Authorization", basicAuthHeader());
+                .header("Authorization", basicAuthHeader()));
 
         HttpRequest request = requestBuilder.POST(HttpRequest.BodyPublishers.noBody()).build();
 

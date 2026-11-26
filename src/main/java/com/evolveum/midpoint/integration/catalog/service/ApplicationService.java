@@ -202,7 +202,7 @@ public class ApplicationService {
 
     @Transactional
     public String uploadIntegration(UploadIntegrationDto dto, String username) {
-        log.info("uploadIntegration user={}", username);
+        log.info("uploadIntegration");
         limitApplicationTags(dto.application(), username);
         if (dto.connector() != null && dto.connector().existingConnectorId() != null) {
             assertMayLinkConnector(username, dto.connector().existingConnectorId());
@@ -242,14 +242,14 @@ public class ApplicationService {
     @Transactional
     public String editIntegrationMethod(UUID methodId, String currentRevision, EditIntegrationMethodDto dto,
                                         String username) {
-        log.info("editIntegrationMethod methodId={} revision={} user={}", methodId, currentRevision, username);
+        log.info("editIntegrationMethod methodId={} revision={}", methodId, currentRevision);
         authService.assertCanEditMethod(username, methodId, currentRevision);
         return connectorUploadService.editIntegrationMethod(methodId, currentRevision, dto);
     }
 
     @Transactional
     public void startReviewIntegrationMethod(UUID methodId, String revision, String username) {
-        log.info("startReviewIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        log.info("startReviewIntegrationMethod methodId={} revision={}", methodId, revision);
         // Starting a review is a superuser-only action, mirroring approve/reject (the client already
         // restricts it to superusers; this is the server-side enforcement).
         if (!authService.isSuperuser(username)) {
@@ -261,7 +261,7 @@ public class ApplicationService {
 
     @Transactional
     public void stopReviewIntegrationMethod(UUID methodId, String revision, String username) {
-        log.info("stopReviewIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        log.info("stopReviewIntegrationMethod methodId={} revision={}", methodId, revision);
         // Stopping a review is a superuser-only action, mirroring start-review.
         if (!authService.isSuperuser(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -272,7 +272,7 @@ public class ApplicationService {
 
     @Transactional
     public void approveIntegrationMethod(UUID methodId, String revision, String username) {
-        log.info("approveIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        log.info("approveIntegrationMethod methodId={} revision={}", methodId, revision);
         // Approving a revision is a superuser-only action (the client already restricts it to
         // superusers; this is the server-side enforcement).
         if (!authService.isSuperuser(username)) {
@@ -300,7 +300,7 @@ public class ApplicationService {
 
     @Transactional
     public void rejectIntegrationMethod(UUID methodId, String revision, String username) {
-        log.info("rejectIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        log.info("rejectIntegrationMethod methodId={} revision={}", methodId, revision);
         if (!authService.isSuperuser(username)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Only a superuser may reject an integration method.");
@@ -311,7 +311,7 @@ public class ApplicationService {
     /** Whoever may edit the revision may withdraw it; returns whether its application went too. */
     @Transactional
     public boolean cancelIntegrationMethod(UUID methodId, String revision, String username) {
-        log.info("cancelIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        log.info("cancelIntegrationMethod methodId={} revision={}", methodId, revision);
         authService.assertCanEditMethod(username, methodId, revision);
         return connectorUploadService.cancelIntegrationMethod(methodId, revision, username);
     }
@@ -319,7 +319,7 @@ public class ApplicationService {
     @Transactional
     public String addConnectorToIntegrationMethod(UUID methodId, String revision,
                                                   AddConnectorDto dto, String username) {
-        log.info("addConnectorToIntegrationMethod methodId={} revision={} user={}", methodId, revision, username);
+        log.info("addConnectorToIntegrationMethod methodId={} revision={}", methodId, revision);
         authService.assertCanEditMethod(username, methodId, revision);
         if (dto.existingConnectorId() != null) {
             assertMayLinkConnector(username, dto.existingConnectorId());
@@ -330,7 +330,7 @@ public class ApplicationService {
     @Transactional
     public void updateConnector(UUID methodId, String revision, Integer connectorId, EditConnectorDto dto,
                                 String username) {
-        log.info("updateConnector methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
+        log.info("updateConnector methodId={} revision={} connectorId={}", methodId, revision, connectorId);
         // A connector is gated on its own maintainer, not the IM's: the IM maintainer must not
         // be able to edit a connector maintained by someone else (a superuser still can).
         authService.assertCanEditConnector(username, methodId, revision, connectorId);
@@ -340,7 +340,7 @@ public class ApplicationService {
     @Transactional
     public void deleteConnectorFromIntegrationMethod(UUID methodId, String revision, Integer connectorId,
                                                      String username) {
-        log.info("deleteConnectorFromIntegrationMethod methodId={} revision={} connectorId={} user={}", methodId, revision, connectorId, username);
+        log.info("deleteConnectorFromIntegrationMethod methodId={} revision={} connectorId={}", methodId, revision, connectorId);
         authService.assertCanEditMethod(username, methodId, revision);
         connectorUploadService.deleteConnectorFromIntegrationMethod(methodId, revision, connectorId);
     }
@@ -349,8 +349,8 @@ public class ApplicationService {
     public void updateConnectorCompatibility(UUID methodId, String revision, Integer connectorId,
                                              String connectorVersionFrom, String connectorVersionTo,
                                              String username) {
-        log.info("updateConnectorCompatibility methodId={} revision={} connectorId={} from={} to={} user={}",
-                methodId, revision, connectorId, connectorVersionFrom, connectorVersionTo, username);
+        log.info("updateConnectorCompatibility methodId={} revision={} connectorId={} from={} to={}",
+                methodId, revision, connectorId, connectorVersionFrom, connectorVersionTo);
         authService.assertCanEditMethod(username, methodId, revision);
         connectorUploadService.updateConnectorCompatibility(methodId, revision, connectorId,
                 connectorVersionFrom, connectorVersionTo);
@@ -460,7 +460,7 @@ public class ApplicationService {
 
     @Transactional
     public Request createRequestFromForm(RequestFormDto dto, String requester) {
-        log.info("createRequestFromForm requester={}", requester);
+        log.info("createRequestFromForm");
         return requestVotingService.createRequestFromForm(dto, requester);
     }
 
@@ -473,7 +473,7 @@ public class ApplicationService {
     }
 
     public Vote submitVote(Long requestId, String voter) {
-        log.info("submitVote requestId={} voter={}", requestId, voter);
+        log.info("submitVote requestId={}", requestId);
         return requestVotingService.submitVote(requestId, voter);
     }
 
@@ -487,7 +487,7 @@ public class ApplicationService {
 
     /** The requester may cancel their own request; a superuser may cancel any. */
     public void cancelRequest(Long requestId, String username) {
-        log.info("cancelRequest requestId={} user={}", requestId, username);
+        log.info("cancelRequest requestId={}", requestId);
         Request request = requestVotingService.getRequest(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
         boolean isRequester = request.getRequester() != null
@@ -618,7 +618,7 @@ public class ApplicationService {
      */
     @Transactional
     public String triggerBuild(UUID oid, TriggerBuildForm triggerBuildForm, String username) {
-        log.info("triggerBuild oid={} user={}", oid, username);
+        log.info("triggerBuild oid={}", oid);
         authService.assertCanEditMethod(username, oid, triggerBuildForm.getIntegrationMethodRevision());
         ConnectorVersion connectorVersion = RepositoryUtil.findConnectorVersion(
                 triggerBuildForm.getConnectorVersionId(),
