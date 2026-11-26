@@ -1,7 +1,7 @@
 <configuration>
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %class{36}.%M %L - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:--}] %class{36}.%M %L - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -15,7 +15,7 @@
             <maxHistory>24</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %class{36}.%M %L - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:--}] %class{36}.%M %L - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -31,7 +31,8 @@
         <appender-ref ref="time-file-appender"/>
     </root>
 
-    <!-- Our own package logs at DEBUG; inherits the root appenders (no duplicate file writes). -->
-    <logger name="com.evolveum.midpoint.integration.catalog" level="DEBUG"/>
+    <!-- Our own package logs at INFO like the rest. For more detail when debugging, start with
+         -Dlogging.level.com.evolveum.midpoint.integration.catalog=DEBUG, never commit it here. -->
+    <logger name="com.evolveum.midpoint.integration.catalog" level="INFO"/>
 
 </configuration>

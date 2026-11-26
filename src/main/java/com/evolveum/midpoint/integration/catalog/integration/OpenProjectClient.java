@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.integration;
 
 import com.evolveum.midpoint.integration.catalog.configuration.OpenProjectProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -50,10 +51,12 @@ public class OpenProjectClient {
     private final OpenProjectProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient client;
+    private final TraceHeaders traceHeaders;
 
-    public OpenProjectClient(OpenProjectProperties properties) {
+    public OpenProjectClient(OpenProjectProperties properties, TraceHeaders traceHeaders) {
         this.properties = properties;
         this.client = buildClient(properties);
+        this.traceHeaders = traceHeaders;
     }
 
 
@@ -84,12 +87,12 @@ public class OpenProjectClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (isFailed(response)) {
             throw new IOException("Support portal rejected the work package (HTTP "
-                    + response.statusCode() + "): " + response.body());
+                    + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
         JsonNode created = objectMapper.readTree(response.body());
         JsonNode id = created.get("id");
         if (id == null || !id.isInt()) {
-            throw new IOException("Support portal returned a work package without a numeric id: " + response.body());
+            throw new IOException("Support portal returned a work package without a numeric id.");
         }
         return id.intValue();
     }
@@ -129,7 +132,7 @@ public class OpenProjectClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (isFailed(response)) {
             String detail = "Support portal rejected attachment '" + fileName + "' on work package "
-                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body();
+                    + workPackageId + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body());
             if (isTooLarge(response.statusCode(), response.body())) {
                 throw new AttachmentTooLargeException(detail);
             }
@@ -182,7 +185,7 @@ public class OpenProjectClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (isFailed(response)) {
             throw new IOException("Support portal could not be queried for the attachments of work package "
-                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
+                    + workPackageId + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
 
         JsonNode collection = objectMapper.readTree(response.body());
@@ -222,7 +225,7 @@ public class OpenProjectClient {
         }
         if (isFailed(response)) {
             throw new IOException("Support portal refused to delete attachment " + attachmentId
-                    + " (HTTP " + response.statusCode() + "): " + response.body());
+                    + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
         return true;
     }
@@ -237,7 +240,7 @@ public class OpenProjectClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (isFailed(response)) {
             throw new IOException("Support portal could not be asked who the catalog signs in as (HTTP "
-                    + response.statusCode() + "): " + response.body());
+                    + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
         return idOf(objectMapper.readTree(response.body()));
     }
@@ -259,7 +262,7 @@ public class OpenProjectClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (isFailed(response)) {
             throw new IOException("Support portal rejected a comment on work package " + workPackageId
-                    + " (HTTP " + response.statusCode() + "): " + response.body());
+                    + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
     }
 
@@ -309,8 +312,8 @@ public class OpenProjectClient {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (isFailed(response)) {
-            throw new IOException("Support portal could not be queried for user '" + value
-                    + "' (HTTP " + response.statusCode() + "): " + response.body());
+            throw new IOException("Support portal could not be queried for a user (HTTP "
+                    + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
         JsonNode elements = objectMapper.readTree(response.body()).path("_embedded").path("elements");
         return elements.isArray() ? elements : objectMapper.createArrayNode();
@@ -337,7 +340,7 @@ public class OpenProjectClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (isFailed(response)) {
             throw new IOException("Support portal refused to add user " + userId + " as a watcher of "
-                    + workPackageId + " (HTTP " + response.statusCode() + "): " + response.body());
+                    + workPackageId + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
     }
 
@@ -422,7 +425,7 @@ public class OpenProjectClient {
         }
         if (isFailed(response)) {
             throw new IOException("Support portal rejected an update of work package " + workPackageId
-                    + " (HTTP " + response.statusCode() + "): " + response.body());
+                    + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
         return Optional.of(current.get().path("description").path("raw").asText(""));
     }
@@ -439,7 +442,7 @@ public class OpenProjectClient {
         }
         if (isFailed(response)) {
             throw new IOException("Support portal could not be queried for work package " + workPackageId
-                    + " (HTTP " + response.statusCode() + "): " + response.body());
+                    + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
         return Optional.of(objectMapper.readTree(response.body()));
     }
@@ -455,17 +458,17 @@ public class OpenProjectClient {
         }
         if (isFailed(response)) {
             throw new IOException("Couldn't get info about status with base url path " + statusHref
-                    + " (HTTP " + response.statusCode() + "): " + response.body());
+                    + " (HTTP " + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
         return Optional.of(objectMapper.readTree(response.body()));
     }
 
     private HttpRequest.Builder authorized(String uri) {
-        return HttpRequest.newBuilder()
+        return traceHeaders.addTo(HttpRequest.newBuilder()
                 .uri(URI.create(uri))
                 .timeout(properties.timeout())
                 .header("Accept", "application/json")
-                .header("Authorization", basicAuthHeader());
+                .header("Authorization", basicAuthHeader()));
     }
 
     private String basicAuthHeader() {

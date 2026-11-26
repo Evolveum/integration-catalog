@@ -102,7 +102,7 @@ public class IntegrationMethodController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
             log.error("editIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -129,7 +129,7 @@ public class IntegrationMethodController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
             log.error("startReviewIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -156,7 +156,7 @@ public class IntegrationMethodController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
             log.error("stopReviewIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -183,7 +183,7 @@ public class IntegrationMethodController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
             log.error("approveIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -210,7 +210,7 @@ public class IntegrationMethodController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
             log.error("rejectIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -238,7 +238,7 @@ public class IntegrationMethodController {
             throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
         } catch (RuntimeException e) {
             log.error("cancelIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -263,7 +263,7 @@ public class IntegrationMethodController {
             throw e;
         } catch (RuntimeException e) {
             log.error("addConnectorToIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -297,11 +297,11 @@ public class IntegrationMethodController {
             throw e;
         } catch (RuntimeException e) {
             // Logged before it is turned into a status: everything that reaches here becomes a 404
-            // carrying only the exception's own message, so an unexpected failure would otherwise
-            // leave no trace at all - and read to the user as "not found".
+            // without the exception's details, so an unexpected failure would otherwise leave no
+            // trace at all - and read to the user as "not found".
             log.error("Failed to update connector {} of integration method {}/{}",
                     connectorId, methodId, revision, e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -326,7 +326,7 @@ public class IntegrationMethodController {
             throw e;
         } catch (RuntimeException e) {
             log.error("updateConnectorCompatibility failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -350,7 +350,7 @@ public class IntegrationMethodController {
             throw e;
         } catch (RuntimeException e) {
             log.error("deleteConnectorFromIntegrationMethod failed: {}", e.getMessage(), e);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 
@@ -372,7 +372,7 @@ public class IntegrationMethodController {
         } catch (RuntimeException ex) {
             if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
                 log.warn("uploadTutorialForRevision rejected: {}", ex.getMessage());
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+                throw ClientErrors.notFound(ex);
             }
             log.error("uploadTutorialForRevision failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -415,7 +415,7 @@ public class IntegrationMethodController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (RuntimeException ex) {
             log.error("downloadTutorialFile failed: {}", ex.getMessage(), ex);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            throw ClientErrors.notFound(ex);
         } catch (IOException ex) {
             log.error("downloadTutorialFile failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -454,7 +454,7 @@ public class IntegrationMethodController {
             return responseBuilder.body(bundle.data());
         } catch (IllegalArgumentException ex) {
             log.warn("downloadBundle rejected: {}", ex.getMessage());
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
+            throw ClientErrors.notFound(ex);
         } catch (IOException ex) {
             log.error("downloadBundle failed: {}", ex.getMessage(), ex);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -500,7 +500,7 @@ public class IntegrationMethodController {
             return ResponseEntity.ok(supportTicketService.getStatusOfWorkPackage(methodId, revision, viewer(authentication)));
         } catch (IllegalArgumentException e) {
             log.warn("getSupportTicket rejected: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw ClientErrors.notFound(e);
         }
     }
 }

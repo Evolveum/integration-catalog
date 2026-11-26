@@ -7,6 +7,7 @@
 package com.evolveum.midpoint.integration.catalog.integration;
 
 import com.evolveum.midpoint.integration.catalog.configuration.GraviteeProperties;
+import com.evolveum.midpoint.integration.catalog.configuration.TraceHeaders;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -41,10 +42,12 @@ public class GraviteeClient {
     private final GraviteeProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient client;
+    private final TraceHeaders traceHeaders;
 
-    public GraviteeClient(GraviteeProperties properties) {
+    public GraviteeClient(GraviteeProperties properties, TraceHeaders traceHeaders) {
         this.properties = properties;
         this.client = HttpClient.newBuilder().connectTimeout(properties.timeout()).build();
+        this.traceHeaders = traceHeaders;
     }
 
     /** The key as Gravitee minted it: its id, the value the user sees once, and its own expiration. */
@@ -163,7 +166,7 @@ public class GraviteeClient {
         }
         if (response.statusCode() / 100 != 2) {
             throw new IOException("Gravitee refused to close the subscription (HTTP "
-                    + response.statusCode() + "): " + response.body());
+                    + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
     }
 
@@ -218,7 +221,7 @@ public class GraviteeClient {
         }
         if (response.statusCode() / 100 != 2) {
             throw new IOException("Gravitee refused to revoke the API key (HTTP "
-                    + response.statusCode() + "): " + response.body());
+                    + response.statusCode() + ")" + ErrorResponses.detail(response.body()));
         }
     }
 
@@ -267,10 +270,10 @@ public class GraviteeClient {
     }
 
     private HttpRequest.Builder authorized(String url) {
-        return HttpRequest.newBuilder(URI.create(url))
+        return traceHeaders.addTo(HttpRequest.newBuilder(URI.create(url))
                 .timeout(properties.timeout())
                 .header("Authorization", "Bearer " + properties.token())
-                .header("Accept", "application/json");
+                .header("Accept", "application/json"));
     }
 
     /** Sends the request and parses the body, turning a non-2xx into a readable failure. */
@@ -278,7 +281,7 @@ public class GraviteeClient {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() / 100 != 2) {
             throw new IOException("Gravitee refused to " + action + " (HTTP " + response.statusCode()
-                    + "): " + response.body());
+                    + ")" + ErrorResponses.detail(response.body()));
         }
         return response.body() == null || response.body().isBlank()
                 ? objectMapper.createObjectNode()

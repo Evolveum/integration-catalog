@@ -110,7 +110,7 @@ public class ApiKeyService {
                     }
                 }
             } catch (IOException e) {
-                LOGGER.warn("Could not read the keys of application {}; listing them as recorded.", application.getName(), e);
+                LOGGER.warn("Could not read the keys of application {}; listing them as recorded.", application.getId(), e);
                 continue;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -145,7 +145,7 @@ public class ApiKeyService {
      */
     @Transactional
     public CreatedApiKeyDto create(OidcUser user, CreateApiKeyRequestDto request) {
-        LOGGER.info("createApiKey user={}", user.getName());
+        LOGGER.info("createApiKey");
         checkRequiredConfiguration();
         String name = request.name() == null ? "" : request.name().trim();
         if (name.isEmpty()) {
@@ -231,7 +231,7 @@ public class ApiKeyService {
      */
     @Transactional
     public CreatedApiKeyDto renew(OidcUser user, String id) {
-        LOGGER.info("renewApiKey id={} user={}", id, user.getName());
+        LOGGER.info("renewApiKey id={}", id);
         checkRequiredConfiguration();
         // Locked: a second rotation of the same key (double click, second tab) waits here and is then
         // refused, instead of renewing again and recording the first new key without its grace end.
@@ -289,7 +289,7 @@ public class ApiKeyService {
      */
     @Transactional
     public void revoke(OidcUser user, String id) {
-        LOGGER.info("revokeApiKey id={} user={}", id, user.getName());
+        LOGGER.info("revokeApiKey id={}", id);
         checkRequiredConfiguration();
         // Locked like renew: a revoke racing a rotation could close the subscription without
         // seeing the new key, leaving it listed as working.
