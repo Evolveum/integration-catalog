@@ -16,6 +16,7 @@ import com.evolveum.midpoint.integration.catalog.object.GraviteeApplication;
 import com.evolveum.midpoint.integration.catalog.object.GraviteeSubscription;
 import com.evolveum.midpoint.integration.catalog.repository.GraviteeApiKeyRepository;
 import com.evolveum.midpoint.integration.catalog.repository.GraviteeApplicationRepository;
+import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -43,18 +44,27 @@ public class ApiKeyService {
 
     private static final int HINT_LENGTH = 4;
 
+    static final String METADATA_USERNAME = "username";
+    static final String METADATA_EMAIL = "email";
+    static final String METADATA_CATEGORY = "category";
+    static final String CATEGORY_INTERNAL = "internal";
+    static final String CATEGORY_EXTERNAL = "external";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ApiKeyService.class);
 
     private final GraviteeApplicationRepository graviteeApplicationRepository;
     private final GraviteeApiKeyRepository graviteeApiKeyRepository;
     private final GraviteeClient gravitee;
     private final GraviteeProperties properties;
+    private final CatalogClaims claims;
 
-    public ApiKeyService(GraviteeApplicationRepository graviteeApplicationRepository, GraviteeApiKeyRepository graviteeApiKeyRepository, GraviteeClient gravitee, GraviteeProperties properties) {
+    public ApiKeyService(GraviteeApplicationRepository graviteeApplicationRepository, GraviteeApiKeyRepository graviteeApiKeyRepository,
+            GraviteeClient gravitee, GraviteeProperties properties, CatalogClaims claims) {
         this.graviteeApplicationRepository = graviteeApplicationRepository;
         this.graviteeApiKeyRepository = graviteeApiKeyRepository;
         this.gravitee = gravitee;
         this.properties = properties;
+        this.claims = claims;
     }
 
     /**
@@ -149,6 +159,7 @@ public class ApiKeyService {
             // One application per key: Gravitee refuses a second live subscription of the same
             // application to the same plan, so a shared per-user application would allow one key.
             String applicationId = gravitee.createApplication(username, name);
+            addOwnerMetadata(applicationId, user);
 
             GraviteeApplication application = new GraviteeApplication();
             application.setId(UUID.fromString(applicationId));
@@ -193,6 +204,24 @@ public class ApiKeyService {
             Thread.currentThread().interrupt();
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "The API key creation was interrupted.", e);
         }
+    }
+
+    /**
+     * Tags the application with who owns it and whether they are internal (members of
+     * gravitee.internalOrganization) or external (anyone else, including users without an
+     * organization), so keys can be counted per category in Gravitee. Done before any subscription
+     * exists: a failure here aborts the creation before a key is minted.
+     */
+    private void addOwnerMetadata(String applicationId, OidcUser user) throws IOException, InterruptedException {
+        gravitee.addApplicationMetadata(applicationId, METADATA_USERNAME, user.getName(), "STRING");
+        String email = user.getEmail();
+        // STRING, not MAIL: Gravitee answers a MAIL value it cannot validate with a 500, which would
+        // block the key over an informational field.
+        if (email != null && !email.isBlank()) {
+            gravitee.addApplicationMetadata(applicationId, METADATA_EMAIL, email, "STRING");
+        }
+        String category = claims.belongsTo(user, properties.internalOrganization()) ? CATEGORY_INTERNAL : CATEGORY_EXTERNAL;
+        gravitee.addApplicationMetadata(applicationId, METADATA_CATEGORY, category, "STRING");
     }
 
     /**

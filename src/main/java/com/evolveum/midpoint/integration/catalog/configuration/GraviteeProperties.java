@@ -25,7 +25,10 @@ public record GraviteeProperties(
         String token,
 
         /** How long a management call may take; a key is minted while the user waits. */
-        Duration timeout
+        Duration timeout,
+
+        /** Alias of the organization whose members' keys are tagged internal; everyone else is external. */
+        String internalOrganization
 ) {
 
     public record Api(
@@ -40,6 +43,7 @@ public record GraviteeProperties(
     public GraviteeProperties {
         organizationId = blankToDefault(organizationId, "DEFAULT");
         environmentId = blankToDefault(environmentId, "DEFAULT");
+        internalOrganization = blankToDefault(internalOrganization, "evolveum");
         Objects.requireNonNull(timeout, "gravitee.timeout must be set");
     }
 

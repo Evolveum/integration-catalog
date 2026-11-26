@@ -76,6 +76,20 @@ public class GraviteeClient {
     }
 
     /**
+     * Adds one metadata entry to an application. Gravitee derives the entry's key from its name.
+     */
+    public void addApplicationMetadata(String applicationId, String name, String value, String format)
+            throws IOException, InterruptedException {
+        ObjectNode body = objectMapper.createObjectNode()
+                .put("name", name)
+                .put("value", value)
+                .put("format", format);
+
+        send(post(properties.managementV1Base() + "/applications/" + applicationId + "/metadata", body),
+                "add the application metadata " + name);
+    }
+
+    /**
      * Subscribes an application to the catalog's API-key plan; one subscription is one key.
      *
      * @return the subscription id

@@ -16,6 +16,7 @@ import com.evolveum.midpoint.integration.catalog.object.GraviteeApplication;
 import com.evolveum.midpoint.integration.catalog.object.GraviteeSubscription;
 import com.evolveum.midpoint.integration.catalog.repository.GraviteeApiKeyRepository;
 import com.evolveum.midpoint.integration.catalog.repository.GraviteeApplicationRepository;
+import com.evolveum.midpoint.integration.catalog.security.CatalogClaims;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -85,17 +86,28 @@ class GraviteeApiKeyServiceTest {
 
     /** Named by preferred_username, as the OIDC registration's user-name-attribute configures. */
     private static OidcUser user() {
-        OidcIdToken idToken = OidcIdToken.withTokenValue("token")
+        return user(null, null);
+    }
+
+    /** olivia with an optional email and organization claim. */
+    private static OidcUser user(String email, Object organization) {
+        OidcIdToken.Builder idToken = OidcIdToken.withTokenValue("token")
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(300))
                 .subject("olivia-subject")
-                .claim("preferred_username", "olivia")
-                .build();
-        return new DefaultOidcUser(List.of(), idToken, "preferred_username");
+                .claim("preferred_username", "olivia");
+        if (email != null) {
+            idToken.claim("email", email);
+        }
+        if (organization != null) {
+            idToken.claim("organization", organization);
+        }
+        return new DefaultOidcUser(List.of(), idToken.build(), "preferred_username");
     }
 
     private ApiKeyService serviceWith(GraviteeProperties properties) {
-        return new ApiKeyService(applicationRepository, apiKeyRepository, gravitee, properties);
+        return new ApiKeyService(applicationRepository, apiKeyRepository, gravitee, properties,
+                new CatalogClaims("roles", "organization"));
     }
 
     private ApiKeyService service() {
@@ -103,11 +115,11 @@ class GraviteeApiKeyServiceTest {
     }
 
     private static GraviteeProperties configuredFor(List<GraviteeProperties.Api> apis) {
-        return new GraviteeProperties("http://localhost:8083", null, null, apis, "token", TIMEOUT);
+        return new GraviteeProperties("http://localhost:8083", null, null, apis, "token", TIMEOUT, null);
     }
 
     private static GraviteeProperties unconfigured() {
-        return new GraviteeProperties(null, null, null, null, null, TIMEOUT);
+        return new GraviteeProperties(null, null, null, null, null, TIMEOUT, null);
     }
 
     // ---- fixture: an application of olivia's with one subscription, keys linked both ways ----
@@ -186,6 +198,53 @@ class GraviteeApiKeyServiceTest {
                 () -> service().create(user(), new CreateApiKeyRequestDto("My key", Instant.now().plus(400, ChronoUnit.DAYS))));
 
         assertEquals(HttpStatus.BAD_REQUEST, failure.getStatusCode());
+    }
+
+    // ---- create: owner metadata ----
+
+    @Test
+    void evolveumMemberIsTaggedInternalWithUsernameAndEmail() throws Exception {
+        createsApplicationWithKey("the-secret");
+
+        service().create(user("olivia@evolveum.com", List.of("acme", "evolveum")), new CreateApiKeyRequestDto("My key", null));
+
+        verify(gravitee).addApplicationMetadata(APP_ID.toString(), "username", "olivia", "STRING");
+        verify(gravitee).addApplicationMetadata(APP_ID.toString(), "email", "olivia@evolveum.com", "STRING");
+        verify(gravitee).addApplicationMetadata(APP_ID.toString(), "category", "internal", "STRING");
+    }
+
+    @Test
+    void memberOfAnotherOrganizationIsTaggedExternal() throws Exception {
+        createsApplicationWithKey("the-secret");
+
+        service().create(user("olivia@acme.com", List.of("acme")), new CreateApiKeyRequestDto("My key", null));
+
+        verify(gravitee).addApplicationMetadata(APP_ID.toString(), "category", "external", "STRING");
+    }
+
+    @Test
+    void userWithoutOrganizationOrEmailIsTaggedExternalAndGetsNoEmailEntry() throws Exception {
+        createsApplicationWithKey("the-secret");
+
+        service().create(user(), new CreateApiKeyRequestDto("My key", null));
+
+        verify(gravitee).addApplicationMetadata(APP_ID.toString(), "username", "olivia", "STRING");
+        verify(gravitee, never()).addApplicationMetadata(anyString(), eq("email"), any(), anyString());
+        verify(gravitee).addApplicationMetadata(APP_ID.toString(), "category", "external", "STRING");
+    }
+
+    @Test
+    void refusedMetadataAbortsBeforeAnySubscription() throws Exception {
+        createsApplicationWithKey("the-secret");
+        doThrow(new IOException("refused")).when(gravitee)
+                .addApplicationMetadata(anyString(), eq("username"), anyString(), anyString());
+
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class,
+                () -> service().create(user(), new CreateApiKeyRequestDto("My key", null)));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, failure.getStatusCode());
+        verify(gravitee, never()).createSubscription(anyString(), anyString(), anyString());
+        verify(applicationRepository, never()).save(any());
     }
 
     // ---- create ----

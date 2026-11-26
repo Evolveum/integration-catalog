@@ -57,6 +57,11 @@ public class CatalogClaims {
         return organizationNames(oidcUser).stream().findFirst().orElse(null);
     }
 
+    /** Whether any organization in the claim has the given alias, not only the first one. */
+    public boolean belongsTo(OidcUser oidcUser, String organizationAlias) {
+        return organizationNames(oidcUser).stream().anyMatch(organizationAlias::equalsIgnoreCase);
+    }
+
     /**
      * All organization aliases in the claim. The claim is an array of aliases when the provider
      * emits strings, and an object keyed by alias when it emits JSON; both shapes are accepted.
