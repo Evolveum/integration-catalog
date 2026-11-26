@@ -42,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -801,8 +802,49 @@ public class ConnectorUploadService {
             throw new IllegalStateException("Only in-review revisions can be cancelled: " + methodId + "/" + revision);
         }
 
-        Application application = draft.getApplication();
         Integer workPackageId = draft.getSupportTicketId();
+        Application application = draft.getApplication();
+        boolean deleteApplication = deleteUnpublishedRevision(draft);
+
+        if (workPackageId != null) {
+            events.publishEvent(new IntegrationMethodCancelledEvent(methodId, revision, workPackageId, username));
+        }
+        log.info("Cancelled integration method {}/{} by {}{}", methodId, revision, username,
+                deleteApplication ? "; deleted its application " + application.getId() : "");
+        return deleteApplication;
+    }
+
+    /**
+     * Deletes a revision that has been REJECTED since before {@code rejectedBefore}, as cancelling
+     * does. Its work package is left alone: the review there is already over.
+     *
+     * @return false when the revision is gone or no longer qualifies, e.g. resubmitted meanwhile
+     */
+    @Transactional
+    public boolean purgeRejectedIntegrationMethod(UUID methodId, String revision, LocalDateTime rejectedBefore) {
+        Optional<IntegrationMethod> found = integrationMethodRepository.findById(new IntegrationMethodId(methodId, revision));
+        if (found.isEmpty() || found.get().getLifecycleState() != LifecycleType.REJECTED
+                || !found.get().getUpdated().isBefore(rejectedBefore)) {
+            return false;
+        }
+        Application application = found.get().getApplication();
+        boolean deleteApplication = deleteUnpublishedRevision(found.get());
+        log.info("Purged integration method {}/{} rejected since {}{}", methodId, revision,
+                found.get().getUpdated(), deleteApplication ? "; deleted its application " + application.getId() : "");
+        return true;
+    }
+
+    /**
+     * Deletes a never-approved revision with its tutorial, the connectors it introduced, and the
+     * application too when that revision was all a never-published application had, so no app is
+     * left stuck in review with nothing to review.
+     *
+     * @return whether the application was deleted too
+     */
+    private boolean deleteUnpublishedRevision(IntegrationMethod draft) {
+        UUID methodId = draft.getId();
+        String revision = draft.getRevision();
+        Application application = draft.getApplication();
         List<Connector> linkedConnectors = draft.getConnectors().stream()
                 .map(IntegrationMethodConnector::getConnector)
                 .filter(Objects::nonNull)
@@ -822,12 +864,6 @@ public class ConnectorUploadService {
         if (deleteApplication) {
             applicationRepository.delete(application);
         }
-
-        if (workPackageId != null) {
-            events.publishEvent(new IntegrationMethodCancelledEvent(methodId, revision, workPackageId, username));
-        }
-        log.info("Cancelled integration method {}/{} by {}{}", methodId, revision, username,
-                deleteApplication ? "; deleted its application " + application.getId() : "");
         return deleteApplication;
     }
 
